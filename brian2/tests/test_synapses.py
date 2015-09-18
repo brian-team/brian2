@@ -3,13 +3,15 @@ import tempfile
 
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
+                                 assert_array_equal)
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
 from brian2.core.variables import variables_by_owner, ArrayVariable
+from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import restore_device, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
@@ -116,6 +118,10 @@ def test_connection_arrays():
     assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
     assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
                                                 np.ones((3, 1), dtype=np.int32)))
+    assert_raises(IndexError, lambda: S.connect([41, 42], [0, 1]))  # source index > max
+    assert_raises(IndexError, lambda: S.connect([0, 1], [16, 17]))  # target index > max
+    assert_raises(IndexError, lambda: S.connect([0, -1], [0, 1]))  # source index < 0
+    assert_raises(IndexError, lambda: S.connect([0, 1], [0, -1]))  # target index < 0
     assert_raises(ValueError, lambda: S.connect('i==j',
                                                 post=np.arange(10)))
     assert_raises(TypeError, lambda: S.connect('i==j',
@@ -855,10 +861,14 @@ def test_variables_by_owner():
     # Check that the variables returned as owned by the pre/post groups are the
     # variables stored in the respective groups. We only compare the `Variable`
     # objects, as the names may be different (e.g. ``v_post`` vs. ``v``)
-    assert set(G.variables.values()) == set(variables_by_owner(S.variables, G).values())
-    assert set(G2.variables.values()) == set(variables_by_owner(S.variables, G2).values())
-    assert len(set(variables_by_owner(S.variables, S)) & set(G.variables.values())) == 0
-    assert len(set(variables_by_owner(S.variables, S)) & set(G2.variables.values())) == 0
+    G_variables = {key: value for key, value in G.variables.iteritems()
+                   if value.owner.name==G.name}  # exclude dt
+    G2_variables = {key: value for key, value in G2.variables.iteritems()
+                    if value.owner.name==G2.name}
+    assert set(G_variables.values()) == set(variables_by_owner(S.variables, G).values())
+    assert set(G2_variables.values()) == set(variables_by_owner(S.variables, G2).values())
+    assert len(set(variables_by_owner(S.variables, S)) & set(G_variables.values())) == 0
+    assert len(set(variables_by_owner(S.variables, S)) & set(G2_variables.values())) == 0
     # Just test a few examples for synaptic variables
     assert all(varname in variables_by_owner(S.variables, S)
                for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])
@@ -876,47 +886,172 @@ def check_permutation_code(code):
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
     variables = dict()
+    variables.update(DEFAULT_FUNCTIONS)
     for var in indices:
         variables[var] = ArrayVariable(var, 1, None, 10, device)
     variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
     check_for_order_independence(vector_statements, variables, indices)
-    
+
+def numerically_check_permutation_code(code):
+    # numerically checks that a code block used in the test below is permutation-independent by creating a
+    # presynaptic and postsynaptic group of 3 neurons each, and a full connectivity matrix between them, then
+    # repeatedly filling in random values for each of the variables, and checking for several random shuffles of
+    # the synapse order that the result doesn't depend on it. This is a sort of test of the test itself, to make
+    # sure we didn't accidentally assign a good/bad example to the wrong class.
+    code = deindent(code)
+    from collections import defaultdict
+    vars = get_identifiers(code)
+    indices = defaultdict(lambda: '_idx')
+    vals = {}
+    for var in vars:
+        if var.endswith('_syn'):
+            indices[var] = '_idx'
+            vals[var] = zeros(9)
+        elif var.endswith('_pre'):
+            indices[var] ='_presynaptic_idx'
+            vals[var] = zeros(3)
+        elif var.endswith('_post'):
+            indices[var] = '_postsynaptic_idx'
+            vals[var] = zeros(3)
+    subs = dict((var, var+'['+idx+']') for var, idx in indices.iteritems())
+    code = word_substitute(code, subs)
+    code = '''
+from numpy import *
+from numpy.random import rand, randn
+for _idx in shuffled_indices:
+    _presynaptic_idx = presyn[_idx]
+    _postsynaptic_idx = postsyn[_idx]
+{code}
+    '''.format(code=indent(code))
+    ns = vals.copy()
+    ns['shuffled_indices'] = arange(9)
+    ns['presyn'] = arange(9)%3
+    ns['postsyn'] = arange(9)/3
+    for _ in xrange(10):
+        origvals = {}
+        for k, v in vals.iteritems():
+            v[:] = randn(len(v))
+            origvals[k] = v.copy()
+        exec code in ns
+        endvals = {}
+        for k, v in vals.iteritems():
+            endvals[k] = v.copy()
+        for _ in xrange(10):
+            for k, v in vals.iteritems():
+                v[:] = origvals[k]
+            shuffle(ns['shuffled_indices'])
+            exec code in ns
+            for k, v in vals.iteritems():
+                try:
+                    assert_allclose(v, endvals[k])
+                except AssertionError:
+                    raise OrderDependenceError()
+
+SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = False
+
+permutation_analysis_good_examples = [
+    'v_post += w_syn',
+    'v_post *= w_syn',
+    'v_post = v_post + w_syn',
+    'v_post = v_post * w_syn',
+    'v_post = w_syn * v_post',
+    'v_post += 1',
+    'v_post = 1',
+    'v_post += v_post # NOT_UFUNC_AT_VECTORISABLE',
+    #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
+    'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
+    'v_post += u_post',
+    'v_post += w_syn*v_pre',
+    'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
+    'v_post -= sin(v_post) # NOT_UFUNC_AT_VECTORISABLE',
+    'v_post += v_pre',
+    'v_pre += v_post',
+    'w_syn = v_pre',
+    'w_syn = a_syn',
+    'w_syn += a_syn',
+    'w_syn *= a_syn',
+    'w_syn -= a_syn',
+    'w_syn /= a_syn',
+    'w_syn += 1',
+    'w_syn *= 2',
+    '''
+    w_syn = a_syn
+    a_syn += 1
+    ''',
+    'v_post *= 2',
+    'v_post *= w_syn',
+    '''
+    v_pre = 0
+    w_syn = v_pre
+    ''',
+    '''
+    ge_syn += w_syn
+    Apre_syn += 3
+    w_syn = clip(w_syn + Apost_syn, 0, 10)
+    ''',
+    '''
+    a_syn = v_pre
+    v_post += a_syn
+    ''',
+    '''
+    v_post += v_post # NOT_UFUNC_AT_VECTORISABLE
+    v_post += v_post
+    ''',
+    '''
+    v_post += 1
+    x = v_post
+    ''',
+    ]
+
+permutation_analysis_bad_examples = [
+    'v_pre = w_syn',
+    'v_post = v_pre',
+    'v_post = w_syn',
+    'v_post += w_syn+v_post',
+    'v_post += rand()', # rand() has state, and therefore this is order dependent
+    '''
+    a_syn = v_post
+    v_post += w_syn
+    ''',
+    '''
+    x = w_syn
+    v_pre = x
+    ''',
+    '''
+    x = v_pre
+    v_post = x
+    ''',
+    '''
+    v_post += v_pre
+    v_pre += v_post
+    ''',
+    '''
+    b_syn = v_post
+    v_post += a_syn
+    ''',
+    '''
+    v_post += w_syn
+    u_post += v_post
+    ''',
+    '''
+    v_post += 1
+    w_syn = v_post
+    ''',
+    ]
+
 @attr('codegen-independent')
 def test_permutation_analysis():
     # Examples that should work
-    good_examples = [
-        'v_post += w_syn',
-        'v_post *= w_syn',
-        'v_post = v_post + w_syn',
-        'v_post = v_post * w_syn',
-        'v_post = w_syn * v_post',
-        'v_post += 1',
-        'v_post = 1',
-        'w_syn = v_pre',
-        'w_syn = a_syn',
-        'w_syn += a_syn',
-        'w_syn *= a_syn',
-        'w_syn += 1',
-        'w_syn *= 2',
-        '''
-        w_syn = a_syn
-        a_syn += 1
-        ''',
-        'v_post *= 2',
-        'v_post *= w_syn',
-        '''
-        v_pre = 0
-        w_syn = v_pre
-        ''',
-        '''
-        ge_syn += w_syn
-        Apre_syn += 3
-        w_syn = clip(w_syn + Apost_syn, 0, 10)
-        ''',
-    ]
-    for example in good_examples:
+    for example in permutation_analysis_good_examples:
+        if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
+            try:
+                numerically_check_permutation_code(example)
+            except OrderDependenceError:
+                raise AssertionError(('Test unexpectedly raised a numerical '
+                                      'OrderDependenceError on these '
+                                      'statements:\n') + example)
         try:
             check_permutation_code(example)
         except OrderDependenceError:
@@ -924,17 +1059,16 @@ def test_permutation_analysis():
                                   'OrderDependenceError on these '
                                   'statements:\n') + example)
 
-    bad_examples = [
-        'v_pre = w_syn',
-        'v_post = v_pre',
-        '''
-        a_syn = v_post
-        v_post += w_syn
-        '''
-    ]
-    for example in bad_examples:
-        assert_raises(OrderDependenceError, check_permutation_code, example)
-
+    for example in permutation_analysis_bad_examples:
+        if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
+            try:
+                assert_raises(OrderDependenceError, numerically_check_permutation_code, example)
+            except AssertionError:
+                raise AssertionError("Order dependence not raised numerically for example: "+example)
+        try:
+            assert_raises(OrderDependenceError, check_permutation_code, example)
+        except AssertionError:
+            raise AssertionError("Order dependence not raised for example: "+example)
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -1002,8 +1136,101 @@ def test_vectorisation_STDP_like():
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
                     rtol=1e-6, atol=1e-12)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_synapses_to_synapses():
+    source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
+    modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
+    target = NeuronGroup(3, 'v : integer')
+    conn = Synapses(source, target, 'w : integer', pre='v += w', connect='i==j')
+    conn.w = 1
+    modulatory_conn = Synapses(modulator, conn, pre='w += 1', connect='i==j')
+    run(5*ms)
+    # First group has its weight increased to 2 after the first spike
+    # Third group has its weight increased to 2 after the second spike
+    assert_array_equal(target.v, [5, 3, 4])
+
+
+def test_ufunc_at_vectorisation():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+    for code in permutation_analysis_good_examples:
+        should_be_able_to_use_ufunc_at = not 'NOT_UFUNC_AT_VECTORISABLE' in code
+        if should_be_able_to_use_ufunc_at:
+            use_ufunc_at_list = [False, True]
+        else:
+            use_ufunc_at_list = [True]
+        code = deindent(code)
+        vars = get_identifiers(code)
+        vars_src = []
+        vars_tgt = []
+        vars_syn = []
+        for var in vars:
+            if var.endswith('_pre'):
+                vars_src.append(var[:-4])
+            if var.endswith('_post'):
+                vars_tgt.append(var[:-5])
+            if var.endswith('_syn'):
+                vars_syn.append(var[:-4])
+        eqs_src = '\n'.join(var+':1' for var in vars_src)
+        eqs_tgt = '\n'.join(var+':1' for var in vars_tgt)
+        eqs_syn = '\n'.join(var+':1' for var in vars_syn)
+        origvals = {}
+        endvals = {}
+        try:
+            BrianLogger._log_messages.clear()
+            with catch_logs() as caught_logs:
+                for use_ufunc_at in use_ufunc_at_list:
+                    NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
+                    src = NeuronGroup(3, eqs_src, threshold='True', name='src')
+                    tgt = NeuronGroup(3, eqs_tgt, name='tgt')
+                    syn = Synapses(src, tgt, eqs_syn, pre=code.replace('_syn', ''), connect=True, name='syn')
+                    for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
+                        for var in vars:
+                            fullvar = var+G.name
+                            if fullvar in origvals:
+                                G.state(var)[:] = origvals[fullvar]
+                            else:
+                                val = rand(len(G))
+                                G.state(var)[:] = val
+                                origvals[fullvar] = val.copy()
+                    Network(src, tgt, syn).run(defaultclock.dt)
+                    for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
+                        for var in vars:
+                            fullvar = var+G.name
+                            val = G.state(var)[:].copy()
+                            if fullvar in endvals:
+                                assert_allclose(val, endvals[fullvar])
+                            else:
+                                endvals[fullvar] = val
+                if should_be_able_to_use_ufunc_at:
+                    assert len(caught_logs)==0
+                else:
+                    assert len(caught_logs)==1
+                    log_lev, log_mod, log_msg = caught_logs[0]
+                    assert log_lev=='WARNING'
+                    assert log_mod=='brian2.codegen.generators.numpy_generator'
+                    assert log_msg.startswith('Failed to vectorise code')
+        finally:
+            NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_synapses_to_synapses_summed_variable():
+    source = NeuronGroup(5, '', threshold='False')
+    target = NeuronGroup(5, '')
+    conn = Synapses(source, target, 'w : integer', connect='i==j')
+    conn.w = 1
+    summed_conn = Synapses(source, conn, '''w_post = x : integer (summed)
+                                            x : integer''', connect='i>=j')
+    summed_conn.x = 'i'
+    run(defaultclock.dt)
+    assert_array_equal(conn.w[:], [10, 10, 9, 7, 4])
+
 
 if __name__ == '__main__':
+    SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
     import time
@@ -1044,5 +1271,8 @@ if __name__ == '__main__':
     test_permutation_analysis()
     test_vectorisation()
     test_vectorisation_STDP_like()
+    test_synapses_to_synapses()
+    test_synapses_to_synapses_summed_variable()
+    test_ufunc_at_vectorisation()
 
     print 'Tests took', time.time()-start

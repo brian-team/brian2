@@ -25,9 +25,10 @@ ready for use:
 * General utility functions: ``clip``, ``floor``, ``ceil``
 
 Brian also provides a special purpose function ``int``, which can be used to
-convert a boolean expression or variable into an integer value of 0 or 1. This
-is useful to have a conditional evaluation as part of an equation or statement.
-This sometimes allows to circumvent the lack of an ``if`` statement. For
+convert a an expression or variable into an integer value. This is especially
+useful for boolean values (which will be converted into 0 or 1), for example to
+have a conditional evaluation as part of an equation or statement which
+sometimes allows to circumvent the lack of an ``if`` statement. For
 example, the following reset statement resets the variable `v` to either `v_r1`
 or `v_r2`, depending on the value of `w`:
 ``'v = v_r1 * int(w <= 0.5) + v_r2 * int(w > 0.5)'``
@@ -153,7 +154,6 @@ will only receive values for the neurons that just spiked.
 
 Additional namespace
 ~~~~~~~~~~~~~~~~~~~~
-
 Some functions need additional data to compute a result, e.g. a `TimedArray`
 needs access to the underlying array. For the ``numpy`` target, a function can
 simply use a reference to an object defined outside the function, there is no

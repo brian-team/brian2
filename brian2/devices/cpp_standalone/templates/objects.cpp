@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 
 #include "objects.h"
@@ -10,11 +9,6 @@
 #include<vector>
 #include<iostream>
 #include<fstream>
-
-//////////////// clocks ///////////////////
-{% for clock in clocks | sort(attribute='name') %}
-Clock brian::{{clock.name}}({{clock.dt_}});
-{% endfor %}
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -51,15 +45,17 @@ const int brian::_num_{{name}} = {{N}};
 //////////////// synapses /////////////////
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
-Synapses<double> brian::{{S.name}}({{S.source|length}}, {{S.target|length}});
 {% for path in S._pathways | sort(attribute='name') %}
 SynapticPathway<double> brian::{{path.name}}(
-		{{path.source|length}}, {{path.target|length}},
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
-		{{path.source.dt_}},
 		{{path.source.start}}, {{path.source.stop}});
 {% endfor %}
+{% endfor %}
+
+//////////////// clocks ///////////////////
+{% for clock in clocks | sort(attribute='name') %}
+Clock brian::{{clock.name}};  // attributes will be set in run.cpp
 {% endfor %}
 
 // Profiling information for each code object
@@ -140,7 +136,7 @@ void _write_arrays()
 	outfile_{{varname}}.open("{{get_array_filename(var) | replace('\\', '\\\\')}}", ios::binary | ios::out);
 	if(outfile_{{varname}}.is_open())
 	{
-		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{varname}}[0]));
+		outfile_{{varname}}.write(reinterpret_cast<char*>({{varname}}), {{var.size}}*sizeof({{get_array_name(var)}}[0]));
 		outfile_{{varname}}.close();
 	} else
 	{
@@ -281,7 +277,6 @@ extern const int _num_{{name}};
 //////////////// synapses /////////////////
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
-extern Synapses<double> {{S.name}};
 {% for path in S._pathways | sort(attribute='name') %}
 extern SynapticPathway<double> {{path.name}};
 {% endfor %}

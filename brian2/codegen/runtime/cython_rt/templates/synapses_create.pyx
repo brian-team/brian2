@@ -1,7 +1,11 @@
 {% extends 'common.pyx' %}
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
-                 N_incoming, N_outgoing }
+                 N_incoming, N_outgoing, N,
+                 N_pre, N_post, _source_offset, _target_offset }
+#}
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                   N_incoming, N_outgoing, N}
 #}
 # ITERATE_ALL { _idx }
 
@@ -13,14 +17,14 @@ cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int _curbuf = 0
 
-cdef void _flush_buffer(buf, dynarr, int N):
+cdef void _flush_buffer(buf, dynarr, int buf_len):
     _curlen = dynarr.shape[0]
-    _newlen = _curlen+N
+    _newlen = _curlen+buf_len
     # Resize the array
     dynarr.resize(_newlen)
     # Get the potentially newly created underlying data arrays
     data = dynarr.data
-    data[_curlen:_curlen+N] = buf[:N]
+    data[_curlen:_curlen+buf_len] = buf[:buf_len]
     
 {% endblock %}
 
@@ -32,7 +36,14 @@ cdef void _flush_buffer(buf, dynarr, int N):
     cdef int* _postbuf_ptr = &(_postbuf[0])
 
     global _curbuf
-    
+
+    # Resize N_incoming and N_outgoing according to the size of the
+    # source/target groups
+    _var_N_incoming.resize(N_post + _target_offset)
+    _var_N_outgoing.resize(N_pre + _source_offset)
+    cdef {{cpp_dtype(variables['N_incoming'].dtype)}}[:] _N_incoming = {{_dynamic_N_incoming}}.data.view(_numpy.{{numpy_dtype(variables['N_incoming'].dtype)}})
+    cdef {{cpp_dtype(variables['N_outgoing'].dtype)}}[:] _N_outgoing = {{_dynamic_N_outgoing}}.data.view(_numpy.{{numpy_dtype(variables['N_outgoing'].dtype)}})
+
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
@@ -59,8 +70,8 @@ cdef void _flush_buffer(buf, dynarr, int N):
                     if _rand(_vectorisation_idx)>=_p:
                         continue
                 for _repetition in range(_n):
-                    {{N_outgoing}}[_pre_idx] += 1
-                    {{N_incoming}}[_post_idx] += 1
+                    _N_outgoing[_pre_idx] += 1
+                    _N_incoming[_post_idx] += 1
                     _prebuf_ptr[_curbuf] = _pre_idx
                     _postbuf_ptr[_curbuf] = _post_idx
                     _curbuf += 1
@@ -76,7 +87,8 @@ cdef void _flush_buffer(buf, dynarr, int N):
     _curbuf = 0  # reset the buffer for the next run
 
     newsize = len({{_dynamic__synaptic_pre}})
-    # now we need to resize all registered variables (via Python)
+    # now we need to resize all registered variables and set the total number
+    # of synapse (via Python)
     _owner._resize(newsize)
 
 {% endblock %}

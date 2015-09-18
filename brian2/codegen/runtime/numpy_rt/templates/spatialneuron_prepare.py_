@@ -26,7 +26,7 @@ for _first in {{_starts}}:
 
 {{ab_star0}}[1:] = {{_invr}}[1:] / {{area}}[:-1]
 {{ab_star2}}[:-1] = {{_invr}}[1:] / {{area}}[1:]
-{{ab_star1}}[:] = (-({{Cm}} / dt) - {{_invr}} / {{area}})
+{{ab_star1}}[:] = (-({{Cm}} / {{dt}}) - {{_invr}} / {{area}})
 {{ab_star1}}[:-1] -= {{_invr}}[1:] / {{area}}[:-1]
 # Homogeneous solutions
 {{ab_plus0}}[:] = {{ab_star0}}

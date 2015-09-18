@@ -61,6 +61,6 @@ def test_poissoninput_errors():
 
 
 if __name__ == '__main__':
-    test_poissoninput()
-    restore_device()
+    # test_poissoninput()
+    # restore_device()
     test_poissoninput_errors()

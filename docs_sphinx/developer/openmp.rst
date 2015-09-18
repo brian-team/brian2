@@ -19,9 +19,7 @@ all the Brian operations that can easily be performed in parallel, such as
 computing the equations for `NeuronGroup`, `Synapses`, and so on can and should
 be split among several threads. The network construction, so far, is still
 performed only by one single thread, and all created objects are shared by all
-the threads. This is only during the `run` function that all the objects are
-executed within a global parallel environment, meaning that all operations will
-be performed on all the threads, if multi-threading is activated.
+the threads.
 
 Use of ``#pragma`` flags
 ========================
@@ -74,73 +72,20 @@ nothing if OpenMP is turned off (default), and to::
 
 otherwise. When OpenMP creates a parallel context, this is the number of
 threads that will be used. As said, network creation is performed without
-any calls to OpenMP, on one single thread. The parallelism is only starting in
-the file ``devices/cpp_standalone/templates/network.cpp`` with the
-creation of a parallel context in the `run` function, as can be seen with::
+any calls to OpenMP, on one single thread. Each template that wants to use
+parallelism has to add ``{{ openmp_pragma{('parallel')}}`` to create a general
+block that will be executed in parallel or
+``{{ openmp_pragma{('parallel-static')}}`` to execute a single loop in parallel.
 
-    {{ openmp_pragma('parallel') }}
-    {
-        while(clock->running())
-        {
-          .....
-        }
-    }
-
-just before the loop over each time steps of the simulation. Therefore, from
-now on and until the end of the run() call, all operations are handled in 
-parallel, and will, by default, be executed on all the nodes. This is more
-efficient, creating the parallel context only once, reducing the overhead.
-Interestingly, as you can see in this `run` function, most of the clock
-operation are only handled by one node, thanks to:: 
-
-    {{ openmp_pragma('single') }}
-    {
-        ....
-    }
-
-This command is adding a #pragma flag such that only one node will update the
-clocks. Remembering that objects are shared by all threads, so we should not
-have multiple access. This flag is adding an implicit synchronization barrier
-such that all threads will be sync after such a block of operation. If such a
-synchronization is not needed, then you can use to ``single-nowait`` flag.
-
-How to make your template compatible with OpenMP
+How to make your template use OpenMP parallelism
 ================================================
-
-Use of ``IS_OPENMP_COMPATIBLE`` flag
-------------------------------------
-
-If an existing template is not compatible with OpenMP....
-
-
-Design of a non parallel template
----------------------------------
-
-If the template added can not be parallelized, such as for example a
-`SpikeMonitor` object, then most of its operations should be encapsulated within
-a ``single`` flag, such as::
-
-    {{ openmp_pragma('single-nowait') }}
-    {
-        ....
-    }
-
-By doing so, this will make sure that even when OpenMP is turned on,
-operations will be safely performed only by one node. This is the safest option,
-and this *should* be present each time you have a node that will manipulate data
-structures such as vector, performing operations such as ``push_back()``,
-affecting the data structure. Those operations should not be performed in
-parallel, leading to inconsistencies or segmentation faults.
-
-Design of a parallel template
------------------------------
 
 To design a parallel template, such as for example
 ``devices/cpp_standalone/templates/common_group.cpp``, you can see that as soon
 as you have loops that can safely be split across nodes, you just need to add
 an openmp command in front of those loops::
 
-    {{openmp_pragma('static')}} 
+    {{openmp_pragma('parallel-static')}}
     for(int _idx=0; _idx<N; _idx++)
     {
         ...
@@ -157,53 +102,21 @@ merge portions of code executed by only one node and portions executed in
 parallel. In this template, for example, only one node is recording the time and
 extending the size of the arrays to store the recorded values::
 
-    {{ openmp_pragma('single') }}
     {{_dynamic_t}}.push_back(_clock_t);
 
     // Resize the dynamic arrays
-    {{ openmp_pragma('single') }}
     {{_recorded}}.resize(_new_size, _num_indices);
 
 But then, values are written in the arrays by all the nodes::
 
-    {{ openmp_pragma('static') }}
+    {{ openmp_pragma('parallel-static') }}
     for (int _i = 0; _i < _num_indices; _i++)
     {
         ....
     }
 
-Initialization of the arrays
-----------------------------
-
-Even if we said that all network creation was performed outside of the main
-parallel context, created in the run() loop of network.cpp, there are still some
-other parallel contexts that are created and destroyed while initializing the
-arrays. This can be seen in ``devices/cpp_standalone/templates/objects.cpp``,
-especially in the function _init_arrays(). Because those calls are made outside
-a parallel context, we need to create one, and that's why there is a call to::
-
-    {{ openmp_pragma('parallel-static') }}
-
-that is transformed into::
-
-    #pragma omp parallel for schedule(static)
-
-This comment will create on the fly an OpenMP parallel context and destroy it
-just after the loop. This adds a little overhead, but those init calls are not
-numerous compared to the simulation.
-
-A similar idea can be found in
-``devices/cpp_standalone/templates/group_variable_set.cpp``: because this
-template is called outside the main ``run()`` loop, during network creation, we
-need to create a parallel context to perform OpenMP operations. This is why we
-are using there:: 
-
-    {{ openmp_pragma('parallel-static') }}
-
-instead of simply::
-
-    {{ openmp_pragma('static') }}
-
+In general, operations that manipulate global data structures, e.g. that use
+``push_back`` for a ``std::vector``, should only be executed by a single thread.
 
 Synaptic propagation in parallel
 ================================
@@ -221,10 +134,10 @@ the user::
 
 By doing so, a `SynapticPathway`, instead of handling only one `SpikeQueue`,
 will be divided into ``_nb_threads`` `SpikeQueue`\ s, each of them handling a
-subset of the total number of connections. Because all the calls to
-`SynapticPathway` object are performed within the ``run()`` loop of
-``devices/cpp_standalone/templates/network.cpp``, we have to assume that they
-are performed in a parallel context. This is why all the function of the 
+subset of the total number of connections. All the calls to
+`SynapticPathway` object are performed from within ``parallel`` blocks in the
+``synapses`` and ``synapses_push_spikes`` template, we have to take this
+parallel context into account. This is why all the function of the
 `SynapticPathway` object are taking care of the node number::
 
     void push(int *spikes, unsigned int nspikes)
@@ -240,10 +153,7 @@ Preparation of the `SynapticPathway`
 ------------------------------------
 
 Here we are explaining the implementation of the ``prepare()`` method for
-`SynapticPathway`. The preparation of the SynapticPathway is performed outside
-the `run` loop, therefore outside of a parallel context. If we want each thread
-to prepare its own subset of connections, we need to create a temporary parallel
-context::
+`SynapticPathway`::
 
         {{ openmp_pragma('parallel') }}
         {
@@ -259,7 +169,7 @@ context::
             queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[padding], &sources[padding], length, _dt);
         }
 
-Then, basically, each threads is getting an equal number of synapses (except the
+Basically, each threads is getting an equal number of synapses (except the
 last one, that will get the remaining ones, if the number is not a multiple of
 ``n_threads``), and the queues are receiving a padding integer telling them what
 part of the synapses belongs to each queue. After that, the parallel context is
@@ -313,4 +223,4 @@ If OpenMP is activated, this will add the following dependencies::
 
 such that if OpenMP is turned off, nothing, in the generated code, does depend
 on it.
-    
+

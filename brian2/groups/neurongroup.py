@@ -8,7 +8,7 @@ import sympy
 from pyparsing import Word
 
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER, BOOLEAN)
+                                        SUBEXPRESSION, PARAMETER)
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
@@ -23,7 +23,8 @@ from brian2.utils.stringtools import get_identifiers
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            have_same_dimensions,
-                                           DimensionMismatchError)
+                                           DimensionMismatchError,
+                                           fail_for_dimension_mismatch)
 
 
 from .group import Group, CodeRunner, get_dtype
@@ -113,6 +114,12 @@ class StateUpdater(CodeRunner):
             # No refractoriness
             abstract_code = ''
         elif isinstance(ref, Quantity):
+            fail_for_dimension_mismatch(ref, second, ('Refractory period has to '
+                                                      'be specified in units '
+                                                      'of seconds but got '
+                                                      '{value}'),
+                                        value=ref)
+
             abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
         else:
             identifiers = get_identifiers(ref)
@@ -363,7 +370,7 @@ class NeuronGroup(Group, SpikeSource):
     add_to_magic_network = True
 
     def __init__(self, N, model,
-                 method=('linear', 'euler', 'milstein'),
+                 method=('linear', 'euler', 'heun'),
                  threshold=None,
                  reset=None,
                  refractory=False,
@@ -497,12 +504,6 @@ class NeuronGroup(Group, SpikeSource):
 
         # Activate name attribute access
         self._enable_group_attributes()
-
-    def __len__(self):
-        '''
-        Return number of neurons in the group.
-        '''
-        return self.N
 
     @property
     def spikes(self):
@@ -740,12 +741,10 @@ class NeuronGroup(Group, SpikeSource):
                     constant = 'constant' in eq.flags
                     shared = 'shared' in eq.flags
                     size = 1 if shared else self._N
-                    index = '0' if shared else None
                     self.variables.add_array(eq.varname, size=size,
                                              unit=eq.unit, dtype=dtype,
                                              constant=constant,
-                                             scalar=shared,
-                                             index=index)
+                                             scalar=shared)
             elif eq.type == SUBEXPRESSION:
                 self.variables.add_subexpression(eq.varname, unit=eq.unit,
                                                  expr=str(eq.expr),

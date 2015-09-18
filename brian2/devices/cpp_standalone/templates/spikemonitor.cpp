@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
@@ -10,44 +9,41 @@
 
 	int32_t _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
 
-    {{ openmp_pragma('single-nowait') }}
+    if (_num_events > 0)
     {
-        if (_num_events > 0)
+        int _start_idx = _num_events;
+        int _end_idx = _num_events;
+        for(int _j=0; _j<_num_events; _j++)
         {
-            int _start_idx = _num_events;
-            int _end_idx = _num_events;
-            for(int _j=0; _j<_num_events; _j++)
+            const int _idx = {{_eventspace}}[_j];
+            if (_idx >= _source_start) {
+                _start_idx = _j;
+                break;
+            }
+        }
+        for(int _j=_start_idx; _j<_num_events; _j++)
+        {
+            const int _idx = {{_eventspace}}[_j];
+            if (_idx >= _source_stop) {
+                _end_idx = _j;
+                break;
+            }
+        }
+        _num_events = _end_idx - _start_idx;
+        if (_num_events > 0) {
+             const int _vectorisation_idx = 1;
+            {{scalar_code|autoindent}}
+            for(int _j=_start_idx; _j<_end_idx; _j++)
             {
                 const int _idx = {{_eventspace}}[_j];
-                if (_idx >= _source_start) {
-                    _start_idx = _j;
-                    break;
-                }
+                const int _vectorisation_idx = _idx;
+                {{vector_code|autoindent}}
+                {% for varname, var in record_variables.items() %}
+                {{get_array_name(var, access_data=False)}}.push_back(_to_record_{{varname}});
+                {% endfor %}
+                {{count}}[_idx-_source_start]++;
             }
-            for(int _j=_start_idx; _j<_num_events; _j++)
-            {
-                const int _idx = {{_eventspace}}[_j];
-                if (_idx >= _source_stop) {
-                    _end_idx = _j;
-                    break;
-                }
-            }
-            _num_events = _end_idx - _start_idx;
-            if (_num_events > 0) {
-                 const int _vectorisation_idx = 1;
-                {{scalar_code|autoindent}}
-                for(int _j=_start_idx; _j<_end_idx; _j++)
-                {
-                    const int _idx = {{_eventspace}}[_j];
-                    const int _vectorisation_idx = _idx;
-                    {{vector_code|autoindent}}
-                    {% for varname, var in record_variables.items() %}
-                    {{get_array_name(var, access_data=False)}}.push_back(_to_record_{{varname}});
-                    {% endfor %}
-                    {{count}}[_idx-_source_start]++;
-                }
-                {{N}}[0] += _num_events;
-            }
+            {{N}} += _num_events;
         }
     }
 
@@ -60,7 +56,7 @@ void _debugmsg_{{codeobj_name}}()
 	{# We need the pointers and constants here to get the access to N working #}
     %CONSTANTS%
     {{pointers_lines|autoindent}}
-	std::cout << "Number of spikes: " << {{N}}[0] << endl;
+	std::cout << "Number of spikes: " << {{N}} << endl;
 }
 {% endblock %}
 

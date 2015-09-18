@@ -1,13 +1,10 @@
 '''
 All Brian objects should derive from `BrianObject`.
 '''
-
-import gc
 import weakref
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2.core.clocks import Clock, defaultclock
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
 
@@ -50,11 +47,11 @@ class BrianObject(Nameable):
     '''    
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
-
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
 
         if not isinstance(when, basestring):
+            from brian2.core.clocks import Clock
             # Give some helpful error messages for users coming from the alpha
             # version
             if isinstance(when, Clock):
@@ -76,10 +73,15 @@ class BrianObject(Nameable):
         #: The clock used for simulating this object
         self._clock = clock
         if clock is None:
+            from brian2.core.clocks import Clock, defaultclock
             if dt is not None:
                 self._clock = Clock(dt=dt, name=self.name+'_clock*')
             else:
                 self._clock = defaultclock
+
+        if getattr(self._clock, '_is_proxy', False):
+            from brian2.devices.device import get_device
+            self._clock = get_device().defaultclock
 
         #: Used to remember the `Network` in which this object has been included
         #: before, to raise an error if it is included in a new `Network`

@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 #include <stdlib.h>
 #include "objects.h"
 #include <ctime>

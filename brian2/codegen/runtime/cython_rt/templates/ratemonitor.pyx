@@ -32,7 +32,7 @@
     _owner.resize(_new_len)
 
     # Set the new values
-    {{_dynamic_t}}.data[_new_len-1] = _clock_t
-    {{_dynamic_rate}}.data[_new_len-1] = _num_spikes/_clock_dt/_num_source_neurons
+    {{_dynamic_t}}.data[_new_len-1] = {{_clock_t}}
+    {{_dynamic_rate}}.data[_new_len-1] = _num_spikes/{{_clock_dt}}/_num_source_neurons
 
 {% endblock %}

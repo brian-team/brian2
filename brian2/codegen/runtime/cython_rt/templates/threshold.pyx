@@ -26,7 +26,7 @@
             _cpp_numevents += 1
             {% if _uses_refractory %}
             {{not_refractory}}[_idx] = False
-            {{lastspike}}[_idx] = t
+            {{lastspike}}[_idx] = {{t}}
             {% endif %}
             
     {{_eventspace}}[N] = _cpp_numevents

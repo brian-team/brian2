@@ -28,6 +28,8 @@ class NumpyCodeGenerator(CodeGenerator):
 
     class_name = 'numpy'
 
+    _use_ufunc_at_vectorisation = True # allow this to be off for testing only
+
     def translate_expression(self, expr):
         for varname, var in self.variables.iteritems():
             if isinstance(var, Function):
@@ -49,13 +51,18 @@ class NumpyCodeGenerator(CodeGenerator):
         return code
 
     def ufunc_at_vectorisation(self, statement, variables, indices,
-                               conditional_write_vars, created_vars, index):
-        '''
-        '''
+                               conditional_write_vars, created_vars, used_variables):
+        if not self._use_ufunc_at_vectorisation:
+            raise VectorisationError()
         # Avoids circular import
         from brian2.devices.device import device
 
-        # We assume that the code has passed the test for synapse order independence
+        # See https://github.com/brian-team/brian2/pull/531 for explanation
+        used = set(get_identifiers(statement.expr))
+        used = used.intersection(k for k in variables.keys() if k in indices and indices[k]!='_idx')
+        used_variables.update(used)
+        if statement.var in used_variables:
+            raise VectorisationError()
 
         expr = NumpyNodeRenderer().render_expr(statement.expr)
 
@@ -64,9 +71,7 @@ class NumpyCodeGenerator(CodeGenerator):
                 op = '='
             else:
                 op = statement.op
-            line = '{var} {op} {expr}'.format(var=statement.var,
-                                              op=op,
-                                              expr=expr)
+            line = '{var} {op} {expr}'.format(var=statement.var, op=op, expr=expr)
         elif statement.inplace:
             if statement.op == '+=':
                 ufunc_name = '_numpy.add'
@@ -79,10 +84,11 @@ class NumpyCodeGenerator(CodeGenerator):
             else:
                 raise VectorisationError()
 
-            line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(ufunc_name=ufunc_name,
-                                                                         array_name=device.get_array_name(variables[statement.var]),
-                                                                         idx=indices[statement.var],
-                                                                         expr=expr)
+            line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(
+                ufunc_name=ufunc_name,
+                array_name=device.get_array_name(variables[statement.var]),
+                idx=indices[statement.var],
+                expr=expr)
             line = self.conditional_write(line, statement, variables,
                                           conditional_write_vars=conditional_write_vars,
                                           created_vars=created_vars)
@@ -95,17 +101,17 @@ class NumpyCodeGenerator(CodeGenerator):
         return line
 
     def vectorise_code(self, statements, variables, variable_indices, index='_idx'):
-
-        # We treat every statement individually with its own read and write code
-        # to be on the safe side
-        lines = []
         created_vars = {stmt.var for stmt in statements if stmt.op == ':='}
-        for statement in statements:
-            lines.append('#  Abstract code:  {var} {op} {expr}'.format(var=statement.var,
-                                                                       op=statement.op,
-                                                                       expr=statement.expr))
-            read, write, indices, conditional_write_vars = self.arrays_helper([statement])
-            try:
+        try:
+            lines = []
+            used_variables = set()
+            for statement in statements:
+                lines.append('#  Abstract code:  {var} {op} {expr}'.format(var=statement.var,
+                                                                           op=statement.op,
+                                                                           expr=statement.expr))
+                # We treat every statement individually with its own read and write code
+                # to be on the safe side
+                read, write, indices, conditional_write_vars = self.arrays_helper([statement])
                 # We make sure that we only add code to `lines` after it went
                 # through completely
                 ufunc_lines = []
@@ -122,7 +128,8 @@ class NumpyCodeGenerator(CodeGenerator):
                                                                variable_indices,
                                                                conditional_write_vars,
                                                                created_vars,
-                                                               index=index))
+                                                               used_variables,
+                                                               ))
                 # Do not write back such values, the ufuncs have modified the
                 # underlying array already
                 if statement.inplace and variable_indices[statement.var] != '_idx':
@@ -131,26 +138,29 @@ class NumpyCodeGenerator(CodeGenerator):
                                                      variables,
                                                      variable_indices))
                 lines.extend(ufunc_lines)
-            except VectorisationError:
-                logger.warn("Failed to vectorise synapses code, falling back on Python loop: note that "
+        except VectorisationError:
+            if self._use_ufunc_at_vectorisation:
+                logger.warn("Failed to vectorise code, falling back on Python loop: note that "
                             "this will be very slow! Switch to another code generation target for "
-                            "best performance (e.g. cython or weave).",
+                            "best performance (e.g. cython or weave). First line is: "+str(statements[0]),
                             once=True)
-                lines.extend(['_full_idx = _idx',
-                              'for _idx in _full_idx:'])
-                lines.extend(indent(code) for code in
-                             self.read_arrays(read, write, indices,
-                                              variables, variable_indices))
+            lines = []
+            lines.extend(['_full_idx = _idx',
+                          'for _idx in _full_idx:'])
+            read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+            lines.extend(indent(code) for code in
+                         self.read_arrays(read, write, indices,
+                                          variables, variable_indices))
+            for statement in statements:
                 line = self.translate_statement(statement)
-                line = self.conditional_write(line, statement, variables,
-                                              conditional_write_vars,
-                                              created_vars)
-                lines.append(indent(line))
-                lines.extend(indent(code) for code in
-                             self.write_arrays(statements, read, write,
-                                               variables, variable_indices))
-                lines.append('_idx = _full_idx')
-
+                if statement.var in conditional_write_vars:
+                    lines.append(indent('if {}:'.format(conditional_write_vars[statement.var])))
+                    lines.append(indent(line, 2))
+                else:
+                    lines.append(indent(line))
+            lines.extend(indent(code) for code in
+                         self.write_arrays(statements, read, write,
+                                           variables, variable_indices))
         return lines
 
     def read_arrays(self, read, write, indices, variables, variable_indices):
@@ -209,7 +219,7 @@ class NumpyCodeGenerator(CodeGenerator):
             # multiple substitution passes are invoked
             repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
             for varname, var in variables.items():
-                if isinstance(var, ArrayVariable):
+                if isinstance(var, ArrayVariable) and not var.scalar:
                     subs[varname] = varname + '[' + repl_string + ']'
             # all newly created vars are arrays and will need indexing
             for varname in created_vars:
@@ -224,12 +234,7 @@ class NumpyCodeGenerator(CodeGenerator):
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
 
-        # Check whether we potentially deal with repeated indices (which will
-        # be the case most importantly when we write to pre- or post-synaptic
-        # variables in synaptic code)
-        used_indices = set(variable_indices[var] for var in write)
-        all_unique = all(variables[index].unique for index in used_indices
-                         if index not in ('_idx', '0'))
+        all_unique = not self.has_repeated_indices(statements)
 
         if scalar or all_unique:
             # Simple translation

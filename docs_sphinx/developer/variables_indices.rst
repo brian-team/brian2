@@ -8,9 +8,9 @@ generation process has to have access to information about the variables (their
 type, size, etc.) as well as to the indices that should be used for indexing
 arrays (e.g. a state variable of a `NeuronGroup` will be indexed differently in
 the `NeuronGroup` state updater and in synaptic propagation code). Most of this
-information is stored in the `variables` attribute of a `Group` (this includes
-`NeuronGroup`, `Synapses`, `PoissonGroup` and everything else that has state
-variables). The `variables` attribute can be accessed as a (read-only)
+information is stored in the `variables` attribute of a `VariableOwner` (this
+includes `NeuronGroup`, `Synapses`, `PoissonGroup` and everything else that has
+state variables). The `variables` attribute can be accessed as a (read-only)
 dictionary, mapping variable names to `Variable` objects storing the
 information about the respective variable. However, it is not a simple
 dictionary but an instance of the `Variables` class. Let's have a look at its
@@ -21,12 +21,12 @@ content for a simple example::
     >>> for name, var in G.variables.items():
     ...     print('%r : %s' % (name, var))
     ...
-    '_spikespace' : <ArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=False, is_bool=False, read_only=False)>
-    'i' : <ArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=True, is_bool=False, read_only=True)>
-    'N' : <Constant(unit=Unit(1),  dtype=<type 'numpy.int64'>, scalar=True, constant=True, is_bool=False, read_only=True)>
-    't' : AttributeVariable(unit=second, obj=<Clock defaultclock: t = 0.0 s, dt = 0.1 ms>, attribute='t_', constant=False)
-    'v' : <ArrayVariable(unit=volt,  dtype=<type 'numpy.float64'>, scalar=False, constant=False, is_bool=False, read_only=False)>
-    'dt' : AttributeVariable(unit=second, obj=<Clock defaultclock: t = 0.0 s, dt = 0.1 ms>, attribute='dt_', constant=True)
+   '_spikespace' : <ArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=False, read_only=False)>
+    'i' : <ArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=True, read_only=True)>
+    'N' : <Constant(unit=Unit(1),  dtype=<type 'numpy.int64'>, scalar=True, constant=True, read_only=True)>
+    't' : <ArrayVariable(unit=second,  dtype=<type 'numpy.float64'>, scalar=True, constant=False, read_only=True)>
+    'v' : <ArrayVariable(unit=volt,  dtype=<type 'numpy.float64'>, scalar=False, constant=False, read_only=False)>
+    'dt' : <ArrayVariable(unit=second,  dtype=<type 'float'>, scalar=True, constant=True, read_only=True)>
 
 The state variable ``v`` we specified for the `NeuronGroup` is represented as an
 `ArrayVariable`, all the other variables were added automatically. By
@@ -36,13 +36,13 @@ of this kind is ``'_spikespace'``, the internal datastructure used to store the
 spikes that occured in the current time step. There's another array ``i``, the
 neuronal indices (simply an array of integers from 0 to 9), that is used for
 string expressions involving neuronal indices. The constant ``N`` represents
-the total number of neurons, ``t`` the current time of the clock and ``dt`` the
-its timestep. For the latter two variables, ``AttributeVariable`` is used as
-these variables can change between runs (``dt``) or during a run (``t``). Using
-this variable type means that at the beginning of the run (if
-``constant == True``) or at every time step (if ``constant == False``),
-``getattr(obj, attribute)`` is executed and the resulting value is given to
-the `CodeObject` doing the computation.
+the total number of neurons. At the first sight it might be surprising that
+``t``, the current time of the clock and ``dt``, its timestep, are
+`ArrayVariable` objects as well. This is because those values can change during
+a run (for ``t``) or between runs (for ``dt``), and storing them as arrays with
+a single value (note the ``scalar=True``) is the easiest way to share this value
+-- all code accessing it only needs a reference to the array and can access its
+only element.
 
 The information stored in the `Variable` objects is used to do various checks
 on the level of the abstract code, i.e. before any programming language code is
@@ -71,7 +71,7 @@ individual variables can then be added using the various ``add_...`` methods::
     self.variables = Variables(self)
     self.variables.add_array('an_array', unit=volt, size=100)
     self.variables.add_constant('N', unit=Unit(1), value=self._N, dtype=np.int32)
-    self.variables.add_clock_variables(self.clock)
+    self.variables.create_clock_variables(self.clock)
 
 As an additional argument, array variables can be specified with a specific
 *index* (see `Indices`_ below).
@@ -179,17 +179,17 @@ The ``__setitem__`` and ``__getitem__`` methods in `VariableView` delegate to
 `VariableView.set_item` and `VariableView.get_item` respectively (which can also
 be called directly under special circumstances). They analyze the arguments (is
 the index a number, a slice or a string? Is the target value an array or a string
-expression?) and delegate the actual retrieval/setting of the values to a method
-of `Group`:
+expression?) and delegate the actual retrieval/setting of the values to a
+specific method:
 
-* Getting with a numerical (or slice) index (e.g. ``G.v[0]``): `Group.get_with_index_array`
-* Getting with a string index (e.g. ``G.v['i>3']``): `Group.get_with_expression`
+* Getting with a numerical (or slice) index (e.g. ``G.v[0]``): `VariableView.get_with_index_array`
+* Getting with a string index (e.g. ``G.v['i>3']``): `VariableView.get_with_expression`
 * Setting with a numerical (or slice) index and a numerical target value (e.g.
-  ``G.v[5:] = -70*mV``): `Group.set_with_index_array`
+  ``G.v[5:] = -70*mV``): `VariableView.set_with_index_array`
 * Setting with a numerical (or slice) index and a string expression value (e.g.
-  ``G.v[5:] = (-70+i)*mV``): `Group.set_with_expression`
+  ``G.v[5:] = (-70+i)*mV``): `VariableView.set_with_expression`
 * Setting with a string index and a string expression value (e.g.
-  ``G.v['i>5'] = (-70+i)*mV``): `Group.set_with_expression_conditional`
+  ``G.v['i>5'] = (-70+i)*mV``): `VariableView.set_with_expression_conditional`
 
 These methods are annotated with the `device_override` decorator and can
 therefore be implemented in a different way in certain devices. The standalone
@@ -199,9 +199,9 @@ not actually set the values but only note them down for later code generation.
 
 Additional variables and indices
 --------------------------------
-The variables stored in the ``variables`` attribute of a ``Group`` can be used
-everywhere (e.g. in the state updater, in the threshold, the reset, etc.).
-Objects that depend on these variables, e.g. the `Thresholder` of a
+The variables stored in the ``variables`` attribute of a `VariableOwner` can
+be used everywhere (e.g. in the state updater, in the threshold, the reset,
+etc.). Objects that depend on these variables, e.g. the `Thresholder` of a
 `NeuronGroup` add additional variables, in particular `AuxiliaryVariables` that
 are automatically added to the abstract code: a threshold condition ``v > 1``
 is converted into the statement ``_cond = v > 1``; to specify the meaning of

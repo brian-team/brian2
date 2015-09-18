@@ -9,10 +9,13 @@ import numpy as np
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+from brian2.core.clocks import Clock
+import brian2.core.clocks as clocks
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
 from brian2.core.functions import Function
+from brian2.units import ms
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import code_representation, indent
 
@@ -100,6 +103,8 @@ class Device(object):
         #: supports arbitrary schedules, it should be set to ``None`` (the
         #: default).
         self.network_schedule = None
+
+        self.defaultclock = None
 
     def get_array_name(self, var, access_data=True):
         '''
@@ -260,6 +265,8 @@ class Device(object):
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
                 pointer_name = generator.get_array_name(var)
+                if var.scalar:
+                    pointer_name += '[0]'
                 template_kwds[varname] = pointer_name
                 if hasattr(var, 'resize'):
                     dyn_array_name = generator.get_array_name(var,
@@ -291,7 +298,8 @@ class Device(object):
         '''
         Called when this device is set as the current device.
         '''
-        pass
+        if self.defaultclock is None:
+            self.defaultclock = Clock(dt=0.1*ms, name='defaultclock')
 
     def insert_device_code(self, slot, code):
         # Deprecated
@@ -315,7 +323,9 @@ class Device(object):
         Reinitialize the device. For standalone devices, clears all the internal
         state of the device.
         '''
-        pass
+        # Dummy call to set_device with the currently set device -- will trigger
+        # a new activate, important if we are reinitializing the current device
+        set_device(get_device())
     
     
 class RuntimeDevice(Device):
@@ -383,9 +393,6 @@ class RuntimeDevice(Device):
     def fill_with_array(self, var, arr):
         self.arrays[var][:] = arr
 
-    def init_with_array(self, var, arr):
-        self.arrays[var][:] = arr
-
     def spike_queue(self, source_start, source_end):
         # Use the C++ version of the SpikeQueue when available
         try:
@@ -396,12 +403,6 @@ class RuntimeDevice(Device):
             logger.info('Using the Python SpikeQueue', once=True)
 
         return SpikeQueue(source_start=source_start, source_end=source_end)
-
-
-runtime_device = RuntimeDevice()
-all_devices['runtime'] = runtime_device
-
-active_device = runtime_device
 
 
 class Dummy(object):
@@ -441,7 +442,8 @@ class CurrentDeviceProxy(object):
 
 #: Proxy object to access methods of the current device
 device = CurrentDeviceProxy()
-
+#: The currently active device (set with `set_device`)
+active_device = None
 
 def get_device():
     '''
@@ -458,8 +460,15 @@ def set_device(device):
     global active_device
     if isinstance(device, str):
         device = all_devices[device]
+    if active_device is not None and active_device.defaultclock is not None:
+        previous_dt = active_device.defaultclock.dt
+    else:
+        previous_dt = None
     active_device = device
     active_device.activate()
+    if previous_dt is not None:
+        # Copy over the dt information of the defaultclock
+        active_device.defaultclock.dt = previous_dt
 
 
 def restore_device():
@@ -468,3 +477,8 @@ def restore_device():
     for device in all_devices.itervalues():
         device.reinit()
     restore_initial_state()
+
+
+runtime_device = RuntimeDevice()
+all_devices['runtime'] = runtime_device
+set_device(runtime_device)

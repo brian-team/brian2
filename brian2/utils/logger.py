@@ -242,15 +242,15 @@ def clean_up_logging():
     '''
     logging.shutdown()
     if not BrianLogger.exception_occured and prefs['logging.delete_log_on_exit']:
-        if not TMP_LOG is None:
+        if TMP_LOG is not None:
             try:
                 os.remove(TMP_LOG)
-            except IOError as exc:
+            except (IOError, OSError) as exc:
                 warn('Could not delete log file: %s' % exc)
-        if not TMP_SCRIPT is None:
+        if TMP_SCRIPT is not None:
             try:
                 os.remove(TMP_SCRIPT)
-            except IOError as exc:
+            except (IOError, OSError) as exc:
                 warn('Could not delete copy of script file: %s' % exc)
         std_silent.close()
 
@@ -672,7 +672,7 @@ class std_silent(object):
             std_silent.dest_stdout.close()
             try:
                 os.remove(std_silent.dest_fname_stdout)
-            except (IOError, WindowsError) as exc:
+            except (IOError, OSError):
                 # TODO: this happens quite frequently - why?
                 # The file objects are closed as far as Python is concerned,
                 # but maybe Windows is still hanging on to them?
@@ -681,5 +681,5 @@ class std_silent(object):
             std_silent.dest_stderr.close()
             try:
                 os.remove(std_silent.dest_fname_stderr)
-            except (IOError, WindowsError) as exc:
+            except (IOError, OSError):
                 pass

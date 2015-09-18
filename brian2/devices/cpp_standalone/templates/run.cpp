@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 {% macro cpp_file() %}
 #include<stdlib.h>
 #include "objects.h"
@@ -16,6 +15,12 @@ void brian_start()
 {
 	_init_arrays();
 	_load_arrays();
+	// Initialize clocks (link timestep and dt to the respective arrays)
+    {% for clock in clocks | sort(attribute='name') %}
+    brian::{{clock.name}}.timestep = brian::{{array_specs[clock.variables['timestep']]}};
+    brian::{{clock.name}}.dt = brian::{{array_specs[clock.variables['dt']]}};
+    brian::{{clock.name}}.t = brian::{{array_specs[clock.variables['t']]}};
+    {% endfor %}
 	srand((unsigned int)time(NULL));
 	rand(); // put this in because the first random number generated on some versions of C++ is always almost the same
 }
@@ -41,7 +46,6 @@ void {{name}}()
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 {% macro h_file() %}
-{{ openmp_pragma('once') }}
 
 void brian_start();
 void brian_end();

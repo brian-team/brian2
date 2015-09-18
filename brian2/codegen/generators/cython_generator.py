@@ -4,9 +4,8 @@ import numpy as np
 
 from brian2.utils.stringtools import word_substitute, deindent
 from brian2.parsing.rendering import NodeRenderer
-from brian2.core.functions import DEFAULT_FUNCTIONS, Function, SymbolicConstant
-from brian2.core.variables import (ArrayVariable, Constant, AttributeVariable,
-                                   DynamicArrayVariable, AuxiliaryVariable,
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
+from brian2.core.variables import (Constant, AuxiliaryVariable,
                                    get_dtype_str, Variable, Subexpression)
 
 from .base import CodeGenerator
@@ -23,6 +22,7 @@ data_type_conversion_table = [
     ('int64',          'int64_t',     'int64'),
     ('bool',           'char',        'uint8'),
     ('uint8',          'char',        'uint8'),
+    ('uint64',         'uint64_t',    'uint64'),
     ]
 
 cpp_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)
@@ -187,24 +187,13 @@ class CythonCodeGenerator(CodeGenerator):
         handled_pointers = set()
         user_functions = []
         for varname, var in self.variables.items():
+            if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
+                load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
                 line = "cdef {dtype} {varname}".format(
                                 dtype=get_cpp_dtype(var.dtype),
                                 varname=varname)
                 load_namespace.append(line)
-            elif isinstance(var, AttributeVariable):
-                val = getattr(var.obj, var.attribute)
-                if isinstance(val, np.ndarray) and val.ndim:
-                    line = "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] {varname} = _namespace['{varname}']".format(
-                        numpy_dtype=get_numpy_dtype(val), varname=varname,
-                        cpp_dtype=get_cpp_dtype(val))
-                else:
-                    line = "cdef {cpp_dtype} {varname} = _namespace['{varname}']".format(
-                        cpp_dtype=get_cpp_dtype(val), varname=varname)
-                load_namespace.append(line)
-                if isinstance(val, np.ndarray) and val.ndim:
-                    line = "cdef int _num{varname} = len(_namespace['{varname}'])".format(varname=varname)
-                    load_namespace.append(line)
             elif isinstance(var, Subexpression):
                 dtype = get_cpp_dtype(var.dtype)
                 line = "cdef {dtype} {varname}".format(dtype=dtype,
@@ -233,7 +222,10 @@ class CythonCodeGenerator(CodeGenerator):
                 if not var.scalar:
                     newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
 
-                newlines += ["cdef {cpp_dtype} {varname}"]
+                if var.scalar and var.constant:
+                    newlines += ['cdef {cpp_dtype} {varname} = _namespace["{varname}"]']
+                else:
+                    newlines += ["cdef {cpp_dtype} {varname}"]
 
                 for line in newlines:
                     line = line.format(cpp_dtype=get_cpp_dtype(var.dtype),

@@ -5,8 +5,7 @@ import numpy as np
 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
-                                   AttributeVariable, AuxiliaryVariable,
-                                   Subexpression)
+                                   AuxiliaryVariable, Subexpression)
 
 from ...codeobject import CodeObject
 
@@ -80,6 +79,8 @@ class NumpyCodeObject(CodeObject):
 
             if isinstance(var, ArrayVariable):
                 self.namespace[self.generator_class.get_array_name(var)] = value
+                if var.scalar and var.constant:
+                    self.namespace[name] = value[0]
             else:
                 self.namespace[name] = value
 
@@ -89,15 +90,15 @@ class NumpyCodeObject(CodeObject):
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
 
-            # There are two kinds of objects that we have to inject into the
-            # namespace with their current value at each time step:
-            # * non-constant AttributeValue (this might be removed since it only
-            #   applies to "t" currently)
-            # * Dynamic arrays that change in size during runs (i.e. not
-            #   synapses but e.g. the structures used in monitors)
-            if isinstance(var, AttributeVariable) and not var.constant:
-                self.nonconstant_values.append((name, var.get_value))
-            elif (isinstance(var, DynamicArrayVariable) and
+            # Also provide the Variable object itself in the namespace (can be
+            # necessary for resize operations, for example)
+            self.namespace['_var_'+name] = var
+
+            # There is one type of objects that we have to inject into the
+            # namespace with their current value at each time step: dynamic
+            # arrays that change in size during runs (i.e. not synapses but
+            # e.g. the structures used in monitors)
+            if (isinstance(var, DynamicArrayVariable) and
                   not var.constant_size):
                 self.nonconstant_values.append((self.generator_class.get_array_name(var,
                                                                                    self.variables),

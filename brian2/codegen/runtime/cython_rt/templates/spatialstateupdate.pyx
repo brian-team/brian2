@@ -46,7 +46,7 @@
         {{vector_code|autoindent}}
         {{gtot_all}}[_idx] = _gtot
 
-        {{v_star}}[_i] = -({{Cm}}[_i]/dt*{{v}}[_i])-_I0 # RHS -> v_star (solution)
+        {{v_star}}[_i] = -({{Cm}}[_i]/{{dt}}*{{v}}[_i])-_I0 # RHS -> v_star (solution)
         bi={{ab_star1}}[_i] - {{gtot_all}}[_i] # main diagonal
         if (_i<N-1):
             c[_i]= {{ab_star0}}[_i+1] # superdiagonal

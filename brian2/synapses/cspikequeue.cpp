@@ -38,6 +38,15 @@ public:
         scalar_delay = 0;
     };
 
+    ~CSpikeQueue()
+    {
+        if (delays)
+        {
+            delete[] delays;
+            delays = NULL;
+        }
+    }
+
     void prepare(scalar *real_delays, unsigned int n_delays,
                  int32_t *sources, unsigned int n_synapses,
                  double _dt)

@@ -152,11 +152,9 @@ class EventMonitor(Group, CodeRunner):
         self._enable_group_attributes()
 
     def resize(self, new_size):
+        self.variables['N'].set_value(new_size)
         for variable in self.record_variables:
             self.variables[variable].resize(new_size)
-
-    def __len__(self):
-        return self.N
 
     def reinit(self):
         '''

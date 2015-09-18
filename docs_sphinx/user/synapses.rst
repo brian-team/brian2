@@ -293,9 +293,16 @@ indices for you in this case::
 	M = StateMonitor(S,'w',record=S['i!=j'])  # all synapses excluding autapses
 	M = StateMonitor(S,'w',record=S['w>0'])  # all synapses with non-zero weights (at this time)
 
+You can also record a synaptic variable for all synapses by passing ``record=True``.
+
 The recorded traces can then be accessed in the usual way, again with the
 possibility to index the `Synapses` object::
 
 	plot(M.t / ms, M[0].w / nS)  # first synapse
 	plot(M.t / ms, M[0, :].w / nS)  # all synapses originating from neuron 0
 	plot(M.t / ms, M['w>0'].w / nS)  # all synapses with non-zero weights (at this time)
+
+Note that the use of the `Synapses` object for indexing and ``record=True`` only
+work in the default runtime modes. In standalone mode (see :doc:`devices`),
+the synapses have not yet been created at this point, so Brian cannot calculate
+the indices.

@@ -1,4 +1,3 @@
-{# IS_OPENMP_COMPATIBLE #}
 ////////////////////////////////////////////////////////////////////////////
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
@@ -21,7 +20,7 @@
 
 	// Tridiagonal solving
 	// Pass 1
-	{{ openmp_pragma('static') }}
+	{{ openmp_pragma('parallel-static') }}
 	for(int i=0;i<N;i++)
 	{
 		const int _idx = i;
@@ -33,13 +32,13 @@
     }
 
     double *c = (double *)malloc(N * sizeof(double));
-
+    {{ openmp_pragma('parallel') }}
     {{ openmp_pragma('sections') }}
     {
     {
     for(int i=0;i<N;i++)
     {
-		{{v_star}}[i]=-({{Cm}}[i]/dt*{{v}}[i])-{{I0_all}}[i]; // RHS -> v_star (solution)
+		{{v_star}}[i]=-({{Cm}}[i]/{{dt}}*{{v}}[i])-{{I0_all}}[i]; // RHS -> v_star (solution)
 		bi={{ab_star1}}[i]-{{gtot_all}}[i]; // main diagonal
 		if (i<N-1)
 			c[i]={{ab_star0}}[i+1]; // superdiagonal
@@ -111,7 +110,6 @@
     free(c);
 
     // Prepare matrix for solving the linear system
-    {{ openmp_pragma('single') }}
     for (int _j=0; _j<_num_B - 1; _j++)
     {
         const int _i = {{_morph_i}}[_j];
@@ -140,7 +138,6 @@
     }
 
     // Solve the linear system (the result will be in _B in the end)
-    {{ openmp_pragma('single') }}
     for (int i=0; i<_num_B; i++)
     {
         // find pivot element
@@ -187,7 +184,6 @@
     }
 
     // Back substitution
-    {{ openmp_pragma('single') }}
     for (int i=_num_B-1; i>=0; i--)
     {
         // substitute all the known values
@@ -202,7 +198,6 @@
     }
 
     // Linear combination
-    {{ openmp_pragma('single') }}
     for (int _j=0; _j<_num_B - 1; _j++)
     {
         const int _i = {{_morph_i}}[_j];

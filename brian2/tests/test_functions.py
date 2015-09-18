@@ -37,6 +37,9 @@ def test_math_functions():
     '''
     default_dt = defaultclock.dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
+    def int_(x):
+        return array(x, dtype=int)
+    int_.__name__ = 'int'
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values
         # Functions with a single argument
@@ -44,7 +47,7 @@ def test_math_functions():
                      arcsin, arccos, arctan,
                      log, log10,
                      exp, np.sqrt,
-                     np.ceil, np.floor, np.sign]:
+                     np.ceil, np.floor, np.sign, int_]:
 
             # Calculate the result directly
             numpy_result = func(test_array)
@@ -87,6 +90,23 @@ def test_math_functions():
             assert_allclose(numpy_result, mon.func_.flatten(),
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_bool_to_int():
+    # Test that boolean expressions and variables are correctly converted into
+    # integers
+    G = NeuronGroup(2, '''
+                       intexpr1 = int(bool_var) : integer
+                       intexpr2 = int(float_var > 1.0) : integer
+                       bool_var : boolean
+                       float_var : 1
+                       ''')
+    G.bool_var = [True, False]
+    G.float_var = [2.0, 0.5]
+    s_mon = StateMonitor(G, ['intexpr1', 'intexpr2'], record=True)
+    run(defaultclock.dt)
+    assert_equal(s_mon.intexpr1.flatten(), [1, 0])
+    assert_equal(s_mon.intexpr2.flatten(), [1, 0])
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -113,7 +133,7 @@ def test_user_defined_function():
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
     run(default_dt)
-
+    device.build(run=True, compile=True)
     assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
@@ -499,24 +519,26 @@ def test_binomial():
 
 if __name__ == '__main__':
     from brian2 import prefs
-    #prefs.codegen.target = 'weave'
+    #prefs.codegen.target = 'numpy'
+    set_device('cpp_standalone')
     import time
     for f in [
-            test_constants_sympy,
-            test_constants_values,
-            test_math_functions,
+            # test_constants_sympy,
+            # test_constants_values,
+            # test_math_functions,
+            # test_bool_to_int,
             test_user_defined_function,
-            test_user_defined_function_units,
-            test_simple_user_defined_function,
-            test_manual_user_defined_function,
-            test_manual_user_defined_function_weave,
-            test_user_defined_function_discarding_units,
-            test_user_defined_function_discarding_units_2,
-            test_function_implementation_container,
-            test_function_dependencies_numpy,
-            test_function_dependencies_weave,
-            test_function_dependencies_cython,
-            test_binomial
+            # test_user_defined_function_units,
+            # test_simple_user_defined_function,
+            # test_manual_user_defined_function,
+            # test_manual_user_defined_function_weave,
+            # test_user_defined_function_discarding_units,
+            # test_user_defined_function_discarding_units_2,
+            # test_function_implementation_container,
+            # test_function_dependencies_numpy,
+            # test_function_dependencies_weave,
+            # test_function_dependencies_cython,
+            # test_binomial
             ]:
         try:
             start = time.time()

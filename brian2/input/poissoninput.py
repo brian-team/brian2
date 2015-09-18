@@ -6,7 +6,7 @@ from .binomial import BinomialFunction
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
 from brian2.units.fundamentalunits import (check_units, have_same_dimensions,
-                                           get_unit,
+                                           get_unit, Quantity,
                                            DimensionMismatchError)
 from brian2.units.stdunits import Hz
 
@@ -78,7 +78,7 @@ class PoissonInput(CodeRunner):
         code = '{targetvar} += {binomial}()*{weight}'.format(targetvar=target_var,
                                                              binomial=binomial_sampling.name,
                                                              weight=weight)
-        self._stored_dt = target.dt
+        self._stored_dt = target.dt_[:]  # make a copy
         # FIXME: we need an explicit reference here for on-the-fly subgroups
         # For example: PoissonInput(group[:N], ...)
         self._group = target
@@ -96,7 +96,8 @@ class PoissonInput(CodeRunner):
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)
 
     def before_run(self, run_namespace=None, level=0):
-        if self._group.dt != self._stored_dt:
+        print self._group.dt_, self._stored_dt
+        if self._group.dt_ != self._stored_dt:
             raise NotImplementedError('The dt used for simulating %s changed '
                                       'after the PoissonInput source was '
                                       'created.' % self.group.name)

@@ -6,6 +6,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
+from numpy.testing.utils import assert_allclose
 
 from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
@@ -79,10 +80,10 @@ def test_network_two_objects():
     y = Counter(order=6)
     net = Network()
     net.add([x, [y]]) # check that a funky way of adding objects work correctly
+    net.run(1*ms)
     assert_equal(net.objects[0].order, 5)
     assert_equal(net.objects[1].order, 6)
     assert_equal(len(net.objects), 2)
-    net.run(1*ms)
     assert_equal(x.count, 10)
     assert_equal(y.count, 10)
 
@@ -152,7 +153,7 @@ def test_network_before_after_schedule():
     x = NameLister(name='x', when='before_resets')
     y = NameLister(name='y', when='after_thresholds')
     net = Network(x, y)
-    net.schedule = ['thresholds', 'resets']
+    net.schedule = ['thresholds', 'resets', 'end']
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'yxyxyx')
 
@@ -192,8 +193,16 @@ def test_schedule_warning():
     from uuid import uuid4
     # TestDevice1 supports arbitrary schedules, TestDevice2 does not
     class TestDevice1(Device):
-        pass
-    class TestDevice2(Device):
+        # These functions are needed during the setup of the defaultclock
+        def add_array(self, var):
+            pass
+        def init_with_zeros(self, var):
+            pass
+        def init_with_array(self, var, arr):
+            pass
+        def fill_with_array(self, var, arr):
+            pass
+    class TestDevice2(TestDevice1):
         def __init__(self):
             super(TestDevice2, self).__init__()
             self.network_schedule = ['start', 'groups', 'synapses',
@@ -366,21 +375,21 @@ def test_network_t():
     y = Counter(dt=2*ms)
     net = Network(x, y)
     net.run(4*ms)
-    # assert_equal(net.t, 4*ms)
+    assert_equal(net.t, 4*ms)
     net.run(1*ms)
-    # assert_equal(net.t, 5*ms)
+    assert_equal(net.t, 5*ms)
     assert_equal(x.count, 5)
     assert_equal(y.count, 3)
     net.run(0.5*ms) # should only update x
-    # assert_equal(net.t, 5.5*ms)
+    assert_equal(net.t, 5.5*ms)
     assert_equal(x.count, 6)
     assert_equal(y.count, 3)
     net.run(0.5*ms) # shouldn't do anything
-    # assert_equal(net.t, 6*ms)
+    assert_equal(net.t, 6*ms)
     assert_equal(x.count, 6)
     assert_equal(y.count, 3)
     net.run(0.5*ms) # should update x and y
-    # assert_equal(net.t, 6.5*ms)
+    assert_equal(net.t, 6.5*ms)
     assert_equal(x.count, 7)
     assert_equal(y.count, 4)
     
@@ -390,12 +399,15 @@ def test_network_t():
     x = Counter(dt=1*ms)
     y = Counter(dt=2*ms)
     run(4*ms)
+    assert_equal(magic_network.t, 4*ms)
     assert_equal(x.count, 4)
     assert_equal(y.count, 2)
     run(4*ms)
+    assert_equal(magic_network.t, 8*ms)
     assert_equal(x.count, 8)
     assert_equal(y.count, 4)
     run(1*ms)
+    assert_equal(magic_network.t, 9*ms)
     assert_equal(x.count, 9)
     assert_equal(y.count, 5)
 
@@ -812,6 +824,19 @@ def test_defaultclock_dt_changes():
         net.run(2*dt)
         assert_equal(mon.t[:], [0, dt/ms]*ms)
 
+@with_setup(teardown=restore_initial_state)
+def test_dt_changes_between_runs():
+    defaultclock.dt = 0.1*ms
+    G = NeuronGroup(1, 'v:1')
+    mon = StateMonitor(G, 'v', record=True)
+    run(.5*ms)
+    defaultclock.dt = .5*ms
+    run(.5*ms)
+    defaultclock.dt = 0.1*ms
+    run(.5*ms)
+    assert len(mon.t[:]) == 5 + 1 + 5
+    assert_allclose(mon.t[:],
+                    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -913,7 +938,7 @@ def test_profile():
     net = Network(G)
     net.run(1*ms, profile=True)
     # The should be four simulated CodeObjects, one for the group and one each
-    # for state update, threshold and reset
+    # for state update, threshold and reset + 1 for the clock
     info = net.profiling_info
     info_dict = dict(info)
     assert len(info) == 4
@@ -988,6 +1013,7 @@ if __name__=='__main__':
             test_store_restore,
             test_store_restore_magic,
             test_defaultclock_dt_changes,
+            test_dt_changes_between_runs,
             test_dt_restore,
             test_continuation,
             test_get_set_states,

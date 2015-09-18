@@ -33,7 +33,7 @@
             # scalar code
             _vectorisation_idx = 1
             {{ scalar_code|autoindent }}
-            _curlen = {{N}}[0]
+            _curlen = {{N}}
             _newlen = _curlen + _num_events
             # Resize the arrays
             _owner.resize(_newlen)
@@ -49,5 +49,4 @@
                 _{{varname}}_view [_curlen + _j - _start_idx] = _to_record_{{varname}}
                 {% endfor %}
                 {{count}}[_idx - _source_start] += 1
-            {{N}}[0] += _num_events
 {% endblock %}

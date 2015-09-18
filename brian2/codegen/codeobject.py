@@ -18,6 +18,19 @@ __all__ = ['CodeObject',
 logger = get_logger(__name__)
 
 
+def constant_or_scalar(varname, variable):
+    '''
+    Convenience function to generate code to access the value of a variable.
+    Will return ``'varname'`` if the ``variable`` is a constant, and
+    ``array_name[0]`` if it is a scalar array.
+    '''
+    from brian2.devices.device import get_device  # avoid circular import
+    if variable.array:
+        return '%s[0]' % get_device().get_array_name(variable)
+    else:
+        return '%s' % varname
+
+
 class CodeObject(Nameable):
     '''
     Executable code object.
@@ -258,7 +271,13 @@ def create_runner_codeobj(group, code, template_name,
         codeobj_class = device.code_object_class(group.codeobj_class)
     else:
         codeobj_class = device.code_object_class(codeobj_class)
-    template = getattr(codeobj_class.templater, template_name)
+
+    template = getattr(codeobj_class.templater, template_name, None)
+    if template is None:
+        codeobj_class_name = codeobj_class.class_name or codeobj_class.__name__
+        raise AttributeError(('"%s" does not provide a code generation '
+                              'template "%s"') % (codeobj_class_name,
+                                                  template_name))
 
     all_variables = dict(group.variables)
     if additional_variables is not None:

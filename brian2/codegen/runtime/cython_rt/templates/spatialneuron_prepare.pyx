@@ -13,7 +13,7 @@
     cdef double __invr0
     cdef double __invrn
 
-    cdef double _Ri = {{Ri}}[0]  # Ri is a shared variable
+    cdef double _Ri = {{Ri}}  # Ri is a shared variable
 
     {% if owner.morphology.type == 'soma' %}
     # Correction for soma (a bit of a hack),
@@ -34,7 +34,7 @@
     # The particular solution
     # a[i,j]=ab[u+i-j,j]   --  u is the number of upper diagonals = 1
     for _i in range(N):
-        {{ab_star1}}[_i] = (-({{Cm}}[_i] / dt) - {{_invr}}[_i] / {{area}}[_i])
+        {{ab_star1}}[_i] = (-({{Cm}}[_i] / {{dt}}) - {{_invr}}[_i] / {{area}}[_i])
     for _i in range(1, N):
         {{ab_star0}}[_i] = {{_invr}}[_i] / {{area}}[_i-1]
         {{ab_star2}}[_i-1] = {{_invr}}[_i] / {{area}}[_i]

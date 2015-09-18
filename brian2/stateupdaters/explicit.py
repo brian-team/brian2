@@ -14,7 +14,7 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .base import StateUpdateMethod
 
-__all__ = ['milstein', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
+__all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
 
 #===============================================================================
@@ -269,12 +269,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
     def can_integrate(self, equations, variables):
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
-        if equations.is_stochastic and self.stochastic is None:
-            return False
-        elif (equations.stochastic_type == 'multiplicative' and
-              self.stochastic != 'multiplicative'):
-            return False
-        elif self.custom_check and not self.custom_check(equations, variables):
+        if equations.is_stochastic:
+            if self.stochastic is None:
+                return False
+            if (self.stochastic != 'multiplicative' and
+                        equations.stochastic_type == 'multiplicative'):
+                return False
+
+        if self.custom_check and not self.custom_check(equations, variables):
             return False
         else:
             return True
@@ -671,12 +673,14 @@ rk4 = ExplicitStateUpdater('''
     x_new = x+(k_1+2*k_2+2*k_3+k_4)/6
     ''')
 
-
 def diagonal_noise(equations, variables):
     '''
     Checks whether we deal with diagonal noise, i.e. one independent noise
     variable per variable.
     '''
+    if not equations.is_stochastic:
+        return True
+
     stochastic_vars = []
     for _, expr in equations.substituted_expressions:
         expr_stochastic_vars = expr.stochastic_variables
@@ -689,7 +693,6 @@ def diagonal_noise(equations, variables):
     # have diagonal noise
     return len(stochastic_vars) == len(set(stochastic_vars))
 
-
 #: Derivative-free Milstein method
 milstein = ExplicitStateUpdater('''
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
@@ -697,3 +700,11 @@ milstein = ExplicitStateUpdater('''
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     x_new = x + dt*f(x,t) + g(x, t) * dW + k
     ''', stochastic='multiplicative', custom_check=diagonal_noise)
+
+#: Stochastic Heun method (for multiplicative Stratonovic SDEs with non-diagonal
+#: diffusion matrix)
+heun = ExplicitStateUpdater('''
+    x_support = x + g(x,t) * dW
+    g_support = g(x_support,t+dt)
+    x_new = x + dt*f(x,t) + .5*dW*(g(x,t)+g_support)
+    ''', stochastic='multiplicative')

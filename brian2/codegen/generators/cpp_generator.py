@@ -47,6 +47,8 @@ def c_data_type(dtype):
         dtype = 'uint16_t'
     elif dtype == numpy.uint32:
         dtype = 'uint32_t'
+    elif dtype == numpy.uint64:
+        dtype = 'uint64_t'
     elif dtype == numpy.bool_ or dtype is bool:
         dtype = 'char'
     else:
@@ -429,7 +431,7 @@ DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CPPCodeGenerator,
                                                               name='_randn')
 
 rand_code = '''
-        double _rand(int vectorisation_idx)
+        inline double _rand(int vectorisation_idx)
         {
 	        return (double)rand()/RAND_MAX;
         }
@@ -439,7 +441,7 @@ DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CPPCodeGenerator,
                                                              name='_rand')
 
 clip_code = '''
-        double _clip(const float value, const float a_min, const float a_max)
+        inline double _clip(const double value, const double a_min, const double a_max)
         {
 	        if (value < a_min)
 	            return a_min;
@@ -453,7 +455,11 @@ DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
                                                              name='_clip')
 
 int_code = '''
-        int int_(const bool value)
+        template<typename T> inline int int_(T value)
+        {
+	        return (int)value;
+        }
+        template<> inline int int_(bool value)
         {
 	        return value ? 1 : 0;
         }
@@ -463,9 +469,9 @@ DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CPPCodeGenerator,
                                                             name='int_')
 
 sign_code = '''
-template <typename T> int sign_(T val) {
-    return (T(0) < val) - (val < T(0));
-}
+        template <typename T> inline int sign_(T val) {
+            return (T(0) < val) - (val < T(0));
+        }
         '''
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=sign_code,

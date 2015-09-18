@@ -3,9 +3,9 @@ Physical units
 
 Brian includes a system for defining physical units. These are defined by
 their standard SI unit names: amp,
-kilogram, second, metre/meter and the derived units coulomb, farad, gram/gramme,
-hertz, joule, pascal, ohm,  siemens, volt, watt, together with prefixed
-versions (e.g. ``msiemens = 0.001*siemens``) using the prefixes
+kilogram, second, metre/meter, mole and the derived units coulomb, farad,
+gram/gramme, hertz, joule, pascal, ohm,  siemens, volt, watt, together with
+prefixed versions (e.g. ``msiemens = 0.001*siemens``) using the prefixes
 p, n, u, m, k, M, G, T (two exceptions: kilogram is not imported with any
 prefixes, metre and meter are additionaly defined with the "centi" prefix,
 i.e. cmetre/cmeter). In addition a couple of useful standard abbreviations like
@@ -87,10 +87,10 @@ versions by appending a number. For example, the units "msiemens", "siemens2",
 
 A better choice is normally to do an ``from brian2.units import *`` or import
 everything ``from brian2 import *``, this imports only the base units amp,
-kilogram, second, metre/meter and the derived units coulomb, farad, gram/gramme,
-hertz, joule, pascal, ohm,  siemens, volt, watt, together with the prefixes
-p, n, u, m, k, M, G, T (two exceptions: kilogram is not imported with any
-prefixes, metre and meter are additionaly defined with the "centi" prefix,
+kilogram, second, metre/meter, mole and the derived units coulomb, farad,
+gram/gramme, hertz, joule, pascal, ohm,  siemens, volt, watt, together with the
+prefixes p, n, u, m, k, M, G, T (two exceptions: kilogram is not imported with
+any prefixes, metre and meter are additionaly defined with the "centi" prefix,
 i.e. cmetre/cmeter).
 
 In addition a couple of useful standard abbreviations like

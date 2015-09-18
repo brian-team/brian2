@@ -3,9 +3,8 @@ Handles loading templates from a directory.
 '''
 import os
 import re
-import collections
 
-from jinja2 import Environment, PackageLoader, ChoiceLoader
+from jinja2 import Environment, PackageLoader, ChoiceLoader, StrictUndefined
 
 from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers)
@@ -69,7 +68,8 @@ class Templater(object):
         if isinstance(package_name, basestring):
             package_name = (package_name,)
         loader = ChoiceLoader([PackageLoader(name, 'templates') for name in package_name])
-        self.env = Environment(loader=loader, trim_blocks=True, lstrip_blocks=True)
+        self.env = Environment(loader=loader, trim_blocks=True,
+                               lstrip_blocks=True, undefined=StrictUndefined)
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
         if env_globals is not None:
@@ -116,12 +116,17 @@ class CodeObjectTemplate(object):
         self.variables = set([])
         #: The indices over which the template iterates completely
         self.iterate_all = set([])
+        #: Read-only variables that are changed by this template
+        self.writes_read_only = set([])
         # This is the bit inside {} for USES_VARIABLES { list of words }
         specifier_blocks = re.findall(r'\bUSES_VARIABLES\b\s*\{(.*?)\}',
                                       template_source, re.M|re.S)
         # Same for ITERATE_ALL
         iterate_all_blocks = re.findall(r'\bITERATE_ALL\b\s*\{(.*?)\}',
                                         template_source, re.M|re.S)
+        # And for WRITES_TO_READ_ONLY_VARIABLES
+        writes_read_only_blocks = re.findall(r'\bWRITES_TO_READ_ONLY_VARIABLES\b\s*\{(.*?)\}',
+                                             template_source, re.M|re.S)
         #: Does this template allow writing to scalar variables?
         self.allows_scalar_write = 'ALLOWS_SCALAR_WRITE' in template_source
 
@@ -129,6 +134,8 @@ class CodeObjectTemplate(object):
             self.variables.update(get_identifiers(block))
         for block in iterate_all_blocks:
             self.iterate_all.update(get_identifiers(block))
+        for block in writes_read_only_blocks:
+            self.writes_read_only.update(get_identifiers(block))
                 
     def __call__(self, scalar_code, vector_code, **kwds):
         '''

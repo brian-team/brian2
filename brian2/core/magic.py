@@ -3,6 +3,7 @@ import inspect
 import itertools
 import gc
 
+from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger

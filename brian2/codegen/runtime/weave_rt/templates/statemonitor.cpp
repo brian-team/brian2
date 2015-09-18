@@ -9,9 +9,9 @@
 
     // Resize the recorded times and get the (potentially changed) reference to
     // the underlying data
-    PyObject_CallMethod({{_dynamic_t}}, "resize", "i", _new_len);
+    PyObject_CallMethod(_var_t, "resize", "i", _new_len);
     double *_t_data = (double*)(((PyArrayObject*)(PyObject*){{_dynamic_t}}.attr("data"))->data);
-    _t_data[_new_len - 1] = _clock_t;
+    _t_data[_new_len - 1] = {{_clock_t}};
 
 
     // scalar code
@@ -23,7 +23,7 @@
     {
         // Resize the recorded variable "{{varname}}" and get the (potentially
         // changed) reference to the underlying data
-        PyObject_CallMethod({{get_array_name(var, access_data=False)}}, "resize_along_first", "((ii))", _new_len, _num_indices);
+        PyObject_CallMethod(_var_{{varname}}, "resize", "((ii))", _new_len, _num_indices);
         PyArrayObject *_record_data = (((PyArrayObject*)(PyObject*){{get_array_name(var, access_data=False)}}.attr("data")));
         const npy_intp* _record_strides = _record_data->strides;
         for (int _i = 0; _i < _num_indices; _i++)
