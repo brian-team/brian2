@@ -209,6 +209,11 @@ class SpatialNeuron(NeuronGroup):
         v_star : volt
         u_plus : 1
         u_minus : 1
+        # The following three are for parallelly solving the three tridiag systems 
+        # (in C++/CUDA standalone code) -- TODO: check units
+        c1 : 1
+        c2 : 1
+        c3 : 1
         # The following two are only necessary for C code where we cannot deal
         # with scalars and arrays interchangeably
         gtot_all : siemens/meter**2
@@ -378,6 +383,12 @@ class SpatialStateUpdater(CodeRunner, Group):
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
+        self.variables.add_array('_morph_children_num_i', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_array('_morph_children_i', unit=Unit(1), size=segments**2,
+                                 dtype=np.int32, constant=True)
+        # the array above , morph_children_i could be of size segments*max_children but the max no 
+        # of children is not known at this point (only after calling self._pre_calc_iteration(...))
         self.variables.add_array('_starts', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_ends', unit=Unit(1), size=segments,
@@ -386,18 +397,29 @@ class SpatialStateUpdater(CodeRunner, Group):
                                  constant=True)
         self.variables.add_array('_invrn', unit=siemens, size=segments,
                                  constant=True)
-        self._enable_group_attributes()
+        
+        
+        self._enable_group_attributes() 
+                                 
+                                 
 
         # The morphology is considered fixed (length etc. can still be changed,
         # though)
         # Traverse it once to get a flattened representation
         self._temp_morph_i = np.zeros(segments, dtype=np.int32)
         self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
+        # for the following: a smaller array of size no_segments x max_no_children would suffice...
+        self._temp_morph_children_i = np.zeros((segments, segments), dtype=np.int32) 
+        # children count per branch: determines the no of actually used elements of the array above
+        self._temp_morph_children_num_i = np.zeros(segments, dtype=np.int32) 
         self._temp_starts = np.zeros(segments, dtype=np.int32)
         self._temp_ends = np.zeros(segments, dtype=np.int32)
-        self._pre_calc_iteration(self.group.morphology)
+        self._pre_calc_iteration(self.group.morphology)        
         self._morph_i = self._temp_morph_i
         self._morph_parent_i = self._temp_morph_parent_i
+
+        self._morph_children_num_i = self._temp_morph_children_num_i
+        self._temp_morph_children_i = self._temp_morph_children_i
         self._starts = self._temp_starts
         self._ends = self._temp_ends
         self._prepare_codeobj = None
@@ -433,6 +455,16 @@ class SpatialStateUpdater(CodeRunner, Group):
     def _pre_calc_iteration(self, morphology, counter=0):
         self._temp_morph_i[counter] = morphology.index + 1
         self._temp_morph_parent_i[counter] = morphology.parent + 1
+        
+        # add to parent's children list
+        if counter>0:
+            parent_i = self._temp_morph_parent_i[counter]
+            parent_ind = parent_i-1
+            child_num = self._temp_morph_children_num_i[parent_ind]
+            self._temp_morph_children_i[parent_ind, child_num] = counter
+            self._temp_morph_children_num_i[parent_ind] += 1 # increase parent's children count
+            
+        
         self._temp_starts[counter] = morphology._origin
         self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
         total_count = 1
