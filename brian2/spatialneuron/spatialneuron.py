@@ -366,29 +366,58 @@ class SpatialStateUpdater(CodeRunner, Group):
                             check_units=False)
         n = len(group) # total number of compartments
         segments = self.number_branches(group.morphology)
+        
+        # The morphology is considered fixed (length etc. can still be changed,
+        # though)
+        # Traverse it once to get a flattened representation
+        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
+        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
+        # for the following: a smaller array of size no_segments x max_no_children would suffice...
+        self._temp_morph_children = np.zeros((segments+1, segments), dtype=np.int32) 
+        # children count per branch: determines the no of actually used elements of the array above
+        self._temp_morph_children_num = np.zeros(segments+1, dtype=np.int32) 
+        # each branch is child of exactly one parent (and we say the first branch i=1 is child of branch i=0)
+        # here we store the indices j-1->k of morph_children_i[i,k] = j 
+        self._temp_morph_idxchild = np.zeros(segments, dtype=np.int32)
+        self._temp_starts = np.zeros(segments, dtype=np.int32)
+        self._temp_ends = np.zeros(segments, dtype=np.int32)
+        self._pre_calc_iteration(self.group.morphology)         
+        max_children = max(self._temp_morph_children_num)
+        self._temp_morph_children = self._temp_morph_children[:,:max_children].reshape(-1) # flattened and reduced
+
+        print('DEBUG OUTPUT: children indices for efficient coupling matrix solution')
+        print('_temp_morph_children={}, _temp_morph_children_num={}, _temp_morph_idxchild={}'.format(self._temp_morph_children.reshape(-1,max_children), self._temp_morph_children_num, self._temp_morph_idxchild))
+        
         self.variables = Variables(self, default_index='_segment_idx')
         self.variables.add_reference('N', group)
         self.variables.add_arange('_compartment_idx', size=n)
         self.variables.add_arange('_segment_idx', size=segments)
         self.variables.add_arange('_segment_root_idx', size=segments+1)
         self.variables.add_arange('_P_idx', size=(segments+1)**2)
-
         self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
                                  index='_compartment_idx')
         self.variables.add_array('_P', unit=Unit(1), size=(segments+1)**2,
-                                 constant=True, index='_P_idx')
+                                 constant=True, index='_P_idx') # dense matrix version, to be replaced
+        self.variables.add_array('_P_diag', unit=Unit(1), size=segments+1,
+                                 constant=True)
+        self.variables.add_array('_P_children', unit=Unit(1), size=(segments+1)*max_children,
+                                 constant=True) # elements above diagonal 
+        self.variables.add_array('_P_parent', unit=Unit(1), size=segments,
+                                 constant=True) # elements below diagonal
         self.variables.add_array('_B', unit=Unit(1), size=segments+1,
                                  constant=True, index='_segment_root_idx')
         self.variables.add_array('_morph_i', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
-        self.variables.add_array('_morph_children_num_i', unit=Unit(1), size=segments,
+        self.variables.add_arange('_morph_children_num_idx', size=segments+1)
+        self.variables.add_array('_morph_children_num', unit=Unit(1), size=segments+1,
+                                 dtype=np.int32, constant=True, index='_morph_children_num_idx')
+        self.variables.add_arange('_morph_children_idx', size=(segments+1)*max_children)
+        self.variables.add_array('_morph_children', unit=Unit(1), size=(segments+1)*max_children,
+                                 dtype=np.int32, constant=True, index='_morph_children_idx')
+        self.variables.add_array('_morph_idxchild', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
-        self.variables.add_array('_morph_children_i', unit=Unit(1), size=segments**2,
-                                 dtype=np.int32, constant=True)
-        # the array above , morph_children_i could be of size segments*max_children but the max no 
-        # of children is not known at this point (only after calling self._pre_calc_iteration(...))
         self.variables.add_array('_starts', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_ends', unit=Unit(1), size=segments,
@@ -397,29 +426,13 @@ class SpatialStateUpdater(CodeRunner, Group):
                                  constant=True)
         self.variables.add_array('_invrn', unit=siemens, size=segments,
                                  constant=True)
+        self._enable_group_attributes()
         
-        
-        self._enable_group_attributes() 
-                                 
-                                 
-
-        # The morphology is considered fixed (length etc. can still be changed,
-        # though)
-        # Traverse it once to get a flattened representation
-        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
-        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
-        # for the following: a smaller array of size no_segments x max_no_children would suffice...
-        self._temp_morph_children_i = np.zeros((segments, segments), dtype=np.int32) 
-        # children count per branch: determines the no of actually used elements of the array above
-        self._temp_morph_children_num_i = np.zeros(segments, dtype=np.int32) 
-        self._temp_starts = np.zeros(segments, dtype=np.int32)
-        self._temp_ends = np.zeros(segments, dtype=np.int32)
-        self._pre_calc_iteration(self.group.morphology)        
         self._morph_i = self._temp_morph_i
         self._morph_parent_i = self._temp_morph_parent_i
-
-        self._morph_children_num_i = self._temp_morph_children_num_i
-        self._temp_morph_children_i = self._temp_morph_children_i
+        self._morph_children_num = self._temp_morph_children_num
+        self._morph_children = self._temp_morph_children
+        self._morph_idxchild = self._temp_morph_idxchild
         self._starts = self._temp_starts
         self._ends = self._temp_ends
         self._prepare_codeobj = None
@@ -459,11 +472,14 @@ class SpatialStateUpdater(CodeRunner, Group):
         # add to parent's children list
         if counter>0:
             parent_i = self._temp_morph_parent_i[counter]
-            parent_ind = parent_i-1
-            child_num = self._temp_morph_children_num_i[parent_ind]
-            self._temp_morph_children_i[parent_ind, child_num] = counter
-            self._temp_morph_children_num_i[parent_ind] += 1 # increase parent's children count
-            
+            child_num = self._temp_morph_children_num[parent_i]
+            self._temp_morph_children[parent_i, child_num] = counter+1
+            self._temp_morph_children_num[parent_i] += 1 # increase parent's children count
+            self._temp_morph_idxchild[counter] = child_num
+        else:
+            self._temp_morph_children_num[0] = 1
+            self._temp_morph_children[0, 0] = 1
+            self._temp_morph_idxchild[0] = 0
         
         self._temp_starts[counter] = morphology._origin
         self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
