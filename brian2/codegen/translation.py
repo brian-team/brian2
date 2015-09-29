@@ -255,7 +255,7 @@ class LIONodeRenderer(NodeRenderer):
                         self.optimisations[expr_1] = name_1
                     else:
                         name_1 = self.optimisations[expr_1]
-                    newexpr = '({name_0}+{name_1}*{varname})'.format(name_0=name_0, name_1=name_1,
+                    newexpr = '({name_0}+{name_1}*int({varname}))'.format(name_0=name_0, name_1=name_1,
                                                                      varname=varname)
                     return newexpr
             return NodeRenderer.render_node(self, node)

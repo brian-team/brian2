@@ -36,5 +36,8 @@ def test_cuba():
 
     run(10*ms)
 
+    assert len(Ce)>0
+    assert len(Ci)>0
+
 if __name__=='__main__':
     test_cuba()

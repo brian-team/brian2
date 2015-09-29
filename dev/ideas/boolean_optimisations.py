@@ -5,7 +5,7 @@ from brian2.codegen.translation import apply_loop_invariant_optimisations
 code = '''
 x += y
 x += y*y
-x += exp(y*b)
+x += exp(y*int(b))
 '''
 
 variables = dict(
