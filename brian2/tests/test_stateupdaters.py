@@ -302,37 +302,7 @@ def test_priority():
                  'dt': clock.variables['dt']}
     assert updater.can_integrate(eqs, variables)
 
-    # Non-constant parameter in the coefficient, linear integration does not
-    # work
-    eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
-                       param : 1''')
-    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
-                                       size=10, dtype=np.float64,
-                                       constant=False, device=None)
-    assert updater.can_integrate(eqs, variables)
-    can_integrate = {linear: False, euler: True, rk2: True, rk4: True, 
-                     heun: True, milstein: True}
-
-    for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, variables) == able
-
-    # Constant parameter in the coefficient, linear integration should
-    # work
-    eqs = Equations('''dv/dt = -param * v / (10*ms) : 1
-                       param : 1 (constant)''')
-    variables['param'] = ArrayVariable(name='name', unit=Unit(1), owner=None,
-                                       size=10, dtype=np.float64,
-                                       device=None, constant=True)
-    assert updater.can_integrate(eqs, variables)
-    can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
-                     heun: True, milstein: True}
-    del variables['param']
-
-    for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, variables) == able
-
-    # External parameter in the coefficient, linear integration *should* work
-    # (external parameters don't change during a run)
+    # External parameter in the coefficient, linear integration should work
     param = 1
     eqs = Equations('dv/dt = -param * v / (10*ms) : 1')
     assert updater.can_integrate(eqs, variables)
