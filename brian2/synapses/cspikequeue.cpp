@@ -14,13 +14,13 @@ template <class scalar>
 class CSpikeQueue
 {
 public:
-	vector< vector<int32_t> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-	scalar dt;
-	unsigned int offset;
-	bool scalar_delay;
-	unsigned int *delays;
-	int32_t source_start;
-	int32_t source_end;
+    vector< vector<int32_t> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
+    scalar dt;
+    unsigned int offset;
+    bool scalar_delay;
+    unsigned int *delays;
+    int32_t source_start;
+    int32_t source_end;
     unsigned int openmp_padding;
     vector< vector<int> > synapses;
     // data structures for the store/restore mechanism
@@ -134,16 +134,16 @@ public:
         }
     };
 
-	void push(int32_t *spikes, unsigned int nspikes)
-	{
-	    if(nspikes==0) return;
-		const unsigned int start = static_cast<unsigned int>(distance(spikes, lower_bound(spikes, spikes+nspikes, source_start)));
-		const unsigned int stop = static_cast<unsigned int>(distance(spikes, upper_bound(spikes, spikes+nspikes, source_end-1)));
+    void push(int32_t *spikes, unsigned int nspikes)
+    {
+        if(nspikes==0) return;
+        const unsigned int start = static_cast<unsigned int>(distance(spikes, lower_bound(spikes, spikes+nspikes, source_start)));
+        const unsigned int stop = static_cast<unsigned int>(distance(spikes, upper_bound(spikes, spikes+nspikes, source_end-1)));
         const int32_t * __restrict rspikes = spikes;
-		if(scalar_delay)
-		{
-		    ensure_delay(delays[0]);
-    		vector<int32_t> &homog_queue = queue[(offset+delays[0])%queue.size()];
+        if(scalar_delay)
+        {
+            ensure_delay(delays[0]);
+            vector<int32_t> &homog_queue = queue[(offset+delays[0])%queue.size()];
             for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
             {
                 const unsigned int idx_neuron = rspikes[idx_spike] - source_start;
@@ -158,9 +158,9 @@ public:
                     hq[idx_indices] = cur_indices[idx_indices];
                 }
             }
-		} else // (!scalar_delay)
-		{
-		    unsigned int * __restrict rdelays = delays-openmp_padding;
+        } else // (!scalar_delay)
+        {
+            unsigned int * __restrict rdelays = delays-openmp_padding;
             for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
             {
                 const unsigned int idx_neuron = rspikes[idx_spike] - source_start;
@@ -176,13 +176,13 @@ public:
                     queue[(offset+delay)%queue.size()].push_back(synaptic_index);
                 }
             }
-		}
-	};
+        }
+    };
 
-	inline vector<int32_t>* peek()
-	{
-		return &queue[offset];
-	};
+    inline vector<int32_t>* peek()
+    {
+        return &queue[offset];
+    };
 
     void advance()
     {

@@ -10,7 +10,7 @@
 
 void _run_{{codeobj_name}}()
 {
-	using namespace brian;
+    using namespace brian;
 
     {% if openmp_pragma('with_openmp') %}
     const double _start_time = omp_get_wtime();
@@ -19,22 +19,22 @@ void _run_{{codeobj_name}}()
     {% endif %}
 
     ///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
+    %CONSTANTS%
+    ///// POINTERS ////////////
     {{pointers_lines|autoindent}}
 
     //// MAIN CODE ////////////
-	// we do advance at the beginning rather than at the end because it saves us making
-	// a copy of the current spiking synapses
+    // we do advance at the beginning rather than at the end because it saves us making
+    // a copy of the current spiking synapses
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
     {{openmp_pragma('parallel')}}
     {
         {{owner.name}}.advance();
         {{owner.name}}.push({{_eventspace}}, {{_eventspace}}[_num{{eventspace_variable.name}}-1]);
-	}
+    }
 
-	// Profiling
+    // Profiling
     {% if openmp_pragma('with_openmp') %}
     const double _run_time = omp_get_wtime() -_start_time;
     {% else %}

@@ -14,20 +14,20 @@ double Network::_last_run_completed_fraction = 0.0;
 
 Network::Network()
 {
-	t = 0.0;
+    t = 0.0;
 }
 
 void Network::clear()
 {
-	objects.clear();
+    objects.clear();
 }
 
 void Network::add(Clock* clock, codeobj_func func)
 {
 #if defined(_MSC_VER) && (_MSC_VER>=1700)
-	objects.push_back(std::make_pair<Clock*, codeobj_func>(std::move(clock), std::move(func)));
+    objects.push_back(std::make_pair<Clock*, codeobj_func>(std::move(clock), std::move(func)));
 #else
-	objects.push_back(std::make_pair<Clock*, codeobj_func>(clock, func));
+    objects.push_back(std::make_pair<Clock*, codeobj_func>(clock, func));
 #endif
 }
 
@@ -36,31 +36,31 @@ void Network::run(const double duration, void (*report_func)(const double, const
     {% if openmp_pragma('with_openmp') %}
     double start;
     {% else %}
-	std::clock_t start, current;
-	{% endif %}
+    std::clock_t start, current;
+    {% endif %}
     const double t_start = t;
-	const double t_end = t + duration;
-	double next_report_time = report_period;
-	// compute the set of clocks
-	compute_clocks();
-	// set interval for all clocks
+    const double t_end = t + duration;
+    double next_report_time = report_period;
+    // compute the set of clocks
+    compute_clocks();
+    // set interval for all clocks
 
-	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
-		(*i)->set_interval(t, t_end);
+    for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+        (*i)->set_interval(t, t_end);
 
     {% if openmp_pragma('with_openmp') %}
     start = omp_get_wtime();
     {% else %}
-	start = std::clock();
+    start = std::clock();
     {% endif %}
-	if (report_func)
-	{
-	    report_func(0.0, 0.0, duration);
-	}
+    if (report_func)
+    {
+        report_func(0.0, 0.0, duration);
+    }
 
-	Clock* clock = next_clocks();
-	double elapsed_realtime;
-	bool did_break_early = false;
+    Clock* clock = next_clocks();
+    double elapsed_realtime;
+    bool did_break_early = false;
 
     while(clock->running())
     {
@@ -128,24 +128,24 @@ void Network::run(const double duration, void (*report_func)(const double, const
 
 void Network::compute_clocks()
 {
-	clocks.clear();
-	for(int i=0; i<objects.size(); i++)
-	{
-		Clock *clock = objects[i].first;
-		clocks.insert(clock);
-	}
+    clocks.clear();
+    for(int i=0; i<objects.size(); i++)
+    {
+        Clock *clock = objects[i].first;
+        clocks.insert(clock);
+    }
 }
 
 Clock* Network::next_clocks()
 {
-	// find minclock, clock with smallest t value
-	Clock *minclock = *clocks.begin();
-	for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
-	{
-		Clock *clock = *i;
-		if(clock->t[0]<minclock->t[0])
-			minclock = clock;
-	}
+    // find minclock, clock with smallest t value
+    Clock *minclock = *clocks.begin();
+    for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
+    {
+        Clock *clock = *i;
+        if(clock->t[0]<minclock->t[0])
+            minclock = clock;
+    }
     // find set of equal clocks
     curclocks.clear();
 
@@ -157,7 +157,7 @@ Clock* Network::next_clocks()
         if(s==t || fabs(s-t)<=Clock_epsilon)
             curclocks.insert(clock);
     }
-	return minclock;
+    return minclock;
 }
 
 {% endmacro %}
@@ -176,19 +176,19 @@ typedef void (*codeobj_func)();
 
 class Network
 {
-	std::set<Clock*> clocks, curclocks;
-	void compute_clocks();
-	Clock* next_clocks();
+    std::set<Clock*> clocks, curclocks;
+    void compute_clocks();
+    Clock* next_clocks();
 public:
-	std::vector< std::pair< Clock*, codeobj_func > > objects;
-	double t;
-	static double _last_run_time;
-	static double _last_run_completed_fraction;
+    std::vector< std::pair< Clock*, codeobj_func > > objects;
+    double t;
+    static double _last_run_time;
+    static double _last_run_completed_fraction;
 
-	Network();
-	void clear();
-	void add(Clock *clock, codeobj_func func);
-	void run(const double duration, void (*report_func)(const double, const double, const double), const double report_period);
+    Network();
+    void clear();
+    void add(Clock *clock, codeobj_func func);
+    void run(const double duration, void (*report_func)(const double, const double, const double), const double report_period);
 };
 
 #endif
