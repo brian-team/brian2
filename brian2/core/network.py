@@ -761,12 +761,20 @@ class Network(Nameable):
             # with the smallest t value, unless there are several with the 
             # same t value in which case we update all of them
             clock, curclocks = self._nextclocks()
-        device._last_run_time = time.time()-start_time
+
+            if device._maximum_run_time is not None and time.time()-start_time>float(device._maximum_run_time):
+                self._stopped = True
 
         if self._stopped or Network._globally_stopped:
             self.t_ = clock.t_
         else:
             self.t_ = float(t_end)
+
+        device._last_run_time = time.time()-start_time
+        if duration>0:
+            device._last_run_completed_fraction = (self.t-t_start)/duration
+        else:
+            device._last_run_completed_fraction = 1.0
 
         if report is not None:
             report_callback((current-start)*second, 1.0, duration)

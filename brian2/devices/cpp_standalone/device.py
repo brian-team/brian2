@@ -613,7 +613,10 @@ class CPPStandaloneDevice(Device):
             writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
         
     def generate_network_source(self, writer, compiler):
-        network_tmp = CPPStandaloneCodeObject.templater.network(None, None)
+        maximum_run_time = self._maximum_run_time
+        if maximum_run_time is not None:
+            maximum_run_time = float(maximum_run_time)
+        network_tmp = CPPStandaloneCodeObject.templater.network(None, None, maximum_run_time=maximum_run_time)
         writer.write('network.*', network_tmp)
         
     def generate_synapses_classes_source(self, writer):
@@ -791,6 +794,8 @@ class CPPStandaloneDevice(Device):
                     print open('results/stdout.txt', 'r').read()
                 raise RuntimeError("Project run failed")
             self.has_been_run = True
+            last_run_info = open('results/last_run_info.txt', 'r').read()
+            self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
 
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,

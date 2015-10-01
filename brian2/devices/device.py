@@ -106,6 +106,15 @@ class Device(object):
 
         self.defaultclock = None
 
+        self._maximum_run_time = None
+
+    def _set_maximum_run_time(self, maximum_run_time):
+        '''
+        Sets a maximum time for a run before it will break. Used primarily for testing purposes. Not guaranteed to be
+        respected by a device.
+        '''
+        self._maximum_run_time = maximum_run_time
+
     def get_array_name(self, var, access_data=True):
         '''
         Return a globally unique name for `var`.
@@ -300,6 +309,7 @@ class Device(object):
         '''
         if self.defaultclock is None:
             self.defaultclock = Clock(dt=0.1*ms, name='defaultclock')
+        self._set_maximum_run_time(None)
 
     def insert_device_code(self, slot, code):
         # Deprecated

@@ -10,7 +10,7 @@ from brian2.tests.features.speed import *
 # show()
 
 # Quick testing
-res = run_speed_tests(configurations=[#NumpyConfiguration,
+res = run_speed_tests(configurations=[NumpyConfiguration,
                                       #WeaveConfiguration,
                                       LocalConfiguration,
                                       CPPStandaloneConfiguration,
@@ -18,25 +18,25 @@ res = run_speed_tests(configurations=[#NumpyConfiguration,
 #                                      GeNNConfiguration,
                                       ],
                       speed_tests=[
-                                   LinearNeuronsOnly,
-                                   HHNeuronsOnly,
+                                   #LinearNeuronsOnly,
+                                   #HHNeuronsOnly,
                                    CUBAFixedConnectivity,
-                                   VerySparseMediumRateSynapsesOnly,
-                                   SparseMediumRateSynapsesOnly,
-                                   DenseMediumRateSynapsesOnly,
-                                   SparseLowRateSynapsesOnly,
-                                   SparseHighRateSynapsesOnly,
+                                   #VerySparseMediumRateSynapsesOnly,
+                                   #SparseMediumRateSynapsesOnly,
+                                   #DenseMediumRateSynapsesOnly,
+                                   #SparseLowRateSynapsesOnly,
+                                   #SparseHighRateSynapsesOnly,
                                    ],
                       #n_slice=slice(None, None, 3),
                       #n_slice=slice(None, -1),
-                      #run_twice=False,
+                      run_twice=False,
+                      maximum_run_time=1*second,
                       )
 res.plot_all_tests()
+res.plot_all_tests(relative=True)
 show()
 
 # Debug
-# c = GeNNConfiguration()
-# c.before_run()
-# f = VerySparseMediumRateSynapsesOnly(1000000)
-# f.run()
-# c.after_run()
+# from brian2.tests.features.base import results
+# for x in results(LocalConfiguration, LinearNeuronsOnly, 10, maximum_run_time=10*second):
+#     print x

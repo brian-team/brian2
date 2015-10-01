@@ -31,7 +31,7 @@ class LinearNeuronsOnly(SpeedTest):
         self.v_init = linspace(0.1, 1, self.n)
         G = self.G = NeuronGroup(self.n, 'dv/dt=-v/tau:1')
         self.G.v = self.v_init
-        run(self.duration)
+        self.timed_run(self.duration)
 
 
 class HHNeuronsOnly(SpeedTest):
@@ -75,7 +75,7 @@ class HHNeuronsOnly(SpeedTest):
                             refractory='v > -40*mV')
         group.v = El
         group.I = '0.7*nA * i / num_neurons'
-        run(self.duration)
+        self.timed_run(self.duration)
 
 
 class CUBAFixedConnectivity(SpeedTest):
@@ -121,7 +121,7 @@ class CUBAFixedConnectivity(SpeedTest):
 
         s_mon = SpikeMonitor(P)
 
-        run(self.duration)
+        self.timed_run(self.duration)
 
 
 class SynapsesOnly(object):
@@ -144,7 +144,7 @@ class SynapsesOnly(object):
         S = Synapses(G, H, pre='w += 1.0')
         S.connect(True, p=self.p)
         #M = SpikeMonitor(G)
-        run(self.duration,
+        self.timed_run(self.duration,
             # report='text',
             )
         #plot(M.t/ms, M.i, ',k')
