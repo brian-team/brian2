@@ -761,6 +761,8 @@ class CPPStandaloneDevice(Device):
                         os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
                     x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
                     if x!=0:
+                        if os.path.exists('winmake.log'):
+                            print open('winmake.log', 'r').read()
                         raise RuntimeError("Project compilation failed")
             else:
                 with std_silent(debug):
@@ -778,7 +780,7 @@ class CPPStandaloneDevice(Device):
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
             if not with_output:
-                    stdout = open(os.devnull, 'w')
+                stdout = open('results/stdout.txt', 'w')
             else:
                 stdout = None
             if os.name=='nt':
@@ -786,6 +788,10 @@ class CPPStandaloneDevice(Device):
             else:
                 x = subprocess.call(['./main'] + run_args, stdout=stdout)
             if x:
+                if stdout is not None:
+                    stdout.close()
+                if os.path.exists('results/stdout.txt'):
+                    print open('results/stdout.txt', 'r').read()
                 raise RuntimeError("Project run failed")
             self.has_been_run = True
             last_run_info = open('results/last_run_info.txt', 'r').read()
@@ -812,7 +818,8 @@ class CPPStandaloneDevice(Device):
         debug : bool
             Whether to compile in debug mode.
         with_output : bool
-            Whether or not to show the ``stdout`` of the built program when run.
+            Whether or not to show the ``stdout`` of the built program when run. Output will be shown in case
+            of compilation or runtime error.
         native : bool
             Whether or not to compile for the current machine's architecture (best for speed, but not portable)
         clean : bool

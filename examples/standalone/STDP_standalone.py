@@ -51,7 +51,7 @@ r_mon = PopulationRateMonitor(input)
 
 run(100*second, report='text')
 device.build(directory='STDP_standalone', compile=True,
-             run=True, debug=True)
+             run=True, debug=True, with_output=False)
 
 subplot(311)
 plot(S.w / gmax, '.k')
