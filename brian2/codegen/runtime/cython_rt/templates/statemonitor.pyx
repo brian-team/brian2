@@ -1,12 +1,10 @@
 {% extends 'common.pyx' %}
 
-{# USES_VARIABLES { t, _clock_t, _indices } #}
+{# USES_VARIABLES { t, _clock_t, _indices, N } #}
 
 {% block maincode %}
 
-    # Get the current length and new length of t and value arrays
-    cdef int _curlen = {{_dynamic_t}}.shape[0]
-    cdef int _new_len = _curlen + 1
+    cdef int _new_len = {{N}} + 1
 
     # Resize the recorded times
     _var_t.resize(_new_len)
@@ -34,5 +32,8 @@
 
         _record_data_{{varname}}[_new_len-1, _i] = _to_record_{{varname}}
     {% endfor %}
+
+    # set the N variable explicitly (since we do not call `StateMonitor.resize`)
+    {{N}} = _new_len
 
 {% endblock %}
