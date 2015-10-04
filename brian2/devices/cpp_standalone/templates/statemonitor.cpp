@@ -1,7 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { t, _clock_t, _indices } #}
+    {# USES_VARIABLES { t, _clock_t, _indices, N } #}
 
     {{_dynamic_t}}.push_back({{_clock_t}});
 
@@ -31,5 +31,7 @@
             {% endfor %}
         {% endblock %}
     }
+
+    {{N}} = _new_size;
 
 {% endblock %}
