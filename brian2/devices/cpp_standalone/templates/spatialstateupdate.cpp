@@ -8,7 +8,7 @@
                   gtot_all, I0_all,
                   c1, c2, c3,
                   _P, _P_diag, _P_parent, _P_children,
-                  _B, _morph_i, _morph_parent_i, _starts, _ends,
+                  _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
                   _invr0, _invrn} #}
 {% extends 'common_group.cpp' %}
@@ -51,7 +51,7 @@
 	{{ openmp_pragma('section') }}
 	{
 		{{ openmp_pragma('parallel-static') }} // nested parallelism
-		for (int _i=0; _i<_num_morph_i; _i++)
+		for (int _i=0; _i<_num_B - 1; _i++)
 		{
 			// first and last index of the i-th branch
 			const int i_start = {{_starts}}[_i];
@@ -85,7 +85,7 @@
 	{{ openmp_pragma('section') }}
 	{
 		{{ openmp_pragma('parallel-static') }}
-		for (int _i=0; _i<_num_morph_i; _i++)
+		for (int _i=0; _i<_num_B - 1; _i++)
 		{
 			// first and last index of the i-th branch
 			const int i_start = {{_starts}}[_i];
@@ -119,7 +119,7 @@
 	{{ openmp_pragma('section') }}
 	{
 		{{ openmp_pragma('parallel-static') }}
-		for (int _i=0; _i<_num_morph_i; _i++)
+		for (int _i=0; _i<_num_B - 1; _i++)
 		{
 			// first and last index of the i-th branch
 			const int i_start = {{_starts}}[_i];
@@ -170,7 +170,7 @@
 	// step 3a: construct the coupling matrix _P
 	for (int _j=0; _j<_num_B - 1; _j++)
 	{
-		const int _i = {{_morph_i}}[_j];
+		const int _i = _j + 1; // was before refactoring: _morph_i  [_j];
 		const int _i_parent = {{_morph_parent_i}}[_j];
 		const int _i_childind = {{_morph_idxchild}}[_j];
 		const int _first = {{_starts}}[_j];
@@ -227,9 +227,9 @@
 	// compare the dense and sparse version of matrix P
 	if (verbose_output) {
 		cout << "=== matrix comparison dense vs. sparse " << endl;
-		for (int _j=0; _j<_num_B-1; _j++) // iterate over all branches
+		for (int _j=0; _j<_num_B - 1; _j++) // iterate over all branches
 		{
-			const int _i = {{_morph_i}}[_j];
+			const int _i = _j+1; // was before refactoring: _morph_i  [_j];
 			const int _i_parent = {{_morph_parent_i}}[_j];
 			const int _i_childind = {{_morph_idxchild}}[_j];
 
@@ -430,7 +430,7 @@
 	// integration step 4: for each branch compute the final solution by linear combination of the general solution (independent: branches & compartments)
     for (int _j=0; _j<_num_B - 1; _j++)
     {
-        const int _i = {{_morph_i}}[_j];
+        const int _i = _j+1; // was before refactoring: _morph_i [_j];
         const int _i_parent = {{_morph_parent_i}}[_j];
         const int _first = {{_starts}}[_j];
         const int _last = {{_ends}}[_j];
