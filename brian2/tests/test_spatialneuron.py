@@ -177,7 +177,7 @@ def test_infinitecable():
     theory = theory*1*nA*0.02*ms
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_finitecable():
     '''
@@ -218,7 +218,7 @@ def test_finitecable():
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
     assert_allclose(v-EL, theory-EL, rtol=0.01)
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_rallpack1():
     '''
@@ -439,7 +439,7 @@ def test_rallpack3():
     assert 100*max_rel_x < 0.5
 
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_rall():
     '''

@@ -11,8 +11,6 @@
 {% extends 'common_group.cpp' %}
 {% block maincode %}
 
-	double ai,bi,_m;
-
     int _vectorisation_idx = 1;
 
 	//// MAIN CODE ////////////
@@ -30,9 +28,10 @@
 		{{gtot_all}}[_idx] = _gtot;
         {{I0_all}}[_idx] = _I0;
     }
-
-    double *c = (double *)malloc(N * sizeof(double));
     {{ openmp_pragma('parallel') }}
+    {
+    double ai, bi, _m;
+    double *c = (double *)malloc(N * sizeof(double));
     {{ openmp_pragma('sections') }}
     {
     {
@@ -104,10 +103,10 @@
 	}
 	for(int i=N-2;i>=0;i--)
 		{{u_minus}}[i]={{u_minus}}[i] - c[i]*{{u_minus}}[i+1];
-	}
-    }
-
+	}  // (OpenMP section)
+    }  // (OpenMP sections)
     free(c);
+    }  // (OpenMP parallel)
 
     // Prepare matrix for solving the linear system
     for (int _j=0; _j<_num_B - 1; _j++)

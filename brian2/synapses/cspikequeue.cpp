@@ -80,15 +80,15 @@ public:
         synapses.clear();
         synapses.resize(source_end - source_start);
 
-        for (unsigned int i=0; i<n_synapses; i++)
-        {
-            if (i == 0 || !scalar_delay)
-            {
+        // Note that n_synapses and n_delays do not have to be identical
+        // (homogeneous delays are stored as a single scalar), we therefore
+        // use two independent loops to initialize the delays and the synapses
+        // array
+        for (int i=0; i<n_delays; i++)
                 //round to nearest int
                 delays[i] =  (int)(real_delays[i] / _dt + 0.5);
-            }
+        for (int i=0; i<n_synapses; i++)
             synapses[sources[i] - source_start].push_back(i + openmp_padding);
-        }
 
         dt = _dt;
     }
