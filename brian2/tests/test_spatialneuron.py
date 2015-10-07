@@ -33,21 +33,21 @@ def test_construction():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
     # Test initialization of values
     neuron.LL.v = EL
-    assert_allclose(neuron.L.main.v,0)
-    assert_allclose(neuron.LL.v,EL)
+    assert_allclose(neuron.L.main.v, 0)
+    assert_allclose(neuron.LL.v, EL)
     neuron.LL[2*um:3.1*um].v = 0*mV
-    assert_allclose(neuron.LL.v,[EL,0,0,EL,EL])
-    assert_allclose(neuron.Cm,1 * uF / cm ** 2)
+    assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
+    assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
     # Test morphological variables
-    assert_allclose(neuron.main.x,morpho.x)
-    assert_allclose(neuron.L.main.x,morpho.L.x)
-    assert_allclose(neuron.LL.main.x,morpho.LL.x)
-    assert_allclose(neuron.right.main.x,morpho.right.x)
-    assert_allclose(neuron.L.main.distance,morpho.L.distance)
-    assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
-    assert_allclose(neuron.L.main.area,morpho.L.area)
-    assert_allclose(neuron.L.main.length,morpho.L.length)
+    assert_allclose(neuron.main.x_, morpho.x)
+    assert_allclose(neuron.L.main.x_, morpho.L.x)
+    assert_allclose(neuron.LL.main.x_, morpho.LL.x)
+    assert_allclose(neuron.right.main.x_, morpho.right.x)
+    assert_allclose(neuron.L.main.distance_, morpho.L.distance)
+    assert_allclose(neuron.L.main.diameter_, morpho.L.diameter)
+    assert_allclose(neuron.L.main.area_, morpho.L.area)
+    assert_allclose(neuron.L.main.length_, morpho.L.length)
 
     # Check basic consistency of the flattened representation
     assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
@@ -99,21 +99,21 @@ def test_construction_coordinates():
 
     # Test initialization of values
     neuron.LL.v = EL
-    assert_allclose(neuron.L.main.v,0)
-    assert_allclose(neuron.LL.v,EL)
+    assert_allclose(neuron.L.main.v, 0)
+    assert_allclose(neuron.LL.v, EL)
     neuron.LL[2*um:3.1*um].v = 0*mV
-    assert_allclose(neuron.LL.v,[EL,0,0,EL,EL])
-    assert_allclose(neuron.Cm,1 * uF / cm ** 2)
+    assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
+    assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
     # Test morphological variables
-    assert_allclose(neuron.main.x,morpho.x)
-    assert_allclose(neuron.L.main.x,morpho.L.x)
-    assert_allclose(neuron.LL.main.x,morpho.LL.x)
-    assert_allclose(neuron.right.main.x,morpho.right.x)
-    assert_allclose(neuron.L.main.distance,morpho.L.distance)
-    assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
-    assert_allclose(neuron.L.main.area,morpho.L.area)
-    assert_allclose(neuron.L.main.length,morpho.L.length)
+    assert_allclose(neuron.main.x_, morpho.x)
+    assert_allclose(neuron.L.main.x_, morpho.L.x)
+    assert_allclose(neuron.LL.main.x_, morpho.LL.x)
+    assert_allclose(neuron.right.main.x_, morpho.right.x)
+    assert_allclose(neuron.L.main.distance_, morpho.L.distance)
+    assert_allclose(neuron.L.main.diameter_, morpho.L.diameter)
+    assert_allclose(neuron.L.main.area_, morpho.L.area)
+    assert_allclose(neuron.L.main.length_, morpho.L.length)
 
     # Check basic consistency of the flattened representation
     assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)

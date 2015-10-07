@@ -31,9 +31,9 @@ def test_state_variables():
     assert_allclose(SG.v,
                     np.array([-80, -80, -80, -80, -80])*mV)
     assert_allclose(G.v_,
-                    np.array([0, 0, 0, 0, -80, -80, -80, -80, -80, 0])*mV)
+                    np.array([0, 0, 0, 0, -80, -80, -80, -80, -80, 0]*mV))
     assert_allclose(SG.v_,
-                    np.array([-80, -80, -80, -80, -80])*mV)
+                    np.array([-80, -80, -80, -80, -80]*mV))
     # You should also be able to set variables with a string
     SG.v = 'v + i*mV'
     assert_allclose(SG.v[0], -80*mV)
