@@ -6,6 +6,7 @@ from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 
+import brian2
 from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            UFUNCS_DIMENSIONLESS_TWOARGS,
@@ -42,8 +43,8 @@ except ImportError:
 def assert_quantity(q, values, unit):
     assert isinstance(q, Quantity) or (have_same_dimensions(unit, 1) and
                                        (values.shape == () or
-                                        isinstance(q, np.ndarray)))
-    assert_equal(np.asarray(q), values)
+                                        isinstance(q, np.ndarray))), q
+    assert_allclose(np.asarray(q), values)
     assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
                                            (get_dimensions(q),
                                             get_dimensions(unit)))
@@ -870,6 +871,29 @@ def test_numpy_functions_logical():
 
 
 @attr('codegen-independent')
+def test_arange_linspace():
+    # For dimensionless values, the unit-safe functions should give the same results
+    assert_equal(brian2.arange(5), np.arange(5))
+    assert_equal(brian2.arange(1, 5), np.arange(1, 5))
+    assert_equal(brian2.arange(10, step=2), np.arange(10, step=2))
+    assert_equal(brian2.arange(0, 5, 0.5), np.arange(0, 5, 0.5))
+    assert_equal(brian2.linspace(0, 1), np.linspace(0, 1))
+    assert_equal(brian2.linspace(0, 1, 10), np.linspace(0, 1, 10))
+
+    # Make sure units are checked
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*mV))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1, 5*mV))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*ms))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*mV, step=1*ms))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*ms, 5*mV))
+
+    # Check correct functioning with units
+    assert_quantity(brian2.arange(5*mV, step=1*mV), float(mV)*np.arange(5, step=1), mV)
+    assert_quantity(brian2.arange(1*mV, 5*mV, 1*mV), float(mV)*np.arange(1, 5, 1), mV)
+    assert_quantity(brian2.linspace(1*mV, 2*mV), float(mV)*np.linspace(1, 2), mV)
+
+@attr('codegen-independent')
 def test_list():
     '''
     Test converting to and from a list.
@@ -1049,6 +1073,7 @@ if __name__ == '__main__':
     test_numpy_functions_change_dimensions()
     test_numpy_functions_typeerror()
     test_numpy_functions_logical()
+    test_arange_linspace()
     test_list()
     test_check_units()
     test_get_unit()
