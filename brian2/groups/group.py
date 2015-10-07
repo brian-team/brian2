@@ -197,7 +197,7 @@ class Indexing(object):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
-            if item is None or item == 'True':
+            if item is None or (isinstance(item, basestring) and item == 'True'):
                 item = slice(None)
             if isinstance(item, slice):
                 if index_var == '0':
