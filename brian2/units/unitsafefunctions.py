@@ -3,6 +3,7 @@ Unit-aware replacements for numpy functions.
 """
 from functools import wraps
 
+import pkg_resources
 import numpy as np
 
 from .fundamentalunits import (Quantity, wrap_function_dimensionless,
@@ -139,9 +140,15 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
                                                'same units.'),
                                 start=start, stop=stop)
     dim = getattr(start, 'dim', DIMENSIONLESS)
-    return Quantity(np.linspace(np.asarray(start), np.asarray(stop), num=num,
-                    endpoint=endpoint, retstep=retstep, dtype=None),
-                    dim=dim, copy=False)
+    if pkg_resources.parse_version(np.__version__) < pkg_resources.parse_version('1.9.0'):
+        if dtype is not None:
+            raise TypeError('The "dtype" argument needs numpy >= 1.9.0')
+        result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
+                             endpoint=endpoint, retstep=retstep)
+    else:
+        result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
+                             endpoint=endpoint, retstep=retstep, dtype=dtype)
+    return Quantity(result, dim=dim, copy=False)
 
 
 # these functions discard subclass info -- maybe a bug in numpy?
