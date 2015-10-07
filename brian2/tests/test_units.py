@@ -524,7 +524,12 @@ def test_inplace_operations():
     for inplace_op in [q.__iadd__, q.__isub__, q.__imul__,
                        q.__idiv__, q.__itruediv__, q.__ifloordiv__,
                        q.__imod__, q.__ipow__]:
-        assert inplace_op('string') == NotImplemented
+        try:
+            result = inplace_op('string')
+            # if it doesn't fail with an error, it should return NotImplemented
+            assert result == NotImplemented
+        except TypeError:
+            pass  # raised on numpy >= 0.10
     
     # make sure that inplace operations do not work on units/dimensions at all
     for inplace_op in [volt.__iadd__, volt.__isub__, volt.__imul__,
@@ -849,9 +854,17 @@ def test_numpy_functions_logical():
                 # two arguments
                 result_units = eval('np.%s(value1, value2)' % ufunc)        
                 result_array = eval('np.%s(np.array(value1), np.array(value2))' % ufunc)
-                # assert that comparing to a string results in "NotImplemented"
-                assert eval('np.%s(value1, "a string")' % ufunc) == NotImplemented
-                assert eval('np.%s("a string", value1)' % ufunc) == NotImplemented
+                # assert that comparing to a string results in "NotImplemented" or an error
+                try:
+                    result = eval('np.%s(value1, "a string")' % ufunc)
+                    assert result == NotImplemented
+                except TypeError:
+                    pass  # raised on numpy >= 0.10
+                try:
+                    result = eval('np.%s("a string", value1)' % ufunc)
+                    assert result == NotImplemented
+                except TypeError:
+                    pass  # raised on numpy >= 0.10
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
 
