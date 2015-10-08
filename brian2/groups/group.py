@@ -287,8 +287,6 @@ class VariableOwner(Nameable):
             self.indices = IndexWrapper(self)
         if not hasattr(self, '_stored_states'):
             self._stored_states = {}
-        if not hasattr(self, '_stored_clocks'):
-            self._stored_clocks = {}
         self._group_attribute_access_active = True
 
     def state(self, name, use_units=True, level=0):
@@ -528,7 +526,6 @@ class VariableOwner(Nameable):
             if isinstance(var, ArrayVariable):
                 state[var] = (var.get_value().copy(), var.size)
         self._stored_states[name] = state
-        self._stored_clocks[name] = (self.clock.t_, self.clock.dt_)
         for obj in self._contained_objects:
             if hasattr(obj, '_store'):
                 obj._store(name)
@@ -542,9 +539,6 @@ class VariableOwner(Nameable):
             if isinstance(var, DynamicArrayVariable):
                 var.resize(size)
             var.set_value(values)
-        t, dt = self._stored_clocks[name]
-        self.clock.dt_ = dt
-        self.clock._set_t_update_dt(target_t=t*second)
         for obj in self._contained_objects:
             if hasattr(obj, '_restore'):
                 obj._restore(name)
