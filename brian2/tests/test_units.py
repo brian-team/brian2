@@ -893,6 +893,17 @@ def test_arange_linspace():
     assert_quantity(brian2.arange(1*mV, 5*mV, 1*mV), float(mV)*np.arange(1, 5, 1), mV)
     assert_quantity(brian2.linspace(1*mV, 2*mV), float(mV)*np.linspace(1, 2), mV)
 
+    # Check errors for arange with incorrect numbers of arguments/duplicate arguments
+    assert_raises(TypeError, lambda: brian2.arange())
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, 0))
+    assert_raises(TypeError, lambda: brian2.arange(0, stop=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, stop=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, start=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, start=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, stop=2))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, step=2))
+
+
 @attr('codegen-independent')
 def test_list():
     '''

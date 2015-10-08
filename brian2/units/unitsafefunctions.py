@@ -94,19 +94,19 @@ def arange(*args, **kwargs):
     step = kwargs.pop('step', 1)
     stop = kwargs.pop('stop', None)
     if len(args) == 1:
-        if stop != None:
+        if stop is not None:
             raise TypeError('Duplicate definition of "stop"')
         stop = args[0]
     elif len(args) == 2:
         if start != 0:
             raise TypeError('Duplicate definition of "start"')
-        if stop != None:
+        if stop is not None:
             raise TypeError('Duplicate definition of "stop"')
         start, stop = args
     elif len(args) == 3:
         if start != 0:
             raise TypeError('Duplicate definition of "start"')
-        if stop != None:
+        if stop is not None:
             raise TypeError('Duplicate definition of "stop"')
         if step != 1:
             raise TypeError('Duplicate definition of "step"')
