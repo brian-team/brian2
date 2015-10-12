@@ -4,7 +4,7 @@ from nose.plugins.attrib import attr
 from brian2 import *
 from brian2.devices.device import restore_device
 
-@attr('codegen-independent', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_cuba():
     taum = 20*ms
