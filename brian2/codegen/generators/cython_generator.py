@@ -44,6 +44,13 @@ class CythonNodeRenderer(NodeRenderer):
         return {'True': '1',
                 'False': '0'}.get(node.id, node.id)
 
+    def render_BinOp(self, node):
+        if node.op.__class__.__name__=='Mod':
+            return '((({left})%({right}))+({right}))%({right})'.format(left=self.render_node(node.left),
+                                                                       right=self.render_node(node.right))
+        else:
+            return super(CythonNodeRenderer, self).render_BinOp(node)
+
 
 class CythonCodeGenerator(CodeGenerator):
     '''

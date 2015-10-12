@@ -519,26 +519,25 @@ def test_binomial():
 
 if __name__ == '__main__':
     from brian2 import prefs
-    #prefs.codegen.target = 'numpy'
-    set_device('cpp_standalone')
+    # prefs.codegen.target = 'numpy'
     import time
     for f in [
-            # test_constants_sympy,
-            # test_constants_values,
-            # test_math_functions,
-            # test_bool_to_int,
+            test_constants_sympy,
+            test_constants_values,
+            test_math_functions,
+            test_bool_to_int,
             test_user_defined_function,
-            # test_user_defined_function_units,
-            # test_simple_user_defined_function,
-            # test_manual_user_defined_function,
-            # test_manual_user_defined_function_weave,
-            # test_user_defined_function_discarding_units,
-            # test_user_defined_function_discarding_units_2,
-            # test_function_implementation_container,
-            # test_function_dependencies_numpy,
-            # test_function_dependencies_weave,
-            # test_function_dependencies_cython,
-            # test_binomial
+            test_user_defined_function_units,
+            test_simple_user_defined_function,
+            test_manual_user_defined_function,
+            test_manual_user_defined_function_weave,
+            test_user_defined_function_discarding_units,
+            test_user_defined_function_discarding_units_2,
+            test_function_implementation_container,
+            test_function_dependencies_numpy,
+            test_function_dependencies_weave,
+            test_function_dependencies_cython,
+            test_binomial
             ]:
         try:
             start = time.time()
