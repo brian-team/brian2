@@ -182,7 +182,9 @@ class LinearStateUpdater(StateUpdateMethod):
         # Not very efficient but guaranteed to give the correct answer:
         # Just try to apply the integration method
         try:
-            self.__call__(equations, variables)
+            # Don't use sympy's simplify because it might take a very long time.
+            # We are not using the result, anyway.
+            self.__call__(equations, variables, simplify=False)
         except (ValueError, NotImplementedError, TypeError) as ex:
             logger.debug('Cannot use linear integration: %s' % ex)
             return False
@@ -190,7 +192,7 @@ class LinearStateUpdater(StateUpdateMethod):
         # It worked
         return True
 
-    def __call__(self, equations, variables=None):
+    def __call__(self, equations, variables=None, simplify=True):
 
         if variables is None:
             variables = {}
@@ -226,8 +228,12 @@ class LinearStateUpdater(StateUpdateMethod):
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
         A = (matrix * dt).exp()
+        if simplify:
+            A.simplify()
         C = sp.ImmutableMatrix([A.dot(b)]) - b
         _S = sp.MatrixSymbol('_S', len(varnames), 1)
+        # The use of .as_mutable() here is a workaround for a
+        # ``Transpose object does not have
         updates = A * _S + C.transpose()
         try:
             # In sympy 0.7.3, we have to explicitly convert it to a single matrix
