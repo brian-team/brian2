@@ -50,6 +50,8 @@ class CythonExtensionManager(object):
                          compiler=None,
                          ):
 
+        self._simplify_paths()
+
         if Cython is None:
             raise ImportError('Cython is not available')
 
@@ -206,8 +208,25 @@ class CythonExtensionManager(object):
         self._code_cache[key] = module
         return module
         #self._import_all(module)
-        
+
+    def _simplify_paths(self):
+        if 'lib' in os.environ:
+            os.environ['lib'] = simplify_path_env_var(os.environ['lib'])
+        if 'include' in os.environ:
+            os.environ['include'] = simplify_path_env_var(os.environ['include'])
+
 cython_extension_manager = CythonExtensionManager()
+
+
+def simplify_path_env_var(path):
+    allpaths = path.split(os.pathsep)
+    knownpaths = set()
+    uniquepaths = []
+    for p in allpaths:
+        if p not in knownpaths:
+            knownpaths.add(p)
+            uniquepaths.append(p)
+    return os.pathsep.join(uniquepaths)
 
 
 if __name__=='__main__':
