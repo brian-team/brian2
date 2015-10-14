@@ -5,6 +5,13 @@ Brian 2.0
 # working weave/Cython on Windows with the Python for C++ compiler
 import setuptools as _setuptools
 
+# Hack to fix problem in numpy 1.10
+try:
+    import numpy.distutils.msvccompiler as _msvccompiler
+    _msvccompiler.MSVCCompiler.compiler_cxx = 'cl.exe'
+except ImportError:
+    pass
+
 # Check basic dependencies
 import sys
 from distutils.version import LooseVersion
