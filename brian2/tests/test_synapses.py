@@ -552,13 +552,17 @@ def test_invalid_custom_event():
 
 def test_transmission():
     default_dt = defaultclock.dt
-    delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
+    delays = [[0, 0, 0, 0] * ms,
+              [1, 1, 1, 0] * ms,
+              [0, 1, 2, 3] * ms,
+              [2, 2, 0, 0] * ms,
+              [2, 1, 0, 1] * ms]
     for delay in delays:
         # Make sure that the Synapses class actually propagates spikes :)
-        source = NeuronGroup(2, '''dv/dt = rate : 1
+        source = NeuronGroup(4, '''dv/dt = rate : 1
                                    rate : Hz''', threshold='v>1', reset='v=0')
-        source.rate = [51, 101] * Hz
-        target = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
+        source.rate = [51, 101, 101, 51] * Hz
+        target = NeuronGroup(4, 'v:1', threshold='v>1', reset='v=0')
 
         source_mon = SpikeMonitor(source)
         target_mon = SpikeMonitor(target)
@@ -566,14 +570,12 @@ def test_transmission():
         S = Synapses(source, target, pre='v+=1.1', connect='i==j')
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
-        net.run(100*ms+default_dt+max(delay))
-
+        net.run(100*ms+default_dt+max(delay), report='text')
         # All spikes should trigger spikes in the receiving neurons with
         # the respective delay ( + one dt)
-        assert_allclose(source_mon.t[source_mon.i==0],
-                        target_mon.t[target_mon.i==0] - default_dt - delay[0])
-        assert_allclose(source_mon.t[source_mon.i==1],
-                        target_mon.t[target_mon.i==1] - default_dt - delay[1])
+        for d in xrange(len(delay)):
+            assert_allclose(source_mon.t[source_mon.i==d],
+                            target_mon.t[target_mon.i==d] - default_dt - delay[d])
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
