@@ -4,7 +4,7 @@ from nose.plugins.attrib import attr
 from brian2 import *
 from brian2.devices.device import restore_device
 
-@attr('codegen-independent', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_cuba():
     taum = 20*ms
@@ -16,8 +16,8 @@ def test_cuba():
 
     eqs = '''
     dv/dt  = (ge+gi-(v-El))/taum : volt (unless refractory)
-    dge/dt = -ge/taue : volt (unless refractory)
-    dgi/dt = -gi/taui : volt (unless refractory)
+    dge/dt = -ge/taue : volt
+    dgi/dt = -gi/taui : volt
     '''
 
     P = NeuronGroup(4000, eqs, threshold='v>Vt', reset='v = Vr', refractory=5*ms)

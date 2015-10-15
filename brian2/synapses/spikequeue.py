@@ -17,6 +17,32 @@ logger = get_logger(__name__)
 INITIAL_MAXSPIKESPER_DT = 1
 
 
+def _calc_offsets(delay):
+    '''
+    Calculates offsets corresponding to a delay array.
+    If there n identical delays, they are given offsets between 0 and n-1.
+    The code is complex because tricks are needed for vectorisation.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> _calc_offsets(np.array([7, 5, 7, 3, 7, 5]))
+    array([0, 0, 1, 0, 2, 1])
+    '''
+    # We use merge sort because it preserves the input order of equal
+    # elements in the sorted output
+    I = np.argsort(delay, kind='mergesort')
+    xs = delay[I]
+    J = (xs[1:] != xs[:-1])
+    A = np.hstack((0, np.cumsum(J)))
+    B = np.hstack((0, np.cumsum(-J)))
+    BJ = np.hstack((0, B[:-1][J]))
+    ei = B-BJ[A]
+    ofs = np.zeros_like(delay)
+    ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
+    return ofs
+
+
 class SpikeQueue(object):
     '''
     Data structure saving the spikes and taking care of delays.
@@ -269,32 +295,8 @@ class SpikeQueue(object):
         index = 0
         for targets in self._neurons_to_synapses:
             target_delays = delays[targets]
-            self._offsets[index:index+len(target_delays)] = self._calc_offsets(target_delays)
+            self._offsets[index:index+len(target_delays)] = _calc_offsets(target_delays)
             index += len(target_delays)
-
-    def _calc_offsets(self, delay):
-        '''
-        Calculates offsets corresponding to a delay array.
-        If there n identical delays, there are given offsets between
-        0 and n-1.
-        Example:
-
-            [7,5,7,3,7,5] -> [0,0,1,0,2,1]
-
-        The code is complex because tricks are needed for vectorisation.
-        '''
-        # We use merge sort because it preserves the input order of equal
-        # elements in the sorted output
-        I = np.argsort(delay, kind='mergesort')
-        xs = delay[I]
-        J = xs[1:]!=xs[:-1]
-        A = np.hstack((0, np.cumsum(J)))
-        B = np.hstack((0, np.cumsum(-J)))
-        BJ = np.hstack((0, B[J]))
-        ei = B-BJ[A]
-        ofs = np.zeros_like(delay)
-        ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
-        return ofs
 
     def _insert(self, delay, target, offset=None):
         '''
@@ -316,7 +318,7 @@ class SpikeQueue(object):
         delay = np.array(delay, dtype=int)
 
         if offset is None:
-            offset = self._calc_offsets(delay)
+            offset = _calc_offsets(delay)
 
         # Calculate row indices in the data structure
         timesteps = (self.currenttime + delay) % len(self.n)
