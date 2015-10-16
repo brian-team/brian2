@@ -65,9 +65,7 @@ matrix:
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
       os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
-      os: linux
+
 
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
