@@ -89,10 +89,7 @@ class SpikeQueue(object):
     (saves memory). Note that if they are determined at run time, then it is
     possible to also vectorise over presynaptic spikes.
     '''
-    def __init__(self, source_start, source_end, dtype=np.int32,
-                 precompute_offsets=True):
-        #: Whether the offsets should be precomputed
-        self._precompute_offsets = precompute_offsets
+    def __init__(self, source_start, source_end, dtype=np.int32):
 
         #: The start of the source indices (for subgroups)
         self._source_start = source_start
@@ -121,10 +118,9 @@ class SpikeQueue(object):
         Prepare the data structure and pre-compute offsets.
         This is called every time the network is run. The size of the
         of the data structure (number of rows) is adjusted to fit the maximum
-        delay in `delays`, if necessary. Offsets are calculated, unless
-        the option `precompute_offsets` is set to ``False``. A flag is set if
-        delays are homogeneous, in which case insertion will use a faster method
-        implemented in `insert_homogeneous`.        
+        delay in `delays`, if necessary. A flag is set if delays are
+        homogeneous, in which case insertion will use a faster method
+        implemented in `insert_homogeneous`.
         '''
         n_synapses = len(synapse_sources)
 
@@ -171,10 +167,6 @@ class SpikeQueue(object):
             self.X = np.zeros((n_steps, max_events), dtype=self.dtype) # target synapses
             self.X_flat = self.X.reshape(n_steps*max_events,)
             self.n = np.zeros(n_steps, dtype=int) # number of events in each time step
-
-        # Precompute offsets
-        if self._precompute_offsets and not self._homogeneous:
-            self._do_precompute_offsets(n_synapses)
 
         # Re-insert the spikes into the data structure
         if spikes is not None:
@@ -277,28 +269,10 @@ class SpikeQueue(object):
                                       for source in sources]).astype(np.int32)
             if self._homogeneous:  # homogeneous delays
                 self._insert_homogeneous(self._delays[0], indices)
-            elif self._offsets is None:  # vectorise over synaptic events
-                # there are no precomputed offsets, this is the case
-                # (in particular) when there are dynamic delays
+            else:  # vectorise over synaptic events
                 self._insert(self._delays[indices], indices)
-            else: # offsets are precomputed
-                self._insert(self._delays[indices], indices, self._offsets[indices])
-                # Note: the trick can only work if offsets are ordered in the right way
 
-    def _do_precompute_offsets(self, n_synapses):
-        '''
-        Precompute all offsets corresponding to delays. This assumes that
-        delays will not change during the simulation.
-        '''
-        delays = self._delays
-        self._offsets = np.zeros_like(delays)
-        index = 0
-        for targets in self._neurons_to_synapses:
-            target_delays = delays[targets]
-            self._offsets[index:index+len(target_delays)] = _calc_offsets(target_delays)
-            index += len(target_delays)
-
-    def _insert(self, delay, target, offset=None):
+    def _insert(self, delay, target):
         '''
         Vectorised insertion of spike events.
 
@@ -317,8 +291,7 @@ class SpikeQueue(object):
         '''
         delay = np.array(delay, dtype=int)
 
-        if offset is None:
-            offset = _calc_offsets(delay)
+        offset = _calc_offsets(delay)
 
         # Calculate row indices in the data structure
         timesteps = (self.currenttime + delay) % len(self.n)
