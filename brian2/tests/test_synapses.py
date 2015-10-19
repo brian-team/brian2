@@ -1175,6 +1175,17 @@ def test_vectorisation_STDP_like():
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
+def test_synaptic_equations():
+    # Check that integration works for synaptic equations
+    G = NeuronGroup(10, '')
+    tau = 10*ms
+    S = Synapses(G, G, 'dw/dt = -w / tau : 1', connect='i==j')
+    S.w = 'i'
+    run(10*ms)
+    assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
@@ -1310,6 +1321,7 @@ if __name__ == '__main__':
     test_permutation_analysis()
     test_vectorisation()
     test_vectorisation_STDP_like()
+    test_synaptic_equations()
     test_synapses_to_synapses()
     test_synapses_to_synapses_summed_variable()
     test_ufunc_at_vectorisation()
