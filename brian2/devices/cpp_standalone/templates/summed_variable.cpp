@@ -18,13 +18,14 @@
     const int _vectorisation_idx = -1;
     {{scalar_code|autoindent}}
 
-    {{ openmp_pragma('parallel-static') }}
+    {# The following could be parallelized with OpenMP, but this needs some care
+       to not write concurrently to the same post-synaptic variable. A general
+       critical block around the write slows things down too much, though. #}
     for(int _idx=0; _idx<_num_synaptic_post; _idx++)
     {
         // vector code
         const int _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
-        {{ openmp_pragma('atomic') }}
         {{_target_var_array}}[{{_synaptic_post}}[_idx]] += _synaptic_var;
     }
 {% endblock %}
