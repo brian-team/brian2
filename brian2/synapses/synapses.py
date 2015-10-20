@@ -316,8 +316,9 @@ class SynapticPathway(CodeRunner, Group):
     def _restore_from_full_state(self, state):
         queue_state = state.pop('_spikequeue', None)
         super(SynapticPathway, self)._restore_from_full_state(state)
-        if self.queue is not None:
-            self.queue._restore_from_full_state(queue_state)
+        if self.queue is None:
+            self.queue = get_device().spike_queue(self.source.start, self.source.stop)
+        self.queue._restore_from_full_state(queue_state)
 
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
