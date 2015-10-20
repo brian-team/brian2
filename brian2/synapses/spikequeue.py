@@ -50,44 +50,28 @@ class SpikeQueue(object):
     Parameters
     ----------
 
-    synapses : list of ndarray 
-        A list of synapses (synapses[i]=array of synapse indices for neuron i).
-    delays : ndarray
-        An array of delays (delays[k]=delay of synapse k).
-    dt : `Quantity`
-        The timestep of the source group
-    max_delay : `Quantity`, optional
-        The maximum delay (in second) of synaptic events. At run time, the
-        structure is resized to the maximum delay in `delays`, and thus
-        the `max_delay` should only be specified if delays can change
-        during the simulation (in which case offsets should not be
-        precomputed).
-    precompute_offsets : bool, optional
-        A flag to precompute offsets. Defaults to ``True``, i.e. offsets (an
-        internal array derived from `delays`, used to insert events in the data
-        structure, see below) are precomputed for all neurons when the object
-        is prepared with the `compress` method. This usually results in a speed
-        up but takes memory, which is why it can be disabled.
-
+    source_start : int
+        The start of the source indices (for subgroups)
+    source_end : int
+        The end of the source indices (for subgroups)
+    dtype : `dtype`, optional
+        The data type that should be used for the spike queue (defaults to
+         `numpy.int32`).
     Notes
     -----
-
     **Data structure** 
     
     A spike queue is implemented as a 2D array `X` that is circular in the time
     direction (rows) and dynamic in the events direction (columns). The
     row index corresponding to the current timestep is `currentime`.
-    Each element contains the target synapse index.    
+    Each element contains the target synapse index.
     
     **Offsets**
-    
+
     Offsets are used to solve the problem of inserting multiple synaptic events
     with the same delay. This is difficult to vectorise. If there are n synaptic
     events with the same delay, these events are given an offset between 0 and
     n-1, corresponding to their relative position in the data structure.
-    They can be either precalculated (faster), or determined at run time
-    (saves memory). Note that if they are determined at run time, then it is
-    possible to also vectorise over presynaptic spikes.
     '''
     def __init__(self, source_start, source_end, dtype=np.int32):
 
@@ -104,18 +88,14 @@ class SpikeQueue(object):
         self.currenttime = 0
         #: number of events in each time step
         self.n = np.zeros(1, dtype=int)
-        #: precalculated offsets
-        self._offsets = None
 
         #: The dt used for storing the spikes (will be set in `prepare`)
         self._dt = None
 
-        #: Storage for the store/restore mechanism
-        self._stored_spikes = {}
-
     def prepare(self, delays, dt, synapse_sources):
         '''
-        Prepare the data structure and pre-compute offsets.
+        Prepare the data structures
+
         This is called every time the network is run. The size of the
         of the data structure (number of rows) is adjusted to fit the maximum
         delay in `delays`, if necessary. A flag is set if delays are
@@ -284,10 +264,6 @@ class SpikeQueue(object):
 
         target : ndarray
             Target synaptic indices.
-
-        offset : ndarray
-            Offsets within timestep. If unspecified, they are calculated
-            from the delay array.
         '''
         delay = np.array(delay, dtype=int)
 
