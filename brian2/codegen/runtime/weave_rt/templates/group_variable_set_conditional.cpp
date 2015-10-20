@@ -8,6 +8,9 @@
 	{{ common.insert_lines('HASH DEFINES', hashdefine_lines) }}
 	{{ common.insert_lines('POINTERS', pointers_lines) }}
 	//// MAIN CODE ////////////
+    // This allows everything to work correctly for synapses where N is not a
+    // constant
+    const int _N = {{constant_or_scalar('N', variables['N'])}};
 	// scalar code
 	const int _vectorisation_idx = 1;
 	{# Note that the scalar_code['statement'] will not write to any scalar
@@ -17,7 +20,7 @@
 	{{scalar_code['condition']|autoindent}}
 	{{scalar_code['statement']|autoindent}}
 
-	for(int _idx=0; _idx<N; _idx++)
+	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    const int _vectorisation_idx = _idx;
 	    {{ common.insert_lines('CONDITION', vector_code['condition']) }}

@@ -135,6 +135,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         for target in codegen_targets:
             sys.stderr.write('Running tests for target %s:\n' % target)
             prefs.codegen.target = target
+            # Also set the target for string-expressions -- otherwise we'd only
+            # ever test numpy for those
+            prefs.codegen.string_expression_target = target
             prefs._backup()
             exclude_str = "!standalone-only,!codegen-independent"
             if not long_tests:
@@ -154,6 +157,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv))
+
         if test_standalone:
             from brian2.devices.device import get_device, set_device
             previous_device = get_device()

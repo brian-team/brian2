@@ -126,11 +126,11 @@
     for _i in range(_n_segments):
         # find pivot element
         i_pivot = _i
-        pivot_magnitude = fabs({{_P}}[_i*_n_segments + _i])
+        pivot_magnitude = abs({{_P}}[_i*_n_segments + _i])
         for _j in range(_i+1, _n_segments):
-            if fabs({{_P}}[_j*_n_segments + _i]) > pivot_magnitude:
+            if abs({{_P}}[_j*_n_segments + _i]) > pivot_magnitude:
                 i_pivot = _j
-                pivot_magnitude = fabs({{_P}}[_j*_n_segments + _i])
+                pivot_magnitude = abs({{_P}}[_j*_n_segments + _i])
 
         if pivot_magnitude == 0.:
             raise ValueError('Matrix is singular')
