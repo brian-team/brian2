@@ -1,6 +1,8 @@
 import weakref
 import copy
 import logging
+import tempfile
+import os
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
@@ -756,7 +758,6 @@ def test_store_restore():
     net.run(10*ms)
     v_values = state_mon.v[:, :]
     spike_indices, spike_times = spike_mon.it_
-
     net.restore() # Go back to beginning
     assert defaultclock.t == 0*ms
     assert net.t == 0*ms
@@ -774,6 +775,46 @@ def test_store_restore():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+@attr('codegen-independent')
+def test_store_restore_to_file():
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    net = Network(source, target, synapses, state_mon, spike_mon)
+    net.store(filename=filename)  # default time slot
+    net.run(10*ms)
+    net.store('second', filename=filename)
+    net.run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    net.restore(filename=filename) # Go back to beginning
+    assert defaultclock.t == 0*ms
+    assert net.t == 0*ms
+    net.run(20*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    net.restore('second', filename=filename)
+    assert defaultclock.t == 10*ms
+    assert net.t == 10*ms
+    net.run(10*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -811,6 +852,47 @@ def test_store_restore_magic():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_store_restore_magic_to_file():
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    store(filename=filename)  # default time slot
+    run(10*ms)
+    store('second', filename=filename)
+    run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    restore(filename=filename) # Go back to beginning
+    assert magic_network.t == 0*ms
+    run(20*ms)
+    assert defaultclock.t == 20*ms
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    restore('second', filename=filename)
+    assert magic_network.t == 10*ms
+    run(10*ms)
+    assert defaultclock.t == 20*ms
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -1011,7 +1093,9 @@ if __name__=='__main__':
             test_progress_report,
             test_progress_report_incorrect,
             test_store_restore,
+            test_store_restore_to_file,
             test_store_restore_magic,
+            test_store_restore_magic_to_file,
             test_defaultclock_dt_changes,
             test_dt_changes_between_runs,
             test_dt_restore,

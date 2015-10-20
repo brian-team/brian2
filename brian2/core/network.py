@@ -7,10 +7,11 @@ Preferences
 .. document_brian_prefs:: core.network
 
 '''
-
+import os
 import sys
 import time
 from collections import defaultdict, Sequence, Counter
+import cPickle as pickle
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -201,9 +202,6 @@ class Network(Nameable):
         for obj in objs:
             self.add(obj)
 
-        #: Stored time for the store/restore mechanism
-        self._stored_t = {}
-
         #: Stored state of objects (store/restore)
         self._stored_state = {}
 
@@ -347,15 +345,18 @@ class Network(Nameable):
         for obj in self.objects:
             if hasattr(obj, '_full_state'):
                 state[obj.name] = obj._full_state()
+        clocks = set([obj.clock for obj in self.objects])
+        for clock in clocks:
+            state[clock.name] = clock._full_state()
         # Store the time as "0_t" -- this name is guaranteed not to clash with
         # the name of an object as names are not allowed to start with a digit
         state['0_t'] = self.t_
         return state
 
     @device_override('network_store')
-    def store(self, name='default'):
+    def store(self, name='default', filename=None):
         '''
-        store(name='default')
+        store(name='default', filename=None)
 
         Store the state of the network and all included objects.
 
@@ -363,19 +364,47 @@ class Network(Nameable):
         ----------
         name : str, optional
             A name for the snapshot, if not specified uses ``'default'``.
+        filename : str, optional
+            A filename where the state should be stored. If not specified, the
+            state will be stored in memory.
 
+        Notes
+        -----
+        The state stored to disk can be restored with the `Network.restore`
+        function. Note that it will only restore the *internal state* of all
+        the objects (including undelivered spikes) -- the objects have to
+        exist already and they need to have the same name as when they were
+        stored. Equations, thresholds, etc. are *not* stored -- this is
+        therefore not a general mechanism for object serialization. Also, the
+        format of the file is not guaranteed to work across platforms or
+        versions. If you are interested in storing the state of a network for
+        documentation or analysis purposes use `Network.get_states` instead.
         '''
         clocks = [obj.clock for obj in self.objects]
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
 
-        self._stored_state[name] = self._full_state()
+        state = self._full_state()
+        if filename is None:
+            self._stored_state[name] = state
+        else:
+            # A single file can contain several states, so we'll read in the
+            # existing file first if it exists
+            if os.path.exists(filename):
+                with open(filename, 'rb') as f:
+                    store_state = pickle.load(f)
+            else:
+                store_state = {}
+            store_state[name] = state
+
+            with open(filename, 'wb') as f:
+                pickle.dump(store_state, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     @device_override('network_restore')
-    def restore(self, name='default'):
+    def restore(self, name='default', filename=None):
         '''
-        restore(name='default')
+        restore(name='default', filename=None)
 
         Retore the state of the network and all included objects.
 
@@ -384,13 +413,24 @@ class Network(Nameable):
         name : str, optional
             The name of the snapshot to restore, if not specified uses
             ``'default'``.
-
+        filename : str, optional
+            The name of the file from where the state should be restored. If
+            not specified, it is expected that the state exist in memory
+            (i.e. `Network.store` was previously called without the ``filename``
+            argument).
         '''
-        state = self._stored_state[name]
+        if filename is None:
+            state = self._stored_state[name]
+        else:
+            with open(filename, 'rb') as f:
+                state = pickle.load(f)[name]
         self.t_ = state.pop('0_t')
+        clocks = set([obj.clock for obj in self.objects])
         for obj in self.objects:
             if obj.name in state:
                 obj._restore_from_full_state(state[obj.name])
+        for clock in clocks:
+            clock._restore_from_full_state(state[clock.name])
 
     def get_states(self, units=True, format='dict',
                    subexpressions=False, read_only_variables=True, level=0):

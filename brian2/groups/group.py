@@ -522,13 +522,16 @@ class VariableOwner(Nameable):
     def _full_state(self):
         state = {}
         for var in self.variables.itervalues():
+            if var.owner is None or var.owner.name != self.name:
+                continue  # we only store the state of our own variables
             if isinstance(var, ArrayVariable):
-                state[var] = (var.get_value().copy(), var.size)
+                state[var.name] = (var.get_value().copy(), var.size)
 
         return state
 
     def _restore_from_full_state(self, state):
-        for var, (values, size) in state.iteritems():
+        for var_name, (values, size) in state.iteritems():
+            var = self.variables[var_name]
             if isinstance(var, DynamicArrayVariable):
                 var.resize(size)
             var.set_value(values)
