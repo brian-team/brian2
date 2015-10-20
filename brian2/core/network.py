@@ -204,6 +204,9 @@ class Network(Nameable):
         #: Stored time for the store/restore mechanism
         self._stored_t = {}
 
+        #: Stored state of objects (store/restore)
+        self._stored_state = {}
+
         # Stored profiling information (if activated via the keyword option)
         self._profiling_info = None
 
@@ -339,6 +342,16 @@ class Network(Nameable):
                                     "BrianObject, or containers of such "
                                     "objects from Network")
 
+    def _full_state(self):
+        state = {}
+        for obj in self.objects:
+            if hasattr(obj, '_full_state'):
+                state[obj.name] = obj._full_state()
+        # Store the time as "0_t" -- this name is guaranteed not to clash with
+        # the name of an object as names are not allowed to start with a digit
+        state['0_t'] = self.t_
+        return state
+
     @device_override('network_store')
     def store(self, name='default'):
         '''
@@ -352,15 +365,12 @@ class Network(Nameable):
             A name for the snapshot, if not specified uses ``'default'``.
 
         '''
-        self._stored_t[name] = self.t_
         clocks = [obj.clock for obj in self.objects]
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
 
-        for obj in self.objects:
-            if hasattr(obj, '_store'):
-                obj._store(name=name)
+        self._stored_state[name] = self._full_state()
 
     @device_override('network_restore')
     def restore(self, name='default'):
@@ -376,10 +386,11 @@ class Network(Nameable):
             ``'default'``.
 
         '''
+        state = self._stored_state[name]
+        self.t_ = state.pop('0_t')
         for obj in self.objects:
-            if hasattr(obj, '_restore'):
-                obj._restore(name=name)
-        self.t_ = self._stored_t[name]
+            if obj.name in state:
+                obj._restore_from_full_state(state[obj.name])
 
     def get_states(self, units=True, format='dict',
                    subexpressions=False, read_only_variables=True, level=0):

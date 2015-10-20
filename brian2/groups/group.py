@@ -519,29 +519,19 @@ class VariableOwner(Nameable):
         for key, value in values.iteritems():
             self.state(key, use_units=units, level=level+1)[:] = value
 
-    def _store(self, name='default'):
-        logger.debug('Storing state at for object %s' % self.name)
+    def _full_state(self):
         state = {}
         for var in self.variables.itervalues():
             if isinstance(var, ArrayVariable):
                 state[var] = (var.get_value().copy(), var.size)
-        self._stored_states[name] = state
-        for obj in self._contained_objects:
-            if hasattr(obj, '_store'):
-                obj._store(name)
 
-    def _restore(self, name='default'):
-        logger.debug('Restoring state at for object %s' % self.name)
-        if not name in self._stored_states:
-            raise ValueError(('No state with name "%s" to restore -- '
-                              'did you call store()?') % name)
-        for var, (values, size) in self._stored_states[name].iteritems():
+        return state
+
+    def _restore_from_full_state(self, state):
+        for var, (values, size) in state.iteritems():
             if isinstance(var, DynamicArrayVariable):
                 var.resize(size)
             var.set_value(values)
-        for obj in self._contained_objects:
-            if hasattr(obj, '_restore'):
-                obj._restore(name)
 
     def _check_expression_scalar(self, expr, varname, level=0,
                                  run_namespace=None):

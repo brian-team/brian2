@@ -305,15 +305,19 @@ class SynapticPathway(CodeRunner, Group):
                                             synapses=self.synapses.name),
                         'synapses_dt_mismatch', once=True)
 
-    def _store(self, name='default'):
-        super(SynapticPathway, self)._store(name=name)
+    def _full_state(self):
+        state = super(SynapticPathway, self)._full_state()
         if self.queue is not None:
-            self.queue._store(name)
+            state['_spikequeue'] = self.queue._full_state()
+        else:
+            state['_spikequeue'] = None
+        return state
 
-    def _restore(self, name='default'):
-        super(SynapticPathway, self)._restore(name=name)
+    def _restore_from_full_state(self, state):
+        queue_state = state.pop('_spikequeue', None)
+        super(SynapticPathway, self)._restore_from_full_state(state)
         if self.queue is not None:
-            self.queue._restore(name)
+            self.queue._restore_from_full_state(queue_state)
 
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
