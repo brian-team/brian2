@@ -14,9 +14,10 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
+                    SpikeGeneratorGroup,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
-                    start_scope, prefs, profiling_summary)
+                    start_scope, prefs, profiling_summary, Quantity)
 from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device
 from brian2.utils.logger import catch_logs
 
@@ -817,6 +818,58 @@ def test_store_restore_to_file():
         pass
 
 @attr('codegen-independent')
+def test_store_restore_to_file_new_objects():
+    # A more realistic test where the objects are completely re-created
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+    def create_net():
+        # Use a bit of a complicated spike and connection pattern with
+        # heterogeneous delays
+
+        # Note: it is important that all objects have the same name, this would
+        # be the case if we were running this in a new process but to not rely
+        # on garbage collection we will assign explicit names here
+        source = SpikeGeneratorGroup(5, np.arange(5).repeat(3),
+                                     [3, 4, 1, 2, 3, 7, 5, 4, 1, 0, 5, 9, 7, 8, 9]*ms,
+                                     name='source')
+        target = NeuronGroup(10, 'v:1', name='target')
+        synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='j>=i',
+                            name='synapses')
+        synapses.w = 'i*1.0 + j*2.0'
+        synapses.delay = '(5-i)*ms'
+        state_mon = StateMonitor(target, 'v', record=True, name='statemonitor')
+        input_spikes = SpikeMonitor(source, name='input_spikes')
+        net = Network(source, target, synapses, state_mon, input_spikes)
+        return net
+
+    net = create_net()
+    net.store(filename=filename)  # default time slot
+    net.run(5*ms)
+    net.store('second', filename=filename)
+    net.run(5*ms)
+    input_spike_indices = np.array(net['input_spikes'].i)
+    input_spike_times = Quantity(net['input_spikes'].t, copy=True)
+    v_values_full_sim = Quantity(net['statemonitor'].v[:, :], copy=True)
+
+    net = create_net()
+    net.restore(filename=filename)  # Go back to beginning
+    net.run(10*ms)
+    assert_equal(input_spike_indices, net['input_spikes'].i)
+    assert_equal(input_spike_times, net['input_spikes'].t)
+    assert_equal(v_values_full_sim, net['statemonitor'].v[:, :])
+
+    net = create_net()
+    net.restore('second', filename=filename)  # Go back to middle
+    net.run(5*ms)
+    assert_equal(input_spike_indices, net['input_spikes'].i)
+    assert_equal(input_spike_times, net['input_spikes'].t)
+    assert_equal(v_values_full_sim, net['statemonitor'].v[:, :])
+
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
+
+@attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_store_restore_magic():
     source = NeuronGroup(10, '''dv/dt = rates : 1
@@ -1094,6 +1147,7 @@ if __name__=='__main__':
             test_progress_report_incorrect,
             test_store_restore,
             test_store_restore_to_file,
+            test_store_restore_to_file_new_objects,
             test_store_restore_magic,
             test_store_restore_magic_to_file,
             test_defaultclock_dt_changes,
