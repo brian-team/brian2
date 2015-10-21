@@ -126,7 +126,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                          constant_size=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
-        self.variables.add_array('_lastindex', size=1, values=1, unit=Unit(1),
+        self.variables.add_array('_lastindex', size=1, values=0, unit=Unit(1),
                                  dtype=np.int32, read_only=True, scalar=True)
         self.variables.create_clock_variables(self._clock)
 
@@ -187,8 +187,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                                                self.name))
             self._previous_dt = dt
             self._spikes_changed = False
-
-            self.variables['_lastindex'].set_value(0)
 
         super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace,
                                                     level=level+1)
