@@ -869,6 +869,28 @@ def test_store_restore_to_file_new_objects():
     except OSError:
         pass
 
+
+@attr('codegen-independent')
+def test_store_restore_to_file_differing_nets():
+    # Check that the store/restore mechanism is not used with differing
+    # networks
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+
+    source = SpikeGeneratorGroup(5, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]*ms,
+                                 name='source_1')
+    mon = SpikeMonitor(source, name='monitor')
+    net = Network(source, mon)
+    net.store(filename=filename)
+
+    source_2 = SpikeGeneratorGroup(5, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]*ms,
+                                   name='source_2')
+    mon = SpikeMonitor(source_2, name='monitor')
+    net = Network(source_2, mon)
+    assert_raises(KeyError, lambda: net.restore(filename=filename))
+
+    net = Network(source)  # Without the monitor
+    assert_raises(KeyError, lambda: net.restore(filename=filename))
+
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_store_restore_magic():
@@ -1148,6 +1170,7 @@ if __name__=='__main__':
             test_store_restore,
             test_store_restore_to_file,
             test_store_restore_to_file_new_objects,
+            test_store_restore_to_file_differing_nets,
             test_store_restore_magic,
             test_store_restore_magic_to_file,
             test_defaultclock_dt_changes,

@@ -426,11 +426,27 @@ class Network(Nameable):
                 state = pickle.load(f)[name]
         self.t_ = state.pop('0_t')
         clocks = set([obj.clock for obj in self.objects])
+        restored_objects = set()
         for obj in self.objects:
             if obj.name in state:
                 obj._restore_from_full_state(state[obj.name])
+                restored_objects.add(obj.name)
+            elif hasattr(obj, '_restore_from_full_state'):
+                raise KeyError(('Stored state does not have a stored state for '
+                                '"%s". Note that the names of all objects have '
+                                'to be identical to the names when they were '
+                                'stored.') % obj.name)
         for clock in clocks:
             clock._restore_from_full_state(state[clock.name])
+        clock_names = {c.name for c in clocks}
+
+        unnused = set(state.keys()) - restored_objects - clock_names
+        if len(unnused):
+            raise KeyError('The stored state contains the state of the '
+                           'following objects which were not present in the '
+                           'network: %s. Note that the names of all objects '
+                           'have to be identical to the names when they were '
+                           'stored.' % (', '.join(unnused)))
 
     def get_states(self, units=True, format='dict',
                    subexpressions=False, read_only_variables=True, level=0):
