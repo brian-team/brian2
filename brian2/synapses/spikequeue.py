@@ -195,7 +195,7 @@ class SpikeQueue(object):
             self.n[row_idx] += 1
 
     def _full_state(self):
-        return self._extract_spikes()
+        return (self._dt, self._extract_spikes(), self.X.shape)
 
     def _restore_from_full_state(self, state):
         if state is None:
@@ -203,8 +203,15 @@ class SpikeQueue(object):
             # before the `SpikeQueue` was created. In that case, delete all spikes in
             # the queue
             self._store_spikes(np.empty((0, 2)))
+            self._dt = None
         else:
-            self._store_spikes(state)
+            self._dt, spikes, X_shape = state
+            # Restore the previous shape
+            n_steps, max_events = X_shape
+            self.X = np.zeros((n_steps, max_events), dtype=self.dtype)
+            self.X_flat = self.X.reshape(n_steps*max_events,)
+            self.n = np.zeros(n_steps, dtype=int)
+            self._store_spikes(spikes)
 
     ################################ SPIKE QUEUE DATASTRUCTURE ################
     def advance(self):
