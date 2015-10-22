@@ -82,19 +82,15 @@ public:
         // use two independent loops to initialize the delays and the synapses
         // array
         unsigned int min_delay = (unsigned int)(real_delays[0] / _dt + 0.5);
-        unsigned int max_delay = (unsigned int)(real_delays[0] / _dt + 0.5);
+        unsigned int max_delay = min_delay;
         for (int i=0; i<n_delays; i++)
         {
             //round to nearest int
             delays[i] =  (unsigned int)(real_delays[i] / _dt + 0.5);
             if (delays[i] > max_delay)
-            {
                 max_delay = delays[i];
-            }
             else if (delays[i] < min_delay)
-            {
                 min_delay = delays[i];
-            }
         }
         for (int i=0; i<n_synapses; i++)
             synapses[sources[i] - source_start].push_back(i + openmp_padding);
