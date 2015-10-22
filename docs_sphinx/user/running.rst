@@ -219,3 +219,14 @@ Note that `Network.run`, `Network.store` and `Network.restore` (or `run`,
 `store`, `restore`) are the only way of affecting the time of the clocks. In
 contrast to Brian1, it is no longer necessary (nor possible) to directly set
 the time of the clocks or call a ``reinit`` function.
+
+The state of a network can also be stored on disk with the optional ``filename``
+argument of `Network.store`/`store`. This way, you can run the initial part of
+a simulation once, store it to disk, and then continue from this state later.
+Note that the `store`/`restore` mechanism does not re-create the network as
+such, you still need to construct all the `NeuronGroup`, `Synapses`,
+`StateMonitor`, ... objects, restoring will only restore all the state variable
+values (membrane potential, conductances, synaptic connections/weights/delays,
+...). This restoration does however restore the internal state of the objects
+as well, e.g. spikes that have not been delivered yet because of synaptic
+delays will be delivered correctly.

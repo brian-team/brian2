@@ -2,6 +2,7 @@
 # distutils: sources = brian2/synapses/cspikequeue.cpp
 
 from libcpp.vector cimport vector
+from libcpp.pair cimport pair
 from libcpp.string cimport string
 
 import cython
@@ -19,13 +20,15 @@ cdef extern from "stdint_compat.h":
     ctypedef signed int int32_t
     ctypedef signed long int64_t
 
+ctypedef pair[unsigned int, vector[vector[int32_t]]] state_pair
+
 cdef extern from "cspikequeue.cpp":
     cdef cppclass CSpikeQueue[T]:
         CSpikeQueue(int, int) except +
         void prepare(T*, int, int32_t*, unsigned int, double)
         void push(int32_t *, unsigned int)
-        void store(const string)
-        void restore(const string)
+        state_pair _full_state()
+        void _restore_from_full_state(state_pair)
         vector[int32_t]* peek()
         void advance()
 
@@ -39,13 +42,18 @@ cdef class SpikeQueue:
     def __dealloc__(self):
         del self.thisptr
 
-    def _store(self, str name='default'):
-        cdef string s = name.encode('UTF-8')
-        self.thisptr.store(s)
+    def _full_state(self):
+        return self.thisptr._full_state()
 
-    def _restore(self, str name='default'):
-        cdef string s = name.encode('UTF-8')
-        self.thisptr.restore(s)
+    def _restore_from_full_state(self, state):
+        cdef vector[vector[int32_t]] empty_queue
+        cdef state_pair empty_state
+        if state is not None:
+            self.thisptr._restore_from_full_state(state)
+        else:
+            empty_queue = vector[vector[int32_t]]()
+            empty_state = (0, empty_queue)
+            self.thisptr._restore_from_full_state(empty_state)
 
     def prepare(self, np.ndarray[double, ndim=1, mode='c'] real_delays,
                 double dt,

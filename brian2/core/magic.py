@@ -231,20 +231,20 @@ class MagicNetwork(Network):
         Network.run(self, duration, report=report, report_period=report_period,
                     namespace=namespace, profile=profile, level=level+1)
 
-    def store(self, name='default', level=0):
+    def store(self, name='default', filename=None, level=0):
         '''
         See `Network.store`.
         '''
         self._update_magic_objects(level=level+1)
-        super(MagicNetwork, self).store(name=name)
+        super(MagicNetwork, self).store(name=name, filename=filename)
         self.objects[:] = []
 
-    def restore(self, name='default', level=0):
+    def restore(self, name='default', filename=None, level=0):
         '''
         See `Network.store`.
         '''
         self._update_magic_objects(level=level+1)
-        super(MagicNetwork, self).restore(name=name)
+        super(MagicNetwork, self).restore(name=name, filename=filename)
         self.objects[:] = []
 
     def get_states(self, units=True, format='dict', subexpressions=False,
@@ -393,7 +393,7 @@ def reinit():
     '''
     magic_network.reinit()
 
-def store(name='default'):
+def store(name='default', filename=None):
     '''
     Store the state of the network and all included objects.
 
@@ -401,11 +401,18 @@ def store(name='default'):
     ----------
     name : str, optional
         A name for the snapshot, if not specified uses ``'default'``.
+    filename : str, optional
+        A filename where the state should be stored. If not specified, the
+        state will be stored in memory.
+
+    See Also
+    --------
+    Network.store
     '''
-    magic_network.store(name=name, level=1)
+    magic_network.store(name=name, filename=filename, level=1)
 
 
-def restore(name='default'):
+def restore(name='default', filename=None):
     '''
     Restore the state of the network and all included objects.
 
@@ -414,8 +421,17 @@ def restore(name='default'):
     name : str, optional
         The name of the snapshot to restore, if not specified uses
         ``'default'``.
+    filename : str, optional
+        The name of the file from where the state should be restored. If
+        not specified, it is expected that the state exist in memory
+        (i.e. `Network.store` was previously called without the ``filename``
+        argument).
+
+    See Also
+    --------
+    Network.restore
     '''
-    magic_network.restore(name=name, level=1)
+    magic_network.restore(name=name, filename=filename, level=1)
 
 
 def stop():
