@@ -10,7 +10,7 @@ Preferences
 
 import sys
 import time
-from collections import defaultdict, Sequence, Counter
+from collections import defaultdict, Sequence, Counter, Mapping
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -305,7 +305,7 @@ class Network(Nameable):
                 self.add(obj.contained_objects)
             else:
                 # allow adding values from dictionaries
-                if isinstance(obj, dict):
+                if isinstance(obj, Mapping):
                     self.add(*obj.values())
                 else:
                     try:
