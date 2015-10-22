@@ -51,7 +51,6 @@ public:
     {
 
         assert(n_delays == 1 || n_delays == n_synapses);
-        scalar_delay = n_delays == 1;
 
         if (delays)
             delete [] delays;
@@ -82,13 +81,26 @@ public:
         // (homogeneous delays are stored as a single scalar), we therefore
         // use two independent loops to initialize the delays and the synapses
         // array
+        unsigned int min_delay = (unsigned int)(real_delays[0] / _dt + 0.5);
+        unsigned int max_delay = min_delay;
         for (int i=0; i<n_delays; i++)
-                //round to nearest int
-                delays[i] =  (int)(real_delays[i] / _dt + 0.5);
+        {
+            //round to nearest int
+            delays[i] =  (unsigned int)(real_delays[i] / _dt + 0.5);
+            if (delays[i] > max_delay)
+                max_delay = delays[i];
+            else if (delays[i] < min_delay)
+                min_delay = delays[i];
+        }
         for (int i=0; i<n_synapses; i++)
             synapses[sources[i] - source_start].push_back(i + openmp_padding);
 
         dt = _dt;
+
+        // Ensure that our spike queue is sufficiently big
+        ensure_delay(max_delay);
+
+        scalar_delay = (min_delay == max_delay);
     }
 
     pair <unsigned int, vector< vector<int32_t> > > _full_state()
@@ -143,7 +155,6 @@ public:
         const int32_t * __restrict rspikes = spikes;
         if(scalar_delay)
         {
-            ensure_delay(delays[0]);
             vector<int32_t> &homog_queue = queue[(offset+delays[0])%queue.size()];
             for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
             {
@@ -172,8 +183,6 @@ public:
                 {
                     const int synaptic_index = cur_indices[idx_indices];
                     unsigned int delay = rdelays[synaptic_index];
-                    // make sure there is enough space and resize if not
-                    ensure_delay(delay);
                     queue[(offset+delay)%queue.size()].push_back(synaptic_index);
                 }
             }
