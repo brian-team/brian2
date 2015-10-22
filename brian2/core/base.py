@@ -2,6 +2,8 @@
 All Brian objects should derive from `BrianObject`.
 '''
 import weakref
+import traceback
+import os
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -47,6 +49,19 @@ class BrianObject(Nameable):
     '''    
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
+        # Setup traceback information for this object
+        creation_stack = ['Object creation traceback:']
+        brianbase, _ = os.path.split(os.path.normpath(os.path.join(__file__, '../..')))
+        for fname, linenum, funcname, line in traceback.extract_stack():
+            if brianbase not in fname:
+                s = '  File "{fname}", line {linenum}, in {funcname}\n    {line}'.format(fname=fname,
+                                                                                         linenum=linenum,
+                                                                                         funcname=funcname,
+                                                                                         line=line)
+                creation_stack.append(s)
+        #: A string indicating where this object was created (traceback with any parts of Brian code removed)
+        self._creation_stack = '\n'.join(creation_stack)
+
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
 
