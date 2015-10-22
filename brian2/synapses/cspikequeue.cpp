@@ -24,8 +24,6 @@ public:
     unsigned int openmp_padding;
     vector< vector<int> > synapses;
     // data structures for the store/restore mechanism
-    map<string, vector< vector<int32_t> > > _stored_queue;
-    map<string, unsigned int> _stored_offset;
 
     CSpikeQueue(int _source_start, int _source_end)
         : source_start(_source_start), source_end(_source_end)
@@ -93,25 +91,28 @@ public:
         dt = _dt;
     }
 
-    void store(const string name)
+    pair <unsigned int, vector< vector<int32_t> > > _full_state()
     {
-        _stored_queue[name].clear();
-        _stored_queue[name].resize(queue.size());
-        for (int i=0; i<queue.size(); i++)
-            _stored_queue[name][i] = queue[i];
-        _stored_offset[name] = offset;
+        pair <unsigned int, vector< vector<int32_t> > > state(offset, queue);
+        return state;
     }
 
-    void restore(const string name)
+    void _clear()
     {
-        size_t size = _stored_queue[name].size();
+    }
+
+    void _restore_from_full_state(const pair <unsigned int, vector< vector<int32_t> > > state)
+    {
+        unsigned int stored_offset = state.first;
+        vector< vector<int32_t> > stored_queue = state.second;
+        size_t size = stored_queue.size();
         queue.clear();
         if (size == 0)  // the queue did not exist at the time of the store call
             size = 1;
         queue.resize(size);
-        for (int i=0; i<_stored_queue[name].size(); i++)
-            queue[i] = _stored_queue[name][i];
-        offset = _stored_offset[name];
+        for (int i=0; i<stored_queue.size(); i++)
+            queue[i] = stored_queue[i];
+        offset = stored_offset;
     }
 
     void expand(unsigned int newsize)

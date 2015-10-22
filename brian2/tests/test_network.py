@@ -1,6 +1,8 @@
 import weakref
 import copy
 import logging
+import tempfile
+import os
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
@@ -12,9 +14,10 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
+                    SpikeGeneratorGroup,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
-                    start_scope, prefs, profiling_summary)
+                    start_scope, prefs, profiling_summary, Quantity)
 from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device
 from brian2.utils.logger import catch_logs
 
@@ -756,7 +759,6 @@ def test_store_restore():
     net.run(10*ms)
     v_values = state_mon.v[:, :]
     spike_indices, spike_times = spike_mon.it_
-
     net.restore() # Go back to beginning
     assert defaultclock.t == 0*ms
     assert net.t == 0*ms
@@ -774,6 +776,120 @@ def test_store_restore():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+@attr('codegen-independent')
+def test_store_restore_to_file():
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    net = Network(source, target, synapses, state_mon, spike_mon)
+    net.store(filename=filename)  # default time slot
+    net.run(10*ms)
+    net.store('second', filename=filename)
+    net.run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    net.restore(filename=filename) # Go back to beginning
+    assert defaultclock.t == 0*ms
+    assert net.t == 0*ms
+    net.run(20*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    net.restore('second', filename=filename)
+    assert defaultclock.t == 10*ms
+    assert net.t == 10*ms
+    net.run(10*ms)
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
+
+@attr('codegen-independent')
+def test_store_restore_to_file_new_objects():
+    # A more realistic test where the objects are completely re-created
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+    def create_net():
+        # Use a bit of a complicated spike and connection pattern with
+        # heterogeneous delays
+
+        # Note: it is important that all objects have the same name, this would
+        # be the case if we were running this in a new process but to not rely
+        # on garbage collection we will assign explicit names here
+        source = SpikeGeneratorGroup(5, np.arange(5).repeat(3),
+                                     [3, 4, 1, 2, 3, 7, 5, 4, 1, 0, 5, 9, 7, 8, 9]*ms,
+                                     name='source')
+        target = NeuronGroup(10, 'v:1', name='target')
+        synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='j>=i',
+                            name='synapses')
+        synapses.w = 'i*1.0 + j*2.0'
+        synapses.delay = '(5-i)*ms'
+        state_mon = StateMonitor(target, 'v', record=True, name='statemonitor')
+        input_spikes = SpikeMonitor(source, name='input_spikes')
+        net = Network(source, target, synapses, state_mon, input_spikes)
+        return net
+
+    net = create_net()
+    net.store(filename=filename)  # default time slot
+    net.run(5*ms)
+    net.store('second', filename=filename)
+    net.run(5*ms)
+    input_spike_indices = np.array(net['input_spikes'].i)
+    input_spike_times = Quantity(net['input_spikes'].t, copy=True)
+    v_values_full_sim = Quantity(net['statemonitor'].v[:, :], copy=True)
+
+    net = create_net()
+    net.restore(filename=filename)  # Go back to beginning
+    net.run(10*ms)
+    assert_equal(input_spike_indices, net['input_spikes'].i)
+    assert_equal(input_spike_times, net['input_spikes'].t)
+    assert_equal(v_values_full_sim, net['statemonitor'].v[:, :])
+
+    net = create_net()
+    net.restore('second', filename=filename)  # Go back to middle
+    net.run(5*ms)
+    assert_equal(input_spike_indices, net['input_spikes'].i)
+    assert_equal(input_spike_times, net['input_spikes'].t)
+    assert_equal(v_values_full_sim, net['statemonitor'].v[:, :])
+
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
+
+
+@attr('codegen-independent')
+def test_store_restore_to_file_differing_nets():
+    # Check that the store/restore mechanism is not used with differing
+    # networks
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+
+    source = SpikeGeneratorGroup(5, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]*ms,
+                                 name='source_1')
+    mon = SpikeMonitor(source, name='monitor')
+    net = Network(source, mon)
+    net.store(filename=filename)
+
+    source_2 = SpikeGeneratorGroup(5, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]*ms,
+                                   name='source_2')
+    mon = SpikeMonitor(source_2, name='monitor')
+    net = Network(source_2, mon)
+    assert_raises(KeyError, lambda: net.restore(filename=filename))
+
+    net = Network(source)  # Without the monitor
+    assert_raises(KeyError, lambda: net.restore(filename=filename))
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -811,6 +927,47 @@ def test_store_restore_magic():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_store_restore_magic_to_file():
+    filename = tempfile.mktemp(suffix='state', prefix='brian_test')
+    source = NeuronGroup(10, '''dv/dt = rates : 1
+                                rates : Hz''', threshold='v>1', reset='v=0')
+    source.rates = 'i*100*Hz'
+    target = NeuronGroup(10, 'v:1')
+    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses.w = 'i*1.0'
+    synapses.delay = 'i*ms'
+    state_mon = StateMonitor(target, 'v', record=True)
+    spike_mon = SpikeMonitor(source)
+    store(filename=filename)  # default time slot
+    run(10*ms)
+    store('second', filename=filename)
+    run(10*ms)
+    v_values = state_mon.v[:, :]
+    spike_indices, spike_times = spike_mon.it_
+
+    restore(filename=filename) # Go back to beginning
+    assert magic_network.t == 0*ms
+    run(20*ms)
+    assert defaultclock.t == 20*ms
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+
+    # Go back to middle
+    restore('second', filename=filename)
+    assert magic_network.t == 10*ms
+    run(10*ms)
+    assert defaultclock.t == 20*ms
+    assert_equal(v_values, state_mon.v[:, :])
+    assert_equal(spike_indices, spike_mon.i[:])
+    assert_equal(spike_times, spike_mon.t_[:])
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
@@ -1011,7 +1168,11 @@ if __name__=='__main__':
             test_progress_report,
             test_progress_report_incorrect,
             test_store_restore,
+            test_store_restore_to_file,
+            test_store_restore_to_file_new_objects,
+            test_store_restore_to_file_differing_nets,
             test_store_restore_magic,
+            test_store_restore_magic_to_file,
             test_defaultclock_dt_changes,
             test_dt_changes_between_runs,
             test_dt_restore,
