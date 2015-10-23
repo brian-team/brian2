@@ -398,19 +398,6 @@ def find_synapses(index, synaptic_neuron):
     return synapses
 
 
-def _synapse_numbers(pre_neurons, post_neurons):
-    # Build an array of synapse numbers by counting the number of times
-    # a source/target combination exists
-    synapse_numbers = np.zeros_like(pre_neurons)
-    numbers = {}
-    for i, (source, target) in enumerate(zip(pre_neurons,
-                                             post_neurons)):
-        number = numbers.get((source, target), 0)
-        synapse_numbers[i] = number
-        numbers[(source, target)] = number + 1
-    return synapse_numbers
-
-
 class SynapticSubgroup(object):
     '''
     A simple subgroup of `Synapses` that can be used for indexing.
@@ -452,6 +439,7 @@ class SynapticIndexing(object):
         self.target = weakproxy_with_fallback(self.synapses.target)
         self.synaptic_pre = synapses.variables['_synaptic_pre']
         self.synaptic_post = synapses.variables['_synaptic_post']
+        self.synapse_number = synapses.variables['synapse_number']
 
     def __call__(self, index=None, index_var='_idx'):
         '''
@@ -515,11 +503,10 @@ class SynapticIndexing(object):
                 # We want to access the raw arrays here, not go through the Variable
                 pre_neurons = self.synaptic_pre.get_value()[matching_synapses]
                 post_neurons = self.synaptic_post.get_value()[matching_synapses]
-                synapse_numbers = _synapse_numbers(pre_neurons,
-                                                   post_neurons)
+                synapse_numbers = self.synapse_number.get_value()[matching_synapses]
                 final_indices = np.intersect1d(matching_synapses,
-                                      np.flatnonzero(test_k(synapse_numbers)),
-                                      assume_unique=True)
+                                               np.flatnonzero(test_k(synapse_numbers)),
+                                               assume_unique=True)
         else:
             raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
@@ -885,7 +872,8 @@ class Synapses(Group):
                                          dtype=np.int32, constant_size=True)
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=True)
-
+        self.variables.add_dynamic_array('synapse_number', size=0, unit=Unit(1),
+                                         dtype=np.int32, constant_size=True)
         self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target, 'i',
