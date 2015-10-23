@@ -1,7 +1,7 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-{# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets
+{# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets, synapse_number,
                     N_incoming, N_outgoing, N,
                     N_pre, N_post, _source_offset, _target_offset }
 #}
@@ -40,4 +40,16 @@ const int newsize = {{_dynamic__synaptic_pre}}.size();
 {% endfor %}
 // Also update the total number of synapses
 {{N}} = newsize;
+
+// Update the "synapse number" (number of synapses for the same
+// source-target pair)
+std::map<std::pair<int32_t, int32_t>, int32_t> source_target_count;
+for (int _i=0; _i<newsize; _i++)
+{
+    // Note that source_target_count will create a new entry initialized
+    // with 0 when the key does not exist yet
+    const std::pair<int32_t, int32_t> source_target = std::pair<int32_t, int32_t>({{_dynamic__synaptic_pre}}[_i], {{_dynamic__synaptic_post}}[_i]);
+    {{_dynamic_synapse_number}}[_i] = source_target_count[source_target];
+    source_target_count[source_target]++;
+}
 {% endblock %}
