@@ -10,7 +10,7 @@ Preferences
 import os
 import sys
 import time
-from collections import defaultdict, Sequence, Counter
+from collections import defaultdict, Sequence, Counter, Mapping
 import cPickle as pickle
 
 from brian2.utils.logger import get_logger
@@ -288,7 +288,9 @@ class Network(Nameable):
         objs : (`BrianObject`, container)
             The `BrianObject` or container of Brian objects to be added. Specify
             multiple objects, or lists (or other containers) of objects.
-            Containers will be added recursively.
+            Containers will be added recursively. If the container is a `dict`
+            then it will add the values from the dictionary but not the keys.
+            If you want to add the keys, do ``add(objs.keys())``.
         """
         for obj in objs:
             if isinstance(obj, BrianObject):
@@ -303,17 +305,21 @@ class Network(Nameable):
                     self.objects.append(obj)
                 self.add(obj.contained_objects)
             else:
-                try:
-                    for o in obj:
-                        # The following "if" looks silly but avoids an infinite
-                        # recursion if a string is provided as an argument
-                        # (which might occur during testing)
-                        if o is obj:
-                            raise TypeError()
-                        self.add(o)
-                except TypeError:
-                    raise TypeError("Can only add objects of type BrianObject, "
-                                    "or containers of such objects to Network")
+                # allow adding values from dictionaries
+                if isinstance(obj, Mapping):
+                    self.add(*obj.values())
+                else:
+                    try:
+                        for o in obj:
+                            # The following "if" looks silly but avoids an infinite
+                            # recursion if a string is provided as an argument
+                            # (which might occur during testing)
+                            if o is obj:
+                                raise TypeError()
+                            self.add(o)
+                    except TypeError:
+                        raise TypeError("Can only add objects of type BrianObject, "
+                                        "or containers of such objects to Network")
 
     def remove(self, *objs):
         '''

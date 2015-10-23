@@ -91,6 +91,21 @@ def test_network_two_objects():
     assert_equal(y.count, 10)
 
 
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_network_from_dict():
+    # Check that a network from a dictionary works
+    x = Counter()
+    y = Counter()
+    d = dict(a=x, b=y)
+    net = Network()
+    net.add(d)
+    net.run(1*ms)
+    assert_equal(len(net.objects), 2)
+    assert_equal(x.count, 10)
+    assert_equal(y.count, 10)
+
+
 class NameLister(BrianObject):
     add_to_magic_network = True
     updates = []
@@ -1141,6 +1156,7 @@ if __name__=='__main__':
             test_empty_network,
             test_network_single_object,
             test_network_two_objects,
+            test_network_from_dict,
             test_network_different_clocks,
             test_network_different_when,
             test_network_default_schedule,
