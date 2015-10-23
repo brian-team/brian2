@@ -27,6 +27,17 @@ def _compare(synapses, expected):
     outgoing = conn_matrix.sum(axis=1)
     assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), 'N_outgoing returned an incorrect value'
     assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), 'N_incoming returned an incorrect value'
+    # Compare the "synapse number"
+    # Build an array of synapse numbers by counting the number of times
+    # a source/target combination exists
+    synapse_numbers = np.zeros_like(synapses.i[:])
+    numbers = {}
+    for _i, (source, target) in enumerate(zip(synapses.i[:],
+                                             synapses.j[:])):
+        number = numbers.get((source, target), 0)
+        synapse_numbers[_i] = number
+        numbers[(source, target)] = number + 1
+    assert all(synapses.synapse_number[:] == synapse_numbers), 'synapse_number returned an incorrect value'
 
 
 @attr('codegen-independent')
@@ -431,8 +442,7 @@ def test_state_variable_indexing():
     #string-based indexing
     assert_equal(S.w[0:3, :], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
-    # TODO: k is not working yet
-    # assert_equal(S.w[:, :, 0], S.w['k==0'])
+    assert_equal(S.w[:, :, 0], S.w['synapse_number == 0'])
     assert_equal(S.w[0:3, :], S.w['v_pre < 3*mV'])
     assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
@@ -708,7 +718,7 @@ def test_no_synapses():
         assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
         assert l[0][1].endswith('.no_synapses')
 
-#@attr('standalone-compatible')  # synaptic indexing is not yet possible in standalone
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
@@ -718,8 +728,8 @@ def test_summed_variable():
                                     x : 1
                                     v_post = x : 1 (summed)''', pre='x+=w')
     S.connect('i==j', n=2)
-    S.w[:, :, 0] = 'i'
-    S.w[:, :, 1] = 'i + 0.5'
+    S.w['synapse_number == 0'] = 'i'
+    S.w['synapse_number == 1'] = 'i + 0.5'
     net = Network(source, target, S)
     net.run(1*ms)
 
