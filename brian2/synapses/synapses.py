@@ -25,6 +25,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
+from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
 
 MAX_SYNAPSES = 2147483647
@@ -1128,6 +1129,29 @@ class Synapses(Group):
             variable.resize(number)
 
         self.variables['N'].set_value(number)
+
+    def _update_synapse_numbers(self, old_num_synapses):
+        source_offset = self.variables['_source_offset'].get_value()
+        target_offset = self.variables['_target_offset'].get_value()
+        # This resizing is only necessary if we are connecting to/from synapses
+        self.variables['N_incoming'].resize(self.variables['N_post'].get_value() + target_offset)
+        self.variables['N_outgoing'].resize(self.variables['N_pre'].get_value() + source_offset)
+        N_outgoing = self.variables['N_outgoing'].get_value()
+        N_incoming = self.variables['N_incoming'].get_value()
+        synaptic_pre = self.variables['_synaptic_pre'].get_value()
+        synaptic_post = self.variables['_synaptic_post'].get_value()
+        synapse_number = self.variables['synapse_number'].get_value()
+
+        # Update the number of total outgoing/incoming synapses per source/target neuron
+        N_outgoing[:] += np.bincount(synaptic_pre[old_num_synapses:],
+                                     minlength=len(N_outgoing))
+        N_incoming[:] += np.bincount(synaptic_post[old_num_synapses:],
+                                     minlength=len(N_incoming))
+
+        # Update the "synapse number" (number of synapses for the same source-target pair)
+        # We wrap pairs of source/target indices into a complex number for convenience
+        _source_target_pairs = synaptic_pre + synaptic_post*1j
+        synapse_number[:] = calc_repeats(_source_target_pairs)
 
     def register_variable(self, variable):
         '''

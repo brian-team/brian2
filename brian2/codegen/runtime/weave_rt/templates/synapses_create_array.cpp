@@ -1,29 +1,21 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-{# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets
-                    N_incoming, N_outgoing, N,
+{# USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets. N,
                     N_pre, N_post, _source_offset, _target_offset }
 #}
-{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
-                                   N_incoming, N_outgoing, N}
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
 #}
-py::tuple _newlen_tuple(1);
+py::tuple _arg_tuple(1);
 const int _old_num_synapses = {{N}};
 const int _new_num_synapses = _old_num_synapses + _numsources;
 
-_newlen_tuple[0] = _new_num_synapses;
-{{_dynamic__synaptic_pre}}.mcall("resize", _newlen_tuple);
-{{_dynamic__synaptic_post}}.mcall("resize", _newlen_tuple);
+_arg_tuple[0] = _new_num_synapses;
+{{_dynamic__synaptic_pre}}.mcall("resize", _arg_tuple);
+{{_dynamic__synaptic_post}}.mcall("resize", _arg_tuple);
 // Get the potentially newly created underlying data arrays
 int *_synaptic_pre_data = (int*)(((PyArrayObject*)(PyObject*){{_dynamic__synaptic_pre}}.attr("data"))->data);
 int *_synaptic_post_data = (int*)(((PyArrayObject*)(PyObject*){{_dynamic__synaptic_post}}.attr("data"))->data);
-// Resize N_incoming and N_outgoing according to the size of the
-// source/target groups
-PyObject_CallMethod(_var_N_incoming, "resize", "i", N_post + _target_offset);
-PyObject_CallMethod(_var_N_outgoing, "resize", "i", N_pre + _source_offset);
-int *_N_incoming = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_incoming}}.attr("data"))->data);
-int *_N_outgoing = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_outgoing}}.attr("data"))->data);
 
 for (int _idx=0; _idx<_numsources; _idx++) {
     {# After this code has been executed, the arrays _real_sources and
@@ -32,12 +24,13 @@ for (int _idx=0; _idx<_numsources; _idx++) {
     {{vector_code|autoindent}}
     _synaptic_pre_data[_idx + _old_num_synapses] = _real_sources;
     _synaptic_post_data[_idx + _old_num_synapses] = _real_targets;
-    // Update the number of total outgoing/incoming synapses per source/target neuron
-    _N_outgoing[_real_sources]++;
-    _N_incoming[_real_targets]++;
 }
 
 // now we need to resize all registered variables and set the total number of
 // synapses (via Python)
-_owner.mcall("_resize", _newlen_tuple);
+_owner.mcall("_resize", _arg_tuple);
+
+// And update N_incoming, N_outgoing and synapse_number
+_arg_tuple[0] = _old_num_synapses;
+_owner.mcall("_update_synapse_numbers", _arg_tuple);
 {% endblock %}

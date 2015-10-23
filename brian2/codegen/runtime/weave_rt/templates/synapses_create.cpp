@@ -1,12 +1,12 @@
 {% extends 'common_group.cpp' %}
-
+#include<
 {% block maincode %}
     {#
-    USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
+    USES_VARIABLES { _synaptic_pre, _synaptic_post, synapse_number, rand,
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
-    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, , synapse_number,
                       N_incoming, N_outgoing, N}
     #}
     srand((unsigned int)time(NULL));
@@ -15,12 +15,8 @@
     int *const _postbuf = new int[_buffer_size];
     int _curbuf = 0;
 
-    // Resize N_incoming and N_outgoing according to the size of the
-    // source/target groups
-    PyObject_CallMethod(_var_N_incoming, "resize", "i", {{constant_or_scalar('N_post', variables['N_post'])}} + _target_offset);
-    PyObject_CallMethod(_var_N_outgoing, "resize", "i", {{constant_or_scalar('N_pre', variables['N_pre'])}} + _source_offset);
-    int *_N_incoming = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_incoming}}.attr("data"))->data);
-    int *_N_outgoing = (int *)(((PyArrayObject*)(PyObject*){{_dynamic_N_outgoing}}.attr("data"))->data);
+    const int oldsize = {{_dynamic__synaptic_pre}}.size();
+
     // scalar code
 	const int _vectorisation_idx = 1;
 	{{scalar_code|autoindent}}
@@ -51,8 +47,6 @@
                 }
 
                 for (int _repetition=0; _repetition<_n; _repetition++) {
-                    _N_outgoing[_pre_idx] += 1;
-                    _N_incoming[_post_idx] += 1;
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
                     _curbuf++;
@@ -74,9 +68,14 @@
     const int newsize = {{_dynamic__synaptic_pre}}.size();
     // now we need to resize all registered variables and set the total number
     // of synapses (via Python)
-    py::tuple _newlen_tuple(1);
-    _newlen_tuple[0] = newsize;
-    _owner.mcall("_resize", _newlen_tuple);
+    py::tuple _arg_tuple(1);
+    _arg_tuple[0] = newsize;
+    _owner.mcall("_resize", _arg_tuple);
+
+    // And update N_incoming, N_outgoing and synapse_number
+    _arg_tuple[0] = oldsize;
+    _owner.mcall("_update_synapse_numbers", _arg_tuple);
+
     delete [] _prebuf;
     delete [] _postbuf;
 {% endblock %}
