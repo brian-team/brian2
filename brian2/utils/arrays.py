@@ -19,8 +19,8 @@ def calc_repeats(delay):
     Examples
     --------
     >>> import numpy as np
-    >>> calc_repeats(np.array([7, 5, 7, 3, 7, 5]))
-    array([0, 0, 1, 0, 2, 1], dtype=int32)
+    >>> print(calc_repeats(np.array([7, 5, 7, 3, 7, 5])))
+    [0 0 1 0 2 1]
     '''
     # We use merge sort because it preserves the input order of equal
     # elements in the sorted output
