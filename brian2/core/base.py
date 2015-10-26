@@ -4,6 +4,7 @@ All Brian objects should derive from `BrianObject`.
 import weakref
 import traceback
 import os
+import sys
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -52,9 +53,13 @@ class BrianObject(Nameable):
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
         # Setup traceback information for this object
         creation_stack = ['Object was created here (most recent call last):']
-        brianbase, _ = os.path.split(os.path.normpath(os.path.join(__file__, '../..')))
+        bases = ['ipython-script.py']
+        for modulename in ['brian2', 'IPython']:
+            if modulename in sys.modules:
+                base, _ = os.path.split(sys.modules[modulename].__file__)
+                bases.append(base)
         for fname, linenum, funcname, line in traceback.extract_stack():
-            if brianbase not in fname:
+            if all(base not in fname for base in bases):
                 s = '  File "{fname}", line {linenum}, in {funcname}\n    {line}'.format(fname=fname,
                                                                                          linenum=linenum,
                                                                                          funcname=funcname,
