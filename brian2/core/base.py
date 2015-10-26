@@ -12,6 +12,7 @@ from brian2.units.fundamentalunits import check_units
 
 __all__ = ['BrianObject',
            'weakproxy_with_fallback',
+           'BrianObjectException',
            ]
 
 logger = get_logger(__name__)
@@ -50,7 +51,7 @@ class BrianObject(Nameable):
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
         # Setup traceback information for this object
-        creation_stack = ['Object creation traceback:']
+        creation_stack = ['Object was created here (most recent call last):']
         brianbase, _ = os.path.split(os.path.normpath(os.path.join(__file__, '../..')))
         for fname, linenum, funcname, line in traceback.extract_stack():
             if brianbase not in fname:
@@ -273,3 +274,23 @@ def device_override(name):
         return device_override_decorated_function
 
     return device_override_decorator
+
+
+class BrianObjectException(Exception):
+    def __init__(self, message, brianobj, original_exception):
+        self.message = message
+        self.objname = brianobj.name
+        self.origexc = '\n'.join(traceback.format_exception_only(type(original_exception),
+                                                                 original_exception))
+        self.origtb = traceback.format_exc()
+        self.objcreate = brianobj._creation_stack
+    def __str__(self):
+        return ('Original error and traceback:\n{origtb}\n'
+                'Error encountered with object named "{objname}".\n'
+                '{objcreate}\n\n'
+                '{message} {origexc}'
+                '(See above for original error message and traceback.)'
+                ).format(origtb=self.origtb,
+                         origexc=self.origexc,
+                         objname=self.objname, message=self.message,
+                         objcreate=self.objcreate)
