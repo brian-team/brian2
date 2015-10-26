@@ -52,9 +52,9 @@ class BrianObject(Nameable):
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
         # Setup traceback information for this object
-        creation_stack = ['Object was created here (most recent call last):']
-        bases = ['ipython-script.py']
-        for modulename in ['brian2', 'IPython']:
+        creation_stack = []
+        bases = []
+        for modulename in ['brian2']:
             if modulename in sys.modules:
                 base, _ = os.path.split(sys.modules[modulename].__file__)
                 bases.append(base)
@@ -66,7 +66,9 @@ class BrianObject(Nameable):
                                                                                          line=line)
                 creation_stack.append(s)
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
-        self._creation_stack = '\n'.join(creation_stack)
+        self._creation_stack = ('Object was created here (most recent call only, full details in '
+                                'debug log):\n'+creation_stack[-1])
+        self._full_creation_stack = 'Object was created here:\n'+'\n'.join(creation_stack)
 
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
@@ -289,6 +291,9 @@ class BrianObjectException(Exception):
                                                                  original_exception))
         self.origtb = traceback.format_exc()
         self.objcreate = brianobj._creation_stack
+        logger.debug('Error was encountered with object "{objname}":\n{fullstack}'.format(
+            objname=self.objname,
+            fullstack=brianobj._full_creation_stack))
     def __str__(self):
         return ('Original error and traceback:\n{origtb}\n'
                 'Error encountered with object named "{objname}".\n'
