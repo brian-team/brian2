@@ -85,13 +85,16 @@ class CythonCodeObject(NumpyCodeObject):
 
 
     def compile(self):
-        self.compiled_code = cython_extension_manager.create_extension(self.code,
-                                                                       libraries=self.libraries,
-                                                                       extra_compile_args=self.extra_compile_args,
-                                                                       extra_link_args=self.extra_link_args,
-                                                                       include_dirs=self.include_dirs,
-                                                                       library_dirs=self.library_dirs,
-                                                                       compiler=self.compiler)
+        self.compiled_code = cython_extension_manager.create_extension(
+            self.code,
+            libraries=self.libraries,
+            extra_compile_args=self.extra_compile_args,
+            extra_link_args=self.extra_link_args,
+            include_dirs=self.include_dirs,
+            library_dirs=self.library_dirs,
+            compiler=self.compiler,
+            owner_name=self.owner.name+'_'+self.template_name,
+            )
         
     def run(self):
         return self.compiled_code.main(self.namespace)
