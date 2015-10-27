@@ -22,8 +22,6 @@
 //	linearsolver linsolv = INEFFICIENT_DENSE; // old version from Marcel and Romain
 
 
-	double ai,bi,_m;
-
     int _vectorisation_idx = 1;
 
 	//// MAIN CODE ////////////
@@ -45,6 +43,7 @@
 	{{ openmp_pragma('enable_nested') }} // allow inner parallelization of the three linear systems
 
 	{{ openmp_pragma('parallel') }}
+    {
 	{{ openmp_pragma('sections') }}
 	{
 	// system 2a: solve for v_star
@@ -56,6 +55,8 @@
 			// first and last index of the i-th branch
 			const int i_start = {{_starts}}[_i];
 			const int i_end = {{_ends}}[_i];
+			
+			double ai, bi, _m; // helper variables
 
 			// upper triangularization of tridiagonal system for v_star
 			for(int i=i_start;i<i_end+1;i++)
@@ -90,6 +91,8 @@
 			// first and last index of the i-th branch
 			const int i_start = {{_starts}}[_i];
 			const int i_end = {{_ends}}[_i];
+			
+			double ai, bi, _m; // helper variables
 
 			// upper triangularization of tridiagonal system for u_plus
 			for(int i=i_start;i<i_end+1;i++)
@@ -125,6 +128,8 @@
 			const int i_start = {{_starts}}[_i];
 			const int i_end = {{_ends}}[_i];
 
+			double ai, bi, _m; // h
+			
 			// upper triangularization of tridiagonal system for u_minus
 			for(int i=i_start;i<i_end+1;i++)
 			{
@@ -148,8 +153,9 @@
 			for(int i=i_end-1;i>=i_start;i--)
 				{{u_minus}}[i]={{u_minus}}[i] - {{c3}}[i]*{{u_minus}}[i+1];
 		}
-	}
-	}
+	} // (OpenMP section)
+	} // (OpenMP sections)
+	} // (OpenMP parallel)
 
 
 	// integration step 3: solve the coupling system (no parallelism)

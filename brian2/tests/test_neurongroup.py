@@ -19,6 +19,7 @@ from brian2.synapses.synapses import Synapses
 from brian2.monitors.statemonitor import StateMonitor
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
+from brian2.units.unitsafefunctions import linspace
 from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.utils.logger import catch_logs
@@ -187,7 +188,7 @@ def test_linked_variable_correct():
     '''
     tau = 10*ms
     G1 = NeuronGroup(10, 'dv/dt = -v / tau : volt')
-    G1.v = np.linspace(0*mV, 20*mV, 10)
+    G1.v = linspace(0*mV, 20*mV, 10)
     G2 = NeuronGroup(10, 'v : volt (linked)')
     G2.v = linked_var(G1.v)
     mon1 = StateMonitor(G1, 'v', record=True)

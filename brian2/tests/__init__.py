@@ -135,6 +135,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         for target in codegen_targets:
             sys.stderr.write('Running tests for target %s:\n' % target)
             prefs.codegen.target = target
+            # Also set the target for string-expressions -- otherwise we'd only
+            # ever test numpy for those
+            prefs.codegen.string_expression_target = target
             prefs._backup()
             exclude_str = "!standalone-only,!codegen-independent"
             if not long_tests:
@@ -154,6 +157,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv))
+
         if test_standalone:
             from brian2.devices.device import get_device, set_device
             previous_device = get_device()
@@ -177,6 +181,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             if test_openmp and test_standalone == 'cpp_standalone':
                 # Run all the standalone compatible tests again with 4 threads
                 prefs.devices.cpp_standalone.openmp_threads = 4
+                prefs._backup()
                 sys.stderr.write('Running standalone-compatible standard tests with OpenMP\n')
                 exclude_str = ',!long' if not long_tests else ''
                 argv = ['nosetests', dirname,
@@ -190,6 +195,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                         '--exe']
                 success.append(nose.run(argv=argv))
                 prefs.devices.cpp_standalone.openmp_threads = 0
+                prefs._backup()
 
             set_device(previous_device)
 

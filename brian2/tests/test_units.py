@@ -6,6 +6,7 @@ from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 
+import brian2
 from brian2.core.preferences import prefs
 from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            UFUNCS_DIMENSIONLESS_TWOARGS,
@@ -42,8 +43,8 @@ except ImportError:
 def assert_quantity(q, values, unit):
     assert isinstance(q, Quantity) or (have_same_dimensions(unit, 1) and
                                        (values.shape == () or
-                                        isinstance(q, np.ndarray)))
-    assert_equal(np.asarray(q), values)
+                                        isinstance(q, np.ndarray))), q
+    assert_allclose(np.asarray(q), values)
     assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
                                            (get_dimensions(q),
                                             get_dimensions(unit)))
@@ -524,7 +525,12 @@ def test_inplace_operations():
     for inplace_op in [q.__iadd__, q.__isub__, q.__imul__,
                        q.__idiv__, q.__itruediv__, q.__ifloordiv__,
                        q.__imod__, q.__ipow__]:
-        assert inplace_op('string') == NotImplemented
+        try:
+            result = inplace_op('string')
+            # if it doesn't fail with an error, it should return NotImplemented
+            assert result == NotImplemented
+        except TypeError:
+            pass  # raised on numpy >= 0.10
     
     # make sure that inplace operations do not work on units/dimensions at all
     for inplace_op in [volt.__iadd__, volt.__isub__, volt.__imul__,
@@ -849,11 +855,53 @@ def test_numpy_functions_logical():
                 # two arguments
                 result_units = eval('np.%s(value1, value2)' % ufunc)        
                 result_array = eval('np.%s(np.array(value1), np.array(value2))' % ufunc)
-                # assert that comparing to a string results in "NotImplemented"
-                assert eval('np.%s(value1, "a string")' % ufunc) == NotImplemented
-                assert eval('np.%s("a string", value1)' % ufunc) == NotImplemented
+                # assert that comparing to a string results in "NotImplemented" or an error
+                try:
+                    result = eval('np.%s(value1, "a string")' % ufunc)
+                    assert result == NotImplemented
+                except TypeError:
+                    pass  # raised on numpy >= 0.10
+                try:
+                    result = eval('np.%s("a string", value1)' % ufunc)
+                    assert result == NotImplemented
+                except TypeError:
+                    pass  # raised on numpy >= 0.10
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
+
+
+@attr('codegen-independent')
+def test_arange_linspace():
+    # For dimensionless values, the unit-safe functions should give the same results
+    assert_equal(brian2.arange(5), np.arange(5))
+    assert_equal(brian2.arange(1, 5), np.arange(1, 5))
+    assert_equal(brian2.arange(10, step=2), np.arange(10, step=2))
+    assert_equal(brian2.arange(0, 5, 0.5), np.arange(0, 5, 0.5))
+    assert_equal(brian2.linspace(0, 1), np.linspace(0, 1))
+    assert_equal(brian2.linspace(0, 1, 10), np.linspace(0, 1, 10))
+
+    # Make sure units are checked
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*mV))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1, 5*mV))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*ms))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*mV, step=1*ms))
+    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*ms, 5*mV))
+
+    # Check correct functioning with units
+    assert_quantity(brian2.arange(5*mV, step=1*mV), float(mV)*np.arange(5, step=1), mV)
+    assert_quantity(brian2.arange(1*mV, 5*mV, 1*mV), float(mV)*np.arange(1, 5, 1), mV)
+    assert_quantity(brian2.linspace(1*mV, 2*mV), float(mV)*np.linspace(1, 2), mV)
+
+    # Check errors for arange with incorrect numbers of arguments/duplicate arguments
+    assert_raises(TypeError, lambda: brian2.arange())
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, 0))
+    assert_raises(TypeError, lambda: brian2.arange(0, stop=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, stop=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, start=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, start=1))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, stop=2))
+    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, step=2))
 
 
 @attr('codegen-independent')
@@ -1036,6 +1084,7 @@ if __name__ == '__main__':
     test_numpy_functions_change_dimensions()
     test_numpy_functions_typeerror()
     test_numpy_functions_logical()
+    test_arange_linspace()
     test_list()
     test_check_units()
     test_get_unit()

@@ -1,13 +1,16 @@
 #cython: boundscheck=False
 #cython: wraparound=False
-#cython: cdivision=False
+#cython: cdivision=True
 #cython: infer_types=True
 
 import numpy as _numpy
 cimport numpy as _numpy
-from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, abs, asin, acos, atan, fabs, fmod, floor, ceil
+from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil
 cdef extern from "math.h":
     double M_PI
+# Import the two versions of std::abs
+from libc.stdlib cimport abs  # For integers
+from libc.math cimport abs  # For floating point values
 from libcpp cimport bool
 
 cdef extern from "stdint_compat.h":

@@ -1,11 +1,10 @@
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { t, _clock_t, _indices } #}
+    {# USES_VARIABLES { t, _clock_t, _indices, N } #}
 
     // Get the current length and new length of t and value arrays
-    const int _curlen = {{_dynamic_t}}.attr("shape")[0];
-    const int _new_len = _curlen + 1;
+    const int _new_len = {{N}} + 1;
 
     // Resize the recorded times and get the (potentially changed) reference to
     // the underlying data
@@ -38,4 +37,7 @@
         }
     }
     {% endfor %}
+
+    // set the N variable explicitly (since we do not call `StateMonitor.resize`)
+    {{N}} = _new_len;
 {% endblock %}

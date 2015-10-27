@@ -3,11 +3,13 @@ Unit-aware replacements for numpy functions.
 """
 from functools import wraps
 
+import pkg_resources
 import numpy as np
 
 from .fundamentalunits import (Quantity, wrap_function_dimensionless,
                                wrap_function_remove_dimensions,
-                               fail_for_dimension_mismatch, is_dimensionless)
+                               fail_for_dimension_mismatch, is_dimensionless,
+                               DIMENSIONLESS)
 
 __all__ = [
          'log', 'log10', 'exp',
@@ -17,7 +19,8 @@ __all__ = [
          'arcsinh', 'arccosh', 'arctanh',
          'diagonal', 'ravel', 'trace', 'dot',
          'where',
-         'ones_like', 'zeros_like'
+         'ones_like', 'zeros_like',
+         'arange', 'linspace'
          ]
 
 def where(condition, *args, **kwds):  # pylint: disable=C0111
@@ -80,6 +83,74 @@ def wrap_function_to_method(func):
     f.__name__ = func.__name__
     return f
 
+
+@wraps(np.arange)
+def arange(*args, **kwargs):
+    # arange has a bit of a complicated argument structure unfortunately
+    # we leave the actual checking of the number of arguments to numpy, though
+
+    # default values
+    start = kwargs.pop('start', 0)
+    step = kwargs.pop('step', 1)
+    stop = kwargs.pop('stop', None)
+    if len(args) == 1:
+        if stop is not None:
+            raise TypeError('Duplicate definition of "stop"')
+        stop = args[0]
+    elif len(args) == 2:
+        if start != 0:
+            raise TypeError('Duplicate definition of "start"')
+        if stop is not None:
+            raise TypeError('Duplicate definition of "stop"')
+        start, stop = args
+    elif len(args) == 3:
+        if start != 0:
+            raise TypeError('Duplicate definition of "start"')
+        if stop is not None:
+            raise TypeError('Duplicate definition of "stop"')
+        if step != 1:
+            raise TypeError('Duplicate definition of "step"')
+        start, stop, step = args
+    elif len(args) > 3:
+        raise TypeError('Need between 1 and 3 non-keyword arguments')
+    if stop is None:
+        raise TypeError('Missing stop argument.')
+    fail_for_dimension_mismatch(start, stop,
+                                error_message=('Start value {start} and stop '
+                                               'value {stop} have to have the '
+                                               'same units.'),
+                                start=start, stop=stop)
+    fail_for_dimension_mismatch(stop, step,
+                                error_message=('Stop value {stop} and step '
+                                               'value {step} have to have the '
+                                               'same units.'),
+                                stop=stop, step=step)
+    dim = getattr(stop, 'dim', DIMENSIONLESS)
+    return Quantity(np.arange(start=np.asarray(start),
+                              stop=np.asarray(stop),
+                              step=np.asarray(step),
+                              **kwargs),
+                    dim=dim, copy=False)
+
+@wraps(np.linspace)
+def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
+    fail_for_dimension_mismatch(start, stop,
+                                error_message=('Start value {start} and stop '
+                                               'value {stop} have to have the '
+                                               'same units.'),
+                                start=start, stop=stop)
+    dim = getattr(start, 'dim', DIMENSIONLESS)
+    if pkg_resources.parse_version(np.__version__) < pkg_resources.parse_version('1.9.0'):
+        if dtype is not None:
+            raise TypeError('The "dtype" argument needs numpy >= 1.9.0')
+        result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
+                             endpoint=endpoint, retstep=retstep)
+    else:
+        result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
+                             endpoint=endpoint, retstep=retstep, dtype=dtype)
+    return Quantity(result, dim=dim, copy=False)
+
+
 # these functions discard subclass info -- maybe a bug in numpy?
 ravel = wrap_function_to_method(np.ravel)
 diagonal = wrap_function_to_method(np.diagonal)
@@ -108,7 +179,8 @@ ravel.__module__ = __name__
 diagonal.__module__ = __name__
 trace.__module__ = __name__
 dot.__module__ = __name__
-
+arange.__module__ = __name__
+linspace.__module__ = __name__
 
 def setup():
     '''

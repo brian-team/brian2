@@ -33,21 +33,21 @@ def test_construction():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
     # Test initialization of values
     neuron.LL.v = EL
-    assert_allclose(neuron.L.main.v,0)
-    assert_allclose(neuron.LL.v,EL)
+    assert_allclose(neuron.L.main.v, 0)
+    assert_allclose(neuron.LL.v, EL)
     neuron.LL[2*um:3.1*um].v = 0*mV
-    assert_allclose(neuron.LL.v,[EL,0,0,EL,EL])
-    assert_allclose(neuron.Cm,1 * uF / cm ** 2)
+    assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
+    assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
     # Test morphological variables
-    assert_allclose(neuron.main.x,morpho.x)
-    assert_allclose(neuron.L.main.x,morpho.L.x)
-    assert_allclose(neuron.LL.main.x,morpho.LL.x)
-    assert_allclose(neuron.right.main.x,morpho.right.x)
-    assert_allclose(neuron.L.main.distance,morpho.L.distance)
-    assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
-    assert_allclose(neuron.L.main.area,morpho.L.area)
-    assert_allclose(neuron.L.main.length,morpho.L.length)
+    assert_allclose(neuron.main.x_, morpho.x)
+    assert_allclose(neuron.L.main.x_, morpho.L.x)
+    assert_allclose(neuron.LL.main.x_, morpho.LL.x)
+    assert_allclose(neuron.right.main.x_, morpho.right.x)
+    assert_allclose(neuron.L.main.distance_, morpho.L.distance)
+    assert_allclose(neuron.L.main.diameter_, morpho.L.diameter)
+    assert_allclose(neuron.L.main.area_, morpho.L.area)
+    assert_allclose(neuron.L.main.length_, morpho.L.length)
 
     # Check basic consistency of the flattened representation
     assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
@@ -99,21 +99,21 @@ def test_construction_coordinates():
 
     # Test initialization of values
     neuron.LL.v = EL
-    assert_allclose(neuron.L.main.v,0)
-    assert_allclose(neuron.LL.v,EL)
+    assert_allclose(neuron.L.main.v, 0)
+    assert_allclose(neuron.LL.v, EL)
     neuron.LL[2*um:3.1*um].v = 0*mV
-    assert_allclose(neuron.LL.v,[EL,0,0,EL,EL])
-    assert_allclose(neuron.Cm,1 * uF / cm ** 2)
+    assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
+    assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
     # Test morphological variables
-    assert_allclose(neuron.main.x,morpho.x)
-    assert_allclose(neuron.L.main.x,morpho.L.x)
-    assert_allclose(neuron.LL.main.x,morpho.LL.x)
-    assert_allclose(neuron.right.main.x,morpho.right.x)
-    assert_allclose(neuron.L.main.distance,morpho.L.distance)
-    assert_allclose(neuron.L.main.diameter,morpho.L.diameter)
-    assert_allclose(neuron.L.main.area,morpho.L.area)
-    assert_allclose(neuron.L.main.length,morpho.L.length)
+    assert_allclose(neuron.main.x_, morpho.x)
+    assert_allclose(neuron.L.main.x_, morpho.L.x)
+    assert_allclose(neuron.LL.main.x_, morpho.LL.x)
+    assert_allclose(neuron.right.main.x_, morpho.right.x)
+    assert_allclose(neuron.L.main.distance_, morpho.L.distance)
+    assert_allclose(neuron.L.main.diameter_, morpho.L.diameter)
+    assert_allclose(neuron.L.main.area_, morpho.L.area)
+    assert_allclose(neuron.L.main.length_, morpho.L.length)
 
     # Check basic consistency of the flattened representation
     assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
@@ -177,7 +177,7 @@ def test_infinitecable():
     theory = theory*1*nA*0.02*ms
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_finitecable():
     '''
@@ -218,7 +218,7 @@ def test_finitecable():
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
     assert_allclose(v-EL, theory-EL, rtol=0.01)
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_rallpack1():
     '''
@@ -439,7 +439,7 @@ def test_rallpack3():
     assert 100*max_rel_x < 0.5
 
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_rall():
     '''

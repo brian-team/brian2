@@ -67,47 +67,6 @@ def get_linear_system(eqs):
     return (diff_eq_names, coefficients, constants)
 
 
-def _non_constant_symbols(symbols, variables, t_symbol):
-    '''
-    Determine whether the given `sympy.Matrix` only refers to constant
-    variables. Note that variables that are not present in the `variables`
-    dictionary are considered to be external variables and therefore constant.
-
-    Parameters
-    ----------
-
-    symbols : set of `Symbol`
-        The symbols to check, e.g. resulting from expression.atoms()
-    variables : dict
-        The dictionary of `Variable` objects.
-    t_symbol : `Symbol`
-        The symbol referring to time ``t`` -- will not be considered as
-        non-constant in this context because it will specifically checked
-        later with `_check_t` (properly taking care of functions that are
-        locally constant over a single time step).
-    Returns
-    -------
-    non_constant : set
-        A set of non-constant symbols.
-    '''
-    # As every symbol in the matrix should be either in the namespace or
-    # the variables dictionary, it should be sufficient to just check for
-    # the presence of any non-constant variables.
-
-    # Only check true symbols, not numbers
-    symbols = set([str(symbol) for symbol in symbols
-                   if isinstance(symbol, Symbol) and not symbol == t_symbol])
-
-    non_constant = set()
-
-    for symbol in symbols:
-        if symbol in variables and not getattr(variables[symbol],
-                                                'constant', False):
-            non_constant |= {symbol}
-
-    return non_constant
-
-
 class IndependentStateUpdater(StateUpdateMethod):
     '''
     A state update for equations that do not depend on other state variables,
@@ -148,11 +107,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         code = []
         for name, expression in diff_eqs:
             rhs = expression.sympy_expr
-            non_constant = _non_constant_symbols(rhs.atoms(), variables, t) - {
-            name}
-            if len(non_constant):
-                raise ValueError(('Equation for %s referred to non-constant '
-                                  'variables %s') % (name, str(non_constant)))
+
             # We have to be careful and use the real=True assumption as well,
             # otherwise sympy doesn't consider the symbol a match to the content
             # of the equation
@@ -223,54 +178,62 @@ class LinearStateUpdater(StateUpdateMethod):
     def can_integrate(self, equations, variables):
         if equations.is_stochastic:
             return False
-               
+
         # Not very efficient but guaranteed to give the correct answer:
         # Just try to apply the integration method
         try:
-            self.__call__(equations, variables)
+            # Don't use sympy's simplify because it might take a very long time.
+            # We are not using the result, anyway.
+            self.__call__(equations, variables, simplify=False)
         except (ValueError, NotImplementedError, TypeError) as ex:
             logger.debug('Cannot use linear integration: %s' % ex)
             return False
-        
+
         # It worked
         return True
 
-    def __call__(self, equations, variables=None):
-        
+    def __call__(self, equations, variables=None, simplify=True):
+
         if variables is None:
             variables = {}
-        
+
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
         varnames, matrix, constants = get_linear_system(equations)
 
+        # No differential equations, nothing to do (this occurs sometimes in the
+        # test suite where the whole model is nothing more than something like
+        # 'v : 1')
+        if matrix.shape == (0, 0):
+            return ''
+
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant variables
         t = Symbol('t', real=True, positive=True)
-        symbols = set.union(*(el.atoms() for el in matrix))
-        non_constant = _non_constant_symbols(symbols, variables, t)
-        if len(non_constant):
-            raise ValueError(('The coefficient matrix for the equations '
-                              'contains the symbols %s, which are not '
-                              'constant.') % str(non_constant))
 
         # Check for time dependence
         if 'dt' in variables:
             dt_value = variables['dt'].get_value()[0]
+
             # This will raise an error if we meet the symbol "t" anywhere
             # except as an argument of a locally constant function
+            t = Symbol('t', real=True, positive=True)
             for entry in itertools.chain(matrix, constants):
                 _check_for_locally_constant(entry, variables, dt_value, t)
 
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
-        
+
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
-        A = (matrix * dt).exp()                
+        A = (matrix * dt).exp()
+        if simplify:
+            A.simplify()
         C = sp.ImmutableMatrix([A.dot(b)]) - b
         _S = sp.MatrixSymbol('_S', len(varnames), 1)
+        # The use of .as_mutable() here is a workaround for a
+        # ``Transpose object does not have
         updates = A * _S + C.transpose()
         try:
             # In sympy 0.7.3, we have to explicitly convert it to a single matrix
@@ -279,7 +242,7 @@ class LinearStateUpdater(StateUpdateMethod):
             updates = updates.as_explicit()
         except AttributeError:
             pass
-        
+
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
         # replace them with the state variable names 
         abstract_code = []
@@ -291,7 +254,7 @@ class LinearStateUpdater(StateUpdateMethod):
             # Do not overwrite the real state variables yet, the update step
             # of other state variables might still need the original values
             abstract_code.append('_' + variable + ' = ' + sympy_to_str(rhs))
-        
+
         # Update the state variables
         for variable in varnames:
             abstract_code.append('{variable} = _{variable}'.format(variable=variable))

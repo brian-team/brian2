@@ -197,7 +197,7 @@ class Indexing(object):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
-            if item is None or item == 'True':
+            if item is None or (isinstance(item, basestring) and item == 'True'):
                 item = slice(None)
             if isinstance(item, slice):
                 if index_var == '0':
@@ -287,8 +287,6 @@ class VariableOwner(Nameable):
             self.indices = IndexWrapper(self)
         if not hasattr(self, '_stored_states'):
             self._stored_states = {}
-        if not hasattr(self, '_stored_clocks'):
-            self._stored_clocks = {}
         self._group_attribute_access_active = True
 
     def state(self, name, use_units=True, level=0):
@@ -521,33 +519,22 @@ class VariableOwner(Nameable):
         for key, value in values.iteritems():
             self.state(key, use_units=units, level=level+1)[:] = value
 
-    def _store(self, name='default'):
-        logger.debug('Storing state at for object %s' % self.name)
+    def _full_state(self):
         state = {}
         for var in self.variables.itervalues():
+            if var.owner is None or var.owner.name != self.name:
+                continue  # we only store the state of our own variables
             if isinstance(var, ArrayVariable):
-                state[var] = (var.get_value().copy(), var.size)
-        self._stored_states[name] = state
-        self._stored_clocks[name] = (self.clock.t_, self.clock.dt_)
-        for obj in self._contained_objects:
-            if hasattr(obj, '_store'):
-                obj._store(name)
+                state[var.name] = (var.get_value().copy(), var.size)
 
-    def _restore(self, name='default'):
-        logger.debug('Restoring state at for object %s' % self.name)
-        if not name in self._stored_states:
-            raise ValueError(('No state with name "%s" to restore -- '
-                              'did you call store()?') % name)
-        for var, (values, size) in self._stored_states[name].iteritems():
+        return state
+
+    def _restore_from_full_state(self, state):
+        for var_name, (values, size) in state.iteritems():
+            var = self.variables[var_name]
             if isinstance(var, DynamicArrayVariable):
                 var.resize(size)
             var.set_value(values)
-        t, dt = self._stored_clocks[name]
-        self.clock.dt_ = dt
-        self.clock._set_t_update_dt(target_t=t*second)
-        for obj in self._contained_objects:
-            if hasattr(obj, '_restore'):
-                obj._restore(name)
 
     def _check_expression_scalar(self, expr, varname, level=0,
                                  run_namespace=None):

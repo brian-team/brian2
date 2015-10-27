@@ -189,6 +189,18 @@ void _write_arrays()
 	{
 	    std::cout << "Error writing profiling info to file." << std::endl;
 	}
+
+	// Write last run info to disk
+	ofstream outfile_last_run_info;
+	outfile_last_run_info.open("results/last_run_info.txt", ios::out);
+	if(outfile_last_run_info.is_open())
+	{
+		outfile_last_run_info << (Network::_last_run_time) << " " << (Network::_last_run_completed_fraction) << std::endl;
+		outfile_last_run_info.close();
+	} else
+	{
+	    std::cout << "Error writing last run info to file." << std::endl;
+	}
 }
 
 void _dealloc_arrays()

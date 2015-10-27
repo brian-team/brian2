@@ -331,6 +331,8 @@ def test_state_monitor_indexing():
     assert_array_equal(mon[[5, 7]].v, mon.v[[0, 2]])
     assert_array_equal(mon[np.array([5, 7])].v, mon.v[[0, 2]])
 
+    assert_allclose(mon.t[1:], Quantity([defaultclock.dt]))
+
     assert_raises(IndexError, lambda: mon[8])
     assert_raises(TypeError, lambda: mon['string'])
     assert_raises(TypeError, lambda: mon[5.0])

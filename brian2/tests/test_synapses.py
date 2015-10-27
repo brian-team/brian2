@@ -550,15 +550,20 @@ def test_invalid_custom_event():
     assert_raises(ValueError, lambda: Synapses(group2, group2, pre='v+=1',
                                                on_event='custom'))
 
+@with_setup(teardown=restore_device)
 def test_transmission():
     default_dt = defaultclock.dt
-    delays = [[0, 0] * ms, [1, 1] * ms, [1, 2] * ms]
+    delays = [[0, 0, 0, 0] * ms,
+              [1, 1, 1, 0] * ms,
+              [0, 1, 2, 3] * ms,
+              [2, 2, 0, 0] * ms,
+              [2, 1, 0, 1] * ms]
     for delay in delays:
         # Make sure that the Synapses class actually propagates spikes :)
-        source = NeuronGroup(2, '''dv/dt = rate : 1
+        source = NeuronGroup(4, '''dv/dt = rate : 1
                                    rate : Hz''', threshold='v>1', reset='v=0')
-        source.rate = [51, 101] * Hz
-        target = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
+        source.rate = [51, 101, 101, 51] * Hz
+        target = NeuronGroup(4, 'v:1', threshold='v>1', reset='v=0')
 
         source_mon = SpikeMonitor(source)
         target_mon = SpikeMonitor(target)
@@ -566,14 +571,46 @@ def test_transmission():
         S = Synapses(source, target, pre='v+=1.1', connect='i==j')
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
-        net.run(100*ms+default_dt+max(delay))
-
+        net.run(50*ms+default_dt+max(delay))
         # All spikes should trigger spikes in the receiving neurons with
         # the respective delay ( + one dt)
-        assert_allclose(source_mon.t[source_mon.i==0],
-                        target_mon.t[target_mon.i==0] - default_dt - delay[0])
-        assert_allclose(source_mon.t[source_mon.i==1],
-                        target_mon.t[target_mon.i==1] - default_dt - delay[1])
+        for d in xrange(len(delay)):
+            assert_allclose(source_mon.t[source_mon.i==d],
+                            target_mon.t[target_mon.i==d] - default_dt - delay[d])
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_transmission_all_to_one_heterogeneous_delays():
+    source = SpikeGeneratorGroup(6,
+                                 [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
+                                 [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]*defaultclock.dt)
+    target = NeuronGroup(1, 'v:1')
+    synapses = Synapses(source, target, pre='v_post += (i_pre+1)', connect=True)
+    synapses.delay = [0, 0, 0, 1, 2, 1] * defaultclock.dt
+
+    mon = StateMonitor(target, 'v', record=True, when='end')
+    run(4*defaultclock.dt)
+    assert mon[0].v[0] == 3
+    assert mon[0].v[1] == 12
+    assert mon[0].v[2] == 33
+    assert mon[0].v[3] == 48
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
+def test_transmission_one_to_all_heterogeneous_delays():
+    source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
+    target = NeuronGroup(6, 'v:integer')
+    synapses = Synapses(source, target, pre='v_post += (i_pre+1)', connect=True)
+    synapses.delay = [0, 0, 1, 3, 2, 1] * defaultclock.dt
+
+    mon = StateMonitor(target, 'v', record=True, when='end')
+    run(4*defaultclock.dt)
+    assert_equal(mon[0].v, [1, 1, 2, 2])
+    assert_equal(mon[1].v, [1, 1, 2, 2])
+    assert_equal(mon[2].v, [0, 1, 1, 2])
+    assert_equal(mon[3].v, [0, 0, 0, 1])
+    assert_equal(mon[4].v, [0, 0, 1, 1])
+    assert_equal(mon[5].v, [0, 1, 1, 2])
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -1138,6 +1175,17 @@ def test_vectorisation_STDP_like():
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
+def test_synaptic_equations():
+    # Check that integration works for synaptic equations
+    G = NeuronGroup(10, '')
+    tau = 10*ms
+    S = Synapses(G, G, 'dw/dt = -w / tau : 1', connect='i==j')
+    S.w = 'i'
+    run(10*ms)
+    assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
+
+@attr('standalone-compatible')
+@with_setup(teardown=restore_device)
 def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
@@ -1255,6 +1303,8 @@ if __name__ == '__main__':
     test_transmission_custom_event()
     test_invalid_custom_event()
     test_transmission()
+    test_transmission_all_to_one_heterogeneous_delays()
+    test_transmission_one_to_all_heterogeneous_delays()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
     test_clocks()
@@ -1271,6 +1321,7 @@ if __name__ == '__main__':
     test_permutation_analysis()
     test_vectorisation()
     test_vectorisation_STDP_like()
+    test_synaptic_equations()
     test_synapses_to_synapses()
     test_synapses_to_synapses_summed_variable()
     test_ufunc_at_vectorisation()

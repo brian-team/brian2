@@ -158,13 +158,13 @@ setup(name='Brian2',
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },
-      install_requires=['numpy>=1.8.0',
+      install_requires=['numpy>=1.8.2',
                         'sympy>=0.7.6',
                         'pyparsing',
                         'jinja2>=2.7',
                         'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
                        ],
-      setup_requires=['numpy>=1.8.0',
+      setup_requires=['numpy>=1.8.2',
                       'setuptools>=6.0'
                       ],
       cmdclass={'build_ext': optional_build_ext},

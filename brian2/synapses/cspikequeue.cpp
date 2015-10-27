@@ -14,18 +14,16 @@ template <class scalar>
 class CSpikeQueue
 {
 public:
-	vector< vector<int32_t> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-	scalar dt;
-	unsigned int offset;
-	bool scalar_delay;
-	unsigned int *delays;
-	int32_t source_start;
-	int32_t source_end;
+    vector< vector<int32_t> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
+    scalar dt;
+    unsigned int offset;
+    bool scalar_delay;
+    unsigned int *delays;
+    int32_t source_start;
+    int32_t source_end;
     unsigned int openmp_padding;
     vector< vector<int> > synapses;
     // data structures for the store/restore mechanism
-    map<string, vector< vector<int32_t> > > _stored_queue;
-    map<string, unsigned int> _stored_offset;
 
     CSpikeQueue(int _source_start, int _source_end)
         : source_start(_source_start), source_end(_source_end)
@@ -53,7 +51,6 @@ public:
     {
 
         assert(n_delays == 1 || n_delays == n_synapses);
-        scalar_delay = n_delays == 1;
 
         if (delays)
             delete [] delays;
@@ -80,38 +77,54 @@ public:
         synapses.clear();
         synapses.resize(source_end - source_start);
 
-        for (unsigned int i=0; i<n_synapses; i++)
+        // Note that n_synapses and n_delays do not have to be identical
+        // (homogeneous delays are stored as a single scalar), we therefore
+        // use two independent loops to initialize the delays and the synapses
+        // array
+        unsigned int min_delay = (unsigned int)(real_delays[0] / _dt + 0.5);
+        unsigned int max_delay = min_delay;
+        for (int i=0; i<n_delays; i++)
         {
-            if (i == 0 || !scalar_delay)
-            {
-                //round to nearest int
-                delays[i] =  (int)(real_delays[i] / _dt + 0.5);
-            }
-            synapses[sources[i] - source_start].push_back(i + openmp_padding);
+            //round to nearest int
+            delays[i] =  (unsigned int)(real_delays[i] / _dt + 0.5);
+            if (delays[i] > max_delay)
+                max_delay = delays[i];
+            else if (delays[i] < min_delay)
+                min_delay = delays[i];
         }
+        for (int i=0; i<n_synapses; i++)
+            synapses[sources[i] - source_start].push_back(i + openmp_padding);
 
         dt = _dt;
+
+        // Ensure that our spike queue is sufficiently big
+        ensure_delay(max_delay);
+
+        scalar_delay = (min_delay == max_delay);
     }
 
-    void store(const string name)
+    pair <unsigned int, vector< vector<int32_t> > > _full_state()
     {
-        _stored_queue[name].clear();
-        _stored_queue[name].resize(queue.size());
-        for (int i=0; i<queue.size(); i++)
-            _stored_queue[name][i] = queue[i];
-        _stored_offset[name] = offset;
+        pair <unsigned int, vector< vector<int32_t> > > state(offset, queue);
+        return state;
     }
 
-    void restore(const string name)
+    void _clear()
     {
-        size_t size = _stored_queue[name].size();
+    }
+
+    void _restore_from_full_state(const pair <unsigned int, vector< vector<int32_t> > > state)
+    {
+        unsigned int stored_offset = state.first;
+        vector< vector<int32_t> > stored_queue = state.second;
+        size_t size = stored_queue.size();
         queue.clear();
         if (size == 0)  // the queue did not exist at the time of the store call
             size = 1;
         queue.resize(size);
-        for (int i=0; i<_stored_queue[name].size(); i++)
-            queue[i] = _stored_queue[name][i];
-        offset = _stored_offset[name];
+        for (int i=0; i<stored_queue.size(); i++)
+            queue[i] = stored_queue[i];
+        offset = stored_offset;
     }
 
     void expand(unsigned int newsize)
@@ -134,30 +147,52 @@ public:
         }
     };
 
-	void push(int32_t *spikes, unsigned int nspikes)
-	{
-		const unsigned int start = static_cast<unsigned int>(distance(spikes, lower_bound(spikes, spikes+nspikes, source_start)));
-		const unsigned int stop = static_cast<unsigned int>(distance(spikes, upper_bound(spikes, spikes+nspikes, source_end-1))); 
-		for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
-		{
-			const unsigned int idx_neuron = spikes[idx_spike] - source_start;
-			vector<int> &cur_indices = synapses[idx_neuron];
-			for(unsigned int idx_indices=0; idx_indices<cur_indices.size(); idx_indices++)
-			{
-				const int synaptic_index = cur_indices[idx_indices];
-				unsigned int delay = scalar_delay ? delays[0] : delays[synaptic_index - openmp_padding];
-				// make sure there is enough space and resize if not
-				ensure_delay(delay);
-				// insert the index into the correct queue
-				queue[(offset+delay)%queue.size()].push_back(synaptic_index);
-			}
-		}
-	};
+    void push(int32_t *spikes, unsigned int nspikes)
+    {
+        if(nspikes==0) return;
+        const unsigned int start = static_cast<unsigned int>(distance(spikes, lower_bound(spikes, spikes+nspikes, source_start)));
+        const unsigned int stop = static_cast<unsigned int>(distance(spikes, upper_bound(spikes, spikes+nspikes, source_end-1)));
+        const int32_t * __restrict rspikes = spikes;
+        if(scalar_delay)
+        {
+            vector<int32_t> &homog_queue = queue[(offset+delays[0])%queue.size()];
+            for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
+            {
+                const unsigned int idx_neuron = rspikes[idx_spike] - source_start;
+                const unsigned int num_indices = synapses[idx_neuron].size();
+                if(num_indices==0) continue;
+                const int* __restrict cur_indices = &(synapses[idx_neuron][0]);
+                const unsigned int cur_homog_queue_size = homog_queue.size();
+                homog_queue.resize(cur_homog_queue_size+num_indices);
+                int32_t * __restrict hq = &(homog_queue[cur_homog_queue_size]);
+                for(unsigned int idx_indices=0; idx_indices<num_indices; idx_indices++)
+                {
+                    hq[idx_indices] = cur_indices[idx_indices];
+                }
+            }
+        } else // (!scalar_delay)
+        {
+            unsigned int * __restrict rdelays = delays-openmp_padding;
+            for(unsigned int idx_spike=start; idx_spike<stop; idx_spike++)
+            {
+                const unsigned int idx_neuron = rspikes[idx_spike] - source_start;
+                const unsigned int num_indices = synapses[idx_neuron].size();
+                if(num_indices==0) continue;
+                const int* __restrict cur_indices = &(synapses[idx_neuron][0]);
+                for(unsigned int idx_indices=0; idx_indices<num_indices; idx_indices++)
+                {
+                    const int synaptic_index = cur_indices[idx_indices];
+                    unsigned int delay = rdelays[synaptic_index];
+                    queue[(offset+delay)%queue.size()].push_back(synaptic_index);
+                }
+            }
+        }
+    };
 
-	inline vector<int32_t>* peek()
-	{
-		return &queue[offset];
-	};
+    inline vector<int32_t>* peek()
+    {
+        return &queue[offset];
+    };
 
     void advance()
     {

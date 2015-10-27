@@ -32,7 +32,7 @@ def test_subgroup():
     assert_allclose(morpho.LL[1.5*um].distance,12*um)
     assert_allclose(morpho.LL[5*um].distance,15*um)
     # Getting a segment
-    assert_allclose(morpho.L[3*um:5.1*um].distance,[3*um,4*um,5*um])
+    assert_allclose(morpho.L[3*um:5.1*um].distance, [3, 4, 5]*um)
     # Indices cannot be obtained at this stage
     assert_raises(AttributeError,lambda :morpho.L.indices[:])
     # Compress the morphology and get absolute compartment indices
