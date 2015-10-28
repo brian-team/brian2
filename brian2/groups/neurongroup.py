@@ -200,6 +200,9 @@ class Thresholder(CodeRunner):
         eventspace_name = '_{}space'.format(event)
         template_kwds['eventspace_variable'] = group.variables[eventspace_name]
         needed_variables.append(eventspace_name)
+        self.variables = Variables(self)
+        self.variables.add_auxiliary_variable('_cond', unit=Unit(1),
+                                              dtype=np.bool)
         CodeRunner.__init__(self, group,
                             'threshold',
                             code='',  # will be set in update_abstract_code
@@ -250,7 +253,7 @@ class Thresholder(CodeRunner):
             self.abstract_code = '_cond = %s' % code
         else:
             self.abstract_code = '_cond = (%s) and not_refractory' % code
-        
+
 
 class Resetter(CodeRunner):
     '''
