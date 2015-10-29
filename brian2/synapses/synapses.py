@@ -124,11 +124,13 @@ class SynapticPathway(CodeRunner, Group):
             self.source = synapses.source
             self.target = synapses.target
             self.synapse_sources = synapses.variables['_synaptic_pre']
+            self.synapse_targets = synapses.variables['_synaptic_post']
             order = -1
         elif prepost == 'post':
             self.source = synapses.target
             self.target = synapses.source
             self.synapse_sources = synapses.variables['_synaptic_post']
+            self.synapse_targets = synapses.variables['_synaptic_pre']
             order = 1
         else:
             raise ValueError('prepost argument has to be either "pre" or '
