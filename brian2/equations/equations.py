@@ -344,7 +344,7 @@ class SingleEquation(object):
         The variable that is defined by this equation.
     unit : Unit
         The unit of the variable
-    var_type : {FLOAT, BOOLEAN}
+    var_type : {FLOAT, INTEGER, BOOLEAN}
         The type of the variable (floating point value or boolean).
     expr : `Expression`, optional
         The expression defining the variable (or ``None`` for parameters).        

@@ -17,7 +17,7 @@ from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER)
+                                        PARAMETER, INTEGER)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
@@ -440,7 +440,10 @@ class SynapticIndexing(object):
         self.target = weakproxy_with_fallback(self.synapses.target)
         self.synaptic_pre = synapses.variables['_synaptic_pre']
         self.synaptic_post = synapses.variables['_synaptic_post']
-        self.synapse_number = synapses.variables['synapse_number']
+        if synapses.multisynaptic_index is not None:
+            self.synapse_number = synapses.variables[synapses.multisynaptic_index]
+        else:
+            self.synapse_number = None
 
     def __call__(self, index=None, index_var='_idx'):
         '''
@@ -495,6 +498,11 @@ class SynapticIndexing(object):
             if isinstance(K, slice) and K == slice(None):
                 final_indices = matching_synapses
             else:
+                if self.synapse_number is None:
+                    raise IndexError('To index by the third dimension you need '
+                                     'to switch on the calculation of the '
+                                     '"multisynaptic_index" when you create '
+                                     'the Synapses object.')
                 if isinstance(K, (int, slice)):
                     test_k = slice_to_test(K)
                 else:
@@ -564,6 +572,13 @@ class Synapses(Group):
         both pathways are triggered by the ``'spike'`` event, i.e. the event
         that is triggered by the ``threshold`` condition in the connected
         groups.
+    multisynaptic_index : str, optional
+        The name of a variable (which will be automatically created) that stores
+        the "synapse number". This number enumerates all synapses between the
+        same source and target so that they can be distinguished. For models
+        where each source-target pair has only a single connection, this number
+        only wastes memory (it would always default to 0), it is therefore not
+        stored by default. Defaults to ``None`` (no variable).
     namespace : dict, optional
         A dictionary mapping identifier names to objects. If not given, the
         namespace will be filled in at the time of the call of `Network.run`,
@@ -597,6 +612,7 @@ class Synapses(Group):
 
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, on_event='spike',
+                 multisynaptic_index=None,
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
@@ -636,6 +652,16 @@ class Synapses(Group):
         model._equations['lastupdate'] = SingleEquation(PARAMETER,
                                                         'lastupdate',
                                                         second)
+        # Add the "multisynaptic index", if desired
+        self.multisynaptic_index = multisynaptic_index
+        if multisynaptic_index is not None:
+            if not isinstance(multisynaptic_index, basestring):
+                raise TypeError('multisynaptic_index argument has to be a string')
+            model._equations[multisynaptic_index] = SingleEquation(PARAMETER,
+                                                                   multisynaptic_index,
+                                                                   unit=Unit(1),
+                                                                   var_type=INTEGER)
+
         self._create_variables(model, user_dtype=dtype)
 
         # Separate the equations into event-driven equations,
@@ -872,8 +898,6 @@ class Synapses(Group):
         self.variables.add_dynamic_array('_synaptic_pre', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=True)
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
-                                         dtype=np.int32, constant_size=True)
-        self.variables.add_dynamic_array('synapse_number', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=True)
         self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
@@ -1140,7 +1164,6 @@ class Synapses(Group):
         N_incoming = self.variables['N_incoming'].get_value()
         synaptic_pre = self.variables['_synaptic_pre'].get_value()
         synaptic_post = self.variables['_synaptic_post'].get_value()
-        synapse_number = self.variables['synapse_number'].get_value()
 
         # Update the number of total outgoing/incoming synapses per source/target neuron
         N_outgoing[:] += np.bincount(synaptic_pre[old_num_synapses:],
@@ -1148,10 +1171,13 @@ class Synapses(Group):
         N_incoming[:] += np.bincount(synaptic_post[old_num_synapses:],
                                      minlength=len(N_incoming))
 
-        # Update the "synapse number" (number of synapses for the same source-target pair)
-        # We wrap pairs of source/target indices into a complex number for convenience
-        _source_target_pairs = synaptic_pre + synaptic_post*1j
-        synapse_number[:] = calc_repeats(_source_target_pairs)
+        if self.multisynaptic_index is not None:
+            synapse_number = self.variables[self.multisynaptic_index].get_value()
+
+            # Update the "synapse number" (number of synapses for the same source-target pair)
+            # We wrap pairs of source/target indices into a complex number for convenience
+            _source_target_pairs = synaptic_pre + synaptic_post*1j
+            synapse_number[:] = calc_repeats(_source_target_pairs)
 
     def register_variable(self, variable):
         '''
@@ -1173,6 +1199,12 @@ class Synapses(Group):
 
     def _add_synapses(self, sources, targets, n, p, condition=None,
                       namespace=None, level=0):
+
+        template_kwds = {'multisynaptic_index': self.multisynaptic_index}
+        if self.multisynaptic_index is not None:
+            needed_variables = [self.multisynaptic_index]
+        else:
+            needed_variables=[]
 
         if condition is None:
             variables = Variables(self)
@@ -1225,6 +1257,8 @@ class Synapses(Group):
                                             abstract_code,
                                             'synapses_create_array',
                                             additional_variables=variables,
+                                            template_kwds=template_kwds,
+                                            needed_variables=needed_variables,
                                             check_units=False,
                                             run_namespace=namespace,
                                             level=level+1)
@@ -1273,6 +1307,8 @@ class Synapses(Group):
                                             'synapses_create',
                                             variable_indices=variable_indices,
                                             additional_variables=variables,
+                                            template_kwds=template_kwds,
+                                            needed_variables=needed_variables,
                                             check_units=False,
                                             run_namespace=namespace,
                                             level=level+1)

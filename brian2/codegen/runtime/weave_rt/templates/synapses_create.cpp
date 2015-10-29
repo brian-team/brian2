@@ -2,11 +2,11 @@
 #include<
 {% block maincode %}
     {#
-    USES_VARIABLES { _synaptic_pre, _synaptic_post, synapse_number, rand,
+    USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
-    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, , synapse_number,
+    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
                       N_incoming, N_outgoing, N}
     #}
     srand((unsigned int)time(NULL));
