@@ -32,6 +32,7 @@ from brian2.units.fundamentalunits import Unit
 from brian2.parsing.statements import parse_statement
 from brian2.parsing.rendering import NodeRenderer
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str, expression_complexity
+from brian2.parsing.simplification import simplified
 
 from .statements import Statement
 
@@ -217,6 +218,10 @@ class LIONodeRenderer(NodeRenderer):
         self.n = 0
         NodeRenderer.__init__(self, use_vectorisation_idx=False)
 
+    def assumptions(self):
+        assume = ['{} = {}'.format(v, k) for k, v in self.optimisations.iteritems()]
+        return assume
+
     def render_node(self, node):
         expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
 
@@ -236,8 +241,10 @@ class LIONodeRenderer(NodeRenderer):
             return name
         else:
             for varname, var in self.boolvars.iteritems():
-                expr_0 = word_substitute(expr, {varname: '0.0'})
-                expr_1 = '(%s)-(%s)' % (word_substitute(expr, {varname: '1.0'}), expr_0)
+                expr_0 = simplified(word_substitute(expr, {varname: '0.0'}),
+                                    assumptions=self.assumptions())
+                expr_1 = simplified('(%s)-(%s)' % (word_substitute(expr, {varname: '1.0'}), expr_0),
+                                    assumptions=self.assumptions())
                 if (is_scalar_expression(expr_0, self.variables) and is_scalar_expression(expr_1, self.variables) and
                         not has_non_float(expr, self.variables)):
                     # we do this check here because we don't want to apply it to statements, only expressions
@@ -257,7 +264,7 @@ class LIONodeRenderer(NodeRenderer):
                         name_1 = self.optimisations[expr_1]
                     newexpr = '({name_0}+{name_1}*int({varname}))'.format(name_0=name_0, name_1=name_1,
                                                                      varname=varname)
-                    return newexpr
+                    return simplified(newexpr, assumptions=self.assumptions())
             return NodeRenderer.render_node(self, node)
 
 
@@ -287,7 +294,8 @@ def apply_loop_invariant_optimisations(statements, variables, dtype):
 
     vector_statements = []
     for stmt in statements:
-        new_expr = renderer.render_node(ast.parse(stmt.expr, mode='eval').body)
+        new_expr = simplified(renderer.render_node(ast.parse(simplified(stmt.expr), mode='eval').body),
+                              assumptions=renderer.assumptions())
         vector_statements.append(Statement(stmt.var, stmt.op, new_expr, stmt.comment,
                                            dtype=stmt.dtype,
                                            constant=stmt.constant,
