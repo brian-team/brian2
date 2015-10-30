@@ -1,3 +1,5 @@
+#ifndef _BRIAN_STDINT_COMPAT_H
+#define _BRIAN_STDINT_COMPAT_H
 // Work around the fact that older MSVC versions don't have stdint.h
 #ifdef _MSC_VER
 typedef __int32 int32_t;
@@ -15,3 +17,4 @@ template<> inline int int_(bool value)
 {
     return value ? 1 : 0;
 }
+#endif
