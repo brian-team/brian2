@@ -50,7 +50,7 @@ def c_data_type(dtype):
     elif dtype == numpy.uint64:
         dtype = 'uint64_t'
     elif dtype == numpy.bool_ or dtype is bool:
-        dtype = 'char'
+        dtype = 'bool'
     else:
         raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype
