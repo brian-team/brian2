@@ -31,7 +31,7 @@
 	        _post_idx = _all_post
 	        _cond = {user-specified condition}
 	        _n = {user-specified number of synapses}
-	        _p qq= {user-specified probability}
+	        _p = {user-specified probability}
 	        #}
 			{{vector_code|autoindent}}
 			// Add to buffer

@@ -1,5 +1,5 @@
 {% extends 'common_group.cpp' %}
-#include<
+
 {% block maincode %}
     {#
     USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,

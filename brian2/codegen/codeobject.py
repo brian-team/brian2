@@ -209,7 +209,7 @@ def create_runner_codeobj(group, code, template_name,
         Whether to check units in the statement. Defaults to ``True``.
     needed_variables: list of str, optional
         A list of variables that are neither present in the abstract code, nor
-        in the ``USES_VARIABLES`` statement in theqq template. This is only
+        in the ``USES_VARIABLES`` statement in the template. This is only
         rarely necessary, an example being a `StateMonitor` where the
         names of the variables are neither known to the template nor included
         in the abstract code statements.
