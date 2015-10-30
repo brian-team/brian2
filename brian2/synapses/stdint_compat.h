@@ -6,3 +6,12 @@ typedef unsigned __int64 uint64_t;
 #else
 #include <stdint.h>
 #endif
+// Implement the int_ function here so that it can also be used from Cython
+template<typename T> inline int int_(T value)
+{
+    return (int)value;
+}
+template<> inline int int_(bool value)
+{
+    return value ? 1 : 0;
+}

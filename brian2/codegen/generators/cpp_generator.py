@@ -378,6 +378,7 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('int', 'int_')  # from stdint_compat.h
                        ]:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None,
@@ -453,20 +454,6 @@ clip_code = '''
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=clip_code,
                                                              name='_clip')
-
-int_code = '''
-        template<typename T> inline int int_(T value)
-        {
-	        return (int)value;
-        }
-        template<> inline int int_(bool value)
-        {
-	        return value ? 1 : 0;
-        }
-        '''
-DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CPPCodeGenerator,
-                                                            code=int_code,
-                                                            name='int_')
 
 sign_code = '''
         template <typename T> inline int sign_(T val) {

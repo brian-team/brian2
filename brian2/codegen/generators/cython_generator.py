@@ -280,7 +280,9 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
                                                                code=None)
 
 # Functions that need a name translation
-for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan')]:
+for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('int', 'int_')  # from stdint_compat.h
+                       ]:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
                                                                code=None,
                                                                name=func_cpp)
@@ -309,21 +311,6 @@ DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
                                                               code=randn_code,
                                                               name='_randn')
-
-int_code = '''
-ctypedef fused _to_int:
-    char
-    short
-    int
-    float
-    double
-
-cdef int _int(_to_int x):
-    return <int>x
-'''
-DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
-                                                            code=int_code,
-                                                            name='_int')
 
 sign_code = '''
 ctypedef fused _to_sign:

@@ -19,6 +19,16 @@ cdef extern from "stdint_compat.h":
     ctypedef signed int int32_t
     ctypedef signed long int64_t
     ctypedef unsigned long uint64_t
+    # It seems we cannot used a fused type here
+    cdef int int_(bool)
+    cdef int int_(char)
+    cdef int int_(short)
+    cdef int int_(int)
+    cdef int int_(long)
+    cdef int int_(float)
+    cdef int int_(double)
+    cdef int int_(long double)
+
 
 # support code
 {{ support_code | autoindent }}
