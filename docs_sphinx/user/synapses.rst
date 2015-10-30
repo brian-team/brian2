@@ -221,18 +221,33 @@ interpreted in the following way:
 Accessing synaptic variables
 ----------------------------
 Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
-with two indexes, corresponding to the indexes of pre and postsynaptic neurons, and optionally with a third
-index in the case of multiple synapses.
+with two indexes, corresponding to the indexes of pre and postsynaptic neurons, or with string expressions (referring
+to ``i`` and ``j`` as the pre-/post-synaptic indices, or to other state variables of the synapse or the connected neurons).
 Here are a few examples::
 
     S.w[2, 5] = 1*nS
     S.w[1, :] = 2*nS
     S.w = 1*nS # all synapses assigned
-    w0 = S.w[2, 3, 1] # second synapse for connection 2->3
     S.w[2, 3] = (1*nS, 2*nS)
     S.w[group1, group2] = "(1+cos(i-j))*2*nS"
     S.w[:, :] = 'rand()*nS'
     S.w['abs(x_pre-x_post) < 250*umetre'] = 1*nS
+
+If multiple synapses exist between neurons, the calculation of the "multi-synaptic index" can be switched on during the
+creation of the `Synapses` object::
+
+    S = Synapses(input, neurons, 'w : 1', multisynaptic_index='k')
+    S.connect('i==j', n=10)  # 1-to-1 connectivity with 10 synapses per pair
+
+This index can then be used to set/get synapse-specific values::
+
+    S.delay = '(k + 1)*ms)'  # Set delays between 1 and 10ms
+    S.w['k<5'] = 0.5
+    S.w['k>=5'] = 1
+
+It also enables three-dimensional indexing, the following statement has the same effect as the last one above::
+
+    S.w[:, :, 5:] = 1
 
 Note that it is also possible to index synaptic variables with a single index
 (integer, slice, or array), but in this case synaptic indices have to be
