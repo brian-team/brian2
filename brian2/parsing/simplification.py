@@ -48,9 +48,13 @@ class SimplifyingRenderer(NodeRenderer):
         left = self.render_node(node.left)
         right = self.render_node(node.right)
         op = self.expression_ops[node.op.__class__.__name__]
+        if '.' in left or '.' in right:
+            floatindicated = '.0'
+        else:
+            floatindicated = ''
         if op=='*':
             if left=='0' or left=='0.0' or right=='0' or right=='0.0':
-                return '0'
+                return '0'+floatindicated
             if left=='1' or left=='1.0':
                 return right
             if right=='1' or right=='1.0':
@@ -67,10 +71,10 @@ class SimplifyingRenderer(NodeRenderer):
             if right=='1' or right=='1.0':
                 return left
             if left=='0' or left=='0.0':
-                return '0'
+                return '0'+floatindicated
         if op=='**':
             if right=='0' or right=='0.0':
-                return '1'
+                return '1'+floatindicated
         return NodeRenderer.render_BinOp(self, node)
 
     def render_Name(self, node):
@@ -81,4 +85,5 @@ class SimplifyingRenderer(NodeRenderer):
 
 
 def simplified(expr, assumptions=None):
+    return expr # TODO: temporarily disabled simplification
     return SimplifyingRenderer(assumptions).render_expr(expr)

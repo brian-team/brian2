@@ -18,6 +18,7 @@ import ast
 import re
 import collections
 from collections import OrderedDict
+import itertools
 
 import numpy as np
 import sympy
@@ -222,8 +223,41 @@ class LIONodeRenderer(NodeRenderer):
         assume = ['{} = {}'.format(v, k) for k, v in self.optimisations.iteritems()]
         return assume
 
+    def render_expr(self, expr, strip=True):
+        #expr = word_substitute(expr, {'1/':'1.0/'})
+        #expr = word_substitute(expr, {'.0.0':'.0'})
+        expr_std = NodeRenderer.render_expr(self, expr, strip=strip)
+        # complexity_std = expression_complexity(expr_std)
+        # idents = get_identifiers(expr)
+        # used_boolvars = [var for var in self.boolvars.iterkeys() if var in idents]
+        # if len(used_boolvars):
+        #     bool_space = [[False, True] for var in used_boolvars]
+        #     expanded_expressions = {}
+        #     complexities = {}
+        #     for bool_vals in itertools.product(*bool_space):
+        #         subs = dict((var, str(float(val))) for var, val in zip(used_boolvars, bool_vals))
+        #         curexpr = simplified(word_substitute(expr, subs), assumptions=self.assumptions())
+        #         curexpr = word_substitute(curexpr, {'1':'1.0'})
+        #         curexpr = word_substitute(curexpr, {'.0.0':'.0'})
+        #         curexpr = NodeRenderer.render_expr(self, curexpr)
+        #         curexpr = simplified(curexpr, assumptions=self.assumptions())
+        #         key = tuple((var, val) for var, val in zip(used_boolvars, bool_vals))
+        #         expanded_expressions[key] = curexpr
+        #         complexities[key] = expression_complexity(curexpr)
+        #         print ', '.join('%s=%s'%(k, v) for k, v in key)
+        #         print '-> ', curexpr
+        return expr_std
+
+    def boolean_split(self, expr, varname):
+        expr_0 = simplified(word_substitute(expr, {varname: '0.0'}),
+                            assumptions=self.assumptions())
+        expr_1 = simplified('(%s)-(%s)' % (word_substitute(expr, {varname: '1.0'}), expr_0),
+                            assumptions=self.assumptions())
+        return expr_0, expr_1
+
     def render_node(self, node):
         expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
+        idents = get_identifiers(expr)
 
         if is_scalar_expression(expr, self.variables) and not has_non_float(expr,
                                                                             self.variables):
@@ -241,10 +275,9 @@ class LIONodeRenderer(NodeRenderer):
             return name
         else:
             for varname, var in self.boolvars.iteritems():
-                expr_0 = simplified(word_substitute(expr, {varname: '0.0'}),
-                                    assumptions=self.assumptions())
-                expr_1 = simplified('(%s)-(%s)' % (word_substitute(expr, {varname: '1.0'}), expr_0),
-                                    assumptions=self.assumptions())
+                if varname not in idents:
+                    continue
+                expr_0, expr_1 = self.boolean_split(expr, varname)
                 if (is_scalar_expression(expr_0, self.variables) and is_scalar_expression(expr_1, self.variables) and
                         not has_non_float(expr, self.variables)):
                     # we do this check here because we don't want to apply it to statements, only expressions
@@ -294,7 +327,7 @@ def apply_loop_invariant_optimisations(statements, variables, dtype):
 
     vector_statements = []
     for stmt in statements:
-        new_expr = simplified(renderer.render_node(ast.parse(simplified(stmt.expr), mode='eval').body),
+        new_expr = simplified(renderer.render_expr(stmt.expr),
                               assumptions=renderer.assumptions())
         vector_statements.append(Statement(stmt.var, stmt.op, new_expr, stmt.comment,
                                            dtype=stmt.dtype,
