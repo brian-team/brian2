@@ -20,7 +20,7 @@ data_type_conversion_table = [
     ('float64',        'double',      'float64'),
     ('int32',          'int32_t',     'int32'),
     ('int64',          'int64_t',     'int64'),
-    ('bool',           'char',        'uint8'),
+    ('bool',           'bool',        'bool'),
     ('uint8',          'char',        'uint8'),
     ('uint64',         'uint64_t',    'uint64'),
     ]
@@ -222,9 +222,12 @@ class CythonCodeGenerator(CodeGenerator):
                     continue
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
-                newlines = [
-                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
-                    "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data",]
+                if get_dtype_str(var.dtype) == 'bool':
+                    newlines = ["cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
+                else:
+                    newlines = ["cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
 
                 if not var.scalar:
                     newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
