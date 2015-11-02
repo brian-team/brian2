@@ -11,7 +11,6 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets, N,
    _real_variables contain the final indices. Having any code here it all is
    only necessary for supporting subgroups #}
 import numpy as _numpy
-from brian2.utils.arrays import calc_repeats
 
 {{vector_code|autoindent}}
 
