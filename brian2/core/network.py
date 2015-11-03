@@ -15,10 +15,10 @@ import cPickle as pickle
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2.core.base import BrianObject, BrianObjectException
+from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock
 from brian2.devices.device import device
-from brian2.units.fundamentalunits import check_units, DimensionMismatchError
+from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second, msecond 
 from brian2.core.preferences import prefs, BrianPreference
 
@@ -679,7 +679,7 @@ class Network(Nameable):
                 try:
                     obj.before_run(run_namespace, level=level+2)
                 except Exception as ex:
-                    raise BrianObjectException("An error occurred when preparing an object.", obj, ex)
+                    raise brian_object_exception("An error occurred when preparing an object.", obj, ex)
 
         # Check that no object has been run as part of another network before
         for obj in self.objects:

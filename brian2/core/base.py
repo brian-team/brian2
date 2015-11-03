@@ -14,6 +14,7 @@ from brian2.units.fundamentalunits import check_units
 __all__ = ['BrianObject',
            'weakproxy_with_fallback',
            'BrianObjectException',
+           'brian_object_exception',
            ]
 
 logger = get_logger(__name__)
@@ -284,6 +285,28 @@ def device_override(name):
 
 
 class BrianObjectException(Exception):
+    '''
+    High level exception that adds extra Brian-specific information to exceptions
+
+    This exception should only be raised at a fairly high level in Brian code to
+    pass information back to the user. It adds extra information about where a
+    `BrianObject` was defined to better enable users to locate the source of
+    problems.
+
+    You should use the `brian_object_exception` function to raise this, and
+    it should only be raised in an ``except`` block handling a prior
+    exception.
+
+    Parameters
+    ----------
+
+    message : str
+        Additional error information to add to the original exception.
+    brianobj : BrianObject
+        The object that caused the error to happen.
+    original_exception : Exception
+        The original exception that was raised.
+    '''
     def __init__(self, message, brianobj, original_exception):
         self.message = message
         self.objname = brianobj.name
@@ -294,6 +317,7 @@ class BrianObjectException(Exception):
         logger.debug('Error was encountered with object "{objname}":\n{fullstack}'.format(
             objname=self.objname,
             fullstack=brianobj._full_creation_stack))
+
     def __str__(self):
         return ('Original error and traceback:\n{origtb}\n'
                 'Error encountered with object named "{objname}".\n'
@@ -304,3 +328,19 @@ class BrianObjectException(Exception):
                          origexc=self.origexc,
                          objname=self.objname, message=self.message,
                          objcreate=self.objcreate)
+
+
+def brian_object_exception(message, brianobj, original_exception):
+    '''
+    Returns a `BrianObjectException` derived from the original exception.
+
+    Creates a new class derived from the class of the original exception
+    and `BrianObjectException`. This allows exception handling code to
+    respond both to the original exception class and `BrianObjectException`.
+
+    See `BrianObjectException` for arguments and notes.
+    '''
+    DerivedBrianObjectException = type('BrianObjectException',
+                                       (BrianObjectException, original_exception.__class__),
+                                       {})
+    return DerivedBrianObjectException(message, brianobj, original_exception)
