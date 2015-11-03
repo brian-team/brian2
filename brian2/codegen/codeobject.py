@@ -13,7 +13,7 @@ from .translation import analyse_identifiers
 
 __all__ = ['CodeObject',
            'CodeObjectUpdater',
-           ]
+           'constant_or_scalar']
 
 logger = get_logger(__name__)
 
