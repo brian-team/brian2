@@ -27,6 +27,18 @@ def _compare(synapses, expected):
     outgoing = conn_matrix.sum(axis=1)
     assert all(synapses.N_outgoing[:] == outgoing[synapses.i[:]]), 'N_outgoing returned an incorrect value'
     assert all(synapses.N_incoming[:] == incoming[synapses.j[:]]), 'N_incoming returned an incorrect value'
+    # Compare the "synapse number" if it exists
+    if synapses.multisynaptic_index is not None:
+        # Build an array of synapse numbers by counting the number of times
+        # a source/target combination exists
+        synapse_numbers = np.zeros_like(synapses.i[:])
+        numbers = {}
+        for _i, (source, target) in enumerate(zip(synapses.i[:],
+                                                 synapses.j[:])):
+            number = numbers.get((source, target), 0)
+            synapse_numbers[_i] = number
+            numbers[(source, target)] = number + 1
+        assert all(synapses.state(synapses.multisynaptic_index)[:] == synapse_numbers), 'synapse_number returned an incorrect value'
 
 
 @attr('codegen-independent')
@@ -394,7 +406,7 @@ def test_state_variable_indexing():
     G1.v = 'i*mV'
     G2 = NeuronGroup(7, 'v:volt')
     G2.v= '10*mV + i*mV'
-    S = Synapses(G1, G2, 'w:1')
+    S = Synapses(G1, G2, 'w:1', multisynaptic_index='k')
     S.connect(True, n=2)
     S.w[:, :, 0] = '5*i + j'
     S.w[:, :, 1] = '35 + 5*i + j'
@@ -431,8 +443,7 @@ def test_state_variable_indexing():
     #string-based indexing
     assert_equal(S.w[0:3, :], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
-    # TODO: k is not working yet
-    # assert_equal(S.w[:, :, 0], S.w['k==0'])
+    assert_equal(S.w[:, :, 0], S.w['k == 0'])
     assert_equal(S.w[0:3, :], S.w['v_pre < 3*mV'])
     assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
 
@@ -708,7 +719,7 @@ def test_no_synapses():
         assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
         assert l[0][1].endswith('.no_synapses')
 
-#@attr('standalone-compatible')  # synaptic indexing is not yet possible in standalone
+@attr('standalone-compatible')
 @with_setup(teardown=restore_device)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
@@ -716,10 +727,11 @@ def test_summed_variable():
     target = NeuronGroup(2, 'v : 1')
     S = Synapses(source, target, '''w : 1
                                     x : 1
-                                    v_post = x : 1 (summed)''', pre='x+=w')
+                                    v_post = x : 1 (summed)''', pre='x+=w',
+                 multisynaptic_index='k')
     S.connect('i==j', n=2)
-    S.w[:, :, 0] = 'i'
-    S.w[:, :, 1] = 'i + 0.5'
+    S.w['k == 0'] = 'i'
+    S.w['k == 1'] = 'i + 0.5'
     net = Network(source, target, S)
     net.run(1*ms)
 
