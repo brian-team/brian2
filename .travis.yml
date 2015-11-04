@@ -90,8 +90,8 @@ before_install:
 - chmod +x miniconda.sh
 # When we are installing the 32 Bit conda on a 64 Bit system, the miniconda
 # installer will ask for a "yes" despite the -b flag, so we pipe in a yes
-- yes | ./miniconda.sh -b
-- if [ ${PYTHON:0:1} == "2" ]; then export PATH=~/miniconda/bin:$PATH; else export PATH=~/miniconda3/bin:$PATH; fi
+- yes | ./miniconda.sh -b -p ~/miniconda
+- export PATH=~/miniconda/bin:$PATH
 
 # command to install dependencies
 install:
