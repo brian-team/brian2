@@ -10,48 +10,30 @@ environment:
     secure: haSplg2ccSWy75ajN104ThiOv2LQv95O/yb35ZzJewFb+hKxpJj8slJF7j1HAUdW
 
   matrix:
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.8"
+    - PYTHON: "C:\\Python34-conda32"
+      PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "32"
       STANDALONE: "FALSE"
-      CONDA_PY: "27"
+      CONDA_PY: "34"
       CONDA_NPY: "19"
       CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "1"
+      SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "32"
-      STANDALONE: "FALSE"
-      CONDA_PY: "27"
-      CONDA_NPY: "19"
-      CONDA_BUILD: "FALSE"
-      SPLIT_RUN: "2"
-
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.8"
+    - PYTHON: "C:\\Python34-conda64"
+      PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "64"
       STANDALONE: "FALSE"
-      CONDA_PY: "27"
+      CONDA_PY: "34"
       CONDA_NPY: "19"
       CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "1"
-
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "64"
-      STANDALONE: "FALSE"
-      CONDA_PY: "27"
-      CONDA_NPY: "19"
-      CONDA_BUILD: "FALSE"
-      SPLIT_RUN: "2"
+      SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Python35-conda32"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "32"
       STANDALONE: "FALSE"
-      CONDA_PY: "34"
-      CONDA_NPY: "19"
+      CONDA_PY: "35"
+      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
@@ -59,18 +41,50 @@ environment:
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       STANDALONE: "FALSE"
-      CONDA_PY: "34"
-      CONDA_NPY: "19"
+      CONDA_PY: "35"
+      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.8"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "32"
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "110"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Python27-conda32"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "32"
+      STANDALONE: "FALSE"
+      CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
+
+    - PYTHON: "C:\\Python27-conda64"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "64"
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "110"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Python27-conda64"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "64"
+      STANDALONE: "FALSE"
+      CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
+
+    - PYTHON: "C:\\Python27-conda32"
+      PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "32"
       STANDALONE: "TRUE"
 
     - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.8"
+      PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "64"
       STANDALONE: "TRUE"
 
@@ -79,6 +93,9 @@ install:
   - 'powershell .\dev\continuous-integration\appveyor\install_python.ps1'
   # Add the paths
   - 'set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%'
+  # Create a new environment with the exact Python version and activate it
+  - 'conda create -n appveyor_test python=%PYTHON_VERSION%'
+  - 'activate appveyor_test'
 
   # Check that we have the expected version and architecture for Python
   - 'python --version'
