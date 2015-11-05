@@ -119,7 +119,7 @@ test_script:
 
 after_test:
   - 'IF "%CONDA_BUILD%" == "TRUE" (
-          deactivate appveyor_test &&
+          deactivate &&
           conda install --yes --quiet conda-build anaconda-client pip &&
           pip install wheel &&
           cd %SRC_DIR% &&
