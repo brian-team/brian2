@@ -120,9 +120,11 @@ test_script:
 after_test:
   - 'IF "%CONDA_BUILD%" == "TRUE" (
           deactivate &&
-          conda install --yes --quiet conda-build anaconda-client pip &&
-          pip install wheel &&
           cd %SRC_DIR% &&
+          %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
+          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &
+          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
+          pip install wheel &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst
      )'
