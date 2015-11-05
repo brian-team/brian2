@@ -104,17 +104,12 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'pip install py-cpuinfo'
-  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build anaconda-client pip)'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the test suite
   - '%CMD_IN_ENV% python -c "import sys; print(sys.executable)"'
-  - 'IF "%CONDA_BUILD%" == "TRUE" (
-          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &
-          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
-     )'
   - '%CMD_IN_ENV% python setup.py install'
   - 'set SRC_DIR=%CD%'
   - 'cd \'
@@ -124,9 +119,11 @@ test_script:
 
 after_test:
   - 'IF "%CONDA_BUILD%" == "TRUE" (
-          pip install wheel &
-          cd %SRC_DIR% &
-          %CMD_IN_ENV% python setup.py bdist_wheel &
+          deactivate appveyor_test &&
+          conda install --yes --quiet conda-build anaconda-client pip &&
+          pip install wheel &&
+          cd %SRC_DIR% &&
+          %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst
      )'
 
