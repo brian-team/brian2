@@ -126,7 +126,7 @@ after_test:
           cd %SRC_DIR% &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
           %CMD_IN_ENV% conda build dev\conda-recipe --quiet &&
-          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
+          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
      )'
 
 artifacts:
