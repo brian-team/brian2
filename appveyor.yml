@@ -126,7 +126,8 @@ after_test:
           deactivate &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
           %CMD_IN_ENV% conda build dev\conda-recipe --quiet &&
-          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
+          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
+          if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'
 
 artifacts:
@@ -135,12 +136,3 @@ artifacts:
     name: conda package
   - path: dist\*
     name: PyPI binaries
-
-on_success:
-  # Upload built binaries to binstar.org. The globbing and handling of the
-  # exit-status code is tricky in cmd.exe or powershell, so we're just using
-  # a python script.
-  #
-  # We only upload to binstar for commits merged into the master branch
-  - 'cd %SRC_DIR%'
-  - 'if "%CONDA_BUILD%" == "TRUE" if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" python dev\continuous-integration\conda-server-push.py'
