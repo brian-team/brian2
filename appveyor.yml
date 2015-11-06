@@ -10,44 +10,8 @@ environment:
     secure: haSplg2ccSWy75ajN104ThiOv2LQv95O/yb35ZzJewFb+hKxpJj8slJF7j1HAUdW
 
   matrix:
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "32"
-      STANDALONE: "FALSE"
-      CONDA_PY: "27"
-      CONDA_NPY: "19"
-      CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "1"
-
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "32"
-      STANDALONE: "FALSE"
-      CONDA_PY: "27"
-      CONDA_NPY: "19"
-      CONDA_BUILD: "FALSE"
-      SPLIT_RUN: "2"
-
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "64"
-      STANDALONE: "FALSE"
-      CONDA_PY: "27"
-      CONDA_NPY: "19"
-      CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "1"
-
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.8"
-      PYTHON_ARCH: "64"
-      STANDALONE: "FALSE"
-      CONDA_PY: "27"
-      CONDA_NPY: "19"
-      CONDA_BUILD: "FALSE"
-      SPLIT_RUN: "2"
-
     - PYTHON: "C:\\Python34-conda32"
-      PYTHON_VERSION: "3.4.1"
+      PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "32"
       STANDALONE: "FALSE"
       CONDA_PY: "34"
@@ -56,7 +20,7 @@ environment:
       SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Python34-conda64"
-      PYTHON_VERSION: "3.4.1"
+      PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "64"
       STANDALONE: "FALSE"
       CONDA_PY: "34"
@@ -64,13 +28,63 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
+    - PYTHON: "C:\\Python35-conda32"
+      PYTHON_VERSION: "3.5.0"
+      PYTHON_ARCH: "32"
+      STANDALONE: "FALSE"
+      CONDA_PY: "35"
+      CONDA_NPY: "110"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+    - PYTHON: "C:\\Python35-conda64"
+      PYTHON_VERSION: "3.5.0"
+      PYTHON_ARCH: "64"
+      STANDALONE: "FALSE"
+      CONDA_PY: "35"
+      CONDA_NPY: "110"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
     - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.8"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "32"
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "110"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Python27-conda32"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "32"
+      STANDALONE: "FALSE"
+      CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
+
+    - PYTHON: "C:\\Python27-conda64"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "64"
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      CONDA_NPY: "110"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Python27-conda64"
+      PYTHON_VERSION: "2.7.10"
+      PYTHON_ARCH: "64"
+      STANDALONE: "FALSE"
+      CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
+
+    - PYTHON: "C:\\Python27-conda32"
+      PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "32"
       STANDALONE: "TRUE"
 
     - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.8"
+      PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "64"
       STANDALONE: "TRUE"
 
@@ -79,6 +93,9 @@ install:
   - 'powershell .\dev\continuous-integration\appveyor\install_python.ps1'
   # Add the paths
   - 'set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%'
+  # Create a new environment with the exact Python version and activate it
+  - 'conda create --yes --quiet -n appveyor_test python=%PYTHON_VERSION%'
+  - 'activate appveyor_test'
 
   # Check that we have the expected version and architecture for Python
   - 'python --version'
@@ -87,17 +104,12 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'pip install py-cpuinfo'
-  - 'IF "%CONDA_BUILD%" == "TRUE" (conda install --yes --quiet conda-build anaconda-client pip)'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the test suite
   - '%CMD_IN_ENV% python -c "import sys; print(sys.executable)"'
-  - 'IF "%CONDA_BUILD%" == "TRUE" (
-          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &
-          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
-     )'
   - '%CMD_IN_ENV% python setup.py install'
   - 'set SRC_DIR=%CD%'
   - 'cd \'
@@ -107,10 +119,14 @@ test_script:
 
 after_test:
   - 'IF "%CONDA_BUILD%" == "TRUE" (
-          pip install wheel &
-          cd %SRC_DIR% &
-          %CMD_IN_ENV% python setup.py bdist_wheel &
-          %CMD_IN_ENV% python setup.py bdist_wininst
+          pip install wheel &&
+          cd %SRC_DIR% &&
+          %CMD_IN_ENV% python setup.py bdist_wheel &&
+          %CMD_IN_ENV% python setup.py bdist_wininst &&
+          deactivate &&
+          %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
+          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &&
+          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
      )'
 
 artifacts:

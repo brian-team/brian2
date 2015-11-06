@@ -80,9 +80,9 @@ class NodeRenderer(object):
     def render_Call(self, node):
         if len(node.keywords):
             raise ValueError("Keyword arguments not supported.")
-        elif node.starargs is not None:
+        elif getattr(node, 'starargs', None) is not None:
             raise ValueError("Variable number of arguments not supported")
-        elif node.kwargs is not None:
+        elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
         if len(node.args) == 0 and self.use_vectorisation_idx:
             # argument-less function call such as randn() are transformed into
