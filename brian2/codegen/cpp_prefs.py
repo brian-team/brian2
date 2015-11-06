@@ -13,6 +13,25 @@ from brian2.core.preferences import prefs, BrianPreference
 
 __all__ = ['get_compiler_and_args']
 
+# Try to get architecture information to get the best compiler setting for
+# Windows
+msvc_arch_flag = ''
+try:
+    from cpuinfo import cpuinfo
+    res = cpuinfo.get_cpu_info()
+    # Note that this overwrites the arch_flag, i.e. only the best option will
+    # be used
+    if 'sse' in res['flags']:
+        msvc_arch_flag = '/arch:SSE'
+    if 'sse2' in res['flags']:
+        msvc_arch_flag = '/arch:SSE2'
+    if 'avx' in res['flags']:
+        msvc_arch_flag = '/arch:AVX'
+    if 'avx2' in res['flags']:
+        msvc_arch_flag = '/arch:AVX2'
+except ImportError:
+    pass
+
 # Preferences
 prefs.register_preferences(
     'codegen.cpp',
@@ -34,13 +53,13 @@ prefs.register_preferences(
         '''
         ),
     extra_compile_args_gcc=BrianPreference(
-        default=['-w', '-O3'],
+        default=['-w', '-O3', '-ffast-math', '-march=native'],
         docs='''
         Extra compile arguments to pass to GCC compiler
         '''
         ),
     extra_compile_args_msvc=BrianPreference(
-        default=['/Ox', '/EHsc', '/w'],
+        default=['/Ox', '/EHsc', '/w', '/fp:fast', msvc_arch_flag],
         docs='''
         Extra compile arguments to pass to MSVC compiler
         '''
