@@ -1,5 +1,22 @@
+import ast
+
+from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.parsing.bast import brian_ast, BrianASTRenderer, dtype_hierarchy
 from brian2.parsing.rendering import NodeRenderer
+
+
+defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.iteritems())
+defaults_ns.update(**dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
+
+
+def evaluate_expr(expr, ns=None):
+    if ns is None:
+        ns = defaults_ns
+    try:
+        val = eval(expr, ns)
+        return val, True
+    except NameError:
+        return expr, False
 
 
 def optimise_statements(scalar_statements, vector_statements):
@@ -7,6 +24,43 @@ def optimise_statements(scalar_statements, vector_statements):
 
 
 class Simplifier(BrianASTRenderer):
+    def __init__(self, variables, assumptions=None):
+        BrianASTRenderer.__init__(self, variables)
+        if assumptions is None:
+            assumptions = []
+        self.ns = defaults_ns.copy()
+        for assumption in assumptions:
+            try:
+                exec assumption in self.ns
+            except NameError:
+                pass
+
+    def render_node(self, node):
+        node = super(Simplifier, self).render_node(node)
+        # can't evaluate vector expressions, so abandon in this case
+        if not node.scalar:
+            return node
+        # try fully evaluating using assumptions
+        expr = NodeRenderer().render_node(node)
+        val, evaluated = evaluate_expr(expr, self.ns)
+        if evaluated:
+            if node.dtype=='boolean':
+                val = bool(val)
+                if hasattr(ast, 'NameConstant'):
+                    newnode = ast.NameConstant(val)
+                else:
+                    newnode = ast.Name(repr(val))
+            elif node.dtype=='integer':
+                val = int(val)
+            else:
+                val = float(val)
+            if node.dtype!='boolean':
+                newnode = ast.Num(val)
+            newnode.dtype = node.dtype
+            newnode.scalar = True
+            return newnode
+        return node
+
     def render_BinOp(self, node):
         left = node.left
         right = node.right
@@ -75,27 +129,3 @@ class Simplifier(BrianASTRenderer):
                     if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
                         return left
         return node
-
-if __name__=='__main__':
-    import brian2, ast
-    eqs = '''
-    x : 1
-    y : 1 (shared)
-    a : integer
-    b : boolean
-    c : integer (shared)
-    '''
-    expr = 'x/1.0'
-
-    G = brian2.NeuronGroup(2, eqs)
-    variables = {}
-    variables.update(**brian2.DEFAULT_FUNCTIONS)
-    variables.update(**brian2.DEFAULT_CONSTANTS)
-    variables.update(**G.variables)
-
-    simplifier = Simplifier(variables)
-    node = brian_ast(expr, variables)
-    node = simplifier.render_node(node)
-
-    print node.dtype, node.scalar
-    print NodeRenderer().render_node(node)
