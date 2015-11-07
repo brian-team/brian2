@@ -5,6 +5,7 @@ Brian AST representation
 import ast
 import numpy
 from __builtin__ import all as logical_all # defensive programming against numpy import
+from collections import defaultdict
 
 __all__ = ['brian_ast', 'BrianASTRenderer', 'dtype_hierarchy']
 
@@ -83,9 +84,11 @@ class BrianASTRenderer(object):
             raise SyntaxError("Unknown NameConstant "+node.value)
         node.dtype = 'boolean'
         node.scalar = True
+        node.complexity = 0
         return node
 
     def render_Name(self, node):
+        node.complexity = 0
         if node.id=='True' or node.id=='False':
             node.dtype = 'boolean'
             node.scalar = True
@@ -99,6 +102,7 @@ class BrianASTRenderer(object):
         return node
 
     def render_Num(self, node):
+        node.complexity = 0
         node.dtype = brian_dtype_from_value(node.n)
         node.scalar = True
         return node
@@ -121,6 +125,8 @@ class BrianASTRenderer(object):
             if funcvar.stateless:
                 node.scalar = logical_all(subnode.scalar for subnode in node.args)
         # we leave node.func because it is an ast.Name object that doesn't have a dtype
+        # TODO: variable complexity for function calls?
+        node.complexity = 20+sum(subnode.complexity for subnode in node.args)
         return node
 
     def render_BinOp(self, node):
@@ -130,6 +136,7 @@ class BrianASTRenderer(object):
         newdtype = dtype_hierarchy[max(dtype_hierarchy[subnode.dtype] for subnode in [node.left, node.right])]
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar
+        node.complexity = 1+node.left.complexity+node.right.complexity
         return node
 
     def render_BoolOp(self, node):
@@ -139,6 +146,7 @@ class BrianASTRenderer(object):
             if subnode.dtype!='boolean':
                 raise TypeError("Boolean operator acting on non-booleans")
         node.scalar = logical_all(subnode.scalar for subnode in node.values)
+        node.complexity = 1+sum(subnode.complexity for subnode in node.values)
         return node
 
     def render_Compare(self, node):
@@ -147,6 +155,7 @@ class BrianASTRenderer(object):
         for subnode in comparators:
             self.render_node(subnode)
         node.scalar = logical_all(subnode.scalar for subnode in comparators)
+        node.complexity = 1+sum(subnode.complexity for subnode in comparators)
         return node
 
     def render_UnaryOp(self, node):
@@ -155,6 +164,7 @@ class BrianASTRenderer(object):
         if node.dtype=='boolean':
             raise TypeError("Unary operators do not apply to boolean types")
         node.scalar = node.operand.scalar
+        node.complexity = 1+node.operand.complexity
         return node
 
 
@@ -167,7 +177,7 @@ if __name__=='__main__':
     b : boolean
     c : integer (shared)
     '''
-    expr = 'rand()<3.0'
+    expr = 'x<3.0+1.0'
 
     G = brian2.NeuronGroup(2, eqs)
     variables = {}
@@ -176,4 +186,4 @@ if __name__=='__main__':
     variables.update(**G.variables)
     node = brian_ast(expr, variables)
 
-    print node.dtype, node.scalar
+    print node.dtype, node.scalar, node.complexity
