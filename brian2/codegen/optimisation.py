@@ -128,4 +128,11 @@ class Simplifier(BrianASTRenderer):
                     # only simplify this if the type wouldn't be cast by the operation
                     if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
                         return left
+        # simplify e.g. 2*float to 2.0*float to make things more explicit: not strictly necessary
+        # but might be useful for some codegen targets
+        if node.dtype=='float' and op.__class__.__name__ in ['Mult', 'Add', 'Sub', 'Div']:
+            for subnode in [node.left, node.right]:
+                if subnode.__class__.__name__=='Num':
+                    subnode.dtype = 'float'
+                    subnode.n = float(subnode.n)
         return node
