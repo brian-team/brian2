@@ -6,7 +6,7 @@ import ast
 import numpy
 from __builtin__ import all as logical_all # defensive programming against numpy import
 
-__all__ = ['brian_ast']
+__all__ = ['brian_ast', 'BrianASTRenderer', 'dtype_hierarchy']
 
 
 dtype_hierarchy = {'boolean':0,
@@ -159,7 +159,7 @@ class BrianASTRenderer(object):
 
 
 if __name__=='__main__':
-    from brian2 import *
+    import brian2
     eqs = '''
     x : 1
     y : 1 (shared)
@@ -169,10 +169,10 @@ if __name__=='__main__':
     '''
     expr = 'rand()<3.0'
 
-    G = NeuronGroup(2, eqs)
+    G = brian2.NeuronGroup(2, eqs)
     variables = {}
-    variables.update(**DEFAULT_FUNCTIONS)
-    variables.update(**DEFAULT_CONSTANTS)
+    variables.update(**brian2.DEFAULT_FUNCTIONS)
+    variables.update(**brian2.DEFAULT_CONSTANTS)
     variables.update(**G.variables)
     node = brian_ast(expr, variables)
 
