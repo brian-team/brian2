@@ -80,8 +80,8 @@ class BrianASTRenderer(object):
         return getattr(self, methname)(node)
 
     def render_NameConstant(self, node):
-        if node.value!='True' and node.value!='False':
-            raise SyntaxError("Unknown NameConstant "+node.value)
+        if node.value is not True and node.value is not False:
+            raise SyntaxError("Unknown NameConstant "+str(node.value))
         node.dtype = 'boolean'
         node.scalar = True
         node.complexity = 0
