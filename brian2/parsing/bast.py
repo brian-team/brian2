@@ -97,8 +97,10 @@ class BrianASTRenderer(object):
             dtype = var.dtype
             node.dtype = brian_dtype_from_dtype(dtype)
             node.scalar = var.scalar
-        else: # TODO: handle other names (pi, e, inf)
-            raise SyntaxError("Unknown name "+node.id)
+        else: # TODO: handle other names (pi, e, inf), also constants are appearing here in check units
+            node.dtype = 'float'
+            node.scalar = True # TODO: is this assumption OK?
+            #raise SyntaxError("Unknown name "+node.id)
         return node
 
     def render_Num(self, node):
@@ -122,7 +124,8 @@ class BrianASTRenderer(object):
         node.scalar = False
         if node.func.id in self.variables:
             funcvar = self.variables[node.func.id]
-            if funcvar.stateless:
+            # TODO: sometimes this attribute doesn't exist: why?
+            if hasattr(funcvar, 'stateless') and funcvar.stateless:
                 node.scalar = logical_all(subnode.scalar for subnode in node.args)
         # we leave node.func because it is an ast.Name object that doesn't have a dtype
         # TODO: variable complexity for function calls?
@@ -161,8 +164,8 @@ class BrianASTRenderer(object):
     def render_UnaryOp(self, node):
         self.render_node(node.operand)
         node.dtype = node.operand.dtype
-        if node.dtype=='boolean':
-            raise TypeError("Unary operators do not apply to boolean types")
+        if node.dtype=='boolean' and node.op.__class__.__name__ != 'Not':
+            raise TypeError("Unary operator %s does not apply to boolean types" % node.op.__class__.__name__)
         node.scalar = node.operand.scalar
         node.complexity = 1+node.operand.complexity
         return node

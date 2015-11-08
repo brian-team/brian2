@@ -36,7 +36,7 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str, expression_com
 from brian2.parsing.simplification import simplified
 
 from .statements import Statement
-
+from .optimisation import optimise_statements
 
 __all__ = ['make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
@@ -99,7 +99,7 @@ def analyse_identifiers(code, variables, recursive=False):
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64)
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64, optimise=False)
     stmts = scalar_stmts + vector_stmts
     defined = set(stmt.var for stmt in stmts if stmt.op == ':=')
     if len(stmts) == 0:
@@ -344,7 +344,7 @@ def apply_loop_invariant_optimisations(statements, variables, dtype):
     return scalar_constants, vector_statements
 
 
-def make_statements(code, variables, dtype):
+def make_statements(code, variables, dtype, optimise=True):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
@@ -566,11 +566,14 @@ def make_statements(code, variables, dtype):
     scalar_statements = [s for s in statements if s.scalar]
     vector_statements = [s for s in statements if not s.scalar]
 
-    if prefs.codegen.loop_invariant_optimisations:
-        scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
-                                                                                 variables,
-                                                                                 dtype)
-        scalar_statements.extend(scalar_constants)
+    if optimise and prefs.codegen.loop_invariant_optimisations:
+        scalar_statements, vector_statements = optimise_statements(scalar_statements,
+                                                                   vector_statements,
+                                                                   variables)
+        # scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
+        #                                                                          variables,
+        #                                                                          dtype)
+        # scalar_statements.extend(scalar_constants)
 
     return scalar_statements, vector_statements
 

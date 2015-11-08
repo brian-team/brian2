@@ -1,12 +1,19 @@
 import ast
+from collections import OrderedDict
+import copy
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
-from brian2.parsing.bast import brian_ast, BrianASTRenderer, dtype_hierarchy
+from brian2.core.variables import Variable
+from brian2.parsing.bast import brian_ast, BrianASTRenderer, dtype_hierarchy, is_boolean_dtype
 from brian2.parsing.rendering import NodeRenderer
 
+from .statements import Statement
 
 defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.iteritems())
 defaults_ns.update(**dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
+
+
+__all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
 
 
 def evaluate_expr(expr, ns=None):
@@ -19,11 +26,36 @@ def evaluate_expr(expr, ns=None):
         return expr, False
 
 
-def optimise_statements(scalar_statements, vector_statements):
-    renderer = NodeRenderer()
+def optimise_statements(scalar_statements, vector_statements, variables):
+    simplifier = Simplifier(variables, scalar_statements)
+    new_vector_statements = []
+    for stmt in vector_statements:
+        new_expr = simplifier.render_expr(stmt.expr)
+        new_stmt = Statement(stmt.var, stmt.op, new_expr, stmt.comment,
+                             dtype=stmt.dtype,
+                             constant=stmt.constant,
+                             subexpression=stmt.subexpression,
+                             scalar=stmt.scalar)
+        new_vector_statements.append(new_stmt)
+    new_scalar_statements = copy.copy(scalar_statements)
+    for expr, name in simplifier.loop_invariants.iteritems():
+        dtype_name = simplifier.loop_invariant_dtypes[name]
+        if dtype_name=='boolean':
+            dtype = bool
+        elif dtype_name=='integer':
+            dtype = int
+        else:
+            dtype = float
+        new_stmt = Statement(name, ':=', expr, '',
+                             dtype=dtype,
+                             constant=True,
+                             subexpression=False,
+                             scalar=True)
+        new_scalar_statements.append(new_stmt)
+    return new_scalar_statements, new_vector_statements
 
 
-class Simplifier(BrianASTRenderer):
+class ArithmeticSimplifier(BrianASTRenderer):
     def __init__(self, variables, assumptions=None):
         BrianASTRenderer.__init__(self, variables)
         if assumptions is None:
@@ -36,7 +68,10 @@ class Simplifier(BrianASTRenderer):
                 pass
 
     def render_node(self, node):
-        node = super(Simplifier, self).render_node(node)
+        '''
+        Assumes that the node has already been fully processed by BrianASTRenderer
+        '''
+        node = super(ArithmeticSimplifier, self).render_node(node)
         # can't evaluate vector expressions, so abandon in this case
         if not node.scalar:
             return node
@@ -49,7 +84,8 @@ class Simplifier(BrianASTRenderer):
                 if hasattr(ast, 'NameConstant'):
                     newnode = ast.NameConstant(val)
                 else:
-                    newnode = ast.Name(repr(val))
+                    # None is the expression context, we don't use it so we just set to None
+                    newnode = ast.Name(repr(val), None)
             elif node.dtype=='integer':
                 val = int(val)
             else:
@@ -58,10 +94,14 @@ class Simplifier(BrianASTRenderer):
                 newnode = ast.Num(val)
             newnode.dtype = node.dtype
             newnode.scalar = True
+            newnode.complexity = 0
             return newnode
         return node
 
     def render_BinOp(self, node):
+        node.left = super(ArithmeticSimplifier, self).render_node(node.left)
+        node.right = super(ArithmeticSimplifier, self).render_node(node.right)
+        node = super(ArithmeticSimplifier, self).render_BinOp(node)
         left = node.left
         right = node.right
         op = node.op
@@ -136,3 +176,44 @@ class Simplifier(BrianASTRenderer):
                     subnode.dtype = 'float'
                     subnode.n = float(subnode.n)
         return node
+
+
+class Simplifier(BrianASTRenderer):
+    def __init__(self, variables, scalar_statements):
+        BrianASTRenderer.__init__(self, variables)
+        self.boolvars = dict((k, v) for k, v in self.variables.iteritems()
+                             if hasattr(v, 'dtype') and is_boolean_dtype(v.dtype))
+        self.loop_invariants = OrderedDict()
+        self.loop_invariant_dtypes = {}
+        self.n = 0
+        self.node_renderer = NodeRenderer(use_vectorisation_idx=False)
+        self.arithmetic_simplifier = ArithmeticSimplifier(variables)
+
+    def render_expr(self, expr):
+        node = brian_ast(expr, self.variables)
+        node = self.arithmetic_simplifier.render_node(node)
+        node = self.render_node(node)
+        return self.node_renderer.render_node(node)
+
+    def render_node(self, node):
+        '''
+        Assumes that the node has already been fully processed by BrianASTRenderer
+        '''
+        # can we pull this out?
+        if node.scalar and node.complexity>0:
+            expr = self.node_renderer.render_node(node)
+            if expr in self.loop_invariants:
+                name = self.loop_invariants[expr]
+            else:
+                self.n += 1
+                name = '_lio_'+str(self.n)
+                self.loop_invariants[expr] = name
+                self.loop_invariant_dtypes[name] = node.dtype
+            # None is the expression context, we don't use it so we just set to None
+            newnode = ast.Name(name, None)
+            newnode.scalar = True
+            newnode.dtype = node.dtype
+            newnode.complexity = 0
+            return newnode
+        # otherwise, render node as usual
+        return super(Simplifier, self).render_node(node)
