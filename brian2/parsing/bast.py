@@ -116,8 +116,7 @@ class BrianASTRenderer(object):
             raise ValueError("Variable number of arguments not supported")
         elif node.kwargs is not None:
             raise ValueError("Keyword arguments not supported")
-        for subnode in node.args:
-            self.render_node(subnode)
+        node.args = [self.render_node(subnode) for subnode in node.args]
         # TODO: deeper system like the one for units, for now assume all functions return floats
         node.dtype = 'float'
         # Condition for scalarity of function call: stateless and arguments are scalar
@@ -133,8 +132,8 @@ class BrianASTRenderer(object):
         return node
 
     def render_BinOp(self, node):
-        for subnode in [node.left, node.right]:
-            self.render_node(subnode)
+        node.left = self.render_node(node.left)
+        node.right = self.render_node(node.right)
         # TODO: we could capture some syntax errors here, e.g. bool+bool
         newdtype = dtype_hierarchy[max(dtype_hierarchy[subnode.dtype] for subnode in [node.left, node.right])]
         node.dtype = newdtype
@@ -143,9 +142,9 @@ class BrianASTRenderer(object):
         return node
 
     def render_BoolOp(self, node):
+        node.values = [self.render_node(subnode) for subnode in node.values]
         node.dtype = 'boolean'
         for subnode in node.values:
-            self.render_node(subnode)
             if subnode.dtype!='boolean':
                 raise TypeError("Boolean operator acting on non-booleans")
         node.scalar = logical_all(subnode.scalar for subnode in node.values)
@@ -153,16 +152,16 @@ class BrianASTRenderer(object):
         return node
 
     def render_Compare(self, node):
+        node.left = self.render_node(node.left)
+        node.comparators = [self.render_node(subnode) for subnode in node.comparators]
         node.dtype = 'boolean'
         comparators = [node.left]+node.comparators
-        for subnode in comparators:
-            self.render_node(subnode)
         node.scalar = logical_all(subnode.scalar for subnode in comparators)
         node.complexity = 1+sum(subnode.complexity for subnode in comparators)
         return node
 
     def render_UnaryOp(self, node):
-        self.render_node(node.operand)
+        node.operand = self.render_node(node.operand)
         node.dtype = node.operand.dtype
         if node.dtype=='boolean' and node.op.__class__.__name__ != 'Not':
             raise TypeError("Unary operator %s does not apply to boolean types" % node.op.__class__.__name__)
