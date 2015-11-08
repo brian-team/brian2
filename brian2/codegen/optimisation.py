@@ -134,7 +134,9 @@ class ArithmeticSimplifier(BrianASTRenderer):
     def render_BinOp(self, node):
         if node.dtype=='float': # only try to collect float type nodes
             if node.op.__class__.__name__ in ['Mult', 'Div', 'Add', 'Sub'] and not hasattr(node, 'collected'):
-                return self.render_node(self.bast_renderer.render_node(collect(node)))
+                newnode = self.bast_renderer.render_node(collect(node))
+                newnode.collected = True
+                return self.render_node(newnode)
         node.left = self.render_node(node.left)
         node.right = self.render_node(node.right)
         node = super(ArithmeticSimplifier, self).render_BinOp(node)
@@ -304,13 +306,13 @@ def collect(node):
     if node.op.__class__.__name__ in ['Mult', 'Div']:
         op_primary = ast.Mult
         op_inverted = ast.Div
-        op_null = 1
+        op_null = 1.0
         op_py_primary = lambda x, y: x*y
         op_py_inverted = lambda x, y: x/y
     elif node.op.__class__.__name__ in ['Add', 'Sub']:
         op_primary = ast.Add
         op_inverted = ast.Sub
-        op_null = 0
+        op_null = 0.0
         op_py_primary = lambda x, y: x+y
         op_py_inverted = lambda x, y: x-y
     else:
