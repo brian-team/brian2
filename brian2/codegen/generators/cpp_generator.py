@@ -168,14 +168,42 @@ class CPPCodeGenerator(CodeGenerator):
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
-        if op == ':=':
-            decl = self.c_data_type(statement.dtype) + ' '
-            op = '='
-            if statement.constant:
-                decl = 'const ' + decl
+        if hasattr(statement, 'used_boolean_variables') and len(statement.used_boolean_variables):
+            used_boolvars = statement.used_boolean_variables
+            bool_simp = statement.boolean_simplified_expressions
+            if op == ':=':
+                codelines = [self.c_data_type(statement.dtype) + ' ' + var + ';']
+                op = '='
+            else:
+                codelines = []
+            firstline = True
+            for bool_assigns, simp_expr in bool_simp.iteritems():
+                atomics = []
+                for boolvar, boolval in bool_assigns:
+                    if boolval:
+                        atomics.append(boolvar)
+                    else:
+                        atomics.append('!'+boolvar)
+                if firstline:
+                    line = ''
+                else:
+                    line = 'else '
+                if firstline or len(used_boolvars)>1:
+                    line += 'if('+(' && '.join(atomics))+')'
+                line += '\n    '
+                line += var + ' ' + op + ' ' + self.translate_expression(simp_expr) + ';'
+                codelines.append(line)
+                firstline = False
+            code = '\n'.join(codelines)
         else:
-            decl = ''
-        code = decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+            if op == ':=':
+                decl = self.c_data_type(statement.dtype) + ' '
+                op = '='
+                if statement.constant:
+                    decl = 'const ' + decl
+            else:
+                decl = ''
+            code = decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
         if len(comment):
             code += ' // ' + comment
         return code
