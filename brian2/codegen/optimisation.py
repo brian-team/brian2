@@ -9,7 +9,7 @@ import itertools
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.core.variables import Variable
 from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy, is_boolean_dtype,
-                                 brian_dtype_from_dtype)
+                                 brian_dtype_from_dtype, brian_dtype_from_value)
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
 
@@ -98,6 +98,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
             assumptions = []
         self.assumptions = assumptions
         self.assumptions_ns = create_assumptions_namespace(assumptions)
+        self.bast_renderer = BrianASTRenderer(variables)
 
     def render_node(self, node):
         '''
@@ -131,6 +132,9 @@ class ArithmeticSimplifier(BrianASTRenderer):
         return node
 
     def render_BinOp(self, node):
+        if node.dtype=='float': # only try to collect float type nodes
+            if node.op.__class__.__name__ in ['Mult', 'Div', 'Add', 'Sub'] and not hasattr(node, 'collected'):
+                return self.render_node(self.bast_renderer.render_node(collect(node)))
         node.left = self.render_node(node.left)
         node.right = self.render_node(node.right)
         node = super(ArithmeticSimplifier, self).render_BinOp(node)
@@ -240,7 +244,7 @@ class Simplifier(BrianASTRenderer):
         '''
         # can we pull this out?
         if node.scalar and node.complexity>0:
-            expr = self.node_renderer.render_node(node)
+            expr = self.node_renderer.render_node(self.arithmetic_simplifier.render_node(node))
             if expr in self.loop_invariants:
                 name = self.loop_invariants[expr]
             else:
@@ -256,3 +260,141 @@ class Simplifier(BrianASTRenderer):
             return newnode
         # otherwise, render node as usual
         return super(Simplifier, self).render_node(node)
+
+
+def reduced_node(terms, op, curnode=None):
+    for term in terms:
+        if term is None:
+            continue
+        if curnode is None:
+            curnode = term
+        else:
+            curnode = ast.BinOp(curnode, op(), term)
+    return curnode
+
+
+def cancel_identical_terms(primary, inverted):
+    nr = NodeRenderer(use_vectorisation_idx=False)
+    expressions = dict((node, nr.render_node(node)) for node in primary)
+    expressions.update(**dict((node, nr.render_node(node)) for node in inverted))
+    new_primary = []
+    inverted_expressions = [expressions[term] for term in inverted]
+    for term in primary:
+        expr = expressions[term]
+        if expr in inverted_expressions:
+            new_inverted = []
+            for iterm in inverted:
+                if expressions[iterm]==expr:
+                    expr = '' # handled
+                else:
+                    new_inverted.append(iterm)
+            inverted = new_inverted
+            inverted_expressions = [expressions[term] for term in inverted]
+        else:
+            new_primary.append(term)
+    return new_primary, inverted
+
+
+def collect(node):
+    node.collected = True
+    if node.__class__.__name__!='BinOp':
+        return node
+    terms_primary = []
+    terms_inverted = []
+    if node.op.__class__.__name__ in ['Mult', 'Div']:
+        op_primary = ast.Mult
+        op_inverted = ast.Div
+        op_null = 1
+        op_py_primary = lambda x, y: x*y
+        op_py_inverted = lambda x, y: x/y
+    elif node.op.__class__.__name__ in ['Add', 'Sub']:
+        op_primary = ast.Add
+        op_inverted = ast.Sub
+        op_null = 0
+        op_py_primary = lambda x, y: x+y
+        op_py_inverted = lambda x, y: x-y
+    else:
+        return node
+    collect_commutative(node, op_primary, op_inverted, terms_primary, terms_inverted)
+    x = op_null
+    remaining_terms_primary = []
+    remaining_terms_inverted = []
+    for term in terms_primary:
+        if term.__class__.__name__=='Num':
+            x = op_py_primary(x, term.n)
+        else:
+            remaining_terms_primary.append(term)
+    for term in terms_inverted:
+        if term.__class__.__name__=='Num':
+            x = op_py_inverted(x, term.n)
+        else:
+            remaining_terms_inverted.append(term)
+    if x!=op_null:
+        num_node = ast.Num(x)
+    else:
+        num_node = None
+    terms_primary = remaining_terms_primary
+    terms_inverted = remaining_terms_inverted
+    # final form that we want is:
+    # ((num*prod(scalars)/prod(scalars))*prod(vectors))/prod(vectors)
+    primary_scalar_terms = [term for term in terms_primary if term.scalar]
+    inverted_scalar_terms = [term for term in terms_inverted if term.scalar]
+    primary_scalar_terms, inverted_scalar_terms = cancel_identical_terms(primary_scalar_terms,
+                                                                         inverted_scalar_terms)
+    primary_vector_terms = [term for term in terms_primary if not term.scalar]
+    inverted_vector_terms = [term for term in terms_inverted if not term.scalar]
+    primary_vector_terms, inverted_vector_terms = cancel_identical_terms(primary_vector_terms,
+                                                                         inverted_vector_terms)
+    prod_primary_scalars = reduced_node(primary_scalar_terms, op_primary)
+    prod_inverted_scalars = reduced_node(inverted_scalar_terms, op_primary)
+    prod_primary_vectors = reduced_node(primary_vector_terms, op_primary)
+    prod_inverted_vectors = reduced_node(inverted_vector_terms, op_primary)
+    curnode = reduced_node([num_node, prod_primary_scalars], op_primary)
+    if prod_inverted_scalars is not None:
+        if curnode is None:
+            curnode = ast.Num(float(op_null))
+        curnode = ast.BinOp(curnode, op_inverted(), prod_inverted_scalars)
+    curnode = reduced_node([curnode, prod_primary_vectors], op_primary)
+    if prod_inverted_vectors is not None:
+        if curnode is None:
+            curnode = ast.Num(float(op_null))
+        curnode = ast.BinOp(curnode, op_inverted(), prod_inverted_vectors)
+    node = curnode
+    if node is None: # everything cancelled
+        node = ast.Num(float(op_null))
+    node.collected = True
+    return node
+
+
+def collect_commutative(node, primary, inverted,
+                        terms_primary, terms_inverted, add_to_inverted=False):
+    op_primary = node.op.__class__ is primary
+    # this should only be called with node a BinOp of type primary or inverted
+    # left_exact is the condition that we can collect terms (we can do it with floats or add/sub,
+    # but not integer mult/div)
+    left_exact = (node.left.dtype=='float' or
+                    (hasattr(node.left, 'op') and node.left.op.__class__.__name__ in ['Add', 'Sub']))
+    if (node.left.__class__.__name__=='BinOp' and
+            node.left.op.__class__ in [primary, inverted] and left_exact):
+        collect_commutative(node.left, primary, inverted, terms_primary, terms_inverted,
+                            add_to_inverted=add_to_inverted)
+    else:
+        if add_to_inverted:
+            terms_inverted.append(node.left)
+        else:
+            terms_primary.append(node.left)
+    right_exact = (node.right.dtype=='float' or
+                    (hasattr(node.right, 'op') and node.right.op.__class__.__name__ in ['Add', 'Sub']))
+    if (node.right.__class__.__name__=='BinOp' and
+            node.right.op.__class__ in [primary, inverted] and right_exact):
+        if node.op.__class__ is primary:
+            collect_commutative(node.right, primary, inverted, terms_primary, terms_inverted,
+                                add_to_inverted=add_to_inverted)
+        else:
+            collect_commutative(node.right, primary, inverted, terms_primary, terms_inverted,
+                                add_to_inverted=not add_to_inverted)
+    else:
+        if (not add_to_inverted and op_primary) or (add_to_inverted and not op_primary):
+            terms_primary.append(node.right)
+        else:
+            terms_inverted.append(node.right)
