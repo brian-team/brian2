@@ -112,9 +112,9 @@ class BrianASTRenderer(object):
     def render_Call(self, node):
         if len(node.keywords):
             raise ValueError("Keyword arguments not supported.")
-        elif node.starargs is not None:
+        elif getattr(node, 'starargs', None) is not None:
             raise ValueError("Variable number of arguments not supported")
-        elif node.kwargs is not None:
+        elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
         node.args = [self.render_node(subnode) for subnode in node.args]
         # TODO: deeper system like the one for units, for now assume all functions return floats
