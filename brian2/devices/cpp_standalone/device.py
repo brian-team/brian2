@@ -794,8 +794,9 @@ class CPPStandaloneDevice(Device):
                     print open('results/stdout.txt', 'r').read()
                 raise RuntimeError("Project run failed")
             self.has_been_run = True
-            last_run_info = open('results/last_run_info.txt', 'r').read()
-            self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
+            if os.path.isfile('results/last_run_info.txt'):
+                last_run_info = open('results/last_run_info.txt', 'r').read()
+                self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
 
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,

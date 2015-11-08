@@ -191,7 +191,7 @@ class BrianGlobalPreferences(MutableMapping):
         raise PreferenceError("Preferences cannot be deleted.")
 
     def __getattr__(self, name):
-        if name in self.__dict__:
+        if name in self.__dict__ or name.startswith('__'):
             return MutableMapping.__getattr__(self, name)
         
         # This function might get called from BrianGlobalPreferencesView with

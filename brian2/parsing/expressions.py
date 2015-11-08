@@ -246,9 +246,9 @@ def parse_expression_unit(expr, variables):
     elif expr.__class__ is ast.Call:
         if len(expr.keywords):
             raise ValueError("Keyword arguments not supported.")
-        elif expr.starargs is not None:
+        elif getattr(expr, 'starargs', None) is not None:
             raise ValueError("Variable number of arguments not supported")
-        elif expr.kwargs is not None:
+        elif getattr(expr, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
 
         arg_units = [parse_expression_unit(arg, variables)
