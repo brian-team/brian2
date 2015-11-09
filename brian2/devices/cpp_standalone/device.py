@@ -12,6 +12,7 @@ import tempfile
 from distutils import ccompiler
 
 import numpy as np
+from cpuinfo import cpuinfo
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
@@ -636,15 +637,11 @@ class CPPStandaloneDevice(Device):
         if compiler=='msvc':
             if native:
                 arch_flag = ''
-                try:
-                    from cpuinfo import cpuinfo
-                    res = cpuinfo.get_cpu_info()
-                    if 'sse' in res['flags']:
-                        arch_flag = '/arch:SSE'
-                    if 'sse2' in res['flags']:
-                        arch_flag = '/arch:SSE2'
-                except ImportError:
-                    logger.warn('Native flag for MSVC compiler requires installation of the py-cpuinfo module')
+                res = cpuinfo.get_cpu_info()
+                if 'sse' in res['flags']:
+                    arch_flag = '/arch:SSE'
+                if 'sse2' in res['flags']:
+                    arch_flag = '/arch:SSE2'
                 compiler_flags += ' '+arch_flag
             
             if nb_threads>1:
