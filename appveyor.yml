@@ -125,7 +125,7 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           deactivate &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe
      )'
 

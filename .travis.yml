@@ -130,7 +130,7 @@ install:
 script:
 - if [[ $CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    conda build dev/conda-recipe --quiet;
+    conda build --quiet -c brian-team dev/conda-recipe;
     source activate travis_conda;
   fi
 # Don't run tests in parallel when reporting coverage
