@@ -633,17 +633,8 @@ class CPPStandaloneDevice(Device):
                                                         )
         writer.write('run.*', run_tmp)
         
-    def generate_makefile(self, writer, compiler, native, compiler_flags, linker_flags, nb_threads):
+    def generate_makefile(self, writer, compiler, compiler_flags, linker_flags, nb_threads):
         if compiler=='msvc':
-            if native:
-                arch_flag = ''
-                res = cpuinfo.get_cpu_info()
-                if 'sse' in res['flags']:
-                    arch_flag = '/arch:SSE'
-                if 'sse2' in res['flags']:
-                    arch_flag = '/arch:SSE2'
-                compiler_flags += ' '+arch_flag
-            
             if nb_threads>1:
                 openmp_flag = '/openmp'
             else:
@@ -720,7 +711,7 @@ class CPPStandaloneDevice(Device):
         self.networks = networks
         self.net_synapses = synapses
     
-    def compile_source(self, directory, compiler, debug, clean, native):
+    def compile_source(self, directory, compiler, debug, clean):
         with in_directory(directory):
             if compiler == 'msvc':
                 from distutils import msvc9compiler
@@ -767,8 +758,6 @@ class CPPStandaloneDevice(Device):
                         os.system('make clean')
                     if debug:
                         x = os.system('make debug')
-                    elif native:
-                        x = os.system('make native')
                     else:
                         x = os.system('make')
                     if x!=0:
@@ -797,8 +786,7 @@ class CPPStandaloneDevice(Device):
 
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,
-              with_output=True, native=True,
-              additional_source_files=None,
+              with_output=True, additional_source_files=None,
               run_args=None, **kwds):
         '''
         Build the project
@@ -818,8 +806,6 @@ class CPPStandaloneDevice(Device):
         with_output : bool
             Whether or not to show the ``stdout`` of the built program when run. Output will be shown in case
             of compilation or runtime error.
-        native : bool
-            Whether or not to compile for the current machine's architecture (best for speed, but not portable)
         clean : bool
             Whether or not to clean the project before building
         additional_source_files : list of str
@@ -906,13 +892,13 @@ class CPPStandaloneDevice(Device):
 
         writer.source_files.extend(additional_source_files)
 
-        self.generate_makefile(writer, compiler, native=native,
+        self.generate_makefile(writer, compiler,
                                compiler_flags=' '.join(compiler_flags),
                                linker_flags=' '.join(linker_flags),
                                nb_threads=nb_threads)
 
         if compile:
-            self.compile_source(directory, compiler, debug, clean, native)
+            self.compile_source(directory, compiler, debug, clean)
             if run:
                 self.run(directory, with_output, run_args)
 
