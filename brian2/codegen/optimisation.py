@@ -16,7 +16,7 @@ from brian2.utils.stringtools import get_identifiers, word_substitute
 from .statements import Statement
 
 defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.iteritems())
-defaults_ns.update(**dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
+defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
 
 
 __all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
@@ -278,7 +278,7 @@ def reduced_node(terms, op, curnode=None):
 def cancel_identical_terms(primary, inverted):
     nr = NodeRenderer(use_vectorisation_idx=False)
     expressions = dict((node, nr.render_node(node)) for node in primary)
-    expressions.update(**dict((node, nr.render_node(node)) for node in inverted))
+    expressions.update(dict((node, nr.render_node(node)) for node in inverted))
     new_primary = []
     inverted_expressions = [expressions[term] for term in inverted]
     for term in primary:
