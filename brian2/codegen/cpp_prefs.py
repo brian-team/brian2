@@ -46,7 +46,7 @@ prefs.register_preferences(
         validator=lambda v: True,
         docs='''
         Extra arguments to pass to compiler (if None, use either
-        ``extra_compile_args_gcc`` or ``extra_compile_args_msvs``).
+        ``extra_compile_args_gcc`` or ``extra_compile_args_msvc``).
         '''
         ),
     extra_compile_args_gcc=BrianPreference(
@@ -58,7 +58,8 @@ prefs.register_preferences(
     extra_compile_args_msvc=BrianPreference(
         default=['/Ox', '/EHsc', '/w', '/fp:fast', msvc_arch_flag],
         docs='''
-        Extra compile arguments to pass to MSVC compiler
+        Extra compile arguments to pass to MSVC compiler (the default
+        ``/arch:`` flag is determined based on the processor architecture)
         '''
         ),
     extra_link_args=BrianPreference(
