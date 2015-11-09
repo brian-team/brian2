@@ -1027,8 +1027,8 @@ def test_subexpression_with_constant():
         assert len(G.I) == 1
 
         # These will not work
-        assert_raises(ValueError, lambda: np.array(G.I))
-        assert_raises(ValueError, lambda: np.mean(G.I))
+        assert_raises(KeyError, lambda: np.array(G.I))
+        assert_raises(KeyError, lambda: np.mean(G.I))
         # But these should
         assert_equal(np.array(G.I[:]), G.I[:])
         assert np.mean(G.I[:]) == 2

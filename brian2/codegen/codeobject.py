@@ -261,11 +261,7 @@ def create_runner_codeobj(group, code, template_name,
         codeobj_class = device.code_object_class(codeobj_class)
 
     template = getattr(codeobj_class.templater, template_name, None)
-    if template is None:
-        codeobj_class_name = codeobj_class.class_name or codeobj_class.__name__
-        raise AttributeError(('"%s" does not provide a code generation '
-                              'template "%s"') % (codeobj_class_name,
-                                                  template_name))
+    template_variables = getattr(template, 'variables', None)
 
     all_variables = dict(group.variables)
     if additional_variables is not None:
@@ -279,12 +275,31 @@ def create_runner_codeobj(group, code, template_name,
         identifiers |= uk | u
         _, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
         user_identifiers |= uk | u
-    # Only pass the variables that are actually used
-    variables = group.resolve_all(identifiers,
-                                  user_identifiers,
+
+    # Add variables that are not in the abstract code, nor specified in the
+    # template but nevertheless necessary
+    if needed_variables is None:
+        needed_variables = []
+    # Resolve all variables (variables used in the code and variables needed by
+    # the template)
+    variables = group.resolve_all(identifiers | set(needed_variables) | set(template_variables),
+                                  # template variables are not known to the user:
+                                  user_identifiers=user_identifiers,
                                   additional_variables=additional_variables,
                                   run_namespace=run_namespace,
                                   level=level+1)
+    # We raise this error only now, because there is some non-obvious code path
+    # where Jinja tries to get a Synapse's "name" attribute via syn['name'],
+    # which then triggers the use of the `group_get_indices` template which does
+    # not exist for standalone. Putting the check for template == None here
+    # means we will first raise an error about the unknown identifier which will
+    # then make Jinja try syn.name
+    if template is None:
+        codeobj_class_name = codeobj_class.class_name or codeobj_class.__name__
+        raise AttributeError(('"%s" does not provide a code generation '
+                              'template "%s"') % (codeobj_class_name,
+                                                  template_name))
+
 
     conditional_write_variables = {}
     # Add all the "conditional write" variables
@@ -303,24 +318,12 @@ def create_runner_codeobj(group, code, template_name,
 
     variables.update(conditional_write_variables)
 
-    # Add variables that are not in the abstract code, nor specified in the
-    # template but nevertheless necessary
-    if needed_variables is None:
-        needed_variables = []
-    # Also add the variables that the template needs
-    variables.update(group.resolve_all(set(needed_variables) | set(template.variables),
-                                       # template variables are not known to the user:
-                                       user_identifiers=set(),
-                                       additional_variables=additional_variables,
-                                       run_namespace=run_namespace,
-                                       level=level+1))
-
     if check_units:
         for c in code.values():
             # This is the first time that the code is parsed, catch errors
             try:
                 check_units_statements(c, variables)
-            except (SyntaxError, KeyError, ValueError) as ex:
+            except (SyntaxError, ValueError) as ex:
                 error_msg = _error_msg(c, name)
                 raise ValueError(error_msg + str(ex))
 

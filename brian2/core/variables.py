@@ -1328,7 +1328,7 @@ class VariableView(object):
                 # This will fail for subexpressions that refer to external
                 # parameters
                 values = repr(self[:])
-            except ValueError:
+            except KeyError:
                 values = ('[Subexpression refers to external parameters. Use '
                           '"group.{var}[:]"]').format(var=self.variable.name)
 
