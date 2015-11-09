@@ -255,18 +255,6 @@ def create_runner_codeobj(group, code, template_name,
     else:
         override_conditional_write = set(override_conditional_write)
 
-    if check_units:
-        for c in code.values():
-            # This is the first time that the code is parsed, catch errors
-            try:
-                check_code_units(c, group,
-                                 additional_variables=additional_variables,
-                                 level=level+1,
-                                 run_namespace=run_namespace)
-            except (SyntaxError, KeyError, ValueError) as ex:
-                error_msg = _error_msg(c, name)
-                raise ValueError(error_msg + str(ex))
-
     if codeobj_class is None:
         codeobj_class = device.code_object_class(group.codeobj_class)
     else:
@@ -326,6 +314,15 @@ def create_runner_codeobj(group, code, template_name,
                                        additional_variables=additional_variables,
                                        run_namespace=run_namespace,
                                        level=level+1))
+
+    if check_units:
+        for c in code.values():
+            # This is the first time that the code is parsed, catch errors
+            try:
+                check_units_statements(c, variables)
+            except (SyntaxError, KeyError, ValueError) as ex:
+                error_msg = _error_msg(c, name)
+                raise ValueError(error_msg + str(ex))
 
     all_variable_indices = copy.copy(group.variables.indices)
     if additional_variables is not None:
