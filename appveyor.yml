@@ -103,7 +103,7 @@ install:
 
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
-  - 'conda install -c brian-team py-cpuinfo'
+  - 'conda install --yes --quiet -c brian-team py-cpuinfo'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 

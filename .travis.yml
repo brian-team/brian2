@@ -112,12 +112,12 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    conda create -n travis_conda --yes pip python=$PYTHON numpy==1.8.2 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
+    conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.8.2 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    conda create -n travis_conda --yes pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
+    conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
-  - conda install -c brian-team py-cpuinfo  # install cpuinfo from our own channel
+  - conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
   - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then pip install -q coveralls; fi
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
