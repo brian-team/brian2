@@ -4,6 +4,7 @@ import numpy as np
 
 from brian2.utils.stringtools import word_substitute, deindent
 from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import (Constant, AuxiliaryVariable,
                                    get_dtype_str, Variable, Subexpression)
@@ -73,11 +74,38 @@ class CythonCodeGenerator(CodeGenerator):
                                   statement.expr, statement.comment)
         if op == ':=':
             op = '='
-        code = var + ' ' + op + ' ' + self.translate_expression(expr)
+        if (hasattr(statement, 'used_boolean_variables') and len(statement.used_boolean_variables)
+                # todo: improve dtype analysis so that this isn't necessary
+                and brian_dtype_from_dtype(statement.dtype)=='float'):
+            used_boolvars = statement.used_boolean_variables
+            bool_simp = statement.boolean_simplified_expressions
+            codelines = []
+            firstline = True
+            for bool_assigns, simp_expr in bool_simp.iteritems():
+                atomics = []
+                for boolvar, boolval in bool_assigns:
+                    if boolval:
+                        atomics.append(boolvar)
+                    else:
+                        atomics.append('not '+boolvar)
+                if firstline:
+                    line = 'if '+(' and '.join(atomics))+':'
+                else:
+                    if len(used_boolvars)>1:
+                        line = 'elif '+(' and '.join(atomics))+':'
+                    else:
+                        line = 'else:'
+                line += '\n    '
+                line += var + ' ' + op + ' ' + self.translate_expression(simp_expr)
+                codelines.append(line)
+                firstline = False
+            code = '\n'.join(codelines)
+        else:
+            code = var + ' ' + op + ' ' + self.translate_expression(expr)
         if len(comment):
             code += ' # ' + comment
         return code
-        
+
     def translate_one_statement_sequence(self, statements, scalar=False):
         variables = self.variables
         variable_indices = self.variable_indices
