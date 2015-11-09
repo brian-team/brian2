@@ -22,7 +22,7 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
-from brian2.codegen.codeobject import create_runner_codeobj, check_code_units
+from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
@@ -251,9 +251,6 @@ class IndexWrapper(object):
                                              dtype=np.bool)
 
             abstract_code = '_cond = ' + item
-            check_code_units(abstract_code, self.group,
-                             additional_variables=variables,
-                             level=1)
             from brian2.devices.device import get_default_codeobject_class
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
