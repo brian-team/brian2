@@ -38,7 +38,7 @@ logger = get_logger(__name__)
 def _conflict_warning(message, resolutions):
     '''
     A little helper functions to generate warnings for logging. Specific
-    to the `Namespace.resolve` method and should only be used by it.
+    to the `Group._resolve` method and should only be used by it.
 
     Parameters
     ----------
@@ -572,8 +572,8 @@ class VariableOwner(Nameable):
 
 class Group(VariableOwner, BrianObject):
 
-    def resolve(self, identifier, user_identifier=True,
-                additional_variables=None, run_namespace=None, level=0):
+    def _resolve(self, identifier, run_namespace, user_identifier=True,
+                 additional_variables=None):
         '''
         Resolve an identifier (i.e. variable, constant or function name) in the
         context of this group. This function will first lookup the name in the
@@ -597,9 +597,7 @@ class Group(VariableOwner, BrianObject):
             checked before `Group.variables`.
         run_namespace : dict-like, optional
             An additional namespace, provided as an argument to the
-            `Network.run` method.
-        level : int, optional
-            How far to go up in the stack to find the original call frame.
+            `Network.run` method or returned by `get_local_namespace`.
 
         Returns
         -------
@@ -628,8 +626,7 @@ class Group(VariableOwner, BrianObject):
             # present there as well.
             try:
                 resolved_external = self._resolve_external(identifier,
-                                                           run_namespace=run_namespace,
-                                                           level=level+1)
+                                                           run_namespace=run_namespace)
                 # If we arrive here without a KeyError then the name is present
                 # in the external namespace as well
 
@@ -655,13 +652,12 @@ class Group(VariableOwner, BrianObject):
 
         # We did not find the name internally, try to resolve it in the external
         # namespace
-        return self._resolve_external(identifier, run_namespace=run_namespace,
-                                      level=level+1)
+        return self._resolve_external(identifier, run_namespace=run_namespace)
 
     def resolve_all(self, identifiers, user_identifiers=None,
                     additional_variables=None, run_namespace=None, level=0):
         '''
-        Resolve a list of identifiers. Calls `Group.resolve` for each
+        Resolve a list of identifiers. Calls `Group._resolve` for each
         identifier.
 
         Parameters
@@ -700,17 +696,17 @@ class Group(VariableOwner, BrianObject):
         '''
         if user_identifiers is None:
             user_identifiers = identifiers
+        if run_namespace is None:
+            run_namespace = get_local_namespace(level=level+1)
         resolved = {}
         for identifier in identifiers:
-            resolved[identifier] = self.resolve(identifier,
-                                                identifier in user_identifiers,
-                                                additional_variables=additional_variables,
-                                                run_namespace=run_namespace,
-                                                level=level+1)
+            resolved[identifier] = self._resolve(identifier,
+                                                 user_identifier=identifier in user_identifiers,
+                                                 additional_variables=additional_variables,
+                                                 run_namespace=run_namespace)
         return resolved
 
-    def _resolve_external(self, identifier, user_identifier=True,
-                          run_namespace=None, level=0):
+    def _resolve_external(self, identifier, run_namespace, user_identifier=True):
         '''
         Resolve an external identifier in the context of a `Group`. If the `Group`
         declares an explicit namespace, this namespace is used in addition to the
@@ -733,11 +729,10 @@ class Group(VariableOwner, BrianObject):
         group : `Group`
             The group that potentially defines an explicit namespace for looking up
             external names.
-        run_namespace : dict, optional
+        run_namespace : dict
             A namespace (mapping from strings to objects), as provided as an
-            argument to the `Network.run` function.
-        level : int, optional
-            How far to go up in the stack to find the calling frame.
+            argument to the `Network.run` function or returned by
+            `get_local_namespace`.
         '''
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
@@ -752,10 +747,7 @@ class Group(VariableOwner, BrianObject):
             namespaces['group-specific'] = self.namespace
 
         # explicit or implicit run namespace
-        if run_namespace is not None:
-            namespaces['run'] = run_namespace
-        else:
-            namespaces['implicit'] = get_local_namespace(level+1)
+        namespaces['run'] = run_namespace
 
         for description, namespace in namespaces.iteritems():
             if identifier in namespace:
@@ -955,7 +947,7 @@ class CodeRunner(BrianObject):
         self.codeobj_class = codeobj_class
         self.codeobj = None
 
-    def update_abstract_code(self, run_namespace=None, level=0):
+    def update_abstract_code(self, run_namespace):
         '''
         Update the abstract code for the code object. Will be called in
         `before_run` and should update the `CodeRunner.abstract_code`
@@ -965,8 +957,8 @@ class CodeRunner(BrianObject):
         '''
         pass
 
-    def before_run(self, run_namespace=None, level=0):
-        self.update_abstract_code(run_namespace=run_namespace, level=level+1)
+    def before_run(self, run_namespace):
+        self.update_abstract_code(run_namespace=run_namespace)
         # If the CodeRunner has variables, add them
         if hasattr(self, 'variables'):
             additional_variables = self.variables
@@ -981,7 +973,6 @@ class CodeRunner(BrianObject):
                                              additional_variables=additional_variables,
                                              needed_variables=self.needed_variables,
                                              run_namespace=run_namespace,
-                                             level=level+1,
                                              template_kwds=self.template_kwds,
                                              override_conditional_write=self.override_conditional_write,
                                              codeobj_class=self.codeobj_class

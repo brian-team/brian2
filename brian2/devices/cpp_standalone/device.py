@@ -17,6 +17,7 @@ from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, get_device, set_device
 from brian2.core.variables import *
+from brian2.core.namespace import get_local_namespace
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.core.preferences import prefs, BrianPreference
@@ -929,9 +930,11 @@ class CPPStandaloneDevice(Device):
         for clock in net._clocks:
             clock.set_interval(net.t, t_end)
 
-        # We have to use +2 for the level argument here, since this function is
-        # called through the device_override mechanism
-        net.before_run(namespace, level=level+2)
+        # Get the local namespace
+        if namespace is None:
+            namespace = get_local_namespace(level=level+2)
+
+        net.before_run(namespace)
 
         self.clocks.update(net._clocks)
         net.t_ = float(t_end)

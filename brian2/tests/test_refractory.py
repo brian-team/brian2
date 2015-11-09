@@ -24,11 +24,11 @@ def test_add_refractoriness():
 @with_setup(teardown=restore_device)
 def test_refractoriness_basic():
     G = NeuronGroup(1, '''
-        dv/dt = 100*Hz : 1 (unless refractory)
-        dw/dt = 100*Hz : 1
-        ''',
-                        threshold='v>1', reset='v=0;w=0',
-                        refractory=5*ms)
+                       dv/dt = 100*Hz : 1 (unless refractory)
+                       dw/dt = 100*Hz : 1
+                       ''',
+                    threshold='v>1', reset='v=0;w=0',
+                    refractory=5*ms)
     # It should take 10ms to reach the threshold, then v should stay at 0
     # for 5ms, while w continues to increase
     mon = StateMonitor(G, ['v', 'w'], record=True, when='end')
@@ -55,13 +55,13 @@ def test_refractoriness_variables():
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
         device.reinit()
         G = NeuronGroup(1, '''
-        dv/dt = 100*Hz : 1 (unless refractory)
-        dw/dt = 100*Hz : 1
-        ref : second
-        ref_no_unit : 1
-        time_since_spike = t - lastspike : second
-        ref_subexpression = (t - lastspike) <= ref : boolean
-        ''',
+                        dv/dt = 100*Hz : 1 (unless refractory)
+                        dw/dt = 100*Hz : 1
+                        ref : second
+                        ref_no_unit : 1
+                        time_since_spike = t - lastspike : second
+                        ref_subexpression = (t - lastspike) <= ref : boolean
+                        ''',
                         threshold='v>1', reset='v=0;w=0',
                         refractory=ref_time)
         G.ref = 5*ms
@@ -107,10 +107,10 @@ def test_refractoriness_threshold():
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
         device.reinit()
         G = NeuronGroup(1, '''
-        dv/dt = 200*Hz : 1
-        ref : second
-        ref_no_unit : 1
-        ''', threshold='v > 1',
+                        dv/dt = 200*Hz : 1
+                        ref : second
+                        ref_no_unit : 1
+                        ''', threshold='v > 1',
                         reset='v=0', refractory=ref_time)
         G.ref = 10*ms
         G.ref_no_unit = 10
@@ -125,12 +125,14 @@ def test_refractoriness_threshold():
 @attr('codegen-independent')
 def test_refractoriness_types():
     # make sure that using a wrong type of refractoriness does not work
-    assert_raises(TypeError, lambda: NeuronGroup(1, '', refractory='3*Hz'))
-    assert_raises(TypeError, lambda: NeuronGroup(1, 'ref: Hz',
-                                                 refractory='ref'))
-    assert_raises(TypeError, lambda: NeuronGroup(1, '', refractory='3'))
-    assert_raises(TypeError, lambda: NeuronGroup(1, 'ref: 1',
-                                                 refractory='ref'))
+    group = NeuronGroup(1, '', refractory='3*Hz')
+    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    group = NeuronGroup(1, 'ref: Hz', refractory='ref')
+    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    group = NeuronGroup(1, '', refractory='3')
+    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    group = NeuronGroup(1, 'ref: 1', refractory='ref')
+    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
 
 @attr('codegen-independent')
 def test_conditional_write_set():

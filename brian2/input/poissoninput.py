@@ -95,11 +95,10 @@ class PoissonInput(CodeRunner):
         self.variables = Variables(self)
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         print self._group.dt_, self._stored_dt
         if self._group.dt_ != self._stored_dt:
             raise NotImplementedError('The dt used for simulating %s changed '
                                       'after the PoissonInput source was '
                                       'created.' % self.group.name)
-        CodeRunner.before_run(self, run_namespace=run_namespace,
-                              level=level+1)
+        CodeRunner.before_run(self, run_namespace=run_namespace)

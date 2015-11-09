@@ -34,24 +34,24 @@ def test_default_content():
     '''
     group = Group()
     # Units
-    assert group.resolve('second', None).get_value_with_unit() == second
-    assert group.resolve('volt', None).get_value_with_unit() == volt
-    assert group.resolve('ms', None).get_value_with_unit() == ms
-    assert group.resolve('Hz', None).get_value_with_unit() == Hz
-    assert group.resolve('mV', None).get_value_with_unit() == mV
+    assert group._resolve('second', {}).get_value_with_unit() == second
+    assert group._resolve('volt', {}).get_value_with_unit() == volt
+    assert group._resolve('ms', {}).get_value_with_unit() == ms
+    assert group._resolve('Hz', {}).get_value_with_unit() == Hz
+    assert group._resolve('mV', {}).get_value_with_unit() == mV
 
     # Functions
-    assert group.resolve('sin', None).pyfunc == sin
-    assert group.resolve('log', None).pyfunc == log
-    assert group.resolve('exp', None).pyfunc == exp
+    assert group._resolve('sin', {}).pyfunc == sin
+    assert group._resolve('log', {}).pyfunc == log
+    assert group._resolve('exp', {}).pyfunc == exp
 
     # Constants
-    assert group.resolve('e').sympy_obj == sympy.E
-    assert group.resolve('e').get_value() == numpy.e
-    assert group.resolve('pi').sympy_obj == sympy.pi
-    assert group.resolve('pi').get_value() == numpy.pi
-    assert group.resolve('inf').sympy_obj == sympy.oo
-    assert group.resolve('inf').get_value() == numpy.inf
+    assert group._resolve('e', {}).sympy_obj == sympy.E
+    assert group._resolve('e', {}).get_value() == numpy.e
+    assert group._resolve('pi', {}).sympy_obj == sympy.pi
+    assert group._resolve('pi', {}).get_value() == numpy.pi
+    assert group._resolve('inf', {}).sympy_obj == sympy.oo
+    assert group._resolve('inf', {}).get_value() == numpy.inf
 
 
 @attr('codegen-independent')
@@ -61,19 +61,13 @@ def test_explicit_namespace():
 
     # Explicitly provided
     with catch_logs() as l:
-        assert group.resolve('variable').get_value_with_unit() == 42
-        assert len(l) == 0
-
-    # Value from the local namespace
-    another_variable = 23
-    with catch_logs() as l:
-        assert group.resolve('another_variable').get_value_with_unit() == 23
+        assert group._resolve('variable', {}).get_value_with_unit() == 42
         assert len(l) == 0
 
     # Value from an explicit run namespace
     with catch_logs() as l:
-        assert group.resolve('yet_another_var',
-                             run_namespace={'yet_another_var': 17}).get_value_with_unit() == 17
+        assert group._resolve('yet_another_var',
+                              run_namespace={'yet_another_var': 17}).get_value_with_unit() == 17
         assert len(l) == 0
 
 
@@ -81,11 +75,11 @@ def test_explicit_namespace():
 def test_errors():
     # No explicit namespace
     group = SimpleGroup(namespace=None, variables={})
-    assert_raises(KeyError, lambda: group.resolve('nonexisting_variable'))
+    assert_raises(KeyError, lambda: group._resolve('nonexisting_variable', {}))
 
     # Empty explicit namespace
     group = SimpleGroup(namespace={}, variables={})
-    assert_raises(KeyError, lambda: group.resolve('nonexisting_variable'))
+    assert_raises(KeyError, lambda: group._resolve('nonexisting_variable', {}))
 
 
 @attr('codegen-independent')
@@ -117,12 +111,12 @@ def test_warning():
     cm = 42
     group = SimpleGroup(namespace=None, variables={})
     with catch_logs() as l:
-        resolved = group.resolve('exp')
+        resolved = group.resolve_all(['exp'])['exp']
         assert resolved == DEFAULT_FUNCTIONS['exp']
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
-        resolved = group.resolve('cm')
+        resolved = group.resolve_all(['cm'])['cm']
         assert resolved.get_value_with_unit() == brian_cm
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
@@ -135,10 +129,10 @@ def test_warning_internal_variables():
     group2 = SimpleGroup(namespace=None,
                          variables={'N': Constant('N', Unit(1), 7)})
     with catch_logs() as l:
-        group1.resolve('N')  # should not raise a warning
+        group1.resolve_all(['N'])  # should not raise a warning
         assert len(l) == 0, 'got warnings: %s' % str(l)
     with catch_logs() as l:
-        group2.resolve('N')  # should raise a warning
+        group2.resolve_all(['N'])  # should raise a warning
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
 

@@ -66,6 +66,7 @@ class BrianObject(Nameable):
                                                                                          funcname=funcname,
                                                                                          line=line)
                 creation_stack.append(s)
+        creation_stack = [''] + creation_stack
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
         self._creation_stack = ('Object was created here (most recent call only, full details in '
                                 'debug log):\n'+creation_stack[-1])
@@ -159,7 +160,7 @@ class BrianObject(Nameable):
         else:
             self._dependencies.add(obj.id)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         '''
         Optional method to prepare the object before a run.
 
