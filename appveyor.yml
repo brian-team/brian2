@@ -103,7 +103,7 @@ install:
 
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
-  - 'pip install py-cpuinfo'
+  - 'conda install --yes --quiet -c brian-team py-cpuinfo'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
@@ -125,7 +125,7 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           deactivate &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build dev\conda-recipe --quiet &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
           if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'
