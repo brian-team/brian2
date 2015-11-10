@@ -1,4 +1,5 @@
 import re
+import logging
 
 from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
 from nose.plugins.attrib import attr
@@ -8,7 +9,7 @@ from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.devices.device import restore_device
-
+from brian2.stateupdaters.base import UnsupportedEquationsException
 
 @attr('codegen-independent')
 def test_explicit_stateupdater_parsing():
@@ -23,13 +24,15 @@ def test_explicit_stateupdater_parsing():
     updater(Equations('dv/dt = -v / tau : 1'))
     updater = ExplicitStateUpdater('''x1 = g(x, t) * dW
                                       x2 = x + dt * f(x, t)
-                                      x_new = x1 + x2''')
+                                      x_new = x1 + x2''',
+                                   stochastic='multiplicative')
     updater(Equations('dv/dt = -v / tau + v * xi * tau**-.5: 1'))
     
     updater = ExplicitStateUpdater('''x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
                                       g_support = g(x_support, t)
                                       k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
-                                      x_new = x + dt*f(x,t) + g(x, t) * dW + k''')
+                                      x_new = x + dt*f(x,t) + g(x, t) * dW + k''',
+                                   stochastic='multiplicative')
     updater(Equations('dv/dt = -v / tau + v * xi * tau**-.5: 1'))
 
     
@@ -97,10 +100,7 @@ def test_multiple_noise_variables_extended():
     no_noise_x, no_noise_y = mon.x[:], mon.y[:]
 
     for eqs_noise in all_eqs_noise:
-        for method_name, method in [('euler', euler), ('heun', heun), ('milstein', milstein)]:
-            # Note that for milstein, the check for diagonal noise will fail, but
-            # it should still work since the two noise variables really do only
-            # present a single variable
+        for method_name, method in [('euler', euler), ('heun', heun)]:
             with catch_logs('WARNING'):
                 G = NeuronGroup(2, eqs_noise, method=method)
                 G.x = [0.5, 1]
@@ -167,10 +167,7 @@ def test_multiple_noise_variables_deterministic_noise():
         net.run(10*ms)
         no_noise_x, no_noise_y = mon.x[:], mon.y[:]
 
-        for method_name, method in [('euler', euler), ('heun', heun), ('milstein', milstein)]:
-            # Note that for milstein, the check for diagonal noise will fail, but
-            # it should still work since the two noise variables really do only
-            # present a single variable
+        for method_name, method in [('euler', euler), ('heun', heun)]:
             with catch_logs('WARNING'):
                 G = NeuronGroup(2, eqs_noise, method=method)
                 G.x = [5,  17]
@@ -182,7 +179,6 @@ def test_multiple_noise_variables_deterministic_noise():
                             err_msg='Method %s gave incorrect results' % method_name)
             assert_allclose(mon.y[:], no_noise_y,
                             err_msg='Method %s gave incorrect results' % method_name)
-
 
 
 @attr('codegen-independent')
@@ -300,34 +296,60 @@ def test_priority():
                                     constant=False),
                  't': clock.variables['t'],
                  'dt': clock.variables['dt']}
-    assert updater.can_integrate(eqs, variables)
+    updater(eqs, variables)  # should not raise an error
 
     # External parameter in the coefficient, linear integration should work
     param = 1
     eqs = Equations('dv/dt = -param * v / (10*ms) : 1')
-    assert updater.can_integrate(eqs, variables)
+    updater(eqs, variables)  # should not raise an error
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      heun: True, milstein: True}
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, variables) == able
+        try:
+            integrator(eqs, variables)
+            if not able:
+                raise AssertionError('Should not be able to integrate these '
+                                     'equations')
+        except UnsupportedEquationsException:
+            if able:
+                raise AssertionError('Should be able to integrate these '
+                                     'equations')
     
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
-    assert not updater.can_integrate(eqs, variables)
+    assert_raises(UnsupportedEquationsException,
+                  lambda: updater(eqs, variables))
     
     can_integrate = {linear: False, euler: True, rk2: False, rk4: False, 
                      heun: True, milstein: True}
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, variables) == able
+        try:
+            integrator(eqs, variables)
+            if not able:
+                raise AssertionError('Should not be able to integrate these '
+                                     'equations')
+        except UnsupportedEquationsException:
+            if able:
+                raise AssertionError('Should be able to integrate these '
+                                     'equations')
     
     # Equation with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi/(10*ms)**.5 : 1')
-    assert not updater.can_integrate(eqs, variables)
+    assert_raises(UnsupportedEquationsException,
+                  lambda: updater(eqs, variables))
     
     can_integrate = {linear: False, euler: False, rk2: False, rk4: False, 
                      heun: True, milstein: True}
     for integrator, able in can_integrate.iteritems():
-        assert integrator.can_integrate(eqs, variables) == able
+        try:
+            integrator(eqs, variables)
+            if not able:
+                raise AssertionError('Should not be able to integrate these '
+                                     'equations')
+        except UnsupportedEquationsException:
+            if able:
+                raise AssertionError('Should be able to integrate these '
+                                     'equations')
     
 
 @attr('codegen-independent')
@@ -364,7 +386,7 @@ def test_determination():
     Test the determination of suitable state updaters.
     '''
     # To save some typing
-    determine_stateupdater = StateUpdateMethod.determine_stateupdater
+    apply_stateupdater = StateUpdateMethod.apply_stateupdater
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
@@ -376,38 +398,26 @@ def test_determination():
     for integrator in (linear, euler, exponential_euler, #TODO: Removed "independent" here due to the issue in sympy 0.7.4
                        rk2, rk4, heun, milstein):
         with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, variables,
-                                              method=integrator)
-            assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
+            returned = apply_stateupdater(eqs, variables,
+                                          method=integrator)
             assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
     
     # Equation with multiplicative noise, only milstein and heun should work
-    # without a warning
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for integrator in (linear, independent, euler, exponential_euler, rk2, rk4):
-        with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, variables,
-                                              method=integrator)
-            assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
-            # We should get a warning here
-            assert len(logs) == 1, 'Got %d warnings but expected 1: %s' % (len(logs), str([l[2] for l in logs]))
+        assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs, variables, integrator))
 
     for integrator in (heun, milstein):
         with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, variables,
-                                              method=integrator)
-            assert returned is integrator, 'Expected state updater %s, got %s' % (integrator, returned)
-            # No warning here
+            returned = apply_stateupdater(eqs, variables,
+                                          method=integrator)
             assert len(logs) == 0, 'Got %d unexpected warnings: %s' % (len(logs), str([l[2] for l in logs]))
-    
     
     # Arbitrary functions (converting equations into abstract code) should
     # always work
-    my_stateupdater = lambda eqs: 'x_new = x'
+    my_stateupdater = lambda eqs, vars: 'x_new = x'
     with catch_logs() as logs:
-        returned = determine_stateupdater(eqs, variables,
-                                          method=my_stateupdater)
-        assert returned is my_stateupdater
+        returned = apply_stateupdater(eqs, variables, method=my_stateupdater)
         # No warning here
         assert len(logs) == 0
     
@@ -420,34 +430,33 @@ def test_determination():
                              ('rk2', rk2), ('rk4', rk4),
                              ('heun', heun), ('milstein', milstein)]:
         with catch_logs() as logs:
-            returned = determine_stateupdater(eqs, variables,
+            returned = apply_stateupdater(eqs, variables,
                                               method=name)
-        assert returned is integrator
-        # No warning here
-        assert len(logs) == 0    
+            # No warning here
+            assert len(logs) == 0
 
     # Now all except heun and milstein should refuse to work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for name in ['linear', 'independent', 'euler', 'exponential_euler',
                  'rk2', 'rk4']:
-        assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                                 variables,
-                                                                 method=name))
+        assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs,
+                                                                                variables,
+                                                                                method=name))
 
     # milstein should work
     with catch_logs() as logs:
-        determine_stateupdater(eqs, variables, method='milstein')
+        apply_stateupdater(eqs, variables, method='milstein')
         assert len(logs) == 0
         
     # heun should work
     with catch_logs() as logs:
-        determine_stateupdater(eqs, variables, method='heun')
+        apply_stateupdater(eqs, variables, method='heun')
         assert len(logs) == 0
     
     # non-existing name
-    assert_raises(ValueError, lambda: determine_stateupdater(eqs,
-                                                             variables,
-                                                             method='does_not_exist'))
+    assert_raises(ValueError, lambda: apply_stateupdater(eqs,
+                                                         variables,
+                                                         method='does_not_exist'))
     
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
@@ -456,25 +465,40 @@ def test_determination():
     # included in this list
     all_methods = ['linear', 'exponential_euler', 'euler', 'heun', 'milstein']
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    assert determine_stateupdater(eqs, variables, all_methods) is linear
+    with catch_logs(log_level=logging.INFO) as logs:
+        apply_stateupdater(eqs, variables, all_methods)
+        assert len(logs) == 1
+        assert 'linear' in logs[0][2]
     
     # This is conditionally linear
     eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
                        dw/dt = -w/ (10*ms) : 1''')
-    assert determine_stateupdater(eqs, variables, all_methods) is exponential_euler
+    with catch_logs(log_level=logging.INFO) as logs:
+        apply_stateupdater(eqs, variables, all_methods)
+        assert len(logs) == 1
+        assert 'exponential_euler' in logs[0][2]
 
     # # Do not test for now
     # eqs = Equations('dv/dt = sin(t) / (10*ms) : 1')
-    # assert determine_stateupdater(eqs, variables) is independent
+    # assert apply_stateupdater(eqs, variables) is independent
 
     eqs = Equations('dv/dt = -sqrt(v) / (10*ms) : 1')
-    assert determine_stateupdater(eqs, variables, all_methods) is euler
+    with catch_logs(log_level=logging.INFO) as logs:
+        apply_stateupdater(eqs, variables, all_methods)
+        assert len(logs) == 1
+        assert "'euler'" in logs[0][2]
 
     eqs = Equations('dv/dt = -v / (10*ms) + 0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, variables, all_methods) is euler
+    with catch_logs(log_level=logging.INFO) as logs:
+        apply_stateupdater(eqs, variables, all_methods)
+        assert len(logs) == 1
+        assert "'euler'" in logs[0][2]
 
     eqs = Equations('dv/dt = -v / (10*ms) + v*0.1*second**-.5*xi: 1')
-    assert determine_stateupdater(eqs, variables, all_methods) is heun
+    with catch_logs(log_level=logging.INFO) as logs:
+        apply_stateupdater(eqs, variables, all_methods)
+        assert len(logs) == 1
+        assert "'heun'" in logs[0][2]
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -545,7 +569,7 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                assert_raises(ValueError, lambda: net.run(0*ms))
+                assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
         # multiplicative
         G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
@@ -557,25 +581,25 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                assert_raises(ValueError, lambda: net.run(0*ms))
+                assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # If the argument is more than just "t", we cannot guarantee that it is
     # actually locally constant
     G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
                         method='linear', namespace={'ta': ta0})
     net = Network(G)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
                     method='linear')
     net = Network(G)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='linear')
     net = Network(G)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',

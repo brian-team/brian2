@@ -151,12 +151,9 @@ class StateUpdater(CodeRunner):
                                            set(),
                                            run_namespace=run_namespace)
 
-        # Since we did not necessarily no all the functions at creation time,
-        # we might want to reconsider our numerical integration method
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               variables,
-                                                               self.method_choice)
-        self.abstract_code += self.method(self.group.equations, variables)
+        self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                   variables,
+                                                                   self.method_choice)
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.substituted_expressions])
