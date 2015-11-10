@@ -126,13 +126,13 @@ def test_refractoriness_threshold():
 def test_refractoriness_types():
     # make sure that using a wrong type of refractoriness does not work
     group = NeuronGroup(1, '', refractory='3*Hz')
-    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    assert_raises(TypeError, lambda: Network(group).run(0*ms))
     group = NeuronGroup(1, 'ref: Hz', refractory='ref')
-    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    assert_raises(TypeError, lambda: Network(group).run(0*ms))
     group = NeuronGroup(1, '', refractory='3')
-    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    assert_raises(TypeError, lambda: Network(group).run(0*ms))
     group = NeuronGroup(1, 'ref: 1', refractory='ref')
-    assert_raises(TypeError, lambda: Network(collect(level=3)).run(0*ms))
+    assert_raises(TypeError, lambda: Network(group).run(0*ms))
 
 @attr('codegen-independent')
 def test_conditional_write_set():
