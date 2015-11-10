@@ -238,7 +238,12 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
-        A = (matrix * dt).exp()
+        try:
+            A = (matrix * dt).exp()
+        except NotImplementedError:
+            raise UnsupportedEquationsException('Cannot solve the given '
+                                                'equations with this '
+                                                'stateupdater.')
         if simplify:
             A.simplify()
         C = sp.ImmutableMatrix([A.dot(b)]) - b
