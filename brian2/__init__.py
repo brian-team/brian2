@@ -38,6 +38,12 @@ except ImportError as ex:
     sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
     missing.append('jinja2')
 
+try:
+    import cpuinfo
+except ImportError as ex:
+    sys.stderr.write('Importing cpuinfo failed: %s\n' % ex)
+    missing.append('py-cpuinfo')
+
 if len(missing):
     raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
 
