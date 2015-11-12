@@ -73,7 +73,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         if N < 1 or int(N) != N:
             raise ValueError('N has to be an integer >=1.')
-
+        N = int(N)  # Make sure that it is an integer, values such as 10.0 would
+                    # otherwise make weave compilation fail
         if len(indices) != len(times):
             raise ValueError(('Length of the indices and times array must '
                               'match, but %d != %d') % (len(indices),
