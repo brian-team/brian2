@@ -13,7 +13,7 @@ else:
 
     # Quick testing
     res = run_speed_tests(configurations=[NumpyConfiguration,
-                                          #WeaveConfiguration,
+                                          WeaveConfiguration,
                                           CythonConfiguration,
                                           #LocalConfiguration,
                                           #CPPStandaloneConfiguration,
@@ -31,7 +31,7 @@ else:
                                        #SparseHighRateSynapsesOnly,
                                        ],
                           #n_slice=slice(None, None, 3),
-                          #n_slice=slice(None, -2),
+                          n_slice=slice(None, -2),
                           run_twice=False,
                           maximum_run_time=1*second,
                           )
@@ -39,6 +39,6 @@ else:
     pickle.dump(res, open('cached_speed_test_results.pkl', 'wb'), -1)
 
 # res.plot_all_tests()
-res.plot_all_tests(profiling_minimum=0.1)
+res.plot_all_tests(profiling_minimum=0.15)
 # res.plot_all_tests(relative=True)
 show()

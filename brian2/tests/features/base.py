@@ -562,17 +562,23 @@ class SpeedTestResults(object):
             codeobjsuffixes = ['All', 'Overheads']+sorted(codeobjsuffixes)
             baseline = None
             havelabel = set()
+            markerstyles_cycle = iter(itertools.cycle(['o', 's', 'd', 'v', 'p', 'h', '^', '<', '>']))
+            dashes = {}
+            markerstyles = {}
             for isuffix, suffix in enumerate(codeobjsuffixes):
                 cols = itertools.cycle(pylab.rcParams['axes.color_cycle'])
                 for (iconfig, config), col in zip(enumerate(self.configurations), cols):
                     configname = config.name
                     runtimes = []
+                    skip = True
                     for n in ns:
                         runtime = self.full_results.get((configname, fullname, n, 'All'), numpy.nan)
                         thistime = self.full_results.get((configname, fullname, n, suffix), numpy.nan)
-                        if float(thistime/runtime)<profiling_minimum:
-                            thistime = numpy.nan
+                        if float(thistime/runtime)>=profiling_minimum:
+                            skip = False
                         runtimes.append(thistime)
+                    if skip:
+                        continue
                     runtimes = numpy.array(runtimes)
                     if relative:
                         if baseline is None:
@@ -590,18 +596,28 @@ class SpeedTestResults(object):
                             label = None
                         else:
                             havelabel.add(label)
-                        line = pylab.plot(ns, runtimes, lw=lw, c=col, label=label)[0]
+                        dash = None
+                        msty = None
                         if suffix!='All':
-                            j = isuffix-1
-                            firstdash = (j//2)*4.0+4.0
-                            seconddash = j%2==1
-                            if seconddash:
-                                dash = (firstdash, 4.0, 2.0, 4.0)
+                            if suffix in dashes:
+                                dash = dashes[suffix]
+                                msty = markerstyles[suffix]
                             else:
-                                dash = (firstdash, 4.0)
+                                j = len(dashes)
+                                dash = (8, 2)
+                                for b in bin(j)[2:]:
+                                    if b=='0':
+                                        dash = dash+(2, 2)
+                                    else:
+                                        dash = dash+(4, 2)
+                                dashes[suffix] = dash
+                                markerstyles[suffix] = msty = markerstyles_cycle.next()
+                        line = pylab.plot(ns, runtimes, lw=lw, c=col, marker=msty,
+                                          mec='none', ms=8, label=label)[0]
+                        if dash is not None:
                             line.set_dashes(dash)
             pylab.title(fullname)
-            pylab.legend(loc='best', fontsize='x-small', handlelength=4.0)
+            pylab.legend(loc='best', fontsize='x-small', handlelength=8.0)
             pylab.xlabel(st.n_label)
             if st.n_axis_log:
                 pylab.gca().set_xscale('log')
