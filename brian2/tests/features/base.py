@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import itertools
+import re
 
 from brian2.utils.stringtools import indent
 
@@ -252,15 +254,20 @@ try:
             run_time = configuration.get_last_run_time()
         except NotImplementedError:
             pass
-    run_time = run_time/configuration.get_last_run_completed_fraction()
+    lrcf = configuration.get_last_run_completed_fraction()
+    run_time = run_time/lrcf
+    prof_info = brian2.magic_network.profiling_info
+    new_prof_info = []
+    for n, t in prof_info:
+        new_prof_info.append((n, t/lrcf))
     f = open(r'{tempfname}', 'wb')
-    pickle.dump((None, results, run_time), f, -1)
+    pickle.dump((None, results, run_time, new_prof_info), f, -1)
     f.close()
 except Exception, ex:
     #traceback.print_exc(file=sys.stdout)
     tb = traceback.format_exc()
     f = open(r'{tempfname}', 'wb')
-    pickle.dump((tb, ex, 0.0), f, -1)
+    pickle.dump((tb, ex, 0.0, []), f, -1)
     f.close()
     '''.format(config_module=configuration.__module__,
                config_name=configuration.__name__,
@@ -281,8 +288,8 @@ except Exception, ex:
     #sys.stdout.write(stdout)
     #sys.stderr.write(stderr)
     f = open(tempfilename, 'rb')
-    tb, res, runtime = pickle.load(f)
-    return tb, res, runtime
+    tb, res, runtime, profiling_info = pickle.load(f)
+    return tb, res, runtime, profiling_info
     
 
 def check_or_compare(feature, res, baseline, maxrelerr):
@@ -326,7 +333,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
             txt = 'OK'
             sym = '.'
             exc = None
-            tb, res, runtime = results(configuration, ft, maximum_run_time=maximum_run_time)
+            tb, res, runtime, prof_info = results(configuration, ft, maximum_run_time=maximum_run_time)
             if isinstance(res, Exception):
                 if isinstance(res, NotImplementedError):
                     sym = 'N'
@@ -350,9 +357,9 @@ def run_feature_tests(configurations=None, feature_tests=None,
                         sym = 'F'
                         txt = 'Fail (error=%.2f%%)' % (100.0*exc.error)
             sys.stdout.write(sym)
-            full_results[configuration.name, ft.fullname()] = (sym, txt, exc, tb, runtime)
+            full_results[configuration.name, ft.fullname()] = (sym, txt, exc, tb, runtime, prof_info)
             for tag in ft.tags:
-                tag_results[tag][configuration.name].append((sym, txt, exc, tb, runtime))
+                tag_results[tag][configuration.name].append((sym, txt, exc, tb, runtime, prof_info))
         if verbose:
             print ']'
         
@@ -381,8 +388,8 @@ class FeatureTestResults(object):
                 curcat = cat
             row = [ft.name]
             for configuration in self.configurations:
-                sym, txt, exc, tb, runtime = self.full_results[configuration.name,
-                                                               ft.fullname()]
+                sym, txt, exc, tb, runtime, prof_info = self.full_results[configuration.name,
+                                                                          ft.fullname()]
                 row.append(txt)
             table.append(row)
         return make_table(table)
@@ -397,7 +404,7 @@ class FeatureTestResults(object):
             row = [tag]
             for configuration in self.configurations:
                 tag_res = self.tag_results[tag][configuration.name]
-                syms = [sym for sym, txt, exc, tb, runtime in tag_res]
+                syms = [sym for sym, txt, exc, tb, runtime, prof_info in tag_res]
                 n = len(syms)
                 okcount = sum(sym=='.' for sym in syms)
                 poorcount = sum(sym=='I' for sym in syms)
@@ -442,8 +449,8 @@ class FeatureTestResults(object):
         for configuration in self.configurations:
             curconfig = []
             for ft in self.feature_tests:
-                sym, txt, exc, tb, runtime = self.full_results[configuration.name,
-                                                               ft.fullname()]
+                sym, txt, exc, tb, runtime, prof_info = self.full_results[configuration.name,
+                                                                          ft.fullname()]
                 if tb is not None:
                     curconfig.append((ft.fullname(), tb))
             if len(curconfig):
@@ -470,7 +477,8 @@ class FeatureTestResults(object):
 
 
 def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbose=True,
-                    n_slice=slice(None), maximum_run_time=1e7*brian2.second):
+                    n_slice=slice(None), maximum_run_time=1e7*brian2.second,
+                    minimum_profiling_fraction=0.1):
     if configurations is None:
         # some configurations to attempt to import
         try:
@@ -496,7 +504,7 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
             for configuration in configurations:
                 sym = '.'
                 for _ in xrange(1+int(run_twice)):
-                    tb, res, runtime = results(configuration, ft, n, maximum_run_time=maximum_run_time)
+                    tb, res, runtime, prof_info = results(configuration, ft, n, maximum_run_time=maximum_run_time)
                 if isinstance(res, Exception):
                     if isinstance(res, NotImplementedError):
                         sym = 'N'
@@ -506,7 +514,18 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
                         raise res
                     runtime = numpy.NAN
                 sys.stdout.write(sym)
-                full_results[configuration.name, ft.fullname(), n] = runtime
+                full_results[configuration.name, ft.fullname(), n, 'All'] = runtime
+                suffixtime = defaultdict(float)
+                for codeobjname, proftime in prof_info:
+                    # parts = codeobjname.split('_')
+                    # parts = [part for part in parts if not re.match(r'\d+', part)]
+                    #suffix = '_'.join(parts)
+                    suffix = codeobjname
+                    suffixtime[suffix] += proftime
+                for suffix, proftime in suffixtime.items():
+                    # only include data which is larger than min fraction of total time
+                    if float(proftime/runtime)>=minimum_profiling_fraction:
+                        full_results[configuration.name, ft.fullname(), n, suffix] = proftime
             if verbose:
                 print ']',
         if verbose:
@@ -522,30 +541,65 @@ class SpeedTestResults(object):
         self.speed_tests = speed_tests
         
     def get_ns(self, fullname):
-        L = [(cn, fn, n) for cn, fn, n in self.full_results.keys() if fn==fullname]
-        confignames, fullnames, n = zip(*L)
+        L = [(cn, fn, n, s) for cn, fn, n, s in self.full_results.keys() if fn==fullname]
+        confignames, fullnames, n, codeobjsuffixes  = zip(*L)
         return numpy.array(sorted(list(set(n))))
-    
-    def plot_all_tests(self, relative=False):
+
+    def get_codeobjsuffixes(self, fullname):
+        L = [(cn, fn, n, s) for cn, fn, n, s in self.full_results.keys() if fn==fullname]
+        confignames, fullnames, n, codeobjsuffixes  = zip(*L)
+        return set(codeobjsuffixes)
+
+    def plot_all_tests(self, relative=False, profiling=False):
         import pylab
         for st in self.speed_tests:
             fullname = st.fullname()
             pylab.figure()
             ns = self.get_ns(fullname)
+            codeobjsuffixes = self.get_codeobjsuffixes(fullname)
+            if profiling:
+                codeobjsuffixes.remove('All')
+                codeobjsuffixes = ['All']+sorted(codeobjsuffixes)
+            else:
+                codeobjsuffixes = ['All']
             baseline = None
-            for config in self.configurations:
-                configname = config.name
-                runtimes = []
-                for n in ns:
-                    runtimes.append(self.full_results[configname, fullname, n])
-                runtimes = numpy.array(runtimes)
-                if relative:
-                    if baseline is None:
-                        baseline = runtimes
-                    runtimes = baseline/runtimes
-                pylab.plot(ns, runtimes, label=configname)
+            havelabel = set()
+            for isuffix, suffix in enumerate(codeobjsuffixes):
+                cols = itertools.cycle(pylab.rcParams['axes.color_cycle'])
+                for (iconfig, config), col in zip(enumerate(self.configurations), cols):
+                    configname = config.name
+                    runtimes = []
+                    for n in ns:
+                        runtimes.append(self.full_results.get((configname, fullname, n, suffix), numpy.nan))
+                    runtimes = numpy.array(runtimes)
+                    if relative:
+                        if baseline is None:
+                            baseline = runtimes
+                        runtimes = baseline/runtimes
+                    if suffix=='All':
+                        lw = 2
+                        label = configname
+                    else:
+                        lw = 1
+                        label = suffix
+                    plottable = sum(-numpy.isnan(runtimes[1:]+runtimes[:-1]))
+                    if plottable:
+                        if label in havelabel:
+                            label = None
+                        else:
+                            havelabel.add(label)
+                        line = pylab.plot(ns, runtimes, lw=lw, c=col, label=label)[0]
+                        if suffix!='All':
+                            j = isuffix-1
+                            firstdash = (j//2)*4.0+4.0
+                            seconddash = j%2==1
+                            if seconddash:
+                                dash = (firstdash, 4.0, 2.0, 4.0)
+                            else:
+                                dash = (firstdash, 4.0)
+                            line.set_dashes(dash)
             pylab.title(fullname)
-            pylab.legend(loc='best', fontsize='x-small')
+            pylab.legend(loc='best', fontsize='x-small', handlelength=4.0)
             pylab.xlabel(st.n_label)
             if st.n_axis_log:
                 pylab.gca().set_xscale('log')
