@@ -72,18 +72,22 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.codeobj_class = codeobj_class
 
         if N < 1 or int(N) != N:
-            raise ValueError('N has to be an integer >=1.')
-
+            raise TypeError('N has to be an integer >=1.')
+        N = int(N)  # Make sure that it is an integer, values such as 10.0 would
+                    # otherwise make weave compilation fail
         if len(indices) != len(times):
             raise ValueError(('Length of the indices and times array must '
                               'match, but %d != %d') % (len(indices),
                                                         len(times)))
-
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
         elif len(times) and period <= np.max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
+        if len(times) and np.min(times) < 0*second:
+            raise ValueError('Spike times cannot be negative')
+        if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
+            raise ValueError('Indices have to lie in the interval [0, %d[' % N)
 
         self.start = 0
         self.stop = N

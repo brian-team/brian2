@@ -168,6 +168,17 @@ def test_spikegenerator_change_period():
 
     _compare_spikes(5, indices, times, s_mon, 10*ms)
 
+@attr('codegen-independent')
+def test_spikegenerator_incorrect_values():
+    assert_raises(TypeError, lambda: SpikeGeneratorGroup(0, [], []*second))
+    # Floating point value for N
+    assert_raises(TypeError, lambda: SpikeGeneratorGroup(1.5, [], []*second))
+    # Negative index
+    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 3, -1], [0, 1, 2]*ms))
+    # Too high index
+    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 5, 1], [0, 1, 2]*ms))
+    # Negative time
+    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 1, 2], [0, -1, 2]*ms))
 
 @attr('codegen-independent')
 def test_spikegenerator_incorrect_period():
@@ -259,18 +270,18 @@ def test_spikegenerator_rounding_period():
 def test_spikegenerator_multiple_spikes_per_bin():
     # Multiple spikes per bin are of course fine if they don't belong to the
     # same neuron
-    SG = SpikeGeneratorGroup(1, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
+    SG = SpikeGeneratorGroup(2, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
     net = Network(SG)
     net.run(0*ms)
 
     # This should raise an error
-    SG = SpikeGeneratorGroup(1, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
+    SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
     net = Network(SG)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
-    SG = SpikeGeneratorGroup(1, [0, 0], [0.05, 0.15]*ms)
+    SG = SpikeGeneratorGroup(2, [0, 0], [0.05, 0.15]*ms)
     net = Network(SG)
     net.run(0*ms)  # all is fine
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
@@ -380,22 +391,23 @@ if __name__ == '__main__':
     import time
     start = time.time()
 
-    # test_spikegenerator_connected()
-    # test_spikegenerator_basic()
-    # test_spikegenerator_basic_sorted()
-    # test_spikegenerator_period()
-    # test_spikegenerator_period_repeat()
-    # test_spikegenerator_change_spikes()
-    # test_spikegenerator_change_period()
-    # test_spikegenerator_incorrect_period()
-    # test_spikegenerator_rounding()
-    # test_spikegenerator_rounding_long()
-    # test_spikegenerator_rounding_period()
-    # test_spikegenerator_multiple_spikes_per_bin()
+    test_spikegenerator_connected()
+    test_spikegenerator_basic()
+    test_spikegenerator_basic_sorted()
+    test_spikegenerator_period()
+    test_spikegenerator_period_repeat()
+    test_spikegenerator_change_spikes()
+    test_spikegenerator_change_period()
+    test_spikegenerator_incorrect_values()
+    test_spikegenerator_incorrect_period()
+    test_spikegenerator_rounding()
+    test_spikegenerator_rounding_long()
+    test_spikegenerator_rounding_period()
+    test_spikegenerator_multiple_spikes_per_bin()
     for t in [
                 test_spikegenerator_standalone,
-                # test_spikegenerator_standalone_change_spikes,
-                # test_spikegenerator_standalone_change_period
+                test_spikegenerator_standalone_change_spikes,
+                test_spikegenerator_standalone_change_period
              ]:
         t(with_output=True)
         restore_device()
