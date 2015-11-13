@@ -72,18 +72,22 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.codeobj_class = codeobj_class
 
         if N < 1 or int(N) != N:
-            raise ValueError('N has to be an integer >=1.')
-
+            raise TypeError('N has to be an integer >=1.')
+        N = int(N)  # Make sure that it is an integer, values such as 10.0 would
+                    # otherwise make weave compilation fail
         if len(indices) != len(times):
             raise ValueError(('Length of the indices and times array must '
                               'match, but %d != %d') % (len(indices),
                                                         len(times)))
-
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
         elif len(times) and period <= np.max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
+        if len(times) and np.min(times) < 0*second:
+            raise ValueError('Spike times cannot be negative')
+        if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
+            raise ValueError('Indices have to lie in the interval [0, %d[' % N)
 
         self.start = 0
         self.stop = N
@@ -151,7 +155,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         self.variables['period'].set_value(period)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         # Do some checks on the period vs. dt
         dt = self.dt_[:]  # make a copy
         period = self.period_
@@ -188,8 +192,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             self._previous_dt = dt
             self._spikes_changed = False
 
-        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace,
-                                                    level=level+1)
+        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace)
 
     @check_units(indices=1, times=second, period=second)
     def set_spikes(self, indices, times, period=1e100*second, sorted=False):

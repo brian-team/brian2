@@ -359,7 +359,13 @@ def make_statements(code, variables, dtype, optimise=True):
         identifier used in the `code`.
     dtype : `dtype`
         The data type to use for temporary variables
-
+    optimise : bool, optional
+        Whether to optimise expressions, including
+        pulling out loop invariant expressions and putting them in new
+        scalar constants. Defaults to ``False``, since this function is also
+        used just to in contexts where we are not interested by this kind of
+        optimisation. For the main code generation stage, its value is set by
+        the `codegen.loop_invariant_optimisations` preference.
     Returns
     -------
     scalar_statements, vector_statements : (list of `Statement`, list of `Statement`)
@@ -369,7 +375,8 @@ def make_statements(code, variables, dtype, optimise=True):
 
     Notes
     -----
-    The `scalar_statements` may include newly introduced scalar constants that
+    If ``optimise`` is ``True``, then the
+    ``scalar_statements`` may include newly introduced scalar constants that
     have been identified as loop-invariant and have therefore been pulled out
     of the vector statements. The resulting statements will also use augmented
     assignments where possible, i.e. a statement such as ``w = w + 1`` will be

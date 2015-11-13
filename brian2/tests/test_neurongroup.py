@@ -665,47 +665,52 @@ def test_unit_errors_threshold_reset():
     Test that unit errors in thresholds and resets are detected.
     '''
     # Unit error in threshold
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', threshold='v > -20*mV')
     assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
-                                      threshold='v > -20*mV'))
+                  lambda: Network(group).run(0*ms))
 
     # Unit error in reset
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                        threshold='True',
+                        reset='v = -65*mV')
     assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
-                                      threshold='True',
-                                      reset='v = -65*mV'))
+                  lambda: Network(group).run(0*ms))
 
     # More complicated unit reset with an intermediate variable
     # This should pass
-    NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                 threshold='False',
                 reset='''temp_var = -65
                          v = temp_var''')
+    run(0*ms)
     # throw in an empty line (should still pass)
-    NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                 threshold='False',
                 reset='''temp_var = -65
 
                          v = temp_var''')
-
+    run(0*ms)
     # This should fail
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                        threshold='False',
+                        reset='''temp_var = -65*mV
+                                 v = temp_var''')
     assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
-                                      threshold='False',
-                                      reset='''temp_var = -65*mV
-                                               v = temp_var'''))
+                  lambda: Network(group).run(0*ms))
 
     # Resets with an in-place modification
     # This should work
-    NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
-                threshold='False',
-                reset='''v /= 2''')
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                        threshold='False',
+                        reset='''v /= 2''')
+    run(0*ms)
 
     # This should fail
+    group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
+                        threshold='False',
+                        reset='''v -= 60*mV''')
     assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
-                                      threshold='False',
-                                      reset='''v -= 60*mV'''))
+              lambda: Network(group).run(0*ms))
 
 @attr('codegen-independent')
 def test_syntax_errors():
@@ -717,16 +722,15 @@ def test_syntax_errors():
     # We do not specify the exact type of exception here: Python throws a
     # SyntaxError while C++ results in a ValueError
     # Syntax error in threshold
-    assert_raises(Exception,
-                  lambda: NeuronGroup(1, 'dv/dt = 5*Hz : 1',
-                                      threshold='>1'),
-                  )
+    group = NeuronGroup(1, 'dv/dt = 5*Hz : 1',
+                        threshold='>1')
+    assert_raises(Exception, lambda: Network(group).run(0*ms))
 
     # Syntax error in reset
-    assert_raises(Exception,
-                  lambda: NeuronGroup(1, 'dv/dt = 5*Hz : 1',
-                                      threshold='True',
-                                      reset='0'))
+    group = NeuronGroup(1, 'dv/dt = 5*Hz : 1',
+                        threshold='True',
+                        reset='0')
+    assert_raises(Exception, lambda: Network(group).run(0*ms))
 
 @attr('codegen-independent')
 def test_custom_events():
@@ -761,14 +765,13 @@ def test_custom_events_schedule():
 @attr('codegen-independent')
 def test_incorrect_custom_event_definition():
     # Incorrect event name
-    assert_raises(TypeError, lambda: NeuronGroup(1, '',
-                                                 events={'1event': 'True'}))
+    assert_raises(TypeError, lambda: NeuronGroup(1, '', events={'1event': 'True'}))
     # duplicate definition of 'spike' event
     assert_raises(ValueError, lambda: NeuronGroup(1, '', threshold='True',
                                                   events={'spike': 'False'}))
     # not a threshold
-    assert_raises(TypeError, lambda: NeuronGroup(1, '',
-                                                 events={'my_event': 10*mV}))
+    G = NeuronGroup(1, '', events={'my_event': 10*mV})
+    assert_raises(TypeError, lambda: Network(G).run(0*ms))
     # schedule for a non-existing event
     G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
     assert_raises(ValueError, lambda: G.set_event_schedule('another_event'))
@@ -1027,8 +1030,8 @@ def test_subexpression_with_constant():
         assert len(G.I) == 1
 
         # These will not work
-        assert_raises(ValueError, lambda: np.array(G.I))
-        assert_raises(ValueError, lambda: np.mean(G.I))
+        assert_raises(KeyError, lambda: np.array(G.I))
+        assert_raises(KeyError, lambda: np.mean(G.I))
         # But these should
         assert_equal(np.array(G.I[:]), G.I[:])
         assert np.mean(G.I[:]) == 2

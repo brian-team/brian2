@@ -64,6 +64,7 @@ def check_units_statements(code, variables):
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
     '''
+    variables = dict(variables)
     # Avoid a circular import
     from brian2.codegen.translation import analyse_identifiers
     known = set(variables.keys())
