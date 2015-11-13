@@ -123,16 +123,15 @@ def test_warning():
 
 @attr('codegen-independent')
 def test_warning_internal_variables():
-    N = 5
     group1 = SimpleGroup(namespace=None,
                          variables={'N': Constant('N', Unit(1), 5)})
     group2 = SimpleGroup(namespace=None,
                          variables={'N': Constant('N', Unit(1), 7)})
     with catch_logs() as l:
-        group1.resolve_all(['N'])  # should not raise a warning
+        group1.resolve_all(['N'], run_namespace={'N': 5})  # should not raise a warning
         assert len(l) == 0, 'got warnings: %s' % str(l)
     with catch_logs() as l:
-        group2.resolve_all(['N'])  # should raise a warning
+        group2.resolve_all(['N'], run_namespace={'N': 5})  # should raise a warning
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
 

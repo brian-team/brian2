@@ -35,6 +35,34 @@ __all__ = ['Group', 'VariableOwner', 'CodeRunner']
 logger = get_logger(__name__)
 
 
+def _display_value(obj):
+    '''
+    Helper function for warning messages that display the value of objects. This
+    functions returns a nicer representation for symbolic constants and
+    functions.
+
+    Parameters
+    ----------
+    obj : object
+        The object to display
+
+    Returns
+    -------
+    value : str
+        A string representation of the object
+    '''
+    try:
+        return repr(obj.get_value())
+    except AttributeError:
+        pass
+    try:
+        return repr(obj.value)
+    except AttributeError:
+        pass
+    if isinstance(obj, Function):
+        return '<Function>'
+    return repr(obj)
+
 def _conflict_warning(message, resolutions):
     '''
     A little helper functions to generate warnings for logging. Specific
@@ -51,11 +79,13 @@ def _conflict_warning(message, resolutions):
         # nothing to warn about
         return
     elif len(resolutions) == 1:
-        second_part = ('but also refers to a variable in the %s namespace:'
-                       ' %r') % (resolutions[0][0], resolutions[0][1])
+        second_part = ('but the name also refers to a variable in the %s '
+                       'namespace with value %s.') % (resolutions[0][0],
+                                                      _display_value(resolutions[0][1]))
     else:
-        second_part = ('but also refers to a variable in the following '
-                       'namespaces: %s') % (', '.join([r[0] for r in resolutions]))
+        second_part = ('but the name also refers to a variable in the following '
+                       'namespaces: %s.') % (', '.join([r[0]
+                                                        for r in resolutions]))
 
     logger.warn(message + ' ' + second_part,
                 'Group.resolve.resolution_conflict', once=True)
@@ -624,30 +654,8 @@ class Group(VariableOwner, BrianObject):
             # We already found the identifier, but we try to resolve it in the
             # external namespace nevertheless, to report a warning if it is
             # present there as well.
-            try:
-                resolved_external = self._resolve_external(identifier,
-                                                           run_namespace=run_namespace)
-                # If we arrive here without a KeyError then the name is present
-                # in the external namespace as well
-
-                # Do not raise a warning if both correspond to the same constant
-                # value, a typical case being an externally defined "N" with the
-                # the number of neurons and a later use of "N" in an expression
-                # (which refers to the internal variable storing the number of
-                # neurons in the group)
-                if not (isinstance(resolved_internal, Constant) and
-                            isinstance(resolved_external, Constant) and
-                                resolved_internal.get_value() == resolved_external.get_value()):
-
-                    message = ('Variable {var} is present in the namespace but is '
-                               'also an internal variable of {name}, the internal '
-                               'variable will be used.'.format(var=identifier,
-                                                               name=self.name))
-                    logger.warn(message, 'Group.resolve.resolution_conflict',
-                                once=True)
-            except KeyError:
-                pass  # Nothing to warn about
-
+            self._resolve_external(identifier, run_namespace=run_namespace,
+                                   internal_variable=resolved_internal)
             return resolved_internal
 
         # We did not find the name internally, try to resolve it in the external
@@ -706,26 +714,19 @@ class Group(VariableOwner, BrianObject):
                                                  run_namespace=run_namespace)
         return resolved
 
-    def _resolve_external(self, identifier, run_namespace, user_identifier=True):
+    def _resolve_external(self, identifier, run_namespace, user_identifier=True,
+                          internal_variable=None):
         '''
         Resolve an external identifier in the context of a `Group`. If the `Group`
         declares an explicit namespace, this namespace is used in addition to the
         standard namespace for units and functions. Additionally, the namespace in
         the `run_namespace` argument (i.e. the namespace provided to `Network.run`)
-        or, if this argument is unspecified, the implicit namespace of
-        surrounding variables in the stack frame where the original call was made
-        is used (to determine this stack frame, the `level` argument has to be set
-        correctly).
+        is used.
 
         Parameters
         ----------
         identifier : str
             The name to resolve.
-        user_identifier : bool, optional
-            Whether this is an identifier that was used by the user (and not
-            something automatically generated that the user might not even
-            know about). Will be used to determine whether to display a
-            warning in the case of namespace clashes. Defaults to ``True``.
         group : `Group`
             The group that potentially defines an explicit namespace for looking up
             external names.
@@ -733,6 +734,15 @@ class Group(VariableOwner, BrianObject):
             A namespace (mapping from strings to objects), as provided as an
             argument to the `Network.run` function or returned by
             `get_local_namespace`.
+        user_identifier : bool, optional
+            Whether this is an identifier that was used by the user (and not
+            something automatically generated that the user might not even
+            know about). Will be used to determine whether to display a
+            warning in the case of namespace clashes. Defaults to ``True``.
+        internal_variable : `Variable`, optional
+            The internal variable object that corresponds to this name (if any).
+            This is used to give warnings if it also corresponds to a variable
+            from an external namespace.
         '''
         # We save tuples of (namespace description, referred object) to
         # give meaningful warnings in case of duplicate definitions
@@ -755,8 +765,12 @@ class Group(VariableOwner, BrianObject):
 
         if len(matches) == 0:
             # No match at all
-            raise KeyError(('The identifier "%s" could not be resolved.') %
-                           (identifier))
+            if internal_variable is not None:
+                return None
+            else:
+                raise KeyError(('The identifier "%s" could not be resolved.') %
+                               (identifier))
+
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
             first_obj = matches[0][1]
@@ -777,16 +791,46 @@ class Group(VariableOwner, BrianObject):
                 found_mismatch = True
                 break
 
-            if found_mismatch and user_identifier:
+            if found_mismatch and user_identifier and internal_variable is None:
                 _conflict_warning(('The name "%s" refers to different objects '
                                    'in different namespaces used for resolving '
                                    'names in the context of group "%s". '
                                    'Will use the object from the %s namespace '
-                                   'with the value %r') %
+                                   'with the value %s,') %
                                   (identifier, getattr(self, 'name',
                                                        '<unknown>'),
                                    matches[0][0],
-                                   first_obj), matches[1:])
+                                   _display_value(first_obj)), matches[1:])
+
+        if internal_variable is not None and user_identifier:
+            # Filter out matches that are identical (a typical case being an
+            # externally defined "N" with the the number of neurons and a later
+            # use of "N" in an expression (which refers to the internal variable
+            # storing the number of neurons in the group)
+            if isinstance(internal_variable, Constant):
+                filtered_matches = []
+                for match in matches:
+                    if not _same_value(match[1], internal_variable):
+                        filtered_matches.append(match)
+            else:
+                filtered_matches = matches
+            if len(filtered_matches) == 0:
+                pass  # Nothing to warn about
+            else:
+                warning_message = ('"{name}" is an internal variable of group '
+                                   '"{group}", but also exists in the ')
+                if len(matches) == 1:
+                    warning_message += ('{namespace} namespace with the value '
+                                        '{value}. ').format(namespace=filtered_matches[0][0],
+                                                           value=_display_value(filtered_matches[0][1]))
+                else:
+                    warning_message += ('following namespaces: '
+                                        '{namespaces}. ').format(namespaces=' ,'.join(match[0]
+                                                                                     for match in filtered_matches))
+                warning_message += 'The internal variable will be used.'
+                logger.warn(warning_message.format(name=identifier,
+                                                   group=self.name),
+                            'Group.resolve.resolution_conflict', once=True)
 
         # use the first match (according to resolution order)
         resolved = matches[0][1]
