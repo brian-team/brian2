@@ -477,8 +477,7 @@ class FeatureTestResults(object):
 
 
 def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbose=True,
-                    n_slice=slice(None), maximum_run_time=1e7*brian2.second,
-                    minimum_profiling_fraction=0.1):
+                    n_slice=slice(None), maximum_run_time=1e7*brian2.second):
     if configurations is None:
         # some configurations to attempt to import
         try:
@@ -516,16 +515,17 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
                 sys.stdout.write(sym)
                 full_results[configuration.name, ft.fullname(), n, 'All'] = runtime
                 suffixtime = defaultdict(float)
+                overheadstime = float(runtime)
                 for codeobjname, proftime in prof_info:
                     # parts = codeobjname.split('_')
                     # parts = [part for part in parts if not re.match(r'\d+', part)]
                     #suffix = '_'.join(parts)
                     suffix = codeobjname
                     suffixtime[suffix] += proftime
+                    overheadstime -= float(proftime)
                 for suffix, proftime in suffixtime.items():
-                    # only include data which is larger than min fraction of total time
-                    if float(proftime/runtime)>=minimum_profiling_fraction:
-                        full_results[configuration.name, ft.fullname(), n, suffix] = proftime
+                    full_results[configuration.name, ft.fullname(), n, suffix] = proftime
+                full_results[configuration.name, ft.fullname(), n, 'Overheads'] = overheadstime
             if verbose:
                 print ']',
         if verbose:
@@ -550,18 +550,16 @@ class SpeedTestResults(object):
         confignames, fullnames, n, codeobjsuffixes  = zip(*L)
         return set(codeobjsuffixes)
 
-    def plot_all_tests(self, relative=False, profiling=False):
+    def plot_all_tests(self, relative=False, profiling_minimum=1.0):
         import pylab
         for st in self.speed_tests:
             fullname = st.fullname()
             pylab.figure()
             ns = self.get_ns(fullname)
             codeobjsuffixes = self.get_codeobjsuffixes(fullname)
-            if profiling:
-                codeobjsuffixes.remove('All')
-                codeobjsuffixes = ['All']+sorted(codeobjsuffixes)
-            else:
-                codeobjsuffixes = ['All']
+            codeobjsuffixes.remove('All')
+            codeobjsuffixes.remove('Overheads')
+            codeobjsuffixes = ['All', 'Overheads']+sorted(codeobjsuffixes)
             baseline = None
             havelabel = set()
             for isuffix, suffix in enumerate(codeobjsuffixes):
@@ -570,7 +568,11 @@ class SpeedTestResults(object):
                     configname = config.name
                     runtimes = []
                     for n in ns:
-                        runtimes.append(self.full_results.get((configname, fullname, n, suffix), numpy.nan))
+                        runtime = self.full_results.get((configname, fullname, n, 'All'), numpy.nan)
+                        thistime = self.full_results.get((configname, fullname, n, suffix), numpy.nan)
+                        if float(thistime/runtime)<profiling_minimum:
+                            thistime = numpy.nan
+                        runtimes.append(thistime)
                     runtimes = numpy.array(runtimes)
                     if relative:
                         if baseline is None:
