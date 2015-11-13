@@ -13,33 +13,14 @@ __all__ = ['StateUpdateMethod']
 
 logger = get_logger(__name__)
 
+class UnsupportedEquationsException(Exception):
+    pass
+
 class StateUpdateMethod(object):
     __metaclass__ = ABCMeta
 
     #: A dictionary mapping state updater names to `StateUpdateMethod` objects
     stateupdaters = dict()
-
-    @abstractmethod
-    def can_integrate(self, equations, variables):
-        '''
-        Determine whether the state updater is a suitable choice. Should return
-        ``False`` if it is not appropriate (e.g. non-linear equations for a
-        linear state updater) and a ``True`` if it is appropriate.
-        
-        Parameters
-        ----------
-        equations : `Equations`
-            The model equations.
-        variables : dict
-            The `Variable` objects for the model variables.
-        
-        Returns
-        -------
-        ability : bool
-            ``True`` if this state updater is able to integrate the given
-            equations, ``False`` otherwise.
-        '''
-        pass
 
     @abstractmethod
     def __call__(self, equations, variables=None):
@@ -94,16 +75,13 @@ class StateUpdateMethod(object):
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
-    def determine_stateupdater(equations, variables, method):
+    def apply_stateupdater(equations, variables, method):
         '''
-        Determine a suitable state updater. If a `method` is given, the
-        state updater with the given name is used. In case it is a callable, it
-        will be used even if it is a state updater that claims it is not
-        applicable. If it is a string, the state updater registered with that
-        name will be used, but in this case an error will be raised if it
-        claims not to be applicable. If a `method` is a list of names, all the
-        methods will be tried until one that can integrate the equations is
-        found.
+        Applies a given state updater to equations. If a `method` is given, the
+        state updater with the given name is used or if is a callable, then it
+        is used directly. If a `method` is a list of names, all the
+        methods will be tried until one that doesn't raise an
+        `UnsupportedEquationsException` is found.
         
         Parameters
         ----------
@@ -115,48 +93,44 @@ class StateUpdateMethod(object):
         method : {callable, str, list of str}
             A callable usable as a state updater, the name of a registered
             state updater or a list of names of state updaters.
+
+        Returns
+        -------
+        abstract_code : str
+            The code integrating the given equations.
         '''
         if hasattr(method, '__call__'):
             # if this is a standard state updater, i.e. if it has a
             # can_integrate method, check this method and raise a warning if it
             # claims not to be applicable.
-            try:
-                if not method.can_integrate(equations, variables):
-                    logger.warn(('The manually specified state updater '
-                                 'claims that it does not support the given '
-                                 'equations.'))
-            except AttributeError:
-                # No can_integrate method
-                pass
-            
-            logger.info('Using manually specified state updater: %r' % method)
-            return method
+            stateupdater = method
+            method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
+            logger.debug('Using state updater: %r' % method)
         elif isinstance(method, basestring):
             method = method.lower()  # normalize name to lower case
             stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
             if stateupdater is None:
                 raise ValueError('No state updater with the name "%s" '
                                  'is known' % method)
-            if not stateupdater.can_integrate(equations, variables):
-                raise ValueError(('The state updater "%s" cannot be used for '
-                                  'the given equations' % method))
-            return stateupdater
+            logger.debug('Using state updater: %r' % method)
         elif isinstance(method, collections.Iterable):
-            for name in method:
-                if name not in StateUpdateMethod.stateupdaters:
-                    logger.warn('No state updater with the name "%s" '
-                                'is known' % name, 'unkown_stateupdater')
-                else:
-                    stateupdater = StateUpdateMethod.stateupdaters[name]
-                    try:
-                        if stateupdater.can_integrate(equations, variables):
-                            logger.info('Using stateupdater "%s"' % name)
-                            return stateupdater
-                    except KeyError:
-                        logger.debug(('It could not be determined whether state '
-                                      'updater "%s" is able to integrate the equations, '
-                                      'it appears the namespace is not yet complete.'
-                                      % name))
+            the_method = None
+            for one_method in method:
+                try:
+                    code = StateUpdateMethod.apply_stateupdater(equations,
+                                                                variables,
+                                                                one_method)
+                    the_method = one_method
+                    break
+                except UnsupportedEquationsException:
+                    pass
+            if the_method is None:
+                raise ValueError(('No stateupdater that is suitable for the '
+                                  'given equations has been found.'))
+            logger.info('Using state updater: %r' % the_method)
+            return code
 
-            raise ValueError(('No stateupdater that is suitable for the given '
-                              'equations has been found'))
+        code = stateupdater(equations, variables)
+        # If we get here, no error has been raised
+        return code
+

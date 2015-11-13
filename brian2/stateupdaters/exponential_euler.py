@@ -2,7 +2,7 @@ import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str
 
-from .base import StateUpdateMethod
+from .base import StateUpdateMethod, UnsupportedEquationsException
 
 __all__ = ['exponential_euler']
 
@@ -87,7 +87,18 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
         return True
     
     def __call__(self, equations, variables=None):
-        system = get_conditionally_linear_system(equations)
+        if equations.is_stochastic:
+            raise UnsupportedEquationsException('Cannot solve stochastic '
+                                                'equations with this state '
+                                                'updater.')
+
+        # Try whether the equations are conditionally linear
+        try:
+            system = get_conditionally_linear_system(equations)
+        except ValueError:
+            raise UnsupportedEquationsException('Can only solve conditionally '
+                                                'linear systems with this '
+                                                'state updater.')
         
         code = []
         for var, (A, B) in system.iteritems():

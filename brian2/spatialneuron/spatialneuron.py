@@ -402,7 +402,7 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._ends = self._temp_ends
         self._prepare_codeobj = None
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         # execute code to initalize the data structures
         if self._prepare_codeobj is None:
             self._prepare_codeobj = create_runner_codeobj(self.group,
@@ -411,8 +411,7 @@ class SpatialStateUpdater(CodeRunner, Group):
                                                           name=self.name+'_spatialneuron_prepare',
                                                           check_units=False,
                                                           additional_variables=self.variables,
-                                                          run_namespace=run_namespace,
-                                                          level=level+1)
+                                                          run_namespace=run_namespace)
         self._prepare_codeobj()
         # Raise a warning if the slow pure numpy version is used
         # For simplicity, we check which CodeObject class the _prepare_codeobj
@@ -428,7 +427,7 @@ class SpatialStateUpdater(CodeRunner, Group):
                              'switch to a different code generation target '
                              '(e.g. weave or cython) or install scipy.'),
                             once=True)
-        CodeRunner.before_run(self, run_namespace, level=level + 1)
+        CodeRunner.before_run(self, run_namespace)
 
     def _pre_calc_iteration(self, morphology, counter=0):
         self._temp_morph_i[counter] = morphology.index + 1

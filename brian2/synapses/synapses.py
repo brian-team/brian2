@@ -49,19 +49,11 @@ class StateUpdater(CodeRunner):
                             order=order,
                             name=group.name + '_stateupdater',
                             check_units=False)
-
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               method)
     
     def update_abstract_code(self, run_namespace=None, level=0):
-        
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               self.method_choice)
-        
-        self.abstract_code = self.method(self.group.equations,
-                                         self.group.variables)
+        self.abstract_code = StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                  self.group.variables,
+                                                                  self.method_choice)
 
 
 class SummedVariableUpdater(CodeRunner):
@@ -240,7 +232,7 @@ class SynapticPathway(CodeRunner, Group):
         self.abstract_code += 'lastupdate = t\n'
 
     @device_override('synaptic_pathway_before_run')
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
             self._initialise_queue_codeobj = create_runner_codeobj(self,
@@ -249,10 +241,9 @@ class SynapticPathway(CodeRunner, Group):
                                                                    name=self.name+'_initialise_queue',
                                                                    check_units=False,
                                                                    additional_variables=self.variables,
-                                                                   run_namespace=run_namespace,
-                                                                   level=level+2)
+                                                                   run_namespace=run_namespace)
         self._initialise_queue_codeobj()
-        CodeRunner.before_run(self, run_namespace, level=level+2)
+        CodeRunner.before_run(self, run_namespace)
 
         # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
@@ -273,8 +264,7 @@ class SynapticPathway(CodeRunner, Group):
                                                              additional_variables=self.variables,
                                                              needed_variables=needed_variables,
                                                              template_kwds=template_kwds,
-                                                             run_namespace=run_namespace,
-                                                             level=level+2)
+                                                             run_namespace=run_namespace)
 
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
@@ -829,9 +819,9 @@ class Synapses(Group):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         self.state('lastupdate')[:] = 't'
-        super(Synapses, self).before_run(run_namespace, level=level+1)
+        super(Synapses, self).before_run(run_namespace)
 
     def _add_updater(self, code, prepost, objname=None, delay=None,
                      event='spike'):

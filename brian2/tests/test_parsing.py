@@ -293,7 +293,7 @@ def test_parse_expression_unit():
             if name in variables:
                 all_variables[name] = variables[name]
             else:
-                all_variables[name] = group.resolve(name)
+                all_variables[name] = group._resolve(name, {})
 
         if expect is DimensionMismatchError:
             assert_raises(DimensionMismatchError, parse_expression_unit, expr,
@@ -312,7 +312,7 @@ def test_parse_expression_unit():
             if name in variables:
                 all_variables[name] = variables[name]
             else:
-                all_variables[name] = group.resolve(name)
+                all_variables[name] = group._resolve(name, {})
         assert_raises(SyntaxError, parse_expression_unit, expr, all_variables)
 
 

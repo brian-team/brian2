@@ -155,7 +155,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         self.variables['period'].set_value(period)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         # Do some checks on the period vs. dt
         dt = self.dt_[:]  # make a copy
         period = self.period_
@@ -192,8 +192,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             self._previous_dt = dt
             self._spikes_changed = False
 
-        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace,
-                                                    level=level+1)
+        super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace)
 
     @check_units(indices=1, times=second, period=second)
     def set_spikes(self, indices, times, period=1e100*second, sorted=False):

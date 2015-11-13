@@ -8,7 +8,8 @@ import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str
 from brian2.utils.logger import get_logger
-from brian2.stateupdaters.base import StateUpdateMethod
+from brian2.stateupdaters.base import (StateUpdateMethod,
+                                       UnsupportedEquationsException)
 
 __all__ = ['linear', 'independent']
 
@@ -54,9 +55,12 @@ def get_linear_system(eqs):
             one_pattern = factor_wildcard*symbol + constant_wildcard
             matches = current_s_expr.match(one_pattern)
             if matches is None:
-                raise ValueError(('The expression "%s", defining the variable %s, '
-                                 'could not be separated into linear components') %
-                                 (expr, name))
+                raise UnsupportedEquationsException(('The expression "%s", '
+                                                     'defining the variable '
+                                                     '%s, could not be '
+                                                     'separated into linear '
+                                                     'components.') %
+                                                    (expr, name))
 
             coefficients[row_idx, col_idx] = matches[factor_wildcard]
             current_s_expr = matches[constant_wildcard]
@@ -74,8 +78,7 @@ class IndependentStateUpdater(StateUpdateMethod):
     solved by sympy.
     '''
     def can_integrate(self, equations, variables):
-        if equations.is_stochastic:
-            return False
+
 
         # Not very efficient but guaranteed to give the correct answer:
         # Just try to apply the integration method
@@ -89,11 +92,12 @@ class IndependentStateUpdater(StateUpdateMethod):
         return True
 
     def __call__(self, equations, variables=None):
+        if equations.is_stochastic:
+            raise UnsupportedEquationsException('Cannot solve stochastic '
+                                                'equations with this state '
+                                                'updater')
         if variables is None:
             variables = {}
-
-        if equations.is_stochastic:
-            raise ValueError('Cannot solve stochastic equations with this state updater')
 
         diff_eqs = equations.substituted_expressions
 
@@ -124,18 +128,16 @@ class IndependentStateUpdater(StateUpdateMethod):
                 general_solution = sp.dsolve(diff_eq, f(t), simplify=False)
             # Check whether this is an explicit solution
             if not getattr(general_solution, 'lhs', None) == f(t):
-                raise ValueError('Cannot explicitly solve: ' + str(diff_eq))
-            # seems to happen sometimes in sympy 0.7.5
-            if getattr(general_solution, 'rhs', None) == sp.nan:
-                raise ValueError('Cannot explicitly solve: ' + str(diff_eq))
+                raise UnsupportedEquationsException('Cannot explicitly solve: '
+                                                    + str(diff_eq))
             # Solve for C1 (assuming "var" as the initial value and "t0" as time)
             if general_solution.has(Symbol('C1')):
                 if general_solution.has(Symbol('C2')):
-                    raise ValueError('Too many constants in solution: %s' % str(general_solution))
+                    raise UnsupportedEquationsException('Too many constants in solution: %s' % str(general_solution))
                 constant_solution = sp.solve(general_solution, Symbol('C1'))
                 if len(constant_solution) != 1:
-                    raise ValueError(("Couldn't solve for the constant "
-                                      "C1 in : %s ") % str(general_solution))
+                    raise UnsupportedEquationsException(("Couldn't solve for the constant "
+                                                         "C1 in : %s ") % str(general_solution))
                 constant = constant_solution[0].subs(t, t0).subs(f(t0), var)
                 solution = general_solution.rhs.subs('C1', constant)
             else:
@@ -162,9 +164,11 @@ def _check_for_locally_constant(expression, variables, dt_value, t_symbol):
             func_name = str(expression.func)
             if not (func_name in variables and
                         variables[func_name].is_locally_constant(dt_value)):
-                raise ValueError(('t is used in a context where we cannot'
-                                  'guarantee that it can be considered '
-                                  'locally constant.'))
+                raise UnsupportedEquationsException(('t is used in a context '
+                                                     'where we cannot '
+                                                     'guarantee that it can be '
+                                                     'considered locally '
+                                                     'constant.'))
         else:
             _check_for_locally_constant(arg, variables, dt_value, t_symbol)
 
@@ -193,7 +197,10 @@ class LinearStateUpdater(StateUpdateMethod):
         return True
 
     def __call__(self, equations, variables=None, simplify=True):
-
+        if equations.is_stochastic:
+            raise UnsupportedEquationsException('Cannot solve stochastic '
+                                                'equations with this state '
+                                                'updater.')
         if variables is None:
             variables = {}
 
@@ -223,11 +230,20 @@ class LinearStateUpdater(StateUpdateMethod):
 
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
+        if solution is None or set(symbols) != set(solution.keys()):
+            raise UnsupportedEquationsException('Cannot solve the given '
+                                                'equations with this '
+                                                'stateupdater.')
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
 
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
-        A = (matrix * dt).exp()
+        try:
+            A = (matrix * dt).exp()
+        except NotImplementedError:
+            raise UnsupportedEquationsException('Cannot solve the given '
+                                                'equations with this '
+                                                'stateupdater.')
         if simplify:
             A.simplify()
         C = sp.ImmutableMatrix([A.dot(b)]) - b
@@ -235,13 +251,7 @@ class LinearStateUpdater(StateUpdateMethod):
         # The use of .as_mutable() here is a workaround for a
         # ``Transpose object does not have
         updates = A * _S + C.transpose()
-        try:
-            # In sympy 0.7.3, we have to explicitly convert it to a single matrix
-            # In sympy 0.7.2, it is already a matrix (which doesn't have an
-            # is_explicit method)
-            updates = updates.as_explicit()
-        except AttributeError:
-            pass
+        updates = updates.as_explicit()
 
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
         # replace them with the state variable names 
