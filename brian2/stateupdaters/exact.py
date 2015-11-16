@@ -77,19 +77,6 @@ class IndependentStateUpdater(StateUpdateMethod):
     i.e. 1-dimensional differential equations. The individual equations are
     solved by sympy.
     '''
-    def can_integrate(self, equations, variables):
-
-
-        # Not very efficient but guaranteed to give the correct answer:
-        # Just try to apply the integration method
-        try:
-            self.__call__(equations, variables)
-        except (ValueError, NotImplementedError, TypeError) as ex:
-            logger.debug('Cannot use independent integration: %s' % ex)
-            return False
-
-        # It worked
-        return True
 
     def __call__(self, equations, variables=None):
         if equations.is_stochastic:
