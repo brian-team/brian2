@@ -5,7 +5,9 @@ from brian2.tests.features.speed import *
 #from brian2genn.correctness_testing import GeNNConfiguration
 import os, pickle
 
-if os.path.exists('cached_speed_test_results.pkl'):
+cache_results = False
+
+if cache_results and os.path.exists('cached_speed_test_results.pkl'):
     res = pickle.load(open('cached_speed_test_results.pkl', 'rb'))
 else:
     # Full testing
@@ -31,9 +33,9 @@ else:
                                        #SparseHighRateSynapsesOnly,
                                        ],
                           #n_slice=slice(None, None, 3),
-                          n_slice=slice(None, -2),
+                          n_slice=slice(None, -3),
                           run_twice=False,
-                          maximum_run_time=1*second,
+                          maximum_run_time=10*second,
                           )
 
     pickle.dump(res, open('cached_speed_test_results.pkl', 'wb'), -1)

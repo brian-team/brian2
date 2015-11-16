@@ -612,7 +612,7 @@ class SpeedTestResults(object):
                                         dash = dash+(4, 2)
                                 dashes[suffix] = dash
                                 markerstyles[suffix] = msty = markerstyles_cycle.next()
-                        line = pylab.plot(ns, runtimes, lw=lw, c=col, marker=msty,
+                        line = pylab.plot(ns, runtimes, lw=lw, color=col, marker=msty,
                                           mec='none', ms=8, label=label)[0]
                         if dash is not None:
                             line.set_dashes(dash)
