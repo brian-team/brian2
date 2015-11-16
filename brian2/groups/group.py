@@ -8,6 +8,8 @@ objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 import collections
 from collections import OrderedDict
 import weakref
+import numbers
+import inspect
 
 import numpy as np
 
@@ -761,7 +763,17 @@ class Group(VariableOwner, BrianObject):
 
         for description, namespace in namespaces.iteritems():
             if identifier in namespace:
-                matches.append((description, namespace[identifier]))
+                match = namespace[identifier]
+                if ((isinstance(match, (numbers.Number,
+                                         np.ndarray,
+                                         np.number,
+                                         Function,
+                                         Variable))) or
+                         (inspect.isfunction(match) and
+                              hasattr(match, '_arg_units') and
+                              hasattr(match, '_return_unit'))
+                    ):
+                    matches.append((description, match))
 
         if len(matches) == 0:
             # No match at all
