@@ -832,6 +832,9 @@ class Group(VariableOwner, BrianObject):
                                                    group=self.name),
                             'Group.resolve.resolution_conflict', once=True)
 
+        if internal_variable is not None:
+            return None  # We were only interested in the warnings above
+
         # use the first match (according to resolution order)
         resolved = matches[0][1]
 
