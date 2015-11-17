@@ -167,7 +167,7 @@ class CythonCodeGenerator(CodeGenerator):
                         newlines = [
                             "global _namespace{var_name}",
                             "global _namespace_num{var_name}",
-                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}'].view(dtype=_numpy.{numpy_dtype})",
+                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}']",
                             "_namespace{var_name} = <{cpp_dtype} *> _buf_{var_name}.data",
                             "_namespace_num{var_name} = len(_namespace['{var_name}'])"
                         ]
@@ -251,10 +251,10 @@ class CythonCodeGenerator(CodeGenerator):
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 if get_dtype_str(var.dtype) == 'bool':
-                    newlines = ["cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
+                    newlines = ["cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True] _buf_{array_name} = _namespace['{array_name}']",
                                 "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
                 else:
-                    newlines = ["cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
+                    newlines = ["cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}']",
                                 "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
 
                 if not var.scalar:
