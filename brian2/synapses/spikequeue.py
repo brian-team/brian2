@@ -7,40 +7,14 @@ import bisect
 
 import numpy as np
 
-from brian2.memory.dynamicarray import DynamicArray1D
 from brian2.utils.logger import get_logger
+from brian2.utils.arrays import calc_repeats
 
 __all__=['SpikeQueue']
 
 logger = get_logger(__name__)
 
 INITIAL_MAXSPIKESPER_DT = 1
-
-
-def _calc_offsets(delay):
-    '''
-    Calculates offsets corresponding to a delay array.
-    If there n identical delays, they are given offsets between 0 and n-1.
-    The code is complex because tricks are needed for vectorisation.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> _calc_offsets(np.array([7, 5, 7, 3, 7, 5]))
-    array([0, 0, 1, 0, 2, 1])
-    '''
-    # We use merge sort because it preserves the input order of equal
-    # elements in the sorted output
-    I = np.argsort(delay, kind='mergesort')
-    xs = delay[I]
-    J = (xs[1:] != xs[:-1])
-    A = np.hstack((0, np.cumsum(J)))
-    B = np.hstack((0, np.cumsum(-J)))
-    BJ = np.hstack((0, B[:-1][J]))
-    ei = B-BJ[A]
-    ofs = np.zeros_like(delay)
-    ofs[I] = np.array(ei, dtype=ofs.dtype) # maybe types should be signed?
-    return ofs
 
 
 class SpikeQueue(object):
@@ -274,7 +248,7 @@ class SpikeQueue(object):
         '''
         delay = np.array(delay, dtype=int)
 
-        offset = _calc_offsets(delay)
+        offset = calc_repeats(delay)
 
         # Calculate row indices in the data structure
         timesteps = (self.currenttime + delay) % len(self.n)

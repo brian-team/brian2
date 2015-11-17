@@ -15,13 +15,13 @@ import cPickle as pickle
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
-from brian2.core.base import BrianObject
+from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock
 from brian2.devices.device import device
-from brian2.units.fundamentalunits import check_units, DimensionMismatchError
+from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second, msecond 
 from brian2.core.preferences import prefs, BrianPreference
-
+from brian2.core.namespace import get_local_namespace
 from .base import device_override
 
 __all__ = ['Network', 'profiling_summary']
@@ -522,7 +522,7 @@ class Network(Nameable):
         format : str, optional
             The format of ``values``. Defaults to ``'dict'``
         level : int, optional
-            How much higher to go up the stack to resolve external variables.
+            How much higher to go up the stack to _resolve external variables.
             Only relevant when using string expressions to set values.
 
         See Also
@@ -618,7 +618,7 @@ class Network(Nameable):
                                       'depends.') % obj.name)
 
     @device_override('network_before_run')
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         '''
         before_run(namespace)
 
@@ -683,12 +683,9 @@ class Network(Nameable):
         for obj in self.objects:
             if obj.active:
                 try:
-                    obj.before_run(run_namespace, level=level+2)
-                except DimensionMismatchError as ex:
-                    raise DimensionMismatchError(('An error occured preparing '
-                                                  'object "%s":\n%s') % (obj.name,
-                                                                          ex.desc),
-                                                 *ex.dims)
+                    obj.before_run(run_namespace)
+                except Exception as ex:
+                    raise brian_object_exception("An error occurred when preparing an object.", obj, ex)
 
         # Check that no object has been run as part of another network before
         for obj in self.objects:
@@ -776,10 +773,14 @@ class Network(Nameable):
         for clock in self._clocks:
             clock.set_interval(self.t, t_end)
 
-        self.before_run(namespace, level=level+3)
+        # Get the local namespace
+        if namespace is None:
+            namespace = get_local_namespace(level=level+3)
+
+        self.before_run(namespace)
 
         if len(self.objects)==0:
-            return # TODO: raise an error? warning?
+            return  # TODO: raise an error? warning?
 
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()

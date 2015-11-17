@@ -2,6 +2,7 @@
 Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
 '''
+from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
@@ -214,9 +215,11 @@ class CodeGenerator(object):
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.iteritems():
-            scalar_statements[ac_name], vector_statements[ac_name] = make_statements(ac_code,
-                                                                                     self.variables,
-                                                                                     dtype)
+            statements = make_statements(ac_code,
+                                         self.variables,
+                                         dtype,
+                                         loop_invariant_optimisations=prefs.codegen.loop_invariant_optimisations)
+            scalar_statements[ac_name], vector_statements[ac_name] = statements
         for vs in vector_statements.itervalues():
             # Check that the statements are meaningful independent on the order of
             # execution (e.g. for synapses)

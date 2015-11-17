@@ -43,12 +43,7 @@ updaters use the Stratonovich interpretation for stochastic equations (which
 is the correct interpretation if the white noise source is seen as the limit
 of a coloured noise source with a short time constant). As a result of this,
 the simple Euler-Maruyama scheme (``x_new = x + dt*f(x, t) + dW*g(x, t)``) will
-only be used for additive noise. You can enforce the Ito interpretation,
-however, by simply directly passing such a state updater. For example, if you 
-specify `euler` for a system with multiplicative noise it will generate a
-warning (because the state updater does not give correct results under the
-Stratonovich interpretation) but will work (and give the correct result under
-the Ito interpretation).
+only be used for additive noise.
 
 An example for a general state updater that handles arbitrary multiplicative
 noise (under Stratonovich interpretation) is the derivative-free Milstein
@@ -93,15 +88,9 @@ After creating the state updater, it has to be registered with
 The preferred way to do write new general state updaters (i.e. state updaters
 that cannot be described using the explicit syntax described above) is to
 extend the `StateUpdateMethod` class (but this is not strictly necessary, all
-that is needed is an object that implements a ``can_integrate`` and a
-``__call__`` method). The new class's ``can_integrate`` method gets an
-`Equations` object, a ``namespace`` dictionary for the external
-variables/functions and a ``specifier`` dictionary for the internal state
-variables. It has to return ``True`` or ``False``, depending on whether it can
-integrate the given equations. The method would typically make use of
-`Equations.is_stochastic` or `Equations.stochastic_type`, check whether any
-external functions are used, etc.. Finally, the state updater has to be
-registered with `StateUpdateMethod` as shown above.
+that is needed is an object that implements a ``__call__`` method that
+operates on an `Equations` object and a dictionary of variables). Optionally,
+the state updater can be registered with `StateUpdateMethod` as shown above.
 
 Implicit state updates
 ----------------------

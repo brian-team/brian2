@@ -17,7 +17,7 @@ from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER)
+                                        PARAMETER, INTEGER)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
@@ -25,6 +25,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
+from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
 
 MAX_SYNAPSES = 2147483647
@@ -48,19 +49,11 @@ class StateUpdater(CodeRunner):
                             order=order,
                             name=group.name + '_stateupdater',
                             check_units=False)
-
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               method)
     
     def update_abstract_code(self, run_namespace=None, level=0):
-        
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               self.group.variables,
-                                                               self.method_choice)
-        
-        self.abstract_code = self.method(self.group.equations,
-                                         self.group.variables)
+        self.abstract_code = StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                  self.group.variables,
+                                                                  self.method_choice)
 
 
 class SummedVariableUpdater(CodeRunner):
@@ -124,11 +117,13 @@ class SynapticPathway(CodeRunner, Group):
             self.source = synapses.source
             self.target = synapses.target
             self.synapse_sources = synapses.variables['_synaptic_pre']
+            self.synapse_targets = synapses.variables['_synaptic_post']
             order = -1
         elif prepost == 'post':
             self.source = synapses.target
             self.target = synapses.source
             self.synapse_sources = synapses.variables['_synaptic_post']
+            self.synapse_targets = synapses.variables['_synaptic_pre']
             order = 1
         else:
             raise ValueError('prepost argument has to be either "pre" or '
@@ -237,7 +232,7 @@ class SynapticPathway(CodeRunner, Group):
         self.abstract_code += 'lastupdate = t\n'
 
     @device_override('synaptic_pathway_before_run')
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         # execute code to initalize the spike queue
         if self._initialise_queue_codeobj is None:
             self._initialise_queue_codeobj = create_runner_codeobj(self,
@@ -246,10 +241,9 @@ class SynapticPathway(CodeRunner, Group):
                                                                    name=self.name+'_initialise_queue',
                                                                    check_units=False,
                                                                    additional_variables=self.variables,
-                                                                   run_namespace=run_namespace,
-                                                                   level=level+2)
+                                                                   run_namespace=run_namespace)
         self._initialise_queue_codeobj()
-        CodeRunner.before_run(self, run_namespace, level=level+2)
+        CodeRunner.before_run(self, run_namespace)
 
         # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
@@ -270,8 +264,7 @@ class SynapticPathway(CodeRunner, Group):
                                                              additional_variables=self.variables,
                                                              needed_variables=needed_variables,
                                                              template_kwds=template_kwds,
-                                                             run_namespace=run_namespace,
-                                                             level=level+2)
+                                                             run_namespace=run_namespace)
 
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
 
@@ -398,19 +391,6 @@ def find_synapses(index, synaptic_neuron):
     return synapses
 
 
-def _synapse_numbers(pre_neurons, post_neurons):
-    # Build an array of synapse numbers by counting the number of times
-    # a source/target combination exists
-    synapse_numbers = np.zeros_like(pre_neurons)
-    numbers = {}
-    for i, (source, target) in enumerate(zip(pre_neurons,
-                                             post_neurons)):
-        number = numbers.get((source, target), 0)
-        synapse_numbers[i] = number
-        numbers[(source, target)] = number + 1
-    return synapse_numbers
-
-
 class SynapticSubgroup(object):
     '''
     A simple subgroup of `Synapses` that can be used for indexing.
@@ -452,6 +432,10 @@ class SynapticIndexing(object):
         self.target = weakproxy_with_fallback(self.synapses.target)
         self.synaptic_pre = synapses.variables['_synaptic_pre']
         self.synaptic_post = synapses.variables['_synaptic_post']
+        if synapses.multisynaptic_index is not None:
+            self.synapse_number = synapses.variables[synapses.multisynaptic_index]
+        else:
+            self.synapse_number = None
 
     def __call__(self, index=None, index_var='_idx'):
         '''
@@ -506,6 +490,11 @@ class SynapticIndexing(object):
             if isinstance(K, slice) and K == slice(None):
                 final_indices = matching_synapses
             else:
+                if self.synapse_number is None:
+                    raise IndexError('To index by the third dimension you need '
+                                     'to switch on the calculation of the '
+                                     '"multisynaptic_index" when you create '
+                                     'the Synapses object.')
                 if isinstance(K, (int, slice)):
                     test_k = slice_to_test(K)
                 else:
@@ -515,11 +504,10 @@ class SynapticIndexing(object):
                 # We want to access the raw arrays here, not go through the Variable
                 pre_neurons = self.synaptic_pre.get_value()[matching_synapses]
                 post_neurons = self.synaptic_post.get_value()[matching_synapses]
-                synapse_numbers = _synapse_numbers(pre_neurons,
-                                                   post_neurons)
+                synapse_numbers = self.synapse_number.get_value()[matching_synapses]
                 final_indices = np.intersect1d(matching_synapses,
-                                      np.flatnonzero(test_k(synapse_numbers)),
-                                      assume_unique=True)
+                                               np.flatnonzero(test_k(synapse_numbers)),
+                                               assume_unique=True)
         else:
             raise IndexError('Unsupported index type {itype}'.format(itype=type(index)))
 
@@ -576,6 +564,13 @@ class Synapses(Group):
         both pathways are triggered by the ``'spike'`` event, i.e. the event
         that is triggered by the ``threshold`` condition in the connected
         groups.
+    multisynaptic_index : str, optional
+        The name of a variable (which will be automatically created) that stores
+        the "synapse number". This number enumerates all synapses between the
+        same source and target so that they can be distinguished. For models
+        where each source-target pair has only a single connection, this number
+        only wastes memory (it would always default to 0), it is therefore not
+        stored by default. Defaults to ``None`` (no variable).
     namespace : dict, optional
         A dictionary mapping identifier names to objects. If not given, the
         namespace will be filled in at the time of the call of `Network.run`,
@@ -609,6 +604,7 @@ class Synapses(Group):
 
     def __init__(self, source, target=None, model=None, pre=None, post=None,
                  connect=False, delay=None, on_event='spike',
+                 multisynaptic_index=None,
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
@@ -648,6 +644,16 @@ class Synapses(Group):
         model._equations['lastupdate'] = SingleEquation(PARAMETER,
                                                         'lastupdate',
                                                         second)
+        # Add the "multisynaptic index", if desired
+        self.multisynaptic_index = multisynaptic_index
+        if multisynaptic_index is not None:
+            if not isinstance(multisynaptic_index, basestring):
+                raise TypeError('multisynaptic_index argument has to be a string')
+            model._equations[multisynaptic_index] = SingleEquation(PARAMETER,
+                                                                   multisynaptic_index,
+                                                                   unit=Unit(1),
+                                                                   var_type=INTEGER)
+
         self._create_variables(model, user_dtype=dtype)
 
         # Separate the equations into event-driven equations,
@@ -813,9 +819,9 @@ class Synapses(Group):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         self.state('lastupdate')[:] = 't'
-        super(Synapses, self).before_run(run_namespace, level=level+1)
+        super(Synapses, self).before_run(run_namespace)
 
     def _add_updater(self, code, prepost, objname=None, delay=None,
                      event='spike'):
@@ -885,7 +891,6 @@ class Synapses(Group):
                                          dtype=np.int32, constant_size=True)
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
                                          dtype=np.int32, constant_size=True)
-
         self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target, 'i',
@@ -1141,6 +1146,31 @@ class Synapses(Group):
 
         self.variables['N'].set_value(number)
 
+    def _update_synapse_numbers(self, old_num_synapses):
+        source_offset = self.variables['_source_offset'].get_value()
+        target_offset = self.variables['_target_offset'].get_value()
+        # This resizing is only necessary if we are connecting to/from synapses
+        self.variables['N_incoming'].resize(self.variables['N_post'].get_value() + target_offset)
+        self.variables['N_outgoing'].resize(self.variables['N_pre'].get_value() + source_offset)
+        N_outgoing = self.variables['N_outgoing'].get_value()
+        N_incoming = self.variables['N_incoming'].get_value()
+        synaptic_pre = self.variables['_synaptic_pre'].get_value()
+        synaptic_post = self.variables['_synaptic_post'].get_value()
+
+        # Update the number of total outgoing/incoming synapses per source/target neuron
+        N_outgoing[:] += np.bincount(synaptic_pre[old_num_synapses:],
+                                     minlength=len(N_outgoing))
+        N_incoming[:] += np.bincount(synaptic_post[old_num_synapses:],
+                                     minlength=len(N_incoming))
+
+        if self.multisynaptic_index is not None:
+            synapse_number = self.variables[self.multisynaptic_index].get_value()
+
+            # Update the "synapse number" (number of synapses for the same source-target pair)
+            # We wrap pairs of source/target indices into a complex number for convenience
+            _source_target_pairs = synaptic_pre + synaptic_post*1j
+            synapse_number[:] = calc_repeats(_source_target_pairs)
+
     def register_variable(self, variable):
         '''
         Register a `DynamicArray` to be automatically resized when the size of
@@ -1161,6 +1191,12 @@ class Synapses(Group):
 
     def _add_synapses(self, sources, targets, n, p, condition=None,
                       namespace=None, level=0):
+
+        template_kwds = {'multisynaptic_index': self.multisynaptic_index}
+        if self.multisynaptic_index is not None:
+            needed_variables = [self.multisynaptic_index]
+        else:
+            needed_variables=[]
 
         if condition is None:
             variables = Variables(self)
@@ -1213,6 +1249,8 @@ class Synapses(Group):
                                             abstract_code,
                                             'synapses_create_array',
                                             additional_variables=variables,
+                                            template_kwds=template_kwds,
+                                            needed_variables=needed_variables,
                                             check_units=False,
                                             run_namespace=namespace,
                                             level=level+1)
@@ -1261,6 +1299,8 @@ class Synapses(Group):
                                             'synapses_create',
                                             variable_indices=variable_indices,
                                             additional_variables=variables,
+                                            template_kwds=template_kwds,
+                                            needed_variables=needed_variables,
                                             check_units=False,
                                             run_namespace=namespace,
                                             level=level+1)

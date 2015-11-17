@@ -1003,12 +1003,7 @@ class VariableView(object):
         abstract_code = self.name + ' = ' + code
         variables = Variables(None)
         variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
-        from brian2.codegen.codeobject import (create_runner_codeobj,
-                                               check_code_units)
-        check_code_units(abstract_code_cond, self.group,
-                         additional_variables=variables,
-                         level=level+2,
-                         run_namespace=run_namespace)
+        from brian2.codegen.codeobject import create_runner_codeobj
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         from brian2.devices.device import get_default_codeobject_class
@@ -1059,12 +1054,7 @@ class VariableView(object):
 
         abstract_code = '_variable = ' + self.name + '\n'
         abstract_code += '_cond = ' + code
-        from brian2.codegen.codeobject import (create_runner_codeobj,
-                                               check_code_units)
-        check_code_units(abstract_code, self.group,
-                         additional_variables=variables,
-                         level=level+2,
-                         run_namespace=run_namespace)
+        from brian2.codegen.codeobject import create_runner_codeobj
         from brian2.devices.device import get_default_codeobject_class
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
@@ -1338,7 +1328,7 @@ class VariableView(object):
                 # This will fail for subexpressions that refer to external
                 # parameters
                 values = repr(self[:])
-            except ValueError:
+            except KeyError:
                 values = ('[Subexpression refers to external parameters. Use '
                           '"group.{var}[:]"]').format(var=self.variable.name)
 

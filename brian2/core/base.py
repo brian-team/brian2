@@ -2,6 +2,9 @@
 All Brian objects should derive from `BrianObject`.
 '''
 import weakref
+import traceback
+import os
+import sys
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -10,6 +13,8 @@ from brian2.units.fundamentalunits import check_units
 
 __all__ = ['BrianObject',
            'weakproxy_with_fallback',
+           'BrianObjectException',
+           'brian_object_exception',
            ]
 
 logger = get_logger(__name__)
@@ -47,6 +52,26 @@ class BrianObject(Nameable):
     '''    
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
+        # Setup traceback information for this object
+        creation_stack = []
+        bases = []
+        for modulename in ['brian2']:
+            if modulename in sys.modules:
+                base, _ = os.path.split(sys.modules[modulename].__file__)
+                bases.append(base)
+        for fname, linenum, funcname, line in traceback.extract_stack():
+            if all(base not in fname for base in bases):
+                s = '  File "{fname}", line {linenum}, in {funcname}\n    {line}'.format(fname=fname,
+                                                                                         linenum=linenum,
+                                                                                         funcname=funcname,
+                                                                                         line=line)
+                creation_stack.append(s)
+        creation_stack = [''] + creation_stack
+        #: A string indicating where this object was created (traceback with any parts of Brian code removed)
+        self._creation_stack = ('Object was created here (most recent call only, full details in '
+                                'debug log):\n'+creation_stack[-1])
+        self._full_creation_stack = 'Object was created here:\n'+'\n'.join(creation_stack)
+
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
 
@@ -135,7 +160,7 @@ class BrianObject(Nameable):
         else:
             self._dependencies.add(obj.id)
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace):
         '''
         Optional method to prepare the object before a run.
 
@@ -258,3 +283,65 @@ def device_override(name):
         return device_override_decorated_function
 
     return device_override_decorator
+
+
+class BrianObjectException(Exception):
+    '''
+    High level exception that adds extra Brian-specific information to exceptions
+
+    This exception should only be raised at a fairly high level in Brian code to
+    pass information back to the user. It adds extra information about where a
+    `BrianObject` was defined to better enable users to locate the source of
+    problems.
+
+    You should use the `brian_object_exception` function to raise this, and
+    it should only be raised in an ``except`` block handling a prior
+    exception.
+
+    Parameters
+    ----------
+
+    message : str
+        Additional error information to add to the original exception.
+    brianobj : BrianObject
+        The object that caused the error to happen.
+    original_exception : Exception
+        The original exception that was raised.
+    '''
+    def __init__(self, message, brianobj, original_exception):
+        self.message = message
+        self.objname = brianobj.name
+        self.origexc = '\n'.join(traceback.format_exception_only(type(original_exception),
+                                                                 original_exception))
+        self.origtb = traceback.format_exc()
+        self.objcreate = brianobj._creation_stack
+        logger.debug('Error was encountered with object "{objname}":\n{fullstack}'.format(
+            objname=self.objname,
+            fullstack=brianobj._full_creation_stack))
+
+    def __str__(self):
+        return ('Original error and traceback:\n{origtb}\n'
+                'Error encountered with object named "{objname}".\n'
+                '{objcreate}\n\n'
+                '{message} {origexc}'
+                '(See above for original error message and traceback.)'
+                ).format(origtb=self.origtb,
+                         origexc=self.origexc,
+                         objname=self.objname, message=self.message,
+                         objcreate=self.objcreate)
+
+
+def brian_object_exception(message, brianobj, original_exception):
+    '''
+    Returns a `BrianObjectException` derived from the original exception.
+
+    Creates a new class derived from the class of the original exception
+    and `BrianObjectException`. This allows exception handling code to
+    respond both to the original exception class and `BrianObjectException`.
+
+    See `BrianObjectException` for arguments and notes.
+    '''
+    DerivedBrianObjectException = type('BrianObjectException',
+                                       (BrianObjectException, original_exception.__class__),
+                                       {})
+    return DerivedBrianObjectException(message, brianobj, original_exception)

@@ -93,22 +93,7 @@ class StateUpdater(CodeRunner):
                             name=group.name + '_stateupdater*',
                             check_units=False)
 
-        # Don't do the check here for now since we don't have all the
-        # information about functions yet
-        # self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-        #                                                        self.group.variables,
-        #                                                        method)
-
-        # Generate the refractory code to catch errors in the refractoriness
-        # formulation. However, do not fail on KeyErrors since the
-        # refractoriness might refer to variables that don't exist yet
-        try:
-            self._get_refractory_code(run_namespace=None, level=1)
-        except KeyError as ex:
-            logger.debug('Namespace not complete (yet), ignoring: %s ' % str(ex),
-                         'StateUpdater')
-
-    def _get_refractory_code(self, run_namespace, level=0):
+    def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory
         if ref is False:
             # No refractoriness
@@ -125,8 +110,7 @@ class StateUpdater(CodeRunner):
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
                                                identifiers,
-                                               run_namespace=run_namespace,
-                                               level=level+1)
+                                               run_namespace=run_namespace)
             unit = parse_expression_unit(str(ref), variables)
             if have_same_dimensions(unit, second):
                 abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
@@ -147,11 +131,10 @@ class StateUpdater(CodeRunner):
                                  '"%s" has units %s instead') % (ref, unit))
         return abstract_code
 
-    def update_abstract_code(self, run_namespace=None, level=0):
+    def update_abstract_code(self, run_namespace):
 
         # Update the not_refractory variable for the refractory period mechanism
-        self.abstract_code = self._get_refractory_code(run_namespace=run_namespace,
-                                                       level=level+1)
+        self.abstract_code = self._get_refractory_code(run_namespace=run_namespace)
 
         # Get the names used in the refractory code
         _, used_known, unknown = analyse_identifiers(self.abstract_code, self.group.variables,
@@ -166,14 +149,11 @@ class StateUpdater(CodeRunner):
                                            # for the user here, warnings will
                                            # be raised in create_runner_codeobj
                                            set(),
-                                           run_namespace=run_namespace, level=level+1)
+                                           run_namespace=run_namespace)
 
-        # Since we did not necessarily no all the functions at creation time,
-        # we might want to reconsider our numerical integration method
-        self.method = StateUpdateMethod.determine_stateupdater(self.group.equations,
-                                                               variables,
-                                                               self.method_choice)
-        self.abstract_code += self.method(self.group.equations, variables)
+        self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                   variables,
+                                                                   self.method_choice)
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.substituted_expressions])
@@ -210,15 +190,7 @@ class Thresholder(CodeRunner):
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
 
-        # Check the abstract code for unit mismatches (only works if the
-        # namespace is already complete)
-        try:
-            self.update_abstract_code(level=1)
-            check_code_units(self.abstract_code, self.group)
-        except KeyError:
-            pass
-
-    def update_abstract_code(self, run_namespace=None, level=0):
+    def update_abstract_code(self, run_namespace):
         code = self.group.events[self.event]
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
@@ -241,8 +213,7 @@ class Thresholder(CodeRunner):
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
                                            identifiers,
-                                           run_namespace=run_namespace,
-                                           level=level+1)
+                                           run_namespace=run_namespace)
         if not is_boolean_expression(code, variables):
             raise TypeError(('Threshold condition "%s" is not a boolean '
                              'expression') % code)
@@ -277,15 +248,7 @@ class Resetter(CodeRunner):
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
 
-        # Check the abstract code for unit mismatches (only works if the
-        # namespace is already complete)
-        try:
-            self.update_abstract_code(level=1)
-            check_code_units(self.abstract_code, self.group)
-        except KeyError:
-            pass
-
-    def update_abstract_code(self, run_namespace=None, level=0):
+    def update_abstract_code(self, run_namespace):
         code = self.group.event_codes[self.event]
         # Raise a useful error message when the user used a Brian1 syntax
         if not isinstance(code, basestring):
@@ -775,10 +738,9 @@ class NeuronGroup(Group, SpikeSource):
                                                'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
-    def before_run(self, run_namespace=None, level=0):
+    def before_run(self, run_namespace=None):
         # Check units
-        self.equations.check_units(self, run_namespace=run_namespace,
-                                   level=level+1)
+        self.equations.check_units(self, run_namespace=run_namespace)
 
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

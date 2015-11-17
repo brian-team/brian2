@@ -97,7 +97,8 @@ def analyse_identifiers(code, variables, recursive=False):
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64)
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64,
+                                                 loop_invariant_optimisations=False)
     stmts = scalar_stmts + vector_stmts
     defined = set(stmt.var for stmt in stmts if stmt.op == ':=')
     if len(stmts) == 0:
@@ -303,7 +304,7 @@ def apply_loop_invariant_optimisations(statements, variables, dtype):
     return scalar_constants, vector_statements
 
 
-def make_statements(code, variables, dtype):
+def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
@@ -318,7 +319,12 @@ def make_statements(code, variables, dtype):
         identifier used in the `code`.
     dtype : `dtype`
         The data type to use for temporary variables
-
+    loop_invariant_optimisations : bool, optional
+        Whether to pull out loop invariant expressions and put them in new
+        scalar constants. Defaults to ``False``, since this function is also
+        used just to in contexts where we are not interested by this kind of
+        optimisation. For the main code generation stage, its value is set by
+        the `codegen.loop_invariant_optimisations` preference.
     Returns
     -------
     scalar_statements, vector_statements : (list of `Statement`, list of `Statement`)
@@ -328,7 +334,8 @@ def make_statements(code, variables, dtype):
 
     Notes
     -----
-    The `scalar_statements` may include newly introduced scalar constants that
+    If ``loop_invariant_optimisations`` is ``True``, then the
+    ``scalar_statements`` may include newly introduced scalar constants that
     have been identified as loop-invariant and have therefore been pulled out
     of the vector statements. The resulting statements will also use augmented
     assignments where possible, i.e. a statement such as ``w = w + 1`` will be
@@ -525,7 +532,7 @@ def make_statements(code, variables, dtype):
     scalar_statements = [s for s in statements if s.scalar]
     vector_statements = [s for s in statements if not s.scalar]
 
-    if prefs.codegen.loop_invariant_optimisations:
+    if loop_invariant_optimisations:
         scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
                                                                                  variables,
                                                                                  dtype)

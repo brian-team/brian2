@@ -11,8 +11,7 @@ from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
-
-from .base import StateUpdateMethod
+from .base import StateUpdateMethod, UnsupportedEquationsException
 
 __all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
@@ -265,22 +264,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             else:
                 raise AssertionError('Unknown element name: %s' %
                                      element.getName())
-    
-    def can_integrate(self, equations, variables):
-        # Non-stochastic numerical integrators should work for all equations,
-        # except for stochastic equations
-        if equations.is_stochastic:
-            if self.stochastic is None:
-                return False
-            if (self.stochastic != 'multiplicative' and
-                        equations.stochastic_type == 'multiplicative'):
-                return False
 
-        if self.custom_check and not self.custom_check(equations, variables):
-            return False
-        else:
-            return True
-    
     def __repr__(self):
         # recreate a description string
         description = '\n'.join(['%s = %s' % (var, expr)
@@ -293,7 +277,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
                         description=description,
                         stochastic=repr(self.stochastic))
 
-    
     def __str__(self):
         s = '%s\n' % self.__class__.__name__
         
@@ -562,7 +545,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
         return sympy_to_str(RHS)
 
-
     def __call__(self, eqs, variables=None):
         '''
         Apply a state updater description to model equations.
@@ -592,7 +574,22 @@ class ExplicitStateUpdater(StateUpdateMethod):
         _v = 0.166666666666667*__k_1_v + 0.333333333333333*__k_2_v + 0.333333333333333*__k_3_v + 0.166666666666667*__k_4_v + v
         v = _v
         '''
-        
+        # Non-stochastic numerical integrators should work for all equations,
+        # except for stochastic equations
+        if eqs.is_stochastic:
+            if self.stochastic is None:
+                raise UnsupportedEquationsException('Cannot integrate '
+                                                    'stochastic equations with '
+                                                    'this state updater.')
+            if (self.stochastic != 'multiplicative' and
+                        eqs.stochastic_type == 'multiplicative'):
+                raise UnsupportedEquationsException('Cannot integrate '
+                                                    'equations with '
+                                                    'multiplicative noise with '
+                                                    'this state updater.')
+
+        if self.custom_check:
+            self.custom_check(eqs, variables)
         # The final list of statements
         statements = []
 
@@ -677,21 +674,33 @@ def diagonal_noise(equations, variables):
     '''
     Checks whether we deal with diagonal noise, i.e. one independent noise
     variable per variable.
+
+    Raises
+    ------
+    UnsupportedEquationsException
+        If the noise is not diagonal.
     '''
     if not equations.is_stochastic:
-        return True
+        return
 
     stochastic_vars = []
     for _, expr in equations.substituted_expressions:
         expr_stochastic_vars = expr.stochastic_variables
         if len(expr_stochastic_vars) > 1:
             # More than one stochastic variable --> no diagonal noise
-            return False
+            raise UnsupportedEquationsException('Cannot integrate stochastic '
+                                                'equations with non-diagonal '
+                                                'noise with this state '
+                                                'updater.')
         stochastic_vars.extend(expr_stochastic_vars)
 
     # If there's no stochastic variable is used in more than one equation, we
     # have diagonal noise
-    return len(stochastic_vars) == len(set(stochastic_vars))
+    if len(stochastic_vars) != len(set(stochastic_vars)):
+        raise UnsupportedEquationsException('Cannot integrate stochastic '
+                                            'equations with non-diagonal '
+                                            'noise with this state '
+                                            'updater.')
 
 #: Derivative-free Milstein method
 milstein = ExplicitStateUpdater('''

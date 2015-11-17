@@ -31,12 +31,6 @@ group-specific namespace used for resolving names in that group. At run time,
 this namespace is combined with a "run namespace". This namespace is either
 explicitly provided to the `Network.run` method, or the implicit namespace
 consisting of the locals and globals around the point where the run function is
-called.
-
-Internally, this is realized via the ``before_run`` function. At the start of a
-run, `Network.before_run` calls `BrianObject.before_run` of every object in the
-network with a namespace argument and a level. If the namespace argument is
-given (even if it is an empty dictionary), it will be used together with any
-group-specific namespaces for resolving names. If it is not specified or
-``None``, the given level will be used to go up in the call frame and determine
-the respective locals and globals.
+called is used. This namespace is then passed down to all the objects via
+`Network.before_fun` which calls all the individual `BrianObject.before_run`
+methods with this namespace.

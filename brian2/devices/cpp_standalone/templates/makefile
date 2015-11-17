@@ -16,11 +16,7 @@ debug: CFLAGS += $(DEBUG)
 debug: LFLAGS += $(DEBUG)
 debug: executable
 
-# Adds -march=native to optimisations, which only works for recent gcc versions
-native: OPTIMISATIONS += -march=native
-native: executable
-
-.PHONY: all debug native executable clean
+.PHONY: all debug executable clean
 
 executable: $(OBJS) $(DEPS)
 	$(CC) $(OBJS) -o $(PROGRAM) $(LFLAGS)
