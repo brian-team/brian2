@@ -551,6 +551,8 @@ class SpeedTestResults(object):
         return set(codeobjsuffixes)
 
     def plot_all_tests(self, relative=False, profiling_minimum=1.0):
+        if relative and profiling_minimum<1:
+            raise ValueError("Cannot use relative plots with profiling")
         import pylab
         for st in self.speed_tests:
             fullname = st.fullname()
@@ -560,6 +562,8 @@ class SpeedTestResults(object):
             codeobjsuffixes.remove('All')
             codeobjsuffixes.remove('Overheads')
             codeobjsuffixes = ['All', 'Overheads']+sorted(codeobjsuffixes)
+            if relative or profiling_minimum==1:
+                codeobjsuffixes = ['All']
             baseline = None
             havelabel = set()
             markerstyles_cycle = iter(itertools.cycle(['o', 's', 'd', 'v', 'p', 'h', '^', '<', '>']))
