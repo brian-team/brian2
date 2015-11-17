@@ -1,20 +1,20 @@
-# TODO: handle correctly things like ((a*2)*3)*4 -> a*24
-# we can do this by checking as part of Mult handling that all subnodes are mults or divs, ...
-
+'''
+Simplify and optimise sequences of statements by rewriting and pulling out loop invariants.
+'''
 import ast
 from collections import OrderedDict
 import copy
 import itertools
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
-from brian2.core.variables import Variable
-from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy, is_boolean_dtype,
-                                 brian_dtype_from_dtype, brian_dtype_from_value)
+from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
+                                 brian_dtype_from_dtype)
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
 
 from .statements import Statement
 
+# Default namespace has all the standard functions and constants in it
 defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.iteritems())
 defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
 
@@ -23,6 +23,11 @@ __all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
 
 
 def evaluate_expr(expr, ns=None):
+    '''
+    Try to evaluate the expression in the namespace (use default namespace if unspecified)
+
+    Returns either (value, True) if successful, or (expr, False) otherwise.
+    '''
     if ns is None:
         ns = defaults_ns
     try:
@@ -33,25 +38,59 @@ def evaluate_expr(expr, ns=None):
 
 
 def optimise_statements(scalar_statements, vector_statements, variables):
+    '''
+    Optimise a sequence of scalar and vector statements
+
+    Performs the following optimisations:
+    1. Constant evaluations (e.g. exp(0) to 1). See `evaluate_expr`, `create_assumptions_namespace`.
+    2. Arithmetic simplifications (e.g. 0*x to 0). See `ArithmeticSimplifier`, `collect`.
+    3. Pulling out loop invariants (e.g. v*exp(-dt/tau) to a=exp(-dt/tau) outside the loop and v*a inside).
+       See `Simplifier`.
+    4. Boolean simplifications (allowing the replacement of expressions with booleans with a sequence of if/thens).
+       See `Simplifier`.
+
+    Parameters
+    ----------
+    scalar_statements : sequence of Statement
+        Statements that only involve scalar values and should be evaluated in the scalar block.
+    vector_statements : sequence of Statement
+        Statements that involve vector values and should be evaluated in the vector block.
+    variables : dict of (str, Variable)
+        Definition of the types of the variables.
+
+    Returns
+    -------
+    new_scalar_statements : sequence of Statement
+        As above but with loop invariants pulled out from vector statements
+    new_vector_statements : sequence of Statement
+        Simplified/optimised versions of statements
+    '''
     boolvars = dict((k, v) for k, v in variables.iteritems()
                     if hasattr(v, 'dtype') and brian_dtype_from_dtype(v.dtype)=='boolean')
+    # We use the Simplifier class by rendering each expression, which generates new scalar statements
+    # stored in the Simplifier object, and these are then added to the scalar statements.
     simplifier = Simplifier(variables, scalar_statements)
     new_vector_statements = []
     for stmt in vector_statements:
+        # Carry out constant evaluation, arithmetic simplification and loop invariants
         new_expr = simplifier.render_expr(stmt.expr)
         new_stmt = Statement(stmt.var, stmt.op, new_expr, stmt.comment,
                              dtype=stmt.dtype,
                              constant=stmt.constant,
                              subexpression=stmt.subexpression,
                              scalar=stmt.scalar)
+        # Now check if boolean simplification can be carried out
         #complexity_std = expression_complexity(expr_std)
         idents = get_identifiers(new_expr)
         used_boolvars = [var for var in boolvars.iterkeys() if var in idents]
         if len(used_boolvars):
+            # We want to iterate over all the possible assignments of boolean variables to values in (True, False)
             bool_space = [[False, True] for var in used_boolvars]
             expanded_expressions = {}
             #complexities = {}
             for bool_vals in itertools.product(*bool_space):
+                # substitute those values into the expr and simplify (including potentially pulling out new
+                # loop invariants)
                 subs = dict((var, str(val)) for var, val in zip(used_boolvars, bool_vals))
                 curexpr = word_substitute(new_expr, subs)
                 curexpr = simplifier.render_expr(curexpr)
@@ -60,9 +99,11 @@ def optimise_statements(scalar_statements, vector_statements, variables):
                 #complexities[key] = expression_complexity(curexpr)
                 # print ', '.join('%s=%s'%(k, v) for k, v in key)
                 # print '-> ', curexpr
+            # See Statement for details on these
             new_stmt.used_boolean_variables = used_boolvars
             new_stmt.boolean_simplified_expressions = expanded_expressions
         new_vector_statements.append(new_stmt)
+    # Generate additional scalar statements for the loop invariants
     new_scalar_statements = copy.copy(scalar_statements)
     for expr, name in simplifier.loop_invariants.iteritems():
         dtype_name = simplifier.loop_invariant_dtypes[name]
@@ -82,6 +123,21 @@ def optimise_statements(scalar_statements, vector_statements, variables):
 
 
 def create_assumptions_namespace(assumptions):
+    '''
+    Create a namespace from a sequence of statements.
+
+    Parameters
+    ----------
+    assumptions : list of str
+        Sequence of statements. Will try to evaluate each one, but won't raise any
+        exceptions if they fail.
+
+    Returns
+    -------
+    namespace : dict
+        Result of executing as many of the assumption statements as possible.
+        Includes the default namespace.
+    '''
     ns = defaults_ns.copy()
     for assumption in assumptions:
         try:
@@ -92,6 +148,22 @@ def create_assumptions_namespace(assumptions):
 
 
 class ArithmeticSimplifier(BrianASTRenderer):
+    '''
+    Carries out the following arithmetic simplifications:
+
+    1. Constant evaluation (e.g. exp(0)=1) by attempting to evaluate the expression in the namespace returned
+       by `create_assumptions_namespace`.
+    2. Binary operators, e.g. 0*x=0, 1*x=x, etc. You have to take care that the dtypes match here, e.g.
+       if x is an integer, then 1.0*x shouldn't be replaced with x but left as 1.0*x.
+
+    Parameters
+    ----------
+    variables : dict of (str, Variable)
+        Usual definition of variables.
+    assumptions : sequence of str
+        Additional assumptions that can be used in simplification, each assumption is a string statement.
+        These might be the scalar statements for example.
+    '''
     def __init__(self, variables, assumptions=None):
         BrianASTRenderer.__init__(self, variables)
         if assumptions is None:
@@ -217,6 +289,29 @@ class ArithmeticSimplifier(BrianASTRenderer):
 
 
 class Simplifier(BrianASTRenderer):
+    '''
+    Carry out arithmetic simplifications (see `ArithmeticSimplifier`) and loop invariants
+
+    Parameters
+    ----------
+    variables : dict of (str, Variable)
+        Usual definition of variables.
+    scalar_statements : sequence of Statement
+        Predefined scalar statements that can be used as part of simplification
+
+    Notes
+    -----
+
+    After calling `render_expr` on a sequence of expressions (coming from vector statements typically),
+    this object will have some new attributes:
+
+    ``loop_invariants`` : OrderedDict of (expression, varname)
+        varname will be of the form ``_lio_N`` where ``N`` is some integer, and the expressions will be
+        strings that correspond to scalar-only expressions that can be evaluated outside of the vector
+        block.
+    ``loop_invariant_dtypes`` : dict of (varname, dtypename)
+        dtypename will be one of ``'boolean'``, ``'integer'``, ``'float'``.
+    '''
     def __init__(self, variables, scalar_statements):
         BrianASTRenderer.__init__(self, variables)
         self.loop_invariants = OrderedDict()
@@ -265,6 +360,20 @@ class Simplifier(BrianASTRenderer):
 
 
 def reduced_node(terms, op, curnode=None):
+    '''
+    Reduce a sequence of terms with the given operator
+
+    For examples, if terms were [a, b, c] and op was multiplication then the reduction would be (a*b)*c.
+
+    Parameters
+    ----------
+    terms : list
+        AST nodes.
+    op : AST node
+        Could be `ast.Mult` or `ast.Add`.
+    curnode : AST node
+        Starting node (equivalent to making it the first node in terms).
+    '''
     for term in terms:
         if term is None:
             continue
@@ -276,6 +385,28 @@ def reduced_node(terms, op, curnode=None):
 
 
 def cancel_identical_terms(primary, inverted):
+    '''
+    Cancel terms in a collection, e.g. a+b-a should be cancelled to b
+
+    Simply renders the nodes into expressions and removes whenever there is a common expression
+    in primary and inverted.
+
+    Parameters
+    ----------
+    primary : list of AST nodes
+        These are the nodes that are positive with respect to the operator, e.g.
+        in x*y/z it would be [x, y].
+    inverted : list of AST nodes
+        These are the nodes that are inverted with respect to the operator, e.g.
+        in x*y/z it would be [z].
+
+    Returns
+    -------
+    primary : list of AST nodes
+        Primary nodes after cancellation
+    inverted : list of AST nodes
+        Inverted nodes after cancellation
+    '''
     nr = NodeRenderer(use_vectorisation_idx=False)
     expressions = dict((node, nr.render_node(node)) for node in primary)
     expressions.update(dict((node, nr.render_node(node)) for node in inverted))
@@ -298,15 +429,43 @@ def cancel_identical_terms(primary, inverted):
 
 
 def collect(node):
+    '''
+    Attempts to collect commutative operations into one and simplifies them.
+
+    For example, if x and y are scalars, and z is a vector, then (x*z)*y should
+    be rewritten as (x*y)*z to minimise the number of vector operations. Similarly,
+    ((x*2)*3)*4 should be rewritten as x*24.
+
+    Works for either multiplication/division or addition/subtraction nodes.
+
+    The final output is a subexpression of the following maximal form:
+
+        (((numerical_value*(product of scalars))/(product of scalars))*(product of vectors))/(product of vectors)
+
+    Any possible cancellations will have been done.
+
+    Parameters
+    ----------
+    node : Brian AST node
+        The node to be collected/simplified.
+
+    Returns
+    -------
+    node : Brian AST node
+        Simplified node.
+    '''
     node.collected = True
+    # we only work on */ or +- ops, which are both BinOp
     if node.__class__.__name__!='BinOp':
         return node
+    # primary would be the * or + nodes, and inverted would be the / or - nodes
     terms_primary = []
     terms_inverted = []
+    # we handle both multiplicative and additive nodes in the same way by using these variables
     if node.op.__class__.__name__ in ['Mult', 'Div']:
         op_primary = ast.Mult
         op_inverted = ast.Div
-        op_null = 1.0
+        op_null = 1.0 # the identity for the operator
         op_py_primary = lambda x, y: x*y
         op_py_inverted = lambda x, y: x/y
     elif node.op.__class__.__name__ in ['Add', 'Sub']:
@@ -317,8 +476,10 @@ def collect(node):
         op_py_inverted = lambda x, y: x-y
     else:
         return node
+    # recursively collect terms into the terms_primary and terms_inverted lists
     collect_commutative(node, op_primary, op_inverted, terms_primary, terms_inverted)
     x = op_null
+    # extract the numerical nodes and fully evaluate
     remaining_terms_primary = []
     remaining_terms_inverted = []
     for term in terms_primary:
@@ -331,6 +492,8 @@ def collect(node):
             x = op_py_inverted(x, term.n)
         else:
             remaining_terms_inverted.append(term)
+    # if the fully evaluated node is just the identity/null element then we don't have to make it
+    # into an explicit term
     if x!=op_null:
         num_node = ast.Num(x)
     else:
@@ -339,6 +502,7 @@ def collect(node):
     terms_inverted = remaining_terms_inverted
     # final form that we want is:
     # ((num*prod(scalars)/prod(scalars))*prod(vectors))/prod(vectors)
+    # further subdivide into scalar/vector terms and cancel any identical terms
     primary_scalar_terms = [term for term in terms_primary if term.scalar]
     inverted_scalar_terms = [term for term in terms_inverted if term.scalar]
     primary_scalar_terms, inverted_scalar_terms = cancel_identical_terms(primary_scalar_terms,
@@ -347,10 +511,12 @@ def collect(node):
     inverted_vector_terms = [term for term in terms_inverted if not term.scalar]
     primary_vector_terms, inverted_vector_terms = cancel_identical_terms(primary_vector_terms,
                                                                          inverted_vector_terms)
+    # produce nodes that are the reduction of the operator on these subsets
     prod_primary_scalars = reduced_node(primary_scalar_terms, op_primary)
     prod_inverted_scalars = reduced_node(inverted_scalar_terms, op_primary)
     prod_primary_vectors = reduced_node(primary_vector_terms, op_primary)
     prod_inverted_vectors = reduced_node(inverted_vector_terms, op_primary)
+    # construct the simplest version of the fully simplified node (only doing operations where necessary)
     curnode = reduced_node([num_node, prod_primary_scalars], op_primary)
     if prod_inverted_scalars is not None:
         if curnode is None:
@@ -370,10 +536,12 @@ def collect(node):
 
 def collect_commutative(node, primary, inverted,
                         terms_primary, terms_inverted, add_to_inverted=False):
+    # This function is called recursively, so we use add_to_inverted to keep track of whether or not
+    # we're working in the numerator/denominator (for multiplicative nodes, equivalent for additive).
     op_primary = node.op.__class__ is primary
     # this should only be called with node a BinOp of type primary or inverted
     # left_exact is the condition that we can collect terms (we can do it with floats or add/sub,
-    # but not integer mult/div)
+    # but not integer mult/div - the reason being that for C-style division e.g. 3/(4/3)!=(3*3)/4
     left_exact = (node.left.dtype=='float' or
                     (hasattr(node.left, 'op') and node.left.op.__class__.__name__ in ['Add', 'Sub']))
     if (node.left.__class__.__name__=='BinOp' and

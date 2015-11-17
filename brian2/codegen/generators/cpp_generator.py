@@ -168,16 +168,25 @@ class CPPCodeGenerator(CodeGenerator):
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
-        if hasattr(statement, 'used_boolean_variables') and len(statement.used_boolean_variables):
+        # For C++ we replace complex expressions involving boolean variables into a sequence of
+        # if/then expressions with simpler expressions. This is provided by the optimise_statements
+        # function.
+        if statement.used_boolean_variables is not None and len(statement.used_boolean_variables):
             used_boolvars = statement.used_boolean_variables
             bool_simp = statement.boolean_simplified_expressions
             if op == ':=':
+                # we have to declare the variable outside the if/then statement (which
+                # unfortunately means we can't make it const but the optimisation is worth
+                # it anyway).
                 codelines = [self.c_data_type(statement.dtype) + ' ' + var + ';']
                 op = '='
             else:
                 codelines = []
             firstline = True
+            # bool assigns is a sequence of (var, value) pairs giving the conditions under
+            # which the simplified expression simp_expr holds
             for bool_assigns, simp_expr in bool_simp.iteritems():
+                # generate a boolean expression like ``var1 && var2 && !var3``
                 atomics = []
                 for boolvar, boolval in bool_assigns:
                     if boolval:
@@ -188,6 +197,7 @@ class CPPCodeGenerator(CodeGenerator):
                     line = ''
                 else:
                     line = 'else '
+                # only need another if statement when we have more than one boolean variables
                 if firstline or len(used_boolvars)>1:
                     line += 'if('+(' && '.join(atomics))+')'
                 line += '\n    '

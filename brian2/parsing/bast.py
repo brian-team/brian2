@@ -1,19 +1,23 @@
 '''
 Brian AST representation
+
+This is a standard Python AST representation with additional information added.
 '''
 
 import ast
 import numpy
 from __builtin__ import all as logical_all # defensive programming against numpy import
-from collections import defaultdict
 
 __all__ = ['brian_ast', 'BrianASTRenderer', 'dtype_hierarchy']
 
 
-dtype_hierarchy = {'boolean':0,
-                   'integer':1,
-                   'float':2,
+# This codifies the idea that operations involving e.g. boolean and integer will end up
+# as integer. In general the output type will be the max of the hierarchy values here.
+dtype_hierarchy = {'boolean': 0,
+                   'integer': 1,
+                   'float': 2,
                    }
+# This is just so you can invert from number to string
 for tc, i in dtype_hierarchy.items():
     dtype_hierarchy[i] = tc
 
@@ -31,6 +35,9 @@ def is_float(value):
 
 
 def brian_dtype_from_value(value):
+    '''
+    Returns 'boolean', 'integer' or 'float'
+    '''
     if is_float(value):
         return 'float'
     elif is_integer(value):
@@ -53,6 +60,9 @@ def is_float_dtype(dtype):
 
 
 def brian_dtype_from_dtype(dtype):
+    '''
+    Returns 'boolean', 'integer' or 'float'
+    '''
     if is_float_dtype(dtype):
         return 'float'
     elif is_integer_dtype(dtype):
@@ -63,12 +73,39 @@ def brian_dtype_from_dtype(dtype):
 
 
 def brian_ast(expr, variables):
+    '''
+    Returns an AST tree representation with additional information
+
+    Each node will be a standard Python ``ast`` node with the
+    following additional attributes:
+
+    ``dtype``
+        One of ``'boolean'``, ``'integer'`` or ``'float'``, referring to the data type
+        of the value of this node.
+    ``scalar``
+        Either ``True`` or ``False`` if the node uses any vector-valued variables.
+    ``complexity``
+        An integer representation of the computational complexity of the node. This
+        is a very rough representation used for things like ``2*(x+y)`` is less
+        complex than ``2*x+2*y`` and ``exp(x)`` is more complex than ``2*x`` but
+        shouldn't be relied on for fine distinctions between expressions.
+
+    Parameters
+    ----------
+    expr : str
+        The expression to convert into an AST representation
+    variables : dict
+        The dictionary of `Variable` objects used in the expression.
+    '''
     node = ast.parse(expr, mode='eval').body
     renderer = BrianASTRenderer(variables)
     return renderer.render_node(node)
 
 
 class BrianASTRenderer(object):
+    '''
+    This class is modelled after `NodeRenderer` - see there for details.
+    '''
     def __init__(self, variables):
         self.variables = variables
 
@@ -82,6 +119,7 @@ class BrianASTRenderer(object):
     def render_NameConstant(self, node):
         if node.value is not True and node.value is not False:
             raise SyntaxError("Unknown NameConstant "+str(node.value))
+        # NameConstant only used for True and False and None, and we don't support None
         node.dtype = 'boolean'
         node.scalar = True
         node.complexity = 0
@@ -97,10 +135,9 @@ class BrianASTRenderer(object):
             dtype = var.dtype
             node.dtype = brian_dtype_from_dtype(dtype)
             node.scalar = var.scalar
-        else: # TODO: handle other names (pi, e, inf), also constants are appearing here in check units
+        else: # don't think we need to handle other names (pi, e, inf)?
             node.dtype = 'float'
-            node.scalar = True # TODO: is this assumption OK?
-            #raise SyntaxError("Unknown name "+node.id)
+            node.scalar = True # I think this assumption is OK, but not certain
         return node
 
     def render_Num(self, node):
@@ -123,7 +160,7 @@ class BrianASTRenderer(object):
         node.scalar = False
         if node.func.id in self.variables:
             funcvar = self.variables[node.func.id]
-            # TODO: sometimes this attribute doesn't exist: why?
+            # sometimes this attribute doesn't exist, if so assume it's not stateless
             if hasattr(funcvar, 'stateless') and funcvar.stateless:
                 node.scalar = logical_all(subnode.scalar for subnode in node.args)
         # we leave node.func because it is an ast.Name object that doesn't have a dtype
@@ -135,6 +172,7 @@ class BrianASTRenderer(object):
         node.left = self.render_node(node.left)
         node.right = self.render_node(node.right)
         # TODO: we could capture some syntax errors here, e.g. bool+bool
+        # captures, e.g. int+float->float
         newdtype = dtype_hierarchy[max(dtype_hierarchy[subnode.dtype] for subnode in [node.left, node.right])]
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar

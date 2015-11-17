@@ -1,14 +1,13 @@
 from collections import namedtuple
 
 import numpy as np
-from numpy.testing import assert_raises
 from nose.plugins.attrib import attr
 
+from brian2.codegen.optimisation import optimise_statements
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
                                         parse_statement,
                                         make_statements,
-                                        apply_loop_invariant_optimisations
                                         )
 from brian2.codegen.statements import Statement
 from brian2.codegen.codeobject import CodeObject
@@ -102,24 +101,25 @@ def test_apply_loop_invariant_optimisation():
                  'exp': DEFAULT_FUNCTIONS['exp']}
     statements = [Statement('v', '=', 'dt*w*exp(-dt/tau)/tau + v*exp(-dt/tau)', '', np.float32),
                   Statement('w', '=', 'w*exp(-dt/tau)', '', np.float32)]
-    scalar, vector = apply_loop_invariant_optimisations(statements, variables,
-                                                        np.float64)
-    # The optimisation should pull out exp(-dt / tau)
-    assert len(scalar) == 1
-    assert scalar[0].dtype == np.float64  # We asked for this dtype above
-    assert scalar[0].var == '_lio_const_1'
+    scalar, vector = optimise_statements([], statements, variables)
+    # The optimisation should pull out at least exp(-dt / tau)
+    assert len(scalar) >= 1
+    assert np.issubdtype(scalar[0].dtype, (np.floating, float))
+    assert scalar[0].var == '_lio_1'
     assert len(vector) == 2
-    assert all('_lio_const_1' in stmt.expr for stmt in vector)
+    assert all('_lio_' in stmt.expr for stmt in vector)
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_integer():
     variables = {'v': Variable('v', Unit(1), scalar=False),
                  'N': Constant('N', Unit(1), 10)}
     statements = [Statement('v', '=', 'v % (2*3*N)', '', np.float32)]
-    scalar, vector = apply_loop_invariant_optimisations(statements, variables,
-                                                        np.float64)
-    # The optimisation should not pull out 2*N
-    assert len(scalar) == 0
+    scalar, vector = optimise_statements([], statements, variables)
+    assert len(scalar) == 1
+    assert np.issubdtype(scalar[0].dtype, (np.integer, int))
+    assert scalar[0].var == '_lio_1'
+    expr = scalar[0].expr.replace(' ', '')
+    assert expr=='6*N' or expr=='N*6'
 
 @attr('codegen-independent')
 def test_automatic_augmented_assignments():
