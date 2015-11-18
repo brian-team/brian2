@@ -16,7 +16,7 @@ from cpuinfo import cpuinfo
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
-from brian2.devices.device import Device, all_devices, get_device, set_device
+from brian2.devices.device import Device, all_devices, temporarily_switch_device, reset_device
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.parsing.rendering import CPPNodeRenderer
@@ -109,6 +109,12 @@ class CPPStandaloneDevice(Device):
         #: Whether the simulation has been run
         self.has_been_run = False
 
+        #: Whether a run should trigger a build
+        self.build_on_run = False
+
+        #: build options
+        self.build_options = None
+
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
@@ -124,8 +130,19 @@ class CPPStandaloneDevice(Device):
         self.clocks = set([])
         
     def reinit(self):
+        # Remember the build_on_run setting and its options -- important during
+        # testing
+        build_on_run = self.build_on_run
+        build_options = self.build_options
         self.__init__()
         super(CPPStandaloneDevice, self).reinit()
+        self.build_on_run = build_on_run
+        self.build_options = build_options
+
+    def activate(self, build_on_run, **kwargs):
+        super(CPPStandaloneDevice, self).activate(build_on_run=build_on_run)
+        self.build_on_run = build_on_run
+        self.build_options = dict(kwargs)
 
     def freeze(self, code, ns):
         # this is a bit of a hack, it should be passed to the template somehow
@@ -409,12 +426,11 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
         # Temporarily switch to the runtime device to evaluate the subexpression
         # (based on the values stored on disk)
-        backup_device = get_device()
-        set_device('runtime')
+        temporarily_switch_device('runtime')
         result = VariableView.get_subexpression_with_index_array(variableview, item,
                                                                  level=level+2,
                                                                  run_namespace=run_namespace)
-        set_device(backup_device)
+        reset_device()
         return result
 
     def variableview_get_with_expression(self, variableview, code, level=0,
@@ -796,20 +812,28 @@ class CPPStandaloneDevice(Device):
 
         Parameters
         ----------
-        directory : str
-            The output directory to write the project to, any existing files will be overwritten.
-        compile : bool
-            Whether or not to attempt to compile the project
-        run : bool
-            Whether or not to attempt to run the built project if it successfully builds.
-        debug : bool
-            Whether to compile in debug mode.
-        with_output : bool
-            Whether or not to show the ``stdout`` of the built program when run. Output will be shown in case
-            of compilation or runtime error.
-        clean : bool
-            Whether or not to clean the project before building
-        additional_source_files : list of str
+        directory : str, optional
+            The output directory to write the project to, any existing files
+            will be overwritten. If the given directory name is ``None``, then
+            a temporary directory will be used (used in the test suite to avoid
+            problems when running several tests in parallel). Defaults to
+            ``'output'``.
+        compile : bool, optional
+            Whether or not to attempt to compile the project. Defaults to
+            ``True``.
+        run : bool, optional
+            Whether or not to attempt to run the built project if it
+            successfully builds. Defaults to ``True``.
+        debug : bool, optional
+            Whether to compile in debug mode. Defaults to ``False``.
+        with_output : bool, optional
+            Whether or not to show the ``stdout`` of the built program when run.
+            Output will be shown in case of compilation or runtime error.
+            Defaults to ``True``.
+        clean : bool, optional
+            Whether or not to clean the project before building. Defaults to
+            ``True``.
+        additional_source_files : list of str, optional
             A list of additional ``.cpp`` files to include in the build.
         '''
         renames = {'project_dir': 'directory',
@@ -829,6 +853,8 @@ class CPPStandaloneDevice(Device):
             additional_source_files = []
         if run_args is None:
             run_args = []
+        if directory is None:
+            directory = tempfile.mkdtemp()
         self.project_dir = directory
         ensure_directory(directory)
 
@@ -997,6 +1023,15 @@ class CPPStandaloneDevice(Device):
             self.array_cache[clock.variables['timestep']] = np.array([clock._i_end])
             self.array_cache[clock.variables['t']] = np.array([clock._i_end * clock.dt_])
 
+        if self.build_on_run:
+            if self.has_been_run:
+                raise RuntimeError('The network has already been built and run '
+                                   'before. Use set_device with '
+                                   'build_on_run=False and an explicit '
+                                   'device.build call to use multiple run '
+                                   'statements with this device.')
+            self.build(**self.build_options)
+
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '
                                    'supported in the C++ standalone'))
@@ -1043,22 +1078,3 @@ class RunFunctionContext(object):
 
 cpp_standalone_device = CPPStandaloneDevice()
 all_devices['cpp_standalone'] = cpp_standalone_device
-
-
-class CPPStandaloneSimpleDevice(CPPStandaloneDevice):
-    def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, profile=True, level=0, **kwds):
-        super(CPPStandaloneSimpleDevice, self).network_run(net, duration,
-                                                     report=report,
-                                                     report_period=report_period,
-                                                     namespace=namespace,
-                                                     profile=profile,
-                                                     level=level+1,
-                                                     **kwds)
-        tempdir = tempfile.mkdtemp()
-        self.build(directory=tempdir, compile=True, run=True, debug=False,
-                   with_output=False)
-
-cpp_standalone_simple_device = CPPStandaloneSimpleDevice()
-
-all_devices['cpp_standalone_simple'] = cpp_standalone_simple_device

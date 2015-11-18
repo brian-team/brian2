@@ -10,7 +10,7 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
-from brian2.devices.device import restore_device
+from brian2.devices.device import restore_device, temporarily_switch_device, reset_device
 
 @attr('standalone-compatible')
 @with_setup(teardown=restore_device)
@@ -294,8 +294,7 @@ def test_spikegenerator_standalone(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup` in standalone.
     '''
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    temporarily_switch_device('cpp_standalone', build_on_run=False)
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices, times)
@@ -309,7 +308,7 @@ def test_spikegenerator_standalone(with_output=False):
 
     _compare_spikes(5, indices, times, s_mon)
 
-    set_device(previous_device)
+    reset_device()
 
 
 @attr('cpp_standalone', 'standalone-only')
@@ -318,8 +317,7 @@ def test_spikegenerator_standalone_change_spikes(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    temporarily_switch_device('cpp_standalone', build_on_run=False)
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices1, times1)
@@ -348,7 +346,7 @@ def test_spikegenerator_standalone_change_spikes(with_output=False):
     _compare_spikes(5, indices2, times2, s_mon, start_time=5*ms, end_time=10*ms)
     _compare_spikes(5, indices3, times3, s_mon, start_time=10*ms)
 
-    set_device(previous_device)
+    reset_device()
 
 
 @attr('cpp_standalone', 'standalone-only')
@@ -357,8 +355,7 @@ def test_spikegenerator_standalone_change_period(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    temporarily_switch_device('cpp_standalone', build_on_run=False)
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices1, times1, period=5*ms)
@@ -382,7 +379,7 @@ def test_spikegenerator_standalone_change_period(with_output=False):
                     s_mon, end_time=10*ms)
     _compare_spikes(5, indices2, times2, s_mon, start_time=10*ms)
 
-    set_device(previous_device)
+    reset_device()
 
 
 if __name__ == '__main__':

@@ -18,7 +18,7 @@ from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs, profiling_summary, Quantity)
-from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device
+from brian2.devices.device import restore_device, Device, all_devices, set_device, get_device, reset_device
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -251,7 +251,7 @@ def test_schedule_warning():
     with catch_logs() as l:
         net.run(0*ms)
         assert len(l) == 1 and l[0][1].endswith('schedule_conflict')
-    set_device(previous_device)
+    reset_device(previous_device)
 
 
 class Preparer(BrianObject):

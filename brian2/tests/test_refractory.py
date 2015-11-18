@@ -53,7 +53,7 @@ def test_refractoriness_variables():
     for ref_time in ['5*ms', '(t-lastspike) <= 5*ms',
                      'time_since_spike <= 5*ms', 'ref_subexpression',
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
-        device.reinit()
+        restore_device()
         G = NeuronGroup(1, '''
                         dv/dt = 100*Hz : 1 (unless refractory)
                         dw/dt = 100*Hz : 1
@@ -105,7 +105,7 @@ def test_refractoriness_threshold():
     # condition -- all should do the same thing
     for ref_time in [10*ms, '10*ms', '(t-lastspike) <= 10*ms',
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
-        device.reinit()
+        restore_device()
         G = NeuronGroup(1, '''
                         dv/dt = 200*Hz : 1
                         ref : second

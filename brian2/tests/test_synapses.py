@@ -12,7 +12,7 @@ from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
-from brian2.devices.device import restore_device, all_devices, get_device
+from brian2.devices.device import restore_device, all_devices, get_device, temporarily_switch_device, reset_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
@@ -146,8 +146,7 @@ def test_connection_arrays():
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=restore_device)
 def test_connection_array_standalone():
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    temporarily_switch_device('cpp_standalone', build_on_run=False)
     # use a clock with 1s timesteps to avoid rounding issues
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
                              [0, 1, 2, 3]*second, dt=1*second)
@@ -168,7 +167,7 @@ def test_connection_array_standalone():
                          [0, 0, 0, 1, 1],
                          [0, 0, 0, 0, 0]], dtype=np.float64)
     assert_equal(mon.v, expected)
-    set_device(previous_device)
+    reset_device()
 
 
 def test_connection_string_deterministic_basic():
