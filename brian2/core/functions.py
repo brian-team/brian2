@@ -35,7 +35,10 @@ def declare_types(**types):
     integer and float it would be float.
     '''
     def annotate_function_with_types(f):
-        arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
+        if hasattr(f, '_orig_arg_names'):
+            arg_names = f._orig_arg_names
+        else:
+            arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
         argtypes = []
         for name in arg_names:
             arg_type = types.get(name, 'any')
@@ -52,6 +55,8 @@ def declare_types(**types):
                              "must be one of %s" % (return_type, VALID_RETURN_TYPES))
         f._arg_types = argtypes
         f._return_type = return_type
+        f._orig_arg_names = arg_names
+        f._annotation_attributes = getattr(f, '_annotation_attributes', [])+['_arg_types', '_return_type']
         return f
     return annotate_function_with_types
 
@@ -158,7 +163,7 @@ class Function(object):
             self._return_type = getattr(pyfunc, '_return_type', 'float')
 
         for argtype, u in zip(self._arg_types, self._arg_units):
-            if argtype!='float' and u is not None and not is_dimensionless(u):
+            if argtype!='float' and argtype!='any' and u is not None and not is_dimensionless(u):
                 raise TypeError("Non-float arguments must be dimensionless in function "+pyfunc.__name__)
             if argtype not in VALID_ARG_TYPES:
                 raise ValueError("Argument type %s is not valid, must be one of %s, "
@@ -438,6 +443,10 @@ def implementation(target, code=None, namespace=None, dependencies=None,
     as an argument for this decorator, this is normally not necessary -- the
     numpy implementation should be provided in the decorated function.
 
+    If this decorator is used with other directors such as `check_units` or
+    `declare_types`, it should be the uppermost decorator (that is, the
+    last one to be applied).
+
     Examples
     --------
     Sample usage::
@@ -472,6 +481,11 @@ def implementation(target, code=None, namespace=None, dependencies=None,
             function.implementations.add_implementation(target, code=code,
                                                         dependencies=dependencies,
                                                         namespace=namespace)
+        # # copy any annotation attributes
+        # if hasattr(func, '_annotation_attributes'):
+        #     for attrname in func._annotation_attributes:
+        #         setattr(function, attrname, getattr(func, attrname))
+        # function._annotation_attributes = getattr(func, '_annotation_attributes', [])
         return function
     return do_user_implementation
 

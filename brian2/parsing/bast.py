@@ -155,7 +155,7 @@ class BrianASTRenderer(object):
             raise ValueError("Keyword arguments not supported")
         node.args = [self.render_node(subnode) for subnode in node.args]
         # TODO: deeper system like the one for units, for now assume all functions return floats
-        node.dtype = 'float'
+        node.dtype = 'float' # default dtype
         # Condition for scalarity of function call: stateless and arguments are scalar
         node.scalar = False
         if node.func.id in self.variables:
@@ -163,6 +163,17 @@ class BrianASTRenderer(object):
             # sometimes this attribute doesn't exist, if so assume it's not stateless
             if hasattr(funcvar, 'stateless') and funcvar.stateless:
                 node.scalar = logical_all(subnode.scalar for subnode in node.args)
+            # check that argument types are valid
+            node_arg_types = [subnode.dtype for subnode in node.args]
+            for subnode, argtype in zip(node.args, funcvar._arg_types):
+                if argtype!='any' and argtype!=subnode.dtype:
+                    raise ValueError("Function %s takes arguments with types %s but "
+                                     "received %s" % (node.func.id, funcvar._arg_types, node_arg_types))
+            # compute return type
+            return_type = funcvar._return_type
+            if return_type=='highest':
+                return_type = dtype_hierarchy[max(dtype_hierarchy[nat] for nat in node_arg_types)]
+            node.dtype = return_type
         # we leave node.func because it is an ast.Name object that doesn't have a dtype
         # TODO: variable complexity for function calls?
         node.complexity = 20+sum(subnode.complexity for subnode in node.args)
