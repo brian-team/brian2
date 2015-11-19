@@ -517,6 +517,33 @@ def test_binomial():
     assert np.var(mon[0].y) > 0
 
 
+@attr('codegen-independent')
+def test_declare_types():
+    @declare_types(a='integer', b='float', result='highest')
+    def f(a, b):
+        return a*b
+    assert f._arg_types==['integer', 'float']
+    assert f._return_type == 'highest'
+
+    @declare_types(b='float')
+    def f(a, b, c):
+        return a*b*c
+    assert f._arg_types==['any', 'float', 'any']
+    assert f._return_type == 'float'
+
+    def bad_argtype():
+        @declare_types(b='floating')
+        def f(a, b, c):
+            return a*b*c
+    assert_raises(ValueError, bad_argtype)
+
+    def bad_argname():
+        @declare_types(d='floating')
+        def f(a, b, c):
+            return a*b*c
+    assert_raises(ValueError, bad_argname)
+
+
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
@@ -537,7 +564,8 @@ if __name__ == '__main__':
             test_function_dependencies_numpy,
             test_function_dependencies_weave,
             test_function_dependencies_cython,
-            test_binomial
+            test_binomial,
+            test_declare_types,
             ]:
         try:
             start = time.time()
