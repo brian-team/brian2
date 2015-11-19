@@ -167,8 +167,8 @@ class BrianASTRenderer(object):
             node_arg_types = [subnode.dtype for subnode in node.args]
             for subnode, argtype in zip(node.args, funcvar._arg_types):
                 if argtype!='any' and argtype!=subnode.dtype:
-                    raise ValueError("Function %s takes arguments with types %s but "
-                                     "received %s" % (node.func.id, funcvar._arg_types, node_arg_types))
+                    raise TypeError("Function %s takes arguments with types %s but "
+                                    "received %s" % (node.func.id, funcvar._arg_types, node_arg_types))
             # compute return type
             return_type = funcvar._return_type
             if return_type=='highest':

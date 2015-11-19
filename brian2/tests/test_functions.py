@@ -517,8 +517,10 @@ def test_binomial():
     assert np.var(mon[0].y) > 0
 
 
-@attr('codegen-independent')
 def test_declare_types():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+
     @declare_types(a='integer', b='float', result='highest')
     def f(a, b):
         return a*b
@@ -542,6 +544,43 @@ def test_declare_types():
         def f(a, b, c):
             return a*b*c
     assert_raises(ValueError, bad_argname)
+
+    @check_units(a=volt, b=1)
+    @declare_types(a='float', b='integer')
+    def f(a, b):
+        return a*b
+
+    @declare_types(a='float', b='integer')
+    @check_units(a=volt, b=1)
+    def f(a, b):
+        return a*b
+
+    def bad_units():
+        @declare_types(a='integer', b='float')
+        @check_units(a=volt, b=1, result=volt)
+        def f(a, b):
+            return a*b
+        eqs = '''
+        dv/dt = f(v, 1)/second : 1
+        '''
+        G = NeuronGroup(1, eqs)
+        Network(G).run(1*ms)
+    assert_raises(TypeError, bad_units)
+
+    def bad_type():
+        @implementation('numpy', discard_units=True)
+        @declare_types(a='float', result='float')
+        @check_units(a=1, result=1)
+        def f(a):
+            return a
+        eqs = '''
+        a : integer
+        dv/dt = f(a)*v/second : 1
+        '''
+        G = NeuronGroup(1, eqs)
+        Network(G).run(1*ms)
+    assert_raises(TypeError, bad_type)
+
 
 
 if __name__ == '__main__':

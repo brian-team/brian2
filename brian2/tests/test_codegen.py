@@ -112,14 +112,33 @@ def test_apply_loop_invariant_optimisation():
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_integer():
     variables = {'v': Variable('v', Unit(1), scalar=False),
-                 'N': Constant('N', Unit(1), 10)}
-    statements = [Statement('v', '=', 'v % (2*3*N)', '', np.float32)]
+                 'N': Constant('N', Unit(1), 10),
+                 'b': Variable('b', Unit(1), scalar=True, dtype=int),
+                 'c': Variable('c', Unit(1), scalar=True, dtype=int),
+                 'd': Variable('d', Unit(1), scalar=True, dtype=int),
+                 'y': Variable('y', Unit(1), scalar=True, dtype=float),
+                 'z': Variable('z', Unit(1), scalar=True, dtype=float),
+                 'w': Variable('w', Unit(1), scalar=True, dtype=float),
+                 }
+    statements = [Statement('v', '=', 'v % (2*3*N)', '', np.float32),
+                  # integer version doesn't get rewritten but float version does
+                  Statement('a', ':=', 'b/(c/d)', '', int),
+                  Statement('x', ':=', 'y/(z/w)', '', float),
+                  ]
     scalar, vector = optimise_statements([], statements, variables)
-    assert len(scalar) == 1
+    assert len(scalar) == 3
     assert np.issubdtype(scalar[0].dtype, (np.integer, int))
     assert scalar[0].var == '_lio_1'
     expr = scalar[0].expr.replace(' ', '')
     assert expr=='6*N' or expr=='N*6'
+    assert np.issubdtype(scalar[1].dtype, (np.integer, int))
+    assert scalar[1].var == '_lio_2'
+    expr = scalar[1].expr.replace(' ', '')
+    assert expr=='b/(c/d)'
+    assert np.issubdtype(scalar[2].dtype, (np.float, float))
+    assert scalar[2].var == '_lio_3'
+    expr = scalar[2].expr.replace(' ', '')
+    assert expr=='(y*w)/z' or expr=='(w*y)/z'
 
 @attr('codegen-independent')
 def test_automatic_augmented_assignments():
