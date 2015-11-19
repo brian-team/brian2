@@ -1,4 +1,4 @@
-def brian1_CUBA(N):
+def brian1_CUBA(N, duration=10):
     import time
     results = dict()
     start_time = time.time()
@@ -6,7 +6,7 @@ def brian1_CUBA(N):
     finished_importing_brian_time = time.time()
     results['import_brian'] = finished_importing_brian_time-start_time
 
-    duration = 1*second
+    duration *= second
     Ne = int(0.8*N)
     Ni = N-Ne
     taum = 20 * ms
@@ -32,11 +32,11 @@ def brian1_CUBA(N):
     we = (60 * 0.27 / 10) * mV # excitatory synaptic weight (voltage)
     wi = (-20 * 4.5 / 10) * mV # inhibitory synaptic weight
     p = min(80./N, 1)
-    Ce = Connection(Pe, P, 'ge', weight=we, sparseness=p)
-    Ci = Connection(Pi, P, 'gi', weight=wi, sparseness=p)
+    # Ce = Connection(Pe, P, 'ge', weight=we, sparseness=p)
+    # Ci = Connection(Pi, P, 'gi', weight=wi, sparseness=p)
     P.v = Vr + rand(len(P)) * (Vt - Vr)
 
-    M = SpikeMonitor(P)
+    # M = SpikeMonitor(P)
 
     objects_created_time = time.time()
     results['object_creation'] = objects_created_time-finished_importing_brian_time
@@ -54,15 +54,16 @@ def brian1_CUBA(N):
 
     return results
 
-def brian2_CUBA(N):
+def brian2_CUBA(N, duration=10):
     import time
     results = dict()
     start_time = time.time()
     from brian2 import *
+    prefs.codegen.target = 'numpy'
     finished_importing_brian_time = time.time()
     results['import_brian'] = finished_importing_brian_time-start_time
 
-    duration = 1*second
+    duration *= second
     Ne = int(0.8*N)
     Ni = N-Ne
     taum = 20 * ms
@@ -86,13 +87,13 @@ def brian2_CUBA(N):
     we = (60 * 0.27 / 10) * mV # excitatory synaptic weight (voltage)
     wi = (-20 * 4.5 / 10) * mV # inhibitory synaptic weight
     p = min(80./N, 1.0)
-    Ce = Synapses(P, P, pre='ge += we')
-    Ci = Synapses(P, P, pre='gi += wi')
-    Ce.connect('i<Ne', p=p)
-    Ci.connect('i>=Ne', p=p)
+    # Ce = Synapses(P, P, pre='ge += we')
+    # Ci = Synapses(P, P, pre='gi += wi')
+    # Ce.connect('i<Ne', p=p)
+    # Ci.connect('i>=Ne', p=p)
     P.v = Vr + rand(len(P)) * (Vt - Vr)
 
-    M = SpikeMonitor(P)
+    # M = SpikeMonitor(P)
 
     objects_created_time = time.time()
     results['object_creation'] = objects_created_time-finished_importing_brian_time
@@ -124,7 +125,6 @@ if __name__=='__main__':
             for k, v in res.items():
                 times[k].append(v)
         for i, k in enumerate(sorted(times.keys())):
-            #figure(i+1)
             subplot(2, 3, i+1)
             if i>numfigs:
                 numfigs = i
@@ -132,7 +132,6 @@ if __name__=='__main__':
             v = times[k]
             loglog(N, v, label=func.__name__)
     for i in range(numfigs+1):
-        #figure(i+1)
-        subplot(2, 3, 1)
+        subplot(2, 3, i+1)
         legend(loc='best')
     show()
