@@ -1,4 +1,12 @@
+import time
+
+def halfway_timer():
+    global halftime
+    halftime = time.time()
+
+
 def brian1_CUBA(N, duration=10):
+    global halftime
     import time
     results = dict()
     start_time = time.time()
@@ -22,7 +30,9 @@ def brian1_CUBA(N, duration=10):
     dgi/dt = -gi/taui : volt
     ''')
 
-    P = NeuronGroup(N, model=eqs, threshold=Vt, reset=Vr, refractory=5*ms)
+    P = NeuronGroup(N, model=eqs, threshold=Vt, reset=Vr,
+                    #refractory=5*ms,
+                    method='Euler')
     P.v = Vr
     P.ge = 0 * mV
     P.gi = 0 * mV
@@ -38,6 +48,8 @@ def brian1_CUBA(N, duration=10):
 
     # M = SpikeMonitor(P)
 
+    netop_halfway_timer = network_operation(clock=EventClock(dt=duration*0.51))(halfway_timer)
+
     objects_created_time = time.time()
     results['object_creation'] = objects_created_time-finished_importing_brian_time
 
@@ -46,15 +58,18 @@ def brian1_CUBA(N, duration=10):
     initial_run_time = time.time()
     results['initial_run'] = initial_run_time-objects_created_time
 
-    run(1 * second)
+
+    run(duration)
 
     main_run_time = time.time()
     results['main_run'] = main_run_time-initial_run_time
+    results['second_half_main_run'] = main_run_time-halftime
     results['total'] = main_run_time-start_time
 
     return results
 
 def brian2_CUBA(N, duration=10):
+    global halftime
     import time
     results = dict()
     start_time = time.time()
@@ -74,12 +89,14 @@ def brian2_CUBA(N, duration=10):
     El = -49 * mV
 
     eqs = Equations('''
-    dv/dt  = (ge+gi-(v-El))/taum : volt (unless refractory)
-    dge/dt = -ge/taue : volt (unless refractory)
-    dgi/dt = -gi/taui : volt (unless refractory)
+    dv/dt  = (ge+gi-(v-El))/taum : volt #(unless refractory)
+    dge/dt = -ge/taue : volt #(unless refractory)
+    dgi/dt = -gi/taui : volt #(unless refractory)
     ''')
 
-    P = NeuronGroup(N, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5*ms)
+    P = NeuronGroup(N, model=eqs, threshold='v>Vt', reset='v=Vr',
+                    #refractory=5*ms,
+                    method='Euler')
     P.v = Vr
     P.ge = 0 * mV
     P.gi = 0 * mV
@@ -95,6 +112,8 @@ def brian2_CUBA(N, duration=10):
 
     # M = SpikeMonitor(P)
 
+    netop_halfway_timer = NetworkOperation(halfway_timer, dt=duration*0.51)
+
     objects_created_time = time.time()
     results['object_creation'] = objects_created_time-finished_importing_brian_time
 
@@ -103,10 +122,11 @@ def brian2_CUBA(N, duration=10):
     initial_run_time = time.time()
     results['initial_run'] = initial_run_time-objects_created_time
 
-    run(1 * second)
+    run(duration)
 
     main_run_time = time.time()
     results['main_run'] = main_run_time-initial_run_time
+    results['second_half_main_run'] = main_run_time-halftime
     results['total'] = main_run_time-start_time
 
     return results
