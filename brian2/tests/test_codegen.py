@@ -141,6 +141,28 @@ def test_apply_loop_invariant_optimisation_integer():
     assert expr=='(y*w)/z' or expr=='(w*y)/z'
 
 @attr('codegen-independent')
+def test_apply_loop_invariant_optimisation_no_optimisation():
+    variables = {'v1': Variable('v1', Unit(1), scalar=False),
+                 'v2': Variable('v2', Unit(1), scalar=False),
+                 'N': Constant('N', Unit(1), 10),
+                 's1': Variable('s1', Unit(1), scalar=True, dtype=float),
+                 's2': Variable('s2', Unit(1), scalar=True, dtype=float),
+                 'rand': DEFAULT_FUNCTIONS['rand']
+                 }
+    statements = [
+        # Neither should this
+        Statement('v1', '=', 'rand() - rand()', '', np.float),
+        Statement('v1', '=', '3*rand() - 3*rand()', '', np.float),
+        Statement('v1', '=', '3*rand() - ((1+2)*rand())', '', np.float),
+        # This should not pull out rand()*N
+        Statement('v1', '=', 's1*rand()*N', '', np.float),
+        Statement('v1', '=', 's2*rand()*N', '', np.float)
+    ]
+    scalar, vector = optimise_statements([], statements, variables)
+    for vs in vector:
+        assert 'rand()' in vs.expr, 'Expression should still contain rand(), but got ' + str(vs)
+
+@attr('codegen-independent')
 def test_automatic_augmented_assignments():
     # We test that statements that could be rewritten as augmented assignments
     # are correctly rewritten (using sympy to test for symbolic equality)
@@ -200,4 +222,5 @@ if __name__ == '__main__':
     test_nested_subexpressions()
     test_apply_loop_invariant_optimisation()
     test_apply_loop_invariant_optimisation_integer()
+    test_apply_loop_invariant_optimisation_no_optimisation()
     test_automatic_augmented_assignments()
