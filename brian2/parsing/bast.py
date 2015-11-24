@@ -217,7 +217,7 @@ class BrianASTRenderer(object):
         node.scalar = logical_all(subnode.scalar for subnode in comparators)
         node.complexity = 1+sum(subnode.complexity for subnode in comparators)
         node.stateless = (getattr(node.left, 'stateless', True) and
-                          getattr(node.right, 'stateless', True))
+                          all(getattr(c, 'stateless', True) for c in node.comparators))
         return node
 
     def render_UnaryOp(self, node):
