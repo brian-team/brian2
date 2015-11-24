@@ -43,14 +43,8 @@ class NodeRenderer(object):
       'AugMod': '%=',
       }
 
-    def __init__(self, use_vectorisation_idx=True, stateful_to_stateless=False,
-                 variables=None):
+    def __init__(self, use_vectorisation_idx=True):
         self.use_vectorisation_idx = use_vectorisation_idx
-        self.stateful_to_stateless = stateful_to_stateless
-        self._stateful_counter = 0
-        if variables is None:
-            variables = {}
-        self.variables = variables
 
     def render_expr(self, expr, strip=True):
         if strip:
@@ -90,15 +84,7 @@ class NodeRenderer(object):
             raise ValueError("Variable number of arguments not supported")
         elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
-        args = list(node.args)
-        if self.stateful_to_stateless:
-            # Add a dummy argument to prevent stateful functions from being
-            # simplified (e.g. rand() - rand() does not equal 0!)
-            func_name = str(node.func.id)
-            if func_name in self.variables and not self.variables[func_name].stateless:
-                self._stateful_counter += 1
-                args.append(ast.Name(id='_stateful_%d' % self._stateful_counter))
-        if len(args) == 0 and self.use_vectorisation_idx:
+        if len(node.args) == 0 and self.use_vectorisation_idx:
             # argument-less function call such as randn() are transformed into
             # randn(_vectorisation_idx) -- this is important for Python code
             # in particular, because it has to return an array of values.
@@ -106,7 +92,7 @@ class NodeRenderer(object):
                                '_vectorisation_idx')
         else:
             return '%s(%s)' % (self.render_func(node.func),
-                           ', '.join(self.render_node(arg) for arg in args))
+                           ', '.join(self.render_node(arg) for arg in node.args))
 
     def render_element_parentheses(self, node):
         '''

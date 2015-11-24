@@ -168,7 +168,6 @@ class ArithmeticSimplifier(BrianASTRenderer):
         BrianASTRenderer.__init__(self, variables)
         if assumptions is None:
             assumptions = []
-        self.variables = variables
         self.assumptions = assumptions
         self.assumptions_ns = create_assumptions_namespace(assumptions)
         self.bast_renderer = BrianASTRenderer(variables)
@@ -207,8 +206,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
     def render_BinOp(self, node):
         if node.dtype=='float': # only try to collect float type nodes
             if node.op.__class__.__name__ in ['Mult', 'Div', 'Add', 'Sub'] and not hasattr(node, 'collected'):
-                newnode = self.bast_renderer.render_node(collect(node,
-                                                                 self.variables))
+                newnode = self.bast_renderer.render_node(collect(node))
                 newnode.collected = True
                 return self.render_node(newnode)
         node.left = self.render_node(node.left)
@@ -356,6 +354,7 @@ class Simplifier(BrianASTRenderer):
             newnode.scalar = True
             newnode.dtype = node.dtype
             newnode.complexity = 0
+            newnode.stateless = True
             return newnode
         # otherwise, render node as usual
         return super(Simplifier, self).render_node(node)
@@ -386,7 +385,7 @@ def reduced_node(terms, op, curnode=None):
     return curnode
 
 
-def cancel_identical_terms(primary, inverted, variables):
+def cancel_identical_terms(primary, inverted):
     '''
     Cancel terms in a collection, e.g. a+b-a should be cancelled to b
 
@@ -401,8 +400,7 @@ def cancel_identical_terms(primary, inverted, variables):
     inverted : list of AST nodes
         These are the nodes that are inverted with respect to the operator, e.g.
         in x*y/z it would be [z].
-    variables : dict-like
-        The variables used.
+
     Returns
     -------
     primary : list of AST nodes
@@ -410,9 +408,7 @@ def cancel_identical_terms(primary, inverted, variables):
     inverted : list of AST nodes
         Inverted nodes after cancellation
     '''
-    nr = NodeRenderer(use_vectorisation_idx=False,
-                      stateful_to_stateless=True,
-                      variables=variables)
+    nr = NodeRenderer(use_vectorisation_idx=False)
     expressions = dict((node, nr.render_node(node)) for node in primary)
     expressions.update(dict((node, nr.render_node(node)) for node in inverted))
     new_primary = []
@@ -422,7 +418,7 @@ def cancel_identical_terms(primary, inverted, variables):
         if expr in inverted_expressions:
             new_inverted = []
             for iterm in inverted:
-                if expressions[iterm]==expr:
+                if expressions[iterm]==expr and getattr(iterm, 'stateless', False):
                     expr = '' # handled
                 else:
                     new_inverted.append(iterm)
@@ -433,7 +429,7 @@ def cancel_identical_terms(primary, inverted, variables):
     return new_primary, inverted
 
 
-def collect(node, variables):
+def collect(node):
     '''
     Attempts to collect commutative operations into one and simplifies them.
 
@@ -453,8 +449,6 @@ def collect(node, variables):
     ----------
     node : Brian AST node
         The node to be collected/simplified.
-    variables : dict-like
-        The variables used.
 
     Returns
     -------
@@ -513,13 +507,11 @@ def collect(node, variables):
     primary_scalar_terms = [term for term in terms_primary if term.scalar]
     inverted_scalar_terms = [term for term in terms_inverted if term.scalar]
     primary_scalar_terms, inverted_scalar_terms = cancel_identical_terms(primary_scalar_terms,
-                                                                         inverted_scalar_terms,
-                                                                         variables)
+                                                                         inverted_scalar_terms)
     primary_vector_terms = [term for term in terms_primary if not term.scalar]
     inverted_vector_terms = [term for term in terms_inverted if not term.scalar]
     primary_vector_terms, inverted_vector_terms = cancel_identical_terms(primary_vector_terms,
-                                                                         inverted_vector_terms,
-                                                                         variables)
+                                                                         inverted_vector_terms)
     # produce nodes that are the reduction of the operator on these subsets
     prod_primary_scalars = reduced_node(primary_scalar_terms, op_primary)
     prod_inverted_scalars = reduced_node(inverted_scalar_terms, op_primary)
