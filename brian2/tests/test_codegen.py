@@ -219,6 +219,10 @@ def test_apply_loop_invariant_optimisation_simplification():
         Statement('v2', '=', '1.0 * v1*N', '', np.float),
         Statement('v2', '=', 'v1*N / 1.0', '', np.float),
         Statement('v2', '=', 'v1*N / 1', '', np.float),
+        Statement('i1', '=', 'i1*1', '', int),
+        Statement('i1', '=', 'i1/1', '', int),
+        Statement('i1', '=', 'i1+0', '', int),
+        Statement('i1', '=', 'i1-0', '', int),
     ]
     scalar, vector = optimise_statements([], statements, variables)
     assert len(scalar) == 0
@@ -226,9 +230,12 @@ def test_apply_loop_invariant_optimisation_simplification():
         assert s.expr == '0.0'
     for s in vector[6:10]:
         assert s.expr == '0',s.expr  # integer
-    for s in vector[10:]:
+    for s in vector[10:18]:
         expr = s.expr.replace(' ', '')
         assert expr == 'v1*N' or expr == 'N*v1'
+    for s in vector[18:22]:
+        expr = s.expr.replace(' ', '')
+        assert expr == 'i1'
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_constant_evaluation():
