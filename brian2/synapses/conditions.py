@@ -208,16 +208,16 @@ from numpy.random import rand as _rand
 def rand(x):
     return _rand(N)
 all_i = []
-all_j = []
+# all_j = []
 _vectorisation_idx = arange(N)
 for j in xrange(N):
     i = _vectorisation_idx
     _cond = {{expr}}
     i = _cond.nonzero()[0]
     all_i.append(i)
-    all_j.append(full(len(i), j, dtype=int))
-all_i = hstack(all_i)
-all_j = hstack(all_j)
+    # all_j.append(full(len(i), j, dtype=int))
+# all_i = concatenate(all_i)
+# all_j = concatenate(all_j)
     '''
     code = jinja2.Template(code).render(expr=NumpyNodeRenderer().render_expr(expr))
     # print code
@@ -246,13 +246,22 @@ from sklearn.utils.random import sample_without_replacement
 from random import sample
 from __builtin__ import max
 all_i = []
-all_j = []
+# all_j = []
 _vectorisation_idx = arange(N)
+# j = arange(N)
+# imins = j
+# imaxes = j
 for j in xrange(N):
     i = _vectorisation_idx
 
+    {% if len(conditions)>1 %}
     cur_i = []
+    {% endif %}
     {% for (i_inequalities, rand, remaining_terms) in conditions %}
+    # imin = imins[j]
+    # imax = imaxes[j]
+    # TODO: compute imins and imaxes in a vectorised way outside the loop and then just extract from array
+    imin = imax = j
     imins = (0,
     {% for op, rhs in i_inequalities %}
         {% if op=='>=' or op=='==' %}
@@ -273,6 +282,7 @@ for j in xrange(N):
         )
     imin = max(imins)
     imax = min(imaxes)
+
     if imax>=imin:
         i = _vectorisation_idx[imin:imax+1]
 
@@ -287,24 +297,31 @@ for j in xrange(N):
         {% endif %}
 
         {% if remaining_code %}
-        {{ indent(remaining_code, numtabs=1) }}
+        {{ indent(remaining_code, numtabs=2) }}
         i, = _cond.nonzero()
         {% endif %}
 
+        {% if len(conditions)>1 %}
         cur_i.append(i)
+        {% endif %}
     else:
+        {% if len(conditions)>1 %}
         cur_i.append([])
+        {% else %}
+        i = []
+        {% endif %}
 
     {% endfor %}
 
     {% if len(conditions)>1 %}
-    i = unique(hstack(cur_i))
+    # TODO: this can probably be improved
+    i = unique(concatenate(cur_i))
     {% endif %}
 
     all_i.append(i)
-    all_j.append(full(len(i), j, dtype=int))
-all_i = hstack(all_i)
-all_j = hstack(all_j)
+    # all_j.append(full(len(i), j, dtype=int))
+# all_i = concatenate(all_i)
+# all_j = concatenate(all_j)
     '''
     code = jinja2.Template(code).render(conditions=conditions, len=len)
     # print code
@@ -329,13 +346,13 @@ if __name__=='__main__':
     #analyse('i<5 or rand()<p')
     #optimised_numpy_test_code('(i<5 or i>=10) and rand()<0.1', 1000)
     #expr = '(i<5 or i>=10) and rand()<0.01'
-    expr = 'i>j-100 and i<j+100 and rand()<0.1'
+    #expr = 'i>j-100 and i<j+100 and rand()<0.1'
     #expr = 'rand()<0.1'
-    #expr = 'i==j'
+    expr = 'i==j'
     #expr = 'i>j-10 and i<j+10'
     #expr = '(i<j-100 and rand()<0.01) or (i>j+100 and rand()<0.01)'
     N_range = [10, 100, 1000, 10000,
-               #100000,
+               # 100000,
                ]
     all_t_optim = []
     all_t_std = []
