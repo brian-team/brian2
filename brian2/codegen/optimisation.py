@@ -354,7 +354,7 @@ class Simplifier(BrianASTRenderer):
         return super(Simplifier, self).render_node(node)
 
 
-def reduced_node(terms, op, curnode=None):
+def reduced_node(terms, op):
     '''
     Reduce a sequence of terms with the given operator
 
@@ -366,17 +366,22 @@ def reduced_node(terms, op, curnode=None):
         AST nodes.
     op : AST node
         Could be `ast.Mult` or `ast.Add`.
-    curnode : AST node
-        Starting node (equivalent to making it the first node in terms).
+
+    Example
+    -------
+    >>> import ast
+    >>> nodes = [ast.Name(id='x'), ast.Num(n=3), ast.Name(id='y')]
+    >>> ast.dump(reduced_node(nodes, ast.Mult), annotate_fields=False)
+    "BinOp(BinOp(Name('x'), Mult(), Num(3)), Mult(), Name('y'))"
+    >>> nodes = [ast.Num(n=17.0)]
+    >>> ast.dump(reduced_node(nodes, ast.Add), annotate_fields=False)
+    'Num(17.0)'
     '''
-    for term in terms:
-        if term is None:
-            continue
-        if curnode is None:
-            curnode = term
-        else:
-            curnode = ast.BinOp(curnode, op(), term)
-    return curnode
+    # Remove None terms
+    terms = [term for term in terms if term is not None]
+    if not len(terms):
+        return None
+    return reduce(lambda left, right: ast.BinOp(left, op(), right), terms)
 
 
 def cancel_identical_terms(primary, inverted):
