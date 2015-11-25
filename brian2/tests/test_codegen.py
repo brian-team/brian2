@@ -161,7 +161,7 @@ def test_apply_loop_invariant_optimisation_boolean():
                   ]
     scalar, vector = optimise_statements([], statements, variables)
     assert len(scalar) == 4
-    assert scalar[0].expr == 'int(b and c)'
+    assert scalar[0].expr == '1.0 * int(b and c)'
     assert scalar[1].expr == 'b and c'
     assert scalar[2].expr == 'int((not b) and True)'
     assert scalar[3].expr == '(not b) and True'

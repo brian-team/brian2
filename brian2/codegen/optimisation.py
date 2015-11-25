@@ -8,7 +8,7 @@ import itertools
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
-                                 brian_dtype_from_dtype)
+                                 brian_dtype_from_dtype, brian_dtype_from_value)
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
 
@@ -417,6 +417,7 @@ def collect(node):
         Simplified node.
     '''
     node.collected = True
+    orignode_dtype = node.dtype
     # we only work on */ or +- ops, which are both BinOp
     if node.__class__.__name__ != 'BinOp':
         return node
@@ -438,6 +439,10 @@ def collect(node):
         op_py_inverted = lambda x, y: x-y
     else:
         return node
+    if node.dtype=='integer':
+        op_null_with_dtype = int(op_null)
+    else:
+        op_null_with_dtype = op_null
     # recursively collect terms into the terms_primary and terms_inverted lists
     collect_commutative(node, op_primary, op_inverted,
                         terms_primary, terms_inverted)
@@ -478,11 +483,13 @@ def collect(node):
         node = reduced_node([node, prod_primary], op_primary)
         if prod_inverted is not None:
             if node is None:
-                node = ast.Num(float(op_null))
+                node = ast.Num(op_null_with_dtype)
             node = ast.BinOp(node, op_inverted(), prod_inverted)
 
     if node is None:  # everything cancelled
-        node = ast.Num(float(op_null))
+        node = ast.Num(op_null_with_dtype)
+    if hasattr(node, 'dtype') and dtype_hierarchy[node.dtype]<dtype_hierarchy[orignode_dtype]:
+        node = ast.BinOp(ast.Num(op_null_with_dtype), op_primary(), node)
     node.collected = True
     return node
 
