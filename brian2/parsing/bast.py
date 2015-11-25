@@ -193,8 +193,7 @@ class BrianASTRenderer(object):
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar
         node.complexity = 1+node.left.complexity+node.right.complexity
-        node.stateless = (getattr(node.left, 'stateless', True) and
-                          getattr(node.right, 'stateless', True))
+        node.stateless = node.left.stateless and node.right.stateless
         return node
 
     def render_BoolOp(self, node):
@@ -205,7 +204,7 @@ class BrianASTRenderer(object):
                 raise TypeError("Boolean operator acting on non-booleans")
         node.scalar = logical_all(subnode.scalar for subnode in node.values)
         node.complexity = 1+sum(subnode.complexity for subnode in node.values)
-        node.stateless = logical_all(getattr(subnode, 'stateless', True)
+        node.stateless = logical_all(subnode.stateless
                                      for subnode in node.values)
         return node
 
@@ -216,8 +215,8 @@ class BrianASTRenderer(object):
         comparators = [node.left]+node.comparators
         node.scalar = logical_all(subnode.scalar for subnode in comparators)
         node.complexity = 1+sum(subnode.complexity for subnode in comparators)
-        node.stateless = (getattr(node.left, 'stateless', True) and
-                          all(getattr(c, 'stateless', True) for c in node.comparators))
+        node.stateless = node.left.stateless and all(c.stateless
+                                                     for c in node.comparators)
         return node
 
     def render_UnaryOp(self, node):
@@ -227,7 +226,7 @@ class BrianASTRenderer(object):
             raise TypeError("Unary operator %s does not apply to boolean types" % node.op.__class__.__name__)
         node.scalar = node.operand.scalar
         node.complexity = 1+node.operand.complexity
-        node.stateless = getattr(node.operand, 'stateless', True)
+        node.stateless = node.operand.stateless
         return node
 
 

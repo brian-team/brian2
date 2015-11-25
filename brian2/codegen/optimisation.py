@@ -199,6 +199,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
                 newnode = ast.Num(val)
             newnode.dtype = node.dtype
             newnode.scalar = True
+            newnode.stateless = node.stateless
             newnode.complexity = 0
             return newnode
         return node
@@ -354,7 +355,7 @@ class Simplifier(BrianASTRenderer):
             newnode.scalar = True
             newnode.dtype = node.dtype
             newnode.complexity = 0
-            newnode.stateless = True
+            newnode.stateless = node.stateless
             return newnode
         # otherwise, render node as usual
         return super(Simplifier, self).render_node(node)
