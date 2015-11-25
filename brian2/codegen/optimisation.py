@@ -146,6 +146,30 @@ def create_assumptions_namespace(assumptions):
             pass
     return ns
 
+def _replace_with_zero(zero_node, node):
+    '''
+    Helper function to return a "zero node" of the correct type.
+
+    Parameters
+    ----------
+    zero_node : `ast.Num`
+        The node to replace
+    node : `ast.Node`
+        The node that determines the type
+
+    Returns
+    -------
+    zero_node : `ast.Num`
+        The original ``zero_node`` with its value replaced by 0 or 0.0.
+    '''
+    # must not change the dtype of the output,
+    # e.g. handle 0/float->0.0 and 0.0/int->0.0
+    zero_node.dtype = node.dtype
+    if node.dtype == 'integer':
+        zero_node.n = 0
+    else:
+        zero_node.n = 0.0
+    return zero_node
 
 class ArithmeticSimplifier(BrianASTRenderer):
     '''
@@ -184,18 +208,18 @@ class ArithmeticSimplifier(BrianASTRenderer):
         expr = NodeRenderer().render_node(node)
         val, evaluated = evaluate_expr(expr, self.assumptions_ns)
         if evaluated:
-            if node.dtype=='boolean':
+            if node.dtype == 'boolean':
                 val = bool(val)
                 if hasattr(ast, 'NameConstant'):
                     newnode = ast.NameConstant(val)
                 else:
                     # None is the expression context, we don't use it so we just set to None
                     newnode = ast.Name(repr(val), None)
-            elif node.dtype=='integer':
+            elif node.dtype == 'integer':
                 val = int(val)
             else:
                 val = float(val)
-            if node.dtype!='boolean':
+            if node.dtype != 'boolean':
                 newnode = ast.Num(val)
             newnode.dtype = node.dtype
             newnode.scalar = True
@@ -205,85 +229,54 @@ class ArithmeticSimplifier(BrianASTRenderer):
         return node
 
     def render_BinOp(self, node):
-        if node.dtype=='float': # only try to collect float type nodes
+        if node.dtype == 'float': # only try to collect float type nodes
             if node.op.__class__.__name__ in ['Mult', 'Div', 'Add', 'Sub'] and not hasattr(node, 'collected'):
                 newnode = self.bast_renderer.render_node(collect(node))
                 newnode.collected = True
                 return self.render_node(newnode)
-        node.left = self.render_node(node.left)
-        node.right = self.render_node(node.right)
+        left = node.left = self.render_node(node.left)
+        right = node.right = self.render_node(node.right)
         node = super(ArithmeticSimplifier, self).render_BinOp(node)
-        left = node.left
-        right = node.right
         op = node.op
         # Handle multiplication by 0 or 1
-        if op.__class__.__name__=='Mult':
-            if left.__class__.__name__=='Num':
-                if left.n==0:
-                    # must not change the dtype of the output, e.g. handle 0*float->0.0 and 0.0*int->0.0
-                    left.dtype = node.dtype
-                    if node.dtype=='integer':
-                        left.n = 0
-                    else:
-                        left.n = 0.0
-                    return left
-                if left.n==1:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[left.dtype]<=dtype_hierarchy[right.dtype]:
-                        return right
-            if right.__class__.__name__=='Num':
-                if right.n==0:
-                    # must not change the dtype of the output, e.g. handle 0*float->0.0 and 0.0*int->0.0
-                    right.dtype = right.dtype
-                    if node.dtype=='integer':
-                        right.n = 0
-                    else:
-                        right.n = 0.0
-                    return right
-                if right.n==1:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
+        if op.__class__.__name__ == 'Mult':
+            for operand, other in [(left, right),
+                                   (right, left)]:
+                if operand.__class__.__name__ == 'Num':
+                    if operand.n == 0:
+                        return _replace_with_zero(operand, node)
+                    if operand.n==1:
+                        # only simplify this if the type wouldn't be cast by the operation
+                        if dtype_hierarchy[operand.dtype] <= dtype_hierarchy[other.dtype]:
+                            return other
         # Handle division by 1, or 0/x
-        if op.__class__.__name__=='Div':
-            if left.__class__.__name__=='Num':
-                if left.n==0:
-                    # must not change the dtype of the output, e.g. handle 0/float->0.0 and 0.0/int->0.0
-                    left.dtype = node.dtype
-                    if node.dtype=='integer':
-                        left.n = 0
-                    else:
-                        left.n = 0.0
+        elif op.__class__.__name__ == 'Div':
+            if left.__class__.__name__ == 'Num' and left.n == 0:  # 0/x
+                return _replace_with_zero(left, node)
+            if right.__class__.__name__ == 'Num' and right.n == 1:  # x/1
+                # only simplify this if the type wouldn't be cast by the operation
+                if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
-            if right.__class__.__name__=='Num':
-                if right.n==1:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
         # Handle addition of 0
-        if op.__class__.__name__=='Add':
-            if left.__class__.__name__=='Num':
-                if left.n==0:
+        elif op.__class__.__name__ == 'Add':
+            for operand, other in [(left, right),
+                                   (right, left)]:
+                if operand.__class__.__name__ == 'Num' and operand.n == 0:
                     # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[left.dtype]<=dtype_hierarchy[right.dtype]:
-                        return right
-            if right.__class__.__name__=='Num':
-                if right.n==0:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
+                    if dtype_hierarchy[operand.dtype]<=dtype_hierarchy[other.dtype]:
+                        return other
         # Handle subtraction of 0
-        if op.__class__.__name__=='Sub':
-            if right.__class__.__name__=='Num':
-                if right.n==0:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
+        elif op.__class__.__name__ == 'Sub':
+            if right.__class__.__name__ == 'Num' and right.n == 0:
+                # only simplify this if the type wouldn't be cast by the operation
+                if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
+                    return left
+
         # simplify e.g. 2*float to 2.0*float to make things more explicit: not strictly necessary
         # but might be useful for some codegen targets
         if node.dtype=='float' and op.__class__.__name__ in ['Mult', 'Add', 'Sub', 'Div']:
             for subnode in [node.left, node.right]:
-                if subnode.__class__.__name__=='Num':
+                if subnode.__class__.__name__ == 'Num':
                     subnode.dtype = 'float'
                     subnode.n = float(subnode.n)
         return node
@@ -419,8 +412,8 @@ def cancel_identical_terms(primary, inverted):
         if expr in inverted_expressions:
             new_inverted = []
             for iterm in inverted:
-                if expressions[iterm]==expr and getattr(iterm, 'stateless', False):
-                    expr = '' # handled
+                if expressions[iterm] == expr and iterm.stateless:
+                   expr = ''  # handled
                 else:
                     new_inverted.append(iterm)
             inverted = new_inverted
@@ -458,7 +451,7 @@ def collect(node):
     '''
     node.collected = True
     # we only work on */ or +- ops, which are both BinOp
-    if node.__class__.__name__!='BinOp':
+    if node.__class__.__name__ != 'BinOp':
         return node
     # primary would be the * or + nodes, and inverted would be the / or - nodes
     terms_primary = []
@@ -479,7 +472,8 @@ def collect(node):
     else:
         return node
     # recursively collect terms into the terms_primary and terms_inverted lists
-    collect_commutative(node, op_primary, op_inverted, terms_primary, terms_inverted)
+    collect_commutative(node, op_primary, op_inverted,
+                        terms_primary, terms_inverted)
     x = op_null
     # extract the numerical nodes and fully evaluate
     remaining_terms_primary = []
@@ -494,43 +488,33 @@ def collect(node):
             x = op_py_inverted(x, term.n)
         else:
             remaining_terms_inverted.append(term)
-    # if the fully evaluated node is just the identity/null element then we don't have to make it
-    # into an explicit term
-    if x!=op_null:
+    # if the fully evaluated node is just the identity/null element then we
+    # don't have to make it into an explicit term
+    if x != op_null:
         num_node = ast.Num(x)
     else:
         num_node = None
     terms_primary = remaining_terms_primary
     terms_inverted = remaining_terms_inverted
-    # final form that we want is:
-    # ((num*prod(scalars)/prod(scalars))*prod(vectors))/prod(vectors)
-    # further subdivide into scalar/vector terms and cancel any identical terms
-    primary_scalar_terms = [term for term in terms_primary if term.scalar]
-    inverted_scalar_terms = [term for term in terms_inverted if term.scalar]
-    primary_scalar_terms, inverted_scalar_terms = cancel_identical_terms(primary_scalar_terms,
-                                                                         inverted_scalar_terms)
-    primary_vector_terms = [term for term in terms_primary if not term.scalar]
-    inverted_vector_terms = [term for term in terms_inverted if not term.scalar]
-    primary_vector_terms, inverted_vector_terms = cancel_identical_terms(primary_vector_terms,
-                                                                         inverted_vector_terms)
-    # produce nodes that are the reduction of the operator on these subsets
-    prod_primary_scalars = reduced_node(primary_scalar_terms, op_primary)
-    prod_inverted_scalars = reduced_node(inverted_scalar_terms, op_primary)
-    prod_primary_vectors = reduced_node(primary_vector_terms, op_primary)
-    prod_inverted_vectors = reduced_node(inverted_vector_terms, op_primary)
-    # construct the simplest version of the fully simplified node (only doing operations where necessary)
-    curnode = reduced_node([num_node, prod_primary_scalars], op_primary)
-    if prod_inverted_scalars is not None:
-        if curnode is None:
-            curnode = ast.Num(float(op_null))
-        curnode = ast.BinOp(curnode, op_inverted(), prod_inverted_scalars)
-    curnode = reduced_node([curnode, prod_primary_vectors], op_primary)
-    if prod_inverted_vectors is not None:
-        if curnode is None:
-            curnode = ast.Num(float(op_null))
-        curnode = ast.BinOp(curnode, op_inverted(), prod_inverted_vectors)
-    node = curnode
-    if node is None: # everything cancelled
+    node = num_node
+    for scalar in (True, False):
+        primary_terms = [term for term in terms_primary if term.scalar == scalar]
+        inverted_terms = [term for term in terms_inverted if term.scalar == scalar]
+        primary_terms, inverted_terms = cancel_identical_terms(primary_terms,
+                                                               inverted_terms)
+
+        # produce nodes that are the reduction of the operator on these subsets
+        prod_primary = reduced_node(primary_terms, op_primary)
+        prod_inverted = reduced_node(inverted_terms, op_primary)
+
+        # construct the simplest version of the fully simplified node (only doing operations where necessary)
+        node = reduced_node([node, prod_primary], op_primary)
+        if prod_inverted is not None:
+            if node is None:
+                node = ast.Num(float(op_null))
+            node = ast.BinOp(node, op_inverted(), prod_inverted)
+
+    if node is None:  # everything cancelled
         node = ast.Num(float(op_null))
     node.collected = True
     return node
