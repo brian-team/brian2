@@ -22,14 +22,12 @@ defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
 __all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
 
 
-def evaluate_expr(expr, ns=None):
+def evaluate_expr(expr, ns):
     '''
-    Try to evaluate the expression in the namespace (use default namespace if unspecified)
+    Try to evaluate the expression in the given namespace
 
     Returns either (value, True) if successful, or (expr, False) otherwise.
     '''
-    if ns is None:
-        ns = defaults_ns
     try:
         val = eval(expr, ns)
         return val, True
@@ -42,7 +40,7 @@ def optimise_statements(scalar_statements, vector_statements, variables):
     Optimise a sequence of scalar and vector statements
 
     Performs the following optimisations:
-    1. Constant evaluations (e.g. exp(0) to 1). See `evaluate_expr`, `create_assumptions_namespace`.
+    1. Constant evaluations (e.g. exp(0) to 1). See `evaluate_expr`.
     2. Arithmetic simplifications (e.g. 0*x to 0). See `ArithmeticSimplifier`, `collect`.
     3. Pulling out loop invariants (e.g. v*exp(-dt/tau) to a=exp(-dt/tau) outside the loop and v*a inside).
        See `Simplifier`.
@@ -121,31 +119,6 @@ def optimise_statements(scalar_statements, vector_statements, variables):
         new_scalar_statements.append(new_stmt)
     return new_scalar_statements, new_vector_statements
 
-
-def create_assumptions_namespace(assumptions):
-    '''
-    Create a namespace from a sequence of statements.
-
-    Parameters
-    ----------
-    assumptions : list of str
-        Sequence of statements. Will try to evaluate each one, but won't raise any
-        exceptions if they fail.
-
-    Returns
-    -------
-    namespace : dict
-        Result of executing as many of the assumption statements as possible.
-        Includes the default namespace.
-    '''
-    ns = defaults_ns.copy()
-    for assumption in assumptions:
-        try:
-            exec assumption in ns
-        except NameError:
-            pass
-    return ns
-
 def _replace_with_zero(zero_node, node):
     '''
     Helper function to return a "zero node" of the correct type.
@@ -175,8 +148,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
     '''
     Carries out the following arithmetic simplifications:
 
-    1. Constant evaluation (e.g. exp(0)=1) by attempting to evaluate the expression in the namespace returned
-       by `create_assumptions_namespace`.
+    1. Constant evaluation (e.g. exp(0)=1) by attempting to evaluate the expression in an "assumptions namespace"
     2. Binary operators, e.g. 0*x=0, 1*x=x, etc. You have to take care that the dtypes match here, e.g.
        if x is an integer, then 1.0*x shouldn't be replaced with x but left as 1.0*x.
 
@@ -188,12 +160,10 @@ class ArithmeticSimplifier(BrianASTRenderer):
         Additional assumptions that can be used in simplification, each assumption is a string statement.
         These might be the scalar statements for example.
     '''
-    def __init__(self, variables, assumptions=None):
+    def __init__(self, variables):
         BrianASTRenderer.__init__(self, variables)
-        if assumptions is None:
-            assumptions = []
-        self.assumptions = assumptions
-        self.assumptions_ns = create_assumptions_namespace(assumptions)
+        self.assumptions = []
+        self.assumptions_ns = dict(defaults_ns)
         self.bast_renderer = BrianASTRenderer(variables)
 
     def render_node(self, node):
@@ -314,14 +284,6 @@ class Simplifier(BrianASTRenderer):
         self.node_renderer = NodeRenderer(use_vectorisation_idx=False)
         self.arithmetic_simplifier = ArithmeticSimplifier(variables)
         self.scalar_statements = scalar_statements
-
-    def render_expr_with_additional_assumptions(self, expr, additional_assumptions):
-        cur_arithmetic_simplifier = self.arithmetic_simplifier
-        self.arithmetic_simplifier = ArithmeticSimplifier(self.variables,
-                                                          assumptions=additional_assumptions)
-        expr = self.render_expr(expr)
-        self.arithmetic_simplifier = cur_arithmetic_simplifier
-        return expr
 
     def render_expr(self, expr):
         node = brian_ast(expr, self.variables)
