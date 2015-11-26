@@ -158,11 +158,7 @@ class CPPCodeGenerator(CodeGenerator):
             return device.get_array_name(var, access_data=False)
 
     def translate_expression(self, expr):
-        for varname, var in self.variables.iteritems():
-            if isinstance(var, Function):
-                impl_name = var.implementations[self.codeobj_class].name
-                if impl_name is not None:
-                    expr = word_substitute(expr, {varname: impl_name})
+        expr = word_substitute(expr, self.func_name_replacements)
         return CPPNodeRenderer().render_expr(expr).strip()
 
     def translate_statement(self, statement):
