@@ -21,7 +21,6 @@ dtype_hierarchy = {'boolean': 0,
 for tc, i in dtype_hierarchy.items():
     dtype_hierarchy[i] = tc
 
-
 def is_boolean(value):
     return isinstance(value, bool)
 
@@ -46,17 +45,21 @@ def brian_dtype_from_value(value):
         return 'boolean'
     raise TypeError("Unknown dtype for value "+str(value))
 
+# The following functions are called very often during the optimisation process
+# so we don't use numpy.issubdtype but instead a precalculated list of all
+# standard types
 
-def is_boolean_dtype(dtype):
-    return numpy.issubdtype(dtype, numpy.bool)
+bool_dtype =numpy.dtype(numpy.bool)
+def is_boolean_dtype(obj):
+    return numpy.dtype(obj) is bool_dtype
 
+integer_dtypes = {numpy.dtype(c) for c in numpy.typecodes['AllInteger']}
+def is_integer_dtype(obj):
+    return numpy.dtype(obj) in integer_dtypes
 
-def is_integer_dtype(dtype):
-    return numpy.issubdtype(dtype, numpy.integer)
-
-
-def is_float_dtype(dtype):
-    return numpy.issubdtype(dtype, numpy.float)
+float_dtypes = {numpy.dtype(c) for c in numpy.typecodes['AllFloat']}
+def is_float_dtype(obj):
+    return numpy.dtype(obj) in float_dtypes
 
 
 def brian_dtype_from_dtype(dtype):
