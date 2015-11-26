@@ -166,7 +166,7 @@ def test_user_defined_function_units():
                   lambda: setattr(G, 'c', 'one_arg_missing(a, b, t)'))
     assert_raises(ValueError,
                   lambda: setattr(G, 'c', 'no_result_unit(a, b, t)'))
-    assert_raises(ValueError,
+    assert_raises(KeyError,
                   lambda: setattr(G, 'c', 'nothing_specified(a, b, t)'))
     assert_raises(DimensionMismatchError,
                   lambda: setattr(G, 'a', 'all_specified(a, b, t)'))

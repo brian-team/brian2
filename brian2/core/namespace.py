@@ -41,20 +41,13 @@ def get_local_namespace(level):
         The locals and globals at the given depth of the stack frame.
     '''
     # Get the locals and globals from the stack frame
-    namespace = dict()
     frame = inspect.stack()[level + 1][0]
-    for k, v in itertools.chain(frame.f_globals.iteritems(),
-                                frame.f_locals.iteritems()):
-        # We are only interested in numbers and functions, not in
-        # everything else (classes, modules, etc.)
-        if (((isinstance(v, (numbers.Number, np.ndarray, np.number, Function))) or
-            (inspect.isfunction(v) and
-                 hasattr(v, '_arg_units') and
-                 hasattr(v, '_return_unit'))) and
-                not k.startswith('_')):
-            namespace[k] = v
-    del frame
-    return namespace
+    # We return the full stack here, even if it contains a lot of stuff we are
+    # not interested in -- it is cheaper to later raise an error when we find
+    # a specific object with an incorrect type instead of going through this big
+    # list now to check the types of all objects
+    return dict(itertools.chain(frame.f_globals.iteritems(),
+                                frame.f_locals.iteritems()))
 
 
 def _get_default_unit_namespace():

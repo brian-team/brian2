@@ -265,7 +265,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 raise AssertionError('Unknown element name: %s' %
                                      element.getName())
 
-    
     def __repr__(self):
         # recreate a description string
         description = '\n'.join(['%s = %s' % (var, expr)
@@ -278,7 +277,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
                         description=description,
                         stochastic=repr(self.stochastic))
 
-    
     def __str__(self):
         s = '%s\n' % self.__class__.__name__
         
@@ -546,7 +544,6 @@ class ExplicitStateUpdater(StateUpdateMethod):
             RHS += stochastic_result
 
         return sympy_to_str(RHS)
-
 
     def __call__(self, eqs, variables=None):
         '''
