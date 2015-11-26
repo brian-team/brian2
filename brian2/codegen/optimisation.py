@@ -219,7 +219,9 @@ class ArithmeticSimplifier(BrianASTRenderer):
                                    (right, left)]:
                 if operand.__class__.__name__ == 'Num':
                     if operand.n == 0:
-                        return _replace_with_zero(operand, node)
+                        # Do not remove stateful functions
+                        if node.stateless:
+                            return _replace_with_zero(operand, node)
                     if operand.n==1:
                         # only simplify this if the type wouldn't be cast by the operation
                         if dtype_hierarchy[operand.dtype] <= dtype_hierarchy[other.dtype]:
@@ -227,7 +229,9 @@ class ArithmeticSimplifier(BrianASTRenderer):
         # Handle division by 1, or 0/x
         elif op.__class__.__name__ == 'Div':
             if left.__class__.__name__ == 'Num' and left.n == 0:  # 0/x
-                return _replace_with_zero(left, node)
+                if node.stateless:
+                    # Do not remove stateful functions
+                    return _replace_with_zero(left, node)
             if right.__class__.__name__ == 'Num' and right.n == 1:  # x/1
                 # only simplify this if the type wouldn't be cast by the operation
                 if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
@@ -381,10 +385,10 @@ def cancel_identical_terms(primary, inverted):
     inverted_expressions = [expressions[term] for term in inverted]
     for term in primary:
         expr = expressions[term]
-        if expr in inverted_expressions:
+        if expr in inverted_expressions and term.stateless:
             new_inverted = []
             for iterm in inverted:
-                if expressions[iterm] == expr and iterm.stateless:
+                if expressions[iterm] == expr:
                    expr = ''  # handled
                 else:
                     new_inverted.append(iterm)

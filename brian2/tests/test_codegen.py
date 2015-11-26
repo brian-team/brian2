@@ -187,11 +187,17 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
         Statement('v1', '=', '3*rand() - ((1+2)*rand())', '', np.float),
         # This should not pull out rand()*N
         Statement('v1', '=', 's1*rand()*N', '', np.float),
-        Statement('v1', '=', 's2*rand()*N', '', np.float)
+        Statement('v1', '=', 's2*rand()*N', '', np.float),
+        # This is not important mathematically, but it would change the numbers
+        # that are generated
+        Statement('v1', '=', '0*rand()*N', '', np.float),
+        Statement('v1', '=', '0/rand()*N', '', np.float)
     ]
     scalar, vector = optimise_statements([], statements, variables)
-    for vs in vector:
-        assert 'rand()' in vs.expr, 'Expression should still contain rand(), but got ' + str(vs)
+    for vs in vector[:3]:
+        assert vs.expr.count('rand()') == 2, 'Expression should still contain two rand() calls, but got ' + str(vs)
+    for vs in vector[3:]:
+        assert vs.expr.count('rand()') == 1, 'Expression should still contain a rand() call, but got ' + str(vs)
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_simplification():
