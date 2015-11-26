@@ -34,7 +34,6 @@ def evaluate_expr(expr, ns):
     except NameError:
         return expr, False
 
-
 def optimise_statements(scalar_statements, vector_statements, variables):
     '''
     Optimise a sequence of scalar and vector statements
@@ -173,6 +172,12 @@ class ArithmeticSimplifier(BrianASTRenderer):
         node = super(ArithmeticSimplifier, self).render_node(node)
         # can't evaluate vector expressions, so abandon in this case
         if not node.scalar:
+            return node
+        # No evaluation necessary for simple names or numbers
+        if node.__class__.__name__ in ['Name', 'NameConstant', 'Num']:
+            return node
+        # Don't evaluate stateful nodes (e.g. those containing a rand() call)
+        if not node.stateless:
             return node
         # try fully evaluating using assumptions
         expr = NodeRenderer().render_node(node)
