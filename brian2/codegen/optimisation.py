@@ -169,7 +169,9 @@ class ArithmeticSimplifier(BrianASTRenderer):
         '''
         Assumes that the node has already been fully processed by BrianASTRenderer
         '''
-        node = super(ArithmeticSimplifier, self).render_node(node)
+        if not hasattr(node, 'simplified'):
+            node = super(ArithmeticSimplifier, self).render_node(node)
+            node.simplified = True
         # can't evaluate vector expressions, so abandon in this case
         if not node.scalar:
             return node
