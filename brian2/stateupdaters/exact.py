@@ -77,19 +77,6 @@ class IndependentStateUpdater(StateUpdateMethod):
     i.e. 1-dimensional differential equations. The individual equations are
     solved by sympy.
     '''
-    def can_integrate(self, equations, variables):
-
-
-        # Not very efficient but guaranteed to give the correct answer:
-        # Just try to apply the integration method
-        try:
-            self.__call__(equations, variables)
-        except (ValueError, NotImplementedError, TypeError) as ex:
-            logger.debug('Cannot use independent integration: %s' % ex)
-            return False
-
-        # It worked
-        return True
 
     def __call__(self, equations, variables=None):
         if equations.is_stochastic:
@@ -178,24 +165,7 @@ class LinearStateUpdater(StateUpdateMethod):
     A state updater for linear equations. Derives a state updater step from the
     analytical solution given by sympy. Uses the matrix exponential (which is
     only implemented for diagonalizable matrices in sympy).
-    ''' 
-    def can_integrate(self, equations, variables):
-        if equations.is_stochastic:
-            return False
-
-        # Not very efficient but guaranteed to give the correct answer:
-        # Just try to apply the integration method
-        try:
-            # Don't use sympy's simplify because it might take a very long time.
-            # We are not using the result, anyway.
-            self.__call__(equations, variables, simplify=False)
-        except (ValueError, NotImplementedError, TypeError) as ex:
-            logger.debug('Cannot use linear integration: %s' % ex)
-            return False
-
-        # It worked
-        return True
-
+    '''
     def __call__(self, equations, variables=None, simplify=True):
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
