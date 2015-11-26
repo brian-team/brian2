@@ -4,7 +4,8 @@ Handles loading templates from a directory.
 import os
 import re
 
-from jinja2 import Environment, PackageLoader, ChoiceLoader, StrictUndefined
+from jinja2 import (Environment, PackageLoader, ChoiceLoader, StrictUndefined,
+                    TemplateNotFound)
 
 from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers)
@@ -42,6 +43,32 @@ def autoindent_postfilter(code):
         outlines.append(' '*addspaces+line)
     return '\n'.join(outlines)
 
+class LazyTemplateLoader(object):
+    '''
+    Helper object to load templates only when they are needed.
+    '''
+    def __init__(self, environment, extension):
+        self.env = environment
+        self.extension = extension
+        self._templates = {}
+
+    def get_template(self, name):
+        if name not in self._templates:
+            try:
+                template = CodeObjectTemplate(self.env.get_template(name+self.extension),
+                                              self.env.loader.get_source(self.env,
+                                                                         name+self.extension)[0])
+            except TemplateNotFound:
+                try:
+                    # Try without extension as well (e.g. for makefiles)
+                    template = CodeObjectTemplate(self.env.get_template(name),
+                                                  self.env.loader.get_source(self.env,
+                                                                             name)[0])
+                except TemplateNotFound:
+                    raise KeyError('No template with name "%s" found.' % name)
+            self._templates[name] = template
+        return self._templates[name]
+
 
 class Templater(object):
     '''
@@ -60,11 +87,10 @@ class Templater(object):
 
     Notes
     -----
-
     Templates are accessed using ``templater.template_base_name`` (the base name is without the file extension).
     This returns a `CodeObjectTemplate`.
     '''
-    def __init__(self, package_name, env_globals=None):
+    def __init__(self, package_name, extension, env_globals=None):
         if isinstance(package_name, basestring):
             package_name = (package_name,)
         loader = ChoiceLoader([PackageLoader(name, 'templates') for name in package_name])
@@ -78,16 +104,18 @@ class Templater(object):
             env_globals = {}
         self.env_globals = env_globals
         self.package_names = package_name
-        for name in self.env.list_templates():
-            template = CodeObjectTemplate(self.env.get_template(name),
-                                          self.env.loader.get_source(self.env,
-                                                                     name)[0])
-            setattr(self, os.path.splitext(name)[0], template)
+        self.extension = extension
+        self.templates = LazyTemplateLoader(self.env, extension)
 
-    def derive(self, package_name, env_globals=None):
+    def __getattr__(self, item):
+        return self.templates.get_template(item)
+
+    def derive(self, package_name, extension=None, env_globals=None):
         '''
         Return a new Templater derived from this one, where the new package name and globals overwrite the old.
         '''
+        if extension is None:
+            extension = self.extension
         if isinstance(package_name, basestring):
             package_name = (package_name,)
         if env_globals is None:
@@ -95,7 +123,8 @@ class Templater(object):
         package_name = package_name+self.package_names
         new_env_globals = self.env_globals.copy()
         new_env_globals.update(**env_globals)
-        return Templater(package_name, env_globals=new_env_globals)
+        return Templater(package_name, extension=extension,
+                         env_globals=new_env_globals)
 
 
 class CodeObjectTemplate(object):

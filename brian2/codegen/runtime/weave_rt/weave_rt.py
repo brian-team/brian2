@@ -67,7 +67,7 @@ class WeaveCodeObject(CodeObject):
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
-    templater = Templater('brian2.codegen.runtime.weave_rt',
+    templater = Templater('brian2.codegen.runtime.weave_rt', '.cpp',
                           env_globals={'c_data_type': weave_data_type,
                                        'dtype': numpy.dtype,
                                        'constant_or_scalar': constant_or_scalar})
