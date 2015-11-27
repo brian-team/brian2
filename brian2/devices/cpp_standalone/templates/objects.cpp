@@ -151,8 +151,17 @@ void _write_arrays()
 	if(outfile_{{varname}}.is_open())
 	{
         if (! {{varname}}.empty() )
+        {
+            {% if var.is_boolean %}
+            // Copy the boolean vector to a char vector so we don't have to deal with its internal representation
+            std::vector<char> _arr_copy = std::vector<char>({{varname}}.size());
+            std::copy({{varname}}.begin(), {{varname}}.end(), _arr_copy.begin());
+            outfile_{{varname}}.write(reinterpret_cast<char*>(&_arr_copy[0]), _arr_copy.size()*sizeof(_arr_copy[0]));
+            {% else %}
 			outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}[0]), {{varname}}.size()*sizeof({{varname}}[0]));
-		outfile_{{varname}}.close();
+			{% endif %}
+		    outfile_{{varname}}.close();
+		}
 	} else
 	{
 		std::cout << "Error writing output file for {{varname}}." << endl;
@@ -167,7 +176,16 @@ void _write_arrays()
         for (int n=0; n<{{varname}}.n; n++)
         {
             if (! {{varname}}(n).empty())
+            {
+            {% if var.is_boolean %}
+                // Copy the boolean vector to a char vector so we don't have to deal with its internal representation
+                std::vector<char> _arr_copy = std::vector<char>({{varname}}.m);
+                std::copy({{varname}}(n).begin(), {{varname}}(n).end(), _arr_copy.begin());
+                outfile_{{varname}}.write(reinterpret_cast<char*>(&_arr_copy[0]), _arr_copy.size()*sizeof(_arr_copy[0]));
+            {% else %}
                 outfile_{{varname}}.write(reinterpret_cast<char*>(&{{varname}}(n, 0)), {{varname}}.m*sizeof({{varname}}(0, 0)));
+            {% endif %}
+            }
         }
         outfile_{{varname}}.close();
 	} else

@@ -517,6 +517,72 @@ def test_binomial():
     assert np.var(mon[0].y) > 0
 
 
+def test_declare_types():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+
+    @declare_types(a='integer', b='float', result='highest')
+    def f(a, b):
+        return a*b
+    assert f._arg_types==['integer', 'float']
+    assert f._return_type == 'highest'
+
+    @declare_types(b='float')
+    def f(a, b, c):
+        return a*b*c
+    assert f._arg_types==['any', 'float', 'any']
+    assert f._return_type == 'float'
+
+    def bad_argtype():
+        @declare_types(b='floating')
+        def f(a, b, c):
+            return a*b*c
+    assert_raises(ValueError, bad_argtype)
+
+    def bad_argname():
+        @declare_types(d='floating')
+        def f(a, b, c):
+            return a*b*c
+    assert_raises(ValueError, bad_argname)
+
+    @check_units(a=volt, b=1)
+    @declare_types(a='float', b='integer')
+    def f(a, b):
+        return a*b
+
+    @declare_types(a='float', b='integer')
+    @check_units(a=volt, b=1)
+    def f(a, b):
+        return a*b
+
+    def bad_units():
+        @declare_types(a='integer', b='float')
+        @check_units(a=volt, b=1, result=volt)
+        def f(a, b):
+            return a*b
+        eqs = '''
+        dv/dt = f(v, 1)/second : 1
+        '''
+        G = NeuronGroup(1, eqs)
+        Network(G).run(1*ms)
+    assert_raises(TypeError, bad_units)
+
+    def bad_type():
+        @implementation('numpy', discard_units=True)
+        @declare_types(a='float', result='float')
+        @check_units(a=1, result=1)
+        def f(a):
+            return a
+        eqs = '''
+        a : integer
+        dv/dt = f(a)*v/second : 1
+        '''
+        G = NeuronGroup(1, eqs)
+        Network(G).run(1*ms)
+    assert_raises(TypeError, bad_type)
+
+
+
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
@@ -537,7 +603,8 @@ if __name__ == '__main__':
             test_function_dependencies_numpy,
             test_function_dependencies_weave,
             test_function_dependencies_cython,
-            test_binomial
+            test_binomial,
+            test_declare_types,
             ]:
         try:
             start = time.time()

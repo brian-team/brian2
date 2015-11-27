@@ -33,10 +33,31 @@ class Statement(object):
 
     Notes
     -----
-    Will compute the following attributes:
+    Will compute the following attribute:
     
     ``inplace``
         True or False depending if the operation is in-place or not.
+
+    Boolean simplification notes
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Will initially set the attribute ``used_boolean_variables`` to ``None``.
+    This is set by `~brian2.codegen.optimisation.optimise_statements` when it
+    is called on a sequence of statements to the list of boolean variables
+    that are used in this expression. In addition, the attribute
+    ``boolean_simplified_expressions`` is set to a dictionary with keys
+    consisting of a tuple of pairs ``(var, value)`` where ``var`` is the
+    name of the boolean variable (will be in ``used_boolean_variables``)
+    and ``var`` is ``True`` or ``False``. The values of the dictionary are
+    strings representing the simplified version of the expression if each
+    ``var=value`` substitution is made for that key. The keys will range
+    over all possible values of the set of boolean variables.
+
+    This information can be used to generate code that replaces a complex
+    expression that varies depending on the value of one or more boolean
+    variables with an ``if/then`` sequence where each subexpression is
+    simplified. It is optional to use this (e.g. the numpy codegen does
+    not, but the weave and cython ones do).
     '''
     def __init__(self, var, op, expr, comment, dtype,
                  constant=False, subexpression=False, scalar=False):
@@ -54,7 +75,9 @@ class Statement(object):
             self.inplace = True
         else:
             self.inplace = False
-        
+        self.used_boolean_variables = None
+        self.boolean_simplified_expressions = None
+
     def __str__(self):
         s = self.var+' '+self.op+' '+str(self.expr)
         if self.constant:

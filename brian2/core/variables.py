@@ -1452,7 +1452,7 @@ class Variables(collections.Mapping):
         self._add_variable(name, var, index)
         # This could be avoided, but we currently need it so that standalone
         # allocates the memory
-        self.device.init_with_zeros(var)
+        self.device.init_with_zeros(var, dtype)
         if values is not None:
             if scalar:
                 if np.asanyarray(values).shape != ():
@@ -1515,7 +1515,7 @@ class Variables(collections.Mapping):
         if np.prod(size) > 0:
             self.device.resize(var, size)
         if values is None and np.prod(size) > 0:
-            self.device.init_with_zeros(var)
+            self.device.init_with_zeros(var, dtype)
         elif values is not None:
             if len(values) != size:
                 raise ValueError(('Size of the provided values does not match '
@@ -1555,7 +1555,7 @@ class Variables(collections.Mapping):
         self.add_array(name=name, unit=Unit(1), size=size, dtype=dtype,
                        constant=constant, read_only=read_only, unique=unique,
                        index=index)
-        self.device.init_with_arange(self._variables[name], start)
+        self.device.init_with_arange(self._variables[name], start, dtype=dtype)
 
 
     def add_constant(self, name, unit, value):

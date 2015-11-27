@@ -22,7 +22,13 @@
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
     _var_{{varname}}.resize((_new_len, _num{{_indices}}))
-    cdef {{c_type}}[:, :] _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data.view(_numpy.{{np_type}})
+    {% if c_type == 'bool'%}
+    cdef _numpy.ndarray[char, ndim=2, mode='c', cast=True] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
+    cdef bool* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
+    {% else %}
+    cdef _numpy.ndarray[{{c_type}}, ndim=2, mode='c'] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
+    cdef {{c_type}}* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
+    {% endif %}
     for _i in range(_num{{_indices}}):
         # vector code
         _idx = {{_indices}}[_i]
@@ -30,7 +36,7 @@
         
         {{ vector_code | autoindent }}
 
-        _record_data_{{varname}}[_new_len-1, _i] = _to_record_{{varname}}
+        _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
     {% endfor %}
 
     # set the N variable explicitly (since we do not call `StateMonitor.resize`)

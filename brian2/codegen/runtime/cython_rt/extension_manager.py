@@ -29,11 +29,13 @@ try:
 except ImportError:
     Cython = None
 
-from brian2.utils.logger import std_silent
+from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.core.preferences import prefs
 
 __all__ = ['cython_extension_manager']
+
+logger = get_logger(__name__)
 
 
 class CythonExtensionManager(object):
@@ -48,6 +50,7 @@ class CythonExtensionManager(object):
                          extra_link_args=None,
                          libraries=None,
                          compiler=None,
+                         owner_name='',
                          ):
 
         self._simplify_paths()
@@ -78,7 +81,9 @@ class CythonExtensionManager(object):
             module_name = name#py3compat.unicode_to_str(args.name)
         else:
             module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
-
+        if owner_name:
+            logger.debug('"{owner_name}" using Cython module "{module_name}"'.format(owner_name=owner_name,
+                                                                                     module_name=module_name))
 
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)

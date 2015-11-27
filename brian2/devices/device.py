@@ -160,7 +160,7 @@ class Device(object):
         '''
         raise NotImplementedError()
 
-    def init_with_zeros(self, var):
+    def init_with_zeros(self, var, dtype):
         '''
         Initialize an array with zeros.
 
@@ -168,10 +168,12 @@ class Device(object):
         ----------
         var : `ArrayVariable`
             The array to initialize with zeros.
+        dtype : `dtype`
+            The data type to use for the array.
         '''
         raise NotImplementedError()
 
-    def init_with_arange(self, var, start):
+    def init_with_arange(self, var, start, dtype):
         '''
         Initialize an array with an integer range.
 
@@ -181,6 +183,8 @@ class Device(object):
             The array to fill with the integer range.
         start : int
             The start value for the integer range
+        dtype : `dtype`
+            The data type to use for the array.
         '''
         raise NotImplementedError()
 
@@ -394,11 +398,12 @@ class RuntimeDevice(Device):
     def resize_along_first(self, var, new_size):
         self.arrays[var].resize_along_first(new_size)
 
-    def init_with_zeros(self, var):
+    def init_with_zeros(self, var, dtype):
         self.arrays[var][:] = 0
 
-    def init_with_arange(self, var, start):
-        self.arrays[var][:] = np.arange(start, stop=var.get_len()+start)
+    def init_with_arange(self, var, start, dtype):
+        self.arrays[var][:] = np.arange(start, stop=var.get_len()+start,
+                                        dtype=dtype)
 
     def fill_with_array(self, var, arr):
         self.arrays[var][:] = arr

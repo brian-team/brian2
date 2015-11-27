@@ -218,7 +218,7 @@ class CodeGenerator(object):
             statements = make_statements(ac_code,
                                          self.variables,
                                          dtype,
-                                         loop_invariant_optimisations=prefs.codegen.loop_invariant_optimisations)
+                                         optimise=True)
             scalar_statements[ac_name], vector_statements[ac_name] = statements
         for vs in vector_statements.itervalues():
             # Check that the statements are meaningful independent on the order of

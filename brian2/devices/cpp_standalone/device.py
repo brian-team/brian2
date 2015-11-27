@@ -259,13 +259,13 @@ class CPPStandaloneDevice(Device):
                 array_name = orig_array_name + '_%d' % suffix
             self.arrays[var] = array_name
 
-    def init_with_zeros(self, var):
+    def init_with_zeros(self, var, dtype):
         self.zero_arrays.append(var)
-        self.array_cache[var] = np.zeros(var.size)
+        self.array_cache[var] = np.zeros(var.size, dtype=dtype)
 
-    def init_with_arange(self, var, start):
+    def init_with_arange(self, var, start, dtype):
         self.arange_arrays[var] = start
-        self.array_cache[var] = np.arange(0, var.size) + start
+        self.array_cache[var] = np.arange(0, var.size, dtype=dtype) + start
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)

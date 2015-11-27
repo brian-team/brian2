@@ -182,6 +182,13 @@ def expression_complexity(expr, complexity=None):
     complexity: int
         The complexity of the expression.
     '''
+    if isinstance(expr, str):
+        # we do this because sympy.count_ops doesn't handle inequalities (TODO: handle sympy as well str)
+        for op in ['<=', '>=', '==', '<', '>']:
+            expr = expr.replace(op, '+')
+        # work around bug with rand() and randn() (TODO: improve this)
+        expr = expr.replace('rand()', 'rand(0)')
+        expr = expr.replace('randn()', 'randn(0)')
     subs = {'ADD':1, 'DIV':2, 'MUL':1, 'SUB':1}
     if complexity is not None:
         subs.update(complexity)

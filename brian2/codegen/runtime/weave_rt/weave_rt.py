@@ -95,10 +95,15 @@ class WeaveCodeObject(CodeObject):
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        # TODO: We should probably have a special folder just for header
+        # files that are shared between different codegen targets
+        import brian2.synapses as synapses
+        synapses_dir = os.path.dirname(synapses.__file__)
+        self.include_dirs.append(synapses_dir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
-        self.headers = ['<algorithm>', '<limits>'] + prefs['codegen.cpp.headers']
+        self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
         self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
