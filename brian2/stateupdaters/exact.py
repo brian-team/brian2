@@ -215,11 +215,10 @@ class LinearStateUpdater(StateUpdateMethod):
                                                 'equations with this '
                                                 'stateupdater.')
         if simplify:
-            A.simplify()
+            A = A.applyfunc(lambda x:
+                            sp.factor_terms(sp.cancel(sp.signsimp(x))))
         C = sp.ImmutableMatrix([A.dot(b)]) - b
         _S = sp.MatrixSymbol('_S', len(varnames), 1)
-        # The use of .as_mutable() here is a workaround for a
-        # ``Transpose object does not have
         updates = A * _S + C.transpose()
         updates = updates.as_explicit()
 
