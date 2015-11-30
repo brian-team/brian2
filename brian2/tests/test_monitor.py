@@ -266,7 +266,11 @@ def test_state_monitor():
     assert_allclose(np.clip(multi_mon.v, 0.1, 0.9), multi_mon.f)
     assert_allclose(np.clip(multi_mon1.v, 0.1, 0.9), multi_mon1.f)
 
-    assert all(all_mon[0].not_refractory[:] == True)
+    assert all(all_mon[0].not_refractory[:] == True), ('not_refractory should '
+                                                       'be True, but got'
+                                                       '(not_refractory, v):'
+                                                       '%s ' % str((all_mon.not_refractory,
+                                                                    all_mon.v)))
 
     # Synapses
     assert_allclose(synapse_mon.w[:], np.tile(S.j[:]*nS,
