@@ -5,10 +5,38 @@ from StringIO import StringIO
 from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices
 
+try:
+    import nose
+    from nose.plugins.errorclass import ErrorClassPlugin, ErrorClass
+
+    class NotImplementedPlugin(ErrorClassPlugin):
+        enabled = True
+        notimplemented = ErrorClass(NotImplementedError,
+                                    label='NOT_IMPLEMENTED',
+                                    isfailure=True)
+
+        def configure(self, options, conf):
+            # For some reason, this only works if this method exists...
+            pass
+
+    class NotImplementedNoFailurePlugin(ErrorClassPlugin):
+        enabled = True
+        notimplemented = ErrorClass(NotImplementedError,
+                                    label='NOT_IMPLEMENTED',
+                                    isfailure=False)
+
+        def configure(self, options, conf):
+            # For some reason, this only works if this method exists...
+            pass
+
+except ImportError:
+    nose = None
+
+
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
-        reset_preferences=True):
+        reset_preferences=True, fail_for_not_implemented=False):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -38,12 +66,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         Whether to test standalone test with multiple threads and OpenMP. Will
         be ignored if ``cpp_standalone`` is not tested. Defaults to ``False``.
     '''
-    try:
-        import nose
-    except ImportError:
+    if nose is None:
         raise ImportError('Running the test suite requires the "nose" package.')
     
-    if os.name=='nt':
+    if os.name == 'nt':
         test_in_parallel = []
 
     multiprocess_arguments = ['--processes=-1',
@@ -112,6 +138,16 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
     prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
 
+    if fail_for_not_implemented:
+        not_implemented_plugin = NotImplementedPlugin
+    else:
+        not_implemented_plugin = NotImplementedNoFailurePlugin
+    # This hack is needed to get the NotImplementedPlugin working for multiprocessing
+    import nose.plugins.multiprocess as multiprocess
+    multiprocess._instantiate_plugins = [not_implemented_plugin]
+
+    plugins = [not_implemented_plugin()]
+
     try:
         success = []
         if test_codegen_independent:
@@ -130,7 +166,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                     '--exe']
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv))
+            success.append(nose.run(argv=argv,
+                                    addplugins=plugins))
 
         for target in codegen_targets:
             sys.stderr.write('Running tests for target %s:\n' % target)
@@ -156,7 +193,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                     '--exe']
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv))
+            success.append(nose.run(argv=argv,
+                                    addplugins=plugins))
 
         if test_standalone:
             from brian2.devices.device import get_device, set_device
@@ -176,7 +214,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                     '--exe']
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv))
+            success.append(nose.run(argv=argv,
+                                    addplugins=plugins))
 
             if test_openmp and test_standalone == 'cpp_standalone':
                 # Run all the standalone compatible tests again with 4 threads
@@ -193,7 +232,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                         '-a', 'standalone-compatible'+exclude_str,
                         '--nologcapture',
                         '--exe']
-                success.append(nose.run(argv=argv))
+                success.append(nose.run(argv=argv,
+                                        addplugins=plugins))
                 prefs.devices.cpp_standalone.openmp_threads = 0
                 prefs._backup()
 
@@ -212,7 +252,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                     '--exe']
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv))
+            success.append(nose.run(argv=argv,
+                                    addplugins=plugins))
         all_success = all(success)
         if not all_success:
             sys.stderr.write(('ERROR: %d/%d test suite(s) did not complete '
