@@ -139,11 +139,6 @@ class CPPStandaloneDevice(Device):
         self.build_on_run = build_on_run
         self.build_options = build_options
 
-    def activate(self, build_on_run, **kwargs):
-        super(CPPStandaloneDevice, self).activate(build_on_run=build_on_run)
-        self.build_on_run = build_on_run
-        self.build_options = dict(kwargs)
-
     def freeze(self, code, ns):
         # this is a bit of a hack, it should be passed to the template somehow
         for k, v in ns.items():
