@@ -31,11 +31,7 @@ class NumpyCodeGenerator(CodeGenerator):
     _use_ufunc_at_vectorisation = True # allow this to be off for testing only
 
     def translate_expression(self, expr):
-        for varname, var in self.variables.iteritems():
-            if isinstance(var, Function):
-                impl_name = var.implementations[self.codeobj_class].name
-                if impl_name is not None:
-                    expr = word_substitute(expr, {varname: impl_name})
+        expr = word_substitute(expr, self.func_name_replacements)
         return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):

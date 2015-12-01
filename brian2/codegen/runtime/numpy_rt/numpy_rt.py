@@ -35,7 +35,7 @@ class NumpyCodeObject(CodeObject):
     
     Default for Brian because it works on all platforms.
     '''
-    templater = Templater('brian2.codegen.runtime.numpy_rt')
+    templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_')
     generator_class = NumpyCodeGenerator
     class_name = 'numpy'
 

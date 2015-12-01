@@ -25,10 +25,10 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
 from brian2.codegen.codeobject import create_runner_codeobj
+from brian2.codegen.generators.numpy_generator import NumpyCodeGenerator
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
-from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 

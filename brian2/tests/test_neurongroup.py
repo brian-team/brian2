@@ -536,17 +536,6 @@ def test_linked_var_in_reset_incorrect():
     assert_raises(SyntaxError, lambda: net.run(0*ms))
 
 @attr('codegen-independent')
-def test_unit_errors():
-    '''
-    Test that units are checked for a complete namespace.
-    '''
-    # Unit error in model equations
-    assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v : 1'))
-    assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) + 2*mV: 1'))
-
-@attr('codegen-independent')
 def test_incomplete_namespace():
     '''
     Test that the namespace does not have to be complete at creation time.
