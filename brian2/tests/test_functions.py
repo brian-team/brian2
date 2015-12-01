@@ -231,16 +231,22 @@ def test_manual_user_defined_function():
     assert foo(1*volt, 2*volt) == 6*volt
 
     # Incorrect argument units
-    assert_raises(DimensionMismatchError, lambda: NeuronGroup(1, '''
+    group = NeuronGroup(1, '''
                        dv/dt = foo(x, y)/ms : volt
                        x : 1
-                       y : 1''', namespace={'foo': foo}))
+                       y : 1''')
+    net = Network(group)
+    assert_raises(DimensionMismatchError,
+                  lambda: net.run(0*ms, namespace={ 'foo': foo}))
 
     # Incorrect output unit
-    assert_raises(DimensionMismatchError, lambda: NeuronGroup(1, '''
+    group = NeuronGroup(1, '''
                        dv/dt = foo(x, y)/ms : 1
                        x : volt
-                       y : volt''', namespace={'foo': foo}))
+                       y : volt''')
+    net = Network(group)
+    assert_raises(DimensionMismatchError,
+                  lambda: net.run(0*ms, namespace={'foo': foo}))
 
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt

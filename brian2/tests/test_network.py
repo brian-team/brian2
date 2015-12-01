@@ -214,9 +214,7 @@ def test_schedule_warning():
         # These functions are needed during the setup of the defaultclock
         def add_array(self, var):
             pass
-        def init_with_zeros(self, var):
-            pass
-        def init_with_array(self, var, arr):
+        def init_with_zeros(self, var, dtype):
             pass
         def fill_with_array(self, var, arr):
             pass

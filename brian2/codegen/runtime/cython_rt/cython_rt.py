@@ -39,7 +39,7 @@ class CythonCodeObject(NumpyCodeObject):
     '''
     Execute code using Cython.
     '''
-    templater = Templater('brian2.codegen.runtime.cython_rt',
+    templater = Templater('brian2.codegen.runtime.cython_rt', '.pyx',
                           env_globals={'cpp_dtype': get_cpp_dtype,
                                        'numpy_dtype': get_numpy_dtype,
                                        'dtype': numpy.dtype})

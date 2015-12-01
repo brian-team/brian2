@@ -5,13 +5,11 @@ from nose.plugins.attrib import attr
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
-def test_clocks():
+def test_clock_attributes():
     clock = Clock(dt=1*ms)
     assert_array_equal(clock.t, 0*second)
     assert_array_equal(clock.timestep, 0)
-    clock.tick()
-    assert_array_equal(clock.t, 1*ms)
-    assert_array_equal(clock.timestep, 1)
+    assert_array_equal(clock.dt, 1*ms)
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)

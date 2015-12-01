@@ -449,14 +449,6 @@ class NeuronGroup(Group, SpikeSource):
         if reset is not None:
             self.run_on_event('spike', reset, when='resets')
 
-        # We try to run a before_run already now. This might fail because of an
-        # incomplete namespace but if the namespace is already complete we
-        # can spot unit errors in the equation already here.
-        try:
-            self.before_run(None)
-        except KeyError:
-            pass
-
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)
 

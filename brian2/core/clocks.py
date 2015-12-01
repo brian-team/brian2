@@ -142,25 +142,6 @@ class Clock(VariableOwner):
         else:
             self._i_end = np.uint64(np.ceil(end/self.dt_))
 
-    def tick(self):
-        '''
-        Advance the clock by a single time step
-        '''
-        timestep_array = self.variables['timestep'].get_value()
-        # We can assume the runtime device here, standalone will provide it's
-        # own mechanism for advancing the clock. Therefore, we don't have to
-        # update the variable in the general way but just work directly with
-        # the underlying array
-        timestep_array[0] += 1
-        self.variables['t'].get_value()[0] = timestep_array[0] * self.variables['dt'].get_value()[0]
-
-    @property
-    def running(self):
-        '''
-        A ``bool`` to indicate whether the current simulation is running.
-        '''
-        return self.timestep < self._i_end
-
     epsilon = 1e-14
 
 
