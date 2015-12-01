@@ -5,7 +5,9 @@ def halfway_timer():
     halftime = time.time()
 
 
-def brian1_CUBA(N, duration=10):
+def brian1_CUBA(N, duration=1,
+                do_refractory=False, exact_method=False, do_monitor=False, do_synapses=False,
+                **ignored_opts):
     global halftime
     import time
     results = dict()
@@ -24,15 +26,18 @@ def brian1_CUBA(N, duration=10):
     Vr = -60 * mV
     El = -49 * mV
 
-    eqs = Equations('''
+    eqs = '''
     dv/dt  = (ge+gi-(v-El))/taum : volt
     dge/dt = -ge/taue : volt
     dgi/dt = -gi/taui : volt
-    ''')
+    '''
 
-    P = NeuronGroup(N, model=eqs, threshold=Vt, reset=Vr,
-                    #refractory=5*ms,
-                    method='Euler')
+    kwds = {}
+    if do_refractory:
+        kwds['refractory'] = 5*ms
+    if not exact_method:
+        kwds['method'] = 'Euler'
+    P = NeuronGroup(N, model=eqs, threshold=Vt, reset=Vr, **kwds)
     P.v = Vr
     P.ge = 0 * mV
     P.gi = 0 * mV
@@ -42,11 +47,13 @@ def brian1_CUBA(N, duration=10):
     we = (60 * 0.27 / 10) * mV # excitatory synaptic weight (voltage)
     wi = (-20 * 4.5 / 10) * mV # inhibitory synaptic weight
     p = min(80./N, 1)
-    # Ce = Connection(Pe, P, 'ge', weight=we, sparseness=p)
-    # Ci = Connection(Pi, P, 'gi', weight=wi, sparseness=p)
+    if do_synapses:
+        Ce = Connection(Pe, P, 'ge', weight=we, sparseness=p)
+        Ci = Connection(Pi, P, 'gi', weight=wi, sparseness=p)
     P.v = Vr + rand(len(P)) * (Vt - Vr)
 
-    # M = SpikeMonitor(P)
+    if do_monitor:
+        M = SpikeMonitor(P)
 
     netop_halfway_timer = network_operation(clock=EventClock(dt=duration*0.51))(halfway_timer)
 
@@ -68,13 +75,16 @@ def brian1_CUBA(N, duration=10):
 
     return results
 
-def brian2_CUBA(N, duration=10):
+def brian2_CUBA(N, duration=1,
+                do_refractory=False, exact_method=False, do_monitor=False, do_synapses=False,
+                codegen_target='numpy',
+                **ignored_opts):
     global halftime
     import time
     results = dict()
     start_time = time.time()
     from brian2 import *
-    prefs.codegen.target = 'numpy'
+    prefs.codegen.target = codegen_target
     finished_importing_brian_time = time.time()
     results['import_brian'] = finished_importing_brian_time-start_time
 
@@ -88,15 +98,20 @@ def brian2_CUBA(N, duration=10):
     Vr = -60 * mV
     El = -49 * mV
 
-    eqs = Equations('''
-    dv/dt  = (ge+gi-(v-El))/taum : volt #(unless refractory)
-    dge/dt = -ge/taue : volt #(unless refractory)
-    dgi/dt = -gi/taui : volt #(unless refractory)
-    ''')
+    eqs = '''
+    dv/dt  = (ge+gi-(v-El))/taum : volt (unless refractory)
+    dge/dt = -ge/taue : volt
+    dgi/dt = -gi/taui : volt
+    '''
+    if not do_refractory:
+        eqs = eqs.replace('(unless refractory)', '')
 
-    P = NeuronGroup(N, model=eqs, threshold='v>Vt', reset='v=Vr',
-                    #refractory=5*ms,
-                    method='Euler')
+    kwds = {}
+    if do_refractory:
+        kwds['refractory'] = 5*ms
+    if not exact_method:
+        kwds['method'] = 'euler'
+    P = NeuronGroup(N, model=eqs, threshold='v>Vt', reset='v=Vr', **kwds)
     P.v = Vr
     P.ge = 0 * mV
     P.gi = 0 * mV
@@ -104,13 +119,15 @@ def brian2_CUBA(N, duration=10):
     we = (60 * 0.27 / 10) * mV # excitatory synaptic weight (voltage)
     wi = (-20 * 4.5 / 10) * mV # inhibitory synaptic weight
     p = min(80./N, 1.0)
-    # Ce = Synapses(P, P, pre='ge += we')
-    # Ci = Synapses(P, P, pre='gi += wi')
-    # Ce.connect('i<Ne', p=p)
-    # Ci.connect('i>=Ne', p=p)
+    if do_synapses:
+        Ce = Synapses(P, P, pre='ge += we')
+        Ci = Synapses(P, P, pre='gi += wi')
+        Ce.connect('i<Ne', p=p)
+        Ci.connect('i>=Ne', p=p)
     P.v = Vr + rand(len(P)) * (Vt - Vr)
 
-    # M = SpikeMonitor(P)
+    if do_monitor:
+        M = SpikeMonitor(P)
 
     netop_halfway_timer = NetworkOperation(halfway_timer, dt=duration*0.51)
 
@@ -131,15 +148,41 @@ def brian2_CUBA(N, duration=10):
 
     return results
 
+def brian2_CUBA_weave(*args, **opts):
+    opts['codegen_target'] = 'weave'
+    return brian2_CUBA(*args, **opts)
+
+def brian2_CUBA_cython(*args, **opts):
+    opts['codegen_target'] = 'cython'
+    return brian2_CUBA(*args, **opts)
+
 if __name__=='__main__':
-    import multiprocessing, collections
+    import multiprocessing, collections, functools
     pool = multiprocessing.Pool(1, maxtasksperchild=1)
-    funcs = [brian1_CUBA, brian2_CUBA]
     from pylab import *
     numfigs = 0
+
+    funcs = [
+        brian1_CUBA,
+        brian2_CUBA,
+        brian2_CUBA_weave,
+        brian2_CUBA_cython,
+        ]
+    options = dict(duration=1,
+                   do_monitor=False,
+                   do_refractory=False,
+                   do_synapses=False,
+                   exact_method=False,
+                   )
+    N = [10, 100, 1000,
+         10000,
+         #100000,
+         ]
+
+    figure(figsize=(16, 8))
     for func in funcs:
-        N = [10, 100, 1000, 10000]
-        all_results = pool.map(func, N)
+        pfunc = functools.partial(func, **options)
+        all_results = pool.map(pfunc, N)
         times = collections.defaultdict(list)
         for res in all_results:
             for k, v in res.items():
@@ -154,4 +197,8 @@ if __name__=='__main__':
     for i in range(numfigs+1):
         subplot(2, 3, i+1)
         legend(loc='best')
+    suptitle(', '.join('%s=%s' % (k, options[k]) for k in sorted(options.keys())))
+    tight_layout()
+    subplots_adjust(top=0.9)
+    savefig('compare_to_brian1.png')
     show()
