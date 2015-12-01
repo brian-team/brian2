@@ -8,10 +8,12 @@ import numpy
 try:
     from scipy import weave
     from scipy.weave.c_spec import num_to_c_types
+    from scipy.weave.inline_tools import function_cache
 except ImportError:
     try:  # weave as an independent package
         import weave
         from weave.c_spec import num_to_c_types
+        from weave.inline_tools import function_cache
     except ImportError:
         # No weave for Python 3
         weave = None
@@ -217,20 +219,26 @@ libraries: {self.libraries}
     def run(self):
         if self.compiled_python_pre is not None:
             exec self.compiled_python_pre in self.python_code_namespace
-        with std_silent(self._done_first_run):
-            ret_val = weave.inline(self.annotated_code, self.namespace.keys(),
-                                   local_dict=self.namespace,
-                                   support_code=self.code.support_code,
-                                   compiler=self.compiler,
-                                   headers=self.headers,
-                                   define_macros=self.define_macros,
-                                   libraries=self.libraries,
-                                   extra_compile_args=self.extra_compile_args,
-                                   extra_link_args=self.extra_link_args,
-                                   include_dirs=self.include_dirs,
-                                   library_dirs=self.library_dirs,
-                                   verbose=0)
-        self._done_first_run = True
+        if self._done_first_run:
+            ret_val = self._compiled_func(self.namespace, {})
+        else:
+            self._inline_args = (self.annotated_code, self.namespace.keys())
+            self._inline_kwds = dict(
+                local_dict=self.namespace,
+                support_code=self.code.support_code,
+                compiler=self.compiler,
+                headers=self.headers,
+                define_macros=self.define_macros,
+                libraries=self.libraries,
+                extra_compile_args=self.extra_compile_args,
+                extra_link_args=self.extra_link_args,
+                include_dirs=self.include_dirs,
+                library_dirs=self.library_dirs,
+                verbose=0)
+            with std_silent():
+                ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
+            self._compiled_func = function_cache[self.annotated_code]
+            self._done_first_run = True
         if self.compiled_python_post is not None:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
