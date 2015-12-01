@@ -3,7 +3,7 @@ import sys
 from StringIO import StringIO
 
 from brian2.core.preferences import prefs
-from brian2.devices.device import all_devices, temporarily_switch_device, reset_device
+from brian2.devices.device import all_devices, set_device, reset_device
 
 try:
     import nose
@@ -198,8 +198,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
         if test_standalone:
             from brian2.devices.device import get_device, set_device
-            temporarily_switch_device(test_standalone, directory=None,  # use temp directory
-                                      with_output=False)
+            set_device(test_standalone, directory=None,  # use temp directory
+                       with_output=False)
             sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
             sys.stderr.write('Running standalone-compatible standard tests\n')
             exclude_str = ',!long' if not long_tests else ''

@@ -10,10 +10,10 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
 from brian2.devices.cpp_standalone import cpp_standalone_device
-from brian2.devices.device import restore_device, temporarily_switch_device, reset_device
+from brian2.devices.device import reinit_devices, set_device, reset_device
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
@@ -38,7 +38,7 @@ def test_spikegenerator_connected():
     assert all(mon[1].v[(mon.t>=4*ms)] == 2)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_basic():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -54,7 +54,7 @@ def test_spikegenerator_basic():
         assert generator_spikes == recorded_spikes
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_basic_sorted():
     '''
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
@@ -70,7 +70,7 @@ def test_spikegenerator_basic_sorted():
         assert generator_spikes == recorded_spikes
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -87,7 +87,7 @@ def test_spikegenerator_period():
         assert generator_spikes == recorded_spikes
 
 
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_period_repeat():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -203,7 +203,7 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_rounding():
     # all spikes should fall into the first time bin
     indices = np.arange(100)
@@ -230,7 +230,7 @@ def test_spikegenerator_rounding():
     assert_equal(mon[0].count, np.ones(10000))
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_rounding_long():
     # all spikes should fall in separate bins
     dt = 0.1*ms
@@ -247,7 +247,7 @@ def test_spikegenerator_rounding_long():
     assert all(np.diff(mon[0].count[:]) == 1)
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_rounding_period():
     # all spikes should fall in separate bins
     dt = 0.1*ms
@@ -289,12 +289,12 @@ def test_spikegenerator_multiple_spikes_per_bin():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_standalone(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup` in standalone.
     '''
-    temporarily_switch_device('cpp_standalone', build_on_run=False)
+    set_device('cpp_standalone', build_on_run=False)
     indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices, times)
@@ -312,12 +312,12 @@ def test_spikegenerator_standalone(with_output=False):
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_standalone_change_spikes(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    temporarily_switch_device('cpp_standalone', build_on_run=False)
+    set_device('cpp_standalone', build_on_run=False)
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices1, times1)
@@ -350,12 +350,12 @@ def test_spikegenerator_standalone_change_spikes(with_output=False):
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_standalone_change_period(with_output=False):
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    temporarily_switch_device('cpp_standalone', build_on_run=False)
+    set_device('cpp_standalone', build_on_run=False)
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
     SG = SpikeGeneratorGroup(5, indices1, times1, period=5*ms)
@@ -407,6 +407,6 @@ if __name__ == '__main__':
                 test_spikegenerator_standalone_change_period
              ]:
         t(with_output=True)
-        restore_device()
+        reinit_devices()
 
     print 'Tests took', time.time()-start

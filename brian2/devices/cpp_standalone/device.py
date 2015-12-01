@@ -16,7 +16,7 @@ from cpuinfo import cpuinfo
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
-from brian2.devices.device import Device, all_devices, temporarily_switch_device, reset_device
+from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.parsing.rendering import CPPNodeRenderer
@@ -426,7 +426,7 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
         # Temporarily switch to the runtime device to evaluate the subexpression
         # (based on the values stored on disk)
-        temporarily_switch_device('runtime')
+        set_device('runtime')
         result = VariableView.get_subexpression_with_index_array(variableview, item,
                                                                  level=level+2,
                                                                  run_namespace=run_namespace)

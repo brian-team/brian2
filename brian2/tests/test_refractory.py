@@ -4,7 +4,7 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 
 
 @attr('codegen-independent')
@@ -21,7 +21,7 @@ def test_add_refractoriness():
     assert 'lastspike' in eqs
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_refractoriness_basic():
     G = NeuronGroup(1, '''
                        dv/dt = 100*Hz : 1 (unless refractory)
@@ -46,14 +46,14 @@ def test_refractoriness_basic():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
     for ref_time in ['5*ms', '(t-lastspike) <= 5*ms',
                      'time_since_spike <= 5*ms', 'ref_subexpression',
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
-        restore_device()
+        reinit_devices()
         G = NeuronGroup(1, '''
                         dv/dt = 100*Hz : 1 (unless refractory)
                         dw/dt = 100*Hz : 1
@@ -85,7 +85,7 @@ def test_refractoriness_variables():
             raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_refractoriness_threshold_basic():
     G = NeuronGroup(1, '''
     dv/dt = 200*Hz : 1
@@ -99,13 +99,13 @@ def test_refractoriness_threshold_basic():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
     for ref_time in [10*ms, '10*ms', '(t-lastspike) <= 10*ms',
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
-        restore_device()
+        reinit_devices()
         G = NeuronGroup(1, '''
                         dv/dt = 200*Hz : 1
                         ref : second
@@ -145,7 +145,7 @@ def test_conditional_write_set():
     assert G.variables['w'].conditional_write is None
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_conditional_write_behaviour():
     H = NeuronGroup(1, 'v:1', threshold='v>-1')
 

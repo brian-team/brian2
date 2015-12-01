@@ -12,7 +12,7 @@ from brian2.core.variables import variables_by_owner, ArrayVariable
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
-from brian2.devices.device import restore_device, all_devices, get_device, temporarily_switch_device, reset_device
+from brian2.devices.device import reinit_devices, all_devices, get_device, set_device, reset_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
@@ -144,9 +144,9 @@ def test_connection_arrays():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_connection_array_standalone():
-    temporarily_switch_device('cpp_standalone', build_on_run=False)
+    set_device('cpp_standalone', build_on_run=False)
     # use a clock with 1s timesteps to avoid rounding issues
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
                              [0, 1, 2, 3]*second, dt=1*second)
@@ -523,7 +523,7 @@ def test_pre_before_post():
     assert G.y == 1
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_simple():
     source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
     target = NeuronGroup(2, 'v : 1')
@@ -536,7 +536,7 @@ def test_transmission_simple():
     assert_equal(mon[1].v[mon.t>=1*ms], 1.)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_custom_event():
     source = NeuronGroup(2, '',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
@@ -560,7 +560,7 @@ def test_invalid_custom_event():
     assert_raises(ValueError, lambda: Synapses(group2, group2, pre='v+=1',
                                                on_event='custom'))
 
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission():
     default_dt = defaultclock.dt
     delays = [[0, 0, 0, 0] * ms,
@@ -589,7 +589,7 @@ def test_transmission():
                             target_mon.t[target_mon.i==d] - default_dt - delay[d])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_all_to_one_heterogeneous_delays():
     source = SpikeGeneratorGroup(6,
                                  [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
@@ -606,7 +606,7 @@ def test_transmission_all_to_one_heterogeneous_delays():
     assert mon[0].v[3] == 48
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_one_to_all_heterogeneous_delays():
     source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
     target = NeuronGroup(6, 'v:integer')
@@ -623,7 +623,7 @@ def test_transmission_one_to_all_heterogeneous_delays():
     assert_equal(mon[5].v, [0, 1, 1, 2])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
@@ -636,7 +636,7 @@ def test_transmission_scalar_delay():
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_scalar_delay_different_clocks():
 
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms,
@@ -719,7 +719,7 @@ def test_no_synapses():
         assert l[0][1].endswith('.no_synapses')
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
     source.v = 1.1  # will spike immediately
@@ -821,7 +821,7 @@ def test_scalar_subexpression():
                                                 pre='v+=s', connect=True))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_external_variables():
     # Make sure that external variables are correctly resolved
     source = SpikeGeneratorGroup(1, [0], [0]*ms)
@@ -835,7 +835,7 @@ def test_external_variables():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -1119,7 +1119,7 @@ def test_permutation_analysis():
             raise AssertionError("Order dependence not raised for example: "+example)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_vectorisation():
     source = NeuronGroup(10, 'v : 1', threshold='v>1')
     target = NeuronGroup(10, '''x : 1
@@ -1137,7 +1137,7 @@ def test_vectorisation():
     assert_equal(target.x[:], target.y[:])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_vectorisation_STDP_like():
     # Test the use of pre- and post-synaptic traces that are stored in the
     # pre/post group instead of in the synapses
@@ -1185,7 +1185,7 @@ def test_vectorisation_STDP_like():
                     rtol=1e-6, atol=1e-12)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synaptic_equations():
     # Check that integration works for synaptic equations
     G = NeuronGroup(10, '')
@@ -1196,7 +1196,7 @@ def test_synaptic_equations():
     assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
@@ -1275,7 +1275,7 @@ def test_ufunc_at_vectorisation():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synapses_to_synapses_summed_variable():
     source = NeuronGroup(5, '', threshold='False')
     target = NeuronGroup(5, '')
@@ -1303,7 +1303,7 @@ if __name__ == '__main__':
     test_connection_multiple_synapses()
     test_connection_arrays()
     test_connection_array_standalone()
-    restore_device()
+    reinit_devices()
     test_state_variable_assignment()
     test_state_variable_indexing()
     test_indices()

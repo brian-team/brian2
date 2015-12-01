@@ -21,9 +21,8 @@ from brian2.utils.stringtools import code_representation, indent
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
-           'all_devices', 'restore_device',
-           'temporarily_switch_device', 'reset_device',
-           'device',
+           'all_devices', 'reinit_devices',
+           'reset_device', 'device',
            ]
 
 logger = get_logger(__name__)
@@ -466,12 +465,15 @@ def get_device():
     global active_device
     return active_device
 
+previous_devices = []
 
 def set_device(device, build_on_run=True, **kwargs):
     '''
     Sets the active `Device` object
     '''
     global active_device
+    global previous_devices
+    previous_devices.append(active_device)
     if isinstance(device, str):
         device = all_devices[device]
     if active_device is not None and active_device.defaultclock is not None:
@@ -484,17 +486,11 @@ def set_device(device, build_on_run=True, **kwargs):
         # Copy over the dt information of the defaultclock
         active_device.defaultclock.dt = previous_dt
 
-previous_devices = []
-def temporarily_switch_device(device, build_on_run=True, **kwargs):
-    global previous_devices
-    previous_devices.append(active_device)
-    set_device(device, build_on_run=build_on_run, **kwargs)
-
 def reset_device(device=None):
     global previous_devices
+
     if len(previous_devices) == 0 and device is None:
-        raise TypeError('Either use temporarily_switch_device or provide '
-                        'a device.')
+        device = runtime_device
     if device is None:
         device = previous_devices.pop()
 
@@ -503,7 +499,7 @@ def reset_device(device=None):
     build_options = getattr(device, 'build_options', {})
     set_device(device, build_on_run, **build_options)
 
-def restore_device():
+def reinit_devices():
     from brian2 import restore_initial_state  # avoids circular import
 
     for device in all_devices.itervalues():
