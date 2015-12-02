@@ -379,19 +379,24 @@ def test_spike_monitor():
     G.v[2] = 1.1
     G.v[5] = 1.1
     SG = G[3:]
+    SG2 = G[:3]
     s_mon = SpikeMonitor(G)
     sub_s_mon = SpikeMonitor(SG)
+    sub_s_mon2 = SpikeMonitor(SG2)
     run(defaultclock.dt)
     assert_equal(s_mon.i, np.array([0, 2, 5]))
     assert_equal(s_mon.t_, np.zeros(3))
     assert_equal(sub_s_mon.i, np.array([2]))
     assert_equal(sub_s_mon.t_, np.zeros(1))
+    assert_equal(sub_s_mon2.i, np.array([0, 2]))
+    assert_equal(sub_s_mon2.t_, np.zeros(2))
     expected = np.zeros(10, dtype=int)
     expected[[0, 2, 5]] = 1
     assert_equal(s_mon.count, expected)
     expected = np.zeros(7, dtype=int)
     expected[[2]] = 1
     assert_equal(sub_s_mon.count, expected)
+    assert_equal(sub_s_mon2.count, np.array([1, 0, 1]))
 
 
 @attr('codegen-independent')
