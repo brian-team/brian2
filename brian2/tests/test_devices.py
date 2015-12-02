@@ -45,7 +45,7 @@ def test_set_reset_device_implicit():
 
 @attr('codegen-independent')
 def test_set_reset_device_explicit():
-
+    original_device = get_device()
     test_device1 = ATestDevice()
     all_devices['test1'] = test_device1
     test_device2 = ATestDevice()
@@ -65,6 +65,7 @@ def test_set_reset_device_explicit():
     del all_devices['test1']
     del all_devices['test2']
     del all_devices['test3']
+    reset_device(original_device)
 
 if __name__ == '__main__':
     test_set_reset_device_implicit()
