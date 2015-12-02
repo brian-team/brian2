@@ -1746,6 +1746,25 @@ class Variables(collections.Mapping):
         for name in varnames:
             self.add_reference(name, group, name, index)
 
+    def add_object(self, name, obj):
+        '''
+        Add an arbitrary Python object. This is only meant for internal use
+        and therefore only names starting with an underscore are allowed.
+
+        Parameters
+        ----------
+        name : str
+            The name used for this object (has to start with an underscore).
+        obj : object
+            An arbitrary Python object that needs to be accessed directly from
+            a `CodeObject`.
+        '''
+        if not name.startswith('_'):
+            raise ValueError('This method is only meant for internally used '
+                             'objects, the name therefore has to start with '
+                             'an underscore')
+        self._variables[name] = obj
+
     def create_clock_variables(self, clock, prefix=''):
         '''
         Convenience function to add the ``t`` and ``dt`` attributes of a
