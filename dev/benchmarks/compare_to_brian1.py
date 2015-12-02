@@ -1,10 +1,11 @@
 import time
+from processify import processify
 
 def halfway_timer():
     global halftime
     halftime = time.time()
 
-
+@processify
 def brian1_CUBA(N, duration=1,
                 do_refractory=False, exact_method=False, do_monitor=False, do_synapses=False,
                 **ignored_opts):
@@ -75,6 +76,7 @@ def brian1_CUBA(N, duration=1,
 
     return results
 
+@processify
 def brian2_CUBA(N, duration=1,
                 do_refractory=False, exact_method=False, do_monitor=False, do_synapses=False,
                 codegen_target='numpy',
@@ -158,7 +160,7 @@ def brian2_CUBA_cython(*args, **opts):
 
 if __name__=='__main__':
     import multiprocessing, collections, functools
-    pool = multiprocessing.Pool(1, maxtasksperchild=1)
+    #pool = multiprocessing.Pool(1, maxtasksperchild=0)
     from pylab import *
     numfigs = 0
 
@@ -174,7 +176,7 @@ if __name__=='__main__':
                    do_synapses=False,
                    exact_method=False,
                    )
-    N = [10, 100, 1000,
+    N = [1, 10, 100, 1000,
          10000,
          #100000,
          ]
@@ -182,7 +184,8 @@ if __name__=='__main__':
     figure(figsize=(16, 8))
     for func in funcs:
         pfunc = functools.partial(func, **options)
-        all_results = pool.map(pfunc, N)
+        #all_results = pool.map(pfunc, N)
+        all_results = map(pfunc, N)
         times = collections.defaultdict(list)
         for res in all_results:
             for k, v in res.items():
@@ -193,7 +196,7 @@ if __name__=='__main__':
                 numfigs = i
             title(k)
             v = times[k]
-            loglog(N, v, label=func.__name__)
+            loglog(N[1:], v[1:], label=func.__name__)
     for i in range(numfigs+1):
         subplot(2, 3, i+1)
         legend(loc='best')
