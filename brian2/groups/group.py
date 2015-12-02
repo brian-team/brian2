@@ -551,10 +551,12 @@ class VariableOwner(Nameable):
     def _full_state(self):
         state = {}
         for var in self.variables.itervalues():
+            if not isinstance(var, ArrayVariable):
+                continue  # we are only instances in arrays
             if var.owner is None or var.owner.name != self.name:
                 continue  # we only store the state of our own variables
-            if isinstance(var, ArrayVariable):
-                state[var.name] = (var.get_value().copy(), var.size)
+
+            state[var.name] = (var.get_value().copy(), var.size)
 
         return state
 
@@ -1023,6 +1025,7 @@ class CodeRunner(BrianObject):
             additional_variables = self.variables
         else:
             additional_variables = None
+
         self.codeobj = create_runner_codeobj(group=self.group,
                                              code=self.abstract_code,
                                              user_code=self.user_code,

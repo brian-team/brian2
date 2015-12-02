@@ -255,7 +255,7 @@ class SynapticPathway(CodeRunner, Group):
             # SynapticPathway.push_spike
             eventspace_name = '_{}space'.format(self.event)
             template_kwds = {'eventspace_variable': self.source.variables[eventspace_name]}
-            needed_variables= [eventspace_name]
+            needed_variables = [eventspace_name]
             self._pushspikes_codeobj = create_runner_codeobj(self,
                                                              '', # no code
                                                              'synapses_push_spikes',
@@ -277,8 +277,9 @@ class SynapticPathway(CodeRunner, Group):
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
-        # Update the dt (might have changed between runs)
+        self.variables.add_object('_queue', self.queue)
 
+        # Update the dt (might have changed between runs)
         self.queue.prepare(self._delays.get_value(), self.source.clock.dt_,
                            self.synapse_sources.get_value())
 
@@ -316,15 +317,9 @@ class SynapticPathway(CodeRunner, Group):
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
         events = self.eventspace[:self.eventspace[len(self.eventspace)-1]]
+
         if len(events):
             self.queue.push(events)
-        # Get the spikes
-        spiking_synapses = self.queue.peek()
-        spiking_synapses_var = self.variables['spiking_synapses']
-        spiking_synapses_var.resize(len(spiking_synapses))
-        spiking_synapses_var.set_value(spiking_synapses)
-        # Advance the spike queue
-        self.queue.advance()
 
 
 def slice_to_test(x):
