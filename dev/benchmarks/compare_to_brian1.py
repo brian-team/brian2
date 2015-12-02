@@ -159,8 +159,7 @@ def brian2_CUBA_cython(*args, **opts):
     return brian2_CUBA(*args, **opts)
 
 if __name__=='__main__':
-    import multiprocessing, collections, functools
-    #pool = multiprocessing.Pool(1, maxtasksperchild=0)
+    import functools
     from pylab import *
     numfigs = 0
 
@@ -181,27 +180,36 @@ if __name__=='__main__':
          #100000,
          ]
 
-    figure(figsize=(16, 8))
-    for func in funcs:
-        pfunc = functools.partial(func, **options)
-        #all_results = pool.map(pfunc, N)
-        all_results = map(pfunc, N)
-        times = collections.defaultdict(list)
-        for res in all_results:
-            for k, v in res.items():
-                times[k].append(v)
-        for i, k in enumerate(sorted(times.keys())):
+    for name in options.keys()+['']:
+    #for name in ['']:
+        if name:
+            if not isinstance(options[name], bool):
+                continue
+            options[name] = True
+        figure(figsize=(16, 8))
+        for func in funcs:
+            pfunc = functools.partial(func, **options)
+            all_results = map(pfunc, N)
+            times = collections.defaultdict(list)
+            for res in all_results:
+                for k, v in res.items():
+                    times[k].append(v)
+            for i, k in enumerate(sorted(times.keys())):
+                subplot(2, 3, i+1)
+                if i>numfigs:
+                    numfigs = i
+                title(k)
+                v = times[k]
+                loglog(N[1:], v[1:], label=func.__name__)
+        for i in range(numfigs+1):
             subplot(2, 3, i+1)
-            if i>numfigs:
-                numfigs = i
-            title(k)
-            v = times[k]
-            loglog(N[1:], v[1:], label=func.__name__)
-    for i in range(numfigs+1):
-        subplot(2, 3, i+1)
-        legend(loc='best')
-    suptitle(', '.join('%s=%s' % (k, options[k]) for k in sorted(options.keys())))
-    tight_layout()
-    subplots_adjust(top=0.9)
-    savefig('compare_to_brian1.png')
+            legend(loc='best')
+        suptitle(', '.join('%s=%s' % (k, options[k]) for k in sorted(options.keys())))
+        tight_layout()
+        subplots_adjust(top=0.9)
+        if name:
+            savefig('compare_to_brian1.%s.png'%name)
+            options[name] = False
+        else:
+            savefig('compare_to_brian1.png')
     show()
