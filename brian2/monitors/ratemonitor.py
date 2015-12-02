@@ -50,10 +50,20 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_reference('_spikespace', source)
+        # Note that we say "constant_size=True" here, even though this is
+        # definitely not the case. But since each of the templates calls the
+        # resize itself it already has to take care to access the dynamic
+        # array in the correct way, i.e. take into account that the
+        # underlying data could have moved. The advantage of setting this
+        # argument to True is that we will not pass in a new reference to
+        # the underlying data for each of these arrays at every time step,
+        # which is a significant overhead for cython/weave. As explained
+        # above, we do not use this reference anyway, since the arrays
+        # are resized *within* the template.
         self.variables.add_dynamic_array('rate', size=0, unit=hertz,
-                                         constant_size=False)
+                                         constant_size=True)
         self.variables.add_dynamic_array('t', size=0, unit=second,
-                                         constant_size=False)
+                                         constant_size=True)
         self.variables.add_reference('_num_source_neurons', source, 'N')
         self.variables.add_array('N', unit=Unit(1), dtype=np.int32, size=1,
                                  scalar=True, read_only=True)

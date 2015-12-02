@@ -15,7 +15,6 @@
     if _num_events > 0:
         # For subgroups, we do not want to record all spikes
         # We assume that spikes are ordered
-        # TODO: Will this assumption ever be violated?
         _start_idx = _num_events
         _end_idx = _num_events
         for _j in range(_num_events):
