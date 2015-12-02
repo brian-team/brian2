@@ -491,9 +491,10 @@ class DynamicArrayVariable(ArrayVariable):
     constant : bool, optional
         Whether the variable's value is constant during a run.
         Defaults to ``False``.
-    constant_size : bool, optional
-        Whether the size of the variable is constant during a run.
-        Defaults to ``True``.
+    needs_reference_update : bool, optional
+        Whether the code objects need a new reference to the underlying data at
+        every time step. This should be set if the size of the array can be
+        changed by other code objects. Defaults to ``False``.
     scalar : bool, optional
         Whether this array is a 1-element array that should be treated like a
         scalar (e.g. for a single delay value across synapses). Defaults to
@@ -512,8 +513,9 @@ class DynamicArrayVariable(ArrayVariable):
     '''
 
     def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, constant_size=True, resize_along_first=False,
-                 scalar=False, read_only=False, unique=False):
+                 constant=False, needs_reference_update=False,
+                 resize_along_first=False, scalar=False, read_only=False,
+                 unique=False):
 
         if isinstance(size, int):
             dimensions = 1
@@ -523,10 +525,11 @@ class DynamicArrayVariable(ArrayVariable):
         #: The number of dimensions
         self.dimensions = dimensions
 
-        if constant and not constant_size:
-            raise ValueError('A variable cannot be constant and change in size')
+        if constant and needs_reference_update:
+            raise ValueError('A variable cannot be constant and '
+                             'need reference updates')
         #: Whether the size of the variable is constant during a run.
-        self.constant_size = constant_size
+        self.needs_reference_update = needs_reference_update
 
         #: Whether this array will be only resized along the first dimension
         self.resize_along_first = resize_along_first
@@ -1465,7 +1468,7 @@ class Variables(collections.Mapping):
                 self.device.fill_with_array(var, values)
 
     def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
-                          constant=False, constant_size=True,
+                          constant=False, needs_reference_update=False,
                           resize_along_first=False, read_only=False,
                           unique=False, scalar=False, index=None):
         '''
@@ -1488,9 +1491,10 @@ class Variables(collections.Mapping):
         constant : bool, optional
             Whether the variable's value is constant during a run.
             Defaults to ``False``.
-        constant_size : bool, optional
-            Whether the size of the variable is constant during a run.
-            Defaults to ``True``.
+        needs_reference_update : bool, optional
+            Whether the code objects need a new reference to the underlying data at
+            every time step. This should be set if the size of the array can be
+            changed by other code objects. Defaults to ``False``.
         scalar : bool, optional
             Whether this is a scalar variable. Defaults to ``False``, if set to
             ``True``, also implies that `size` equals 1.
@@ -1507,7 +1511,8 @@ class Variables(collections.Mapping):
         var = DynamicArrayVariable(name=name, unit=unit, owner=self.owner,
                                    device=self.device,
                                    size=size, dtype=dtype,
-                                   constant=constant, constant_size=constant_size,
+                                   constant=constant,
+                                   needs_reference_update=needs_reference_update,
                                    resize_along_first=resize_along_first,
                                    scalar=scalar,
                                    read_only=read_only, unique=unique)

@@ -145,7 +145,7 @@ class CythonCodeObject(NumpyCodeObject):
             # arrays that change in size during runs (i.e. not synapses but
             # e.g. the structures used in monitors)
             if (isinstance(var, DynamicArrayVariable) and
-                  not var.constant_size):
+                    var.needs_reference_update):
                 self.nonconstant_values.append((self.device.get_array_name(var, True),
                                                 var.get_value))
                 self.nonconstant_values.append(('_num'+name, var.get_len))

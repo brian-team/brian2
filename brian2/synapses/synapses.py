@@ -149,11 +149,6 @@ class SynapticPathway(CodeRunner, Group):
         self.eventspace_name = '_{}space'.format(event)
         self.eventspace = None  # will be set in before_run
         self.variables = Variables(self)
-        self.variables.add_dynamic_array('spiking_synapses', unit=Unit(1),
-                                         size=0, dtype=np.int32,
-                                         constant=False,
-                                         constant_size=False,
-                                         scalar=False)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
         if prepost == 'pre':
@@ -170,8 +165,7 @@ class SynapticPathway(CodeRunner, Group):
             else:
                 n_synapses = 0
             self.variables.add_dynamic_array('delay', unit=second,
-                                             size=n_synapses, constant=True,
-                                             constant_size=True)
+                                             size=n_synapses, constant=True)
             # Register the object with the `SynapticIndex` object so it gets
             # automatically resized
             synapses.register_variable(self.variables['delay'])
@@ -194,7 +188,7 @@ class SynapticPathway(CodeRunner, Group):
             # type for scalar and variable delays
             self.variables.add_dynamic_array('delay', unit=second,
                                              size=1, constant=True,
-                                             constant_size=True, scalar=True)
+                                             scalar=True)
             # Since this array does not grow with the number of synapses, we
             # have to resize it ourselves
             self.variables['delay'].resize(1)
@@ -883,9 +877,9 @@ class Synapses(Group):
 
         # Standard variables always present
         self.variables.add_dynamic_array('_synaptic_pre', size=0, unit=Unit(1),
-                                         dtype=np.int32, constant_size=True)
+                                         dtype=np.int32)
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
-                                         dtype=np.int32, constant_size=True)
+                                         dtype=np.int32)
         self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target, 'i',
@@ -942,10 +936,6 @@ class Synapses(Group):
                                              scalar=True,
                                              index='0')
                 else:
-                    # We are dealing with dynamic arrays here, code generation
-                    # shouldn't directly access the specifier.array attribute but
-                    # use specifier.get_value() to get a reference to the underlying
-                    # array
                     self.variables.add_dynamic_array(eq.varname, size=0,
                                                      unit=eq.unit,
                                                      dtype=dtype,
