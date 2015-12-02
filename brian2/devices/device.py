@@ -21,8 +21,8 @@ from brian2.utils.stringtools import code_representation, indent
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
-           'all_devices', 'restore_device',
-           'device',
+           'all_devices', 'reinit_devices',
+           'reset_device', 'device',
            ]
 
 logger = get_logger(__name__)
@@ -307,13 +307,15 @@ class Device(object):
         codeobj.compile()
         return codeobj
     
-    def activate(self):
+    def activate(self, build_on_run, **kwargs):
         '''
         Called when this device is set as the current device.
         '''
         if self.defaultclock is None:
             self.defaultclock = Clock(dt=0.1*ms, name='defaultclock')
         self._set_maximum_run_time(None)
+        self.build_on_run = build_on_run
+        self.build_options = dict(kwargs)
 
     def insert_device_code(self, slot, code):
         # Deprecated
@@ -337,9 +339,7 @@ class Device(object):
         Reinitialize the device. For standalone devices, clears all the internal
         state of the device.
         '''
-        # Dummy call to set_device with the currently set device -- will trigger
-        # a new activate, important if we are reinitializing the current device
-        set_device(get_device())
+        pass
     
     
 class RuntimeDevice(Device):
@@ -467,12 +467,41 @@ def get_device():
     global active_device
     return active_device
 
+#: A stack of previously set devices as a tuple with their options (see
+#: `set_device`): (device, build_on_run, build_options)
+previous_devices = []
 
-def set_device(device):
+def set_device(device, build_on_run=True, **kwargs):
     '''
-    Sets the active `Device` object
+    Set the device used for simulations.
+
+    Parameters
+    ----------
+    device : `Device` or str
+        The `Device` object or the name of the device.
+    build_on_run : bool, optional
+        Whether a call to `run` (or `Network.run`) should directly trigger a
+        `Device.build`. This is only relevant for standalone devices and means
+        that a run call directly triggers the start of a simulation. If the
+        simulation consists of multiple run calls, set ``build_on_run`` to
+        ``False`` and call `Device.build` explicitly. Defaults to ``True``.
+    kwargs : dict, optional
+        Only relevant when ``build_on_run`` is ``True``: additional arguments
+        that will be given to the `Device.build` call.
     '''
+    global previous_devices
+    if active_device is not None:
+        prev_build_on_run = getattr(active_device, 'build_on_run', True)
+        prev_build_options = getattr(active_device, 'build_options', {})
+        previous_devices.append((active_device,
+                                 prev_build_on_run,
+                                 prev_build_options))
+    _do_set_device(device, build_on_run, **kwargs)
+
+
+def _do_set_device(device, build_on_run=True, **kwargs):
     global active_device
+
     if isinstance(device, str):
         device = all_devices[device]
     if active_device is not None and active_device.defaultclock is not None:
@@ -480,17 +509,56 @@ def set_device(device):
     else:
         previous_dt = None
     active_device = device
-    active_device.activate()
+
+    active_device.activate(build_on_run=build_on_run, **kwargs)
     if previous_dt is not None:
         # Copy over the dt information of the defaultclock
         active_device.defaultclock.dt = previous_dt
 
+def reset_device(device=None):
+    '''
+    Reset to a previously used device. Restores also the previously specified
+    build options (see `set_device`) for the device. Mostly useful for internal
+    Brian code and testing on various devices.
 
-def restore_device():
+    Parameters
+    ----------
+    device : `Device` or str, optional
+        The device to go back to. If none is specified, go back to the device
+        chosen with `set_device` before the current one.
+    '''
+    global previous_devices
+    if isinstance(device, str):
+        device = all_devices[device]
+
+    if len(previous_devices) == 0 and device is None:
+        device = runtime_device
+        build_on_run = True
+        build_options = {}
+    elif device is None:
+        device, build_on_run, build_options = previous_devices.pop()
+    else:
+        build_on_run = device.build_on_run
+        build_options = device.build_options
+
+    _do_set_device(device, build_on_run, **build_options)
+
+def reinit_devices():
+    '''
+    Reinitialize all devices and call `Device.activate` again on the current
+    devise. Used as a "teardown" function in testing, if users want to reset
+    their device (e.g. for multiple standalone runs in a single script),
+    calling ``device.reinit()`` should normally be sufficient.
+    '''
     from brian2 import restore_initial_state  # avoids circular import
 
     for device in all_devices.itervalues():
         device.reinit()
+
+    if active_device is not None:
+        # Reactivate the current device
+        reset_device(active_device)
+
     restore_initial_state()
 
 

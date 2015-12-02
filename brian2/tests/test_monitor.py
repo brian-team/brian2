@@ -6,12 +6,12 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices, set_device, reset_device
 from brian2.utils.logger import catch_logs
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spike_monitor():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', threshold='v>1', reset='v=0')
@@ -52,7 +52,7 @@ def test_spike_monitor():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spike_monitor_variables():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate : Hz
@@ -81,7 +81,7 @@ def test_spike_monitor_variables():
     assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spike_monitor_get_states():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate : Hz
@@ -103,7 +103,7 @@ def test_spike_monitor_get_states():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_event_monitor():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', events={'my_event': 'v>1'})
@@ -143,7 +143,7 @@ def test_event_monitor():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_event_monitor_no_record():
     # Check that you can switch off recording spike times/indices
     G = NeuronGroup(3, '''dv/dt = rate : 1
@@ -197,7 +197,7 @@ def test_synapses_state_monitor():
     assert_allclose(synapse_mon2.w[1], 1*nS)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor():
     # Unique name to get the warning even for repeated runs of the test
     unique_name = 'neurongroup_' + str(uuid.uuid4()).replace('-', '_')
@@ -276,7 +276,7 @@ def test_state_monitor():
     assert_allclose(synapse_mon.w[:], np.tile(S.j[:]*nS,
                                               (synapse_mon.w[:].shape[1], 1)).T)
 
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor_record_single_timestep():
     G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
     G.v = 1
@@ -295,10 +295,9 @@ def test_state_monitor_record_single_timestep():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor_record_single_timestep_cpp_standalone():
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
     G.v = 1
     mon = StateMonitor(G, 'v', record=True)
@@ -312,10 +311,10 @@ def test_state_monitor_record_single_timestep_cpp_standalone():
     assert_allclose(mon.t[-1], 0.5*ms)
     assert len(mon.t) == 6
     assert mon[0].v[-1] == G.v
-    set_device(previous_device)
+    reset_device()
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor_indexing():
     # Check indexing semantics
     G = NeuronGroup(10, 'v:volt')
@@ -343,7 +342,7 @@ def test_state_monitor_indexing():
     assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor_get_states():
     G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
                           f = clip(v, 0.1, 0.9) : 1
@@ -362,7 +361,7 @@ def test_state_monitor_get_states():
     assert_array_equal(all_states['N'], mon.N)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor_resize():
     # Test for issue #518 (weave/cython did not resize the Variable object)
     G = NeuronGroup(2, 'v : 1')
@@ -380,8 +379,8 @@ def test_state_monitor_resize():
     assert mon.variables['v'].size == (10, 2)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
-def test_rate_monitor():
+@with_setup(teardown=reinit_devices)
+def test_rate_monitor_1():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
     rate_mon = PopulationRateMonitor(G)
@@ -392,6 +391,9 @@ def test_rate_monitor():
     assert_allclose(rate_mon.rate, np.ones(10) / defaultclock.dt)
     assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt))
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_rate_monitor_2():
     G = NeuronGroup(10, 'v : 1', threshold='v>1') # no reset
     G.v['i<5'] = 1.1  # Half of the neurons fire every time step
     rate_mon = PopulationRateMonitor(G)
@@ -401,7 +403,7 @@ def test_rate_monitor():
     assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_rate_monitor_get_states():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
@@ -415,7 +417,7 @@ def test_rate_monitor_get_states():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
@@ -445,6 +447,7 @@ if __name__ == '__main__':
     test_state_monitor_get_states()
     test_state_monitor_indexing()
     test_state_monitor_resize()
-    test_rate_monitor()
+    test_rate_monitor_1()
+    test_rate_monitor_2()
     test_rate_monitor_get_states()
     test_rate_monitor_subgroups()

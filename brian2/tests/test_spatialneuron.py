@@ -4,10 +4,10 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 from brian2 import *
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 
 @attr('codegen-independent')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_construction():
     BrianLogger.suppress_name('resolution_conflict')
     morpho = Soma(diameter=30*um)
@@ -68,7 +68,7 @@ def test_construction():
 
 
 @attr('codegen-independent')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_construction_coordinates():
     # Same as test_construction, but uses coordinates instead of lengths to
     # set up everything
@@ -134,7 +134,7 @@ def test_construction_coordinates():
 
 
 @attr('long')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_infinitecable():
     '''
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
@@ -178,7 +178,7 @@ def test_infinitecable():
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
@@ -219,7 +219,7 @@ def test_finitecable():
     assert_allclose(v-EL, theory-EL, rtol=0.01)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_rallpack1():
     '''
     Rallpack 1
@@ -279,7 +279,7 @@ def test_rallpack1():
 
 
 @attr('long', 'standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_rallpack2():
     '''
     Rallpack 2
@@ -359,7 +359,7 @@ def test_rallpack2():
 
 
 @attr('long', 'standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_rallpack3():
     '''
     Rallpack 3
@@ -440,7 +440,7 @@ def test_rallpack3():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
