@@ -5,7 +5,7 @@
 	//// MAIN CODE ////////////
 	// Get the spikes
 	const PyArrayObject *_spiking_synapses_obj = (PyArrayObject *)PyObject_CallMethod(_queue, "peek", "");
-	const npy_int32 *_spiking_synapses = (int *)_spiking_synapses_obj->data;
+	const npy_int32 *_spiking_synapses = (npy_int32 *)_spiking_synapses_obj->data;
     const int _num_spiking_synapses = _spiking_synapses_obj->dimensions[0];
 
     // Advance the spike queue
