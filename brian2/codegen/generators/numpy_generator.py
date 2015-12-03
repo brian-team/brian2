@@ -2,6 +2,7 @@ import itertools
 
 import numpy as np
 
+from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable
@@ -39,8 +40,47 @@ class NumpyCodeGenerator(CodeGenerator):
         # operations like a=b+c -> add(b, c, a)
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
+        origop = op
         if op == ':=':
             op = '='
+        # removed this optimisation but keep it in comments in case we want to revisit later
+#         # For numpy we replace complex expressions involving a single boolean variable into a pair of
+#         # simpler subexpressions with array access. The simpler expressions are provided by the
+#         # optimise_statements function. We do it for only a single boolean variable because this
+#         # simplifies the logic and this is the most common use case (for refractoriness).
+#         if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)==1
+#                 and brian_dtype_from_dtype(statement.dtype)=='float'):
+#             used_boolvars = statement.used_boolean_variables
+#             bool_simp = statement.boolean_simplified_expressions
+#             boolvar = used_boolvars[0]
+#             if origop == ':=':
+#                 lines = ['{var} = _numpy.empty(len({boolvar}))'.format(var=var, boolvar=boolvar)]
+#             else:
+#                 lines = []
+#             for bool_assigns, simp_expr in bool_simp.iteritems():
+#                 _, boolval = bool_assigns[0]
+#                 simp_expr = self.translate_expression(simp_expr)
+#                 array_vars = set(varname for varname, v in self.variables.items()
+#                                  if self.variable_indices.get(varname, '')==self.variable_indices[var] and
+#                                     isinstance(v, ArrayVariable))
+#                 array_vars = get_identifiers(simp_expr).intersection(array_vars)
+#                 subs = {}
+#                 if boolval:
+#                     #line = '_tmpidx, = {boolvar}.nonzero()'
+#                     line = '_tmpidx = {boolvar}'
+#                 else:
+# #                    line = '_tmpidx, = _numpy.logical_not({boolvar}).nonzero()'
+#                     line = '_tmpidx = -{boolvar}'
+#                 lines.append(line.format(boolvar=boolvar))
+#                 for varname in array_vars:
+#                     line = '_tmp_{varname} = {varname}[_tmpidx]'.format(varname=varname)
+#                     subs[varname] = '_tmp_'+varname
+#                     lines.append(line)
+#                 simp_expr = word_substitute(simp_expr, subs)
+#                 line = '{var}[_tmpidx] {op} {simp_expr}'.format(var=var, op=op, simp_expr=simp_expr)
+#                 lines.append(line)
+#             code = '\n'.join(lines)
+#         else:
         code = var + ' ' + op + ' ' + self.translate_expression(expr)
         if len(comment):
             code += ' # ' + comment
