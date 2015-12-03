@@ -21,8 +21,9 @@ except ImportError:
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.preferences import prefs
-from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.utils.logger import std_silent, get_logger
+from brian2.utils.stringtools import get_identifiers
 
 from ...codeobject import CodeObject, constant_or_scalar
 from ...templates import Templater
@@ -161,12 +162,13 @@ libraries: {self.libraries}
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            if isinstance(var, (AuxiliaryVariable, Subexpression)):
+            if isinstance(var, (AuxiliaryVariable, Subexpression, Function)):
                 continue
             try:
                 value = var.get_value()
             except (TypeError, AttributeError):
-                # A dummy Variable without value or a function
+                # A dummy Variable without value or a an object that is accessed
+                # with Python's C API directly
                 self.namespace[name] = var
                 continue
 
@@ -189,16 +191,29 @@ libraries: {self.libraries}
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
 
-            # There is one type of objects that we have to inject into the
-            # namespace with their current value at each time step: dynamic
-            # arrays that change in size during runs (i.e. not synapses but
-            # e.g. the structures used in monitors)
+        # Get all identifiers in the code -- note that this is not a smart
+        # function, it will get identifiers from strings, comments, etc. This
+        # is not a problem here, since we only use this list to filter out
+        # things. If we include something incorrectly, this only means that we
+        # will pass something into the namespace unnecessarily.
+        all_identifiers = reduce(lambda s, c: s | get_identifiers(c),
+                                 self.code.values(), set())
+        # Filter out all unneeded objects
+        self.namespace = {k: v for k, v in self.namespace.iteritems()
+                          if k in all_identifiers}
+
+        # There is one type of objects that we have to inject into the
+        # namespace with their current value at each time step: dynamic
+        # arrays that change in size during runs, where the size change is not
+        # initiated by the template itself
+        for name, var in self.variables.iteritems():
             if (isinstance(var, DynamicArrayVariable) and
                     var.needs_reference_update):
-                self.nonconstant_values.append((self.device.get_array_name(var,
-                                                                           self.variables),
-                                                var.get_value))
-                self.nonconstant_values.append(('_num'+name, var.get_len))
+                array_name = self.device.get_array_name(var, self.variables)
+                if array_name in self.namespace:
+                    self.nonconstant_values.append((array_name, var.get_value))
+                if '_num'+name in self.namespace:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

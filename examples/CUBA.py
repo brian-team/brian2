@@ -16,6 +16,7 @@ Clock-driven implementation with exact subthreshold integration
 '''
 from brian2 import *
 
+numpy.random.seed(4323)
 taum = 20*ms
 taue = 5*ms
 taui = 10*ms
@@ -43,9 +44,11 @@ Ci.connect('i>=3200', p=0.02)
 
 s_mon = SpikeMonitor(P)
 
-run(1 * second)
+run(10 * second)
+print profiling_summary()
+print s_mon.num_spikes
 
-plot(s_mon.t/ms, s_mon.i, '.k')
-xlabel('Time (ms)')
-ylabel('Neuron index')
-show()
+# plot(s_mon.t/ms, s_mon.i, '.k')
+# xlabel('Time (ms)')
+# ylabel('Neuron index')
+# show()
