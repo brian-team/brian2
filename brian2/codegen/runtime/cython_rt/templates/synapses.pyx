@@ -4,9 +4,6 @@
     {# USES_VARIABLES { _queue } #}
     cdef _numpy.ndarray[int32_t, ndim=1, mode='c'] _spiking_synapses = _queue.peek()
 
-    # Advance the spike queue
-    _queue.advance()
-
     # scalar code
     _vectorisation_idx = 1
     {{ scalar_code | autoindent }}
@@ -18,5 +15,8 @@
         _idx = _spiking_synapses[_spiking_synapse_idx]
         _vectorisation_idx = _idx
         {{ vector_code | autoindent }}
+
+    # Advance the spike queue
+    _queue.advance()
 
 {% endblock %}

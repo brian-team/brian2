@@ -8,9 +8,6 @@
 	const npy_int32 *_spiking_synapses = (npy_int32 *)_spiking_synapses_obj->data;
     const int _num_spiking_synapses = _spiking_synapses_obj->dimensions[0];
 
-    // Advance the spike queue
-    PyObject_CallMethod(_queue, "advance", "");
-
 	// scalar code
 	const int _vectorisation_idx = 1;
 	{{scalar_code|autoindent}}
@@ -24,4 +21,7 @@
 		const int _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
 	}
+
+	// Advance the spike queue
+    PyObject_CallMethod(_queue, "advance", "");
 {% endblock %}

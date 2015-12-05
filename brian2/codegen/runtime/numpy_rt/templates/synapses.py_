@@ -3,9 +3,6 @@ import numpy as _numpy
 
 _spiking_synapses = _queue.peek()
 
-# Advance the spike queue
-_queue.advance()
-
 if len(_spiking_synapses):
     # scalar code
     {# Note that we don't write to scalar variables conditionally. The scalar code
@@ -17,3 +14,6 @@ if len(_spiking_synapses):
     _idx = _spiking_synapses
     _vectorisation_idx = _idx
     {{vector_code|autoindent}}
+
+# Advance the spike queue
+_queue.advance()
