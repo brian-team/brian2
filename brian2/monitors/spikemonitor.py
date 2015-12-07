@@ -151,7 +151,9 @@ class EventMonitor(Group, CodeRunner):
         self._enable_group_attributes()
 
     def resize(self, new_size):
-        self.variables['N'].get_value()[0] = new_size
+        # Note that this does not set N, this has to be done in the template
+        # since we use a restricted pointer to access it (which promises that
+        # we only change the value through this pointer)
         for variable in self.record_variables:
             self.variables[variable].resize(new_size)
 

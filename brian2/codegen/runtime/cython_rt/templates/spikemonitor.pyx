@@ -36,6 +36,7 @@
             _newlen = _curlen + _num_events
             # Resize the arrays
             _owner.resize(_newlen)
+            {{N}} = _newlen
             {% for varname, var in record_variables.items() %}
             _{{varname}}_view = {{get_array_name(var, access_data=False)}}.data
             {% endfor %}

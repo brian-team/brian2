@@ -40,6 +40,8 @@
             py::tuple _newlen_tuple(1);
             _newlen_tuple[0] = _newlen;
             _owner.mcall("resize", _newlen_tuple);
+            // Set N explicitly (it is referenced with a restricted pointer)
+            {{N}} = _newlen;
             {% for varname, var in record_variables.items() %}
             {{c_data_type(var.dtype)}}* _{{varname}}_data = ({{c_data_type(var.dtype)}}*)(((PyArrayObject*)(PyObject*){{get_array_name(var, access_data=False)}}.attr("data"))->data);
             {% endfor %}
