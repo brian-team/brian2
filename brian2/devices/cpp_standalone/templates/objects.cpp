@@ -10,35 +10,37 @@
 #include<iostream>
 #include<fstream>
 
+namespace brian {
+
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
-Network brian::{{net.name}};
+Network {{net.name}};
 {% endfor %}
 
 //////////////// arrays ///////////////////
 {% for var, varname in array_specs | dictsort(by='value') %}
 {% if not var in dynamic_array_specs %}
-{{c_data_type(var.dtype)}} * brian::{{varname}};
-const int brian::_num_{{varname}} = {{var.size}};
+{{c_data_type(var.dtype)}} * {{varname}};
+const int _num_{{varname}} = {{var.size}};
 {% endif %}
 {% endfor %}
 
 //////////////// dynamic arrays 1d /////////
 {% for var, varname in dynamic_array_specs | dictsort(by='value') %}
-std::vector<{{c_data_type(var.dtype)}}> brian::{{varname}};
+std::vector<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 //////////////// dynamic arrays 2d /////////
 {% for var, varname in dynamic_array_2d_specs | dictsort(by='value') %}
-DynamicArray2D<{{c_data_type(var.dtype)}}> brian::{{varname}};
+DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
 {% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
 {# arrays that are initialized from static data are already declared #}
 {% if not (name in array_specs.values() or name in dynamic_array_specs.values() or name in dynamic_array_2d_specs.values())%}
-{{dtype_spec}} * brian::{{name}};
-const int brian::_num_{{name}} = {{N}};
+{{dtype_spec}} * {{name}};
+const int _num_{{name}} = {{N}};
 {% endif %}
 {% endfor %}
 
@@ -46,7 +48,7 @@ const int brian::_num_{{name}} = {{N}};
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
 {% for path in S._pathways | sort(attribute='name') %}
-SynapticPathway<double> brian::{{path.name}}(
+SynapticPathway<double> {{path.name}}(
 		{{dynamic_array_specs[path.variables['delay']]}},
 		{{dynamic_array_specs[path.synapse_sources]}},
 		{{path.source.start}}, {{path.source.stop}});
@@ -55,13 +57,15 @@ SynapticPathway<double> brian::{{path.name}}(
 
 //////////////// clocks ///////////////////
 {% for clock in clocks | sort(attribute='name') %}
-Clock brian::{{clock.name}};  // attributes will be set in run.cpp
+Clock {{clock.name}};  // attributes will be set in run.cpp
 {% endfor %}
 
 // Profiling information for each code object
 {% for codeobj in code_objects | sort(attribute='name') %}
-double brian::{{codeobj.name}}_profiling_info = 0.0;
+double {{codeobj.name}}_profiling_info = 0.0;
 {% endfor %}
+
+}
 
 void _init_arrays()
 {
