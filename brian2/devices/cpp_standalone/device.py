@@ -724,8 +724,11 @@ class CPPStandaloneDevice(Device):
                     for version in xrange(16, 8, -1):
                         fname = msvc9compiler.find_vcvarsall(version)
                         if fname:
-                            vcvars_loc = fname
-                            break
+                            if version<=12:
+                                vcvars_loc = fname
+                                break
+                            else:
+                                logger.info("Found MSVC version %s.0 but we currently only support 9.0-12.0" % version)
                 if vcvars_loc == '':
                     raise IOError("Cannot find vcvarsall.bat on standard "
                                   "search path. Set the "
