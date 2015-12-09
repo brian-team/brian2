@@ -3,10 +3,10 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_poissoninput():
     # Test extreme cases and do a very basic test of an intermediate case, we
     # don't want tests to be stochastic
@@ -62,5 +62,5 @@ def test_poissoninput_errors():
 
 if __name__ == '__main__':
     # test_poissoninput()
-    # restore_device()
+    # reinit_devices()
     test_poissoninput_errors()

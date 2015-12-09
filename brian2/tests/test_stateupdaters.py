@@ -8,7 +8,7 @@ from nose import with_setup
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 from brian2.stateupdaters.base import UnsupportedEquationsException
 
 @attr('codegen-independent')
@@ -501,7 +501,7 @@ def test_determination():
         assert "'heun'" in logs[0][2]
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_subexpressions_basic():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
