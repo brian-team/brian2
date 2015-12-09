@@ -552,7 +552,7 @@ class VariableOwner(Nameable):
         state = {}
         for var in self.variables.itervalues():
             if not isinstance(var, ArrayVariable):
-                continue  # we are only instances in arrays
+                continue  # we are only interested in arrays
             if var.owner is None or var.owner.name != self.name:
                 continue  # we only store the state of our own variables
 

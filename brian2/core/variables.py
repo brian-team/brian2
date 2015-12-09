@@ -528,7 +528,8 @@ class DynamicArrayVariable(ArrayVariable):
         if constant and needs_reference_update:
             raise ValueError('A variable cannot be constant and '
                              'need reference updates')
-        #: Whether the size of the variable is constant during a run.
+        #: Whether this variable needs an update of the reference to the
+        #: underlying data whenever it is passed to a code object
         self.needs_reference_update = needs_reference_update
 
         #: Whether this array will be only resized along the first dimension

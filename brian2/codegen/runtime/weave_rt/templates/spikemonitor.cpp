@@ -7,7 +7,7 @@
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
 
-	int _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
+    int _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
     if (_num_events > 0)
     {
         // For subgroups, we do not want to record all spikes
@@ -57,7 +57,7 @@
                 {{count}}[_idx - _source_start]++;
             }
         }
-	}
+    }
 {% endmacro %}
 
 {% macro support_code() %}
