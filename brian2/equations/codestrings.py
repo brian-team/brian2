@@ -131,13 +131,22 @@ class Expression(CodeString):
         stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
-        collected = self.sympy_expr.collect(stochastic_symbols, evaluate=False)
+        # Note that collect only works properly if the expression is expanded
+        collected = self.sympy_expr.expand().collect(stochastic_symbols,
+                                                     evaluate=False)
 
         f_expr = None
         stochastic_expressions = {}
-        for var, expr in collected.iteritems():
-            expr = Expression(sympy_expression=expr)
+        for var, s_expr in collected.iteritems():
+            expr = Expression(sympy_expression=s_expr)
             if var == 1:
+                if any(s_expr.has(s) for s in stochastic_symbols):
+                    raise AssertionError(('Error when separating expression '
+                                          '"%s" into stochastic and non-'
+                                          'stochastic term: non-stochastic '
+                                          'part was determined to be "%s" but '
+                                          'contains a stochastic symbol)' % (self.code,
+                                                                             s_expr)))
                 f_expr = expr
             elif var in stochastic_symbols:
                 stochastic_expressions[str(var)] = expr
