@@ -724,6 +724,7 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
+        num_threads = prefs.devices.cpp_standalone.openmp_threads
         with in_directory(directory):
             if compiler == 'msvc':
                 from distutils import msvc9compiler
@@ -735,11 +736,13 @@ class CPPStandaloneDevice(Device):
                     for version in xrange(16, 8, -1):
                         fname = msvc9compiler.find_vcvarsall(version)
                         if fname:
-                            if version<=12:
+                            if version==14 and num_threads>0:
+                                logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
+                                            "that version it is being ignored. We will use another version if "
+                                            "we find one, or you can switch OpenMP support off.")
+                            else:
                                 vcvars_loc = fname
                                 break
-                            else:
-                                logger.info("Found MSVC version %s.0 but we currently only support 9.0-12.0" % version)
                 if vcvars_loc == '':
                     raise IOError("Cannot find vcvarsall.bat on standard "
                                   "search path. Set the "

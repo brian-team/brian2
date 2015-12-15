@@ -26,5 +26,7 @@ a numerical integration algorithm explicitly (:ref:`numerical_integration`).
 Cannot find vcvarsall.bat on standard search path
 -------------------------------------------------
 
-If you have Windows and Microsoft Visual Studio 2015 installed, you will see
-this error. We only support Visual Studio versions 2008-2013 at the moment.
+If you have Windows and Microsoft Visual Studio 2015 installed, and you are
+trying to run with OpenMP support, you will see this error. There is a bug in
+OpenMP support for this version of Visual Studio. You can either install a
+different version or switch OpenMP off.
