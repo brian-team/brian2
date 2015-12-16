@@ -43,45 +43,24 @@ class NumpyCodeGenerator(CodeGenerator):
         origop = op
         if op == ':=':
             op = '='
-        # removed this optimisation but keep it in comments in case we want to revisit later
-#         # For numpy we replace complex expressions involving a single boolean variable into a pair of
-#         # simpler subexpressions with array access. The simpler expressions are provided by the
-#         # optimise_statements function. We do it for only a single boolean variable because this
-#         # simplifies the logic and this is the most common use case (for refractoriness).
-#         if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)==1
-#                 and brian_dtype_from_dtype(statement.dtype)=='float'):
-#             used_boolvars = statement.used_boolean_variables
-#             bool_simp = statement.boolean_simplified_expressions
-#             boolvar = used_boolvars[0]
-#             if origop == ':=':
-#                 lines = ['{var} = _numpy.empty(len({boolvar}))'.format(var=var, boolvar=boolvar)]
-#             else:
-#                 lines = []
-#             for bool_assigns, simp_expr in bool_simp.iteritems():
-#                 _, boolval = bool_assigns[0]
-#                 simp_expr = self.translate_expression(simp_expr)
-#                 array_vars = set(varname for varname, v in self.variables.items()
-#                                  if self.variable_indices.get(varname, '')==self.variable_indices[var] and
-#                                     isinstance(v, ArrayVariable))
-#                 array_vars = get_identifiers(simp_expr).intersection(array_vars)
-#                 subs = {}
-#                 if boolval:
-#                     #line = '_tmpidx, = {boolvar}.nonzero()'
-#                     line = '_tmpidx = {boolvar}'
-#                 else:
-# #                    line = '_tmpidx, = _numpy.logical_not({boolvar}).nonzero()'
-#                     line = '_tmpidx = -{boolvar}'
-#                 lines.append(line.format(boolvar=boolvar))
-#                 for varname in array_vars:
-#                     line = '_tmp_{varname} = {varname}[_tmpidx]'.format(varname=varname)
-#                     subs[varname] = '_tmp_'+varname
-#                     lines.append(line)
-#                 simp_expr = word_substitute(simp_expr, subs)
-#                 line = '{var}[_tmpidx] {op} {simp_expr}'.format(var=var, op=op, simp_expr=simp_expr)
-#                 lines.append(line)
-#             code = '\n'.join(lines)
-#         else:
-        code = var + ' ' + op + ' ' + self.translate_expression(expr)
+        # For numpy we replace complex expressions involving a single boolean variable into a
+        # where(boolvar, expr_if_true, expr_if_false)
+        if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)==1
+                and brian_dtype_from_dtype(statement.dtype)=='float'
+                and statement.complexity_std>sum(statement.complexities.values())):
+            used_boolvars = statement.used_boolean_variables
+            bool_simp = statement.boolean_simplified_expressions
+            boolvar = used_boolvars[0]
+            for bool_assigns, simp_expr in bool_simp.iteritems():
+                _, boolval = bool_assigns[0]
+                if boolval:
+                    expr_true = simp_expr
+                else:
+                    expr_false = simp_expr
+            code = '{var} {op} _numpy.where({boolvar}, {expr_true}, {expr_false})'.format(
+                        var=var, op=op, boolvar=boolvar, expr_true=expr_true, expr_false=expr_false)
+        else:
+            code = var + ' ' + op + ' ' + self.translate_expression(expr)
         if len(comment):
             code += ' # ' + comment
         return code
