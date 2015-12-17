@@ -816,8 +816,8 @@ class Network(Nameable):
         running = timestep[0] < clock._i_end
         while running and not self._stopped and not Network._globally_stopped:
             timestep, t, dt = self._clock_variables[clock]
-            # update the network time to this clocks time
-            self.t_ = t
+            # update the network time to this clock's time
+            self.t_ = t[0]
             if report is not None:
                 current = time.time()
                 if current > next_report_time:

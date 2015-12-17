@@ -17,6 +17,7 @@ if _n_events > 0:
         _curlen = {{N}}
         _newlen = _curlen + _n_events
         _owner.resize(_newlen)
+        {{N}} = _newlen
         _vectorisation_idx = _n_events
         _idx = _events
         {{vector_code|autoindent}}

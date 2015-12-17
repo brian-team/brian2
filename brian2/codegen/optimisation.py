@@ -7,10 +7,12 @@ import copy
 import itertools
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
+from brian2.core.variables import AuxiliaryVariable
 from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
                                  brian_dtype_from_dtype, brian_dtype_from_value)
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.units.fundamentalunits import Unit
 
 from .statements import Statement
 
@@ -33,6 +35,11 @@ def evaluate_expr(expr, ns):
         return val, True
     except NameError:
         return expr, False
+
+
+def expression_complexity(expr, variables):
+    return brian_ast(expr, variables).complexity
+
 
 def optimise_statements(scalar_statements, vector_statements, variables):
     '''
@@ -77,14 +84,14 @@ def optimise_statements(scalar_statements, vector_statements, variables):
                              subexpression=stmt.subexpression,
                              scalar=stmt.scalar)
         # Now check if boolean simplification can be carried out
-        #complexity_std = expression_complexity(expr_std)
+        complexity_std = expression_complexity(new_expr, simplifier.variables)
         idents = get_identifiers(new_expr)
         used_boolvars = [var for var in boolvars.iterkeys() if var in idents]
         if len(used_boolvars):
             # We want to iterate over all the possible assignments of boolean variables to values in (True, False)
             bool_space = [[False, True] for var in used_boolvars]
             expanded_expressions = {}
-            #complexities = {}
+            complexities = {}
             for bool_vals in itertools.product(*bool_space):
                 # substitute those values into the expr and simplify (including potentially pulling out new
                 # loop invariants)
@@ -93,12 +100,12 @@ def optimise_statements(scalar_statements, vector_statements, variables):
                 curexpr = simplifier.render_expr(curexpr)
                 key = tuple((var, val) for var, val in zip(used_boolvars, bool_vals))
                 expanded_expressions[key] = curexpr
-                #complexities[key] = expression_complexity(curexpr)
-                # print ', '.join('%s=%s'%(k, v) for k, v in key)
-                # print '-> ', curexpr
+                complexities[key] = expression_complexity(curexpr, simplifier.variables)
             # See Statement for details on these
             new_stmt.used_boolean_variables = used_boolvars
             new_stmt.boolean_simplified_expressions = expanded_expressions
+            new_stmt.complexity_std = complexity_std
+            new_stmt.complexities = complexities
         new_vector_statements.append(new_stmt)
     # Generate additional scalar statements for the loop invariants
     new_scalar_statements = copy.copy(scalar_statements)
@@ -316,6 +323,10 @@ class Simplifier(BrianASTRenderer):
                 name = '_lio_'+str(self.n)
                 self.loop_invariants[expr] = name
                 self.loop_invariant_dtypes[name] = node.dtype
+                numpy_dtype = {'boolean': bool,
+                               'integer': int,
+                               'float': float}[node.dtype]
+                self.variables[name] = AuxiliaryVariable(name, Unit(1), dtype=numpy_dtype, scalar=True)
             # None is the expression context, we don't use it so we just set to None
             newnode = ast.Name(name, None)
             newnode.scalar = True

@@ -99,7 +99,7 @@ class NumpyCodeObject(CodeObject):
             # arrays that change in size during runs (i.e. not synapses but
             # e.g. the structures used in monitors)
             if (isinstance(var, DynamicArrayVariable) and
-                  not var.constant_size):
+                    var.needs_reference_update):
                 self.nonconstant_values.append((self.generator_class.get_array_name(var,
                                                                                    self.variables),
                                                 var.get_value))
