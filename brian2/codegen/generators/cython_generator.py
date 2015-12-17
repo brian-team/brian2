@@ -355,12 +355,7 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator
                                                              name='_sign')
 
 clip_code = '''
-ctypedef fused _float_or_double:
-    float
-    double
-
-cdef _float_or_double clip(_float_or_double x, _float_or_double low,
-                           _float_or_double high):
+cdef double clip(double x, double low, double high):
     if x<low:
         return low
     if x>high:
