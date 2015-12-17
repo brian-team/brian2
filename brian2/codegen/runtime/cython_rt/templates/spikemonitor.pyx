@@ -15,7 +15,6 @@
     if _num_events > 0:
         # For subgroups, we do not want to record all spikes
         # We assume that spikes are ordered
-        # TODO: Will this assumption ever be violated?
         _start_idx = _num_events
         _end_idx = _num_events
         for _j in range(_num_events):
@@ -23,11 +22,11 @@
             if _idx >= _source_start:
                 _start_idx = _j
                 break
-        for _j in range(_start_idx, _num_events):
+        for _j in range(_num_events-1, _start_idx-1, -1):
             _idx = {{_eventspace}}[_j]
-            if _idx >= _source_stop:
-                _end_idx = _j
+            if _idx < _source_stop:
                 break
+            _end_idx = _j
         _num_events = _end_idx - _start_idx
         if _num_events > 0:
             # scalar code
@@ -37,6 +36,7 @@
             _newlen = _curlen + _num_events
             # Resize the arrays
             _owner.resize(_newlen)
+            {{N}} = _newlen
             {% for varname, var in record_variables.items() %}
             _{{varname}}_view = {{get_array_name(var, access_data=False)}}.data
             {% endfor %}

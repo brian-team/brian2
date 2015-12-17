@@ -51,7 +51,10 @@ class Statement(object):
     and ``var`` is ``True`` or ``False``. The values of the dictionary are
     strings representing the simplified version of the expression if each
     ``var=value`` substitution is made for that key. The keys will range
-    over all possible values of the set of boolean variables.
+    over all possible values of the set of boolean variables. The complexity
+    of the original statement is set as the attribute ``complexity_std``,
+    and the complexity of the simplified versions are in the dictionary
+    ``complexities`` (with the same keys).
 
     This information can be used to generate code that replaces a complex
     expression that varies depending on the value of one or more boolean

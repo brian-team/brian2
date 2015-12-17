@@ -117,17 +117,14 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                          size=len(indices), unit=Unit(1),
                                          dtype=np.int32, read_only=True,
                                          constant=True,
-                                         constant_size=True,
                                          unique=True)
         self.variables.add_dynamic_array('neuron_index', values=indices,
                                          size=len(indices), unit=Unit(1),
                                          dtype=np.int32, index='spike_number',
-                                         read_only=True, constant=True,
-                                         constant_size=True)
+                                         read_only=True, constant=True)
         self.variables.add_dynamic_array('spike_time', values=times, size=len(times),
                                          unit=second, index='spike_number',
-                                         read_only=True, constant=True,
-                                         constant_size=True)
+                                         read_only=True, constant=True)
         self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
                                  dtype=np.int32)
         self.variables.add_array('_lastindex', size=1, values=0, unit=Unit(1),

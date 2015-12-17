@@ -7,6 +7,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
@@ -140,15 +141,28 @@ class CythonCodeObject(NumpyCodeObject):
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
 
-            # There is one type of objects that we have to inject into the
-            # namespace with their current value at each time step: dynamic
-            # arrays that change in size during runs (i.e. not synapses but
-            # e.g. the structures used in monitors)
+        # Get all identifiers in the code -- note that this is not a smart
+        # function, it will get identifiers from strings, comments, etc. This
+        # is not a problem here, since we only use this list to filter out
+        # things. If we include something incorrectly, this only means that we
+        # will pass something into the namespace unnecessarily.
+        all_identifiers = get_identifiers(self.code)
+        # Filter out all unneeded objects
+        self.namespace = {k: v for k, v in self.namespace.iteritems()
+                          if k in all_identifiers}
+
+        # There is one type of objects that we have to inject into the
+        # namespace with their current value at each time step: dynamic
+        # arrays that change in size during runs, where the size change is not
+        # initiated by the template itself
+        for name, var in self.variables.iteritems():
             if (isinstance(var, DynamicArrayVariable) and
-                  not var.constant_size):
-                self.nonconstant_values.append((self.device.get_array_name(var, True),
-                                                var.get_value))
-                self.nonconstant_values.append(('_num'+name, var.get_len))
+                    var.needs_reference_update):
+                array_name = self.device.get_array_name(var, self.variables)
+                if array_name in self.namespace:
+                    self.nonconstant_values.append((array_name, var.get_value))
+                if '_num'+name in self.namespace:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

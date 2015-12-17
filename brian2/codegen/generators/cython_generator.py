@@ -284,9 +284,6 @@ class CythonCodeGenerator(CodeGenerator):
                 user_functions.extend(uf)
             else:
                 # fallback to Python object
-                print var
-                for k, v in var.__dict__.iteritems():
-                    print '   ', k, v
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
 
         # delete the user-defined functions from the namespace and add the

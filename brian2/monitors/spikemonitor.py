@@ -122,8 +122,7 @@ class EventMonitor(Group, CodeRunner):
                                                    dtype=source_var.dtype)
             self.variables.add_dynamic_array(variable, size=0,
                                              unit=source_var.unit,
-                                             dtype=source_var.dtype,
-                                             constant_size=False)
+                                             dtype=source_var.dtype)
         self.variables.add_arange('_source_idx', size=len(source))
         self.variables.add_array('count', size=len(source), unit=Unit(1),
                                  dtype=np.int32, read_only=True,
@@ -152,7 +151,9 @@ class EventMonitor(Group, CodeRunner):
         self._enable_group_attributes()
 
     def resize(self, new_size):
-        self.variables['N'].set_value(new_size)
+        # Note that this does not set N, this has to be done in the template
+        # since we use a restricted pointer to access it (which promises that
+        # we only change the value through this pointer)
         for variable in self.record_variables:
             self.variables[variable].resize(new_size)
 
