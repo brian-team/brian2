@@ -26,6 +26,7 @@ try:
     import Cython
     import Cython.Compiler as Cython_Compiler
     import Cython.Build as Cython_Build
+    from Cython.Utils import get_cython_cache_dir
 except ImportError:
     Cython = None
 
@@ -60,7 +61,11 @@ class CythonExtensionManager(object):
 
         code = deindent(code)
 
-        lib_dir = os.path.expanduser('~/.brian/cython_extensions')
+        lib_dir = prefs.codegen.runtime.cython.cache_dir
+        if lib_dir is None:
+            lib_dir = os.path.join(get_cython_cache_dir(), 'brian_extensions')
+        if '~' in lib_dir:
+            lib_dir = os.path.expanduser(lib_dir)
         try:
             os.makedirs(lib_dir)
         except OSError:
