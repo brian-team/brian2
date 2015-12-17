@@ -70,7 +70,8 @@ class CythonExtensionManager(object):
             os.makedirs(lib_dir)
         except OSError:
             if not os.path.exists(lib_dir):
-                raise
+                raise IOError("Couldn't create Cython cache directory '%s', try setting the "
+                              "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
 
         key = code, sys.version_info, sys.executable, Cython.__version__
             
