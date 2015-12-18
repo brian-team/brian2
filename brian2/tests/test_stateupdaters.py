@@ -123,27 +123,26 @@ def store_randn():
 def restore_randn():
     DEFAULT_FUNCTIONS['randn'] = old_randn
 
+# The "random" values are always 0.5
+@implementation('cpp',
+                '''
+                double randn(int vectorisation_idx)
+                {
+                    return 0.5;
+                }
+                ''')
+@implementation('cython',
+                '''
+                cdef double randn(int vectorisation_idx):
+                    return 0.5
+                ''')
+@check_units(N=Unit(1), result=Unit(1))
+def fake_randn(N):
+    return 0.5*ones(N)
 
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_multiple_noise_variables_deterministic_noise():
-    # The "random" values are always 0.5
-    @implementation('cpp',
-                    '''
-                    double randn(int vectorisation_idx)
-                    {
-                        return 0.5;
-                    }
-                    ''')
-    @implementation('cython',
-                    '''
-                    cdef double randn(int vectorisation_idx):
-                        return 0.5
-                    ''')
-    @check_units(N=Unit(1), result=Unit(1))
-    def fake_randn(N):
-        return 0.5*ones(N)
 
-    old_randn = DEFAULT_FUNCTIONS['randn']
     DEFAULT_FUNCTIONS['randn'] = fake_randn
 
     all_eqs = ['''dx/dt = y : 1
@@ -607,6 +606,43 @@ def test_locally_constant_check():
     net = Network(G)
     net.run(0*ms)
 
+def test_refractory():
+    # Compare integration with and without the addition of refractoriness --
+    # note that the cell here is not spiking, so it should never be in the
+    # refractory period and therefore the results should be exactly identical
+    # with and without (unless refractory)
+    eqs_base = 'dv/dt = -v/(10*ms) : 1'
+    for method in ['linear', 'independent', 'euler', 'exponential_euler', 'rk2', 'rk4']:
+        G_no_ref = NeuronGroup(10, eqs_base, method=method)
+        G_no_ref.v = '(i+1)/11.'
+        G_ref = NeuronGroup(10, eqs_base + '(unless refractory)',
+                            refractory=1*ms, method=method)
+        G_ref.v = '(i+1)/11.'
+        net = Network(G_ref, G_no_ref)
+        net.run(10*ms)
+        assert_allclose(G_no_ref.v[:], G_ref.v[:],
+                        err_msg=('Results with and without refractoriness '
+                                 'differ for method %s.') % method)
+
+@with_setup(setup=store_randn, teardown=restore_randn)
+def test_refractory_stochastic():
+    # Fake stochastictiy, the random number generator always returns 0.5
+    DEFAULT_FUNCTIONS['randn'] = fake_randn
+
+    eqs_base = 'dv/dt = -v/(10*ms) + second**-.5*xi : 1'
+
+    for method in ['euler', 'heun', 'milstein']:
+        G_no_ref = NeuronGroup(10, eqs_base, method=method)
+        G_no_ref.v = '(i+1)/11.'
+        G_ref = NeuronGroup(10, eqs_base + ' (unless refractory)',
+                            refractory=1*ms, method=method)
+        G_ref.v = '(i+1)/11.'
+        net = Network(G_ref, G_no_ref)
+        net.run(10*ms)
+        assert_allclose(G_no_ref.v[:], G_ref.v[:],
+                        err_msg=('Results with and without refractoriness '
+                                 'differ for method %s.') % method)
+
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'cython'
@@ -630,5 +666,8 @@ if __name__ == '__main__':
     test_registration()
     test_subexpressions()
     test_locally_constant_check()
-
+    test_refractory()
+    store_randn()
+    test_refractory_stochastic()
+    restore_randn()
     print 'Tests took', time.time()-start

@@ -2,7 +2,7 @@ import itertools
 
 import numpy as np
 
-from brian2.utils.stringtools import word_substitute, deindent
+from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
 from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
@@ -130,7 +130,7 @@ class CythonCodeGenerator(CodeGenerator):
                 subs = {}
                 condvar = conditional_write_vars[stmt.var]
                 lines.append('if %s:' % condvar)
-                lines.append('    '+line)
+                lines.append(indent(line))
             else:
                 lines.append(line)
         # write arrays
