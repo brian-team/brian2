@@ -32,7 +32,17 @@ prefs.register_preferences(
         Whether to use a lock file to prevent simultaneous write access
         to cython .pyx and .so files.
         '''
-        )
+        ),
+    cache_dir = BrianPreference(
+        default=None,
+        validator=lambda x: x is None or isinstance(x, basestring),
+        docs='''
+        Location of the cache directory for Cython files. By default,
+        will be stored in a ``brian_extensions`` subdirectory
+        where Cython inline stores its temporary files
+        (the result of ``get_cython_cache_dir()``).
+        '''
+        ),
     )
 
 
