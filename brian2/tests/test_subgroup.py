@@ -4,7 +4,7 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 
 @attr('codegen-independent')
 def test_str_repr():
@@ -57,7 +57,7 @@ def test_state_variables():
     assert_equal(G.v[SG], SG.v[:])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_variables_simple():
     G = NeuronGroup(10, '''a : 1
                            b : 1
@@ -123,7 +123,7 @@ def test_state_variables_group_as_index_problematic():
                         for entry in l])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_state_monitor():
     G = NeuronGroup(10, 'v : volt')
     G.v = np.arange(10) * volt
@@ -345,7 +345,7 @@ def test_subexpression_no_references():
     assert_equal(S3.x[:], np.arange(5)*2+1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synaptic_propagation():
     G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G1.v['i%2==1'] = 1.1 # odd numbers should spike
@@ -361,7 +361,7 @@ def test_synaptic_propagation():
     assert_equal(np.asarray(G2.v).flatten(), expected)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synaptic_propagation_2():
     # This tests for the bug in github issue #461
     source = NeuronGroup(100, '', threshold='True')
@@ -372,26 +372,31 @@ def test_synaptic_propagation_2():
     assert target.v[0] == 1.0
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_spike_monitor():
     G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G.v[0] = 1.1
     G.v[2] = 1.1
     G.v[5] = 1.1
     SG = G[3:]
+    SG2 = G[:3]
     s_mon = SpikeMonitor(G)
     sub_s_mon = SpikeMonitor(SG)
+    sub_s_mon2 = SpikeMonitor(SG2)
     run(defaultclock.dt)
     assert_equal(s_mon.i, np.array([0, 2, 5]))
     assert_equal(s_mon.t_, np.zeros(3))
     assert_equal(sub_s_mon.i, np.array([2]))
     assert_equal(sub_s_mon.t_, np.zeros(1))
+    assert_equal(sub_s_mon2.i, np.array([0, 2]))
+    assert_equal(sub_s_mon2.t_, np.zeros(2))
     expected = np.zeros(10, dtype=int)
     expected[[0, 2, 5]] = 1
     assert_equal(s_mon.count, expected)
     expected = np.zeros(7, dtype=int)
     expected[[2]] = 1
     assert_equal(sub_s_mon.count, expected)
+    assert_equal(sub_s_mon2.count, np.array([1, 0, 1]))
 
 
 @attr('codegen-independent')
@@ -414,7 +419,7 @@ def test_no_reference_1():
     assert_equal(G[:5].v[:], G.v[:5])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_no_reference_2():
     '''
     Using subgroups without keeping an explicit reference. Monitors
@@ -431,7 +436,7 @@ def test_no_reference_2():
     assert_equal(rate_mon.rate[:], np.array([0.5, 0])/defaultclock.dt)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_no_reference_3():
     '''
     Using subgroups without keeping an explicit reference. Monitors
@@ -443,7 +448,7 @@ def test_no_reference_3():
     assert_equal(G.v[:], np.array([0, 1]))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_no_reference_4():
     '''
     Using subgroups without keeping an explicit reference. Synapses

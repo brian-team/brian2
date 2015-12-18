@@ -237,7 +237,7 @@ class StateMonitor(Group, CodeRunner):
         self.variables = Variables(self)
 
         self.variables.add_dynamic_array('t', size=0, unit=second,
-                                         constant=False, constant_size=False)
+                                         constant=False)
         self.variables.add_array('N', unit=Unit(1), dtype=np.int32,
                                  size=1, scalar=True, read_only=True)
         self.variables.add_array('_indices', size=len(self.record),
@@ -262,8 +262,7 @@ class StateMonitor(Group, CodeRunner):
                                              resize_along_first=True,
                                              unit=var.unit,
                                              dtype=var.dtype,
-                                             constant=False,
-                                             constant_size=False)
+                                             constant=False)
 
         for varname in variables:
             var = self.source.variables[varname]

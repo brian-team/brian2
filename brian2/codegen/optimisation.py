@@ -7,10 +7,12 @@ import copy
 import itertools
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
+from brian2.core.variables import AuxiliaryVariable
 from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
-                                 brian_dtype_from_dtype)
+                                 brian_dtype_from_dtype, brian_dtype_from_value)
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.units.fundamentalunits import Unit
 
 from .statements import Statement
 
@@ -22,14 +24,12 @@ defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
 __all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
 
 
-def evaluate_expr(expr, ns=None):
+def evaluate_expr(expr, ns):
     '''
-    Try to evaluate the expression in the namespace (use default namespace if unspecified)
+    Try to evaluate the expression in the given namespace
 
     Returns either (value, True) if successful, or (expr, False) otherwise.
     '''
-    if ns is None:
-        ns = defaults_ns
     try:
         val = eval(expr, ns)
         return val, True
@@ -37,12 +37,16 @@ def evaluate_expr(expr, ns=None):
         return expr, False
 
 
+def expression_complexity(expr, variables):
+    return brian_ast(expr, variables).complexity
+
+
 def optimise_statements(scalar_statements, vector_statements, variables):
     '''
     Optimise a sequence of scalar and vector statements
 
     Performs the following optimisations:
-    1. Constant evaluations (e.g. exp(0) to 1). See `evaluate_expr`, `create_assumptions_namespace`.
+    1. Constant evaluations (e.g. exp(0) to 1). See `evaluate_expr`.
     2. Arithmetic simplifications (e.g. 0*x to 0). See `ArithmeticSimplifier`, `collect`.
     3. Pulling out loop invariants (e.g. v*exp(-dt/tau) to a=exp(-dt/tau) outside the loop and v*a inside).
        See `Simplifier`.
@@ -80,14 +84,14 @@ def optimise_statements(scalar_statements, vector_statements, variables):
                              subexpression=stmt.subexpression,
                              scalar=stmt.scalar)
         # Now check if boolean simplification can be carried out
-        #complexity_std = expression_complexity(expr_std)
+        complexity_std = expression_complexity(new_expr, simplifier.variables)
         idents = get_identifiers(new_expr)
         used_boolvars = [var for var in boolvars.iterkeys() if var in idents]
         if len(used_boolvars):
             # We want to iterate over all the possible assignments of boolean variables to values in (True, False)
             bool_space = [[False, True] for var in used_boolvars]
             expanded_expressions = {}
-            #complexities = {}
+            complexities = {}
             for bool_vals in itertools.product(*bool_space):
                 # substitute those values into the expr and simplify (including potentially pulling out new
                 # loop invariants)
@@ -96,12 +100,12 @@ def optimise_statements(scalar_statements, vector_statements, variables):
                 curexpr = simplifier.render_expr(curexpr)
                 key = tuple((var, val) for var, val in zip(used_boolvars, bool_vals))
                 expanded_expressions[key] = curexpr
-                #complexities[key] = expression_complexity(curexpr)
-                # print ', '.join('%s=%s'%(k, v) for k, v in key)
-                # print '-> ', curexpr
+                complexities[key] = expression_complexity(curexpr, simplifier.variables)
             # See Statement for details on these
             new_stmt.used_boolean_variables = used_boolvars
             new_stmt.boolean_simplified_expressions = expanded_expressions
+            new_stmt.complexity_std = complexity_std
+            new_stmt.complexities = complexities
         new_vector_statements.append(new_stmt)
     # Generate additional scalar statements for the loop invariants
     new_scalar_statements = copy.copy(scalar_statements)
@@ -121,38 +125,36 @@ def optimise_statements(scalar_statements, vector_statements, variables):
         new_scalar_statements.append(new_stmt)
     return new_scalar_statements, new_vector_statements
 
-
-def create_assumptions_namespace(assumptions):
+def _replace_with_zero(zero_node, node):
     '''
-    Create a namespace from a sequence of statements.
+    Helper function to return a "zero node" of the correct type.
 
     Parameters
     ----------
-    assumptions : list of str
-        Sequence of statements. Will try to evaluate each one, but won't raise any
-        exceptions if they fail.
+    zero_node : `ast.Num`
+        The node to replace
+    node : `ast.Node`
+        The node that determines the type
 
     Returns
     -------
-    namespace : dict
-        Result of executing as many of the assumption statements as possible.
-        Includes the default namespace.
+    zero_node : `ast.Num`
+        The original ``zero_node`` with its value replaced by 0 or 0.0.
     '''
-    ns = defaults_ns.copy()
-    for assumption in assumptions:
-        try:
-            exec assumption in ns
-        except NameError:
-            pass
-    return ns
-
+    # must not change the dtype of the output,
+    # e.g. handle 0/float->0.0 and 0.0/int->0.0
+    zero_node.dtype = node.dtype
+    if node.dtype == 'integer':
+        zero_node.n = 0
+    else:
+        zero_node.n = 0.0
+    return zero_node
 
 class ArithmeticSimplifier(BrianASTRenderer):
     '''
     Carries out the following arithmetic simplifications:
 
-    1. Constant evaluation (e.g. exp(0)=1) by attempting to evaluate the expression in the namespace returned
-       by `create_assumptions_namespace`.
+    1. Constant evaluation (e.g. exp(0)=1) by attempting to evaluate the expression in an "assumptions namespace"
     2. Binary operators, e.g. 0*x=0, 1*x=x, etc. You have to take care that the dtypes match here, e.g.
        if x is an integer, then 1.0*x shouldn't be replaced with x but left as 1.0*x.
 
@@ -164,125 +166,105 @@ class ArithmeticSimplifier(BrianASTRenderer):
         Additional assumptions that can be used in simplification, each assumption is a string statement.
         These might be the scalar statements for example.
     '''
-    def __init__(self, variables, assumptions=None):
+    def __init__(self, variables):
         BrianASTRenderer.__init__(self, variables)
-        if assumptions is None:
-            assumptions = []
-        self.assumptions = assumptions
-        self.assumptions_ns = create_assumptions_namespace(assumptions)
+        self.assumptions = []
+        self.assumptions_ns = dict(defaults_ns)
         self.bast_renderer = BrianASTRenderer(variables)
 
     def render_node(self, node):
         '''
         Assumes that the node has already been fully processed by BrianASTRenderer
         '''
-        node = super(ArithmeticSimplifier, self).render_node(node)
+        if not hasattr(node, 'simplified'):
+            node = super(ArithmeticSimplifier, self).render_node(node)
+            node.simplified = True
         # can't evaluate vector expressions, so abandon in this case
         if not node.scalar:
+            return node
+        # No evaluation necessary for simple names or numbers
+        if node.__class__.__name__ in ['Name', 'NameConstant', 'Num']:
+            return node
+        # Don't evaluate stateful nodes (e.g. those containing a rand() call)
+        if not node.stateless:
             return node
         # try fully evaluating using assumptions
         expr = NodeRenderer().render_node(node)
         val, evaluated = evaluate_expr(expr, self.assumptions_ns)
         if evaluated:
-            if node.dtype=='boolean':
+            if node.dtype == 'boolean':
                 val = bool(val)
                 if hasattr(ast, 'NameConstant'):
                     newnode = ast.NameConstant(val)
                 else:
                     # None is the expression context, we don't use it so we just set to None
                     newnode = ast.Name(repr(val), None)
-            elif node.dtype=='integer':
+            elif node.dtype == 'integer':
                 val = int(val)
             else:
                 val = float(val)
-            if node.dtype!='boolean':
+            if node.dtype != 'boolean':
                 newnode = ast.Num(val)
             newnode.dtype = node.dtype
             newnode.scalar = True
+            newnode.stateless = node.stateless
             newnode.complexity = 0
             return newnode
         return node
 
     def render_BinOp(self, node):
-        if node.dtype=='float': # only try to collect float type nodes
+        if node.dtype == 'float': # only try to collect float type nodes
             if node.op.__class__.__name__ in ['Mult', 'Div', 'Add', 'Sub'] and not hasattr(node, 'collected'):
                 newnode = self.bast_renderer.render_node(collect(node))
                 newnode.collected = True
                 return self.render_node(newnode)
-        node.left = self.render_node(node.left)
-        node.right = self.render_node(node.right)
+        left = node.left = self.render_node(node.left)
+        right = node.right = self.render_node(node.right)
         node = super(ArithmeticSimplifier, self).render_BinOp(node)
-        left = node.left
-        right = node.right
         op = node.op
         # Handle multiplication by 0 or 1
-        if op.__class__.__name__=='Mult':
-            if left.__class__.__name__=='Num':
-                if left.n==0:
-                    # must not change the dtype of the output, e.g. handle 0*float->0.0 and 0.0*int->0.0
-                    left.dtype = node.dtype
-                    if node.dtype=='integer':
-                        left.n = 0
-                    else:
-                        left.n = 0.0
-                    return left
-                if left.n==1:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[left.dtype]<=dtype_hierarchy[right.dtype]:
-                        return right
-            if right.__class__.__name__=='Num':
-                if right.n==0:
-                    # must not change the dtype of the output, e.g. handle 0*float->0.0 and 0.0*int->0.0
-                    right.dtype = right.dtype
-                    if node.dtype=='integer':
-                        right.n = 0
-                    else:
-                        right.n = 0.0
-                    return right
-                if right.n==1:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
+        if op.__class__.__name__ == 'Mult':
+            for operand, other in [(left, right),
+                                   (right, left)]:
+                if operand.__class__.__name__ == 'Num':
+                    if operand.n == 0:
+                        # Do not remove stateful functions
+                        if node.stateless:
+                            return _replace_with_zero(operand, node)
+                    if operand.n==1:
+                        # only simplify this if the type wouldn't be cast by the operation
+                        if dtype_hierarchy[operand.dtype] <= dtype_hierarchy[other.dtype]:
+                            return other
         # Handle division by 1, or 0/x
-        if op.__class__.__name__=='Div':
-            if left.__class__.__name__=='Num':
-                if left.n==0:
-                    # must not change the dtype of the output, e.g. handle 0/float->0.0 and 0.0/int->0.0
-                    left.dtype = node.dtype
-                    if node.dtype=='integer':
-                        left.n = 0
-                    else:
-                        left.n = 0.0
+        elif op.__class__.__name__ == 'Div':
+            if left.__class__.__name__ == 'Num' and left.n == 0:  # 0/x
+                if node.stateless:
+                    # Do not remove stateful functions
+                    return _replace_with_zero(left, node)
+            if right.__class__.__name__ == 'Num' and right.n == 1:  # x/1
+                # only simplify this if the type wouldn't be cast by the operation
+                if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
-            if right.__class__.__name__=='Num':
-                if right.n==1:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
         # Handle addition of 0
-        if op.__class__.__name__=='Add':
-            if left.__class__.__name__=='Num':
-                if left.n==0:
+        elif op.__class__.__name__ == 'Add':
+            for operand, other in [(left, right),
+                                   (right, left)]:
+                if operand.__class__.__name__ == 'Num' and operand.n == 0:
                     # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[left.dtype]<=dtype_hierarchy[right.dtype]:
-                        return right
-            if right.__class__.__name__=='Num':
-                if right.n==0:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
+                    if dtype_hierarchy[operand.dtype]<=dtype_hierarchy[other.dtype]:
+                        return other
         # Handle subtraction of 0
-        if op.__class__.__name__=='Sub':
-            if right.__class__.__name__=='Num':
-                if right.n==0:
-                    # only simplify this if the type wouldn't be cast by the operation
-                    if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
-                        return left
+        elif op.__class__.__name__ == 'Sub':
+            if right.__class__.__name__ == 'Num' and right.n == 0:
+                # only simplify this if the type wouldn't be cast by the operation
+                if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
+                    return left
+
         # simplify e.g. 2*float to 2.0*float to make things more explicit: not strictly necessary
         # but might be useful for some codegen targets
         if node.dtype=='float' and op.__class__.__name__ in ['Mult', 'Add', 'Sub', 'Div']:
             for subnode in [node.left, node.right]:
-                if subnode.__class__.__name__=='Num':
+                if subnode.__class__.__name__ == 'Num':
                     subnode.dtype = 'float'
                     subnode.n = float(subnode.n)
         return node
@@ -321,14 +303,6 @@ class Simplifier(BrianASTRenderer):
         self.arithmetic_simplifier = ArithmeticSimplifier(variables)
         self.scalar_statements = scalar_statements
 
-    def render_expr_with_additional_assumptions(self, expr, additional_assumptions):
-        cur_arithmetic_simplifier = self.arithmetic_simplifier
-        self.arithmetic_simplifier = ArithmeticSimplifier(self.variables,
-                                                          assumptions=additional_assumptions)
-        expr = self.render_expr(expr)
-        self.arithmetic_simplifier = cur_arithmetic_simplifier
-        return expr
-
     def render_expr(self, expr):
         node = brian_ast(expr, self.variables)
         node = self.arithmetic_simplifier.render_node(node)
@@ -349,17 +323,22 @@ class Simplifier(BrianASTRenderer):
                 name = '_lio_'+str(self.n)
                 self.loop_invariants[expr] = name
                 self.loop_invariant_dtypes[name] = node.dtype
+                numpy_dtype = {'boolean': bool,
+                               'integer': int,
+                               'float': float}[node.dtype]
+                self.variables[name] = AuxiliaryVariable(name, Unit(1), dtype=numpy_dtype, scalar=True)
             # None is the expression context, we don't use it so we just set to None
             newnode = ast.Name(name, None)
             newnode.scalar = True
             newnode.dtype = node.dtype
             newnode.complexity = 0
+            newnode.stateless = node.stateless
             return newnode
         # otherwise, render node as usual
         return super(Simplifier, self).render_node(node)
 
 
-def reduced_node(terms, op, curnode=None):
+def reduced_node(terms, op):
     '''
     Reduce a sequence of terms with the given operator
 
@@ -371,17 +350,22 @@ def reduced_node(terms, op, curnode=None):
         AST nodes.
     op : AST node
         Could be `ast.Mult` or `ast.Add`.
-    curnode : AST node
-        Starting node (equivalent to making it the first node in terms).
+
+    Example
+    -------
+    >>> import ast
+    >>> nodes = [ast.Name(id='x'), ast.Num(n=3), ast.Name(id='y')]
+    >>> ast.dump(reduced_node(nodes, ast.Mult), annotate_fields=False)
+    "BinOp(BinOp(Name('x'), Mult(), Num(3)), Mult(), Name('y'))"
+    >>> nodes = [ast.Num(n=17.0)]
+    >>> ast.dump(reduced_node(nodes, ast.Add), annotate_fields=False)
+    'Num(17.0)'
     '''
-    for term in terms:
-        if term is None:
-            continue
-        if curnode is None:
-            curnode = term
-        else:
-            curnode = ast.BinOp(curnode, op(), term)
-    return curnode
+    # Remove None terms
+    terms = [term for term in terms if term is not None]
+    if not len(terms):
+        return None
+    return reduce(lambda left, right: ast.BinOp(left, op(), right), terms)
 
 
 def cancel_identical_terms(primary, inverted):
@@ -414,11 +398,11 @@ def cancel_identical_terms(primary, inverted):
     inverted_expressions = [expressions[term] for term in inverted]
     for term in primary:
         expr = expressions[term]
-        if expr in inverted_expressions:
+        if expr in inverted_expressions and term.stateless:
             new_inverted = []
             for iterm in inverted:
-                if expressions[iterm]==expr:
-                    expr = '' # handled
+                if expressions[iterm] == expr:
+                   expr = ''  # handled
                 else:
                     new_inverted.append(iterm)
             inverted = new_inverted
@@ -455,8 +439,9 @@ def collect(node):
         Simplified node.
     '''
     node.collected = True
+    orignode_dtype = node.dtype
     # we only work on */ or +- ops, which are both BinOp
-    if node.__class__.__name__!='BinOp':
+    if node.__class__.__name__ != 'BinOp':
         return node
     # primary would be the * or + nodes, and inverted would be the / or - nodes
     terms_primary = []
@@ -476,8 +461,13 @@ def collect(node):
         op_py_inverted = lambda x, y: x-y
     else:
         return node
+    if node.dtype=='integer':
+        op_null_with_dtype = int(op_null)
+    else:
+        op_null_with_dtype = op_null
     # recursively collect terms into the terms_primary and terms_inverted lists
-    collect_commutative(node, op_primary, op_inverted, terms_primary, terms_inverted)
+    collect_commutative(node, op_primary, op_inverted,
+                        terms_primary, terms_inverted)
     x = op_null
     # extract the numerical nodes and fully evaluate
     remaining_terms_primary = []
@@ -492,44 +482,36 @@ def collect(node):
             x = op_py_inverted(x, term.n)
         else:
             remaining_terms_inverted.append(term)
-    # if the fully evaluated node is just the identity/null element then we don't have to make it
-    # into an explicit term
-    if x!=op_null:
+    # if the fully evaluated node is just the identity/null element then we
+    # don't have to make it into an explicit term
+    if x != op_null:
         num_node = ast.Num(x)
     else:
         num_node = None
     terms_primary = remaining_terms_primary
     terms_inverted = remaining_terms_inverted
-    # final form that we want is:
-    # ((num*prod(scalars)/prod(scalars))*prod(vectors))/prod(vectors)
-    # further subdivide into scalar/vector terms and cancel any identical terms
-    primary_scalar_terms = [term for term in terms_primary if term.scalar]
-    inverted_scalar_terms = [term for term in terms_inverted if term.scalar]
-    primary_scalar_terms, inverted_scalar_terms = cancel_identical_terms(primary_scalar_terms,
-                                                                         inverted_scalar_terms)
-    primary_vector_terms = [term for term in terms_primary if not term.scalar]
-    inverted_vector_terms = [term for term in terms_inverted if not term.scalar]
-    primary_vector_terms, inverted_vector_terms = cancel_identical_terms(primary_vector_terms,
-                                                                         inverted_vector_terms)
-    # produce nodes that are the reduction of the operator on these subsets
-    prod_primary_scalars = reduced_node(primary_scalar_terms, op_primary)
-    prod_inverted_scalars = reduced_node(inverted_scalar_terms, op_primary)
-    prod_primary_vectors = reduced_node(primary_vector_terms, op_primary)
-    prod_inverted_vectors = reduced_node(inverted_vector_terms, op_primary)
-    # construct the simplest version of the fully simplified node (only doing operations where necessary)
-    curnode = reduced_node([num_node, prod_primary_scalars], op_primary)
-    if prod_inverted_scalars is not None:
-        if curnode is None:
-            curnode = ast.Num(float(op_null))
-        curnode = ast.BinOp(curnode, op_inverted(), prod_inverted_scalars)
-    curnode = reduced_node([curnode, prod_primary_vectors], op_primary)
-    if prod_inverted_vectors is not None:
-        if curnode is None:
-            curnode = ast.Num(float(op_null))
-        curnode = ast.BinOp(curnode, op_inverted(), prod_inverted_vectors)
-    node = curnode
-    if node is None: # everything cancelled
-        node = ast.Num(float(op_null))
+    node = num_node
+    for scalar in (True, False):
+        primary_terms = [term for term in terms_primary if term.scalar == scalar]
+        inverted_terms = [term for term in terms_inverted if term.scalar == scalar]
+        primary_terms, inverted_terms = cancel_identical_terms(primary_terms,
+                                                               inverted_terms)
+
+        # produce nodes that are the reduction of the operator on these subsets
+        prod_primary = reduced_node(primary_terms, op_primary)
+        prod_inverted = reduced_node(inverted_terms, op_primary)
+
+        # construct the simplest version of the fully simplified node (only doing operations where necessary)
+        node = reduced_node([node, prod_primary], op_primary)
+        if prod_inverted is not None:
+            if node is None:
+                node = ast.Num(op_null_with_dtype)
+            node = ast.BinOp(node, op_inverted(), prod_inverted)
+
+    if node is None:  # everything cancelled
+        node = ast.Num(op_null_with_dtype)
+    if hasattr(node, 'dtype') and dtype_hierarchy[node.dtype]<dtype_hierarchy[orignode_dtype]:
+        node = ast.BinOp(ast.Num(op_null_with_dtype), op_primary(), node)
     node.collected = True
     return node
 

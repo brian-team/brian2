@@ -1,13 +1,19 @@
-{# USES_VARIABLES { spiking_synapses } #}
+{# USES_VARIABLES { _queue } #}
 import numpy as _numpy
 
-# scalar code
-{# Note that we don't write to scalar variables conditionally. The scalar code
-   should therefore only include the calculation of scalar expressions
-   that are used below for writing to a vector variable #}
-{{scalar_code|autoindent}}
+_spiking_synapses = _queue.peek()
 
-# vector code
-_idx = {{spiking_synapses}}
-_vectorisation_idx = _idx
-{{vector_code|autoindent}}
+if len(_spiking_synapses):
+    # scalar code
+    {# Note that we don't write to scalar variables conditionally. The scalar code
+       should therefore only include the calculation of scalar expressions
+       that are used below for writing to a vector variable #}
+    {{scalar_code|autoindent}}
+
+    # vector code
+    _idx = _spiking_synapses
+    _vectorisation_idx = _idx
+    {{vector_code|autoindent}}
+
+# Advance the spike queue
+_queue.advance()

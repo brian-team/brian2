@@ -2,6 +2,7 @@ import itertools
 
 import numpy as np
 
+from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.parsing.rendering import NumpyNodeRenderer
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import ArrayVariable
@@ -31,11 +32,7 @@ class NumpyCodeGenerator(CodeGenerator):
     _use_ufunc_at_vectorisation = True # allow this to be off for testing only
 
     def translate_expression(self, expr):
-        for varname, var in self.variables.iteritems():
-            if isinstance(var, Function):
-                impl_name = var.implementations[self.codeobj_class].name
-                if impl_name is not None:
-                    expr = word_substitute(expr, {varname: impl_name})
+        expr = word_substitute(expr, self.func_name_replacements)
         return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
@@ -43,9 +40,27 @@ class NumpyCodeGenerator(CodeGenerator):
         # operations like a=b+c -> add(b, c, a)
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
+        origop = op
         if op == ':=':
             op = '='
-        code = var + ' ' + op + ' ' + self.translate_expression(expr)
+        # For numpy we replace complex expressions involving a single boolean variable into a
+        # where(boolvar, expr_if_true, expr_if_false)
+        if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)==1
+                and brian_dtype_from_dtype(statement.dtype)=='float'
+                and statement.complexity_std>sum(statement.complexities.values())):
+            used_boolvars = statement.used_boolean_variables
+            bool_simp = statement.boolean_simplified_expressions
+            boolvar = used_boolvars[0]
+            for bool_assigns, simp_expr in bool_simp.iteritems():
+                _, boolval = bool_assigns[0]
+                if boolval:
+                    expr_true = simp_expr
+                else:
+                    expr_false = simp_expr
+            code = '{var} {op} _numpy.where({boolvar}, {expr_true}, {expr_false})'.format(
+                        var=var, op=op, boolvar=boolvar, expr_true=expr_true, expr_false=expr_false)
+        else:
+            code = var + ' ' + op + ' ' + self.translate_expression(expr)
         if len(comment):
             code += ' # ' + comment
         return code

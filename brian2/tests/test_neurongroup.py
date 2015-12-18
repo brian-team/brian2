@@ -10,7 +10,7 @@ from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.clocks import defaultclock
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -122,7 +122,7 @@ def test_variableview_calculations():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_stochastic_variable():
     '''
     Test that a NeuronGroup with a stochastic variable can be simulated. Only
@@ -133,7 +133,7 @@ def test_stochastic_variable():
     run(defaultclock.dt)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_stochastic_variable_multiplicative():
     '''
     Test that a NeuronGroup with multiplicative noise can be simulated. Only
@@ -165,7 +165,7 @@ def test_scalar_variable():
     net.run(defaultclock.dt)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_referred_scalar_variable():
     '''
     Test the correct handling of referred scalar variables in subexpressions
@@ -181,7 +181,7 @@ def test_referred_scalar_variable():
     assert_allclose(G2.out[:], np.arange(10)+1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_variable_correct():
     '''
     Test correct uses of linked variables.
@@ -223,7 +223,7 @@ def test_linked_variable_incorrect():
     assert_raises(TypeError, lambda: setattr(G3, 'not_linked', linked_var(G1.x)))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_variable_scalar():
     '''
     Test linked variable from a size 1 group.
@@ -371,7 +371,7 @@ def test_linked_subgroup2():
     assert_equal(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_subexpression():
     '''
     Test a subexpression referring to a linked variable.
@@ -392,7 +392,7 @@ def test_linked_subexpression():
     assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_subexpression_2():
     '''
     Test a linked variable referring to a subexpression without indices
@@ -412,7 +412,7 @@ def test_linked_subexpression_2():
     assert all(mon[1].I_l == mon1[1].I)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_subexpression_3():
     '''
     Test a linked variable referring to a subexpression with indices
@@ -493,7 +493,7 @@ def test_linked_synapses():
     assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_var_in_reset():
     G1 = NeuronGroup(3, 'x:1')
     G2 = NeuronGroup(3, '''x_linked : 1 (linked)
@@ -507,7 +507,7 @@ def test_linked_var_in_reset():
     assert_equal(G1.x[:], [0, 1, 0])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_linked_var_in_reset_size_1():
     G1 = NeuronGroup(1, 'x:1')
     G2 = NeuronGroup(1, '''x_linked : 1 (linked)
@@ -534,17 +534,6 @@ def test_linked_var_in_reset_incorrect():
     # It is not well-defined what x_linked +=1 means in this context
     # (as for any other shared variable)
     assert_raises(SyntaxError, lambda: net.run(0*ms))
-
-@attr('codegen-independent')
-def test_unit_errors():
-    '''
-    Test that units are checked for a complete namespace.
-    '''
-    # Unit error in model equations
-    assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v : 1'))
-    assert_raises(DimensionMismatchError,
-                  lambda: NeuronGroup(1, 'dv/dt = -v/(10*ms) + 2*mV: 1'))
 
 @attr('codegen-independent')
 def test_incomplete_namespace():
@@ -647,7 +636,7 @@ def test_namespace_warnings():
         assert len(l) == 0, 'got %s as warnings' % str(l)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_threshold_reset():
     '''
     Test that threshold and reset work in the expected way.

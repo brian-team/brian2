@@ -18,7 +18,7 @@ from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock
 from brian2.devices.device import device
-from brian2.units.fundamentalunits import check_units
+from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.namespace import get_local_namespace
@@ -210,7 +210,7 @@ class Network(Nameable):
 
         self._schedule = None
      
-    t = property(fget=lambda self: self.t_*second,
+    t = property(fget=lambda self: Quantity(self.t_, dim=second.dim, copy=False),
                  doc='''
                      Current simulation time in seconds (`Quantity`)
                      ''')
@@ -714,13 +714,12 @@ class Network(Nameable):
                 obj.after_run()
         
     def _nextclocks(self):
-        # Getting Clock.t_ is relatively expensive since it involves a
-        # multiplication therefore we extract it only once
-        clocks_times = [(clock, clock.t_) for clock in self._clocks]
+        clocks_times = [(c, self._clock_variables[c][1][0])
+                        for c in self._clocks]
         minclock, min_time = min(clocks_times, key=lambda k: k[1])
         curclocks = set(clock for clock, time in clocks_times if
                         (time == min_time or
-                         abs(time - min_time)<Clock.epsilon))
+                         abs(time - min_time) < Clock.epsilon))
         return minclock, curclocks
 
     @device_override('network_run')
@@ -768,6 +767,12 @@ class Network(Nameable):
         global `stop` function.
         '''
         self._clocks = set([obj.clock for obj in self.objects])
+        # We get direct references to the underlying variables for all clocks
+        # to avoid expensive access during the run loop
+        self._clock_variables = {c : (c.variables['timestep'].get_value(),
+                                      c.variables['t'].get_value(),
+                                      c.variables['dt'].get_value())
+                                 for c in self._clocks}
         t_start = self.t
         t_end = self.t+duration
         for clock in self._clocks:
@@ -807,9 +812,12 @@ class Network(Nameable):
         profiling_info = defaultdict(float)
 
         start_time = time.time()
-        while clock.running and not self._stopped and not Network._globally_stopped:
-            # update the network time to this clocks time
-            self.t_ = clock.t_
+        timestep, _, _ = self._clock_variables[clock]
+        running = timestep[0] < clock._i_end
+        while running and not self._stopped and not Network._globally_stopped:
+            timestep, t, dt = self._clock_variables[clock]
+            # update the network time to this clock's time
+            self.t_ = t[0]
             if report is not None:
                 current = time.time()
                 if current > next_report_time:
@@ -829,7 +837,10 @@ class Network(Nameable):
 
             # tick the clock forward one time step
             for c in curclocks:
-                c.tick()
+                timestep, t, dt = self._clock_variables[c]
+                timestep[0] += 1
+                t[0] = timestep[0] * dt[0]
+
             # find the next clocks to be updated. The < operator for Clock
             # determines that the first clock to be updated should be the one
             # with the smallest t value, unless there are several with the 
@@ -838,6 +849,9 @@ class Network(Nameable):
 
             if device._maximum_run_time is not None and time.time()-start_time>float(device._maximum_run_time):
                 self._stopped = True
+            else:
+                timestep, _, _ = self._clock_variables[clock]
+                running = timestep < clock._i_end
 
         if self._stopped or Network._globally_stopped:
             self.t_ = clock.t_

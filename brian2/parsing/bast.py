@@ -21,7 +21,6 @@ dtype_hierarchy = {'boolean': 0,
 for tc, i in dtype_hierarchy.items():
     dtype_hierarchy[i] = tc
 
-
 def is_boolean(value):
     return isinstance(value, bool)
 
@@ -46,17 +45,21 @@ def brian_dtype_from_value(value):
         return 'boolean'
     raise TypeError("Unknown dtype for value "+str(value))
 
+# The following functions are called very often during the optimisation process
+# so we don't use numpy.issubdtype but instead a precalculated list of all
+# standard types
 
-def is_boolean_dtype(dtype):
-    return numpy.issubdtype(dtype, numpy.bool)
+bool_dtype =numpy.dtype(numpy.bool)
+def is_boolean_dtype(obj):
+    return numpy.dtype(obj) is bool_dtype
 
+integer_dtypes = {numpy.dtype(c) for c in numpy.typecodes['AllInteger']}
+def is_integer_dtype(obj):
+    return numpy.dtype(obj) in integer_dtypes
 
-def is_integer_dtype(dtype):
-    return numpy.issubdtype(dtype, numpy.integer)
-
-
-def is_float_dtype(dtype):
-    return numpy.issubdtype(dtype, numpy.float)
+float_dtypes = {numpy.dtype(c) for c in numpy.typecodes['AllFloat']}
+def is_float_dtype(obj):
+    return numpy.dtype(obj) in float_dtypes
 
 
 def brian_dtype_from_dtype(dtype):
@@ -107,7 +110,7 @@ class BrianASTRenderer(object):
     This class is modelled after `NodeRenderer` - see there for details.
     '''
     def __init__(self, variables):
-        self.variables = variables
+        self.variables = variables.copy()
 
     def render_node(self, node):
         nodename = node.__class__.__name__
@@ -123,6 +126,7 @@ class BrianASTRenderer(object):
         node.dtype = 'boolean'
         node.scalar = True
         node.complexity = 0
+        node.stateless = True
         return node
 
     def render_Name(self, node):
@@ -138,12 +142,14 @@ class BrianASTRenderer(object):
         else: # don't think we need to handle other names (pi, e, inf)?
             node.dtype = 'float'
             node.scalar = True # I think this assumption is OK, but not certain
+        node.stateless = True
         return node
 
     def render_Num(self, node):
         node.complexity = 0
         node.dtype = brian_dtype_from_value(node.n)
         node.scalar = True
+        node.stateless = True
         return node
 
     def render_Call(self, node):
@@ -154,14 +160,14 @@ class BrianASTRenderer(object):
         elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
         node.args = [self.render_node(subnode) for subnode in node.args]
-        # TODO: deeper system like the one for units, for now assume all functions return floats
         node.dtype = 'float' # default dtype
         # Condition for scalarity of function call: stateless and arguments are scalar
         node.scalar = False
         if node.func.id in self.variables:
             funcvar = self.variables[node.func.id]
             # sometimes this attribute doesn't exist, if so assume it's not stateless
-            if hasattr(funcvar, 'stateless') and funcvar.stateless:
+            node.stateless = getattr(funcvar, 'stateless', False)
+            if node.stateless:
                 node.scalar = logical_all(subnode.scalar for subnode in node.args)
             # check that argument types are valid
             node_arg_types = [subnode.dtype for subnode in node.args]
@@ -174,6 +180,8 @@ class BrianASTRenderer(object):
             if return_type=='highest':
                 return_type = dtype_hierarchy[max(dtype_hierarchy[nat] for nat in node_arg_types)]
             node.dtype = return_type
+        else:
+            node.stateless = False
         # we leave node.func because it is an ast.Name object that doesn't have a dtype
         # TODO: variable complexity for function calls?
         node.complexity = 20+sum(subnode.complexity for subnode in node.args)
@@ -188,6 +196,7 @@ class BrianASTRenderer(object):
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar
         node.complexity = 1+node.left.complexity+node.right.complexity
+        node.stateless = node.left.stateless and node.right.stateless
         return node
 
     def render_BoolOp(self, node):
@@ -198,6 +207,8 @@ class BrianASTRenderer(object):
                 raise TypeError("Boolean operator acting on non-booleans")
         node.scalar = logical_all(subnode.scalar for subnode in node.values)
         node.complexity = 1+sum(subnode.complexity for subnode in node.values)
+        node.stateless = logical_all(subnode.stateless
+                                     for subnode in node.values)
         return node
 
     def render_Compare(self, node):
@@ -207,6 +218,8 @@ class BrianASTRenderer(object):
         comparators = [node.left]+node.comparators
         node.scalar = logical_all(subnode.scalar for subnode in comparators)
         node.complexity = 1+sum(subnode.complexity for subnode in comparators)
+        node.stateless = node.left.stateless and all(c.stateless
+                                                     for c in node.comparators)
         return node
 
     def render_UnaryOp(self, node):
@@ -216,6 +229,7 @@ class BrianASTRenderer(object):
             raise TypeError("Unary operator %s does not apply to boolean types" % node.op.__class__.__name__)
         node.scalar = node.operand.scalar
         node.complexity = 1+node.operand.complexity
+        node.stateless = node.operand.stateless
         return node
 
 

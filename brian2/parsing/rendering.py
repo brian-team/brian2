@@ -99,7 +99,7 @@ class NodeRenderer(object):
         Render an element with parentheses around it or leave them away for
         numbers, names and function calls.
         '''
-        if node.__class__.__name__ == 'Name':
+        if node.__class__.__name__ in ['Name', 'NameConstant']:
             return self.render_node(node)
         elif node.__class__.__name__ == 'Num' and node.n >= 0:
             return self.render_node(node)

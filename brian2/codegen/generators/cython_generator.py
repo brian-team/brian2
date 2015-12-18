@@ -61,12 +61,7 @@ class CythonCodeGenerator(CodeGenerator):
     class_name = 'cython'
 
     def translate_expression(self, expr):
-        # numpy version
-        for varname, var in self.variables.iteritems():
-            if isinstance(var, Function):
-                impl_name = var.implementations[self.codeobj_class].name
-                if impl_name is not None:
-                    expr = word_substitute(expr, {varname: impl_name})
+        expr = word_substitute(expr, self.func_name_replacements)
         return CythonNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
@@ -289,9 +284,6 @@ class CythonCodeGenerator(CodeGenerator):
                 user_functions.extend(uf)
             else:
                 # fallback to Python object
-                print var
-                for k, v in var.__dict__.iteritems():
-                    print '   ', k, v
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
 
         # delete the user-defined functions from the namespace and add the
@@ -363,12 +355,7 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator
                                                              name='_sign')
 
 clip_code = '''
-ctypedef fused _float_or_double:
-    float
-    double
-
-cdef _float_or_double clip(_float_or_double x, _float_or_double low,
-                           _float_or_double high):
+cdef double clip(double x, double low, double high):
     if x<low:
         return low
     if x>high:

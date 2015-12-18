@@ -8,6 +8,8 @@ objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 import collections
 from collections import OrderedDict
 import weakref
+import numbers
+import inspect
 
 import numpy as np
 
@@ -23,10 +25,10 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
 from brian2.codegen.codeobject import create_runner_codeobj
+from brian2.codegen.generators.numpy_generator import NumpyCodeGenerator
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
-from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 
@@ -549,10 +551,12 @@ class VariableOwner(Nameable):
     def _full_state(self):
         state = {}
         for var in self.variables.itervalues():
+            if not isinstance(var, ArrayVariable):
+                continue  # we are only interested in arrays
             if var.owner is None or var.owner.name != self.name:
                 continue  # we only store the state of our own variables
-            if isinstance(var, ArrayVariable):
-                state[var.name] = (var.get_value().copy(), var.size)
+
+            state[var.name] = (var.get_value().copy(), var.size)
 
         return state
 
@@ -761,7 +765,17 @@ class Group(VariableOwner, BrianObject):
 
         for description, namespace in namespaces.iteritems():
             if identifier in namespace:
-                matches.append((description, namespace[identifier]))
+                match = namespace[identifier]
+                if ((isinstance(match, (numbers.Number,
+                                         np.ndarray,
+                                         np.number,
+                                         Function,
+                                         Variable))) or
+                         (inspect.isfunction(match) and
+                              hasattr(match, '_arg_units') and
+                              hasattr(match, '_return_unit'))
+                    ):
+                    matches.append((description, match))
 
         if len(matches) == 0:
             # No match at all
@@ -1011,6 +1025,7 @@ class CodeRunner(BrianObject):
             additional_variables = self.variables
         else:
             additional_variables = None
+
         self.codeobj = create_runner_codeobj(group=self.group,
                                              code=self.abstract_code,
                                              user_code=self.user_code,

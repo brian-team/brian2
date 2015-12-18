@@ -5,8 +5,11 @@ from nose.plugins.attrib import attr
 
 @attr('codegen-independent')
 def test_templates():
-    T1 = Templater('brian2.tests.test_templates.fake_package_1', env_globals={'f': lambda: 'F1', 'g': lambda: 'G1'})
-    T2 = T1.derive('brian2.tests.test_templates.fake_package_2', env_globals={'f': lambda: 'F2'})
+    T1 = Templater('brian2.tests.test_templates.fake_package_1',
+                   env_globals={'f': lambda: 'F1', 'g': lambda: 'G1'},
+                   extension='.txt')
+    T2 = T1.derive('brian2.tests.test_templates.fake_package_2',
+                   env_globals={'f': lambda: 'F2'})
     ns = {}
     for i, T in enumerate([T1, T2], start=1):
         for c in ['A', 'B', 'C', 'D']:

@@ -260,7 +260,7 @@ def create_runner_codeobj(group, code, template_name,
     else:
         codeobj_class = device.code_object_class(codeobj_class)
 
-    template = getattr(codeobj_class.templater, template_name, None)
+    template = getattr(codeobj_class.templater, template_name)
     template_variables = getattr(template, 'variables', None)
 
     all_variables = dict(group.variables)

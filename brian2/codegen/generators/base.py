@@ -2,8 +2,8 @@
 Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
 '''
-from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable
+from brian2.core.functions import Function
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
 from brian2.codegen.translation import make_statements
@@ -37,6 +37,13 @@ class CodeGenerator(object):
         self.device = get_device()
         self.variables = variables
         self.variable_indices = variable_indices
+        self.func_name_replacements = {}
+        for varname, var in variables.iteritems():
+            if isinstance(var, Function):
+                if codeobj_class in var.implementations:
+                    impl_name = var.implementations[codeobj_class].name
+                    if impl_name is not None:
+                        self.func_name_replacements[varname] = impl_name
         self.iterate_all = iterate_all
         self.codeobj_class = codeobj_class
         self.owner = owner

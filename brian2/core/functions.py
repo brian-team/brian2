@@ -1,18 +1,18 @@
-import types
 import collections
 import inspect
+import types
 
-import sympy
-from sympy import Function as sympy_Function
 import numpy as np
+import sympy
 from numpy.random import randn, rand
+from sympy import Function as sympy_Function
 
+import brian2.units.unitsafefunctions as unitsafe
 from brian2.core.preferences import prefs
+from brian2.core.variables import Constant
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            Quantity, get_dimensions,
                                            DIMENSIONLESS, is_dimensionless)
-from brian2.core.variables import Constant
-import brian2.units.unitsafefunctions as unitsafe
 
 __all__ = ['DEFAULT_FUNCTIONS', 'Function', 'implementation', 'declare_types']
 
@@ -276,13 +276,14 @@ class FunctionImplementationContainer(collections.Mapping):
         '''
         fallback = getattr(key, 'generator_class', None)
 
-        for K in [key, fallback]:        
-            if K in self._implementations:
-                return self._implementations[K]
-            else:
-                name = getattr(K, 'class_name', None)
-                if name in self._implementations:
-                    return self._implementations[name]
+        for K in [key, fallback]:
+            name = getattr(K, 'class_name',
+                           'no class name for key')
+            for impl_key, impl in self._implementations.iteritems():
+                impl_key_name = getattr(impl_key, 'class_name',
+                                        'no class name for implementation')
+                if impl_key_name in [K, name] or impl_key in [K, name]:
+                    return impl
             if hasattr(K, '__bases__'):
                 for cls in inspect.getmro(K):
                     if cls in self._implementations:
@@ -291,9 +292,13 @@ class FunctionImplementationContainer(collections.Mapping):
                     if name in self._implementations:
                         return self._implementations[name]
 
-        raise KeyError(('No implementation available for {key}. '
+        if hasattr(key, 'class_name'):  # Give a nicer error message if possible
+            key = key.class_name
+        keys = ', '.join([getattr(k, 'class_name', str(k))
+                          for k in self._implementations.iterkeys()])
+        raise KeyError(('No implementation available for target {key}. '
                         'Available implementations: {keys}').format(key=key,
-                                                                    keys=self._implementations.keys()))
+                                                                    keys=keys))
 
     def add_numpy_implementation(self, wrapped_func, dependencies=None,
                                  discard_units=None):
@@ -563,7 +568,6 @@ DEFAULT_FUNCTIONS = {
     'int': Function(pyfunc=np.int_, return_type='integer',
                     arg_units=[1], return_unit=1)
     }
-
 
 DEFAULT_CONSTANTS = {'pi': SymbolicConstant('pi', sympy.pi, value=np.pi),
                      'e': SymbolicConstant('e', sympy.E, value=np.e),

@@ -5,7 +5,7 @@ from numpy.testing import assert_equal, assert_raises, assert_allclose
 from brian2 import *
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices
 
 @attr('codegen-independent')
 def test_constants_sympy():
@@ -91,7 +91,7 @@ def test_math_functions():
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_bool_to_int():
     # Test that boolean expressions and variables are correctly converted into
     # integers
@@ -109,7 +109,7 @@ def test_bool_to_int():
     assert_equal(s_mon.intexpr2.flatten(), [1, 0])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_user_defined_function():
     @implementation('cpp',"""
                 inline double usersin(double x)
@@ -137,7 +137,7 @@ def test_user_defined_function():
     assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
@@ -166,7 +166,7 @@ def test_user_defined_function_units():
                   lambda: setattr(G, 'c', 'one_arg_missing(a, b, t)'))
     assert_raises(ValueError,
                   lambda: setattr(G, 'c', 'no_result_unit(a, b, t)'))
-    assert_raises(ValueError,
+    assert_raises(KeyError,
                   lambda: setattr(G, 'c', 'nothing_specified(a, b, t)'))
     assert_raises(DimensionMismatchError,
                   lambda: setattr(G, 'a', 'all_specified(a, b, t)'))
@@ -231,16 +231,22 @@ def test_manual_user_defined_function():
     assert foo(1*volt, 2*volt) == 6*volt
 
     # Incorrect argument units
-    assert_raises(DimensionMismatchError, lambda: NeuronGroup(1, '''
+    group = NeuronGroup(1, '''
                        dv/dt = foo(x, y)/ms : volt
                        x : 1
-                       y : 1''', namespace={'foo': foo}))
+                       y : 1''')
+    net = Network(group)
+    assert_raises(DimensionMismatchError,
+                  lambda: net.run(0*ms, namespace={ 'foo': foo}))
 
     # Incorrect output unit
-    assert_raises(DimensionMismatchError, lambda: NeuronGroup(1, '''
+    group = NeuronGroup(1, '''
                        dv/dt = foo(x, y)/ms : 1
                        x : volt
-                       y : volt''', namespace={'foo': foo}))
+                       y : volt''')
+    net = Network(group)
+    assert_raises(DimensionMismatchError,
+                  lambda: net.run(0*ms, namespace={'foo': foo}))
 
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt
@@ -500,7 +506,7 @@ def test_function_dependencies_numpy():
     assert_allclose(G.v_[:], 84*0.001)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_binomial():
     binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
     binomial_f = BinomialFunction(100, 0.1, approximate=False)
