@@ -1241,6 +1241,7 @@ class Synapses(Group):
                                             level=level+1)
             codeobj()
         else:
+            template_kwds['p'] = p
             abstract_code = '_pre_idx = _all_pre \n'
             abstract_code += '_post_idx = _all_post \n'
             abstract_code += '_cond = ' + condition + '\n'

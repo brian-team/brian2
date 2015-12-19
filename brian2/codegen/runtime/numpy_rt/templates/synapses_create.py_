@@ -5,7 +5,12 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, N,
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
 #}
 {# ITERATE_ALL { _idx } #}
+import sys as _sys
 import numpy as _numpy
+if _sys.version_info[0]==2:
+    range = xrange
+from numpy.random import binomial as _binomial
+from sklearn.utils.random import sample_without_replacement as _sample_without_replacement
 
 numpy_False = _numpy.bool_(False)
 numpy_True = _numpy.bool_(True)
@@ -19,8 +24,17 @@ _cur_num_synapses = _old_num_synapses
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
+_len_all_post = len({{_all_post}})
+_all_post_indices = _numpy.arange(_len_all_post)
+
 for _i in range(len({{_all_pre}})):
-    _j = _numpy.arange(len({{_all_post}}))
+    {% set _handled_p = p is defined %}
+    {% if _handled_p %}
+    _num_targets = _binomial(_len_all_post, {{p}})
+    _j = _sample_without_replacement(_len_all_post, _num_targets)
+    {% else %}
+    _j = _all_post_indices
+    {% endif %}
     _vectorisation_idx = _j
     {# The abstract code consists of the following lines (the first two lines
     are there to properly support subgroups as sources/targets):
@@ -35,11 +49,15 @@ for _i in range(len({{_all_pre}})):
     if _cond is False or _cond is numpy_False:
         continue
 
-    if not _numpy.isscalar(_p) or _p != 1:
+    if not {{_handled_p}} and (not _numpy.isscalar(_p) or _p != 1):
         _cond_nonzero, = _numpy.logical_and(_cond,
                                        _numpy.random.rand(len(_vectorisation_idx)) < _p).nonzero()
     elif _cond is True or _cond is numpy_True:
+        {% if _handled_p %}
+        _cond_nonzero = _numpy.arange(len(_j))
+        {% else %}
         _cond_nonzero = _j
+        {% endif %}
     else:
         _cond_nonzero, = _cond.nonzero()
 
