@@ -2,6 +2,7 @@
 Utility functions for parsing expressions and statements.
 '''
 import sympy
+from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10
@@ -75,6 +76,11 @@ class CustomSympyPrinter(StrPrinter):
         if len(expr.args) != 1:
             raise AssertionError('"Not" with %d arguments?' % len(expr.args))
         return 'not (%s)' % self.doprint(expr.args[0])
+
+    def _print_Relational(self, expr):
+        return '%s %s %s' % (self.parenthesize(expr.lhs, precedence(expr)),
+                             self._relationals.get(expr.rel_op) or expr.rel_op,
+                             self.parenthesize(expr.rhs, precedence(expr)))
 
     def _print_Function(self, expr):
         # Special workaround for the int function
