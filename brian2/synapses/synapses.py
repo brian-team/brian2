@@ -623,7 +623,7 @@ class Synapses(Group):
                              'object, is "%s" instead.') % type(model))
 
         # Check flags
-        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
+        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'clock-driven'],
                            SUBEXPRESSION: ['summed', 'shared'],
                            PARAMETER: ['constant', 'shared']})
 
@@ -656,6 +656,21 @@ class Synapses(Group):
             elif 'summed' in single_equation.flags:
                 summed_updates.append(single_equation)
             else:
+                if (single_equation.type == DIFFERENTIAL_EQUATION and
+                            'clock-driven' not in single_equation.flags):
+                    logger.warn(('The synaptic equation for the variable {var} '
+                                 'does not specify whether it should be '
+                                 'integrated at every timestep ("clock-driven") '
+                                 'or only at spiking events ("event-driven"). '
+                                 'It will be integrated at every timestep '
+                                 'which can slow down your simulation'
+                                 'unnecessarily if you only need the values of '
+                                 'this variable whenever a spike occurs. '
+                                 'Specify the equation as clock-driven '
+                                 'explicitly to avoid this '
+                                 'warning.').format(var=single_equation.varname),
+                                'clock_driven',
+                                once=True)
                 continuous.append(single_equation)
 
         if len(event_driven):
