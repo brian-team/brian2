@@ -1190,7 +1190,7 @@ def test_synaptic_equations():
     # Check that integration works for synaptic equations
     G = NeuronGroup(10, '')
     tau = 10*ms
-    S = Synapses(G, G, 'dw/dt = -w / tau : 1', connect='i==j')
+    S = Synapses(G, G, 'dw/dt = -w / tau : 1 (clock-driven)', connect='i==j')
     S.w = 'i'
     run(10*ms)
     assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
