@@ -30,7 +30,7 @@ stimulation.x = [0, 0.5]  # Asynchronous
 # Synapses
 taus = 1*ms
 w = 20*nS
-S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens
+S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens (clock-driven)
                                            gs_post = g : siemens (summed)''',
              pre='g += w')
 
