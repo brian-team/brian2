@@ -8,7 +8,7 @@ C++ project in the directory ``STDP_standalone``.
 '''
 from brian2 import *
 
-set_device('cpp_standalone')
+set_device('cpp_standalone', directory='STDP_standalone')
 
 N = 1000
 taum = 10*ms
@@ -50,8 +50,6 @@ s_mon = SpikeMonitor(input)
 r_mon = PopulationRateMonitor(input)
 
 run(100*second, report='text')
-device.build(directory='STDP_standalone', compile=True,
-             run=True, debug=True, with_output=False)
 
 subplot(311)
 plot(S.w / gmax, '.k')
