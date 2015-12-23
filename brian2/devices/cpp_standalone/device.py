@@ -805,7 +805,7 @@ class CPPStandaloneDevice(Device):
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,
               with_output=True, additional_source_files=None,
-              run_args=None, **kwds):
+              run_args=None, direct_call=True, **kwds):
         '''
         Build the project
 
@@ -836,7 +836,19 @@ class CPPStandaloneDevice(Device):
             ``True``.
         additional_source_files : list of str, optional
             A list of additional ``.cpp`` files to include in the build.
+        direct_call : bool, optional
+            Whether this function was called directly. Is used internally to
+            distinguish an automatic build due to the ``build_on_run`` option
+            from a manual ``device.buil`` call.
         '''
+        if self.build_on_run and direct_call:
+            raise RuntimeError('You used set_device with build_on_run=True '
+                               '(the default option), which will automatically '
+                               'build the simulation at the first encountered '
+                               'run call - do not call device.build manually '
+                               'in this case. If you want to call it manually, '
+                               'e.g. because you have multiple run calls, use '
+                               'set_device with build_on_run=False.')
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
                    'run_project': 'run'}
@@ -1031,7 +1043,7 @@ class CPPStandaloneDevice(Device):
                                    'build_on_run=False and an explicit '
                                    'device.build call to use multiple run '
                                    'statements with this device.')
-            self.build(**self.build_options)
+            self.build(direct_call=False, **self.build_options)
 
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '
