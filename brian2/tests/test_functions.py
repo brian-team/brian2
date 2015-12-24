@@ -133,7 +133,6 @@ def test_user_defined_function():
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
     run(default_dt)
-    device.build(run=True, compile=True)
     assert_equal(np.sin(test_array), mon.func_.flatten())
 
 
