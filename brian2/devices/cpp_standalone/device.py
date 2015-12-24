@@ -839,7 +839,7 @@ class CPPStandaloneDevice(Device):
         direct_call : bool, optional
             Whether this function was called directly. Is used internally to
             distinguish an automatic build due to the ``build_on_run`` option
-            from a manual ``device.buil`` call.
+            from a manual ``device.build`` call.
         '''
         if self.build_on_run and direct_call:
             raise RuntimeError('You used set_device with build_on_run=True '
