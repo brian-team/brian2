@@ -1,6 +1,7 @@
 import sys
 import os
 import glob
+import time
 
 from binstar_client.scripts.cli import main
 
@@ -15,4 +16,18 @@ if not release:
 
 options.extend(filename)
 
-sys.exit(main(args=options))
+# Uploading sometimes fails due to server or network errors -- we try it five
+# times before giving up
+attempts = 5
+while attempt in range(attempts):
+    return_value = main(args=options)
+    if return_value == 0:
+        # all good
+        break
+    else:
+        if attempt < attempts - 1:
+            print('Something did not work, trying again in 10 seconds.')
+            time.sleep(10)
+        else:
+            print('Giving up...')
+            sys.exit(return_value)
