@@ -19,7 +19,7 @@ options.extend(filename)
 # Uploading sometimes fails due to server or network errors -- we try it five
 # times before giving up
 attempts = 5
-while attempt in range(attempts):
+for attempt in range(attempts):
     return_value = main(args=options)
     if return_value == 0:
         # all good
