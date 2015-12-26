@@ -4,6 +4,7 @@ import glob
 import time
 
 from binstar_client.scripts.cli import main
+from binstar_client.errors import BinstarError
 
 token = os.environ['BINSTAR_TOKEN']
 options = ['-t', token, 'upload',
@@ -20,14 +21,14 @@ options.extend(filename)
 # times before giving up
 attempts = 5
 for attempt in range(attempts):
-    return_value = main(args=options)
-    if return_value == 0:
-        # all good
-        break
-    else:
+    try:
+        main(args=options)
+        break  # all good
+    except BinstarError as ex:
+        print('Something did not work (%s).' % str(ex))
         if attempt < attempts - 1:
-            print('Something did not work, trying again in 10 seconds.')
+            print('Trying again in 10 seconds...')
             time.sleep(10)
         else:
             print('Giving up...')
-            sys.exit(return_value)
+            raise ex
