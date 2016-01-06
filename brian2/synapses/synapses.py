@@ -663,7 +663,7 @@ class Synapses(Group):
                                  'integrated at every timestep ("clock-driven") '
                                  'or only at spiking events ("event-driven"). '
                                  'It will be integrated at every timestep '
-                                 'which can slow down your simulation'
+                                 'which can slow down your simulation '
                                  'unnecessarily if you only need the values of '
                                  'this variable whenever a spike occurs. '
                                  'Specify the equation as clock-driven '
