@@ -1,10 +1,9 @@
 import os
 import fnmatch
 import shutil
-import unicodedata
 from collections import defaultdict
 import glob
-
+import codecs
 
 class GlobDirectoryWalker:
     # a forward iterator that traverses a directory tree
@@ -61,14 +60,21 @@ def main(rootpath, destdir):
         examplesbasenames.append(filebase)
         relativepaths.append(relpath)
         outnames.append(exname)
-    examplescode = [open(fname, 'rU').read() for fname in examplesfnames]
+    # We assume all files are encoded as UTF-8
+    examplescode = [codecs.open(fname, 'rU', encoding='utf-8').read()
+                    for fname in examplesfnames]
     examplesdocs = []
     examplesafterdoccode = []
     examplesdocumentablenames = []
     for code in examplescode:
         codesplit = code.split('\n')
-        if codesplit[0].startswith('#'):
-            codesplit = codesplit[1:]
+        comment_lines = 0
+        for line in codesplit:
+            if line.startswith('#'):
+                comment_lines += 1
+            else:
+                break
+        codesplit = codesplit[comment_lines:]
         readingdoc = False
         doc = []
         afterdoccode = ''
@@ -85,9 +91,7 @@ def main(rootpath, destdir):
             else: # No doc
                 afterdoccode = '\n'.join(codesplit[i:])
                 break
-        doc = '\n'.join(doc)
-        # next line replaces unicode characters like e-acute with standard ascii representation
-        examplesdocs.append(unicodedata.normalize('NFKD', unicode(doc, 'latin-1')).encode('ascii', 'ignore'))
+        examplesdocs.append('\n'.join(doc))
         examplesafterdoccode.append(afterdoccode)
         
     categories = defaultdict(list)    
@@ -119,10 +123,10 @@ def main(rootpath, destdir):
             _, image = os.path.split(image)
             print 'Found example image file', image
             output += '.. image:: ../resources/examples_images/%s\n\n' % image
+
+        codecs.open(os.path.join(destdir, exname + '.rst'), 'w', 'utf-8').write(output)
     
-        open(os.path.join(destdir, exname + '.rst'), 'w').write(output)
-    
-    mainpage_text =  'Examples\n'
+    mainpage_text = 'Examples\n'
     mainpage_text += '========\n\n'
     
     def insert_category(category, mainpage_text):
