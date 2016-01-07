@@ -151,9 +151,9 @@ recurrent_inh.connect('True',  # excitatory->inhibitory
 
 if not standalone:
     print('Total number of connections')
-    print('feedforward:', len(feedforward))
-    print('recurrent exc:', len(recurrent_exc))
-    print('recurrent inh:', len(recurrent_inh))
+    print('feedforward: %d' % len(feedforward))
+    print('recurrent exc: %d' % len(recurrent_exc))
+    print('recurrent inh: %d' % len(recurrent_inh))
 
     t2 = time.time()
     print("Construction time: %.1fs" % (t2 - t1))

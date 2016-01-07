@@ -68,7 +68,7 @@ run(duration, report='text')
 
 nspikes = spikes.count
 x = sum(nspikes * exp(gamma * 1j))
-print("Angle (deg):", arctan(imag(x) / real(x)) / degree)
+print("Angle (deg): %.2f" % (arctan(imag(x) / real(x)) / degree))
 polar(concatenate((gamma, [gamma[0] + 2 * pi])),
       concatenate((nspikes, [nspikes[0]])) / duration / Hz)
 show()

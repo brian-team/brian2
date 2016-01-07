@@ -55,7 +55,7 @@ run(50*ms, report='text')
 # Calculation of velocity
 slope, intercept, r_value, p_value, std_err = stats.linregress(spikes.t/second,
                                                 neuron.distance[spikes.i]/meter)
-print("Velocity = ", slope, "m/s")
+print("Velocity = %.2f m/s" % slope)
 
 subplot(211)
 for i in range(10):

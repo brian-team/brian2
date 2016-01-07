@@ -123,7 +123,7 @@ for jj, rate in enumerate(rate_array):
 
     # Calculate interval between pairs
     pair_interval = 1./rate - 10*ms
-    print('Starting simulations for '+str(rate))
+    print('Starting simulations for %s' % rate)
 
     # Initial values
     Nrns.v = V_rest
@@ -142,7 +142,7 @@ for jj, rate in enumerate(rate_array):
         Nrns.v[1] = V_thresh + 1*mV
         # run
         run(pair_interval)
-        print('Pair '+str(ii+1)+' out of '+str(reps))
+        print('Pair %d out of %d' % (ii+1, reps))
 
     #store weight changes
     weight_result[0, jj] = 100.*Syn.w_ampa[0]/init_weight
