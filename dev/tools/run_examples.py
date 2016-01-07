@@ -45,7 +45,7 @@ try:
     prefs.codegen.target = '{target}'
     # add the files directory to the path so that it can do relative imports
     sys.path.append(os.path.dirname(os.path.realpath(r'{fname}')))
-    execfile(r'{fname}')
+    exec(compile(open(r'{fname}', "rb").read(), r'{fname}', 'exec'))
     if '{target}'=='numpy':
         for fignum in _mpl.pyplot.get_fignums():
             fname = r'{fname}'
@@ -53,12 +53,12 @@ try:
             fname = fname.replace('/', '.').replace('\\\\', '.')
             fname = fname.replace('.py', '.%d.png' % fignum)
             fname = '../../docs_sphinx/resources/examples_images/'+fname
-            print fname
+            print(fname)
             ensure_directory_of_file(fname)
             _mpl.pyplot.figure(fignum).savefig(fname)
-except Exception, ex:
+except Exception as ex:
     traceback.print_exc(file=sys.stdout)
-    f = open(r'{tempfname}', 'w')
+    f = open(r'{tempfname}', 'wb')
     pickle.dump(ex, f, -1)
     f.close()
 """.format(fname=self.filename,
@@ -79,7 +79,7 @@ except Exception, ex:
 
         # Re-raise any exception that occured
         if os.path.exists(tempfilename):
-            f = open(tempfilename, 'r')
+            f = open(tempfilename, 'rb')
             ex = pickle.load(f)
             self.successful = False
             raise ex

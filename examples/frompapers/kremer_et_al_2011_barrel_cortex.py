@@ -112,7 +112,7 @@ layer23inh.x = 'i % (barrelarraysize*M23inh) * (1.0/M23inh)'
 layer23inh.y = 'i / (barrelarraysize*M23inh) * (1.0/M23inh)'
 layer23inh.barrel_idx = 'floor(x) + floor(y)*barrelarraysize'
 
-print "Building synapses, please wait..."
+print("Building synapses, please wait...")
 # Feedforward connections (plastic)
 feedforward = Synapses(layer4, layer23exc,
                        model='''w:volt
@@ -130,7 +130,7 @@ feedforward.connect('(barrel_x_pre + barrelarraysize*barrel_y_pre) == barrel_idx
                     p=0.5)
 feedforward.w = EPSC*.5
 
-print 'excitatory lateral'
+print('excitatory lateral')
 # Excitatory lateral connections
 recurrent_exc = Synapses(layer23exc, layer23, model='w:volt', pre='ge+=w',
                          name='recurrent_exc')
@@ -143,20 +143,20 @@ recurrent_exc.w['j>=Nbarrels*N23exc'] = EPSC
 
 
 # Inhibitory lateral connections
-print 'inhibitory lateral'
+print('inhibitory lateral')
 recurrent_inh = Synapses(layer23inh, layer23exc, pre='gi+=IPSC',
                          name='recurrent_inh')
 recurrent_inh.connect('True',  # excitatory->inhibitory
                       p='exp(-.5*(((x_pre-x_post)/.2)**2+((y_pre-y_post)/.2)**2))')
 
 if not standalone:
-    print 'Total number of connections'
-    print 'feedforward:', len(feedforward)
-    print 'recurrent exc:', len(recurrent_exc)
-    print 'recurrent inh:', len(recurrent_inh)
+    print('Total number of connections')
+    print('feedforward: %d' % len(feedforward))
+    print('recurrent exc: %d' % len(recurrent_exc))
+    print('recurrent inh: %d' % len(recurrent_inh))
 
     t2 = time.time()
-    print "Construction time: %.1fs" % (t2 - t1)
+    print("Construction time: %.1fs" % (t2 - t1))
 
 run(5*second, report='text')
 device.build(directory='barrelcortex', compile=True, run=True)

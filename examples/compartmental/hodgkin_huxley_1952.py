@@ -46,7 +46,7 @@ neuron.I[0] = 1*uA  # current injection at one end
 run(3*ms)
 neuron.I = 0*amp
 run(100*ms, report='text')
-for i in xrange(75, 125, 1):
+for i in range(75, 125, 1):
     plot(cumsum(neuron.length)/cm, i+(1./60)*M.v[:, i*5]/mV, 'k')
 yticks([])
 ylabel('Time [major] v (mV) [minor]')

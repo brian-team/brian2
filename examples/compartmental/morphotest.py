@@ -17,7 +17,7 @@ neuron = SpatialNeuron(morphology=morpho, model=eqs,
                        Cm=1*uF/cm**2, Ri=100*ohm*cm)
 neuron.v = arange(0, 13)*volt
 
-print neuron.v
-print neuron.L.v
-print neuron.LL.v
-print neuron.L.main.v
+print(neuron.v)
+print(neuron.L.v)
+print(neuron.LL.v)
+print(neuron.L.main.v)
