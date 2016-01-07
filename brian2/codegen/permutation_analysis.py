@@ -3,6 +3,7 @@ Module for analysing synaptic pre and post code for synapse order independence.
 '''
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.functions import Function
+from brian2.core.variables import Constant
 
 __all__ = ['OrderDependenceError', 'check_for_order_independence']
 
@@ -33,10 +34,11 @@ def check_for_order_independence(statements, variables, indices):
     # only from the values of the derived indices. In the most common case of Synapses, the main index would be
     # the synapse index, and the derived indices would be pre and postsynaptic indices (which can be repeated).
     main_index_variables = set([v for v in variables
-                                if (indices[v] in ('_idx', '0')
-                                    or getattr(variables[indices[v]],
-                                               'unique',
-                                               False))])
+                                if (not isinstance(variables[v], Constant) and
+                                    (indices[v] in ('_idx', '0')
+                                     or getattr(variables[indices[v]],
+                                                'unique',
+                                                False)))])
     different_index_variables = set(variables.keys()) - main_index_variables
     all_variables = variables.keys()
     # At the start, we assume all the different/derived index variables are permutation independent and we continue
