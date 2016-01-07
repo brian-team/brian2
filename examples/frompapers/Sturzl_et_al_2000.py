@@ -23,13 +23,13 @@ gamma = (22.5 + 45 * arange(8)) * degree  # leg angle
 delay = R / vr * (1 - cos(phi - gamma))   # wave delay
 
 # Wave (vector w)
-t = arange(int(duration / defaultclock.dt) + 1) * defaultclock.dt
+time = arange(int(duration / defaultclock.dt) + 1) * defaultclock.dt
 Dtot = 0.
 w = 0.
 for f in arange(150, 451)*Hz:
     D = exp(-(f/Hz - 300) ** 2 / (2 * (50 ** 2)))
     rand_angle = 2 * pi * rand()
-    w += 100 * D * cos(2 * pi * f * t + rand_angle)
+    w += 100 * D * cos(2 * pi * f * time + rand_angle)
     Dtot += D
 w = .01 * w / Dtot
 

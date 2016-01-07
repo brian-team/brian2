@@ -47,7 +47,7 @@ else:
     profile = ones(len(compartments))
 profile = profile / sum(profile)  # normalization
 
-neuron.gNa[compartments] = gNa * profile / neuron.area[compartments]
+neuron.gNa[compartments] = gNa_0 * profile / neuron.area[compartments]
 
 # Monitors
 mon = StateMonitor(neuron, 'v', record=True)
