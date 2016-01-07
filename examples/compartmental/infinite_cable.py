@@ -29,9 +29,9 @@ la = neuron.space_constant[0]
 print("Characteristic length", la)
 
 # Monitors
-mon = StateMonitor(neuron, 'v', record=range(0, N/2, 20))
+mon = StateMonitor(neuron, 'v', record=range(0, N//2, 20))
 
-neuron.I[len(neuron) / 2] = 1*nA  # injecting in the middle
+neuron.I[len(neuron) // 2] = 1*nA  # injecting in the middle
 run(0.02*ms)
 neuron.I = 0*amp
 run(10*ms, report='text')
@@ -39,7 +39,7 @@ run(10*ms, report='text')
 t = mon.t
 plot(t/ms, mon.v.T/mV, 'k')
 # Theory (incorrect near cable ends)
-for i in range(0, len(neuron)/2, 20):
+for i in range(0, len(neuron)//2, 20):
     x = (len(neuron)/2 - i) * morpho.length[0]*meter
     theory = (1/(la*Cm*pi*diameter) * sqrt(taum / (4*pi*(t + defaultclock.dt))) *
               exp(-(t+defaultclock.dt)/taum -
