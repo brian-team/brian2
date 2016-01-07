@@ -8,7 +8,7 @@ from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
-from brian2.core.variables import variables_by_owner, ArrayVariable
+from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
@@ -933,10 +933,15 @@ def check_permutation_code(code):
             indices[var] ='_presynaptic_idx'
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
+        elif var.endswith('_const'):
+            indices[var] = '0'
     variables = dict()
     variables.update(DEFAULT_FUNCTIONS)
     for var in indices:
-        variables[var] = ArrayVariable(var, 1, None, 10, device)
+        if var.endswith('_const'):
+            variables[var] = Constant(var, 1, 42, owner=device)
+        else:
+            variables[var] = ArrayVariable(var, 1, None, 10, device)
     variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
@@ -963,7 +968,12 @@ def numerically_check_permutation_code(code):
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
             vals[var] = zeros(3)
-    subs = dict((var, var+'['+idx+']') for var, idx in indices.iteritems())
+        elif var.endswith('_const'):
+            indices[var] = '0'
+            vals[var] = 42
+    subs = dict((var, var+'['+idx+']')
+                for var, idx in indices.iteritems()
+                if not var.endswith('_const'))
     code = word_substitute(code, subs)
     code = '''
 from numpy import *
@@ -980,15 +990,17 @@ for _idx in shuffled_indices:
     for _ in xrange(10):
         origvals = {}
         for k, v in vals.iteritems():
-            v[:] = randn(len(v))
-            origvals[k] = v.copy()
+            if not k.endswith('_const'):
+                v[:] = randn(len(v))
+                origvals[k] = v.copy()
         exec code in ns
         endvals = {}
         for k, v in vals.iteritems():
-            endvals[k] = v.copy()
+            endvals[k] = copy(v)
         for _ in xrange(10):
             for k, v in vals.iteritems():
-                v[:] = origvals[k]
+                if not k.endswith('_const'):
+                    v[:] = origvals[k]
             shuffle(ns['shuffled_indices'])
             exec code in ns
             for k, v in vals.iteritems():
@@ -1007,7 +1019,9 @@ permutation_analysis_good_examples = [
     'v_post = w_syn * v_post',
     'v_post += 1',
     'v_post = 1',
+    'v_post = c_const',
     'v_post += v_post # NOT_UFUNC_AT_VECTORISABLE',
+    'v_post += c_const',
     #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
     'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += u_post',
@@ -1016,6 +1030,7 @@ permutation_analysis_good_examples = [
     'v_post -= sin(v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += v_pre',
     'v_pre += v_post',
+    'v_pre += c_const',
     'w_syn = v_pre',
     'w_syn = a_syn',
     'w_syn += a_syn',
@@ -1023,10 +1038,16 @@ permutation_analysis_good_examples = [
     'w_syn -= a_syn',
     'w_syn /= a_syn',
     'w_syn += 1',
+    'w_syn += c_const',
     'w_syn *= 2',
+    'w_syn *= c_const',
     '''
     w_syn = a_syn
     a_syn += 1
+    ''',
+    '''
+    w_syn = a_syn
+    a_syn += c_const
     ''',
     'v_post *= 2',
     'v_post *= w_syn',
@@ -1035,8 +1056,17 @@ permutation_analysis_good_examples = [
     w_syn = v_pre
     ''',
     '''
+    v_pre = c_const
+    w_syn = v_pre
+    ''',
+    '''
     ge_syn += w_syn
     Apre_syn += 3
+    w_syn = clip(w_syn + Apost_syn, 0, 10)
+    ''',
+    '''
+    ge_syn += w_syn
+    Apre_syn += c_const
     w_syn = clip(w_syn + Apost_syn, 0, 10)
     ''',
     '''
@@ -1224,13 +1254,16 @@ def test_ufunc_at_vectorisation():
         vars_src = []
         vars_tgt = []
         vars_syn = []
+        vars_const = {}
         for var in vars:
             if var.endswith('_pre'):
                 vars_src.append(var[:-4])
-            if var.endswith('_post'):
+            elif var.endswith('_post'):
                 vars_tgt.append(var[:-5])
-            if var.endswith('_syn'):
+            elif var.endswith('_syn'):
                 vars_syn.append(var[:-4])
+            elif var.endswith('_const'):
+                vars_const[var[:-6]] = 42
         eqs_src = '\n'.join(var+':1' for var in vars_src)
         eqs_tgt = '\n'.join(var+':1' for var in vars_tgt)
         eqs_syn = '\n'.join(var+':1' for var in vars_syn)
@@ -1243,7 +1276,9 @@ def test_ufunc_at_vectorisation():
                     NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
                     src = NeuronGroup(3, eqs_src, threshold='True', name='src')
                     tgt = NeuronGroup(3, eqs_tgt, name='tgt')
-                    syn = Synapses(src, tgt, eqs_syn, pre=code.replace('_syn', ''), connect=True, name='syn')
+                    syn = Synapses(src, tgt, eqs_syn,
+                                   pre=code.replace('_syn', '').replace('_const', ''),
+                                   connect=True, name='syn', namespace=vars_const)
                     for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
                         for var in vars:
                             fullvar = var+G.name
