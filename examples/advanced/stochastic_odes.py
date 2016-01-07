@@ -59,7 +59,7 @@ rows = floor(sqrt(len(dts)))
 cols = ceil(1.0 * len(dts) / rows)
 errors = dict([(method, zeros(len(dts))) for method in methods])
 for dt_idx, dt in enumerate(dts):
-    print 'dt: ', dt
+    print('dt:', dt)
     trajectories = {}
     # Test the numerical methods
     for method in methods:

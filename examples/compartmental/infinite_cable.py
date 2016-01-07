@@ -24,9 +24,9 @@ neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 neuron.v = EL
 
 taum = Cm  /gL  # membrane time constant
-print "Time constant", taum
+print("Time constant", taum)
 la = neuron.space_constant[0]
-print "Characteristic length", la
+print("Characteristic length", la)
 
 # Monitors
 mon = StateMonitor(neuron, 'v', record=range(0, N/2, 20))

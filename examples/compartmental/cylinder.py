@@ -25,7 +25,7 @@ neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 neuron.v = EL
 
 la = neuron.space_constant[0]
-print "Electrotonic length", la
+print("Electrotonic length", la)
 
 neuron.I[0] = 0.02*nA # injecting at the left end
 run(100*ms, report='text')
