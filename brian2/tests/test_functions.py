@@ -587,6 +587,19 @@ def test_declare_types():
     assert_raises(TypeError, bad_type)
 
 
+def test_multiple_stateless_function_calls():
+    # Check that expressions such as rand() + rand() (which might be incorrectly
+    # simplified to 2*rand()) raise an error
+    G = NeuronGroup(1, 'dv/dt = (rand() - rand())/second : 1')
+    net = Network(G)
+    assert_raises(NotImplementedError, lambda: net.run(0*ms))
+    G2 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=rand() - rand()')
+    net2 = Network(G2)
+    assert_raises(NotImplementedError, lambda: net2.run(0*ms))
+    G3 = NeuronGroup(1, 'v:1')
+    G3.run_regularly('v = rand() - rand()')
+    net3 = Network(G3)
+    assert_raises(NotImplementedError, lambda: net3.run(0*ms))
 
 if __name__ == '__main__':
     from brian2 import prefs
@@ -610,6 +623,7 @@ if __name__ == '__main__':
             test_function_dependencies_cython,
             test_binomial,
             test_declare_types,
+            test_multiple_stateless_function_calls,
             ]:
         try:
             start = time.time()

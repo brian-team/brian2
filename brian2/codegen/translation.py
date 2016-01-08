@@ -28,7 +28,8 @@ from brian2.utils.stringtools import (deindent, strip_empty_lines,
 from brian2.utils.topsort import topsort
 from brian2.units.fundamentalunits import Unit
 from brian2.parsing.statements import parse_statement
-from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+from brian2.parsing.sympytools import (str_to_sympy, sympy_to_str,
+                                       check_expression_for_multiple_stateful_functions)
 
 from .statements import Statement
 from .optimisation import optimise_statements
@@ -230,7 +231,7 @@ def make_statements(code, variables, dtype, optimise=True):
                                                 dtype=dtype, scalar=is_scalar)
                     variables[var] = new_var
             elif not variables[var].is_boolean:
-                sympy_expr = str_to_sympy(expr)
+                sympy_expr = str_to_sympy(expr, variables)
                 sympy_var = sympy.Symbol(var, real=True)
                 try:
                     collected = sympy.collect(sympy_expr, sympy_var,

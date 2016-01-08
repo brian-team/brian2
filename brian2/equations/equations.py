@@ -500,8 +500,6 @@ class Equations(collections.Mapping):
                                         eq.varname)
                 self._equations[eq.varname] = eq
 
-        self._substituted_expressions = None
-
         # save these to change the keys of the dictionary later
         model_var_replacements = []
         for varname, replacement in kwds.iteritems():
@@ -640,12 +638,17 @@ class Equations(collections.Mapping):
         for name in self.names:
             Equations.check_identifier(name)
 
-    def _get_substituted_expressions(self):
+    def get_substituted_expressions(self, variables=None):
         '''
         Return a list of ``(varname, expr)`` tuples, containing all
         differential equations with all the subexpression variables
         substituted with the respective expressions.
-        
+
+        Parameters
+        ----------
+        variables : dict, optional
+            A mapping of variable names to `Variable`/`Function` objects.
+
         Returns
         -------
         expr_tuples : list of (str, `CodeString`)
@@ -653,9 +656,6 @@ class Equations(collections.Mapping):
             `CodeString` object with all subexpression variables substituted
             with the respective expression.
         '''
-        # Cache the substituted expressions
-        if self._substituted_expressions is not None:
-            return self._substituted_expressions
 
         subst_exprs = []
         substitutions = {}
@@ -664,19 +664,18 @@ class Equations(collections.Mapping):
             if eq.expr is None:
                 continue
 
-            new_sympy_expr = eq.expr.sympy_expr.xreplace(substitutions)
+            new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(substitutions)
             new_str_expr = sympy_to_str(new_sympy_expr)
             expr = Expression(new_str_expr)
 
             if eq.type == SUBEXPRESSION:
-                substitutions.update({sympy.Symbol(eq.varname, real=True): expr.sympy_expr})
+                substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
             elif eq.type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
                 subst_exprs.append((eq.varname, expr))
             else:
                 raise AssertionError('Unknown equation type %s' % eq.type)
 
-        self._substituted_expressions = subst_exprs
         return subst_exprs
 
     def _get_stochastic_type(self):
@@ -699,7 +698,7 @@ class Equations(collections.Mapping):
         if not self.is_stochastic:
             return None
         
-        for _, expr in self.substituted_expressions:
+        for _, expr in self.get_substituted_expressions():
             _, stochastic = expr.split_stochastic()
             if stochastic is not None:
                 for factor in stochastic.itervalues():
@@ -738,8 +737,6 @@ class Equations(collections.Mapping):
                                                               DIFFERENTIAL_EQUATION)],
                               doc='A list of (variable name, expression) '
                                   'tuples of all equations.')
-
-    substituted_expressions = property(_get_substituted_expressions)
 
     # Sets of names
 
@@ -929,7 +926,7 @@ class Equations(collections.Mapping):
                 # Normal equation or parameter
                 lhs = varname
             if not eq.type == PARAMETER:
-                rhs = eq.expr.sympy_expr
+                rhs = str_to_sympy(eq.expr.code)
             if len(eq.flags):
                 flag_str = ', flags: ' + ', '.join(eq.flags)
             else:

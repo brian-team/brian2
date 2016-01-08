@@ -2,11 +2,9 @@
 Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
-from itertools import izip
 import weakref
 
 import sympy as sp
-from numpy import pi
 import numpy as np
 
 from brian2.core.variables import Variables
@@ -16,7 +14,7 @@ from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp
 from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.units.stdunits import uF, cm
-from brian2.parsing.sympytools import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
@@ -153,13 +151,13 @@ class SpatialNeuron(NeuronGroup):
 
         # Expand expressions in the membrane equation
         membrane_eq.type = DIFFERENTIAL_EQUATION
-        for var, expr in model._get_substituted_expressions():  # this returns substituted expressions for diff eqs
+        for var, expr in model.get_substituted_expressions():
             if var == 'Im':
                 Im_expr = expr
         membrane_eq.type = SUBEXPRESSION
 
         # Factor out the variable
-        s_expr = sp.collect(Im_expr.sympy_expr.expand(), var)
+        s_expr = sp.collect(str_to_sympy(Im_expr.code).expand(), var)
         matches = s_expr.match(pattern)
 
         if matches is None:
