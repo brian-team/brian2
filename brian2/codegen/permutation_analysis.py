@@ -34,11 +34,12 @@ def check_for_order_independence(statements, variables, indices):
     # assumption/definition, these indices are unique, and any order-dependence cannot come from their values,
     # only from the values of the derived indices. In the most common case of Synapses, the main index would be
     # the synapse index, and the derived indices would be pre and postsynaptic indices (which can be repeated).
+    unique_index = lambda v: (indices[v] != '0'
+                              and getattr(variables[indices[v]],
+                                          'unique',
+                                          False))
     main_index_variables = set([v for v in all_variables
-                                if (indices[v] in ('_idx', '0')
-                                    or getattr(variables[indices[v]],
-                                               'unique',
-                                               False))])
+                                if indices[v] == '_idx' or unique_index(v)])
     different_index_variables = set(all_variables) - main_index_variables
 
     # At the start, we assume all the different/derived index variables are permutation independent and we continue

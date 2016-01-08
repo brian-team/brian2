@@ -968,6 +968,9 @@ def numerically_check_permutation_code(code):
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
             vals[var] = zeros(3)
+        elif var.endswith('_shared'):
+            indices[var] = '0'
+            vals[var] = zeros(1)
         elif var.endswith('_const'):
             indices[var] = '0'
             vals[var] = 42
@@ -1020,8 +1023,10 @@ permutation_analysis_good_examples = [
     'v_post += 1',
     'v_post = 1',
     'v_post = c_const',
+    'v_post = x_shared',
     'v_post += v_post # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += c_const',
+    'v_post += x_shared',
     #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
     'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += u_post',
@@ -1031,6 +1036,7 @@ permutation_analysis_good_examples = [
     'v_post += v_pre',
     'v_pre += v_post',
     'v_pre += c_const',
+    'v_pre += x_shared',
     'w_syn = v_pre',
     'w_syn = a_syn',
     'w_syn += a_syn',
@@ -1039,8 +1045,10 @@ permutation_analysis_good_examples = [
     'w_syn /= a_syn',
     'w_syn += 1',
     'w_syn += c_const',
+    'w_syn += x_shared',
     'w_syn *= 2',
     'w_syn *= c_const',
+    'w_syn *= x_shared',
     '''
     w_syn = a_syn
     a_syn += 1
@@ -1048,6 +1056,10 @@ permutation_analysis_good_examples = [
     '''
     w_syn = a_syn
     a_syn += c_const
+    ''',
+    '''
+    w_syn = a_syn
+    a_syn += x_shared
     ''',
     'v_post *= 2',
     'v_post *= w_syn',
@@ -1060,6 +1072,10 @@ permutation_analysis_good_examples = [
     w_syn = v_pre
     ''',
     '''
+    v_pre = x_shared
+    w_syn = v_pre
+    ''',
+    '''
     ge_syn += w_syn
     Apre_syn += 3
     w_syn = clip(w_syn + Apost_syn, 0, 10)
@@ -1067,6 +1083,11 @@ permutation_analysis_good_examples = [
     '''
     ge_syn += w_syn
     Apre_syn += c_const
+    w_syn = clip(w_syn + Apost_syn, 0, 10)
+    ''',
+    '''
+    ge_syn += w_syn
+    Apre_syn += x_shared
     w_syn = clip(w_syn + Apost_syn, 0, 10)
     ''',
     '''
@@ -1254,6 +1275,7 @@ def test_ufunc_at_vectorisation():
         vars_src = []
         vars_tgt = []
         vars_syn = []
+        vars_shared = []
         vars_const = {}
         for var in vars:
             if var.endswith('_pre'):
@@ -1262,11 +1284,14 @@ def test_ufunc_at_vectorisation():
                 vars_tgt.append(var[:-5])
             elif var.endswith('_syn'):
                 vars_syn.append(var[:-4])
+            elif var.endswith('_shared'):
+                vars_shared.append(var[:-7])
             elif var.endswith('_const'):
                 vars_const[var[:-6]] = 42
         eqs_src = '\n'.join(var+':1' for var in vars_src)
         eqs_tgt = '\n'.join(var+':1' for var in vars_tgt)
         eqs_syn = '\n'.join(var+':1' for var in vars_syn)
+        eqs_syn += '\n' + '\n'.join(var+':1 (shared)' for var in vars_shared)
         origvals = {}
         endvals = {}
         try:
@@ -1277,7 +1302,7 @@ def test_ufunc_at_vectorisation():
                     src = NeuronGroup(3, eqs_src, threshold='True', name='src')
                     tgt = NeuronGroup(3, eqs_tgt, name='tgt')
                     syn = Synapses(src, tgt, eqs_syn,
-                                   pre=code.replace('_syn', '').replace('_const', ''),
+                                   pre=code.replace('_syn', '').replace('_const', '').replace('_shared', ''),
                                    connect=True, name='syn', namespace=vars_const)
                     for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
                         for var in vars:
