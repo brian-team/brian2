@@ -43,7 +43,23 @@ def test_propagation():
     assert_equal(G.v[:], np.array([0., 2.]))
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_poissongroup_subgroup():
+    # It should be possible to take a subgroup of a PoissonGroup
+    P = PoissonGroup(4, [0, 0, 0, 0]*Hz)
+    P1 = P[:2]
+    P2 = P[2:]
+    P2.rates = 1./defaultclock.dt
+    G = NeuronGroup(4, 'v:1')
+    S1 = Synapses(P1, G[:2], pre='v+=1', connect='i==j')
+    S2 = Synapses(P2, G[2:], pre='v+=1', connect='i==j')
+    run(2*defaultclock.dt)
+
+    assert_equal(G.v[:], np.array([0., 0., 2., 2.]))
+
 if __name__ == '__main__':
     test_single_rates()
     test_rate_arrays()
     test_propagation()
+    test_poissongroup_subgroup()

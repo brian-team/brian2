@@ -9,6 +9,7 @@ from brian2.core.variables import Variables
 from brian2.units.fundamentalunits import check_units, Unit
 from brian2.units.stdunits import Hz
 from brian2.groups.group import Group
+from brian2.groups.subgroup import Subgroup
 from brian2.groups.neurongroup import Thresholder
 
 __all__ = ['PoissonGroup']
@@ -48,7 +49,7 @@ class PoissonGroup(Group, SpikeSource):
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order,
                        name=name)
-
+        self.namespace = None
         self.codeobj_class = codeobj_class
 
         self._N = N = int(N)
@@ -89,6 +90,17 @@ class PoissonGroup(Group, SpikeSource):
         # constructor was called
         self.rates.set_item(slice(None), rates, level=2)
 
+    def __getitem__(self, item):
+        if not isinstance(item, slice):
+            raise TypeError('Subgroups can only be constructed using slicing syntax')
+        start, stop, step = item.indices(self._N)
+        if step != 1:
+            raise IndexError('Subgroups have to be contiguous')
+        if start >= stop:
+            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                             (start, stop))
+
+        return Subgroup(self, start, stop)
 
     @property
     def spikes(self):
