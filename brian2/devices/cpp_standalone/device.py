@@ -41,7 +41,7 @@ logger = get_logger(__name__)
 prefs.register_preferences(
     'devices.cpp_standalone',
     'C++ standalone preferences ',
-    openmp_threads = BrianPreference(
+    openmp_threads=BrianPreference(
         default=0,
         docs='''
         The number of threads to use if OpenMP is turned on. By default, this value is set to 0 and the C++ code
@@ -49,6 +49,22 @@ prefs.register_preferences(
         are used to launch the simulation.
         ''',
         ),
+    openmp_spatialneuron_strategy=BrianPreference(
+        default=None,
+        validator=lambda val: val in [None, 'inner', 'sections'],
+        docs='''
+        Which strategy to chose for solving the three tridiagonal systems with
+        OpenMP: `'branches'` means to solve the three systems sequentially, but
+        for all the branches in parallel, `'systems'` means to solve the three
+        systems in parallel, but all the branches within each system
+        sequentially. The `'branches'` approach is usually better for
+        morphologies with many branches and a large number of threads, while the
+        `'systems'` strategy should be better for morphologies with few
+        branches (e.g. cables) and/or simulations with no more than three
+        threads. If not specified (the default), the `'systems'` strategy will
+        be used when using less three threads or less.
+        '''
+    )
     )
 
 
@@ -351,12 +367,11 @@ class CPPStandaloneDevice(Device):
             # additional work to set up the pointer
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
-
             if (indices.shape != () and
                     (value.shape == () or
                          (value.size == 1 and indices.size > 1))):
                 value = np.repeat(value, indices.size)
-            elif len(value) != len(indices):
+            elif (value.shape != indices.shape and len(value) != len(indices)):
                 raise ValueError(('Provided values do not match the size '
                                   'of the indices, '
                                   '%d != %d.') % (len(value),
