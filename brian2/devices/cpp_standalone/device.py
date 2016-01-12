@@ -51,7 +51,7 @@ prefs.register_preferences(
         ),
     openmp_spatialneuron_strategy=BrianPreference(
         default=None,
-        validator=lambda val: val in [None, 'inner', 'sections'],
+        validator=lambda val: val in [None, 'branches', 'systems'],
         docs='''
         Which strategy to chose for solving the three tridiagonal systems with
         OpenMP: `'branches'` means to solve the three systems sequentially, but
