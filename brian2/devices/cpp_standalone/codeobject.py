@@ -96,7 +96,8 @@ class CPPStandaloneCodeObject(CodeObject):
     templater = Templater('brian2.devices.cpp_standalone', '.cpp',
                           env_globals={'c_data_type': c_data_type,
                                        'openmp_pragma': openmp_pragma,
-                                       'constant_or_scalar': constant_or_scalar})
+                                       'constant_or_scalar': constant_or_scalar,
+                                       'prefs': prefs})
     generator_class = CPPCodeGenerator
 
     def __call__(self, **kwds):
