@@ -26,7 +26,7 @@ def test_construction_errors():
                                                            size=0,
                                                            device=None,
                                                            constant=True,
-                                                           constant_size=False))
+                                                           needs_reference_update=True))
 
 
 @attr('codegen-independent')

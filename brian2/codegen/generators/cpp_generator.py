@@ -50,7 +50,7 @@ def c_data_type(dtype):
     elif dtype == numpy.uint64:
         dtype = 'uint64_t'
     elif dtype == numpy.bool_ or dtype is bool:
-        dtype = 'char'
+        dtype = 'bool'
     else:
         raise ValueError("dtype " + str(dtype) + " not known.")
     return dtype
@@ -158,24 +158,58 @@ class CPPCodeGenerator(CodeGenerator):
             return device.get_array_name(var, access_data=False)
 
     def translate_expression(self, expr):
-        for varname, var in self.variables.iteritems():
-            if isinstance(var, Function):
-                impl_name = var.implementations[self.codeobj_class].name
-                if impl_name is not None:
-                    expr = word_substitute(expr, {varname: impl_name})
+        expr = word_substitute(expr, self.func_name_replacements)
         return CPPNodeRenderer().render_expr(expr).strip()
 
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
-        if op == ':=':
-            decl = self.c_data_type(statement.dtype) + ' '
-            op = '='
-            if statement.constant:
-                decl = 'const ' + decl
+        # For C++ we replace complex expressions involving boolean variables into a sequence of
+        # if/then expressions with simpler expressions. This is provided by the optimise_statements
+        # function.
+        if statement.used_boolean_variables is not None and len(statement.used_boolean_variables):
+            used_boolvars = statement.used_boolean_variables
+            bool_simp = statement.boolean_simplified_expressions
+            if op == ':=':
+                # we have to declare the variable outside the if/then statement (which
+                # unfortunately means we can't make it const but the optimisation is worth
+                # it anyway).
+                codelines = [self.c_data_type(statement.dtype) + ' ' + var + ';']
+                op = '='
+            else:
+                codelines = []
+            firstline = True
+            # bool assigns is a sequence of (var, value) pairs giving the conditions under
+            # which the simplified expression simp_expr holds
+            for bool_assigns, simp_expr in bool_simp.iteritems():
+                # generate a boolean expression like ``var1 && var2 && !var3``
+                atomics = []
+                for boolvar, boolval in bool_assigns:
+                    if boolval:
+                        atomics.append(boolvar)
+                    else:
+                        atomics.append('!'+boolvar)
+                if firstline:
+                    line = ''
+                else:
+                    line = 'else '
+                # only need another if statement when we have more than one boolean variables
+                if firstline or len(used_boolvars)>1:
+                    line += 'if('+(' && '.join(atomics))+')'
+                line += '\n    '
+                line += var + ' ' + op + ' ' + self.translate_expression(simp_expr) + ';'
+                codelines.append(line)
+                firstline = False
+            code = '\n'.join(codelines)
         else:
-            decl = ''
-        code = decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+            if op == ':=':
+                decl = self.c_data_type(statement.dtype) + ' '
+                op = '='
+                if statement.constant:
+                    decl = 'const ' + decl
+            else:
+                decl = ''
+            code = decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
         if len(comment):
             code += ' // ' + comment
         return code
@@ -378,6 +412,7 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('int', 'int_')  # from stdint_compat.h
                        ]:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None,
@@ -453,20 +488,6 @@ clip_code = '''
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=clip_code,
                                                              name='_clip')
-
-int_code = '''
-        template<typename T> inline int int_(T value)
-        {
-	        return (int)value;
-        }
-        template<> inline int int_(bool value)
-        {
-	        return value ? 1 : 0;
-        }
-        '''
-DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CPPCodeGenerator,
-                                                            code=int_code,
-                                                            name='int_')
 
 sign_code = '''
         template <typename T> inline int sign_(T val) {

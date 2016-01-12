@@ -1,20 +1,64 @@
-import types
 import collections
 import inspect
+import types
 
-import sympy
-from sympy import Function as sympy_Function
 import numpy as np
+import sympy
 from numpy.random import randn, rand
+from sympy import Function as sympy_Function
 
+import brian2.units.unitsafefunctions as unitsafe
 from brian2.core.preferences import prefs
+from brian2.core.variables import Constant
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            Quantity, get_dimensions,
-                                           DIMENSIONLESS)
-from brian2.core.variables import Constant
-import brian2.units.unitsafefunctions as unitsafe
+                                           DIMENSIONLESS, is_dimensionless)
 
-__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'implementation']
+__all__ = ['DEFAULT_FUNCTIONS', 'Function', 'implementation', 'declare_types']
+
+
+BRIAN_DTYPES = ['boolean', 'integer', 'float']
+VALID_ARG_TYPES = BRIAN_DTYPES+['any']
+VALID_RETURN_TYPES = BRIAN_DTYPES+['highest']
+
+
+def declare_types(**types):
+    '''
+    Decorator to declare argument and result types for a function
+
+    Usage is similar to `check_units` except that types must be one of ``{VALID_ARG_TYPES}``
+    and the result type must be one of ``{VALID_RETURN_TYPES}``. Unspecified argument
+    types are assumed to be ``'all'`` (i.e. anything is permitted), and an unspecified
+    result type is assumed to be ``'float'``. Note that the ``'highest'`` option for
+    result type will give the highest type of its argument, e.g. if the arguments
+    were boolean and integer then the result would be integer, if the arguments were
+    integer and float it would be float.
+    '''
+    def annotate_function_with_types(f):
+        if hasattr(f, '_orig_arg_names'):
+            arg_names = f._orig_arg_names
+        else:
+            arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
+        argtypes = []
+        for name in arg_names:
+            arg_type = types.get(name, 'any')
+            if arg_type not in VALID_ARG_TYPES:
+                raise ValueError("Argument type %s is not valid, must be one of %s, "
+                                 "for argument %s" % (arg_type, VALID_ARG_TYPES, name))
+            argtypes.append(arg_type)
+        for n in types.keys():
+            if n not in arg_names and n!='result':
+                raise ValueError("Type specified for unknown argument "+n)
+        return_type = types.get('result', 'float')
+        if return_type not in VALID_RETURN_TYPES:
+            raise ValueError("Result type %s is not valid, "
+                             "must be one of %s" % (return_type, VALID_RETURN_TYPES))
+        f._arg_types = argtypes
+        f._return_type = return_type
+        f._orig_arg_names = arg_names
+        f._annotation_attributes = getattr(f, '_annotation_attributes', [])+['_arg_types', '_return_type']
+        return f
+    return annotate_function_with_types
 
 
 class Function(object):
@@ -42,6 +86,19 @@ class Function(object):
         unit, or a function of the input units, e.g. a "square" function would
         return the square of its input units, i.e. `return_unit` could be
         specified as ``lambda u: u**2``.
+    arg_types : list of str, optional
+        Similar to `arg_units`, but gives the type of the argument rather than
+        its unit. In the current version of Brian arguments are specified
+        by one of the following strings: 'boolean', 'integer', 'float', 'any'.
+        If `arg_types` is not specified, 'any' will be assumed. In
+        future versions, a more refined specification may be possible. Note that
+        any argument with a type other than float should have no units. If
+    return_type : str, optional
+        Similar to `return_unit` and `arg_types`. In addition to 'boolean',
+        'integer' and 'float' you can also use 'highest' which will return the
+        highest type of its arguments. You can also give a function, as for
+        `return_unit`. If the return type is not specified, it is assumed to
+        be 'float'.
     stateless : bool, optional
         Whether this function does not have an internal state, i.e. if it
         always returns the same output when called with the same arguments.
@@ -55,12 +112,16 @@ class Function(object):
     using the `~brian2.codegen.functions.implementation` decorator or using the
     `~brian2.codegen.functions.add_implementations` function.
     '''
-    def __init__(self, pyfunc, sympy_func=None, arg_units=None,
-                 return_unit=None, stateless=True):
+    def __init__(self, pyfunc, sympy_func=None,
+                 arg_units=None, return_unit=None,
+                 arg_types=None, return_type=None,
+                 stateless=True):
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         self._arg_units = arg_units
         self._return_unit = return_unit
+        self._arg_types = arg_types
+        self._return_type = return_type
         self.stateless = stateless
         if self._arg_units is None:
             if not hasattr(pyfunc, '_arg_units'):
@@ -91,6 +152,26 @@ class Function(object):
                                   'value.') % pyfunc.__name__)
             else:
                 self._return_unit = pyfunc._return_unit
+
+        if self._arg_types is None:
+            if hasattr(pyfunc, '_arg_types'):
+                self._arg_types = pyfunc._arg_types
+            else:
+                self._arg_types = ['any']*len(self._arg_units)
+
+        if self._return_type is None:
+            self._return_type = getattr(pyfunc, '_return_type', 'float')
+
+        for argtype, u in zip(self._arg_types, self._arg_units):
+            if argtype!='float' and argtype!='any' and u is not None and not is_dimensionless(u):
+                raise TypeError("Non-float arguments must be dimensionless in function "+pyfunc.__name__)
+            if argtype not in VALID_ARG_TYPES:
+                raise ValueError("Argument type %s is not valid, must be one of %s, "
+                                 "in function %s" % (argtype, VALID_ARG_TYPES, pyfunc.__name__))
+
+        if self._return_type not in VALID_RETURN_TYPES:
+                raise ValueError("Return type %s is not valid, must be one of %s, "
+                                 "in function %s" % (self._return_type, VALID_RETURN_TYPES, pyfunc.__name__))
 
         #: Stores implementations for this function in a
         #: `FunctionImplementationContainer`
@@ -195,13 +276,14 @@ class FunctionImplementationContainer(collections.Mapping):
         '''
         fallback = getattr(key, 'generator_class', None)
 
-        for K in [key, fallback]:        
-            if K in self._implementations:
-                return self._implementations[K]
-            else:
-                name = getattr(K, 'class_name', None)
-                if name in self._implementations:
-                    return self._implementations[name]
+        for K in [key, fallback]:
+            name = getattr(K, 'class_name',
+                           'no class name for key')
+            for impl_key, impl in self._implementations.iteritems():
+                impl_key_name = getattr(impl_key, 'class_name',
+                                        'no class name for implementation')
+                if impl_key_name in [K, name] or impl_key in [K, name]:
+                    return impl
             if hasattr(K, '__bases__'):
                 for cls in inspect.getmro(K):
                     if cls in self._implementations:
@@ -210,9 +292,13 @@ class FunctionImplementationContainer(collections.Mapping):
                     if name in self._implementations:
                         return self._implementations[name]
 
-        raise KeyError(('No implementation available for {key}. '
+        if hasattr(key, 'class_name'):  # Give a nicer error message if possible
+            key = key.class_name
+        keys = ', '.join([getattr(k, 'class_name', str(k))
+                          for k in self._implementations.iterkeys()])
+        raise KeyError(('No implementation available for target {key}. '
                         'Available implementations: {keys}').format(key=key,
-                                                                    keys=self._implementations.keys()))
+                                                                    keys=keys))
 
     def add_numpy_implementation(self, wrapped_func, dependencies=None,
                                  discard_units=None):
@@ -362,6 +448,10 @@ def implementation(target, code=None, namespace=None, dependencies=None,
     as an argument for this decorator, this is normally not necessary -- the
     numpy implementation should be provided in the decorated function.
 
+    If this decorator is used with other directors such as `check_units` or
+    `declare_types`, it should be the uppermost decorator (that is, the
+    last one to be applied).
+
     Examples
     --------
     Sample usage::
@@ -396,6 +486,11 @@ def implementation(target, code=None, namespace=None, dependencies=None,
             function.implementations.add_implementation(target, code=code,
                                                         dependencies=dependencies,
                                                         namespace=namespace)
+        # # copy any annotation attributes
+        # if hasattr(func, '_annotation_attributes'):
+        #     for attrname in func._annotation_attributes:
+        #         setattr(function, attrname, getattr(func, attrname))
+        # function._annotation_attributes = getattr(func, '_annotation_attributes', [])
         return function
     return do_user_implementation
 
@@ -459,20 +554,20 @@ DEFAULT_FUNCTIONS = {
                        sympy_func=sympy.functions.elementary.trigonometric.asin),
     'arctan': Function(unitsafe.arctan,
                        sympy_func=sympy.functions.elementary.trigonometric.atan),
-    'abs': Function(np.abs,
+    'abs': Function(np.abs, return_type='highest',
                     sympy_func=sympy.functions.elementary.complexes.Abs,
                     arg_units=[None], return_unit=lambda u: u),
-    'sign': Function(pyfunc=np.sign, sympy_func=sympy.sign,
+    'sign': Function(pyfunc=np.sign, sympy_func=sympy.sign, return_type='highest',
                      arg_units=[None], return_unit=1),
     # functions that need special treatment
     'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False),
     'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False),
     'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
+                     return_type='highest',
                      return_unit=lambda u1, u2, u3: u1,),
-    'int': Function(pyfunc=np.int_,
+    'int': Function(pyfunc=np.int_, return_type='integer',
                     arg_units=[1], return_unit=1)
     }
-
 
 DEFAULT_CONSTANTS = {'pi': SymbolicConstant('pi', sympy.pi, value=np.pi),
                      'e': SymbolicConstant('e', sympy.E, value=np.e),

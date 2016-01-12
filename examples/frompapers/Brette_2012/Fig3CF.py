@@ -36,8 +36,8 @@ neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
 compartment16 = morpho.axon[location16]
 compartment12 = morpho.axon[location12]
 neuron.v = EL
-neuron.gNa[compartment16] = gNa/neuron.area[compartment16]
-neuron.gNa2[compartment12] = 20*gNa/neuron.area[compartment12]
+neuron.gNa[compartment16] = gNa_0/neuron.area[compartment16]
+neuron.gNa2[compartment12] = 20*gNa_0/neuron.area[compartment12]
 # Monitors
 M = StateMonitor(neuron, ['v', 'm', 'm2'], record=True)
 

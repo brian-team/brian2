@@ -17,7 +17,7 @@ sound = TimedArray(10 * randn(50000), dt=defaultclock.dt) # white noise
 sound_speed = 300*metre/second
 interaural_distance = 20*cm # big head!
 max_delay = interaural_distance / sound_speed
-print "Maximum interaural delay:", max_delay
+print("Maximum interaural delay: %s" % max_delay)
 angular_speed = 2 * pi / second # 1 turn/second
 tau_ear = 1*ms
 sigma_ear = .1

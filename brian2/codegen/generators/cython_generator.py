@@ -2,8 +2,9 @@ import itertools
 
 import numpy as np
 
-from brian2.utils.stringtools import word_substitute, deindent
+from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
 from brian2.core.variables import (Constant, AuxiliaryVariable,
                                    get_dtype_str, Variable, Subexpression)
@@ -20,7 +21,7 @@ data_type_conversion_table = [
     ('float64',        'double',      'float64'),
     ('int32',          'int32_t',     'int32'),
     ('int64',          'int64_t',     'int64'),
-    ('bool',           'char',        'uint8'),
+    ('bool',           'bool',        'bool'),
     ('uint8',          'char',        'uint8'),
     ('uint64',         'uint64_t',    'uint64'),
     ]
@@ -60,24 +61,53 @@ class CythonCodeGenerator(CodeGenerator):
     class_name = 'cython'
 
     def translate_expression(self, expr):
-        # numpy version
-        for varname, var in self.variables.iteritems():
-            if isinstance(var, Function):
-                impl_name = var.implementations[self.codeobj_class].name
-                if impl_name is not None:
-                    expr = word_substitute(expr, {varname: impl_name})
+        expr = word_substitute(expr, self.func_name_replacements)
         return CythonNodeRenderer().render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
-        if op == ':=':
+        if op == ':=': # make no distinction in Cython (declaration are done elsewhere)
             op = '='
-        code = var + ' ' + op + ' ' + self.translate_expression(expr)
+        # For Cython we replace complex expressions involving boolean variables into a sequence of
+        # if/then expressions with simpler expressions. This is provided by the optimise_statements
+        # function.
+        if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)
+                # todo: improve dtype analysis so that this isn't necessary
+                and brian_dtype_from_dtype(statement.dtype)=='float'):
+            used_boolvars = statement.used_boolean_variables
+            bool_simp = statement.boolean_simplified_expressions
+            codelines = []
+            firstline = True
+            # bool assigns is a sequence of (var, value) pairs giving the conditions under
+            # which the simplified expression simp_expr holds
+            for bool_assigns, simp_expr in bool_simp.iteritems():
+                # generate a boolean expression like ``var1 and var2 and not var3``
+                atomics = []
+                for boolvar, boolval in bool_assigns:
+                    if boolval:
+                        atomics.append(boolvar)
+                    else:
+                        atomics.append('not '+boolvar)
+                # use if/else/elif correctly
+                if firstline:
+                    line = 'if '+(' and '.join(atomics))+':'
+                else:
+                    if len(used_boolvars)>1:
+                        line = 'elif '+(' and '.join(atomics))+':'
+                    else:
+                        line = 'else:'
+                line += '\n    '
+                line += var + ' ' + op + ' ' + self.translate_expression(simp_expr)
+                codelines.append(line)
+                firstline = False
+            code = '\n'.join(codelines)
+        else:
+            code = var + ' ' + op + ' ' + self.translate_expression(expr)
         if len(comment):
             code += ' # ' + comment
         return code
-        
+
     def translate_one_statement_sequence(self, statements, scalar=False):
         variables = self.variables
         variable_indices = self.variable_indices
@@ -100,7 +130,7 @@ class CythonCodeGenerator(CodeGenerator):
                 subs = {}
                 condvar = conditional_write_vars[stmt.var]
                 lines.append('if %s:' % condvar)
-                lines.append('    '+line)
+                lines.append(indent(line))
             else:
                 lines.append(line)
         # write arrays
@@ -139,7 +169,7 @@ class CythonCodeGenerator(CodeGenerator):
                         newlines = [
                             "global _namespace{var_name}",
                             "global _namespace_num{var_name}",
-                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}'].view(dtype=_numpy.{numpy_dtype})",
+                            "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}']",
                             "_namespace{var_name} = <{cpp_dtype} *> _buf_{var_name}.data",
                             "_namespace_num{var_name} = len(_namespace['{var_name}'])"
                         ]
@@ -222,9 +252,12 @@ class CythonCodeGenerator(CodeGenerator):
                     continue
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
-                newlines = [
-                    "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}'].view(dtype=_numpy.{numpy_dtype})",
-                    "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data",]
+                if get_dtype_str(var.dtype) == 'bool':
+                    newlines = ["cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True] _buf_{array_name} = _namespace['{array_name}']",
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
+                else:
+                    newlines = ["cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{array_name} = _namespace['{array_name}']",
+                                "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
 
                 if not var.scalar:
                     newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
@@ -251,9 +284,6 @@ class CythonCodeGenerator(CodeGenerator):
                 user_functions.extend(uf)
             else:
                 # fallback to Python object
-                print var
-                for k, v in var.__dict__.iteritems():
-                    print '   ', k, v
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
 
         # delete the user-defined functions from the namespace and add the
@@ -277,7 +307,9 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
                                                                code=None)
 
 # Functions that need a name translation
-for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan')]:
+for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
+                       ('int', 'int_')  # from stdint_compat.h
+                       ]:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
                                                                code=None,
                                                                name=func_cpp)
@@ -307,21 +339,6 @@ DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerato
                                                               code=randn_code,
                                                               name='_randn')
 
-int_code = '''
-ctypedef fused _to_int:
-    char
-    short
-    int
-    float
-    double
-
-cdef int _int(_to_int x):
-    return <int>x
-'''
-DEFAULT_FUNCTIONS['int'].implementations.add_implementation(CythonCodeGenerator,
-                                                            code=int_code,
-                                                            name='_int')
-
 sign_code = '''
 ctypedef fused _to_sign:
     char
@@ -338,12 +355,7 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator
                                                              name='_sign')
 
 clip_code = '''
-ctypedef fused _float_or_double:
-    float
-    double
-
-cdef _float_or_double clip(_float_or_double x, _float_or_double low,
-                           _float_or_double high):
+cdef double clip(double x, double low, double high):
     if x<low:
         return low
     if x>high:

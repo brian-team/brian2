@@ -169,3 +169,21 @@ function code, by using a "dynamic implemention" (see
 `~brian2.core.functions.FunctionImplementationContainer.add_dynamic_implementation`).
 
 See `TimedArray` and `BinomialFunction` for examples that use this mechanism.
+
+Data types
+~~~~~~~~~~
+
+By default, functions are assumed to take any type of argument, and return a floating
+point value. If you want to put a restriction on the type of an argument, or specify
+that the return type should be something other than float, either declare it as a
+`Function` (and see its documentation on specifying types) or use the `declare_types`
+decorator, e.g.:
+
+    @check_units(a=1, b=1, result=1)
+    @declare_types(a='integer', result='highest')
+    def f(a, b):
+        return a*b
+
+This is potentially important if you have functions that return integer or boolean
+values, because Brian's code generation optimisation step will make some potentially
+incorrect simplifications if it assumes that the return type is floating point.

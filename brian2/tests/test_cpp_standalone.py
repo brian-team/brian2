@@ -5,13 +5,12 @@ from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
 
 from brian2 import *
-from brian2.devices.device import restore_device
+from brian2.devices.device import reinit_devices, set_device, reset_device
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_cpp_standalone(with_output=False):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     ##### Define the model
     tau = 1*ms
     eqs = '''
@@ -47,13 +46,12 @@ def test_cpp_standalone(with_output=False):
     assert len(M.t) == len(M.i)
     assert M.t[0] == 0.
     assert M.t[-1] == 100*ms - defaultclock.dt
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_dt_changes_between_runs_standalone(with_output=False):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'v:1')
     mon = StateMonitor(G, 'v', record=True)
@@ -70,12 +68,12 @@ def test_dt_changes_between_runs_standalone(with_output=False):
     assert len(mon.t[:]) == 5 + 1 + 5
     assert_allclose(mon.t[:],
                     [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_multiple_connects(with_output=False):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
     S = Synapses(G, G, 'w:1')
     S.connect([0], [0])
@@ -87,13 +85,12 @@ def test_multiple_connects(with_output=False):
     device.build(directory=tempdir, compile=True, run=True,
                  with_output=True)
     assert len(S) == 2 and len(S.w[:]) == 2
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_storing_loading(with_output=False):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, '''v : volt
                            x : 1
                            n : integer
@@ -127,10 +124,10 @@ def test_storing_loading(with_output=False):
     assert_allclose(S.n_syn[:], n)
     assert_allclose(G.b[:], b)
     assert_allclose(S.b_syn[:], b)
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_openmp_consistency(with_output=False):
     previous_device = get_device()
     n_cells    = 100
@@ -171,10 +168,10 @@ def test_openmp_consistency(with_output=False):
                                     (2, 'cpp_standalone'),
                                     (3, 'cpp_standalone'),
                                     (4, 'cpp_standalone')]:
-        set_device(devicename)
+        set_device(devicename, build_on_run=False, with_output=False)
         Synapses.__instances__().clear()
         if devicename=='cpp_standalone':
-            device.reinit()
+            reinit_devices()
         prefs.devices.cpp_standalone.openmp_threads = n_threads
         P    = NeuronGroup(n_cells, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
         Q    = SpikeGeneratorGroup(n_cells, sources, times)
@@ -226,13 +223,12 @@ def test_openmp_consistency(with_output=False):
         assert_allclose(results[key1]['v'], results[key2]['v'])
         assert_allclose(results[key1]['r'], results[key2]['r'])
         assert_allclose(results[key1]['s'], results[key2]['s'])
-    set_device(previous_device)
+    reset_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_timedarray(with_output=True):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
 
     defaultclock.dt = 0.1*ms
     ta1d = TimedArray(np.arange(10)*volt, dt=1*ms)
@@ -260,13 +256,12 @@ def test_timedarray(with_output=True):
     # only NaN
     assert_equal(mon[3].y[:], np.nan)
 
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_duplicate_names_across_nets(with_output=True):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     # In standalone mode, names have to be globally unique, not just unique
     # per network
     obj1 = BrianObject(name='name1')
@@ -279,15 +274,14 @@ def test_duplicate_names_across_nets(with_output=True):
     net2.run(0*ms)
     assert_raises(ValueError, lambda: device.build())
 
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_openmp_scalar_writes(with_output=False):
     # Test that writing to a scalar variable only is done once in an OpenMP
     # setting (see github issue #551)
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     prefs.devices.cpp_standalone.openmp_threads = 4
     G = NeuronGroup(10, 's : 1 (shared)')
     G.run_regularly('s += 1')
@@ -299,13 +293,12 @@ def test_openmp_scalar_writes(with_output=False):
                  with_output=with_output)
     assert_equal(G.s[:], 1.0)
 
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_time_after_run(with_output=False):
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     # Check that the clock and network time after a run is correct, even if we
     # have not actually run the code yet (via build)
     G = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1')
@@ -332,14 +325,13 @@ def test_time_after_run(with_output=False):
     assert_allclose(G.t, 20.*ms)
     assert_allclose(net.t, 20.*ms)
 
-    set_device(previous_device)
+    reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_array_cache(with_output=False):
     # Check that variables are only accessible from Python when they should be
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
                            w : 1
                            x : 1
@@ -403,7 +395,7 @@ def test_array_cache(with_output=False):
     assert_allclose(G.i, np.arange(10))
     assert_allclose(S.weight, 7)
 
-    set_device(previous_device)
+    reset_device()
 
 
 if __name__=='__main__':
@@ -422,4 +414,4 @@ if __name__=='__main__':
              test_array_cache
              ]:
         t(with_output=True)
-        restore_device()
+        reinit_devices()

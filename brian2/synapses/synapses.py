@@ -149,11 +149,6 @@ class SynapticPathway(CodeRunner, Group):
         self.eventspace_name = '_{}space'.format(event)
         self.eventspace = None  # will be set in before_run
         self.variables = Variables(self)
-        self.variables.add_dynamic_array('spiking_synapses', unit=Unit(1),
-                                         size=0, dtype=np.int32,
-                                         constant=False,
-                                         constant_size=False,
-                                         scalar=False)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
         if prepost == 'pre':
@@ -170,8 +165,7 @@ class SynapticPathway(CodeRunner, Group):
             else:
                 n_synapses = 0
             self.variables.add_dynamic_array('delay', unit=second,
-                                             size=n_synapses, constant=True,
-                                             constant_size=True)
+                                             size=n_synapses, constant=True)
             # Register the object with the `SynapticIndex` object so it gets
             # automatically resized
             synapses.register_variable(self.variables['delay'])
@@ -194,7 +188,7 @@ class SynapticPathway(CodeRunner, Group):
             # type for scalar and variable delays
             self.variables.add_dynamic_array('delay', unit=second,
                                              size=1, constant=True,
-                                             constant_size=True, scalar=True)
+                                             scalar=True)
             # Since this array does not grow with the number of synapses, we
             # have to resize it ourselves
             self.variables['delay'].resize(1)
@@ -255,7 +249,7 @@ class SynapticPathway(CodeRunner, Group):
             # SynapticPathway.push_spike
             eventspace_name = '_{}space'.format(self.event)
             template_kwds = {'eventspace_variable': self.source.variables[eventspace_name]}
-            needed_variables= [eventspace_name]
+            needed_variables = [eventspace_name]
             self._pushspikes_codeobj = create_runner_codeobj(self,
                                                              '', # no code
                                                              'synapses_push_spikes',
@@ -277,8 +271,9 @@ class SynapticPathway(CodeRunner, Group):
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 
-        # Update the dt (might have changed between runs)
+        self.variables.add_object('_queue', self.queue)
 
+        # Update the dt (might have changed between runs)
         self.queue.prepare(self._delays.get_value(), self.source.clock.dt_,
                            self.synapse_sources.get_value())
 
@@ -316,15 +311,9 @@ class SynapticPathway(CodeRunner, Group):
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
         events = self.eventspace[:self.eventspace[len(self.eventspace)-1]]
+
         if len(events):
             self.queue.push(events)
-        # Get the spikes
-        spiking_synapses = self.queue.peek()
-        spiking_synapses_var = self.variables['spiking_synapses']
-        spiking_synapses_var.resize(len(spiking_synapses))
-        spiking_synapses_var.set_value(spiking_synapses)
-        # Advance the spike queue
-        self.queue.advance()
 
 
 def slice_to_test(x):
@@ -634,7 +623,7 @@ class Synapses(Group):
                              'object, is "%s" instead.') % type(model))
 
         # Check flags
-        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven'],
+        model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'clock-driven'],
                            SUBEXPRESSION: ['summed', 'shared'],
                            PARAMETER: ['constant', 'shared']})
 
@@ -667,6 +656,21 @@ class Synapses(Group):
             elif 'summed' in single_equation.flags:
                 summed_updates.append(single_equation)
             else:
+                if (single_equation.type == DIFFERENTIAL_EQUATION and
+                            'clock-driven' not in single_equation.flags):
+                    logger.warn(('The synaptic equation for the variable {var} '
+                                 'does not specify whether it should be '
+                                 'integrated at every timestep ("clock-driven") '
+                                 'or only at spiking events ("event-driven"). '
+                                 'It will be integrated at every timestep '
+                                 'which can slow down your simulation '
+                                 'unnecessarily if you only need the values of '
+                                 'this variable whenever a spike occurs. '
+                                 'Specify the equation as clock-driven '
+                                 'explicitly to avoid this '
+                                 'warning.').format(var=single_equation.varname),
+                                'clock_driven',
+                                once=True)
                 continuous.append(single_equation)
 
         if len(event_driven):
@@ -888,9 +892,9 @@ class Synapses(Group):
 
         # Standard variables always present
         self.variables.add_dynamic_array('_synaptic_pre', size=0, unit=Unit(1),
-                                         dtype=np.int32, constant_size=True)
+                                         dtype=np.int32)
         self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
-                                         dtype=np.int32, constant_size=True)
+                                         dtype=np.int32)
         self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
         self.variables.add_reference('j', self.target, 'i',
@@ -947,10 +951,6 @@ class Synapses(Group):
                                              scalar=True,
                                              index='0')
                 else:
-                    # We are dealing with dynamic arrays here, code generation
-                    # shouldn't directly access the specifier.array attribute but
-                    # use specifier.get_value() to get a reference to the underlying
-                    # array
                     self.variables.add_dynamic_array(eq.varname, size=0,
                                                      unit=eq.unit,
                                                      dtype=dtype,

@@ -180,6 +180,9 @@ class Thresholder(CodeRunner):
         eventspace_name = '_{}space'.format(event)
         template_kwds['eventspace_variable'] = group.variables[eventspace_name]
         needed_variables.append(eventspace_name)
+        self.variables = Variables(self)
+        self.variables.add_auxiliary_variable('_cond', unit=Unit(1),
+                                              dtype=np.bool)
         CodeRunner.__init__(self, group,
                             'threshold',
                             code='',  # will be set in update_abstract_code
@@ -221,7 +224,7 @@ class Thresholder(CodeRunner):
             self.abstract_code = '_cond = %s' % code
         else:
             self.abstract_code = '_cond = (%s) and not_refractory' % code
-        
+
 
 class Resetter(CodeRunner):
     '''
@@ -445,14 +448,6 @@ class NeuronGroup(Group, SpikeSource):
 
         if reset is not None:
             self.run_on_event('spike', reset, when='resets')
-
-        # We try to run a before_run already now. This might fail because of an
-        # incomplete namespace but if the namespace is already complete we
-        # can spot unit errors in the equation already here.
-        try:
-            self.before_run(None)
-        except KeyError:
-            pass
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)

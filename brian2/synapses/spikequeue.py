@@ -28,9 +28,6 @@ class SpikeQueue(object):
         The start of the source indices (for subgroups)
     source_end : int
         The end of the source indices (for subgroups)
-    dtype : `dtype`, optional
-        The data type that should be used for the spike queue (defaults to
-         `numpy.int32`).
     Notes
     -----
     **Data structure** 
@@ -47,7 +44,7 @@ class SpikeQueue(object):
     events with the same delay, these events are given an offset between 0 and
     n-1, corresponding to their relative position in the data structure.
     '''
-    def __init__(self, source_start, source_end, dtype=np.int32):
+    def __init__(self, source_start, source_end):
 
         #: The start of the source indices (for subgroups)
         self._source_start = source_start
@@ -55,8 +52,8 @@ class SpikeQueue(object):
         #: The end of the source indices (for subgroups)
         self._source_end = source_end
 
-        self.dtype=dtype
-        self.X = np.zeros((1,1), dtype=dtype) # target synapses
+        self.dtype = np.int32  # TODO: Ths is fixed for now
+        self.X = np.zeros((1,1), dtype=self.dtype)  # target synapses
         self.X_flat = self.X.reshape(1, )
         #: The current time (in time steps)
         self.currenttime = 0
@@ -298,7 +295,7 @@ class SpikeQueue(object):
         old_maxevents = self.X.shape[1]
         new_maxevents = int(2**np.ceil(np.log2(maxevents))) # maybe 2 is too large
         # new array
-        newX = np.zeros((self.X.shape[0], new_maxevents), dtype = self.X.dtype)
+        newX = np.zeros((self.X.shape[0], new_maxevents), dtype=self.X.dtype)
         newX[:, :old_maxevents] = self.X[:, :old_maxevents] # copy old data
 
         self.X = newX

@@ -2,6 +2,7 @@
 Utility functions for parsing expressions and statements.
 '''
 import sympy
+from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10
@@ -75,6 +76,11 @@ class CustomSympyPrinter(StrPrinter):
         if len(expr.args) != 1:
             raise AssertionError('"Not" with %d arguments?' % len(expr.args))
         return 'not (%s)' % self.doprint(expr.args[0])
+
+    def _print_Relational(self, expr):
+        return '%s %s %s' % (self.parenthesize(expr.lhs, precedence(expr)),
+                             self._relationals.get(expr.rel_op) or expr.rel_op,
+                             self.parenthesize(expr.rhs, precedence(expr)))
 
     def _print_Function(self, expr):
         # Special workaround for the int function
@@ -182,6 +188,13 @@ def expression_complexity(expr, complexity=None):
     complexity: int
         The complexity of the expression.
     '''
+    if isinstance(expr, str):
+        # we do this because sympy.count_ops doesn't handle inequalities (TODO: handle sympy as well str)
+        for op in ['<=', '>=', '==', '<', '>']:
+            expr = expr.replace(op, '+')
+        # work around bug with rand() and randn() (TODO: improve this)
+        expr = expr.replace('rand()', 'rand(0)')
+        expr = expr.replace('randn()', 'randn(0)')
     subs = {'ADD':1, 'DIV':2, 'MUL':1, 'SUB':1}
     if complexity is not None:
         subs.update(complexity)

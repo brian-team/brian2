@@ -12,19 +12,36 @@ propagation rules (such as STDP).
 C++ standalone
 --------------
 
-To use the C++ standalone mode, make the following changes to your script:
+To use the C++ standalone mode, you only have to make very small changes to your script. The exact change depends on
+whether your script has only a single `run` (or `Network.run`) call, or several of them:
 
-1. At the beginning of the script, i.e. after the import statements, add::
+Single run call
+~~~~~~~~~~~~~~~
+At the beginning of the script, i.e. after the import statements, add::
 
     set_device('cpp_standalone')
 
-2. After ``run(duration)`` in your script, add::
+The `CPPStandaloneDevice.build` function will be automatically called with default arguments right after the `run`
+call. If you need non-standard arguments then you can specify them as part of the `set_device` call::
+
+    set_device('cpp_standalone', directory='my_directory', debug=True)
+
+Multiple run call
+~~~~~~~~~~~~~~~~~
+At the beginning of the script, i.e. after the import statements, add::
+
+    set_device('cpp_standalone', build_on_run=False)
+
+After the last `run` call, call `device.build` explicitly::
 
     device.build(directory='output', compile=True, run=True, debug=False)
 
-The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to compile and run
-the project after creating it (using ``gcc``) and whether or not to compile it with debugging support or not.
+The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to
+compile and run the project after creating it (using ``gcc``) and whether or not to compile it with debugging support
+or not.
 
+Limitations
+~~~~~~~~~~~
 Not all features of Brian will work with C++ standalone, in particular Python based network operations and
 some array based syntax such as ``S.w[0, :] = ...`` will not work. If possible, rewrite these using string
 based syntax and they should work. Also note that since the Python code actually runs as normal, code that does
@@ -44,7 +61,10 @@ C++ source code and modifying it, or by inserting code directly into the main lo
     cout << "Testing direct insertion of code." << endl;
     ''')
 
-After a simulation has been run (using the ``run`` keyword in the `Device.build` call), state variables and
+Variables
+~~~~~~~~~
+After a simulation has been run (after the `run` call if `set_device` has been called with ``build_on_run`` set to
+``True`` or after the `Device.build` call with ``run`` set to ``True``), state variables and
 monitored variables can be accessed using standard syntax, with a few exceptions (e.g. string expressions for indexing).
 
 .. _openmp:

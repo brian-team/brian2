@@ -26,14 +26,17 @@ try:
     import Cython
     import Cython.Compiler as Cython_Compiler
     import Cython.Build as Cython_Build
+    from Cython.Utils import get_cython_cache_dir
 except ImportError:
     Cython = None
 
-from brian2.utils.logger import std_silent
+from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.core.preferences import prefs
 
 __all__ = ['cython_extension_manager']
+
+logger = get_logger(__name__)
 
 
 class CythonExtensionManager(object):
@@ -48,6 +51,7 @@ class CythonExtensionManager(object):
                          extra_link_args=None,
                          libraries=None,
                          compiler=None,
+                         owner_name='',
                          ):
 
         self._simplify_paths()
@@ -57,12 +61,17 @@ class CythonExtensionManager(object):
 
         code = deindent(code)
 
-        lib_dir = os.path.expanduser('~/.brian/cython_extensions')
+        lib_dir = prefs.codegen.runtime.cython.cache_dir
+        if lib_dir is None:
+            lib_dir = os.path.join(get_cython_cache_dir(), 'brian_extensions')
+        if '~' in lib_dir:
+            lib_dir = os.path.expanduser(lib_dir)
         try:
             os.makedirs(lib_dir)
         except OSError:
             if not os.path.exists(lib_dir):
-                raise
+                raise IOError("Couldn't create Cython cache directory '%s', try setting the "
+                              "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
 
         key = code, sys.version_info, sys.executable, Cython.__version__
             
@@ -78,7 +87,9 @@ class CythonExtensionManager(object):
             module_name = name#py3compat.unicode_to_str(args.name)
         else:
             module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
-
+        if owner_name:
+            logger.debug('"{owner_name}" using Cython module "{module_name}"'.format(owner_name=owner_name,
+                                                                                     module_name=module_name))
 
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)

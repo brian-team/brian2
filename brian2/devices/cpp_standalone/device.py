@@ -16,7 +16,7 @@ from cpuinfo import cpuinfo
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
-from brian2.devices.device import Device, all_devices, get_device, set_device
+from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.parsing.rendering import CPPNodeRenderer
@@ -109,6 +109,12 @@ class CPPStandaloneDevice(Device):
         #: Whether the simulation has been run
         self.has_been_run = False
 
+        #: Whether a run should trigger a build
+        self.build_on_run = False
+
+        #: build options
+        self.build_options = None
+
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
@@ -124,8 +130,14 @@ class CPPStandaloneDevice(Device):
         self.clocks = set([])
         
     def reinit(self):
+        # Remember the build_on_run setting and its options -- important during
+        # testing
+        build_on_run = self.build_on_run
+        build_options = self.build_options
         self.__init__()
         super(CPPStandaloneDevice, self).reinit()
+        self.build_on_run = build_on_run
+        self.build_options = build_options
 
     def freeze(self, code, ns):
         # this is a bit of a hack, it should be passed to the template somehow
@@ -259,13 +271,13 @@ class CPPStandaloneDevice(Device):
                 array_name = orig_array_name + '_%d' % suffix
             self.arrays[var] = array_name
 
-    def init_with_zeros(self, var):
+    def init_with_zeros(self, var, dtype):
         self.zero_arrays.append(var)
-        self.array_cache[var] = np.zeros(var.size)
+        self.array_cache[var] = np.zeros(var.size, dtype=dtype)
 
-    def init_with_arange(self, var, start):
+    def init_with_arange(self, var, start, dtype):
         self.arange_arrays[var] = start
-        self.array_cache[var] = np.arange(0, var.size) + start
+        self.array_cache[var] = np.arange(0, var.size, dtype=dtype) + start
 
     def fill_with_array(self, var, arr):
         arr = np.asarray(arr)
@@ -409,12 +421,11 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
         # Temporarily switch to the runtime device to evaluate the subexpression
         # (based on the values stored on disk)
-        backup_device = get_device()
         set_device('runtime')
         result = VariableView.get_subexpression_with_index_array(variableview, item,
                                                                  level=level+2,
                                                                  run_namespace=run_namespace)
-        set_device(backup_device)
+        reset_device()
         return result
 
     def variableview_get_with_expression(self, variableview, code, level=0,
@@ -713,6 +724,7 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
+        num_threads = prefs.devices.cpp_standalone.openmp_threads
         with in_directory(directory):
             if compiler == 'msvc':
                 from distutils import msvc9compiler
@@ -724,8 +736,13 @@ class CPPStandaloneDevice(Device):
                     for version in xrange(16, 8, -1):
                         fname = msvc9compiler.find_vcvarsall(version)
                         if fname:
-                            vcvars_loc = fname
-                            break
+                            if version==14 and num_threads>0:
+                                logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
+                                            "that version it is being ignored. We will use another version if "
+                                            "we find one, or you can switch OpenMP support off.")
+                            else:
+                                vcvars_loc = fname
+                                break
                 if vcvars_loc == '':
                     raise IOError("Cannot find vcvarsall.bat on standard "
                                   "search path. Set the "
@@ -788,7 +805,7 @@ class CPPStandaloneDevice(Device):
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,
               with_output=True, additional_source_files=None,
-              run_args=None, **kwds):
+              run_args=None, direct_call=True, **kwds):
         '''
         Build the project
 
@@ -796,22 +813,42 @@ class CPPStandaloneDevice(Device):
 
         Parameters
         ----------
-        directory : str
-            The output directory to write the project to, any existing files will be overwritten.
-        compile : bool
-            Whether or not to attempt to compile the project
-        run : bool
-            Whether or not to attempt to run the built project if it successfully builds.
-        debug : bool
-            Whether to compile in debug mode.
-        with_output : bool
-            Whether or not to show the ``stdout`` of the built program when run. Output will be shown in case
-            of compilation or runtime error.
-        clean : bool
-            Whether or not to clean the project before building
-        additional_source_files : list of str
+        directory : str, optional
+            The output directory to write the project to, any existing files
+            will be overwritten. If the given directory name is ``None``, then
+            a temporary directory will be used (used in the test suite to avoid
+            problems when running several tests in parallel). Defaults to
+            ``'output'``.
+        compile : bool, optional
+            Whether or not to attempt to compile the project. Defaults to
+            ``True``.
+        run : bool, optional
+            Whether or not to attempt to run the built project if it
+            successfully builds. Defaults to ``True``.
+        debug : bool, optional
+            Whether to compile in debug mode. Defaults to ``False``.
+        with_output : bool, optional
+            Whether or not to show the ``stdout`` of the built program when run.
+            Output will be shown in case of compilation or runtime error.
+            Defaults to ``True``.
+        clean : bool, optional
+            Whether or not to clean the project before building. Defaults to
+            ``True``.
+        additional_source_files : list of str, optional
             A list of additional ``.cpp`` files to include in the build.
+        direct_call : bool, optional
+            Whether this function was called directly. Is used internally to
+            distinguish an automatic build due to the ``build_on_run`` option
+            from a manual ``device.build`` call.
         '''
+        if self.build_on_run and direct_call:
+            raise RuntimeError('You used set_device with build_on_run=True '
+                               '(the default option), which will automatically '
+                               'build the simulation at the first encountered '
+                               'run call - do not call device.build manually '
+                               'in this case. If you want to call it manually, '
+                               'e.g. because you have multiple run calls, use '
+                               'set_device with build_on_run=False.')
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
                    'run_project': 'run'}
@@ -829,6 +866,8 @@ class CPPStandaloneDevice(Device):
             additional_source_files = []
         if run_args is None:
             run_args = []
+        if directory is None:
+            directory = tempfile.mkdtemp()
         self.project_dir = directory
         ensure_directory(directory)
 
@@ -997,6 +1036,15 @@ class CPPStandaloneDevice(Device):
             self.array_cache[clock.variables['timestep']] = np.array([clock._i_end])
             self.array_cache[clock.variables['t']] = np.array([clock._i_end * clock.dt_])
 
+        if self.build_on_run:
+            if self.has_been_run:
+                raise RuntimeError('The network has already been built and run '
+                                   'before. Use set_device with '
+                                   'build_on_run=False and an explicit '
+                                   'device.build call to use multiple run '
+                                   'statements with this device.')
+            self.build(direct_call=False, **self.build_options)
+
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '
                                    'supported in the C++ standalone'))
@@ -1043,22 +1091,3 @@ class RunFunctionContext(object):
 
 cpp_standalone_device = CPPStandaloneDevice()
 all_devices['cpp_standalone'] = cpp_standalone_device
-
-
-class CPPStandaloneSimpleDevice(CPPStandaloneDevice):
-    def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, profile=True, level=0, **kwds):
-        super(CPPStandaloneSimpleDevice, self).network_run(net, duration,
-                                                     report=report,
-                                                     report_period=report_period,
-                                                     namespace=namespace,
-                                                     profile=profile,
-                                                     level=level+1,
-                                                     **kwds)
-        tempdir = tempfile.mkdtemp()
-        self.build(directory=tempdir, compile=True, run=True, debug=False,
-                   with_output=False)
-
-cpp_standalone_simple_device = CPPStandaloneSimpleDevice()
-
-all_devices['cpp_standalone_simple'] = cpp_standalone_simple_device

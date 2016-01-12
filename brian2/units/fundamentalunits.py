@@ -901,7 +901,7 @@ class Quantity(np.ndarray, object):
                                              arr.dim, dim)
         elif hasattr(arr, 'unit'):
             subarr.dim = arr.unit.dim if arr.unit is not None else None
-            if not (dim is None) and not (dim is subarr.dim):
+            if not (dim is None or subarr.dim is None) and not (dim is subarr.dim):
                 raise DimensionMismatchError('Conflicting dimension '
                                              'information between array and '
                                              'dim keyword',
@@ -2380,7 +2380,11 @@ def check_units(**au):
         # function in expressions or equations
         arg_units = []
         all_specified = True
-        for name in f.func_code.co_varnames[:f.func_code.co_argcount]:
+        if hasattr(f, '_orig_arg_names'):
+            arg_names = f._orig_arg_names
+        else:
+            arg_names = f.func_code.co_varnames[:f.func_code.co_argcount]
+        for name in arg_names:
             unit = au.get(name, None)
             if unit is None:
                 all_specified = False
@@ -2397,5 +2401,14 @@ def check_units(**au):
         else:
             new_f._return_unit = return_unit
 
+        new_f._orig_arg_names = arg_names
+
+        # copy any annotation attributes
+        if hasattr(f, '_annotation_attributes'):
+            for attrname in f._annotation_attributes:
+                setattr(new_f, attrname, getattr(f, attrname))
+        new_f._annotation_attributes = getattr(f, '_annotation_attributes', [])+['_arg_units',
+                                                                                 '_return_unit',
+                                                                                 '_orig_func']
         return new_f
     return do_check_units

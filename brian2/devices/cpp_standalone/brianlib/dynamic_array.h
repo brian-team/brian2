@@ -72,7 +72,9 @@ public:
 		m = _m;
 		resize();
 	}
-	inline T& operator()(int i, int j)
+	// We cannot simply use T& as the return type here, since we don't
+	// get a bool& out of a std::vector<bool>
+	inline typename std::vector<T>::reference operator()(int i, int j)
 	{
 		return (*data[i])[j];
 	}

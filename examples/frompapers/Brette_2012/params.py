@@ -14,5 +14,5 @@ Ri = 150*ohm*cm
 ENa = 60*mV
 ka = 6*mV
 va = -40*mV
-gNa = gL * 2*S
+gNa_0 = gL * 2*S
 taum = 0.1*ms

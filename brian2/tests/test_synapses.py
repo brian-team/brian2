@@ -8,11 +8,11 @@ from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
-from brian2.core.variables import variables_by_owner, ArrayVariable
+from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
-from brian2.devices.device import restore_device, all_devices, get_device
+from brian2.devices.device import reinit_devices, all_devices, get_device, set_device, reset_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 
 
@@ -144,10 +144,9 @@ def test_connection_arrays():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_connection_array_standalone():
-    previous_device = get_device()
-    set_device('cpp_standalone')
+    set_device('cpp_standalone', build_on_run=False)
     # use a clock with 1s timesteps to avoid rounding issues
     G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
                              [0, 1, 2, 3]*second, dt=1*second)
@@ -168,7 +167,7 @@ def test_connection_array_standalone():
                          [0, 0, 0, 1, 1],
                          [0, 0, 0, 0, 0]], dtype=np.float64)
     assert_equal(mon.v, expected)
-    set_device(previous_device)
+    reset_device()
 
 
 def test_connection_string_deterministic_basic():
@@ -524,7 +523,7 @@ def test_pre_before_post():
     assert G.y == 1
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_simple():
     source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
     target = NeuronGroup(2, 'v : 1')
@@ -537,7 +536,7 @@ def test_transmission_simple():
     assert_equal(mon[1].v[mon.t>=1*ms], 1.)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_custom_event():
     source = NeuronGroup(2, '',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
@@ -561,7 +560,7 @@ def test_invalid_custom_event():
     assert_raises(ValueError, lambda: Synapses(group2, group2, pre='v+=1',
                                                on_event='custom'))
 
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission():
     default_dt = defaultclock.dt
     delays = [[0, 0, 0, 0] * ms,
@@ -590,7 +589,7 @@ def test_transmission():
                             target_mon.t[target_mon.i==d] - default_dt - delay[d])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_all_to_one_heterogeneous_delays():
     source = SpikeGeneratorGroup(6,
                                  [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
@@ -607,7 +606,7 @@ def test_transmission_all_to_one_heterogeneous_delays():
     assert mon[0].v[3] == 48
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_one_to_all_heterogeneous_delays():
     source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
     target = NeuronGroup(6, 'v:integer')
@@ -624,7 +623,7 @@ def test_transmission_one_to_all_heterogeneous_delays():
     assert_equal(mon[5].v, [0, 1, 1, 2])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
@@ -637,7 +636,7 @@ def test_transmission_scalar_delay():
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_transmission_scalar_delay_different_clocks():
 
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms,
@@ -720,7 +719,7 @@ def test_no_synapses():
         assert l[0][1].endswith('.no_synapses')
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
     source.v = 1.1  # will spike immediately
@@ -822,7 +821,7 @@ def test_scalar_subexpression():
                                                 pre='v+=s', connect=True))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_external_variables():
     # Make sure that external variables are correctly resolved
     source = SpikeGeneratorGroup(1, [0], [0]*ms)
@@ -836,7 +835,7 @@ def test_external_variables():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -934,10 +933,15 @@ def check_permutation_code(code):
             indices[var] ='_presynaptic_idx'
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
+        elif var.endswith('_const'):
+            indices[var] = '0'
     variables = dict()
     variables.update(DEFAULT_FUNCTIONS)
     for var in indices:
-        variables[var] = ArrayVariable(var, 1, None, 10, device)
+        if var.endswith('_const'):
+            variables[var] = Constant(var, 1, 42, owner=device)
+        else:
+            variables[var] = ArrayVariable(var, 1, None, 10, device)
     variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
@@ -964,7 +968,15 @@ def numerically_check_permutation_code(code):
         elif var.endswith('_post'):
             indices[var] = '_postsynaptic_idx'
             vals[var] = zeros(3)
-    subs = dict((var, var+'['+idx+']') for var, idx in indices.iteritems())
+        elif var.endswith('_shared'):
+            indices[var] = '0'
+            vals[var] = zeros(1)
+        elif var.endswith('_const'):
+            indices[var] = '0'
+            vals[var] = 42
+    subs = dict((var, var+'['+idx+']')
+                for var, idx in indices.iteritems()
+                if not var.endswith('_const'))
     code = word_substitute(code, subs)
     code = '''
 from numpy import *
@@ -981,15 +993,17 @@ for _idx in shuffled_indices:
     for _ in xrange(10):
         origvals = {}
         for k, v in vals.iteritems():
-            v[:] = randn(len(v))
-            origvals[k] = v.copy()
+            if not k.endswith('_const'):
+                v[:] = randn(len(v))
+                origvals[k] = v.copy()
         exec code in ns
         endvals = {}
         for k, v in vals.iteritems():
-            endvals[k] = v.copy()
+            endvals[k] = copy(v)
         for _ in xrange(10):
             for k, v in vals.iteritems():
-                v[:] = origvals[k]
+                if not k.endswith('_const'):
+                    v[:] = origvals[k]
             shuffle(ns['shuffled_indices'])
             exec code in ns
             for k, v in vals.iteritems():
@@ -1008,7 +1022,11 @@ permutation_analysis_good_examples = [
     'v_post = w_syn * v_post',
     'v_post += 1',
     'v_post = 1',
+    'v_post = c_const',
+    'v_post = x_shared',
     'v_post += v_post # NOT_UFUNC_AT_VECTORISABLE',
+    'v_post += c_const',
+    'v_post += x_shared',
     #'v_post += w_syn*v_post', # this is a hard one (it is good for w*v but bad for w+v)
     'v_post += sin(-v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += u_post',
@@ -1017,6 +1035,8 @@ permutation_analysis_good_examples = [
     'v_post -= sin(v_post) # NOT_UFUNC_AT_VECTORISABLE',
     'v_post += v_pre',
     'v_pre += v_post',
+    'v_pre += c_const',
+    'v_pre += x_shared',
     'w_syn = v_pre',
     'w_syn = a_syn',
     'w_syn += a_syn',
@@ -1024,10 +1044,22 @@ permutation_analysis_good_examples = [
     'w_syn -= a_syn',
     'w_syn /= a_syn',
     'w_syn += 1',
+    'w_syn += c_const',
+    'w_syn += x_shared',
     'w_syn *= 2',
+    'w_syn *= c_const',
+    'w_syn *= x_shared',
     '''
     w_syn = a_syn
     a_syn += 1
+    ''',
+    '''
+    w_syn = a_syn
+    a_syn += c_const
+    ''',
+    '''
+    w_syn = a_syn
+    a_syn += x_shared
     ''',
     'v_post *= 2',
     'v_post *= w_syn',
@@ -1036,8 +1068,26 @@ permutation_analysis_good_examples = [
     w_syn = v_pre
     ''',
     '''
+    v_pre = c_const
+    w_syn = v_pre
+    ''',
+    '''
+    v_pre = x_shared
+    w_syn = v_pre
+    ''',
+    '''
     ge_syn += w_syn
     Apre_syn += 3
+    w_syn = clip(w_syn + Apost_syn, 0, 10)
+    ''',
+    '''
+    ge_syn += w_syn
+    Apre_syn += c_const
+    w_syn = clip(w_syn + Apost_syn, 0, 10)
+    ''',
+    '''
+    ge_syn += w_syn
+    Apre_syn += x_shared
     w_syn = clip(w_syn + Apost_syn, 0, 10)
     ''',
     '''
@@ -1120,7 +1170,7 @@ def test_permutation_analysis():
             raise AssertionError("Order dependence not raised for example: "+example)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_vectorisation():
     source = NeuronGroup(10, 'v : 1', threshold='v>1')
     target = NeuronGroup(10, '''x : 1
@@ -1138,7 +1188,7 @@ def test_vectorisation():
     assert_equal(target.x[:], target.y[:])
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_vectorisation_STDP_like():
     # Test the use of pre- and post-synaptic traces that are stored in the
     # pre/post group instead of in the synapses
@@ -1186,18 +1236,18 @@ def test_vectorisation_STDP_like():
                     rtol=1e-6, atol=1e-12)
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synaptic_equations():
     # Check that integration works for synaptic equations
     G = NeuronGroup(10, '')
     tau = 10*ms
-    S = Synapses(G, G, 'dw/dt = -w / tau : 1', connect='i==j')
+    S = Synapses(G, G, 'dw/dt = -w / tau : 1 (clock-driven)', connect='i==j')
     S.w = 'i'
     run(10*ms)
     assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
@@ -1225,16 +1275,23 @@ def test_ufunc_at_vectorisation():
         vars_src = []
         vars_tgt = []
         vars_syn = []
+        vars_shared = []
+        vars_const = {}
         for var in vars:
             if var.endswith('_pre'):
                 vars_src.append(var[:-4])
-            if var.endswith('_post'):
+            elif var.endswith('_post'):
                 vars_tgt.append(var[:-5])
-            if var.endswith('_syn'):
+            elif var.endswith('_syn'):
                 vars_syn.append(var[:-4])
+            elif var.endswith('_shared'):
+                vars_shared.append(var[:-7])
+            elif var.endswith('_const'):
+                vars_const[var[:-6]] = 42
         eqs_src = '\n'.join(var+':1' for var in vars_src)
         eqs_tgt = '\n'.join(var+':1' for var in vars_tgt)
         eqs_syn = '\n'.join(var+':1' for var in vars_syn)
+        eqs_syn += '\n' + '\n'.join(var+':1 (shared)' for var in vars_shared)
         origvals = {}
         endvals = {}
         try:
@@ -1244,7 +1301,9 @@ def test_ufunc_at_vectorisation():
                     NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
                     src = NeuronGroup(3, eqs_src, threshold='True', name='src')
                     tgt = NeuronGroup(3, eqs_tgt, name='tgt')
-                    syn = Synapses(src, tgt, eqs_syn, pre=code.replace('_syn', ''), connect=True, name='syn')
+                    syn = Synapses(src, tgt, eqs_syn,
+                                   pre=code.replace('_syn', '').replace('_const', '').replace('_shared', ''),
+                                   connect=True, name='syn', namespace=vars_const)
                     for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
                         for var in vars:
                             fullvar = var+G.name
@@ -1276,7 +1335,7 @@ def test_ufunc_at_vectorisation():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_device)
+@with_setup(teardown=reinit_devices)
 def test_synapses_to_synapses_summed_variable():
     source = NeuronGroup(5, '', threshold='False')
     target = NeuronGroup(5, '')
@@ -1304,7 +1363,7 @@ if __name__ == '__main__':
     test_connection_multiple_synapses()
     test_connection_arrays()
     test_connection_array_standalone()
-    restore_device()
+    reinit_devices()
     test_state_variable_assignment()
     test_state_variable_indexing()
     test_indices()

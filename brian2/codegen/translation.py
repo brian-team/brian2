@@ -14,10 +14,8 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
-import ast
 import re
 import collections
-from collections import OrderedDict
 
 import numpy as np
 import sympy
@@ -26,20 +24,18 @@ from brian2.core.preferences import prefs
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
-                                      get_identifiers, word_substitute)
+                                      get_identifiers)
 from brian2.utils.topsort import topsort
 from brian2.units.fundamentalunits import Unit
 from brian2.parsing.statements import parse_statement
-from brian2.parsing.rendering import NodeRenderer
-from brian2.parsing.sympytools import str_to_sympy, sympy_to_str, expression_complexity
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .statements import Statement
-
+from .optimisation import optimise_statements
 
 __all__ = ['make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
 
-DEBUG = False
 
 
 class LineInfo(object):
@@ -97,8 +93,7 @@ def analyse_identifiers(code, variables, recursive=False):
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
-    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64,
-                                                 loop_invariant_optimisations=False)
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float64, optimise=False)
     stmts = scalar_stmts + vector_stmts
     defined = set(stmt.var for stmt in stmts if stmt.op == ':=')
     if len(stmts) == 0:
@@ -172,139 +167,7 @@ def is_scalar_expression(expr, variables):
                for name in identifiers)
 
 
-def has_non_float(expr, variables):
-    '''
-    Whether the given expression has an integer or boolean variable in it.
-
-    Parameters
-    ----------
-    expr : str
-        The expression to check
-    variables : dict-like
-        `Variable` and `Function` object for all the identifiers used in `expr`
-
-    Returns
-    -------
-    has_non_float : bool
-        Whether `expr` has an integer or boolean in it
-    '''
-    identifiers = get_identifiers_recursively([expr], variables,
-                                              include_numbers=True)
-    # Check whether there is an integer literal in the expression:
-    for name in identifiers:
-        if name not in variables:
-            try:
-                int(name)
-                # if this worked, this was an integer literal
-                return True
-            except (TypeError, ValueError):
-                pass  # not an integer literal
-    non_float_var = any((name in variables and isinstance(name, Variable) and
-                         (np.issubdtype(variables[name].dtype, np.integer) or
-                          np.issubdtype(variables[name].dtype, np.bool_)))
-                        for name in identifiers)
-    return non_float_var
-
-
-class LIONodeRenderer(NodeRenderer):
-    '''
-    Renders expressions, pulling out scalar expressions and remembering them
-    for later use.
-    '''
-    def __init__(self, variables):
-        self.variables = variables
-        self.boolvars = dict((k, v) for k, v in self.variables.iteritems() if hasattr(v, 'dtype') and v.dtype==bool)
-        self.optimisations = OrderedDict()
-        self.n = 0
-        NodeRenderer.__init__(self, use_vectorisation_idx=False)
-
-    def render_node(self, node):
-        expr = NodeRenderer(use_vectorisation_idx=False).render_node(node)
-
-        if is_scalar_expression(expr, self.variables) and not has_non_float(expr,
-                                                                            self.variables):
-            if expr in self.optimisations:
-                name = self.optimisations[expr]
-            else:
-                # Do not pull out very simple expressions (including constants
-                # and numbers)
-                sympy_expr = str_to_sympy(expr)
-                if expression_complexity(sympy_expr) < 2:
-                    return expr
-                self.n += 1
-                name = '_lio_const_'+str(self.n)
-                self.optimisations[expr] = name
-            return name
-        else:
-            for varname, var in self.boolvars.iteritems():
-                expr_0 = word_substitute(expr, {varname: '0.0'})
-                expr_1 = '(%s)-(%s)' % (word_substitute(expr, {varname: '1.0'}), expr_0)
-                if (is_scalar_expression(expr_0, self.variables) and is_scalar_expression(expr_1, self.variables) and
-                        not has_non_float(expr, self.variables)):
-                    # we do this check here because we don't want to apply it to statements, only expressions
-                    if expression_complexity(expr)<=4:
-                        break
-                    if expr_0 not in self.optimisations:
-                        self.n += 1
-                        name_0 = '_lio_const_'+str(self.n)
-                        self.optimisations[expr_0] = name_0
-                    else:
-                        name_0 = self.optimisations[expr_0]
-                    if expr_1 not in self.optimisations:
-                        self.n += 1
-                        name_1 = '_lio_const_'+str(self.n)
-                        self.optimisations[expr_1] = name_1
-                    else:
-                        name_1 = self.optimisations[expr_1]
-                    newexpr = '({name_0}+{name_1}*int({varname}))'.format(name_0=name_0, name_1=name_1,
-                                                                     varname=varname)
-                    return newexpr
-            return NodeRenderer.render_node(self, node)
-
-
-def apply_loop_invariant_optimisations(statements, variables, dtype):
-    '''
-    Analyzes statements to pull out expressions that need to be evaluated only
-    once.
-
-    Parameters
-    ----------
-    statements : list of `Statement`
-        The statements to analyze.
-    variables : dict-like
-        A mapping of identifier names used in `statements` to `Variable` or
-        `Function` objects.
-    dtype : `dtype`
-        The data type to use for the newly introduced scalar constants
-
-    Returns
-    -------
-    scalar_stmts, vector_stmts : pair of list of `Statement` objects
-        A list of new scalar statements to define constant for expressions that
-        need to be evaluated only once and the rewritten statements using those
-        constants
-    '''
-    renderer = LIONodeRenderer(variables)
-
-    vector_statements = []
-    for stmt in statements:
-        new_expr = renderer.render_node(ast.parse(stmt.expr, mode='eval').body)
-        vector_statements.append(Statement(stmt.var, stmt.op, new_expr, stmt.comment,
-                                           dtype=stmt.dtype,
-                                           constant=stmt.constant,
-                                           subexpression=stmt.subexpression,
-                                           scalar=stmt.scalar))
-
-    scalar_constants = [Statement(name, ':=', expr, '',
-                                  dtype=dtype,
-                                  constant=True,
-                                  subexpression=False,
-                                  scalar=True)
-                        for expr, name in renderer.optimisations.iteritems()]
-    return scalar_constants, vector_statements
-
-
-def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
+def make_statements(code, variables, dtype, optimise=True):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
@@ -319,8 +182,9 @@ def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
         identifier used in the `code`.
     dtype : `dtype`
         The data type to use for temporary variables
-    loop_invariant_optimisations : bool, optional
-        Whether to pull out loop invariant expressions and put them in new
+    optimise : bool, optional
+        Whether to optimise expressions, including
+        pulling out loop invariant expressions and putting them in new
         scalar constants. Defaults to ``False``, since this function is also
         used just to in contexts where we are not interested by this kind of
         optimisation. For the main code generation stage, its value is set by
@@ -334,19 +198,19 @@ def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
 
     Notes
     -----
-    If ``loop_invariant_optimisations`` is ``True``, then the
+    If ``optimise`` is ``True``, then the
     ``scalar_statements`` may include newly introduced scalar constants that
     have been identified as loop-invariant and have therefore been pulled out
     of the vector statements. The resulting statements will also use augmented
     assignments where possible, i.e. a statement such as ``w = w + 1`` will be
-    replaced by ``w += 1``.
+    replaced by ``w += 1``. Also, statements involving booleans will have
+    additional information added to them (see `Statement` for details)
+    describing how the statement can be reformulated as a sequence of if/then
+    statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
     '''
     code = strip_empty_lines(deindent(code))
     lines = re.split(r'[;\n]', code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
-    if DEBUG:
-        print 'INPUT CODE:'
-        print code
     # Do a copy so we can add stuff without altering the original dict
     variables = dict(variables)
     # we will do inference to work out which lines are := and which are =
@@ -415,18 +279,10 @@ def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
         elif not variables[stmt.var].scalar:
             scalar_write_done = True
 
-    if DEBUG:
-        print 'PARSED STATEMENTS:'
-        for line in lines:
-            print line.statement, 'Read:'+str(line.read), 'Write:'+line.write
-    
     # all variables which are written to at some point in the code block
     # used to determine whether they should be const or not
     all_write = set(line.write for line in lines)
 
-    if DEBUG:
-        print 'ALL WRITE:', all_write
-        
     # backwards compute whether or not variables will be read again
     # note that will_read for a line gives the set of variables it will read
     # on the current line or subsequent ones. will_write gives the set of
@@ -439,11 +295,6 @@ def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
         line.will_write = will_write.copy()
         will_write.add(line.write)
 
-    if DEBUG:
-        print 'WILL READ/WRITE:'
-        for line in lines:
-            print line.statement, 'Read:'+str(line.will_read), 'Write:'+str(line.will_write)
-        
     # generate cacheing statements for common subexpressions
     # cached subexpressions need to be recomputed whenever they are to be used
     # on the next line, and currently invalid (meaning that the current value
@@ -458,8 +309,6 @@ def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
                                                             name, subexpr in subexpressions.items())
     sorted_subexpr_vars = topsort(subexpr_deps)
 
-    if DEBUG:
-        print 'SUBEXPRESSIONS:', subexpressions.keys()
     statements = []
     # all start as invalid
     valid = dict((name, False) for name in subexpressions.keys())
@@ -524,19 +373,12 @@ def make_statements(code, variables, dtype, loop_invariant_optimisations=False):
                               scalar=variables[var].scalar)
         statements.append(statement)
 
-    if DEBUG:
-        print 'OUTPUT STATEMENTS:'
-        for stmt in statements:
-            print stmt
-
     scalar_statements = [s for s in statements if s.scalar]
     vector_statements = [s for s in statements if not s.scalar]
 
-    if loop_invariant_optimisations:
-        scalar_constants, vector_statements = apply_loop_invariant_optimisations(vector_statements,
-                                                                                 variables,
-                                                                                 dtype)
-        scalar_statements.extend(scalar_constants)
+    if optimise and prefs.codegen.loop_invariant_optimisations:
+        scalar_statements, vector_statements = optimise_statements(scalar_statements,
+                                                                   vector_statements,
+                                                                   variables)
 
     return scalar_statements, vector_statements
-
