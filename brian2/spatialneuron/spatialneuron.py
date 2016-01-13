@@ -381,12 +381,10 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._temp_morph_idxchild = np.zeros(segments, dtype=np.int32)
         self._temp_starts = np.zeros(segments, dtype=np.int32)
         self._temp_ends = np.zeros(segments, dtype=np.int32)
-        self._pre_calc_iteration(self.group.morphology)         
+        self._pre_calc_iteration(self.group.morphology)
+        # flattened and reduce children indices
         max_children = max(self._temp_morph_children_num)
-        self._temp_morph_children = self._temp_morph_children[:,:max_children].reshape(-1) # flattened and reduced
-
-        print('DEBUG OUTPUT: children indices for efficient coupling matrix solution')
-        print('_temp_morph_children={}, _temp_morph_children_num={}, _temp_morph_idxchild={}'.format(self._temp_morph_children.reshape(-1,max_children), self._temp_morph_children_num, self._temp_morph_idxchild))
+        self._temp_morph_children = self._temp_morph_children[:,:max_children].reshape(-1)
         
         self.variables = Variables(self, default_index='_segment_idx')
         self.variables.add_reference('N', group)
@@ -396,6 +394,8 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_arange('_P_idx', size=(segments+1)**2)
         self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
                                  index='_compartment_idx')
+        # the following variable is obsolet and will be removed after the sparse 
+        # efficient solver is supported by all core target languages
         self.variables.add_array('_P', unit=Unit(1), size=(segments+1)**2,
                                  constant=True, index='_P_idx') # dense matrix version, to be replaced
         self.variables.add_array('_P_diag', unit=Unit(1), size=segments+1,

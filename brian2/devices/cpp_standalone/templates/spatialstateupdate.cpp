@@ -14,6 +14,16 @@
                   
 {% extends 'common_group.cpp' %}
 {% block maincode %}
+
+
+{% set strategy = prefs.devices.cpp_standalone.openmp_spatialneuron_strategy %}
+{% if strategy == None %}
+    {% if prefs.devices.cpp_standalone.openmp_threads <= 3 %}
+        {% set strategy = 'systems' %}
+    {% else %}
+        {% set strategy = 'branches' %}
+    {% endif %}
+{% endif %}
     
     int _vectorisation_idx = 1;
 
@@ -35,14 +45,18 @@
     // STEP 2: for each branch: solve three tridiagonal systems
     // (independent: branches and also the three tridiagonal systems)
 
+    {% if strategy == 'systems' %}
     {{ openmp_pragma('parallel') }}
     {
+    {% endif %}
     {{ openmp_pragma('sections') }}
     {
     // system 2a: solve for v_star
     {{ openmp_pragma('section') }}
     {
-        {{ openmp_pragma('parallel-static') }} // nested parallelism
+        {% if strategy == 'branches' %}
+        {{ openmp_pragma('parallel-static') }}
+        {% endif %}
         for (int _i=0; _i<_num_B - 1; _i++)
         {
             // first and last index of the i-th branch
@@ -78,7 +92,9 @@
     // system 2b: solve for u_plus
     {{ openmp_pragma('section') }}
     {
+        {% if strategy == 'branches' %}
         {{ openmp_pragma('parallel-static') }}
+        {% endif %}
         for (int _i=0; _i<_num_B - 1; _i++)
         {
             // first and last index of the i-th branch
@@ -114,7 +130,9 @@
     // system 2c: solve for u_minus
     {{ openmp_pragma('section') }}
     {
+        {% if strategy == 'branches' %}
         {{ openmp_pragma('parallel-static') }}
+        {% endif %}
         for (int _i=0; _i<_num_B - 1; _i++)
         {
             // first and last index of the i-th branch
@@ -148,7 +166,9 @@
         }
     } // (OpenMP section)
     } // (OpenMP sections)
+    {% if strategy == 'systems' %}
     } // (OpenMP parallel)
+    {% endif %}
 
 
     // STEP 3: solve the coupling system
