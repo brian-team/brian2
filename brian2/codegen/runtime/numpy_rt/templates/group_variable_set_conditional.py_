@@ -38,6 +38,6 @@ elif _cond is False or _cond is numpy_False:
     _idx = []
     _vectorisation_idx = 0
 else:
-    _vectorisation_idx = _idx = _cond
+    _vectorisation_idx = _idx = _numpy.nonzero(_cond)[0]
 
 {{vector_code['statement']|autoindent}}
