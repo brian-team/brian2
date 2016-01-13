@@ -77,10 +77,6 @@ def openmp_pragma(pragma_type):
         return '#pragma omp sections'
     elif pragma_type == 'section':
         return '#pragma omp section'
-    elif pragma_type == 'enable_nested':
-        return 'omp_set_nested(1);'
-    elif pragma_type == 'disable_nested':
-        return 'omp_set_nested(0);'
     else:
         raise ValueError('Unknown OpenMP pragma "%s"' % pragma_type)
 
