@@ -1,176 +1,198 @@
+{# USES_VARIABLES { Cm, dt, v, N,
+                  ab_star0, ab_star1, ab_star2, b_plus,
+                  ab_plus0, ab_plus1, ab_plus2, b_minus,
+                  ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
+                  gtot_all, I0_all,
+                  c1, c2, c3,
+                  _P_diag, _P_parent, _P_children,
+                  _B, _morph_parent_i, _starts, _ends,
+                  _morph_children, _morph_children_num, _morph_idxchild,
+                  _invr0, _invrn} #}
+
 {% extends 'common.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { Cm, dt, v, N,
-                        ab_star0, ab_star1, ab_star2, b_plus,
-                        ab_plus0, ab_plus1, ab_plus2, b_minus,
-                        ab_minus0, ab_minus1, ab_minus2,
-                        v_star, u_plus, u_minus, gtot_all
-                        _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
-                        _invr0, _invrn} #}
-
-    cdef double[:] c = _numpy.zeros(N, dtype=_numpy.double)
-
-    cdef double ai
-    cdef double bi
-    cdef double _m
 
     cdef int _i
     cdef int _j
+    cdef int _k
+    cdef int _j_start
+    cdef int _j_end
+    cdef double ai
+    cdef double bi
+    cdef double _m
+    cdef int _i_parent
+    cdef int _i_childind
+    cdef int _first
+    cdef int _last
+    cdef int num_children
+    cdef double subfac
+    cdef int children_rowlength
 
-    cdef int _n_segments = _num{{_B}}
-    cdef int __morph_i
-    cdef int __i_parent
-    cdef int __first
-    cdef int __last
-    cdef double __invr0
-    cdef double __invrn
-    cdef int col
-    cdef int i_pivot
-    cdef double pivot_magnitude
-    cdef double pivot_element
-    cdef double pivot_factor
-    cdef double tmp
-
+    # MAIN CODE
     _vectorisation_idx = 1
-
-    ## MAIN CODE ######
     {{scalar_code|autoindent}}
 
-    # Tridiagonal solving
-    # Pass 1
-    for _i in range(N):
+    # STEP 1: compute g_total and I_0
+    for _i in range(0, N):
         _idx = _i
         _vectorisation_idx = _idx
 
         {{vector_code|autoindent}}
         {{gtot_all}}[_idx] = _gtot
+        {{I0_all}}[_idx] = _I0
 
-        {{v_star}}[_i] = -({{Cm}}[_i]/{{dt}}*{{v}}[_i])-_I0 # RHS -> v_star (solution)
-        bi={{ab_star1}}[_i] - {{gtot_all}}[_i] # main diagonal
-        if (_i<N-1):
-            c[_i]= {{ab_star0}}[_i+1] # superdiagonal
-        if (_i>0):
-            ai = {{ab_star2}}[_i-1] # subdiagonal
-            _m = 1.0/(bi-ai*c[_i-1])
-            c[_i] = c[_i]*_m
-            {{v_star}}[_i] = ({{v_star}}[_i] - ai*{{v_star}}[_i-1])*_m
-        else:
-            c[0]=c[0]/bi
-            {{v_star}}[0]={{v_star}}[0]/bi
+    # STEP 2: for each branch: solve three tridiagonal systems
 
-    for _i in range(N-2, -1, -1):
-        {{v_star}}[_i]={{v_star}}[_i] - c[_i]*{{v_star}}[_i+1]
-    
-    # Pass 2
-    for _i in range(N):
-        {{u_plus}}[_i] = {{b_plus}}[_i] # RHS -> v_star (solution)
-        bi = {{ab_plus1}}[_i]-{{gtot_all}}[_i] # main diagonal
-        if (_i<N-1):
-            c[_i] = {{ab_plus0}}[_i+1] # superdiagonal
-        if (_i>0):
-            ai = {{ab_plus2}}[_i-1] # subdiagonal
-            _m = 1.0/(bi-ai*c[_i-1])
-            c[_i] = c[_i]*_m
-            {{u_plus}}[_i] = ({{u_plus}}[_i] - ai*{{u_plus}}[_i-1])*_m
-        else:
-            c[0]=c[0]/bi
-            {{u_plus}}[0] = {{u_plus}}[0]/bi
-    for _i in range(N-2, -1, -1):
-        {{u_plus}}[_i] = {{u_plus}}[_i] - c[_i]*{{u_plus}}[_i+1]
-    
-    # Pass 3
-    for _i in range(N):
-        {{u_minus}}[_i] = {{b_minus}}[_i] # RHS -> v_star (solution)
-        bi = {{ab_minus1}}[_i] - {{gtot_all}}[_i] # main diagonal
-        if (_i<N-1):
-            c[_i] = {{ab_minus0}}[_i+1] # superdiagonal
-        if (_i>0):
-            ai = {{ab_minus2}}[_i-1] # subdiagonal
-            _m = 1.0/(bi-ai*c[_i-1])
-            c[_i] = c[_i]*_m
-            {{u_minus}}[_i] = ({{u_minus}}[_i] - ai*{{u_minus}}[_i-1])*_m
-        else:
-            c[0] = c[0]/bi
-            {{u_minus}}[0] = {{u_minus}}[0]/bi
-    for _i in range(N-2, -1, -1):
-        {{u_minus}}[_i] = {{u_minus}}[_i] - c[_i]*{{u_minus}}[_i+1]
+    # system 2a: solve for v_star
+    for _i in range(0, _num{{_B}} - 1):
+        # first and last index of the i-th branch
+        _j_start = {{_starts}}[_i]
+        _j_end = {{_ends}}[_i]
 
-    # Prepare matrix for solving the linear system
-    for _i in range(_num{{_B}}):
-        {{_B}}[_i] = 0.
-    for _i in range(_num{{_P}}):
-        {{_P}}[_i] = 0.
-    for _i in range(_n_segments - 1):
-        __morph_i = {{_morph_i}}[_i]
-        __i_parent = {{_morph_parent_i}}[_i]
-        __first = {{_starts}}[_i]
-        __last = {{_ends}}[_i]
-        __invr0 = {{_invr0}}[_i]
-        __invrn = {{_invrn}}[_i]
+        # upper triangularization of tridiagonal system for v_star
+        for _j in range(_j_start, _j_end+1):
+            {{v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{I0_all}}[_j] # RHS -> v_star (solution)
+            bi={{ab_star1}}[_j]-{{gtot_all}}[_j] # main diagonal
+            if _j < N-1:
+                {{c1}}[_j]={{ab_star0}}[_j+1] # superdiagonal
+            if _j > 0:
+                ai={{ab_star2}}[_j-1] # subdiagonal
+                _m=1.0/(bi-ai*{{c1}}[_j-1])
+                {{c1}}[_j]={{c1}}[_j]*_m
+                {{v_star}}[_j]=({{v_star}}[_j] - ai*{{v_star}}[_j-1])*_m
+            else:
+                {{c1}}[0]={{c1}}[0]/bi
+                {{v_star}}[0]={{v_star}}[0]/bi
+        # backwards substitution of the upper triangularized system for v_star
+        for _j in range(_j_end-1, _j_start-1, -1):
+            {{v_star}}[_j]={{v_star}}[_j] - {{c1}}[_j]*{{v_star}}[_j+1]
+
+    for _i in range(0, _num{{_B}} - 1):
+        # first and last index of the i-th branch
+        _j_start = {{_starts}}[_i]
+        _j_end = {{_ends}}[_i]
+
+        # upper triangularization of tridiagonal system for u_plus
+        for _j in range(_j_start, _j_end + 1):
+            {{u_plus}}[_j]={{b_plus}}[_j] # RHS -> u_plus (solution)
+            bi={{ab_plus1}}[_j]-{{gtot_all}}[_j] # main diagonal
+            if _j < N-1:
+                {{c2}}[_j]={{ab_plus0}}[_j+1] # superdiagonal
+            if _j > 0:
+                ai={{ab_plus2}}[_j-1] # subdiagonal
+                _m=1.0/(bi-ai*{{c2}}[_j-1])
+                {{c2}}[_j]={{c2}}[_j]*_m
+                {{u_plus}}[_j]=({{u_plus}}[_j] - ai*{{u_plus}}[_j-1])*_m
+            else:
+                {{c2}}[0]={{c2}}[0]/bi
+                {{u_plus}}[0]={{u_plus}}[0]/bi
+        # backwards substitution of the upper triangularized system for u_plus
+        for _j in range(_j_end-1, _j_start-1, -1):
+            {{u_plus}}[_j]={{u_plus}}[_j] - {{c2}}[_j]*{{u_plus}}[_j+1]
+
+    for _i in range(0, _num{{_B}} - 1):
+        # first and last index of the i-th branch
+        _j_start = {{_starts}}[_i]
+        _j_end = {{_ends}}[_i]
+
+        # upper triangularization of tridiagonal system for u_minus
+        for _j in range(_j_start, _j_end + 1):
+            {{u_minus}}[_j]={{b_minus}}[_j] # RHS -> u_minus (solution)
+            bi={{ab_minus1}}[_j]-{{gtot_all}}[_j] # main diagonal
+            if _j < N-1:
+                {{c3}}[_j]={{ab_minus0}}[_j+1] # superdiagonal
+            if _j > 0:
+                ai={{ab_minus2}}[_j-1] # subdiagonal
+                _m=1.0/(bi-ai*{{c3}}[_j-1])
+                {{c3}}[_j]={{c3}}[_j]*_m
+                {{u_minus}}[_j]=({{u_minus}}[_j] - ai*{{u_minus}}[_j-1])*_m
+            else:
+                {{c3}}[0]={{c3}}[0]/bi
+                {{u_minus}}[0]={{u_minus}}[0]/bi
+        # backwards substitution of the upper triangularized system for u_minus
+        for _j in range(_j_end-1, _j_start-1, -1):
+            {{u_minus}}[_j]={{u_minus}}[_j] - {{c3}}[_j]*{{u_minus}}[_j+1]
+
+    # STEP 3: solve the coupling system
+
+    # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
+    children_rowlength = _num{{_morph_children}}/_num{{_morph_children_num}}
+
+    # STEP 3a: construct the coupling system with matrix _P in sparse form. s.t.
+    # _P_diag contains the diagonal elements
+    # _P_children contains the super diagonal entries
+    # _P_parent contains the single sub diagonal entry for each row
+    # _B contains the right hand side
+
+    for _i in range(0, _num{{_B}} - 1):
+        _i_parent = {{_morph_parent_i}}[_i]
+        _i_childind = {{_morph_idxchild}}[_i]
+        _first = {{_starts}}[_i]
+        _last = {{_ends}}[_i]
+        _this_invr0 = {{_invr0}}[_i]
+        _this_invrn = {{_invrn}}[_i]
+
         # Towards parent
-        if __morph_i == 1: # first branch, sealed end
-            {{_P}}[0] = {{u_minus}}[__first] - 1
-            {{_P}}[0 + 1] = {{u_plus}}[__first]
-            {{_B}}[0] = -{{v_star}}[__first]
+        if _i == 0: # first branch, sealed end
+            {{_P_diag}}[0] = {{u_minus}}[_first] - 1
+            {{_P_children}}[0 + 0] = {{u_plus}}[_first]
+
+            # RHS
+            {{_B}}[0] = -{{v_star}}[_first]
         else:
-            {{_P}}[__i_parent*_n_segments + __i_parent] += (1 - {{u_minus}}[__first]) * __invr0
-            {{_P}}[__i_parent*_n_segments + __morph_i] -= {{u_plus}}[__first] * __invr0
-            {{_B}}[__i_parent] += {{v_star}}[__first] * __invr0
+            {{_P_diag}}[_i_parent] += (1 - {{u_minus}}[_first]) * _this_invr0
+            {{_P_children}}[_i_parent * children_rowlength + _i_childind] = -{{u_plus}}[_first] * _this_invr0
+
+            # RHS
+            {{_B}}[_i_parent] += {{v_star}}[_first] * _this_invr0
+
         # Towards children
-        {{_P}}[__morph_i*_n_segments + __morph_i] = (1 - {{u_plus}}[__last]) * __invrn
-        {{_P}}[__morph_i*_n_segments + __i_parent] = -{{u_minus}}[__last] * __invrn
-        {{_B}}[__morph_i] = {{v_star}}[__last] * __invrn
+        {{_P_diag}}[_i+1] = (1 - {{u_plus}}[_last]) * _this_invrn
+        {{_P_parent}}[_i] = -{{u_minus}}[_last] * _this_invrn
 
-    # Solve the linear system (the result will be in _B in the end)
-    for _i in range(_n_segments):
-        # find pivot element
-        i_pivot = _i
-        pivot_magnitude = abs({{_P}}[_i*_n_segments + _i])
-        for _j in range(_i+1, _n_segments):
-            if abs({{_P}}[_j*_n_segments + _i]) > pivot_magnitude:
-                i_pivot = _j
-                pivot_magnitude = abs({{_P}}[_j*_n_segments + _i])
+        # RHS
+        {{_B}}[_i+1] = {{v_star}}[_last] * _this_invrn
 
-        if pivot_magnitude == 0.:
-            raise ValueError('Matrix is singular')
+    # STEP 3b: solve the linear system (the result will be stored in the former rhs _B in the end)
+    # use efficient O(n) solution of the sparse linear system (structure-specific Gaussian elemination)
 
-        # swap rows
-        if _i != i_pivot:
-            for col in range(_i, _n_segments):
-                tmp = {{_P}}[_i*_n_segments + col]
-                {{_P}}[_i*_n_segments + col] = {{_P}}[i_pivot*_n_segments + col]
-                {{_P}}[i_pivot*_n_segments + col] = tmp
+    # part 1: lower triangularization
+    for _i in range(_num{{_B}}-1, -1, -1):
+        num_children = {{_morph_children_num}}[_i]
 
-        # Deal with rows below
-        for _j in range(_i+1, _n_segments):
-            pivot_element = {{_P}}[_j*_n_segments + _i]
-            if pivot_element == 0.0:
-                continue
-            pivot_factor = pivot_element/{{_P}}[_i*_n_segments + _i]
-            for _k in range(_i+1, _n_segments):
-                {{_P}}[_j*_n_segments + _k] -= {{_P}}[_i*_n_segments + _k]*pivot_factor
-            {{_B}}[_j] -= {{_B}}[_i]*pivot_factor
-            {{_P}}[_j*_n_segments + _i] = 0
+        # for every child eliminate the corresponding matrix element of row i
+        for _k in range(0, num_children):
+            _j = {{_morph_children}}[_i * children_rowlength + _k] # child index
 
-    # Back substitution
-    for _i in range(_n_segments-1, -1, -1):
-        # substitute all the known values
-        for _j in range(_n_segments-1, _i, -1):
-            {{_B}}[_i] -= {{_P}}[_i*_n_segments + _j]*{{_B}}[_j]
-            {{_P}}[_i*_n_segments + _j] = 0
-        # divide by the diagonal element
-        {{_B}}[_i] /= {{_P}}[_i*_n_segments + _i]
-        {{_P}}[_i*_n_segments + _i] = 1
+            # subtracting subfac times the j-th from the i-th row
+            subfac = {{_P_children}}[_i * children_rowlength + _k] / {{_P_diag}}[_j] # element i,j appears only here
 
-    # Linear combination
-    for _i in range(_n_segments-1):
-        __morph_i = {{_morph_i}}[_i]
-        __i_parent = {{_morph_parent_i}}[_i]
-        __first = {{_starts}}[_i]
-        __last = {{_ends}}[_i]
-        for _j in range(__first, __last+1):
-            if (_j < _num{{v}}):
-                {{v}}[_j] = {{v_star}}[_j] + {{_B}}[__i_parent] * {{u_minus}}[_j] + {{_B}}[__morph_i] * {{u_plus}}[_j]
+            # the following commented (superdiagonal) element is not used in the following anymore since
+            # it is 0 by definition of (lower) triangularization we keep it here for algorithmic clarity
+            #{{_P_children}}[_i * children_rowlength +_k] = {{_P_children}}[_i * children_rowlength + _k]  - subfac * {{_P_diag}}[_j] # = 0
+
+            {{_P_diag}}[_i] = {{_P_diag}}[_i]  - subfac * {{_P_parent}}[_j-1] # note: element j,i is only used here
+            {{_B}}[_i] = {{_B}}[_i] - subfac * {{_B}}[_j]
+
+    # part 2: forwards substitution
+    {{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0] # the first branch does not have a parent
+    for _i in range(1, _num{{_B}}):
+        _j = {{_morph_parent_i}}[_i-1] # parent index
+        {{_B}}[_i] = {{_B}}[_i] - {{_P_parent}}[_i-1] * {{_B}}[_j]
+        {{_B}}[_i] = {{_B}}[_i] / {{_P_diag}}[_i]
+
+    # STEP 4: for each branch compute the final solution by linear
+    # combination of the general solution (independent: branches & compartments)
+    for _i in range(0, _num{{_B}} - 1):
+        _i_parent = {{_morph_parent_i}}[_i]
+        _j_start = {{_starts}}[_i]
+        _j_end = {{_ends}}[_i]
+        for _j in range(_j_start, _j_end + 1):
+            if _j < _num{{v}}:  # don't go beyond the last element
+                {{v}}[_j] = ({{v_star}}[_j] + {{_B}}[_i_parent] * {{u_minus}}[_j]
+                                            + {{_B}}[_i+1] * {{u_plus}}[_j])
+
+
 
 {% endblock %}
