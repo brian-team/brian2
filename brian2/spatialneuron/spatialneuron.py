@@ -355,6 +355,10 @@ class SpatialStateUpdater(CodeRunner, Group):
         # group is the neuron (a group of compartments) 
         self.method_choice = method
         self.group = weakref.proxy(group)
+
+        n = len(group) # total number of compartments
+        segments = self.number_branches(group.morphology)
+
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
                             code='''_gtot = gtot__private
@@ -363,10 +367,9 @@ class SpatialStateUpdater(CodeRunner, Group):
                             when='groups',
                             order=order,
                             name=group.name + '_spatialstateupdater*',
-                            check_units=False)
-        n = len(group) # total number of compartments
-        segments = self.number_branches(group.morphology)
-        
+                            check_units=False,
+                            template_kwds={'number_branches': segments})
+
         # The morphology is considered fixed (length etc. can still be changed,
         # though)
         # Traverse it once to get a flattened representation

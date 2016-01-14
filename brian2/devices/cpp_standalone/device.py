@@ -62,7 +62,8 @@ prefs.register_preferences(
         `'systems'` strategy should be better for morphologies with few
         branches (e.g. cables) and/or simulations with no more than three
         threads. If not specified (the default), the `'systems'` strategy will
-        be used when using less three threads or less.
+        be used when using no more than three threads or when the morphology
+        has less than three branches in total.
         '''
     )
     )

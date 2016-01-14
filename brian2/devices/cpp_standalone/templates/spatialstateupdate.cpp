@@ -15,16 +15,15 @@
 {% extends 'common_group.cpp' %}
 {% block maincode %}
 
-
-{% set strategy = prefs.devices.cpp_standalone.openmp_spatialneuron_strategy %}
-{% if strategy == None %}
-    {% if prefs.devices.cpp_standalone.openmp_threads <= 3 %}
-        {% set strategy = 'systems' %}
-    {% else %}
-        {% set strategy = 'branches' %}
+    {% set strategy = prefs.devices.cpp_standalone.openmp_spatialneuron_strategy %}
+    {% if strategy == None %}
+        {% if prefs.devices.cpp_standalone.openmp_threads <= 3 or number_branches < 3%}
+            {% set strategy = 'systems' %}
+        {% else %}
+            {% set strategy = 'branches' %}
+        {% endif %}
     {% endif %}
-{% endif %}
-    
+
     int _vectorisation_idx = 1;
 
     //// MAIN CODE ////////////
