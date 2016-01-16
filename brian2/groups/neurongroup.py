@@ -156,7 +156,7 @@ class StateUpdater(CodeRunner):
                                                                    self.method_choice)
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
-                               self.group.equations.substituted_expressions])
+                               self.group.equations.get_substituted_expressions(variables)])
         self.user_code = user_code
 
 

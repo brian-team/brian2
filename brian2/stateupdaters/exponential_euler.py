@@ -1,13 +1,13 @@
 import sympy as sp
 
-from brian2.parsing.sympytools import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 
 from .base import StateUpdateMethod, UnsupportedEquationsException
 
 __all__ = ['exponential_euler']
 
 
-def get_conditionally_linear_system(eqs):
+def get_conditionally_linear_system(eqs, variables=None):
     '''
     Convert equations into a linear system using sympy.
     
@@ -41,7 +41,7 @@ def get_conditionally_linear_system(eqs):
     (-1/tau, 0)
 
     '''
-    diff_eqs = eqs.substituted_expressions
+    diff_eqs = eqs.get_substituted_expressions(variables)
     
     coefficients = {}
     
@@ -49,7 +49,8 @@ def get_conditionally_linear_system(eqs):
         var = sp.Symbol(name, real=True)
     
         # Factor out the variable
-        s_expr = sp.collect(expr.sympy_expr.expand(), var, evaluate=False)
+        s_expr = sp.collect(str_to_sympy(expr.code, variables).expand(),
+                            var, evaluate=False)
         
         if len(s_expr) > 2 or var not in s_expr:
             raise ValueError(('The expression "%s", defining the variable %s, '
@@ -77,7 +78,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
 
         # Try whether the equations are conditionally linear
         try:
-            system = get_conditionally_linear_system(equations)
+            system = get_conditionally_linear_system(equations, variables)
         except ValueError:
             raise UnsupportedEquationsException('Can only solve conditionally '
                                                 'linear systems with this '

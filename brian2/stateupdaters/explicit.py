@@ -607,6 +607,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
         for stochastic_variable in stochastic_variables:
             statements.append(stochastic_variable + ' = ' + 'dt**.5 * randn()')
 
+        substituted_expressions = eqs.get_substituted_expressions(variables)
+
         # Process the intermediate statements in the stateupdater description
         for intermediate_var, intermediate_expr in self.statements:
                       
@@ -617,7 +619,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # and g and the variable x for every equation in the model.
             # We use the model equations where the subexpressions have
             # already been substituted into the model equations.
-            for var, expr in eqs.substituted_expressions:
+            for var, expr in substituted_expressions:
                 for xi in stochastic_variables:
                     RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                              expr, non_stochastic_expr,
@@ -633,15 +635,15 @@ class ExplicitStateUpdater(StateUpdateMethod):
         non_stochastic_expr, stochastic_expr = split_expression(self.output)
         
         # Assign a value to all the model variables described by differential
-        # equations       
-        for var, expr in eqs.substituted_expressions:
+        # equations
+        for var, expr in substituted_expressions:
             RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                      expr, non_stochastic_expr, stochastic_expr,
                                      stochastic_variables)
             statements.append('_' + var + ' = ' + RHS)
         
         # Assign everything to the final variables
-        for var, expr in eqs.substituted_expressions:
+        for var, expr in substituted_expressions:
             statements.append(var + ' = ' + '_' + var)
 
         return '\n'.join(statements)
@@ -684,7 +686,7 @@ def diagonal_noise(equations, variables):
         return
 
     stochastic_vars = []
-    for _, expr in equations.substituted_expressions:
+    for _, expr in equations.get_substituted_expressions(variables):
         expr_stochastic_vars = expr.stochastic_variables
         if len(expr_stochastic_vars) > 1:
             # More than one stochastic variable --> no diagonal noise
