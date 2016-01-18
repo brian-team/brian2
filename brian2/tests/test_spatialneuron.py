@@ -278,7 +278,7 @@ def test_rallpack1():
     assert 100*max_rel_x < 0.5
 
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_rallpack2():
     '''
