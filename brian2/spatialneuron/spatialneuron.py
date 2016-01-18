@@ -394,13 +394,8 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_arange('_compartment_idx', size=n)
         self.variables.add_arange('_segment_idx', size=segments)
         self.variables.add_arange('_segment_root_idx', size=segments+1)
-        self.variables.add_arange('_P_idx', size=(segments+1)**2)
         self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
                                  index='_compartment_idx')
-        # the following variable is obsolet and will be removed after the sparse 
-        # efficient solver is supported by all core target languages
-        self.variables.add_array('_P', unit=Unit(1), size=(segments+1)**2,
-                                 constant=True, index='_P_idx') # dense matrix version, to be replaced
         self.variables.add_array('_P_diag', unit=Unit(1), size=segments+1,
                                  constant=True)
         self.variables.add_array('_P_children', unit=Unit(1), size=(segments+1)*max_children,
