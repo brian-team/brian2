@@ -64,10 +64,12 @@ def auto_target():
         if using_fallback:
             logger.warn('Cannot use compiled code, falling back to the numpy '
                         'code generation target. Note that this will likely '
-                        'be slower than using compiled code.',
+                        'be slower than using compiled code. Set the code '
+                        'generation to numpy manually to avoid this warning:\n'
+                        'prefs.codegen.target = "numpy"',
                         'codegen_fallback')
         else:
-            logger.info(('Chosing %r as the code generation '
+            logger.debug(('Chosing %r as the code generation '
                          'target.') % _auto_target.class_name)
 
     return _auto_target
@@ -412,10 +414,10 @@ class RuntimeDevice(Device):
         # Use the C++ version of the SpikeQueue when available
         try:
             from brian2.synapses.cythonspikequeue import SpikeQueue
-            logger.info('Using the C++ SpikeQueue', once=True)
+            logger.diagnostic('Using the C++ SpikeQueue', once=True)
         except ImportError:
             from brian2.synapses.spikequeue import SpikeQueue
-            logger.info('Using the Python SpikeQueue', once=True)
+            logger.diagnostic('Using the Python SpikeQueue', once=True)
 
         return SpikeQueue(source_start=source_start, source_end=source_end)
 
