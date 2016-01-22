@@ -529,14 +529,14 @@ class BrianLogger(object):
         '''
         Set the log level to "warn".
         '''        
-        CONSOLE_HANDLER.setLevel(logging.INFO)
+        CONSOLE_HANDLER.setLevel(logging.WARN)
 
     @staticmethod
     def log_level_error():
         '''
         Set the log level to "error".
         '''        
-        CONSOLE_HANDLER.setLevel(logging.INFO)
+        CONSOLE_HANDLER.setLevel(logging.ERROR)
 
 
 def get_logger(module_name='brian2'):
