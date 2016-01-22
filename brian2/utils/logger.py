@@ -40,7 +40,7 @@ __all__ = ['get_logger', 'BrianLogger', 'std_silent']
 #===============================================================================
 
 def log_level_validator(log_level):
-    log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG')
+    log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'DIAGNOSTIC')
     return log_level.upper() in log_levels
 
 #: Translation from string representation to number
@@ -48,7 +48,9 @@ LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
               'ERROR': logging.ERROR,
               'WARNING': logging.WARNING,
               'INFO': logging.INFO,
-              'DEBUG': logging.DEBUG}
+              'DEBUG': logging.DEBUG,
+              'DIAGNOSTIC': 5}
+logging.addLevelName(5, 'DIAGNOSTIC')
 
 prefs.register_preferences('logging', 'Logging system preferences',
     delete_log_on_exit=BrianPreference(
@@ -124,7 +126,7 @@ def _encode(text):
 # get the main logger
 logger = logging.getLogger('brian2')
 logger.propagate = False
-logger.setLevel(logging.DEBUG)
+logger.setLevel(LOG_LEVELS['DIAGNOSTIC'])
 
 # Log to a file
 TMP_LOG = FILE_HANDLER = None
@@ -136,7 +138,7 @@ if prefs['logging.file_log']:
         TMP_LOG = TMP_LOG.name
         FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
         FILE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.file_log_level'].upper()])
-        FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(name)s: %(message)s'))
+        FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s %(name)s: %(message)s'))
         logger.addHandler(FILE_HANDLER)
     except IOError as ex:
         warn('Could not create log file: %s' % ex)
@@ -165,8 +167,8 @@ if prefs['logging.save_script']:
 
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.console_log_level'].upper()])
-CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-8s %(name)s: %(message)s'))
+CONSOLE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.console_log_level']])
+CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-10s %(name)s: %(message)s'))
 
 # add the handler to the logger
 logger.addHandler(CONSOLE_HANDLER)
@@ -354,10 +356,23 @@ class BrianLogger(object):
                 BrianLogger._log_messages.add(log_tuple)
         
         the_logger = logging.getLogger(name)
-        {'debug': the_logger.debug,
-         'info': the_logger.info,
-         'warn': the_logger.warn,
-         'error': the_logger.error}.get(log_level)(msg)
+        the_logger.log(LOG_LEVELS[log_level], msg)
+
+    def diagnostic(self, msg, name_suffix=None, once=False):
+        '''
+        Log a diagnostic message.
+
+        Parameters
+        ----------
+        msg : str
+            The message to log.
+        name_suffix : str, optional
+            A suffix to add to the name, e.g. a class or function name.
+        once : bool, optional
+            Whether this message should be logged only once and not repeated
+            if sent another time.
+        '''
+        self._log('DIAGNOSTIC', msg, name_suffix, once)
 
     def debug(self, msg, name_suffix=None, once=False):
         '''
@@ -373,7 +388,7 @@ class BrianLogger(object):
             Whether this message should be logged only once and not repeated
             if sent another time. 
         '''
-        self._log('debug', msg, name_suffix, once)
+        self._log('DEBUG', msg, name_suffix, once)
 
     def info(self, msg, name_suffix=None, once=False):
         '''
@@ -389,7 +404,7 @@ class BrianLogger(object):
             Whether this message should be logged only once and not repeated
             if sent another time. 
         '''
-        self._log('info', msg, name_suffix, once)
+        self._log('INFO', msg, name_suffix, once)
 
     def warn(self, msg, name_suffix=None, once=False):
         '''
@@ -405,7 +420,7 @@ class BrianLogger(object):
             Whether this message should be logged only once and not repeated
             if sent another time. 
         '''
-        self._log('warn', msg, name_suffix, once)
+        self._log('WARNING', msg, name_suffix, once)
 
     def error(self, msg, name_suffix=None, once=False):
         '''
@@ -421,7 +436,7 @@ class BrianLogger(object):
             Whether this message should be logged only once and not repeated
             if sent another time. 
         '''
-        self._log('error', msg, name_suffix, once)
+        self._log('ERROR', msg, name_suffix, once)
 
     @staticmethod
     def _suppress(filterobj, filter_log_file):
@@ -485,6 +500,13 @@ class BrianLogger(object):
         BrianLogger._suppress(suppress_filter, filter_log_file)
 
     @staticmethod
+    def log_level_diagnostic():
+        '''
+        Set the log level to "diagnostic".
+        '''
+        CONSOLE_HANDLER.setLevel(LOG_LEVELS['DIAGNOSTIC'])
+
+    @staticmethod
     def log_level_debug():
         '''
         Set the log level to "debug".
@@ -516,13 +538,13 @@ class BrianLogger(object):
 def get_logger(module_name='brian2'):
     '''
     Get an object that can be used for logging.
-    
+
     Parameters
     ----------
     module_name : str
         The name used for logging, should normally be the module name as
         returned by ``__name__``.
-    
+
     Returns
     -------
     logger : `BrianLogger`
