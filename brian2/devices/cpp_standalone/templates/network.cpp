@@ -31,7 +31,7 @@ void Network::add(Clock* clock, codeobj_func func)
 #endif
 }
 
-void Network::run(const double duration, void (*report_func)(const double, const double, const double), const double report_period)
+void Network::run(const double duration, void (*report_func)(const double, const double, const double, const double), const double report_period)
 {
     {% if openmp_pragma('with_openmp') %}
     double start;
@@ -55,7 +55,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
     {% endif %}
     if (report_func)
     {
-        report_func(0.0, 0.0, duration);
+        report_func(0.0, 0.0, t_start, duration);
     }
 
     Clock* clock = next_clocks();
@@ -78,7 +78,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
                 {% endif %}
                 if (elapsed > next_report_time)
                 {
-                    report_func(elapsed, (clock->t[0]-t_start)/duration, duration);
+                    report_func(elapsed, (clock->t[0]-t_start)/duration, t_start, duration);
                     next_report_time += report_period;
                 }
             }
@@ -122,7 +122,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
     }
     if (report_func)
     {
-        report_func(elapsed_realtime, 1.0, duration);
+        report_func(elapsed_realtime, 1.0, t_start, duration);
     }
 }
 
@@ -188,7 +188,7 @@ public:
     Network();
     void clear();
     void add(Clock *clock, codeobj_func func);
-    void run(const double duration, void (*report_func)(const double, const double, const double), const double report_period);
+    void run(const double duration, void (*report_func)(const double, const double, const double, const double), const double report_period);
 };
 
 #endif

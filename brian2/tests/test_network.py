@@ -732,8 +732,8 @@ def test_progress_report():
 
     # Custom function
     calls = []
-    def capture_progress(elapsed, complete, duration):
-        calls.append((elapsed, complete, duration))
+    def capture_progress(elapsed, complete, start, duration):
+        calls.append((elapsed, complete, start, duration))
     with captured_output() as (out, err):
         net.run(1*ms, report=capture_progress)
     out, err = out.getvalue(), err.getvalue()
@@ -1148,6 +1148,7 @@ def test_magic_scope():
 
 
 if __name__=='__main__':
+    BrianLogger.log_level_warn()
     for t in [
             test_incorrect_network_use,
             test_network_contains,

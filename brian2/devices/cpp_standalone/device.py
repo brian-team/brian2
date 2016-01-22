@@ -976,11 +976,11 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
-        void report_progress(const double elapsed, const double completed, const double duration)
+        void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation for duration " << duration << " s";
+                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
             } else
             {
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
@@ -1002,7 +1002,7 @@ class CPPStandaloneDevice(Device):
             self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
         elif isinstance(report, basestring):
             self.report_func = '''
-            void report_progress(const double elapsed, const double completed, const double duration)
+            void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {
             %REPORT%
             }

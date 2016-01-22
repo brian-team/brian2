@@ -95,10 +95,10 @@ class TextReport(object):
     def __init__(self, stream):
         self.stream = stream
 
-    def __call__(self, elapsed, completed, duration):
+    def __call__(self, elapsed, completed, start, duration):
         if completed == 0.0:
-            self.stream.write(('Starting simulation for duration '
-                               '%s\n') % duration)
+            self.stream.write(('Starting simulation at t=%s for a duration of '
+                               '%s\n') % (start, duration))
         else:
             report_msg = ('{t} ({percent}%) simulated in '
                           '{real_t}').format(t=completed*duration,
@@ -807,7 +807,7 @@ class Network(Nameable):
                                  'it has to be one of "text", "stdout", '
                                  '"stderr", or a callable function/object, '
                                  'but it is of type %s') % type(report))
-            report_callback(0*second, 0.0, duration)
+            report_callback(0*second, 0.0, t_start, duration)
 
         profiling_info = defaultdict(float)
 
@@ -823,7 +823,7 @@ class Network(Nameable):
                 if current > next_report_time:
                     report_callback((current-start)*second,
                                     (self.t_ - float(t_start))/float(t_end),
-                                    duration)
+                                    t_start, duration)
                     next_report_time = current + report_period
                 # update the objects with this clock
             for obj in self.objects:
@@ -865,7 +865,7 @@ class Network(Nameable):
             device._last_run_completed_fraction = 1.0
 
         if report is not None:
-            report_callback((current-start)*second, 1.0, duration)
+            report_callback((current-start)*second, 1.0, t_start, duration)
         self.after_run()
 
         # Store profiling info (or erase old info to avoid confusion)
