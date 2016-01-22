@@ -134,6 +134,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         stored_prefs = prefs.as_file
         prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
+    # Suppress INFO log messages during testing
+    from brian2.utils.logger import CONSOLE_HANDLER, LOG_LEVELS
+    log_level = CONSOLE_HANDLER.level
+    CONSOLE_HANDLER.setLevel(LOG_LEVELS['WARNING'])
+
     # Switch off code optimization to get faster compilation times
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
     prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
@@ -265,6 +270,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         return all_success
 
     finally:
+        CONSOLE_HANDLER.setLevel(log_level)
         if reset_preferences:
             # Restore the user preferences
             prefs.read_preference_file(StringIO(stored_prefs))
