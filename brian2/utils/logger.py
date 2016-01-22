@@ -68,21 +68,21 @@ prefs.register_preferences('logging', 'Logging system preferences',
         ''',
         ),
     file_log_level=BrianPreference(
-        default='DEBUG',
+        default='DIAGNOSTIC',
         docs='''
         What log level to use for the log written to the log file.
         
         In case file logging is activated (see `logging.file_log`), which log
         level should be used for logging. Has to be one of CRITICAL, ERROR,
-        WARNING, INFO or DEBUG.
+        WARNING, INFO, DEBUG or DIAGNOSTIC.
         ''',
         validator=log_level_validator),
     console_log_level=BrianPreference(
-        default='WARNING',
+        default='INFO',
         docs='''
         What log level to use for the log written to the console.
         
-        Has to be one of CRITICAL, ERROR, WARNING, INFO or DEBUG.
+        Has to be one of CRITICAL, ERROR, WARNING, INFO, DEBUG or DIAGNOSTIC.
         ''',
         validator=log_level_validator),
     file_log=BrianPreference(
@@ -508,7 +508,7 @@ class BrianLogger(object):
         '''
         Set the log level to "diagnostic".
         '''
-        CONSOLE_HANDLER.setLevel(LOG_LEVELS['DIAGNOSTIC'])
+        CONSOLE_HANDLER.setLevel(DIAGNOSTIC)
 
     @staticmethod
     def log_level_debug():
