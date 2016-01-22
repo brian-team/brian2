@@ -270,7 +270,7 @@ class Device(object):
                         raise NotImplementedError(('Cannot use function '
                                                    '%s: %s') % (varname, ex))
 
-        logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
+        logger.diagnostic('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
                                                              dtype=prefs['core.default_float_dtype'])
@@ -288,8 +288,8 @@ class Device(object):
 
 
         template_kwds.update(kwds)
-        logger.debug('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
-        logger.debug('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
+        logger.diagnostic('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
+        logger.diagnostic('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
 
         name = find_name(name)
 
@@ -298,7 +298,7 @@ class Device(object):
                         variable_indices=variable_indices,
                         get_array_name=generator.get_array_name,
                         **template_kwds)
-        logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
+        logger.diagnostic('%s code:\n%s' % (name, indent(code_representation(code))))
 
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,

@@ -43,14 +43,18 @@ def log_level_validator(log_level):
     log_levels = ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'DIAGNOSTIC')
     return log_level.upper() in log_levels
 
+#: Our new log level for more detailed debug output (mostly useful for debugging
+#: Brian itself, not for user scripts)
+DIAGNOSTIC = 5
+
 #: Translation from string representation to number
 LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
               'ERROR': logging.ERROR,
               'WARNING': logging.WARNING,
               'INFO': logging.INFO,
               'DEBUG': logging.DEBUG,
-              'DIAGNOSTIC': 5}
-logging.addLevelName(5, 'DIAGNOSTIC')
+              'DIAGNOSTIC': DIAGNOSTIC}
+logging.addLevelName(DIAGNOSTIC, 'DIAGNOSTIC')
 
 prefs.register_preferences('logging', 'Logging system preferences',
     delete_log_on_exit=BrianPreference(
@@ -186,10 +190,10 @@ if FILE_HANDLER is not None:
     warn_logger.addHandler(FILE_HANDLER)
 
 # Put some standard info into the log file
-logger.debug('Logging to file: %s, copy of main script saved as: %s' %
-             (TMP_LOG, TMP_SCRIPT))
-logger.debug('Python interpreter: %s' % sys.executable)
-logger.debug('Platform: %s' % sys.platform)
+logger.log(DIAGNOSTIC, 'Logging to file: %s, copy of main script saved as: %s' %
+           (TMP_LOG, TMP_SCRIPT))
+logger.log(DIAGNOSTIC, 'Python interpreter: %s' % sys.executable)
+logger.log(DIAGNOSTIC, 'Platform: %s' % sys.platform)
 version_infos = {'brian': brian2.__version__,
                  'numpy': numpy.__version__,
                  'scipy': scipy.__version__ if scipy else 'not installed',
@@ -198,8 +202,8 @@ version_infos = {'brian': brian2.__version__,
                  'python': sys.version,
                  }
 for _name, _version in version_infos.iteritems():
-    logger.debug('{name} version is: {version}'.format(name=_name,
-                                                       version=str(_version)))
+    logger.log(DIAGNOSTIC, '{name} version is: {version}'.format(name=_name,
+                                                                 version=str(_version)))
 
 
 UNHANDLED_ERROR_MESSAGE = ('Brian 2 encountered an unexpected error. '

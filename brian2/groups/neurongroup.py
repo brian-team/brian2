@@ -385,8 +385,8 @@ class NeuronGroup(Group, SpikeSource):
                                                   for eq in model.itervalues()
                                                   if eq.type == DIFFERENTIAL_EQUATION])
         self._linked_variables = set()
-        logger.debug("Creating NeuronGroup of size {self._N}, "
-                     "equations {self.equations}.".format(self=self))
+        logger.diagnostic("Creating NeuronGroup of size {self._N}, "
+                          "equations {self.equations}.".format(self=self))
 
         if namespace is None:
             namespace = {}
@@ -645,7 +645,7 @@ class NeuronGroup(Group, SpikeSource):
                                                       sourcevar=value.variable.name)
             if index is not None:
                 log_msg += '(using "{index}" as index variable)'.format(index=index)
-            logger.debug(log_msg)
+            logger.diagnostic(log_msg)
         else:
             if isinstance(value, LinkedVariable):
                 raise TypeError(('Cannot link variable %s, it has to be marked '

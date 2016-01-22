@@ -548,7 +548,7 @@ class Network(Nameable):
     def _set_schedule(self, schedule):
         if schedule is None:
             self._schedule = None
-            logger.debug('Reset network {self.name} schedule to '
+            logger.debug('Resetting network {self.name} schedule to '
                          'default schedule')
         else:
             if (not isinstance(schedule, Sequence) or
@@ -562,7 +562,7 @@ class Network(Nameable):
                                  'are created automatically based on the '
                                  'existing slot names.')
             self._schedule = list(schedule)
-            logger.debug("Set network {self.name} schedule to "
+            logger.debug("Setting network {self.name} schedule to "
                          "{self._schedule}".format(self=self),
                          "_set_schedule")
     
@@ -873,7 +873,7 @@ class Network(Nameable):
             self._profiling_info = [(name, t*second)
                                     for name, t in profiling_info.iteritems()]
             # Dump a profiling summary to the log
-            logger.debug('\n' + str(profiling_summary(self)))
+            logger.diagnostic('\n' + str(profiling_summary(self)))
         else:
             self._profiling_info = None
         
