@@ -172,7 +172,7 @@ if prefs['logging.save_script']:
 # create console handler with a higher log level
 CONSOLE_HANDLER = logging.StreamHandler()
 CONSOLE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.console_log_level']])
-CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-10s %(name)s: %(message)s'))
+CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-10s %(message)s [%(name)s]'))
 
 # add the handler to the logger
 logger.addHandler(CONSOLE_HANDLER)
