@@ -75,7 +75,7 @@ class StateUpdateMethod(object):
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
-    def apply_stateupdater(equations, variables, method):
+    def apply_stateupdater(equations, variables, method, group_name=None):
         '''
         Applies a given state updater to equations. If a `method` is given, the
         state updater with the given name is used or if is a callable, then it
@@ -105,21 +105,32 @@ class StateUpdateMethod(object):
             # claims not to be applicable.
             stateupdater = method
             method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
-            logger.debug('Using state updater: %r' % method)
+            if group_name is not None:
+                logger.debug('Group %r: using numerical integration method %r' % (group_name, method),
+                             'method_choice')
+            else:
+                logger.debug('Using numerical integration method: %r' % method,
+                             'method_choice')
         elif isinstance(method, basestring):
             method = method.lower()  # normalize name to lower case
             stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
             if stateupdater is None:
                 raise ValueError('No state updater with the name "%s" '
                                  'is known' % method)
-            logger.debug('Using state updater: %r' % method)
+            if group_name is not None:
+                logger.debug('Group %r: using numerical integration method %r' % (group_name, method),
+                             'method_choice')
+            else:
+                logger.debug('Using numerical integration method: %r' % method,
+                             'method_choice')
         elif isinstance(method, collections.Iterable):
             the_method = None
             for one_method in method:
                 try:
                     code = StateUpdateMethod.apply_stateupdater(equations,
                                                                 variables,
-                                                                one_method)
+                                                                one_method,
+                                                                group_name=group_name)
                     the_method = one_method
                     break
                 except UnsupportedEquationsException:
@@ -127,10 +138,16 @@ class StateUpdateMethod(object):
             if the_method is None:
                 raise ValueError(('No stateupdater that is suitable for the '
                                   'given equations has been found.'))
-            logger.info('Using state updater: %r' % the_method)
+            if group_name is not None:
+                msg_text = ("No numerical integration method specified for group "
+                            "'{group_name}', choosing method '{method}'.")
+            else:
+                msg_text = ("No numerical integration method specified, "
+                            "choosing method '{method}'.")
+            logger.info(msg_text.format(group_name=group_name,
+                                        method=the_method), 'method_choice')
             return code
 
         code = stateupdater(equations, variables)
         # If we get here, no error has been raised
         return code
-
