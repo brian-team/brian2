@@ -790,10 +790,16 @@ class Network(Nameable):
 
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
+        start_time = time.time()
+
+        logger.debug("Simulating network '%s' from time %s to %s." % (self.name,
+                                                                      t_start,
+                                                                      t_end),
+                     'run')
+
         if report is not None:
             report_period = float(report_period)
-            start = current = time.time()
-            next_report_time = start + report_period
+            next_report_time = start_time + report_period
             if report == 'text' or report == 'stdout':
                 report_callback = TextReport(sys.stdout)
             elif report == 'stderr':
@@ -812,7 +818,6 @@ class Network(Nameable):
 
         profiling_info = defaultdict(float)
 
-        start_time = time.time()
         timestep, _, _ = self._clock_variables[clock]
         running = timestep[0] < clock._i_end
         while running and not self._stopped and not Network._globally_stopped:
@@ -822,7 +827,7 @@ class Network(Nameable):
             if report is not None:
                 current = time.time()
                 if current > next_report_time:
-                    report_callback((current-start)*second,
+                    report_callback((current-start_time)*second,
                                     (self.t_ - float(t_start))/float(t_end),
                                     t_start, duration)
                     next_report_time = current + report_period
@@ -854,21 +859,25 @@ class Network(Nameable):
                 timestep, _, _ = self._clock_variables[clock]
                 running = timestep < clock._i_end
 
+        end_time = time.time()
         if self._stopped or Network._globally_stopped:
             self.t_ = clock.t_
         else:
             self.t_ = float(t_end)
 
-        device._last_run_time = time.time()-start_time
+        device._last_run_time = end_time-start_time
         if duration>0:
             device._last_run_completed_fraction = (self.t-t_start)/duration
         else:
             device._last_run_completed_fraction = 1.0
 
         if report is not None:
-            report_callback((current-start)*second, 1.0, t_start, duration)
+            report_callback((end_time-start_time)*second, 1.0, t_start, duration)
         self.after_run()
 
+        logger.debug(("Finished simulating network '%s' "
+                      "(took %.2fs)") % (self.name, end_time-start_time),
+                     'run')
         # Store profiling info (or erase old info to avoid confusion)
         if profile:
             self._profiling_info = [(name, t*second)
