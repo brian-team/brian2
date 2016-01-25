@@ -1245,6 +1245,9 @@ class Synapses(Group):
                 abstract_code += '_real_targets = targets + _target_offset\n'
             else:
                 abstract_code += '_real_targets = targets'
+            logger.debug("Creating synapses from group '%s' to group '%s', "
+                         "using pre-defined arrays)" % (self.source.name,
+                                                        self.target.name))
 
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
@@ -1295,6 +1298,10 @@ class Synapses(Group):
                     variable_indices[varname] = '_all_post'
             variable_indices['_all_pre'] = '_i'
             variable_indices['_all_post'] = '_j'
+            logger.debug(("Creating synapses from group '%s' to group '%s', "
+                          "using condition '%s'") % (self.source.name,
+                                                     self.target.name,
+                                                     condition))
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             'synapses_create',
