@@ -698,10 +698,11 @@ class Network(Nameable):
                                     'in a simulated network instead of '
                                     'creating a new one.') % obj.name)
 
-        logger.debug("Network {self.name} has {num} "
+        logger.debug("Network {self.name} uses {num} "
                      "clocks: {clocknames}".format(self=self,
                         num=len(self._clocks),
-                        clocknames=', '.join(obj.name for obj in self._clocks)),
+                        clocknames=', '.join('%s (dt=%s)' % (obj.name, obj.dt)
+                                             for obj in self._clocks)),
                      "before_run")
     
     @device_override('network_after_run')
