@@ -90,7 +90,7 @@ class SpatialNeuron(NeuronGroup):
     '''
 
     def __init__(self, morphology=None, model=None, threshold=None,
-                 refractory=False, reset=None,
+                 refractory=False, reset=None, event=None,
                  threshold_location=None,
                  dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
@@ -223,6 +223,7 @@ class SpatialNeuron(NeuronGroup):
 
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
+                             event=event,
                              reset=reset,
                              method=method, dt=dt, clock=clock, order=order,
                              namespace=namespace, dtype=dtype, name=name)
