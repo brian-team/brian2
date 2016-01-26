@@ -6,6 +6,25 @@ from nose.plugins.attrib import attr
 from brian2 import *
 from brian2.devices.device import reinit_devices
 
+
+@attr('codegen-independent')
+def test_custom_events():
+    # Set (could be moved in a setup)
+    ev = '''
+    event_time1 : second
+    event_time2 : second
+    '''
+    morpho = Soma(diameter=10*um)
+    G = SpatialNeuron(morphology=morpho,
+                      model=ev,
+                      events={'event1': 't>=i*ms and t<i*ms+dt',
+                              'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
+    G.run_on_event('event1', 'event_time1 = t')
+    G.run_on_event('event2', 'event_time2 = t')
+    run(2.1*ms)
+    assert_allclose(G.event_time1[:], [0, 1]*ms)
+    assert_allclose(G.event_time2[:], [1, 2]*ms)
+
 @attr('codegen-independent')
 @with_setup(teardown=reinit_devices)
 def test_construction():

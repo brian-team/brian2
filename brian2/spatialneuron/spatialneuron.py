@@ -60,6 +60,10 @@ class SpatialNeuron(NeuronGroup):
         It is uniform across the neuron.
     reset : str, optional
         The (possibly multi-line) string with the code to execute on reset.
+    events : dict, optional
+        User-defined events in addition to the "spike" event defined by the
+        ``threshold``. Has to be a mapping of strings (the event name) to
+         strings (the condition) that will be checked.
     refractory : {str, `Quantity`}, optional
         Either the length of the refractory period (e.g. ``2*ms``), a string
         expression that evaluates to the length of the refractory period
@@ -90,7 +94,7 @@ class SpatialNeuron(NeuronGroup):
     '''
 
     def __init__(self, morphology=None, model=None, threshold=None,
-                 refractory=False, reset=None,
+                 refractory=False, reset=None, event=None,
                  threshold_location=None,
                  dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
@@ -223,7 +227,7 @@ class SpatialNeuron(NeuronGroup):
 
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
-                             reset=reset,
+                             reset=reset, event=event,
                              method=method, dt=dt, clock=clock, order=order,
                              namespace=namespace, dtype=dtype, name=name)
 
@@ -345,7 +349,7 @@ class SpatialStateUpdater(CodeRunner, Group):
     '''
 
     def __init__(self, group, method, clock, order=0):
-        # group is the neuron (a group of compartments) 
+        # group is the neuron (a group of compartments)
         self.method_choice = method
         self.group = weakref.proxy(group)
         CodeRunner.__init__(self, group,
