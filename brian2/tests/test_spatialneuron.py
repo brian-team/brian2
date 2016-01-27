@@ -10,20 +10,19 @@ from brian2.devices.device import reinit_devices
 @attr('codegen-independent')
 def test_custom_events():
     # Set (could be moved in a setup)
+    EL = -65*mV
+    gL = 0.0003*siemens/cm**2
     ev = '''
+    Im = gL * (EL - v) : amp/meter**2
     event_time1 : second
-    event_time2 : second
     '''
     morpho = Soma(diameter=10*um)
     G = SpatialNeuron(morphology=morpho,
                       model=ev,
-                      events={'event1': 't>=i*ms and t<i*ms+dt',
-                              'event2': 't>=(i+1)*ms and t<(i+1)*ms+dt'})
-    G.run_on_event('event1', 'event_time1 = t')
-    G.run_on_event('event2', 'event_time2 = t')
-    run(2.1*ms)
-    assert_allclose(G.event_time1[:], [0, 1]*ms)
-    assert_allclose(G.event_time2[:], [1, 2]*ms)
+                      events={'event1': 't>=i*ms and t<i*ms+dt'})
+    G.run_on_event('event1', 'event_time1 = 0.1*ms')
+    run(0.2*ms)
+    assert_allclose(G.event_time1[:], [0.1]*ms)
 
 @attr('codegen-independent')
 @with_setup(teardown=reinit_devices)
@@ -528,6 +527,7 @@ def test_rall():
     assert_allclose(v-EL, theory-EL, rtol=0.001)
 
 if __name__ == '__main__':
+    test_custom_events()
     test_construction()
     test_construction_coordinates()
     test_infinitecable()
