@@ -16,13 +16,17 @@ def test_custom_events():
     Im = gL * (EL - v) : amp/meter**2
     event_time1 : second
     '''
+    # Create a three compartments morphology
     morpho = Soma(diameter=10*um)
+    morpho.dend1 = Cylinder(diameter=1*um, length=10*um )
+    morpho.dend2 = Cylinder(diameter=1*um, length=10*um )
     G = SpatialNeuron(morphology=morpho,
                       model=ev,
                       events={'event1': 't>=i*ms and t<i*ms+dt'})
     G.run_on_event('event1', 'event_time1 = 0.1*ms')
     run(0.2*ms)
-    assert_allclose(G.event_time1[:], [0.1]*ms)
+    # Event has size three now because there are three compartments
+    assert_allclose(G.event_time1[:], [0.1, 0, 0]*ms)
 
 @attr('codegen-independent')
 @with_setup(teardown=reinit_devices)
@@ -528,11 +532,11 @@ def test_rall():
 
 if __name__ == '__main__':
     test_custom_events()
-    test_construction()
-    test_construction_coordinates()
-    test_infinitecable()
-    test_finitecable()
-    test_rallpack1()
-    test_rallpack2()
-    test_rallpack3()
-    test_rall()
+    #test_construction()
+    #test_construction_coordinates()
+    #test_infinitecable()
+    #test_finitecable()
+    #test_rallpack1()
+    #test_rallpack2()
+    #test_rallpack3()
+    #test_rall()
