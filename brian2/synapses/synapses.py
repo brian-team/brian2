@@ -659,7 +659,7 @@ class Synapses(Group):
             else:
                 if (single_equation.type == DIFFERENTIAL_EQUATION and
                             'clock-driven' not in single_equation.flags):
-                    logger.warn(('The synaptic equation for the variable {var} '
+                    logger.info(('The synaptic equation for the variable {var} '
                                  'does not specify whether it should be '
                                  'integrated at every timestep ("clock-driven") '
                                  'or only at spiking events ("event-driven"). '

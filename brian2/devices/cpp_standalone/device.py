@@ -730,7 +730,7 @@ class CPPStandaloneDevice(Device):
                 from distutils import msvc9compiler
                 # TODO: handle debug
                 if debug:
-                    logger.warn('Debug flag currently ignored for MSVC')
+                    logger.warn('Debug flag currently ignored for MSVC', once=True)
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
                 if vcvars_loc == '':
                     for version in xrange(16, 8, -1):
@@ -739,7 +739,7 @@ class CPPStandaloneDevice(Device):
                             if version==14 and num_threads>0:
                                 logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
                                             "that version it is being ignored. We will use another version if "
-                                            "we find one, or you can switch OpenMP support off.")
+                                            "we find one, or you can switch OpenMP support off.", once=True)
                             else:
                                 vcvars_loc = fname
                                 break

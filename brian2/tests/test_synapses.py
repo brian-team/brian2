@@ -1,5 +1,6 @@
 import uuid
 import tempfile
+import logging
 
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
@@ -1296,7 +1297,7 @@ def test_ufunc_at_vectorisation():
         endvals = {}
         try:
             BrianLogger._log_messages.clear()
-            with catch_logs() as caught_logs:
+            with catch_logs(log_level=logging.INFO) as caught_logs:
                 for use_ufunc_at in use_ufunc_at_list:
                     NumpyCodeGenerator._use_ufunc_at_vectorisation = use_ufunc_at
                     src = NeuronGroup(3, eqs_src, threshold='True', name='src')
@@ -1322,13 +1323,13 @@ def test_ufunc_at_vectorisation():
                                 assert_allclose(val, endvals[fullvar])
                             else:
                                 endvals[fullvar] = val
+                numpy_generator_messages = [l for l in caught_logs
+                                            if l[1]=='brian2.codegen.generators.numpy_generator']
                 if should_be_able_to_use_ufunc_at:
-                    assert len(caught_logs)==0
+                    assert len(numpy_generator_messages) == 0
                 else:
-                    assert len(caught_logs)==1
-                    log_lev, log_mod, log_msg = caught_logs[0]
-                    assert log_lev=='WARNING'
-                    assert log_mod=='brian2.codegen.generators.numpy_generator'
+                    assert len(numpy_generator_messages) == 1
+                    log_lev, log_mod, log_msg = numpy_generator_messages[0]
                     assert log_msg.startswith('Failed to vectorise code')
         finally:
             NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
@@ -1352,6 +1353,7 @@ if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
+    # prefs._backup()
     import time
     start = time.time()
 

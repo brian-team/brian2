@@ -62,17 +62,18 @@ def auto_target():
             using_fallback = True
 
         if using_fallback:
-            logger.warn('Cannot use compiled code, falling back to the numpy '
+            logger.info('Cannot use compiled code, falling back to the numpy '
                         'code generation target. Note that this will likely '
                         'be slower than using compiled code. Set the code '
-                        'generation to numpy manually to avoid this warning:\n'
+                        'generation to numpy manually to avoid this message:\n'
                         'prefs.codegen.target = "numpy"',
-                        'codegen_fallback')
+                        'codegen_fallback', once=True)
         else:
             logger.debug(('Chosing %r as the code generation '
                          'target.') % _auto_target.class_name)
 
     return _auto_target
+
 
 def get_default_codeobject_class(pref='codegen.target'):
     '''

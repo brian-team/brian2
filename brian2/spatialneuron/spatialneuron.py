@@ -420,7 +420,7 @@ class SpatialStateUpdater(CodeRunner, Group):
             try:
                 import scipy
             except ImportError:
-                logger.warn(('SpatialNeuron will use numpy to do the numerical '
+                logger.info(('SpatialNeuron will use numpy to do the numerical '
                              'integration -- this will be very slow. Either '
                              'switch to a different code generation target '
                              '(e.g. weave or cython) or install scipy.'),
