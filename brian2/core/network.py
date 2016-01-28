@@ -883,10 +883,10 @@ class Network(Nameable):
             self._profiling_info = [(name, t*second)
                                     for name, t in profiling_info.iteritems()]
             # Dump a profiling summary to the log
-            logger.diagnostic('\n' + str(profiling_summary(self)))
+            logger.debug('\n' + str(profiling_summary(self)))
         else:
             self._profiling_info = None
-        
+
     @device_override('network_stop')
     def stop(self):
         '''
