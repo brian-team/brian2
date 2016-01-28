@@ -1,1 +1,4 @@
 /default_preferences
+# Do not take into account RC temporary files
+*.swp
+.rope*
