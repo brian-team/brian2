@@ -210,21 +210,21 @@ class SpatialNeuron(NeuronGroup):
                              namespace=namespace, dtype=dtype, name=name)
         # Parameters and intermediate variables for solving the cable equations
         # Note that some of these variables could have meaningful physical
-        # units (e.g. v_star is in volt, I0_all is in amp/meter**2 etc.) but
+        # units (e.g. _v_star is in volt, _I0_all is in amp/meter**2 etc.) but
         # since these variables should never be used in user code, we don't
         # assign them any units
-        self.variables.add_arrays(['ab_star0', 'ab_star1', 'ab_star2',
-                                   'ab_minus0', 'ab_minus1', 'ab_minus2',
-                                   'ab_plus0', 'ab_plus1', 'ab_plus2',
-                                   'b_plus', 'b_minus',
-                                   'v_star', 'u_plus', 'u_minus',
+        self.variables.add_arrays(['_ab_star0', '_ab_star1', '_ab_star2',
+                                   '_a_minus0', '_a_minus1', '_a_minus2',
+                                   '_a_plus0', '_a_plus1', '_a_plus2',
+                                   '_b_plus', '_b_minus',
+                                   '_v_star', '_u_plus', '_u_minus',
                                    # The following three are for solving the
                                    # three tridiag systems in parallel
-                                   'c1', 'c2', 'c3',
+                                   '_c1', '_c2', '_c3',
                                    # The following two are only necessary for
                                    # C code where we cannot deal with scalars
                                    # and arrays interchangeably:
-                                   'I0_all', 'gtot_all'], unit=1,
+                                   '_I0_all', '_gtot_all'], unit=1,
                                   size=self.N, read_only=True)
 
         self.Cm = Cm
@@ -340,8 +340,6 @@ class SpatialStateUpdater(CodeRunner, Group):
     '''
     The `CodeRunner` that updates the state variables of a `SpatialNeuron`
     at every timestep.
-
-    TODO: all internal variables (u_minus etc) could be inserted in the SpatialNeuron.
     '''
 
     def __init__(self, group, method, clock, order=0):

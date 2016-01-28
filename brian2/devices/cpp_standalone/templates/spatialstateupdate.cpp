@@ -2,11 +2,11 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {# USES_VARIABLES { Cm, dt, v, N,
-                  ab_star0, ab_star1, ab_star2, b_plus,
-                  ab_plus0, ab_plus1, ab_plus2, b_minus,
-                  ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
-                  gtot_all, I0_all,
-                  c1, c2, c3,
+                  _ab_star0, _ab_star1, _ab_star2, _b_plus,
+                  _a_plus0, _a_plus1, _a_plus2, _b_minus,
+                  _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _gtot_all, _I0_all,
+                  _c1, _c2, _c3,
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
@@ -37,8 +37,8 @@
         _vectorisation_idx = _idx;
 
         {{vector_code|autoindent}}
-        {{gtot_all}}[_idx] = _gtot;
-        {{I0_all}}[_idx] = _I0;
+        {{_gtot_all}}[_idx] = _gtot;
+        {{_I0_all}}[_idx] = _I0;
     }
 
     // STEP 2: for each branch: solve three tridiagonal systems
@@ -50,7 +50,7 @@
     {% endif %}
     {{ openmp_pragma('sections') }}
     {
-    // system 2a: solve for v_star
+    // system 2a: solve for _v_star
     {{ openmp_pragma('section') }}
     {
         {% if strategy == 'branches' %}
@@ -64,31 +64,31 @@
             
             double ai, bi, _m; // helper variables
 
-            // upper triangularization of tridiagonal system for v_star
+            // upper triangularization of tridiagonal system for _v_star
             for(int _j=_j_start; _j<_j_end+1; _j++)
             {
-                {{v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{I0_all}}[_j]; // RHS -> v_star (solution)
-                bi={{ab_star1}}[_j]-{{gtot_all}}[_j]; // main diagonal
+                {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j]; // RHS -> _v_star (solution)
+                bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
                 if (_j<N-1)
-                    {{c1}}[_j]={{ab_star0}}[_j+1]; // superdiagonal
+                    {{_c1}}[_j]={{_ab_star0}}[_j+1]; // superdiagonal
                 if (_j>0)
                 {
-                    ai={{ab_star2}}[_j-1]; // subdiagonal
-                    _m=1.0/(bi-ai*{{c1}}[_j-1]);
-                    {{c1}}[_j]={{c1}}[_j]*_m;
-                    {{v_star}}[_j]=({{v_star}}[_j] - ai*{{v_star}}[_j-1])*_m;
+                    ai={{_ab_star2}}[_j-1]; // subdiagonal
+                    _m=1.0/(bi-ai*{{_c1}}[_j-1]);
+                    {{_c1}}[_j]={{_c1}}[_j]*_m;
+                    {{_v_star}}[_j]=({{_v_star}}[_j] - ai*{{_v_star}}[_j-1])*_m;
                 } else
                 {
-                    {{c1}}[0]={{c1}}[0]/bi;
-                    {{v_star}}[0]={{v_star}}[0]/bi;
+                    {{_c1}}[0]={{_c1}}[0]/bi;
+                    {{_v_star}}[0]={{_v_star}}[0]/bi;
                 }
             }
-            // backwards substituation of the upper triangularized system for v_star
+            // backwards substituation of the upper triangularized system for _v_star
             for(int _j=_j_end-1; _j>=_j_start; _j--)
-                {{v_star}}[_j]={{v_star}}[_j] - {{c1}}[_j]*{{v_star}}[_j+1];
+                {{_v_star}}[_j]={{_v_star}}[_j] - {{_c1}}[_j]*{{_v_star}}[_j+1];
         }
     }
-    // system 2b: solve for u_plus
+    // system 2b: solve for _u_plus
     {{ openmp_pragma('section') }}
     {
         {% if strategy == 'branches' %}
@@ -102,31 +102,31 @@
             
             double ai, bi, _m; // helper variables
 
-            // upper triangularization of tridiagonal system for u_plus
+            // upper triangularization of tridiagonal system for _u_plus
             for(int _j=_j_start; _j<_j_end+1; _j++)
             {
-                {{u_plus}}[_j]={{b_plus}}[_j]; // RHS -> u_plus (solution)
-                bi={{ab_plus1}}[_j]-{{gtot_all}}[_j]; // main diagonal
+                {{_u_plus}}[_j]={{_b_plus}}[_j]; // RHS -> _u_plus (solution)
+                bi={{_a_plus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
                 if (_j<N-1)
-                    {{c2}}[_j]={{ab_plus0}}[_j+1]; // superdiagonal
+                    {{_c2}}[_j]={{_a_plus0}}[_j+1]; // superdiagonal
                 if (_j>0)
                 {
-                    ai={{ab_plus2}}[_j-1]; // subdiagonal
-                    _m=1.0/(bi-ai*{{c2}}[_j-1]);
-                    {{c2}}[_j]={{c2}}[_j]*_m;
-                    {{u_plus}}[_j]=({{u_plus}}[_j] - ai*{{u_plus}}[_j-1])*_m;
+                    ai={{_a_plus2}}[_j-1]; // subdiagonal
+                    _m=1.0/(bi-ai*{{_c2}}[_j-1]);
+                    {{_c2}}[_j]={{_c2}}[_j]*_m;
+                    {{_u_plus}}[_j]=({{_u_plus}}[_j] - ai*{{_u_plus}}[_j-1])*_m;
                 } else
                 {
-                    {{c2}}[0]={{c2}}[0]/bi;
-                    {{u_plus}}[0]={{u_plus}}[0]/bi;
+                    {{_c2}}[0]={{_c2}}[0]/bi;
+                    {{_u_plus}}[0]={{_u_plus}}[0]/bi;
                 }
             }
-            // backwards substituation of the upper triangularized system for u_plus
+            // backwards substituation of the upper triangularized system for _u_plus
             for(int _j=_j_end-1; _j>=_j_start; _j--)
-                {{u_plus}}[_j]={{u_plus}}[_j] - {{c2}}[_j]*{{u_plus}}[_j+1];
+                {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c2}}[_j]*{{_u_plus}}[_j+1];
         }
     }
-    // system 2c: solve for u_minus
+    // system 2c: solve for _u_minus
     {{ openmp_pragma('section') }}
     {
         {% if strategy == 'branches' %}
@@ -140,28 +140,28 @@
 
             double ai, bi, _m; // helper variables
             
-            // upper triangularization of tridiagonal system for u_minus
+            // upper triangularization of tridiagonal system for _u_minus
             for(int _j=_j_start; _j<_j_end+1; _j++)
             {
-                {{u_minus}}[_j]={{b_minus}}[_j]; // RHS -> u_minus (solution)
-                bi={{ab_minus1}}[_j]-{{gtot_all}}[_j]; // main diagonal
+                {{_u_minus}}[_j]={{_b_minus}}[_j]; // RHS -> _u_minus (solution)
+                bi={{_a_minus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
                 if (_j<N-1)
-                    {{c3}}[_j]={{ab_minus0}}[_j+1]; // superdiagonal
+                    {{_c3}}[_j]={{_a_minus0}}[_j+1]; // superdiagonal
                 if (_j>0)
                 {
-                    ai={{ab_minus2}}[_j-1]; // subdiagonal
-                    _m=1.0/(bi-ai*{{c3}}[_j-1]);
-                    {{c3}}[_j]={{c3}}[_j]*_m;
-                    {{u_minus}}[_j]=({{u_minus}}[_j] - ai*{{u_minus}}[_j-1])*_m;
+                    ai={{_a_minus2}}[_j-1]; // subdiagonal
+                    _m=1.0/(bi-ai*{{_c3}}[_j-1]);
+                    {{_c3}}[_j]={{_c3}}[_j]*_m;
+                    {{_u_minus}}[_j]=({{_u_minus}}[_j] - ai*{{_u_minus}}[_j-1])*_m;
                 } else
                 {
-                    {{c3}}[0]={{c3}}[0]/bi;
-                    {{u_minus}}[0]={{u_minus}}[0]/bi;
+                    {{_c3}}[0]={{_c3}}[0]/bi;
+                    {{_u_minus}}[0]={{_u_minus}}[0]/bi;
                 }
             }
-            // backwards substituation of the upper triangularized system for u_minus
+            // backwards substituation of the upper triangularized system for _u_minus
             for(int _j=_j_end-1; _j>=_j_start; _j--)
-                {{u_minus}}[_j]={{u_minus}}[_j] - {{c3}}[_j]*{{u_minus}}[_j+1];
+                {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c3}}[_j]*{{_u_minus}}[_j+1];
         }
     } // (OpenMP section)
     } // (OpenMP sections)
@@ -194,30 +194,30 @@
         if (_i == 0) // first branch, sealed end
         {
             // sparse matrix version
-            {{_P_diag}}[0] = {{u_minus}}[_first] - 1;
-            {{_P_children}}[IDX_C(0,0)] = {{u_plus}}[_first];
+            {{_P_diag}}[0] = {{_u_minus}}[_first] - 1;
+            {{_P_children}}[IDX_C(0,0)] = {{_u_plus}}[_first];
 
             // RHS
-            {{_B}}[0] = -{{v_star}}[_first];
+            {{_B}}[0] = -{{_v_star}}[_first];
         }
         else
         {
             // sparse matrix version
-            {{_P_diag}}[_i_parent] += (1 - {{u_minus}}[_first]) * _invr0;
-            {{_P_children}}[IDX_C(_i_parent, _i_childind)] = -{{u_plus}}[_first] * _invr0;
+            {{_P_diag}}[_i_parent] += (1 - {{_u_minus}}[_first]) * _invr0;
+            {{_P_children}}[IDX_C(_i_parent, _i_childind)] = -{{_u_plus}}[_first] * _invr0;
 
             // RHS
-            {{_B}}[_i_parent] += {{v_star}}[_first] * _invr0;
+            {{_B}}[_i_parent] += {{_v_star}}[_first] * _invr0;
         }
 
         // Towards children
 
         // sparse matrix version
-        {{_P_diag}}[_i+1] = (1 - {{u_plus}}[_last]) * _invrn;
-        {{_P_parent}}[_i] = -{{u_minus}}[_last] * _invrn;
+        {{_P_diag}}[_i+1] = (1 - {{_u_plus}}[_last]) * _invrn;
+        {{_P_parent}}[_i] = -{{_u_minus}}[_last] * _invrn;
 
         // RHS
-        {{_B}}[_i+1] = {{v_star}}[_last] * _invrn;
+        {{_B}}[_i+1] = {{_v_star}}[_last] * _invrn;
     }
 
 
@@ -263,8 +263,8 @@
         const int _j_end = {{_ends}}[_i];
         for (int _j=_j_start; _j<_j_end + 1; _j++)
             if (_j < _numv)  // don't go beyond the last element
-                {{v}}[_j] = {{v_star}}[_j] + {{_B}}[_i_parent] * {{u_minus}}[_j]
-                                           + {{_B}}[_i+1] * {{u_plus}}[_j];
+                {{v}}[_j] = {{_v_star}}[_j] + {{_B}}[_i_parent] * {{_u_minus}}[_j]
+                                           + {{_B}}[_i+1] * {{_u_plus}}[_j];
     }
 
 {% endblock %}
