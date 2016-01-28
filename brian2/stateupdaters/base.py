@@ -172,7 +172,7 @@ class StateUpdateMethod(object):
                              'method_choice')
             else:
                 logger.debug(('Using numerical integration method: {method} '
-                              '({timing})').format(group_name=group_name,
+                              '({timing})').format(method=method,
                                                    timing=timing),
                              'method_choice')
 
