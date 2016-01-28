@@ -11,7 +11,7 @@ from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
 from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
-from brian2.units.allunits import ohm, siemens, amp
+from brian2.units.allunits import ohm, siemens, amp, meter
 from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
@@ -194,35 +194,8 @@ class SpatialNeuron(NeuronGroup):
         area : meter**2 (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
-        space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter # Not so sure about the name
-
-        ### Parameters and intermediate variables for solving the cable equation
-        ab_star0 : siemens/meter**2
-        ab_plus0 : siemens/meter**2
-        ab_minus0 : siemens/meter**2
-        ab_star1 : siemens/meter**2
-        ab_plus1 : siemens/meter**2
-        ab_minus1 : siemens/meter**2
-        ab_star2 : siemens/meter**2
-        ab_plus2 : siemens/meter**2
-        ab_minus2 : siemens/meter**2
-        b_plus : siemens/meter**2
-        b_minus : siemens/meter**2
-        v_star : volt
-        u_plus : 1
-        u_minus : 1
-        # The following three are for parallelly solving the three tridiag systems 
-        # (in C++/CUDA standalone code) -- TODO: check units
-        c1 : 1
-        c2 : 1
-        c3 : 1
-        # The following two are only necessary for C code where we cannot deal
-        # with scalars and arrays interchangeably
-        gtot_all : siemens/meter**2
-        I0_all : amp/meter**2
+        space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter
         """)
-        # Possibilities for the name: characteristic_length, electrotonic_length, length_constant, space_constant
-
         # Insert morphology
         self.morphology = morphology
 
@@ -235,6 +208,24 @@ class SpatialNeuron(NeuronGroup):
                              reset=reset, events=events,
                              method=method, dt=dt, clock=clock, order=order,
                              namespace=namespace, dtype=dtype, name=name)
+        # Parameters and intermediate variables for solving the cable equations
+        # Note that some of these variables could have meaningful physical
+        # units (e.g. v_star is in volt, I0_all is in amp/meter**2 etc.) but
+        # since these variables should never be used in user code, we don't
+        # assign them any units
+        self.variables.add_arrays(['ab_star0', 'ab_star1', 'ab_star2',
+                                   'ab_minus0', 'ab_minus1', 'ab_minus2',
+                                   'ab_plus0', 'ab_plus1', 'ab_plus2',
+                                   'b_plus', 'b_minus',
+                                   'v_star', 'u_plus', 'u_minus',
+                                   # The following three are for solving the
+                                   # three tridiag systems in parallel
+                                   'c1', 'c2', 'c3',
+                                   # The following two are only necessary for
+                                   # C code where we cannot deal with scalars
+                                   # and arrays interchangeably:
+                                   'I0_all', 'gtot_all'], unit=1,
+                                  size=self.N, read_only=True)
 
         self.Cm = Cm
         self.Ri = Ri
@@ -358,8 +349,8 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.method_choice = method
         self.group = weakref.proxy(group)
 
-        n = len(group) # total number of compartments
-        segments = self.number_branches(group.morphology)
+        compartments = len(group) # total number of compartments
+        branches = self.number_branches(group.morphology)
 
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
@@ -370,62 +361,68 @@ class SpatialStateUpdater(CodeRunner, Group):
                             order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False,
-                            template_kwds={'number_branches': segments})
+                            template_kwds={'number_branches': branches})
 
         # The morphology is considered fixed (length etc. can still be changed,
         # though)
         # Traverse it once to get a flattened representation
-        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
-        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
+        self._temp_morph_i = np.zeros(branches, dtype=np.int32)
+        self._temp_morph_parent_i = np.zeros(branches, dtype=np.int32)
         # for the following: a smaller array of size no_segments x max_no_children would suffice...
-        self._temp_morph_children = np.zeros((segments+1, segments), dtype=np.int32) 
+        self._temp_morph_children = np.zeros((branches+1, branches), dtype=np.int32)
         # children count per branch: determines the no of actually used elements of the array above
-        self._temp_morph_children_num = np.zeros(segments+1, dtype=np.int32) 
+        self._temp_morph_children_num = np.zeros(branches+1, dtype=np.int32)
         # each branch is child of exactly one parent (and we say the first branch i=1 is child of branch i=0)
         # here we store the indices j-1->k of morph_children_i[i,k] = j 
-        self._temp_morph_idxchild = np.zeros(segments, dtype=np.int32)
-        self._temp_starts = np.zeros(segments, dtype=np.int32)
-        self._temp_ends = np.zeros(segments, dtype=np.int32)
+        self._temp_morph_idxchild = np.zeros(branches, dtype=np.int32)
+        self._temp_starts = np.zeros(branches, dtype=np.int32)
+        self._temp_ends = np.zeros(branches, dtype=np.int32)
         self._pre_calc_iteration(self.group.morphology)
         # flattened and reduce children indices
         max_children = max(self._temp_morph_children_num)
         self._temp_morph_children = self._temp_morph_children[:,:max_children].reshape(-1)
         
-        self.variables = Variables(self, default_index='_segment_idx')
+        self.variables = Variables(self, default_index='_branch_idx')
         self.variables.add_reference('N', group)
-        self.variables.add_arange('_compartment_idx', size=n)
-        self.variables.add_arange('_segment_idx', size=segments)
-        self.variables.add_arange('_segment_root_idx', size=segments+1)
-        self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
-                                 index='_compartment_idx')
-        self.variables.add_array('_P_diag', unit=Unit(1), size=segments+1,
-                                 constant=True)
-        self.variables.add_array('_P_children', unit=Unit(1), size=(segments+1)*max_children,
-                                 constant=True) # elements above diagonal 
-        self.variables.add_array('_P_parent', unit=Unit(1), size=segments,
+        # One value per compartment
+        self.variables.add_arange('_compartment_idx', size=compartments)
+        self.variables.add_array('_invr', unit=siemens, size=compartments,
+                                 constant=True, index='_compartment_idx')
+        # one value per branch
+        self.variables.add_arange('_branch_idx', size=branches)
+        self.variables.add_array('_P_parent', unit=Unit(1), size=branches,
                                  constant=True) # elements below diagonal
-        self.variables.add_array('_B', unit=Unit(1), size=segments+1,
-                                 constant=True, index='_segment_root_idx')
-        self.variables.add_array('_morph_i', unit=Unit(1), size=segments,
+        self.variables.add_array('_morph_idxchild', unit=Unit(1), size=branches,
                                  dtype=np.int32, constant=True)
-        self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
-                                 dtype=np.int32, constant=True)
-        self.variables.add_arange('_morph_children_num_idx', size=segments+1)
-        self.variables.add_array('_morph_children_num', unit=Unit(1), size=segments+1,
-                                 dtype=np.int32, constant=True, index='_morph_children_num_idx')
-        self.variables.add_arange('_morph_children_idx', size=(segments+1)*max_children)
-        self.variables.add_array('_morph_children', unit=Unit(1), size=(segments+1)*max_children,
-                                 dtype=np.int32, constant=True, index='_morph_children_idx')
-        self.variables.add_array('_morph_idxchild', unit=Unit(1), size=segments,
-                                 dtype=np.int32, constant=True)
-        self.variables.add_array('_starts', unit=Unit(1), size=segments,
-                                 dtype=np.int32, constant=True)
-        self.variables.add_array('_ends', unit=Unit(1), size=segments,
-                                 dtype=np.int32, constant=True)
-        self.variables.add_array('_invr0', unit=siemens, size=segments,
-                                 constant=True)
-        self.variables.add_array('_invrn', unit=siemens, size=segments,
-                                 constant=True)
+        self.variables.add_arrays(['_morph_i', '_morph_parent_i',
+                                   '_starts', '_ends'], unit=Unit(1),
+                                  size=branches, dtype=np.int32, constant=True)
+        self.variables.add_arrays(['_invr0', '_invrn'], unit=siemens,
+                                  size=branches, constant=True)
+        # one value per branch + 1 value for the root
+        self.variables.add_arange('_branch_root_idx', size=branches+1)
+        self.variables.add_array('_P_diag', unit=Unit(1), size=branches+1,
+                                 constant=True, index='_branch_root_idx')
+        self.variables.add_array('_B', unit=Unit(1), size=branches+1,
+                                 constant=True, index='_branch_root_idx')
+        self.variables.add_arange('_morph_children_num_idx', size=branches+1)
+        self.variables.add_array('_morph_children_num', unit=Unit(1),
+                                 size=branches+1, dtype=np.int32, constant=True,
+                                 index='_morph_children_num_idx')
+        # 2D matrices of size (branches + 1) x max children per branch
+        # Note that this data structure wastes space if the number of children
+        # per branch is very different. In practice, however, this should not
+        # matter much, since branches will normally have 0, 1, or 2 children
+        # (e.g. SWC files on neuromporh are strictly binary trees)
+        self.variables.add_array('_P_children', unit=Unit(1),
+                                 size=(branches+1)*max_children,
+                                 constant=True)  # elements above diagonal
+        self.variables.add_arange('_morph_children_idx',
+                                  size=(branches+1)*max_children)
+        self.variables.add_array('_morph_children', unit=Unit(1),
+                                 size=(branches+1)*max_children,
+                                 dtype=np.int32, constant=True,
+                                 index='_morph_children_idx')
         self._enable_group_attributes()
         
         self._morph_i = self._temp_morph_i
