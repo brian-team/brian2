@@ -2,7 +2,11 @@
                   ab_star0, ab_star1, ab_star2, b_plus,
                   ab_plus0, ab_plus1, ab_plus2, b_minus,
                   ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
-                  _P, _B, _morph_i, _morph_parent_i, _starts, _ends,
+                  gtot_all, I0_all,
+                  c1, c2, c3,
+                  _P_diag, _P_parent, _P_children,
+                  _B, _morph_parent_i, _starts, _ends,
+                  _morph_children, _morph_children_num, _morph_idxchild,
                   _invr0, _invrn} #}
 {# ITERATE_ALL { _idx } #}
 
@@ -110,49 +114,77 @@ for i in backward:
     {{u_minus}}[i] -= c[i]*{{u_minus}}[i+1]
 {% endif %}
 
-# Prepare matrix for solving the linear system
-_n_segments = len({{_B}})
-{{_B}}[:] = 0
-{{_P}}[:] = 0
-for _i, _i_parent, _first, _last, _invr0, _invrn in zip({{_morph_i}},
-                                                         {{_morph_parent_i}},
-                                                         {{_starts}},
-                                                         {{_ends}},
-                                                         {{_invr0}},
-                                                         {{_invrn}}):
+# indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
+children_rowlength = len({{_morph_children}})/len({{_morph_children_num}})
+
+# Construct the coupling system with matrix _P in sparse form. s.t.
+# _P_diag contains the diagonal elements
+# _P_children contains the super diagonal entries
+# _P_parent contains the single sub diagonal entry for each row
+# _B contains the right hand side
+
+_P_children_2d = {{_P_children}}.reshape(-1, children_rowlength)
+
+for _i, (_i_parent, _i_childind, _first, _last, _invr0, _invrn) in enumerate(zip({{_morph_parent_i}},
+                                                                                 {{_morph_idxchild}},
+                                                                                 {{_starts}},
+                                                                                 {{_ends}},
+                                                                                 {{_invr0}},
+                                                                                 {{_invrn}})):
     # Towards parent
-    if _i == 1:  # first branch, sealed end
-        {{_P}}[0] = {{u_minus}}[_first] - 1
-        {{_P}}[0 + 1] = {{u_plus}}[_first]
+    if _i == 0: # first branch, sealed end
+        {{_P_diag}}[0] = {{u_minus}}[_first] - 1
+        _P_children_2d[0, 0] = {{u_plus}}[_first]
+
+        # RHS
         {{_B}}[0] = -{{v_star}}[_first]
     else:
-        {{_P}}[_i_parent*_n_segments + _i_parent] += (1 - {{u_minus}}[_first]) * _invr0
-        {{_P}}[_i_parent*_n_segments + _i] -= {{u_plus}}[_first] * _invr0
+        {{_P_diag}}[_i_parent] += (1 - {{u_minus}}[_first]) * _invr0
+        _P_children_2d[_i_parent, _i_childind] = -{{u_plus}}[_first] * _invr0
+
+        # RHS
         {{_B}}[_i_parent] += {{v_star}}[_first] * _invr0
+
     # Towards children
-    {{_P}}[_i*_n_segments + _i] = (1 - {{u_plus}}[_last]) * _invrn
-    {{_P}}[_i*_n_segments + _i_parent] = -{{u_minus}}[_last] * _invrn
-    {{_B}}[_i] = {{v_star}}[_last] * _invrn
+    {{_P_diag}}[_i+1] = (1 - {{u_plus}}[_last]) * _invrn
+    {{_P_parent}}[_i] = -{{u_minus}}[_last] * _invrn
 
-# Solve the linear system
-{% if _scipy_available %}
-from scipy.sparse.linalg import spsolve as solve
-from scipy.sparse import csr_matrix
-_A = csr_matrix({{_P}}.reshape((_n_segments, _n_segments)))
-_V = solve(_A, {{_B}})
-{% else %}
-from numpy.linalg import solve
-_V = solve({{_P}}.reshape((_n_segments, _n_segments)), {{_B}})
-{% endif %}
+    # RHS
+    {{_B}}[_i+1] = {{v_star}}[_last] * _invrn
 
+# Solve the linear system (the result will be stored in the former rhs _B in the end)
+# use efficient O(n) solution of the sparse linear system (structure-specific Gaussian elemination)
+_morph_children_2d = {{_morph_children}}.reshape(-1, children_rowlength)
 
-# Final solutions as linear combinations
-for _i, _i_parent, _first, _last, in zip({{_morph_i}},
-                                          {{_morph_parent_i}},
-                                          {{_starts}},
-                                          {{_ends}}):
-    # _last+1 can go beyond the last element, but in Python slicing syntax, this
-    # is ignored.
-    {{v}}[_first:_last+1] = ({{v_star}}[_first:_last+1]
-                                     + _V[_i_parent] * {{u_minus}}[_first:_last+1]
-                                     + _V[_i] * {{u_plus}}[_first:_last+1])
+# part 1: lower triangularization
+
+for _i in range(len({{_B}})-1, -1, -1):
+    num_children = {{_morph_children_num}}[_i];
+
+    for _k in range(num_children):
+        _j = _morph_children_2d[_i, _k]  # child index
+
+        # subtracting subfac times the j-th from the i-th row
+        subfac = _P_children_2d[_i, _k] / {{_P_diag}}[_j]
+
+        {{_P_diag}}[_i] = {{_P_diag}}[_i]  - subfac * {{_P_parent}}[_j-1]
+        {{_B}}[_i] = {{_B}}[_i] - subfac * {{_B}}[_j]
+
+# part 2: forwards substitution
+{{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]  # the first branch does not have a parent
+for _i, j in enumerate({{_morph_parent_i}}):
+    {{_B}}[_i+1] -= {{_P_parent}}[_i] * {{_B}}[j]
+    {{_B}}[_i+1] /= {{_P_diag}}[_i+1]
+
+# For each branch compute the final solution by linear combination of the general solution
+for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}}],
+                                                       {{_starts}},
+                                                       {{_ends}})):
+    _B_current = {{_B}}[_i+1]
+    if _j_start == _j_end:
+        {{v}}[_j_start] = ({{v_star}}[_j_start] + _B_parent * {{u_minus}}[_j_start]
+                     + _B_current * {{u_plus}}[_j_start])
+    else:
+        {{v}}[_j_start:_j_end+1] = ({{v_star}}[_j_start:_j_end+1] + _B_parent * {{u_minus}}[_j_start:_j_end+1]
+                     + _B_current * {{u_plus}}[_j_start:_j_end+1])
+
