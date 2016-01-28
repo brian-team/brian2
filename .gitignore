@@ -28,5 +28,9 @@ nosetests.xml
 .idea
 /Brian2.egg-info
 
+# vim files
+*.swp
+.rope*
+
 # IPython
 .ipynb_checkpoints
