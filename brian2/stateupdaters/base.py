@@ -99,31 +99,8 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         '''
-        if hasattr(method, '__call__'):
-            # if this is a standard state updater, i.e. if it has a
-            # can_integrate method, check this method and raise a warning if it
-            # claims not to be applicable.
-            stateupdater = method
-            method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
-            if group_name is not None:
-                logger.debug('Group %r: using numerical integration method %r' % (group_name, method),
-                             'method_choice')
-            else:
-                logger.debug('Using numerical integration method: %r' % method,
-                             'method_choice')
-        elif isinstance(method, basestring):
-            method = method.lower()  # normalize name to lower case
-            stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
-            if stateupdater is None:
-                raise ValueError('No state updater with the name "%s" '
-                                 'is known' % method)
-            if group_name is not None:
-                logger.debug('Group %r: using numerical integration method %r' % (group_name, method),
-                             'method_choice')
-            else:
-                logger.debug('Using numerical integration method: %r' % method,
-                             'method_choice')
-        elif isinstance(method, collections.Iterable):
+        if (isinstance(method, collections.Iterable) and
+                not isinstance(method, basestring)):
             the_method = None
             for one_method in method:
                 try:
@@ -135,9 +112,15 @@ class StateUpdateMethod(object):
                     break
                 except UnsupportedEquationsException:
                     pass
+                except TypeError:
+                    raise TypeError(('Each element in the list of methods has '
+                                    'to be a string or a callable, got %s.')
+                                    % type(one_method))
+
             if the_method is None:
                 raise ValueError(('No stateupdater that is suitable for the '
                                   'given equations has been found.'))
+
             if group_name is not None:
                 msg_text = ("No numerical integration method specified for group "
                             "'{group_name}', choosing method '{method}'.")
@@ -147,7 +130,30 @@ class StateUpdateMethod(object):
             logger.info(msg_text.format(group_name=group_name,
                                         method=the_method), 'method_choice')
             return code
+        else:
+            if hasattr(method, '__call__'):
+                # if this is a standard state updater, i.e. if it has a
+                # can_integrate method, check this method and raise a warning if it
+                # claims not to be applicable.
+                stateupdater = method
+                method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
+            elif isinstance(method, basestring):
+                method = method.lower()  # normalize name to lower case
+                stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
+                if stateupdater is None:
+                    raise ValueError('No state updater with the name "%s" '
+                                     'is known' % method)
+            else:
+                raise TypeError(('method argument has to be a string, a '
+                                 'callable, or an iterable of such objects. '
+                                 'Got %s') % type(method))
 
-        code = stateupdater(equations, variables)
-        # If we get here, no error has been raised
-        return code
+            code = stateupdater(equations, variables)
+            if group_name is not None:
+                logger.debug('Group %r: using numerical integration method %r' % (group_name, method),
+                             'method_choice')
+            else:
+                logger.debug('Using numerical integration method: %r' % method,
+                             'method_choice')
+
+            return code

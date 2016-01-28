@@ -283,6 +283,29 @@ def test_integrator_code2():
         for variable in variables:
             assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
 
+@attr('codegen-independent')
+def test_illegal_calls():
+    eqs = Equations('dv/dt = -v / (10*ms) : 1')
+    clock = Clock(dt=0.1*ms)
+    variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
+                                    owner=None, device=None, dtype=np.float64,
+                                    constant=False),
+                 't': clock.variables['t'],
+                 'dt': clock.variables['dt']}
+    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
+                                                                          variables,
+                                                                          object()))
+    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
+                                                                          variables,
+                                                                          group_name='my_name',
+                                                                          method=object()))
+    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
+                                                                          variables,
+                                                                          [object(), 'euler']))
+    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
+                                                                          variables,
+                                                                          group_name='my_name',
+                                                                          method=[object(), 'euler']))
 
 @attr('codegen-independent')
 def test_priority():
@@ -662,6 +685,7 @@ if __name__ == '__main__':
     test_temporary_variables2()
     test_integrator_code()
     test_integrator_code2()
+    test_illegal_calls()
     test_priority()
     test_registration()
     test_subexpressions()
