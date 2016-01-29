@@ -127,9 +127,9 @@ class BrianObject(Nameable):
         #: The scope key is used to determine which objects are collected by magic
         self._scope_key = self._scope_current_key
         
-        logger.debug("Created BrianObject with name {self.name}, "
-                     "clock={self._clock}, "
-                     "when={self.when}, order={self.order}".format(self=self))
+        logger.diagnostic("Created BrianObject with name {self.name}, "
+                          "clock={self._clock}, "
+                          "when={self.when}, order={self.order}".format(self=self))
 
     #: Global key value for ipython cell restrict magic
     _scope_current_key = 0
@@ -315,9 +315,9 @@ class BrianObjectException(Exception):
                                                                  original_exception))
         self.origtb = traceback.format_exc()
         self.objcreate = brianobj._creation_stack
-        logger.debug('Error was encountered with object "{objname}":\n{fullstack}'.format(
-            objname=self.objname,
-            fullstack=brianobj._full_creation_stack))
+        logger.diagnostic('Error was encountered with object "{objname}":\n{fullstack}'.format(
+                objname=self.objname,
+                fullstack=brianobj._full_creation_stack))
 
     def __str__(self):
         return ('Original error and traceback:\n{origtb}\n'

@@ -74,7 +74,7 @@ class Nameable(Trackable):
             raise ValueError("Name %s not valid variable name" % name)
 
         self._name = find_name(name)
-        logger.debug("Created object of class "+self.__class__.__name__+" with name "+self._name)
+        logger.diagnostic("Created object of class "+self.__class__.__name__+" with name "+self._name)
 
     def assign_id(self):
         '''

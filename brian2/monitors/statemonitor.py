@@ -100,10 +100,10 @@ class StateMonitor(Group, CodeRunner):
     variables : str, sequence of str, True
         Which variables to record, or ``True`` to record all variables
         (note that this may use a great deal of memory).
-    record : None, False, True, sequence of ints, optional
-        Which indices to record, nothing is recorded for ``None`` or ``False``,
+    record : bool, sequence of ints
+        Which indices to record, nothing is recorded for ``False``,
         everything is recorded for ``True`` (warning: may use a great deal of
-        memory), or a specified subset of indices. Defaults to ``None``.
+        memory), or a specified subset of indices.
     dt : `Quantity`, optional
         The time step to be used for the monitor. Cannot be combined with
         the `clock` argument.
@@ -157,7 +157,7 @@ class StateMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, variables, record=None, dt=None, clock=None,
+    def __init__(self, source, variables, record, dt=None, clock=None,
                  when='start', order=0, name='statemonitor*', codeobj_class=None):
         self.source = source
         # Make the monitor use the explicitly defined namespace of its source
@@ -199,14 +199,7 @@ class StateMonitor(Group, CodeRunner):
                                            'Consider providing an explicit '
                                            'array of indices for the record '
                                            'argument.'))
-        elif record is None or record is False:
-            logger.warn(('The StateMonitor set up to record the variable(s) '
-                         '{vars} of "{source}" is not recording any value. '
-                         'Did you forget to provide the record '
-                         'argument?').format(vars=', '.join('"%s"' % var
-                                                            for var in variables),
-                                             source=self.source.name),
-                        once=True)
+        elif record is False:
             record = np.array([], dtype=np.int32)
         elif isinstance(record, numbers.Number):
             record = np.array([record], dtype=np.int32)

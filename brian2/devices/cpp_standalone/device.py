@@ -76,7 +76,7 @@ class CPPWriter(object):
         self.header_files = []
         
     def write(self, filename, contents):
-        logger.debug('Writing file %s:\n%s' % (filename, contents))
+        logger.diagnostic('Writing file %s:\n%s' % (filename, contents))
         if filename.lower().endswith('.cpp'):
             self.source_files.append(filename)
         elif filename.lower().endswith('.h'):
@@ -489,7 +489,7 @@ class CPPStandaloneDevice(Device):
     def check_openmp_compatible(self, nb_threads):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
-            logger.debug("Using OpenMP with %d threads " % nb_threads)
+            logger.diagnostic("Using OpenMP with %d threads " % nb_threads)
     
     def generate_objects_source(self, writer, arange_arrays, synapses, static_array_specs, networks):
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
@@ -720,7 +720,7 @@ class CPPStandaloneDevice(Device):
                 if isinstance(value, np.ndarray):
                     self.static_arrays[name] = value
                     
-        logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
+        logger.diagnostic("static arrays: "+str(sorted(self.static_arrays.keys())))
         
         static_array_specs = []
         for name, arr in sorted(self.static_arrays.items()):
@@ -746,7 +746,7 @@ class CPPStandaloneDevice(Device):
                 from distutils import msvc9compiler
                 # TODO: handle debug
                 if debug:
-                    logger.warn('Debug flag currently ignored for MSVC')
+                    logger.warn('Debug flag currently ignored for MSVC', once=True)
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
                 if vcvars_loc == '':
                     for version in xrange(16, 8, -1):
@@ -755,7 +755,7 @@ class CPPStandaloneDevice(Device):
                             if version==14 and num_threads>0:
                                 logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
                                             "that version it is being ignored. We will use another version if "
-                                            "we find one, or you can switch OpenMP support off.")
+                                            "we find one, or you can switch OpenMP support off.", once=True)
                             else:
                                 vcvars_loc = fname
                                 break
@@ -909,7 +909,7 @@ class CPPStandaloneDevice(Device):
         if (nb_threads < 0):
             raise ValueError('The number of OpenMP threads can not be negative !')
 
-        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(directory))
+        logger.diagnostic("Writing C++ standalone project to directory "+os.path.normpath(directory))
 
         self.check_openmp_compatible(nb_threads)
 
@@ -992,11 +992,11 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
-        void report_progress(const double elapsed, const double completed, const double duration)
+        void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation for duration " << duration << " s";
+                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
             } else
             {
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
@@ -1018,7 +1018,7 @@ class CPPStandaloneDevice(Device):
             self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
         elif isinstance(report, basestring):
             self.report_func = '''
-            void report_progress(const double elapsed, const double completed, const double duration)
+            void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {
             %REPORT%
             }

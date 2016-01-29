@@ -53,7 +53,8 @@ class StateUpdater(CodeRunner):
     def update_abstract_code(self, run_namespace=None, level=0):
         self.abstract_code = StateUpdateMethod.apply_stateupdater(self.group.equations,
                                                                   self.group.variables,
-                                                                  self.method_choice)
+                                                                  self.method_choice,
+                                                                  group_name=self.group.name)
 
 
 class SummedVariableUpdater(CodeRunner):
@@ -658,7 +659,7 @@ class Synapses(Group):
             else:
                 if (single_equation.type == DIFFERENTIAL_EQUATION and
                             'clock-driven' not in single_equation.flags):
-                    logger.warn(('The synaptic equation for the variable {var} '
+                    logger.info(('The synaptic equation for the variable {var} '
                                  'does not specify whether it should be '
                                  'integrated at every timestep ("clock-driven") '
                                  'or only at spiking events ("event-driven"). '
@@ -993,12 +994,12 @@ class Synapses(Group):
                 self.variables.add_reference(name + '_pre', self.source, name,
                                              index=index)
             except TypeError:
-                logger.debug(('Cannot include a reference to {var} in '
-                              '{synapses}, {var} uses a non-standard indexing '
-                              'in the pre-synaptic group '
-                              '{source}.').format(var=name,
-                                                  synapses=self.name,
-                                                  source=self.source.name))
+                logger.diagnostic(('Cannot include a reference to {var} in '
+                                   '{synapses}, {var} uses a non-standard indexing '
+                                   'in the pre-synaptic group '
+                                   '{source}.').format(var=name,
+                                                       synapses=self.name,
+                                                       source=self.source.name))
         for name in getattr(self.target, 'variables', {}).iterkeys():
             # Raise an error if a variable name is also used for a synaptic
             # variable (we ignore 'lastupdate' to allow connections to another
@@ -1023,12 +1024,12 @@ class Synapses(Group):
                     self.variables.add_reference(name, self.target, name,
                                                  index=index)
             except TypeError:
-                logger.debug(('Cannot include a reference to {var} in '
-                              '{synapses}, {var} uses a non-standard indexing '
-                              'in the post-synaptic group '
-                              '{target}.').format(var=name,
-                                                  synapses=self.name,
-                                                  target=self.target.name))
+                logger.diagnostic(('Cannot include a reference to {var} in '
+                                   '{synapses}, {var} uses a non-standard indexing '
+                                   'in the post-synaptic group '
+                                   '{target}.').format(var=name,
+                                                       synapses=self.name,
+                                                       target=self.target.name))
 
         # Check scalar subexpressions
         for eq in equations.itervalues():
@@ -1244,6 +1245,9 @@ class Synapses(Group):
                 abstract_code += '_real_targets = targets + _target_offset\n'
             else:
                 abstract_code += '_real_targets = targets'
+            logger.debug("Creating synapses from group '%s' to group '%s', "
+                         "using pre-defined arrays)" % (self.source.name,
+                                                        self.target.name))
 
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
@@ -1294,6 +1298,10 @@ class Synapses(Group):
                     variable_indices[varname] = '_all_post'
             variable_indices['_all_pre'] = '_i'
             variable_indices['_all_post'] = '_j'
+            logger.debug(("Creating synapses from group '%s' to group '%s', "
+                          "using condition '%s'") % (self.source.name,
+                                                     self.target.name,
+                                                     condition))
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             'synapses_create',

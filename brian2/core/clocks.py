@@ -57,8 +57,8 @@ class Clock(VariableOwner):
         self.variables.add_constant('N', unit=Unit(1), value=1)
         self._enable_group_attributes()
         self.dt = dt
-        logger.debug("Created clock {name} with dt={dt}".format(name=self.name,
-                                                                dt=self.dt))
+        logger.diagnostic("Created clock {name} with dt={dt}".format(name=self.name,
+                                                                     dt=self.dt))
 
     @check_units(t=second)
     def _set_t_update_dt(self, target_t=0*second):
@@ -94,9 +94,9 @@ class Clock(VariableOwner):
         # update them via the variables object directly
         self.variables['timestep'].set_value(new_timestep)
         self.variables['t'].set_value(new_timestep * new_dt)
-        logger.debug("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
-                                                                     t=self.t,
-                                                                     dt=self.dt))
+        logger.diagnostic("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
+                                                                          t=self.t,
+                                                                          dt=self.dt))
 
     def __repr__(self):
         return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)

@@ -95,10 +95,10 @@ class TextReport(object):
     def __init__(self, stream):
         self.stream = stream
 
-    def __call__(self, elapsed, completed, duration):
+    def __call__(self, elapsed, completed, start, duration):
         if completed == 0.0:
-            self.stream.write(('Starting simulation for duration '
-                               '%s\n') % duration)
+            self.stream.write(('Starting simulation at t=%s for a duration of '
+                               '%s\n') % (start, duration))
         else:
             report_msg = ('{t} ({percent}%) simulated in '
                           '{real_t}').format(t=completed*duration,
@@ -548,7 +548,7 @@ class Network(Nameable):
     def _set_schedule(self, schedule):
         if schedule is None:
             self._schedule = None
-            logger.debug('Reset network {self.name} schedule to '
+            logger.debug('Resetting network {self.name} schedule to '
                          'default schedule')
         else:
             if (not isinstance(schedule, Sequence) or
@@ -562,7 +562,7 @@ class Network(Nameable):
                                  'are created automatically based on the '
                                  'existing slot names.')
             self._schedule = list(schedule)
-            logger.debug("Set network {self.name} schedule to "
+            logger.debug("Setting network {self.name} schedule to "
                          "{self._schedule}".format(self=self),
                          "_set_schedule")
     
@@ -698,10 +698,11 @@ class Network(Nameable):
                                     'in a simulated network instead of '
                                     'creating a new one.') % obj.name)
 
-        logger.debug("Network {self.name} has {num} "
+        logger.debug("Network {self.name} uses {num} "
                      "clocks: {clocknames}".format(self=self,
                         num=len(self._clocks),
-                        clocknames=', '.join(obj.name for obj in self._clocks)),
+                        clocknames=', '.join('%s (dt=%s)' % (obj.name, obj.dt)
+                                             for obj in self._clocks)),
                      "before_run")
     
     @device_override('network_after_run')
@@ -789,10 +790,16 @@ class Network(Nameable):
 
         # Find the first clock to be updated (see note below)
         clock, curclocks = self._nextclocks()
+        start_time = time.time()
+
+        logger.debug("Simulating network '%s' from time %s to %s." % (self.name,
+                                                                      t_start,
+                                                                      t_end),
+                     'run')
+
         if report is not None:
             report_period = float(report_period)
-            start = current = time.time()
-            next_report_time = start + report_period
+            next_report_time = start_time + report_period
             if report == 'text' or report == 'stdout':
                 report_callback = TextReport(sys.stdout)
             elif report == 'stderr':
@@ -807,11 +814,10 @@ class Network(Nameable):
                                  'it has to be one of "text", "stdout", '
                                  '"stderr", or a callable function/object, '
                                  'but it is of type %s') % type(report))
-            report_callback(0*second, 0.0, duration)
+            report_callback(0*second, 0.0, t_start, duration)
 
         profiling_info = defaultdict(float)
 
-        start_time = time.time()
         timestep, _, _ = self._clock_variables[clock]
         running = timestep[0] < clock._i_end
         while running and not self._stopped and not Network._globally_stopped:
@@ -821,9 +827,9 @@ class Network(Nameable):
             if report is not None:
                 current = time.time()
                 if current > next_report_time:
-                    report_callback((current-start)*second,
+                    report_callback((current-start_time)*second,
                                     (self.t_ - float(t_start))/float(t_end),
-                                    duration)
+                                    t_start, duration)
                     next_report_time = current + report_period
                 # update the objects with this clock
             for obj in self.objects:
@@ -853,21 +859,25 @@ class Network(Nameable):
                 timestep, _, _ = self._clock_variables[clock]
                 running = timestep < clock._i_end
 
+        end_time = time.time()
         if self._stopped or Network._globally_stopped:
             self.t_ = clock.t_
         else:
             self.t_ = float(t_end)
 
-        device._last_run_time = time.time()-start_time
+        device._last_run_time = end_time-start_time
         if duration>0:
             device._last_run_completed_fraction = (self.t-t_start)/duration
         else:
             device._last_run_completed_fraction = 1.0
 
         if report is not None:
-            report_callback((current-start)*second, 1.0, duration)
+            report_callback((end_time-start_time)*second, 1.0, t_start, duration)
         self.after_run()
 
+        logger.debug(("Finished simulating network '%s' "
+                      "(took %.2fs)") % (self.name, end_time-start_time),
+                     'run')
         # Store profiling info (or erase old info to avoid confusion)
         if profile:
             self._profiling_info = [(name, t*second)
@@ -876,7 +886,7 @@ class Network(Nameable):
             logger.debug('\n' + str(profiling_summary(self)))
         else:
             self._profiling_info = None
-        
+
     @device_override('network_stop')
     def stop(self):
         '''

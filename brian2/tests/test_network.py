@@ -559,7 +559,7 @@ def test_magic_unused_object():
         return G1
 
     G = create_group()
-    with catch_logs(log_level=logging.INFO) as l:
+    with catch_logs(log_level=logging.DEBUG) as l:
         run(1*ms)
 
         # Check the debug messages for the number of included objects
@@ -638,7 +638,7 @@ def test_loop():
         return G.v
 
     # First run
-    with catch_logs(log_level=logging.INFO) as l:
+    with catch_logs(log_level=logging.DEBUG) as l:
         v = run_simulation()
         assert v[0] == 0 and 0 < v[-1] < 1
         # Check the debug messages for the number of included objects
@@ -648,7 +648,7 @@ def test_loop():
 
 
     # Second run
-    with catch_logs(log_level=logging.INFO) as l:
+    with catch_logs(log_level=logging.DEBUG) as l:
         v = run_simulation()
         assert v[0] == 0 and 0 < v[-1] < 1
         # Check the debug messages for the number of included objects
@@ -732,8 +732,8 @@ def test_progress_report():
 
     # Custom function
     calls = []
-    def capture_progress(elapsed, complete, duration):
-        calls.append((elapsed, complete, duration))
+    def capture_progress(elapsed, complete, start, duration):
+        calls.append((elapsed, complete, start, duration))
     with captured_output() as (out, err):
         net.run(1*ms, report=capture_progress)
     out, err = out.getvalue(), err.getvalue()
@@ -1148,6 +1148,7 @@ def test_magic_scope():
 
 
 if __name__=='__main__':
+    BrianLogger.log_level_warn()
     for t in [
             test_incorrect_network_use,
             test_network_contains,

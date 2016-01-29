@@ -88,7 +88,7 @@ class CythonExtensionManager(object):
         else:
             module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
         if owner_name:
-            logger.debug('"{owner_name}" using Cython module "{module_name}"'.format(owner_name=owner_name,
+            logger.diagnostic('"{owner_name}" using Cython module "{module_name}"'.format(owner_name=owner_name,
                                                                                      module_name=module_name))
 
 
