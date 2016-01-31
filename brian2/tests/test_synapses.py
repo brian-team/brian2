@@ -15,6 +15,7 @@ from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import reinit_devices, all_devices, get_device, set_device, reset_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
+from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 
 
 def _compare(synapses, expected):
@@ -1349,6 +1350,50 @@ def test_synapses_to_synapses_summed_variable():
     assert_array_equal(conn.w[:], [10, 10, 9, 7, 4])
 
 
+def test_synapse_generator_syntax():
+    parsed = parse_synapse_generator('k for k in sample(1, N, p=p) if abs(i-k)<10')
+    assert parsed['element'] == 'k'
+    assert parsed['iteration_variable'] == 'k'
+    assert parsed['iterator_func'] == 'sample'
+    assert parsed['iterator_kwds']['low'] == '1'
+    assert parsed['iterator_kwds']['high'] == 'N'
+    assert parsed['iterator_kwds']['step'] == '1'
+    assert parsed['iterator_kwds']['p'] == 'p'
+    assert parsed['iterator_kwds']['num'] is None
+    assert parsed['iterator_kwds']['sample_size'] == 'random'
+    assert parsed['if_expression'] == 'abs(i - k) < 10'
+    parsed = parse_synapse_generator('k for k in sample(N, num=5) if abs(i-k)<10')
+    assert parsed['element'] == 'k'
+    assert parsed['iteration_variable'] == 'k'
+    assert parsed['iterator_func'] == 'sample'
+    assert parsed['iterator_kwds']['low'] == '0'
+    assert parsed['iterator_kwds']['high'] == 'N'
+    assert parsed['iterator_kwds']['step'] == '1'
+    assert parsed['iterator_kwds']['p'] is None
+    assert parsed['iterator_kwds']['num'] == '5'
+    assert parsed['iterator_kwds']['sample_size'] == 'fixed'
+    assert parsed['if_expression'] == 'abs(i - k) < 10'
+    parsed = parse_synapse_generator('k+1 for k in range(i-100, i+100, 2)')
+    assert parsed['element'] == 'k + 1'
+    assert parsed['iteration_variable'] == 'k'
+    assert parsed['iterator_func'] == 'range'
+    assert parsed['iterator_kwds']['low'] == 'i - 100'
+    assert parsed['iterator_kwds']['high'] == 'i + 100'
+    assert parsed['iterator_kwds']['step'] == '2'
+    assert parsed['if_expression'] == 'True'
+    assert_raises(SyntaxError, parse_synapse_generator, 'mad rubbish')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k+1')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range()')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range(1,2,3,4)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range(1,2,3) if ')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k[1:3] for k in range(1,2,3)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x[1:5]')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample()')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, p=0.1, num=5)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
+
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
@@ -1398,5 +1443,6 @@ if __name__ == '__main__':
     test_synapses_to_synapses()
     test_synapses_to_synapses_summed_variable()
     test_ufunc_at_vectorisation()
+    test_synapse_generator_syntax()
 
     print 'Tests took', time.time()-start
