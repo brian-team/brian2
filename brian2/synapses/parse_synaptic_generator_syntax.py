@@ -36,17 +36,17 @@ def handle_sample(*args, **kwds):
     '''
     Checks the arguments/keywords for the sample iterator
 
-    Should have 1-3 positional arguments and 1 keyword argument (either p or num).
+    Should have 1-3 positional arguments and 1 keyword argument (either p or size).
 
-    Returns a dict with keys low, high, step, sample_size, p, num. Default values are
+    Returns a dict with keys low, high, step, sample_size, p, size. Default values are
     low=0, step=1. Sample size will be either 'random' or 'fixed'. In the first
-    case, p will have a value and num will be None (and vice versa for the second
+    case, p will have a value and size will be None (and vice versa for the second
     case).
     '''
     if len(args)==0 or len(args)>3:
         raise SyntaxError("Sample iterator takes 1-3 positional arguments.")
-    if len(kwds)!=1 or ('p' not in kwds and 'num' not in kwds):
-        raise SyntaxError("Sample iterator accepts one keyword argument, either 'p' or 'num'.")
+    if len(kwds)!=1 or ('p' not in kwds and 'size' not in kwds):
+        raise SyntaxError("Sample iterator accepts one keyword argument, either 'p' or 'size'.")
     if len(args)==1:
         high = args[0]
         low = '0'
@@ -59,13 +59,13 @@ def handle_sample(*args, **kwds):
     if 'p' in kwds:
         sample_size = 'random'
         p = kwds['p']
-        num = None
+        size = None
     else:
         sample_size = 'fixed'
-        num = kwds['num']
+        size = kwds['size']
         p = None
     return {'low': low, 'high': high, 'step': step,
-            'p': p, 'num': num, 'sample_size': sample_size}
+            'p': p, 'size': size, 'sample_size': sample_size}
 
 
 iterator_function_handlers = {
@@ -159,7 +159,7 @@ def parse_synapse_generator(expr):
 if __name__=='__main__':
     for parsed in [
                 parse_synapse_generator('k for k in sample(0, N, p=p) if abs(i-k)<10'),
-                parse_synapse_generator('k for k in sample(0, N, num=5) if abs(i-k)<10'),
+                parse_synapse_generator('k for k in sample(0, N, size=5) if abs(i-k)<10'),
                 parse_synapse_generator('k+1 for k in range(i-100, i+100, 2)'),
                 ]:
         print 'PARSED:'

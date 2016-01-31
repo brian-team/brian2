@@ -1359,10 +1359,10 @@ def test_synapse_generator_syntax():
     assert parsed['iterator_kwds']['high'] == 'N'
     assert parsed['iterator_kwds']['step'] == '1'
     assert parsed['iterator_kwds']['p'] == 'p'
-    assert parsed['iterator_kwds']['num'] is None
+    assert parsed['iterator_kwds']['size'] is None
     assert parsed['iterator_kwds']['sample_size'] == 'random'
     assert parsed['if_expression'] == 'abs(i - k) < 10'
-    parsed = parse_synapse_generator('k for k in sample(N, num=5) if abs(i-k)<10')
+    parsed = parse_synapse_generator('k for k in sample(N, size=5) if abs(i-k)<10')
     assert parsed['element'] == 'k'
     assert parsed['iteration_variable'] == 'k'
     assert parsed['iterator_func'] == 'sample'
@@ -1370,7 +1370,7 @@ def test_synapse_generator_syntax():
     assert parsed['iterator_kwds']['high'] == 'N'
     assert parsed['iterator_kwds']['step'] == '1'
     assert parsed['iterator_kwds']['p'] is None
-    assert parsed['iterator_kwds']['num'] == '5'
+    assert parsed['iterator_kwds']['size'] == '5'
     assert parsed['iterator_kwds']['sample_size'] == 'fixed'
     assert parsed['if_expression'] == 'abs(i - k) < 10'
     parsed = parse_synapse_generator('k+1 for k in range(i-100, i+100, 2)')
@@ -1390,7 +1390,7 @@ def test_synapse_generator_syntax():
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x')
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x[1:5]')
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample()')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, p=0.1, num=5)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, p=0.1, size=5)')
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
 
 
