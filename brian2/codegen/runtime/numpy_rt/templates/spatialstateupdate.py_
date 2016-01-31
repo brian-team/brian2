@@ -1,9 +1,9 @@
 {# USES_VARIABLES { Cm, dt, v, N,
-                  ab_star0, ab_star1, ab_star2, b_plus,
-                  ab_plus0, ab_plus1, ab_plus2, b_minus,
-                  ab_minus0, ab_minus1, ab_minus2, v_star, u_plus, u_minus,
-                  gtot_all, I0_all,
-                  c1, c2, c3,
+                  _ab_star0, _ab_star1, _ab_star2, _b_plus,
+                  _a_plus0, _a_plus1, _a_plus2, _b_minus,
+                  _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _gtot_all, _I0_all, v
+                  _c1, _c2, _c3,
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
@@ -28,90 +28,90 @@ _vectorisation_idx = N
 from scipy.linalg import solve_banded
 
 # Particular solution
-b=-({{Cm}}/{{dt}}*{{v}})-_I0
-ab = zeros((3,N))
-ab[0,:]={{ab_star0}}
-ab[1,:]={{ab_star1}}
-ab[2,:]={{ab_star2}}
-ab[1,:]-=_gtot
-{{v_star}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
+_b=-({{Cm}}/{{dt}}*{{v}})-_I0
+_ab = zeros((3,N))
+_ab[0,:] = {{_ab_star0}}
+_ab[1,:] = {{_ab_star1}}
+_ab[2,:] = {{_ab_star2}}
+_ab[1,:] -= _gtot
+{{_v_star}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
 # Homogeneous solutions
-b[:]={{b_plus}}
-ab[0,:]={{ab_plus0}}
-ab[1,:]={{ab_plus1}}
-ab[2,:]={{ab_plus2}}
-ab[1,:]-=_gtot
-{{u_plus}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
-b[:]={{b_minus}}
-ab[0,:]={{ab_minus0}}
-ab[1,:]={{ab_minus1}}
-ab[2,:]={{ab_minus2}}
-ab[1,:]-=_gtot
-{{u_minus}}[:]=solve_banded((1,1),ab,b,overwrite_ab=True,overwrite_b=True)
+_b[:] = {{_b_plus}}
+_ab[0,:] = {{_a_plus0}}
+_ab[1,:] = {{_a_plus1}}
+_ab[2,:] = {{_a_plus2}}
+_ab[1,:] -= _gtot
+{{_u_plus}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
+_b[:] = {{_b_minus}}
+_ab[0,:] = {{_a_minus0}}
+_ab[1,:] = {{_a_minus1}}
+_ab[2,:] = {{_a_minus2}}
+_ab[1,:] -= _gtot
+{{_u_minus}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
 {% else %}
 # Pure numpy solution, very slow because it needs forward and backward passes
 # along the array that can't be vectorized
-b = -({{Cm}} / {{dt}}*{{v}}) - _I0
+_b = -({{Cm}} / {{dt}}*{{v}}) - _I0
 
 # Tridiagonal solving
-forward = range(1, N)
-backward = range(N-2, -1, -1)
-c = zeros(N)
+_forward = range(1, N)
+_backward = range(N-2, -1, -1)
+_c = zeros(N)
 
 # Pass 1
-bi = {{ab_star1}} - _gtot  # main diagonal
+_bi = {{_ab_star1}} - _gtot  # main diagonal
 
 # First compartment
-c[0] = {{ab_star0}}[1] / bi[0]
-{{v_star}}[0] = b[0] / bi[0]
+_c[0] = {{_ab_star0}}[1] / _bi[0]
+{{_v_star}}[0] = _b[0] / _bi[0]
 
 # Other compartments
-c[1:-1] = {{ab_star0}}[2:]
-for i in forward:
-    ai = {{ab_star2}}[i-1]  # subdiagonal
-    _m = 1.0/(bi[i]-ai*c[i-1])
-    c[i] *= _m
-    {{v_star}}[i] = (b[i] - ai*{{v_star}}[i-1])*_m
+_c[1:-1] = {{_ab_star0}}[2:]
+for _i in _forward:
+    _ai = {{_ab_star2}}[_i-1]  # subdiagonal
+    _m = 1.0/(_bi[_i]-_ai*_c[_i-1])
+    _c[_i] *= _m
+    {{_v_star}}[_i] = (_b[_i] - _ai*{{_v_star}}[_i-1])*_m
 
-for i in backward:
-    {{v_star}}[i] -= c[i]*{{v_star}}[i+1]
+for _i in _backward:
+    {{_v_star}}[_i] -= _c[_i]*{{_v_star}}[_i+1]
 
 # Pass 2
-bi = {{ab_plus1}} - _gtot  # main diagonal
+_bi = {{_a_plus1}} - _gtot  # main diagonal
 
 # First compartment
-c[0] = {{ab_plus0}}[1]/bi[0]
-{{u_plus}}[0] = {{b_plus}}[0]/bi[0]
+_c[0] = {{_a_plus0}}[1]/_bi[0]
+{{_u_plus}}[0] = {{_b_plus}}[0]/_bi[0]
 
 # Other compartments
-c[1:-1] = {{ab_plus0}}[2:]  # superdiagonal
+_c[1:-1] = {{_a_plus0}}[2:]  # superdiagonal
 
-for i in forward:
-    ai = {{ab_plus2}}[i-1]  # subdiagonal
-    _m = 1.0/(bi[i]-ai*c[i-1])
-    c[i] *= _m
-    {{u_plus}}[i] = ({{b_plus}}[i] - ai*{{u_plus}}[i-1])*_m
+for _i in _forward:
+    _ai = {{_a_plus2}}[_i-1]  # subdiagonal
+    _m = 1.0/(_bi[_i]-_ai*_c[_i-1])
+    _c[_i] *= _m
+    {{_u_plus}}[_i] = ({{_b_plus}}[_i] - _ai*{{_u_plus}}[_i-1])*_m
 
-for i in backward:
-    {{u_plus}}[i] -= c[i]*{{u_plus}}[i+1]
+for _i in _backward:
+    {{_u_plus}}[_i] -= _c[_i]*{{_u_plus}}[_i+1]
 
 # Pass 3
-bi = {{ab_minus1}} - _gtot  # main diagonal
+_bi = {{_a_minus1}} - _gtot  # main diagonal
 
 # First compartment
-c[0] = {{ab_minus0}}[1]/bi[0]
-{{u_minus}}[0] = {{b_minus}}[0]/bi[0]
+_c[0] = {{_a_minus0}}[1]/_bi[0]
+{{_u_minus}}[0] = {{_b_minus}}[0]/_bi[0]
 
 # Other compartments
-c[1:-1] = {{ab_minus0}}[2:]  # superdiagonal
-for i in forward:
-    ai = {{ab_minus2}}[i-1]  # subdiagonal
-    _m = 1.0/(bi[i]-ai*c[i-1]);
-    c[i] *= _m
-    {{u_minus}}[i] = ({{b_minus}}[i] - ai*{{u_minus}}[i-1])*_m
+_c[1:-1] = {{_a_minus0}}[2:]  # superdiagonal
+for _i in _forward:
+    _ai = {{_a_minus2}}[_i-1]  # subdiagonal
+    _m = 1.0/(_bi[_i]-_ai*_c[_i-1]);
+    _c[_i] *= _m
+    {{_u_minus}}[_i] = ({{_b_minus}}[_i] - _ai*{{_u_minus}}[_i-1])*_m
 
-for i in backward:
-    {{u_minus}}[i] -= c[i]*{{u_minus}}[i+1]
+for _i in _backward:
+    {{_u_minus}}[_i] -= _c[_i]*{{_u_minus}}[_i+1]
 {% endif %}
 
 # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
@@ -133,24 +133,24 @@ for _i, (_i_parent, _i_childind, _first, _last, _invr0, _invrn) in enumerate(zip
                                                                                  {{_invrn}})):
     # Towards parent
     if _i == 0: # first branch, sealed end
-        {{_P_diag}}[0] = {{u_minus}}[_first] - 1
-        _P_children_2d[0, 0] = {{u_plus}}[_first]
+        {{_P_diag}}[0] = {{_u_minus}}[_first] - 1
+        _P_children_2d[0, 0] = {{_u_plus}}[_first]
 
         # RHS
-        {{_B}}[0] = -{{v_star}}[_first]
+        {{_B}}[0] = -{{_v_star}}[_first]
     else:
-        {{_P_diag}}[_i_parent] += (1 - {{u_minus}}[_first]) * _invr0
-        _P_children_2d[_i_parent, _i_childind] = -{{u_plus}}[_first] * _invr0
+        {{_P_diag}}[_i_parent] += (1 - {{_u_minus}}[_first]) * _invr0
+        _P_children_2d[_i_parent, _i_childind] = -{{_u_plus}}[_first] * _invr0
 
         # RHS
-        {{_B}}[_i_parent] += {{v_star}}[_first] * _invr0
+        {{_B}}[_i_parent] += {{_v_star}}[_first] * _invr0
 
     # Towards children
-    {{_P_diag}}[_i+1] = (1 - {{u_plus}}[_last]) * _invrn
-    {{_P_parent}}[_i] = -{{u_minus}}[_last] * _invrn
+    {{_P_diag}}[_i+1] = (1 - {{_u_plus}}[_last]) * _invrn
+    {{_P_parent}}[_i] = -{{_u_minus}}[_last] * _invrn
 
     # RHS
-    {{_B}}[_i+1] = {{v_star}}[_last] * _invrn
+    {{_B}}[_i+1] = {{_v_star}}[_last] * _invrn
 
 # Solve the linear system (the result will be stored in the former rhs _B in the end)
 # use efficient O(n) solution of the sparse linear system (structure-specific Gaussian elemination)
@@ -159,16 +159,16 @@ _morph_children_2d = {{_morph_children}}.reshape(-1, children_rowlength)
 # part 1: lower triangularization
 
 for _i in range(len({{_B}})-1, -1, -1):
-    num_children = {{_morph_children_num}}[_i];
+    _num_children = {{_morph_children_num}}[_i];
 
-    for _k in range(num_children):
+    for _k in range(_num_children):
         _j = _morph_children_2d[_i, _k]  # child index
 
-        # subtracting subfac times the j-th from the i-th row
-        subfac = _P_children_2d[_i, _k] / {{_P_diag}}[_j]
+        # subtracting _subfac times the j-th from the _i-th row
+        _subfac = _P_children_2d[_i, _k] / {{_P_diag}}[_j]
 
-        {{_P_diag}}[_i] = {{_P_diag}}[_i]  - subfac * {{_P_parent}}[_j-1]
-        {{_B}}[_i] = {{_B}}[_i] - subfac * {{_B}}[_j]
+        {{_P_diag}}[_i] = {{_P_diag}}[_i]  - _subfac * {{_P_parent}}[_j-1]
+        {{_B}}[_i] = {{_B}}[_i] - _subfac * {{_B}}[_j]
 
 # part 2: forwards substitution
 {{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]  # the first branch does not have a parent
@@ -182,9 +182,9 @@ for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}
                                                        {{_ends}})):
     _B_current = {{_B}}[_i+1]
     if _j_start == _j_end:
-        {{v}}[_j_start] = ({{v_star}}[_j_start] + _B_parent * {{u_minus}}[_j_start]
-                     + _B_current * {{u_plus}}[_j_start])
+        {{v}}[_j_start] = ({{_v_star}}[_j_start] + _B_parent * {{_u_minus}}[_j_start]
+                     + _B_current * {{_u_plus}}[_j_start])
     else:
-        {{v}}[_j_start:_j_end+1] = ({{v_star}}[_j_start:_j_end+1] + _B_parent * {{u_minus}}[_j_start:_j_end+1]
-                     + _B_current * {{u_plus}}[_j_start:_j_end+1])
+        {{v}}[_j_start:_j_end+1] = ({{_v_star}}[_j_start:_j_end+1] + _B_parent * {{_u_minus}}[_j_start:_j_end+1]
+                     + _B_current * {{_u_plus}}[_j_start:_j_end+1])
 
