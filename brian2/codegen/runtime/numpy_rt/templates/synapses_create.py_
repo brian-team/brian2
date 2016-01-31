@@ -10,7 +10,12 @@ import numpy as _numpy
 if _sys.version_info[0]==2:
     range = xrange
 from numpy.random import binomial as _binomial
-from sklearn.utils.random import sample_without_replacement as _sample_without_replacement
+try:
+    from sklearn.utils.random import sample_without_replacement as _sample_without_replacement
+except ImportError:
+    from random import sample as _sample
+    def _sample_without_replacement(n, k):
+        return _sample(range(n), k)
 
 numpy_False = _numpy.bool_(False)
 numpy_True = _numpy.bool_(True)
