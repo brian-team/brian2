@@ -40,7 +40,7 @@ neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
                        refractory=5*ms)
 neuron.v = EL
 neuron.gLx[0] = gL
-neuron.gNa[compartment] = gNa / neuron.area[compartment]
+neuron.gNa[compartment] = gNa_0 / neuron.area[compartment]
 
 # Reset the entire neuron when there is a spike
 reset = Synapses(neuron, neuron, pre='v = EL')

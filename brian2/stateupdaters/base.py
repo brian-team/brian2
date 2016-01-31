@@ -6,6 +6,7 @@ for example in `NeuronGroup` when no state updater is given explicitly.
 '''
 from abc import abstractmethod, ABCMeta
 import collections
+import time
 
 from brian2.utils.logger import get_logger
 
@@ -75,7 +76,7 @@ class StateUpdateMethod(object):
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
-    def apply_stateupdater(equations, variables, method):
+    def apply_stateupdater(equations, variables, method, group_name=None):
         '''
         Applies a given state updater to equations. If a `method` is given, the
         state updater with the given name is used or if is a callable, then it
@@ -99,38 +100,80 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         '''
-        if hasattr(method, '__call__'):
-            # if this is a standard state updater, i.e. if it has a
-            # can_integrate method, check this method and raise a warning if it
-            # claims not to be applicable.
-            stateupdater = method
-            method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
-            logger.debug('Using state updater: %r' % method)
-        elif isinstance(method, basestring):
-            method = method.lower()  # normalize name to lower case
-            stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
-            if stateupdater is None:
-                raise ValueError('No state updater with the name "%s" '
-                                 'is known' % method)
-            logger.debug('Using state updater: %r' % method)
-        elif isinstance(method, collections.Iterable):
+        if (isinstance(method, collections.Iterable) and
+                not isinstance(method, basestring)):
             the_method = None
+            start_time = time.time()
             for one_method in method:
                 try:
+                    one_method_start_time = time.time()
                     code = StateUpdateMethod.apply_stateupdater(equations,
                                                                 variables,
-                                                                one_method)
+                                                                one_method,
+                                                                group_name=group_name)
                     the_method = one_method
+                    one_method_time = time.time() - one_method_start_time
                     break
                 except UnsupportedEquationsException:
                     pass
+                except TypeError:
+                    raise TypeError(('Each element in the list of methods has '
+                                     'to be a string or a callable, got %s.')
+                                    % type(one_method))
+            total_time = time.time() - start_time
             if the_method is None:
                 raise ValueError(('No stateupdater that is suitable for the '
                                   'given equations has been found.'))
-            logger.info('Using state updater: %r' % the_method)
+
+            # If only one method was tried
+            if method[0] == the_method:
+                timing = 'took %.2fs' % one_method_time
+            else:
+                timing = ('took %.2fs, trying other methods took '
+                          '%.2fs') % (one_method_time,
+                                      total_time-one_method_time)
+
+            if group_name is not None:
+                msg_text = ("No numerical integration method specified for group "
+                            "'{group_name}', using method '{method}' ({timing}).")
+            else:
+                msg_text = ("No numerical integration method specified, "
+                            "using method '{method}' ({timing}).")
+            logger.info(msg_text.format(group_name=group_name,
+                                        method=the_method,
+                                        timing=timing), 'method_choice')
             return code
+        else:
+            if hasattr(method, '__call__'):
+                # if this is a standard state updater, i.e. if it has a
+                # can_integrate method, check this method and raise a warning if it
+                # claims not to be applicable.
+                stateupdater = method
+                method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
+            elif isinstance(method, basestring):
+                method = method.lower()  # normalize name to lower case
+                stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
+                if stateupdater is None:
+                    raise ValueError('No state updater with the name "%s" '
+                                     'is known' % method)
+            else:
+                raise TypeError(('method argument has to be a string, a '
+                                 'callable, or an iterable of such objects. '
+                                 'Got %s') % type(method))
+            start_time = time.time()
+            code = stateupdater(equations, variables)
+            method_time = time.time() - start_time
+            timing = 'took %.2fs' % method_time
+            if group_name is not None:
+                logger.debug(('Group {group_name}: using numerical integration '
+                             'method {method} ({timing})').format(group_name=group_name,
+                                                                  method=method,
+                                                                  timing=timing),
+                             'method_choice')
+            else:
+                logger.debug(('Using numerical integration method: {method} '
+                              '({timing})').format(method=method,
+                                                   timing=timing),
+                             'method_choice')
 
-        code = stateupdater(equations, variables)
-        # If we get here, no error has been raised
-        return code
-
+            return code

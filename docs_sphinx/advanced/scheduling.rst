@@ -69,11 +69,12 @@ Progress reporting
 ------------------
 For custom progress reporting (e.g. graphical output, writing to a file, etc.),
 the ``report`` keyword accepts a callable (i.e. a function or an object with a
-``__call__`` method) that will be called with three parameters:
+``__call__`` method) that will be called with four parameters:
 
 * ``elapsed``: the total (real) time since the start of the run
 * ``completed``: the fraction of the total simulation that is completed,
   i.e. a value between 0 and 1
+* ``start``: The start of the simulation (in biological time)
 * ``duration``: the total duration (in biological time) of the simulation
 
 The function will be called every ``report_period`` during the simulation, but
@@ -115,7 +116,7 @@ Adapted from http://stackoverflow.com/questions/3160699/python-progress-bar
             self.toolbar_width = toolbar_width
             self.ticks = 0
 
-        def __call__(self, elapsed, complete, duration):
+        def __call__(self, elapsed, complete, start, duration):
             if complete == 0.0:
                 # setup toolbar
                 sys.stdout.write("[%s]" % (" " * self.toolbar_width))

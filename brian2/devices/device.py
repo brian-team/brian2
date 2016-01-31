@@ -62,15 +62,18 @@ def auto_target():
             using_fallback = True
 
         if using_fallback:
-            logger.warn('Cannot use compiled code, falling back to the numpy '
+            logger.info('Cannot use compiled code, falling back to the numpy '
                         'code generation target. Note that this will likely '
-                        'be slower than using compiled code.',
-                        'codegen_fallback')
+                        'be slower than using compiled code. Set the code '
+                        'generation to numpy manually to avoid this message:\n'
+                        'prefs.codegen.target = "numpy"',
+                        'codegen_fallback', once=True)
         else:
-            logger.info(('Chosing %r as the code generation '
+            logger.debug(('Chosing %r as the code generation '
                          'target.') % _auto_target.class_name)
 
     return _auto_target
+
 
 def get_default_codeobject_class(pref='codegen.target'):
     '''
@@ -270,7 +273,7 @@ class Device(object):
                         raise NotImplementedError(('Cannot use function '
                                                    '%s: %s') % (varname, ex))
 
-        logger.debug('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
+        logger.diagnostic('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
                                                              dtype=prefs['core.default_float_dtype'])
@@ -288,8 +291,8 @@ class Device(object):
 
 
         template_kwds.update(kwds)
-        logger.debug('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
-        logger.debug('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
+        logger.diagnostic('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
+        logger.diagnostic('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
 
         name = find_name(name)
 
@@ -298,7 +301,7 @@ class Device(object):
                         variable_indices=variable_indices,
                         get_array_name=generator.get_array_name,
                         **template_kwds)
-        logger.debug('%s code:\n%s' % (name, indent(code_representation(code))))
+        logger.diagnostic('%s code:\n%s' % (name, indent(code_representation(code))))
 
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
@@ -412,10 +415,10 @@ class RuntimeDevice(Device):
         # Use the C++ version of the SpikeQueue when available
         try:
             from brian2.synapses.cythonspikequeue import SpikeQueue
-            logger.info('Using the C++ SpikeQueue', once=True)
+            logger.diagnostic('Using the C++ SpikeQueue', once=True)
         except ImportError:
             from brian2.synapses.spikequeue import SpikeQueue
-            logger.info('Using the Python SpikeQueue', once=True)
+            logger.diagnostic('Using the Python SpikeQueue', once=True)
 
         return SpikeQueue(source_start=source_start, source_end=source_end)
 

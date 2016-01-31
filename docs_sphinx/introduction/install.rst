@@ -169,7 +169,7 @@ Development version
 To run the latest development code, you can install from brian-team's "dev"
 channel with Anaconda::
 
-    conda install -c brian-team/channels/dev brian2
+    conda install -c brian-team/channel/dev brian2
 
 You can also directly clone the git repository at github
 (https://github.com/brian-team/brian2) and then run ``python setup.py install``

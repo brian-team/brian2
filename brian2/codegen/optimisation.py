@@ -46,6 +46,7 @@ def optimise_statements(scalar_statements, vector_statements, variables):
     Optimise a sequence of scalar and vector statements
 
     Performs the following optimisations:
+
     1. Constant evaluations (e.g. exp(0) to 1). See `evaluate_expr`.
     2. Arithmetic simplifications (e.g. 0*x to 0). See `ArithmeticSimplifier`, `collect`.
     3. Pulling out loop invariants (e.g. v*exp(-dt/tau) to a=exp(-dt/tau) outside the loop and v*a inside).
@@ -351,8 +352,8 @@ def reduced_node(terms, op):
     op : AST node
         Could be `ast.Mult` or `ast.Add`.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import ast
     >>> nodes = [ast.Name(id='x'), ast.Num(n=3), ast.Name(id='y')]
     >>> ast.dump(reduced_node(nodes, ast.Mult), annotate_fields=False)

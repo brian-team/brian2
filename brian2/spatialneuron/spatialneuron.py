@@ -2,11 +2,9 @@
 Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
-from itertools import izip
 import weakref
 
 import sympy as sp
-from numpy import pi
 import numpy as np
 
 from brian2.core.variables import Variables
@@ -16,7 +14,7 @@ from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp
 from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
 from brian2.units.stdunits import uF, cm
-from brian2.parsing.sympytools import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
@@ -62,6 +60,10 @@ class SpatialNeuron(NeuronGroup):
         It is uniform across the neuron.
     reset : str, optional
         The (possibly multi-line) string with the code to execute on reset.
+    events : dict, optional
+        User-defined events in addition to the "spike" event defined by the
+        ``threshold``. Has to be a mapping of strings (the event name) to
+         strings (the condition) that will be checked.
     refractory : {str, `Quantity`}, optional
         Either the length of the refractory period (e.g. ``2*ms``), a string
         expression that evaluates to the length of the refractory period
@@ -92,7 +94,7 @@ class SpatialNeuron(NeuronGroup):
     '''
 
     def __init__(self, morphology=None, model=None, threshold=None,
-                 refractory=False, reset=None,
+                 refractory=False, reset=None, events=None,
                  threshold_location=None,
                  dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
@@ -153,13 +155,13 @@ class SpatialNeuron(NeuronGroup):
 
         # Expand expressions in the membrane equation
         membrane_eq.type = DIFFERENTIAL_EQUATION
-        for var, expr in model._get_substituted_expressions():  # this returns substituted expressions for diff eqs
+        for var, expr in model.get_substituted_expressions():
             if var == 'Im':
                 Im_expr = expr
         membrane_eq.type = SUBEXPRESSION
 
         # Factor out the variable
-        s_expr = sp.collect(Im_expr.sympy_expr.expand(), var)
+        s_expr = sp.collect(str_to_sympy(Im_expr.code).expand(), var)
         matches = s_expr.match(pattern)
 
         if matches is None:
@@ -209,6 +211,11 @@ class SpatialNeuron(NeuronGroup):
         v_star : volt
         u_plus : 1
         u_minus : 1
+        # The following three are for parallelly solving the three tridiag systems 
+        # (in C++/CUDA standalone code) -- TODO: check units
+        c1 : 1
+        c2 : 1
+        c3 : 1
         # The following two are only necessary for C code where we cannot deal
         # with scalars and arrays interchangeably
         gtot_all : siemens/meter**2
@@ -225,7 +232,7 @@ class SpatialNeuron(NeuronGroup):
 
         NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
-                             reset=reset,
+                             reset=reset, events=events,
                              method=method, dt=dt, clock=clock, order=order,
                              namespace=namespace, dtype=dtype, name=name)
 
@@ -347,9 +354,13 @@ class SpatialStateUpdater(CodeRunner, Group):
     '''
 
     def __init__(self, group, method, clock, order=0):
-        # group is the neuron (a group of compartments) 
+        # group is the neuron (a group of compartments)
         self.method_choice = method
         self.group = weakref.proxy(group)
+
+        n = len(group) # total number of compartments
+        segments = self.number_branches(group.morphology)
+
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
                             code='''_gtot = gtot__private
@@ -358,25 +369,54 @@ class SpatialStateUpdater(CodeRunner, Group):
                             when='groups',
                             order=order,
                             name=group.name + '_spatialstateupdater*',
-                            check_units=False)
-        n = len(group) # total number of compartments
-        segments = self.number_branches(group.morphology)
+                            check_units=False,
+                            template_kwds={'number_branches': segments})
+
+        # The morphology is considered fixed (length etc. can still be changed,
+        # though)
+        # Traverse it once to get a flattened representation
+        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
+        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
+        # for the following: a smaller array of size no_segments x max_no_children would suffice...
+        self._temp_morph_children = np.zeros((segments+1, segments), dtype=np.int32) 
+        # children count per branch: determines the no of actually used elements of the array above
+        self._temp_morph_children_num = np.zeros(segments+1, dtype=np.int32) 
+        # each branch is child of exactly one parent (and we say the first branch i=1 is child of branch i=0)
+        # here we store the indices j-1->k of morph_children_i[i,k] = j 
+        self._temp_morph_idxchild = np.zeros(segments, dtype=np.int32)
+        self._temp_starts = np.zeros(segments, dtype=np.int32)
+        self._temp_ends = np.zeros(segments, dtype=np.int32)
+        self._pre_calc_iteration(self.group.morphology)
+        # flattened and reduce children indices
+        max_children = max(self._temp_morph_children_num)
+        self._temp_morph_children = self._temp_morph_children[:,:max_children].reshape(-1)
+        
         self.variables = Variables(self, default_index='_segment_idx')
         self.variables.add_reference('N', group)
         self.variables.add_arange('_compartment_idx', size=n)
         self.variables.add_arange('_segment_idx', size=segments)
         self.variables.add_arange('_segment_root_idx', size=segments+1)
-        self.variables.add_arange('_P_idx', size=(segments+1)**2)
-
         self.variables.add_array('_invr', unit=siemens, size=n, constant=True,
                                  index='_compartment_idx')
-        self.variables.add_array('_P', unit=Unit(1), size=(segments+1)**2,
-                                 constant=True, index='_P_idx')
+        self.variables.add_array('_P_diag', unit=Unit(1), size=segments+1,
+                                 constant=True)
+        self.variables.add_array('_P_children', unit=Unit(1), size=(segments+1)*max_children,
+                                 constant=True) # elements above diagonal 
+        self.variables.add_array('_P_parent', unit=Unit(1), size=segments,
+                                 constant=True) # elements below diagonal
         self.variables.add_array('_B', unit=Unit(1), size=segments+1,
                                  constant=True, index='_segment_root_idx')
         self.variables.add_array('_morph_i', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_morph_parent_i', unit=Unit(1), size=segments,
+                                 dtype=np.int32, constant=True)
+        self.variables.add_arange('_morph_children_num_idx', size=segments+1)
+        self.variables.add_array('_morph_children_num', unit=Unit(1), size=segments+1,
+                                 dtype=np.int32, constant=True, index='_morph_children_num_idx')
+        self.variables.add_arange('_morph_children_idx', size=(segments+1)*max_children)
+        self.variables.add_array('_morph_children', unit=Unit(1), size=(segments+1)*max_children,
+                                 dtype=np.int32, constant=True, index='_morph_children_idx')
+        self.variables.add_array('_morph_idxchild', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
         self.variables.add_array('_starts', unit=Unit(1), size=segments,
                                  dtype=np.int32, constant=True)
@@ -387,17 +427,12 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_array('_invrn', unit=siemens, size=segments,
                                  constant=True)
         self._enable_group_attributes()
-
-        # The morphology is considered fixed (length etc. can still be changed,
-        # though)
-        # Traverse it once to get a flattened representation
-        self._temp_morph_i = np.zeros(segments, dtype=np.int32)
-        self._temp_morph_parent_i = np.zeros(segments, dtype=np.int32)
-        self._temp_starts = np.zeros(segments, dtype=np.int32)
-        self._temp_ends = np.zeros(segments, dtype=np.int32)
-        self._pre_calc_iteration(self.group.morphology)
+        
         self._morph_i = self._temp_morph_i
         self._morph_parent_i = self._temp_morph_parent_i
+        self._morph_children_num = self._temp_morph_children_num
+        self._morph_children = self._temp_morph_children
+        self._morph_idxchild = self._temp_morph_idxchild
         self._starts = self._temp_starts
         self._ends = self._temp_ends
         self._prepare_codeobj = None
@@ -422,7 +457,7 @@ class SpatialStateUpdater(CodeRunner, Group):
             try:
                 import scipy
             except ImportError:
-                logger.warn(('SpatialNeuron will use numpy to do the numerical '
+                logger.info(('SpatialNeuron will use numpy to do the numerical '
                              'integration -- this will be very slow. Either '
                              'switch to a different code generation target '
                              '(e.g. weave or cython) or install scipy.'),
@@ -432,6 +467,19 @@ class SpatialStateUpdater(CodeRunner, Group):
     def _pre_calc_iteration(self, morphology, counter=0):
         self._temp_morph_i[counter] = morphology.index + 1
         self._temp_morph_parent_i[counter] = morphology.parent + 1
+        
+        # add to parent's children list
+        if counter>0:
+            parent_i = self._temp_morph_parent_i[counter]
+            child_num = self._temp_morph_children_num[parent_i]
+            self._temp_morph_children[parent_i, child_num] = counter+1
+            self._temp_morph_children_num[parent_i] += 1 # increase parent's children count
+            self._temp_morph_idxchild[counter] = child_num
+        else:
+            self._temp_morph_children_num[0] = 1
+            self._temp_morph_children[0, 0] = 1
+            self._temp_morph_idxchild[0] = 0
+        
         self._temp_starts[counter] = morphology._origin
         self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
         total_count = 1

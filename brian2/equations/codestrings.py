@@ -85,13 +85,11 @@ class Expression(CodeString):
 
         if code is None:
             code = sympy_to_str(sympy_expression)
-        if sympy_expression is None:
-            sympy_expression = str_to_sympy(code)
-
+        else:
+            # Just try to convert it to a sympy expression to get syntax errors
+            # for incorrect expressions
+            str_to_sympy(code)
         super(Expression, self).__init__(code=code)
-
-        # : The expression as a sympy object
-        self.sympy_expr = sympy_expression
 
     stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
                                                       if variable =='xi' or variable.startswith('xi_')]),
@@ -131,13 +129,22 @@ class Expression(CodeString):
         stochastic_symbols = [sympy.Symbol(variable, real=True)
                               for variable in stochastic_variables]
 
-        collected = self.sympy_expr.collect(stochastic_symbols, evaluate=False)
+        # Note that collect only works properly if the expression is expanded
+        collected = str_to_sympy(self.code).expand().collect(stochastic_symbols,
+                                                             evaluate=False)
 
         f_expr = None
         stochastic_expressions = {}
-        for var, expr in collected.iteritems():
-            expr = Expression(sympy_expression=expr)
+        for var, s_expr in collected.iteritems():
+            expr = Expression(sympy_expression=s_expr)
             if var == 1:
+                if any(s_expr.has(s) for s in stochastic_symbols):
+                    raise AssertionError(('Error when separating expression '
+                                          '"%s" into stochastic and non-'
+                                          'stochastic term: non-stochastic '
+                                          'part was determined to be "%s" but '
+                                          'contains a stochastic symbol)' % (self.code,
+                                                                             s_expr)))
                 f_expr = expr
             elif var in stochastic_symbols:
                 stochastic_expressions[str(var)] = expr
@@ -155,4 +162,4 @@ class Expression(CodeString):
         if cycle:
             raise AssertionError('Cyclical call of CodeString._repr_pretty')
         # Make use of sympy's pretty printing
-        p.pretty(self.sympy_expr)
+        p.pretty(str_to_sympy(self.code))

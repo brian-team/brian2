@@ -31,7 +31,7 @@ neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 compartment = morpho.axon[location]
 neuron.v = EL
 neuron.gclamp[0] = gL*500
-neuron.gNa[compartment] = gNa/neuron.area[compartment]
+neuron.gNa[compartment] = gNa_0/neuron.area[compartment]
 
 # Monitors
 mon = StateMonitor(neuron, ['v', 'vc', 'm'], record=True)

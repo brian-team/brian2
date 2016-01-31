@@ -956,6 +956,11 @@ def test_state_variable_access_strings():
     assert_equal(G.v[:], np.array([0, 1, 2, 3, 4, 10, 12, 14, 16, 18])*volt)
     G.v['v>=5*volt'] = 'i*volt'
     assert_equal(G.v[:], np.arange(10)*volt)
+    G.v['i<=5'] = '(100 + rand())*volt'
+    assert_equal(G.v[6:], np.arange(4)*volt + 6*volt)  # unchanged
+    assert all(G.v[:6] >= 100*volt)
+    assert all(G.v[:6] <= 101*volt)
+    assert np.var(G.v_[:6]) > 0
 
 @attr('codegen-independent')
 def test_unknown_state_variables():
@@ -1245,7 +1250,6 @@ if __name__ == '__main__':
     test_linked_var_in_reset_incorrect()
     test_stochastic_variable()
     test_stochastic_variable_multiplicative()
-    test_unit_errors()
     test_threshold_reset()
     test_unit_errors_threshold_reset()
     test_custom_events()

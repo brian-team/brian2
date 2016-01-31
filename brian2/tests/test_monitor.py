@@ -216,12 +216,7 @@ def test_state_monitor():
     # A bit peculiar, but in principle one should be allowed to record
     # nothing except for the time
     nothing_mon = StateMonitor(G, [], record=True)
-
-    # A more common case is that the user forgets the record argument (which
-    # defaults to ``None``) -- raise a warning in this case
-    with catch_logs() as l:
-        no_record = StateMonitor(G, 'v')
-        assert len(l) == 1
+    no_record = StateMonitor(G, 'v', record=False)
 
     # Use a single StateMonitor
     v_mon = StateMonitor(G, 'v', record=True)

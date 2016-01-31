@@ -1,14 +1,37 @@
 '''
 Utility functions for parsing expressions and statements.
 '''
+import re
+from collections import Counter
+
 import sympy
+from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
-from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10
+from brian2.core.functions import (DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10,
+                                   Function)
 from brian2.parsing.rendering import SympyNodeRenderer
 
 
-def str_to_sympy(expr):
+def check_expression_for_multiple_stateful_functions(expr, variables):
+    identifiers = re.findall('\w+', expr)
+    identifier_count = Counter(identifiers)
+    for identifier, count in identifier_count.iteritems():
+        if isinstance(variables.get(identifier, None), Function):
+            if not variables[identifier].stateless and count > 1:
+                raise NotImplementedError(('The expression "{expr}" contains '
+                                           'more than one call of {func}, this '
+                                           'is currently not supported since '
+                                           '{func} is a stateful function and '
+                                           'its multiple calls might be '
+                                           'treated incorrectly (e.g.'
+                                           '"rand() - rand()" could be '
+                                           ' simplified to '
+                                           '"0.0").').format(expr=expr,
+                                                             func=identifier))
+
+
+def str_to_sympy(expr, variables=None):
     '''
     Parses a string into a sympy expression. There are two reasons for not
     using `sympify` directly: 1) sympify does a ``from sympy import *``,
@@ -23,7 +46,10 @@ def str_to_sympy(expr):
     Parameters
     ----------
     expr : str
-        The string expression to parse..
+        The string expression to parse.
+    variables : dict, optional
+        Dictionary mapping variable/function names in the expr to their
+        respective `Variable`/`Function` objects.
     
     Returns
     -------
@@ -43,6 +69,9 @@ def str_to_sympy(expr):
     names are wrapped in `Symbol(...)` or `Function(...)`. The resulting string
     is then evaluated in the `from sympy import *` namespace.
     '''
+    if variables is None:
+        variables = {}
+    check_expression_for_multiple_stateful_functions(expr, variables)
     namespace = {}
     exec 'from sympy import *' in namespace
     # also add the log10 function to the namespace
@@ -75,6 +104,11 @@ class CustomSympyPrinter(StrPrinter):
         if len(expr.args) != 1:
             raise AssertionError('"Not" with %d arguments?' % len(expr.args))
         return 'not (%s)' % self.doprint(expr.args[0])
+
+    def _print_Relational(self, expr):
+        return '%s %s %s' % (self.parenthesize(expr.lhs, precedence(expr)),
+                             self._relationals.get(expr.rel_op) or expr.rel_op,
+                             self.parenthesize(expr.rhs, precedence(expr)))
 
     def _print_Function(self, expr):
         # Special workaround for the int function

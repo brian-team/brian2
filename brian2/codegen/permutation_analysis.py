@@ -3,6 +3,7 @@ Module for analysing synaptic pre and post code for synapse order independence.
 '''
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.functions import Function
+from brian2.core.variables import Constant
 
 __all__ = ['OrderDependenceError', 'check_for_order_independence']
 
@@ -28,17 +29,19 @@ def check_for_order_independence(statements, variables, indices):
             else:
                 raise OrderDependenceError("Function %s may have internal state, "
                                             "which can lead to order dependence." % var)
+    all_variables = [v for v in variables if not isinstance(variables[v], Constant)]
     # Main index variables are those whose index corresponds to the main index being iterated through. By
     # assumption/definition, these indices are unique, and any order-dependence cannot come from their values,
     # only from the values of the derived indices. In the most common case of Synapses, the main index would be
     # the synapse index, and the derived indices would be pre and postsynaptic indices (which can be repeated).
-    main_index_variables = set([v for v in variables
-                                if (indices[v] in ('_idx', '0')
-                                    or getattr(variables[indices[v]],
-                                               'unique',
-                                               False))])
-    different_index_variables = set(variables.keys()) - main_index_variables
-    all_variables = variables.keys()
+    unique_index = lambda v: (indices[v] != '0'
+                              and getattr(variables[indices[v]],
+                                          'unique',
+                                          False))
+    main_index_variables = set([v for v in all_variables
+                                if indices[v] == '_idx' or unique_index(v)])
+    different_index_variables = set(all_variables) - main_index_variables
+
     # At the start, we assume all the different/derived index variables are permutation independent and we continue
     # to scan through the list of statements checking whether or not permutation-dependence has been introduced
     # until the permutation_independent set has stopped changing.

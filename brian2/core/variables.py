@@ -1446,6 +1446,10 @@ class Variables(collections.Mapping):
         unique : bool, optional
             See `ArrayVariable`. Defaults to ``False``.
         '''
+        if np.asanyarray(size).shape == ():
+            # We don't a basic Python type for the size instead of something
+            # like numpy.int64
+            size = int(size)
         var = ArrayVariable(name=name, unit=unit, owner=self.owner,
                             device=self.device, size=size,
                             dtype=dtype,

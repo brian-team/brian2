@@ -246,7 +246,7 @@ def create_runner_codeobj(group, code, template_name,
 
     msg = 'Creating code object (group=%s, template name=%s) for abstract code:\n' % (group.name, template_name)
     msg += indent(code_representation(code))
-    logger.debug(msg)
+    logger.diagnostic(msg)
     from brian2.devices import get_device
     device = get_device()
     

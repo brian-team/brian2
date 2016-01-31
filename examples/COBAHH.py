@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-# coding: latin-1
+# -*- coding: UTF-8 -*-
 """
 This is an implementation of a benchmark described
 in the following review paper:
 
 Simulation of networks of spiking neurons: A review of tools and strategies (2006).
 Brette, Rudolph, Carnevale, Hines, Beeman, Bower, Diesmann, Goodman, Harris, Zirpe,
-Natschl‰ger, Pecevski, Ermentrout, Djurfeldt, Lansner, Rochel, Vibert, Alvarez, Muller,
+Natschl√§ger, Pecevski, Ermentrout, Djurfeldt, Lansner, Rochel, Vibert, Alvarez, Muller,
 Davison, El Boustani and Destexhe.
 Journal of Computational Neuroscience
 

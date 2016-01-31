@@ -155,7 +155,7 @@ class NumpyCodeGenerator(CodeGenerator):
                 lines.extend(ufunc_lines)
         except VectorisationError:
             if self._use_ufunc_at_vectorisation:
-                logger.warn("Failed to vectorise code, falling back on Python loop: note that "
+                logger.info("Failed to vectorise code, falling back on Python loop: note that "
                             "this will be very slow! Switch to another code generation target for "
                             "best performance (e.g. cython or weave). First line is: "+str(statements[0]),
                             once=True)

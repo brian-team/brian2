@@ -200,11 +200,11 @@ class MagicNetwork(Network):
                 obj._network = self.id
 
         self.objects[:] = objects
-        logger.info("Updated MagicNetwork to include {numobjs} objects "
-                    "with names {names}".format(
-                        numobjs=len(self.objects),
-                        names=', '.join(obj.name for obj in self.objects)),
-                    name_suffix='magic_objects')
+        logger.debug("Updated MagicNetwork to include {numobjs} objects "
+                     "with names {names}".format(
+                numobjs=len(self.objects),
+                names=', '.join(obj.name for obj in self.objects)),
+                name_suffix='magic_objects')
 
     def check_dependencies(self):
         all_ids = set([obj.id for obj in self.objects])

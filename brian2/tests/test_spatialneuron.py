@@ -6,6 +6,28 @@ from nose.plugins.attrib import attr
 from brian2 import *
 from brian2.devices.device import reinit_devices
 
+
+@attr('codegen-independent')
+def test_custom_events():
+    # Set (could be moved in a setup)
+    EL = -65*mV
+    gL = 0.0003*siemens/cm**2
+    ev = '''
+    Im = gL * (EL - v) : amp/meter**2
+    event_time1 : second
+    '''
+    # Create a three compartments morphology
+    morpho = Soma(diameter=10*um)
+    morpho.dend1 = Cylinder(diameter=1*um, length=10*um )
+    morpho.dend2 = Cylinder(diameter=1*um, length=10*um )
+    G = SpatialNeuron(morphology=morpho,
+                      model=ev,
+                      events={'event1': 't>=i*ms and t<i*ms+dt'})
+    G.run_on_event('event1', 'event_time1 = 0.1*ms')
+    run(0.2*ms)
+    # Event has size three now because there are three compartments
+    assert_allclose(G.event_time1[:], [0.1, 0, 0]*ms)
+
 @attr('codegen-independent')
 @with_setup(teardown=reinit_devices)
 def test_construction():
@@ -278,7 +300,7 @@ def test_rallpack1():
     assert 100*max_rel_x < 0.5
 
 
-@attr('long', 'standalone-compatible')
+@attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_rallpack2():
     '''
@@ -509,6 +531,7 @@ def test_rall():
     assert_allclose(v-EL, theory-EL, rtol=0.001)
 
 if __name__ == '__main__':
+    test_custom_events()
     test_construction()
     test_construction_coordinates()
     test_infinitecable()

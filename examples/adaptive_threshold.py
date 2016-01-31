@@ -24,7 +24,6 @@ Mvt = StateMonitor(IF, 'vt', record=True)
 # Record the value of v when the threshold is crossed
 M_crossings = SpikeMonitor(IF, variables='v')
 run(2*second, report='text')
-# print M_crossings.codeobj.code
 
 subplot(1, 2, 1)
 plot(Mv.t / ms, Mv[0].v / mV)

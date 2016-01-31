@@ -41,7 +41,7 @@ logger = get_logger(__name__)
 prefs.register_preferences(
     'devices.cpp_standalone',
     'C++ standalone preferences ',
-    openmp_threads = BrianPreference(
+    openmp_threads=BrianPreference(
         default=0,
         docs='''
         The number of threads to use if OpenMP is turned on. By default, this value is set to 0 and the C++ code
@@ -49,6 +49,23 @@ prefs.register_preferences(
         are used to launch the simulation.
         ''',
         ),
+    openmp_spatialneuron_strategy=BrianPreference(
+        default=None,
+        validator=lambda val: val in [None, 'branches', 'systems'],
+        docs='''
+        Which strategy to chose for solving the three tridiagonal systems with
+        OpenMP: `'branches'` means to solve the three systems sequentially, but
+        for all the branches in parallel, `'systems'` means to solve the three
+        systems in parallel, but all the branches within each system
+        sequentially. The `'branches'` approach is usually better for
+        morphologies with many branches and a large number of threads, while the
+        `'systems'` strategy should be better for morphologies with few
+        branches (e.g. cables) and/or simulations with no more than three
+        threads. If not specified (the default), the `'systems'` strategy will
+        be used when using no more than three threads or when the morphology
+        has less than three branches in total.
+        '''
+    )
     )
 
 
@@ -59,7 +76,7 @@ class CPPWriter(object):
         self.header_files = []
         
     def write(self, filename, contents):
-        logger.debug('Writing file %s:\n%s' % (filename, contents))
+        logger.diagnostic('Writing file %s:\n%s' % (filename, contents))
         if filename.lower().endswith('.cpp'):
             self.source_files.append(filename)
         elif filename.lower().endswith('.h'):
@@ -351,12 +368,11 @@ class CPPStandaloneDevice(Device):
             # additional work to set up the pointer
             arrayname = self.get_array_name(variableview.variable,
                                             access_data=False)
-
             if (indices.shape != () and
                     (value.shape == () or
                          (value.size == 1 and indices.size > 1))):
                 value = np.repeat(value, indices.size)
-            elif len(value) != len(indices):
+            elif (value.shape != indices.shape and len(value) != len(indices)):
                 raise ValueError(('Provided values do not match the size '
                                   'of the indices, '
                                   '%d != %d.') % (len(value),
@@ -473,7 +489,7 @@ class CPPStandaloneDevice(Device):
     def check_openmp_compatible(self, nb_threads):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
-            logger.debug("Using OpenMP with %d threads " % nb_threads)
+            logger.diagnostic("Using OpenMP with %d threads " % nb_threads)
     
     def generate_objects_source(self, writer, arange_arrays, synapses, static_array_specs, networks):
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
@@ -704,7 +720,7 @@ class CPPStandaloneDevice(Device):
                 if isinstance(value, np.ndarray):
                     self.static_arrays[name] = value
                     
-        logger.debug("static arrays: "+str(sorted(self.static_arrays.keys())))
+        logger.diagnostic("static arrays: "+str(sorted(self.static_arrays.keys())))
         
         static_array_specs = []
         for name, arr in sorted(self.static_arrays.items()):
@@ -730,7 +746,7 @@ class CPPStandaloneDevice(Device):
                 from distutils import msvc9compiler
                 # TODO: handle debug
                 if debug:
-                    logger.warn('Debug flag currently ignored for MSVC')
+                    logger.warn('Debug flag currently ignored for MSVC', once=True)
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
                 if vcvars_loc == '':
                     for version in xrange(16, 8, -1):
@@ -739,7 +755,7 @@ class CPPStandaloneDevice(Device):
                             if version==14 and num_threads>0:
                                 logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
                                             "that version it is being ignored. We will use another version if "
-                                            "we find one, or you can switch OpenMP support off.")
+                                            "we find one, or you can switch OpenMP support off.", once=True)
                             else:
                                 vcvars_loc = fname
                                 break
@@ -805,7 +821,7 @@ class CPPStandaloneDevice(Device):
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,
               with_output=True, additional_source_files=None,
-              run_args=None, **kwds):
+              run_args=None, direct_call=True, **kwds):
         '''
         Build the project
 
@@ -836,7 +852,19 @@ class CPPStandaloneDevice(Device):
             ``True``.
         additional_source_files : list of str, optional
             A list of additional ``.cpp`` files to include in the build.
+        direct_call : bool, optional
+            Whether this function was called directly. Is used internally to
+            distinguish an automatic build due to the ``build_on_run`` option
+            from a manual ``device.build`` call.
         '''
+        if self.build_on_run and direct_call:
+            raise RuntimeError('You used set_device with build_on_run=True '
+                               '(the default option), which will automatically '
+                               'build the simulation at the first encountered '
+                               'run call - do not call device.build manually '
+                               'in this case. If you want to call it manually, '
+                               'e.g. because you have multiple run calls, use '
+                               'set_device with build_on_run=False.')
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
                    'run_project': 'run'}
@@ -881,7 +909,7 @@ class CPPStandaloneDevice(Device):
         if (nb_threads < 0):
             raise ValueError('The number of OpenMP threads can not be negative !')
 
-        logger.debug("Writing C++ standalone project to directory "+os.path.normpath(directory))
+        logger.diagnostic("Writing C++ standalone project to directory "+os.path.normpath(directory))
 
         self.check_openmp_compatible(nb_threads)
 
@@ -964,11 +992,11 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
-        void report_progress(const double elapsed, const double completed, const double duration)
+        void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation for duration " << duration << " s";
+                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
             } else
             {
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
@@ -990,7 +1018,7 @@ class CPPStandaloneDevice(Device):
             self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
         elif isinstance(report, basestring):
             self.report_func = '''
-            void report_progress(const double elapsed, const double completed, const double duration)
+            void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {
             %REPORT%
             }
@@ -1031,7 +1059,7 @@ class CPPStandaloneDevice(Device):
                                    'build_on_run=False and an explicit '
                                    'device.build call to use multiple run '
                                    'statements with this device.')
-            self.build(**self.build_options)
+            self.build(direct_call=False, **self.build_options)
 
     def network_store(self, net, name='default'):
         raise NotImplementedError(('The store/restore mechanism is not '

@@ -6,7 +6,7 @@ import itertools
 from sympy import Wild, Symbol
 import sympy as sp
 
-from brian2.parsing.sympytools import sympy_to_str
+from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
@@ -15,7 +15,7 @@ __all__ = ['linear', 'independent']
 
 logger = get_logger(__name__)
 
-def get_linear_system(eqs):
+def get_linear_system(eqs, variables):
     '''
     Convert equations into a linear system using sympy.
     
@@ -36,7 +36,7 @@ def get_linear_system(eqs):
     ValueError
         If the equations cannot be converted into an M * X + B form.
     '''
-    diff_eqs = eqs.substituted_expressions
+    diff_eqs = eqs.get_substituted_expressions(variables)
     diff_eq_names = [name for name, _ in diff_eqs]
 
     symbols = [Symbol(name, real=True) for name in diff_eq_names]
@@ -45,7 +45,7 @@ def get_linear_system(eqs):
     constants = sp.zeros(len(diff_eq_names), 1)
 
     for row_idx, (name, expr) in enumerate(diff_eqs):
-        s_expr = expr.sympy_expr.expand()
+        s_expr = str_to_sympy(expr.code, variables).expand()
 
         current_s_expr = s_expr
         for col_idx, symbol in enumerate(symbols):
@@ -86,7 +86,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         if variables is None:
             variables = {}
 
-        diff_eqs = equations.substituted_expressions
+        diff_eqs = equations.get_substituted_expressions(variables)
 
         t = Symbol('t', real=True, positive=True)
         dt = Symbol('dt', real=True, positive=True)
@@ -97,7 +97,7 @@ class IndependentStateUpdater(StateUpdateMethod):
 
         code = []
         for name, expression in diff_eqs:
-            rhs = expression.sympy_expr
+            rhs = str_to_sympy(expression.code, variables)
 
             # We have to be careful and use the real=True assumption as well,
             # otherwise sympy doesn't consider the symbol a match to the content
@@ -176,7 +176,7 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Get a representation of the ODE system in the form of
         # dX/dt = M*X + B
-        varnames, matrix, constants = get_linear_system(equations)
+        varnames, matrix, constants = get_linear_system(equations, variables)
 
         # No differential equations, nothing to do (this occurs sometimes in the
         # test suite where the whole model is nothing more than something like
