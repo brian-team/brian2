@@ -2,32 +2,29 @@
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 '''
-from copy import copy as stdlib_copy
+import abc
+import collections
 import numbers
 
-from numpy.random import rand
-
-from brian2.numpy_ import *
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
 from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
                                            check_units)
+from brian2 import numpy as np
 
 logger = get_logger(__name__)
 
-__all__ = ['Morphology', 'MorphologyData', 'Cylinder', 'Soma']
+__all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
+
+# TODO: Missing:
+# * loading from SWC files
+# * Conversion for SpatialNeuron
+# * plotting (goes directly to brian2tools?)
 
 
 class MorphologyData(object):
-    def __init__(self, N):
-        self.diameter = zeros(N)
-        self.length = zeros(N)
-        self.x = zeros(N)
-        self.y = zeros(N)
-        self.z = zeros(N)
-        self.area = zeros(N)
-        self.distance = zeros(N)
+    pass
 
 
 class MorphologyIndexWrapper(object):
@@ -45,545 +42,800 @@ class MorphologyIndexWrapper(object):
                                        'indexing'))
         return self.morphology._indices(item)
 
+class Children(object):
+    # TODO: Maybe not necessary
+    def __init__(self, owner):
+        self._owner = owner
+        self._counter = 0
+        self._children = []
+        self._named_children = {}
+
+    def __iter__(self):
+        return iter(self._children)
+
+    def __len__(self):
+        return len(self._children)
+
+    def __contains__(self, item):
+        return item in self._named_children
+
+    def values(self):
+        return self._named_children.values()
+
+    def __getitem__(self, item):
+        if isinstance(item, basestring):
+            return self._named_children[item]
+        else:
+            raise TypeError('Index has to be an integer or a string.')
+
+    def add(self, name, subtree):
+        if subtree._parent is not None:
+            raise TypeError(('Cannot add subtree as "%s", it already has a '
+                             'parent.') % name)
+        self._counter += 1
+        self._children.append(subtree)
+        self._named_children[name] = subtree
+        self._named_children[str(self._counter)] = subtree
+        subtree._parent = self._owner
+
+    def remove(self, item):
+        if item not in self:
+            raise AttributeError('The subtree ' + item + ' does not exist')
+        subtree = self._named_children[item]
+        del self._named_children[item]
+        self._children.remove(subtree)
+        subtree.parent = None
+
+    def __str__(self):
+        return str(self._named_children)
+    __repr__ = __str__
 
 class Morphology(object):
+    __metaclass__ = abc.ABCMeta
+
     '''
-    Neuronal morphology (=tree of branches).
+    Neuronal morphology (tree structure).
 
-    The data structure is a tree where each node is a segment consisting
-    of a number of connected compartments, each one defined by its geometrical properties
-    (length, area, diameter, position).
+    The data structure is a tree where each node is a segment consisting of a
+    number of connected compartments, each one defined by its geometrical
+    properties (length, area, diameter, position).
 
-    Parameters
-    ----------
-    filename : str, optional
-        The name of a swc file defining the morphology.
-        If not specified, makes a segment (if `n` is specified) or an empty morphology.
-    n : int, optional
-        Number of compartments.
+    Notes
+    -----
+    You cannot create objects of this class, create a `Soma`, a `Section`, or
+    a `Cylinder` instead.
     '''
+    @check_units(n=1)
+    def __init__(self, n, type=None, parent=None):
+        self._n = int(n)
+        self.type = type
+        self.children = Children(self)
+        self._parent = parent
 
-    def __init__(self, filename=None, n=None):
-        self.children = []
-        self._namedkid = {}
-        self.iscompressed = False
-        self.indices = MorphologyIndexWrapper(self)
-        if filename is not None:
-            self.loadswc(filename)
-        elif n is not None:  # Creates a branch with n compartments
-            # The problem here is that these parameters should have some
-            # self-consistency
-            (self.x, self.y, self.z, self.diameter, self.length, self.area,
-             self.distance) = [zeros(n) * meter for _ in range(7)]
-
-    def set_distance(self):
+    def __getitem__(self, item):
         '''
-        Sets the distance to the soma (or more generally start point of the
-        morphology)
-        '''
-        self.distance = cumsum(self.length)
-        for kid in self.children:
-            kid.set_distance()
-
-    def set_length(self):
-        '''
-        Sets the length of compartments according to their coordinates
-        '''
-        x = hstack((0 * um, self.x))
-        y = hstack((0 * um, self.y))
-        z = hstack((0 * um, self.z))
-        self.length = sum((x[1:] - x[:-1]) ** 2 +
-                          (y[1:] - y[:-1]) ** 2 +
-                          (z[1:] - z[:-1]) ** 2) ** .5
-        for kid in self.children:
-            kid.set_length()
-
-    def set_area(self):
-        '''
-        Sets the area of compartments according to diameter and length
-        (assuming cylinders)
-        '''
-        self.area = pi * self.diameter * self.length
-        for kid in self.children:
-            kid.set_area()
-
-    def set_coordinates(self):
-        '''
-        Sets the coordinates of compartments according to their lengths (taking
-        a random direction)
-        '''
-        l = cumsum(self.length)
-        theta = rand() * 2 * pi
-        phi = rand() * 2 * pi
-        self.x = l * sin(theta) * cos(phi)
-        self.y = l * sin(theta) * sin(phi)
-        self.z = l * cos(theta)
-        for kid in self.children:
-            kid.set_coordinates()
-
-    def loadswc(self, filename):
-        '''
-        Reads a SWC file containing a neuronal morphology.
-        Large database at http://neuromorpho.org/neuroMorpho        
-        Information below from http://www.mssm.edu/cnic/swc.html
-        
-        SWC File Format
-        
-        The format of an SWC file is fairly simple. It is a text file consisting of a header with various fields beginning with a # character, and a series of three dimensional points containing an index, radius, type, and connectivity information. The lines in the text file representing points have the following layout. 
-        n T x y z R P
-        n is an integer label that identifies the current point and increments by one from one line to the next.
-        T is an integer representing the type of neuronal segment, such as soma, axon, apical dendrite, etc. The standard accepted integer values are given below:
-        * 0 = undefined
-        * 1 = soma
-        * 2 = axon
-        * 3 = dendrite
-        * 4 = apical dendrite
-        * 5 = fork point
-        * 6 = end point
-        * 7 = custom
-
-        x, y, z gives the cartesian coordinates of each node.
-        R is the radius at that node.
-        P indicates the parent (the integer label) of the current point or -1 to indicate an origin (soma).
-
-        By default, the soma is assumed to have spherical geometry. If several compartments
-        '''
-        # 1) Create the list of segments, each segment has a list of children
-        lines = open(filename).read().splitlines()
-        segment = []  # list of segments
-        types = ['undefined', 'soma', 'axon', 'dendrite', 'apical', 'fork',
-                 'end', 'custom']
-        previousn = -1
-
-        # First pass: determine whether the soma should have spherical or cylindrical geometry.
-        # Criterion: spherical if only 1 somatic compartment, otherwise cylindrical
-        spherical_soma = len([line.split()[1] == 1 for line in lines if line[0] != '#'])==1
-
-        # Second pass: construction
-        for line in lines:
-            if line[0] != '#':  # comment
-                numbers = line.split()
-                n = int(numbers[0]) - 1
-                T = types[int(numbers[1])]
-                x = float(numbers[2]) * um
-                y = float(numbers[3]) * um
-                z = float(numbers[4]) * um
-                R = float(numbers[5]) * um
-                P = int(numbers[6]) - 1  # 0-based indexing
-                if (n != previousn + 1):
-                    raise ValueError, "Bad format in file " + filename
-                seg = dict(x=x, y=y, z=z, T=T, diameter=2 * R, parent=P,
-                           children=[])
-                location = (x, y, z)
-                if (T == 'soma') and spherical_soma: # Assuming spherical geometry
-                    seg['area'] = 4 * pi * R ** 2
-                    seg['length'] = 0 * um
-                elif P==-2: # No parent: we make a zero-length cylinder (not very elegant)
-                    seg['area'] = 0 * um**2
-                    seg['length'] = 0 * um
-                else:  # not soma, dendrite
-                    try:
-                        locationP = (segment[P]['x'], segment[P]['y'], segment[P]['z'])
-                    except IndexError:
-                        raise IndexError("When adding segment "+str(n)+": Segment "+str(P)+" does not exist")
-                    seg['length'] = (sum((array(location) -
-                                          array(locationP)) ** 2)) ** .5 * meter
-                    seg['area'] = seg['length'] * 2 * pi * R
-                if P >= 0:
-                    segment[P]['children'].append(n)
-                segment.append(seg)
-                previousn = n
-        # We assume that the first segment is the root
-        self.create_from_segments(segment)
-
-    def create_from_segments(self, segments, origin=0):
-        """
-        Recursively create the morphology from a list of segments.
-        Each segments has attributes: x,y,z,diameter,area,length (vectors)
-        and children (list).
-        It also creates a dictionary of names (_namedkid).
-        """
-        n = origin
-        if segments[origin]['T'] != 'soma':  # if it's a soma, only one compartment
-            while (len(segments[n]['children']) == 1) and (
-                segments[n]['T'] != 'soma'):  # Go to the end of the branch
-                n += 1
-        # End of branch
-        branch = segments[origin:n + 1]
-        # Set attributes
-        self.diameter, self.length, self.area, self.x, self.y, self.z = \
-            zip(*[(seg['diameter'], seg['length'], seg['area'], seg['x'],
-                   seg['y'], seg['z']) for seg in branch])
-        self.type = segments[n]['T']  # normally same type for all compartments
-                                     # in the branch
-        self.set_distance()
-        # Create children (list)
-        self.children = [Morphology().create_from_segments(segments, origin=c)
-                         for c in segments[n]['children']]
-        # Create dictionary of names (enumerates children from number 1)
-        for i, child in enumerate(self.children):
-            self._namedkid[str(i + 1)] = child
-            # Name the child if possible
-            if child.type in ['soma', 'axon', 'dendrite']:
-                if child.type in self._namedkid:
-                    self._namedkid[child.type] = None  # two children with the
-                                                       # same name: erase
-                                                       # (see next block)
-                else:
-                    self._namedkid[child.type] = child
-        # Erase useless names
-        for k in self._namedkid.keys():
-            if self._namedkid[k] is None:
-                del self._namedkid[k]
-        # If two kids, name them L (left) and R (right)
-        if len(self.children) == 2:
-            self._namedkid['L'] = self._namedkid['1']
-            self._namedkid['R'] = self._namedkid['2']
-        return self
-
-    def _branch(self):
-        '''
-        Returns the current branch without the children.
-        '''
-        morpho = stdlib_copy(self)
-        morpho.children = []
-        morpho._namedkid = {}
-        morpho.indices = MorphologyIndexWrapper(morpho)
-        return morpho
-
-    def _indices(self, item=None, index_var='_idx'):
-        '''
-        Returns compartment indices for the main branch, relative to the
-        original morphology.
-        '''
-        if index_var != '_idx':
-            raise AssertionError('Unexpected index %s' % index_var)
-        if not (item is None or item == slice(None)):
-            return self[item]._indices()
-        elif hasattr(self, '_origin'):
-            if len(self.x) == 1:
-                return self._origin  # single compartment
-            else:
-                return arange(self._origin, self._origin + len(self.x))
-        else:
-            raise AttributeError('Absolute compartment indexes do not exist '
-                                 'until the morphology is compressed '
-                                 '(by SpatialNeuron)')
-
-    def __getitem__(self, x):
-        """
-        Returns the subtree named x.
+        Returns the subtree named item.
         Ex.: ```neuron['axon']``` or ```neuron['11213']```
         ```neuron[10*um:20*um]``` returns the subbranch from 10 um to 20 um.
         ```neuron[10*um]``` returns one compartment.
         ```neuron[5]``` returns compartment number 5.
-        """
-        if isinstance(x, slice):  # neuron[10*um:20*um] or neuron[1:3]
+        '''
+        if isinstance(item, slice):  # neuron[10*um:20*um] or neuron[1:3]
             using_lengths = all([arg is None or have_same_dimensions(arg, meter)
-                                 for arg in [x.start, x.stop]])
+                                 for arg in [item.start, item.stop]])
             using_ints = all([arg is None or int(arg) == float(arg)
-                                 for arg in [x.start, x.stop]])
+                              for arg in [item.start, item.stop]])
             if not (using_lengths or using_ints):
                 raise TypeError('Index slice has to use lengths or integers')
 
-            morpho = self._branch()
             if using_lengths:
-                if x.step is not None:
+                if item.step is not None:
                     raise TypeError(('Cannot provide a step argument when '
                                      'slicing with lengths'))
-                l = cumsum(array(morpho.length))  # coordinate on the branch
-                if x.start is None:
+                l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
+                if item.start is None:
                     i = 0
                 else:
-                    i = searchsorted(l, float(x.start))
-                if x.stop is None:
+                    i = np.searchsorted(l, float(item.start))
+                if item.stop is None:
                     j = len(l)
                 else:
-                    j = searchsorted(l, float(x.stop))
+                    j = np.searchsorted(l, float(item.stop))
             else:  # integers
-                i, j, step = x.indices(len(morpho))
+                i, j, step = item.indices(self.n)
                 if step != 1:
                     raise TypeError('Can only slice a contiguous segment')
-        elif isinstance(x, Quantity) and have_same_dimensions(x, meter):  # neuron[10*um]
-            morpho = self._branch()
-            l = cumsum(array(morpho.length))
-            i = searchsorted(l, x)
+        elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
+            l = np.cumsum(np.asarray(self.length))
+            i = np.searchsorted(l, item)
             j = i + 1
-        elif isinstance(x, numbers.Integral):  # int: returns one compartment
-            morpho = self._branch()
-            if x < 0:  # allows e.g. to use -1 to get the last compartment
-                x += len(morpho)
-            if x >= len(morpho):
+        elif isinstance(item, numbers.Integral):  # int: returns one compartment
+            if item < 0:  # allows e.g. to use -1 to get the last compartment
+                item += self.n
+            if item >= self.n:
                 raise IndexError(('Invalid index %d '
-                                  'for %d compartments') % (x, len(morpho)))
-            i = x
+                                  'for %d compartments') % (item, self.n))
+            i = item
             j = i + 1
-        elif x == 'main':
-            return self._branch()
-        elif isinstance(x, basestring):
-            x = str(x)  # convert int to string
-            if (len(x) > 1) and all([c in 'LR123456789' for c in
-                                     x]):  # binary string of the form LLLRLR or 1213 (or mixed)
-                return self._namedkid[x[0]][x[1:]]
-            elif x in self._namedkid:
-                return self._namedkid[x]
+        elif item == 'main':
+            return SubMorphology(self, 0, self.n)
+        elif isinstance(item, basestring):
+            raise NotImplementedError('String indices not yet supported')
+            item = str(item)  # convert int to string
+            if (len(item) > 1) and all([c in 'LR123456789' for c in
+                                     item]):  # binary string of the form LLLRLR or 1213 (or mixed)
+                return self.children[item[0]][item[1:]]
+            elif item in self.children:
+                return self.children[item]
             else:
-                raise AttributeError, "The subtree " + x + " does not exist"
+                raise AttributeError('The subtree ' + item + ' does not exist')
         else:
-            raise TypeError('Index of type %s not understood' % type(x))
+            raise TypeError('Index of type %s not understood' % type(item))
 
-        # Return the sub-morphology
-        morpho.diameter = morpho.diameter[i:j]
-        morpho.length = morpho.length[i:j]
-        morpho.area = morpho.area[i:j]
-        morpho.x = morpho.x[i:j]
-        morpho.y = morpho.y[i:j]
-        morpho.z = morpho.z[i:j]
-        morpho.distance = morpho.distance[i:j]
-        if hasattr(morpho, '_origin'):
-            morpho._origin += i
-        return morpho
+        return SubMorphology(self, i, j)
 
-    def __setitem__(self, x, kid):
-        """
-        Inserts the subtree and name it x.
+    # TODO: Implement the set/del functions
+
+    def __setitem__(self, item, child):
+        '''
+        Inserts the subtree and name it item.
         Ex.: ``neuron['axon']`` or ``neuron['11213']``
         If the tree already exists with another name, then it creates a synonym
         for this tree.
         The coordinates of the subtree are relative before function call,
         and are absolute after function call.
-        """
-        x = str(x)  # convert int to string
-        if (len(x) > 1) and all([c in 'LR123456789' for c in x]):
+        '''
+        item = str(item)  # convert int to string
+        if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
-            self._namedkid[x[0]][x[1:]] = kid
-        elif x in self._namedkid:
-            raise AttributeError, "The subtree " + x + " already exists"
-        elif x == 'main':
-            raise AttributeError, "The main branch cannot be changed"
+            self.children[item[0]][item[1:]] = child
+        elif item in self.children:
+            print 'self.children has', self.children._named_children
+            raise AttributeError('The subtree ' + item + ' already exists')
+        elif item == 'main':
+            raise AttributeError('The main branch cannot be changed')
         else:
-            # Update coordinates
-            kid.x += self.x[-1]
-            kid.y += self.y[-1]
-            kid.z += self.z[-1]
-            kid.distance += self.distance[-1]
-            if kid not in self.children:
-                self.children.append(kid)
-                self._namedkid[str(len(self.children))] = kid  # numbered child
-            self._namedkid[x] = kid
+            self.children.add(item, child)
 
-    def __delitem__(self, x):
-        """
-        Removes the subtree `x`.
-        """
-        x = str(x)  # convert int to string
-        if (len(x) > 1) and all([c in 'LR123456789' for c in x]):
+    def __delitem__(self, item):
+        '''
+        Removes the subtree `item`.
+        '''
+        item = str(item)  # convert int to string
+        if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
-            del self._namedkid[x[0]][x[1:]]
-        elif x in self._namedkid:
-            child = self._namedkid[x]
-            # Delete from name dictionary
-            for name, kid in self._namedkid.items():
-                if kid is child: del self._namedkid[name]
-            # Delete from list of children
-            for i, kid in enumerate(self.children):
-                if kid is child: del self.children[i]
-        else:
-            raise AttributeError('The subtree ' + x + ' does not exist')
+            del self.children[item[0]][item[1:]]
+        self.children.remove(item)
 
-    def __getattr__(self, x):
-        """
-        Returns the subtree named `x`.
+    def __getattr__(self, item):
+        '''
+        Returns the subtree named `item`.
         Ex.: ``axon=neuron.axon``
-        """
-        if x.startswith('_'):
-            return super(object, self).__getattr__(x)
+        '''
+        if item.startswith('_'):
+            return super(object, self).__getattr__(item)
         else:
-            return self[x]
+            return self[item]
 
-    def __setattr__(self, x, kid):
-        """
-        Attach a subtree and name it `x`. If the subtree is ``None`` then the
-        subtree `x` is deleted.
+    def __setattr__(self, item, child):
+        '''
+        Attach a subtree and name it `item`.
         Ex.: ``neuron.axon = Soma(diameter=10*um)``
         Ex.: ``neuron.axon = None``
-        """
-        if isinstance(kid, Morphology):
-            if kid is None:
-                del self[x]
-            else:
-                self[x] = kid
+        '''
+        if isinstance(child, Morphology) and not item.startswith('_'):
+            self[item] = child
         else:  # If it is not a subtree, then it's a normal class attribute
-            object.__setattr__(self, x, kid)
+            object.__setattr__(self, item, child)
+
+    @property
+    def n(self):
+        return self._n
 
     def __len__(self):
-        """
-        Returns the total number of compartments.
-        """
-        return len(self.x) + sum(len(child) for child in self.children)
+        return self.n + sum(len(c) for c in self.children)
 
-    def compress(self, morphology_data, origin=0):
-        """
-        Compresses the tree by changing the compartment vectors to views on
-        a matrix (or vectors). The morphology cannot be changed anymore but
-        all other functions should work normally.
-        Units are discarded in the process.
-        
-        origin : offset in the base matrix
-        """
-        self._origin = origin
-        n = len(self.x)
-        # Update values of vectors
-        morphology_data.diameter[origin:origin+n] = self.diameter
-        morphology_data.length[origin:origin+n] = self.length
-        morphology_data.area[origin:origin+n] = self.area
-        morphology_data.x[origin:origin+n] = self.x
-        morphology_data.y[origin:origin+n] = self.y
-        morphology_data.z[origin:origin+n] = self.z
-        morphology_data.distance[origin:origin+n] = self.distance
-        # Attributes are now views on these vectors
-        self.diameter = morphology_data.diameter[origin:origin+n]
-        self.length = morphology_data.length[origin:origin+n]
-        self.area = morphology_data.area[origin:origin+n]
-        self.x = morphology_data.x[origin:origin+n]
-        self.y = morphology_data.y[origin:origin+n]
-        self.z = morphology_data.z[origin:origin+n]
-        self.distance = morphology_data.distance[origin:origin+n]
-        for kid in self.children:
-            kid.compress(morphology_data, origin=origin + n)
-            n += len(kid)
-        self.iscompressed = True
+    @property
+    def n_sections(self):
+        return 1 + sum(c.n_sections for c in self.children)
 
-    def plot(self, axes=None, simple=True, origin=None):
-        """
-        Plots the morphology in 3D. Units are um.
+    @property
+    def parent(self):
+        return self._parent
 
-        Parameters
-        ----------
-        axes : `Axes3D`
-            the figure axes (new figure if not given)
-        simple : bool, optional
-            if ``True``, the diameter of branches is ignored
-            (defaults to ``True``)
-        """
-        try:
-            from pylab import figure
-            from mpl_toolkits.mplot3d import Axes3D
-        except ImportError:
-            raise ImportError('matplotlib 0.99.1 is required for 3d plots')
-        if axes is None:  # new figure
-            fig = figure()
-            axes = Axes3D(fig)
-        x, y, z, d = self.x / um, self.y / um, self.z / um, self.diameter / um
-        if origin is not None:
-            x0, y0, z0 = origin
-            x = hstack((x0, x))
-            y = hstack((y0, y))
-            z = hstack((z0, z))
-        if len(x) == 1:  # root with a single compartment: probably just the soma
-            axes.plot(x, y, z, "r.", linewidth=d[0])
-        else:
-            if simple:
-                axes.plot(x, y, z, "k")
-            else:  # linewidth reflects compartment diameter
-                for n in range(1, len(x)):
-                    axes.plot([x[n - 1], x[n]], [y[n - 1], y[n]],
-                              [z[n - 1], z[n]], 'k', linewidth=d[n - 1])
-        for c in self.children:
-            c.plot(origin=(x[-1], y[-1], z[-1]), axes=axes, simple=simple)
+    # Per-compartment attributes
+    @abc.abstractproperty
+    def area(self):
+        pass
+
+    @abc.abstractproperty
+    def volume(self):
+        pass
+
+    @abc.abstractproperty
+    def length(self):
+        pass
+
+    @abc.abstractproperty
+    def r_length(self):
+        pass
+
+    @abc.abstractproperty
+    def electrical_center(self):
+        pass
+
+    # At-electrical-midpoint attributes
+    @abc.abstractproperty
+    def distance(self):
+        pass
+
+    @abc.abstractproperty
+    def x(self):
+        pass
+
+    @abc.abstractproperty
+    def y(self):
+        pass
+
+    @abc.abstractproperty
+    def z(self):
+        pass
+
+    @abc.abstractproperty
+    def end_x(self):
+        pass
+
+    @abc.abstractproperty
+    def end_y(self):
+        pass
+
+    @abc.abstractproperty
+    def end_z(self):
+        pass
+
+    @abc.abstractproperty
+    def start_x(self):
+        pass
+
+    @abc.abstractproperty
+    def start_y(self):
+        pass
+
+    @abc.abstractproperty
+    def start_z(self):
+        pass
+
+class SubMorphology(object):
+    '''
+    A view on a subset of a section in a morphology.
+    '''
+    def __init__(self, morphology, i, j):
+        self._morphology = morphology
+        self._i = i
+        self._j = j
+
+    @property
+    def n(self):
+        return self._j - self._i
+
+    def __len__(self):
+        return self.n
+
+    @property
+    def n_sections(self):
+        return 1
+
+    # Per-compartment attributes
+    @property
+    def area(self):
+        return self._morphology.area[self._i:self._j]
+
+    @property
+    def volume(self):
+        return self._morphology.volume[self._i:self._j]
+
+    @property
+    def length(self):
+        return self._morphology.length[self._i:self._j]
+
+    @property
+    def r_length(self):
+        return self._morphology.r_length[self._i:self._j]
+
+    @property
+    def electrical_center(self):
+        return self._morphology.electrical_center[self._i:self._j]
+
+    # At-electrical-midpoint attributes
+    @property
+    def distance(self):
+        return self._morphology.distance[self._i:self._j]
+
+    @property
+    def x(self):
+        return self._morphology.x[self._i:self._j]
+
+    @property
+    def y(self):
+        return self._morphology.y[self._i:self._j]
+
+    @property
+    def z(self):
+        return self._morphology.z[self._i:self._j]
+
+    @property
+    def end_x(self):
+        return self._morphology.end_x[self._i:self._j]
+
+    @property
+    def end_y(self):
+        return self._morphology.end_y[self._i:self._j]
+
+    @property
+    def end_z(self):
+        return self._morphology.end_z[self._i:self._j]
+
+    @property
+    def start_x(self):
+        return self._morphology.start_x[self._i:self._j]
+
+    @property
+    def start_y(self):
+        return self._morphology.start_y[self._i:self._j]
+
+    @property
+    def start_z(self):
+        return self._morphology.start_z[self._i:self._j]
 
 
-class Cylinder(Morphology):
-    """
-    A cylinder.
-
-    Parameters
-    ----------
-    length : `Quantity`, optional
-        The total length in `meter`. If unspecified, inferred from `x`, `y`, `z`.
-    diameter : `Quantity`
-        The diameter in `meter`.
-    n : int, optional
-        Number of compartments (default 1).
-    type : str, optional
-        Type of segment, `soma`, 'axon' or 'dendrite'.
-    x : `Quantity`, optional
-        x position of end point in `meter` units.
-        If not specified, inferred from `length` with a random direction.
-    y : `Quantity`, optional
-        x position of end point in `meter` units.
-    z : `Quantity`, optional
-        x position of end point in `meter` units.
-    """
-
-    @check_units(length=meter, diameter=meter, n=1, x=meter, y=meter, z=meter)
-    def __init__(self, length=None, diameter=None, n=1, type=None, x=None,
-                 y=None, z=None):
-        """
-        Creates a cylinder.
-        n: number of compartments.
-        type : 'soma', 'axon' or 'dendrite'
-        x,y,z : end point (relative to origin of cylinder)
-        length is optional (and ignored) if x,y,z is specified
-        If x,y,z unspecified: random direction
-        """
-        Morphology.__init__(self, n=n)
-        if x is None:
-            theta = rand() * 2 * pi
-            phi = rand() * 2 * pi
-            x = length * sin(theta) * cos(phi)
-            y = length * sin(theta) * sin(phi)
-            z = length * cos(theta)
-        else:
-            if length is not None:
-                raise AttributeError(('Length and x-y-z coordinates cannot '
-                                      'be simultaneously specified'))
-            length = sqrt(x**2 + y**2 + z**2)
-        scale = arange(1, n + 1) * 1. / n
-        self.x, self.y, self.z = x * scale, y * scale, z * scale
-        self.length = ones(n) * length / n
-        self.diameter = ones(n) * diameter
-        self.area = ones(n) * pi * diameter * length / n
-        self.type = type
-        self.set_distance()
-
-
-class Soma(Morphology):  # or Sphere?
-    """
-    A spherical soma.
+class Soma(Morphology):
+    '''
+    A spherical, iso-potential soma.
 
     Parameters
     ----------
     diameter : `Quantity`, optional
         Diameter of the sphere.
-    """
+    '''
 
-    @check_units(diameter=meter)
-    def __init__(self, diameter=None):
-        Morphology.__init__(self, n=1)
-        self.diameter = ones(1) * diameter
-        self.area = ones(1) * pi * diameter ** 2
-        self.type = 'soma'
+    @check_units(diameter=meter, x=meter, y=meter, z=meter)
+    def __init__(self, diameter, x=None, y=None, z=None, parent=None):
+        Morphology.__init__(self, n=1, parent=parent)
+        self.diameter = np.ones(1) * diameter
+        if (any(coord is not None for coord in (x, y, z)) and
+                not all(coord is not None for coord in (x, y, z))):
+            raise TypeError('You need to either specify all of x, y, and z, '
+                            'or none of them.')
+        self._x = x
+        self._y = y
+        self._z = z
+
+    @property
+    def area(self):
+        return np.pi * self.diameter ** 2
+
+    @property
+    def volume(self):
+        return (np.pi * self.diameter ** 3)/6
+
+    @property
+    def length(self):
+        return self.diameter
+
+    @property
+    def r_length(self):
+        # The soma does not have any resistance
+        return 0*um
+
+    @property
+    def electrical_center(self):
+        return 0.0
+
+    @property
+    def distance(self):
+        dist = self._parent.distance if self._parent else 0*um
+        return dist
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def z(self):
+        return self._z
+
+    @property
+    def start_x(self):
+        return self._x
+
+    @property
+    def start_y(self):
+        return self._y
+
+    @property
+    def start_z(self):
+        return self._z
+
+    @property
+    def end_x(self):
+        return self._x
+
+    @property
+    def end_y(self):
+        return self._y
+
+    @property
+    def end_z(self):
+        return self._z
 
 
-if __name__ == '__main__':
-    from pylab import show
+class Section(Morphology):
+    '''
+    A section (unbranched structure), described as a sequence of truncated
+    cones.
 
-    morpho = Morphology('mp_ma_40984_gc2.CNG.swc')  # retinal ganglion cell
-    print len(morpho), "compartments"
-    morpho.axon = None
-    morpho.plot()
-    # morpho=Cylinder(length=10*um,diameter=1*um,n=10)
-    #morpho.plot(simple=True)
-    morpho = Soma(diameter=10 * um)
-    morpho.dendrite = Cylinder(length=3 * um, diameter=1 * um, n=10)
-    morpho.dendrite.L = Cylinder(length=5 * um, diameter=1 * um, n=10)
-    morpho.dendrite.R = Cylinder(length=7 * um, diameter=1 * um, n=10)
-    morpho.dendrite.LL = Cylinder(length=3 * um, diameter=1 * um, n=10)
-    morpho.axon = Morphology(n=5)
-    morpho.axon.diameter = ones(5) * 1 * um
-    morpho.axon.length = [1 * um, 2 * um, 1 * um, 3 * um, 1 * um]
-    morpho.axon.set_coordinates()
-    morpho.axon.set_area()
-    morpho.plot(simple=True)
-    show()
+    Parameters
+    ----------
+    n : int
+        The number of compartments in this section.
+    diameter : `Quantity`
+        Either a single value (the constant diameter along the whole section),
+        or a value of length ``n`` or ``n+1``. When ``n`` values are given, they
+        will be interpreted as the diameter at the ends of each compartment. In
+        this case, the diameter at the start of the first compartment will be
+        taken as the diameter at the end of the parent compartment (i.e., the
+        connection will be continuous). When ``n+1`` values are given, then the
+        first value specifies the diameter at the start of the compartment and
+        the following values the diameter at the ends of each compartment.
+    length : `Quantity`
+        Either a single value (the total length of the section), or a value of
+        length ``n``, the length of each individual compartment. Cannot be
+        combined with the specification of coordinates.
+    x : `Quantity`
+        ``n`` values, specifying the x coordinates of the end-points of the
+        compartments, or ``n``+1 values, specifying the x coordinate at the
+        start-point of the first compartment and the x coordinates at the
+        end-points of all compartments. If only ``n`` points are specified, the
+        start point of the first compartment is considered to be the end-point
+        of the previous compartment. In that case, all coordinates are
+        considered to be relative to this point.
+        You can specify all of ``x``, ``y``, or ``z`` to specify
+        a morphology in 3D, or only one or two out of them to specify a
+        morphology in 1D or 2D (the non-specified components will be considered
+        as 0)
+    y : `Quantity`
+        See ``x``
+    z : `Quantity`
+        See ``x``
+    parent : `Morphology`, optional
+        The parent of this section.
+    '''
+    @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
+    def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
+                 parent=None):
+        n = int(n)
+        Morphology.__init__(self, n=n, parent=parent)
+
+        diameter = np.atleast_1d(diameter)
+        if diameter.ndim > 1:
+            raise TypeError('The diameter argument has to be a single value '
+                            'or a one-dimensional array.')
+        if len(diameter) == 1:
+            diameter = np.ones(n+1) * diameter
+        elif len(diameter) == n:
+            # add NaN as the diameter for now -- it is not defined until the
+            # section is connected to a parent
+            # Note that numpy's hstack function does not conserve units
+            diameter = np.hstack([np.nan, np.asarray(diameter)])*meter
+        elif len(diameter) == n+1:
+            # already in the correct shape
+            pass
+        else:
+            raise TypeError(('Need to specify a single value or %d or %d values '
+                 'for the diameter, got %d values '
+                 'instead') % (n, n+1, len(diameter)))
+        self._diameter = diameter
+
+        if length is not None:
+            # Specification by length
+            if x is not None or y is not None or z is not None:
+                raise TypeError('Cannot use both lengths and coordinates to '
+                                'specify a section.')
+            length = np.atleast_1d(length)
+            if length.ndim > 1:
+                raise TypeError('The length argument has to be a single value '
+                                'or a one-dimensional array.')
+            if len(length) != 1 and len(length) != n:
+                raise TypeError(('Need to specify a single value or %d values '
+                                 'for the length, got %d values '
+                                 'instead.') % (n, len(length)))
+            if len(length) == 1:
+                # This is the *total* length of the whole section
+                length = np.ones(n) * length/n
+        else:
+            if x is None and y is None and z is None:
+                raise TypeError('No length specified, need to specify at least '
+                                'one out of x, y, or z.')
+            for name, value in [('x', x), ('y', y), ('z', z)]:
+                if (value is not None and
+                            value.shape != (n, ) and
+                            value.shape != (n+1, )):
+                    raise TypeError(('Coordinates need to be one-dimensional '
+                                     'arrays of length %d or %d, but the array '
+                                     'provided for %s has shape '
+                                     '%s') % (n, n+1, name, value.shape))
+            x = x if x is not None else np.zeros(n)*meter
+            y = y if y is not None else np.zeros(n)*meter
+            z = z if z is not None else np.zeros(n)*meter
+            if len(x) == n:
+                # Relative to start of the section
+                start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
+                start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
+                start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
+                end_x = x
+                end_y = y
+                end_z = z
+            else:
+                # Absolute coordinates
+                start_x = x[:-1]
+                start_y = y[:-1]
+                start_z = z[:-1]
+                end_x = x[1:]
+                end_y = y[1:]
+                end_z = z[1:]
+            length = np.sqrt((end_x - start_x)**2 +
+                             (end_y - start_y)**2 +
+                             (end_z - start_z)**2)
+
+            x = x if x is not None else np.zeros(n)*meter
+            y = y if y is not None else np.zeros(n)*meter
+            z = z if z is not None else np.zeros(n)*meter
+
+        self._x = x
+        self._y = y
+        self._z = z
+
+        self._length = length
+
+    @property
+    def area(self):
+        d_1 = self._diameter[:self.n]  # diameter at the start
+        d_2 = self._diameter[1:]  # diameter at the end
+        return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
+
+    @property
+    def volume(self):
+        d_1 = self._diameter[:self.n]  # diameter at the start
+        d_2 = self._diameter[1:]  # diameter at the end
+        return np.pi * self._length * (d_1**2 + d_1*d_2 + d_2**2)/12
+
+    @property
+    def length(self):
+        return self._length
+
+    @property
+    def electrical_center(self):
+        d_1 = self._diameter[:self.n]  # diameter at the start
+        d_2 = self._diameter[1:]  # diameter at the end
+        return d_1 / (d_1 + d_2)
+
+    @property
+    def r_length(self):
+        d_1 = self._diameter[:self.n]  # diameter at the start
+        d_2 = self._diameter[1:]  # diameter at the end
+        return 4/np.pi * self._length/(d_1 * d_2)
+
+    @property
+    def distance(self):
+        dist = self._parent.distance if self._parent else 0*um
+        return dist + np.cumsum(self.length) - self.length/2
+
+    @property
+    def x(self):
+        if self._x is None:
+            return None
+        diff_x = (self.end_x - self.start_x)
+        return self.start_x + self.electrical_center*diff_x
+
+    @property
+    def y(self):
+        if self._y is None:
+            return None
+        diff_y = (self.end_y - self.start_y)
+        return self.start_y + self.electrical_center*diff_y
+
+    @property
+    def z(self):
+        if self._z is None:
+            return None
+        diff_z = (self.end_z - self.start_z)
+        return self.start_z + self.electrical_center*diff_z
+
+    @property
+    def start_x(self):
+        if self._x is None:
+            return None
+        if len(self._x) == self.n:
+            parent_x = self._parent.end_x[-1] if self._parent is not None else 0*meter
+            # Note that numpy's hstack function does not conserve units
+            return np.hstack([float(parent_x), np.asarray(self._x)[:-1]])*meter
+        else:
+            # Do not return the last point (end point of the last compartment)
+            return self._x[:self.n]
+
+    @property
+    def start_y(self):
+        if self._y is None:
+            return None
+        if len(self._y) == self.n:
+            parent_y = self._parent.end_y[-1] if self._parent is not None else 0*meter
+            # Note that numpy's hstack function does not conserve units
+            return np.hstack([float(parent_y), np.asarray(self._y)[:-1]])*meter
+        else:
+            # Do not return the last point (end point of the last compartment)
+            return self._y[:self.n]
+
+    @property
+    def start_z(self):
+        if self._z is None:
+            return None
+        if len(self._z) == self.n:
+            parent_z = self._parent.end_z[-1] if self._parent is not None else 0*meter
+            # Note that numpy's hstack function does not conserve units
+            return np.hstack([float(parent_z), np.asarray(self._z)[:-1]])*meter
+        else:
+            # Do not return the last point (end point of the last compartment)
+            return self._z[:self.n]
+
+    @property
+    def end_x(self):
+        if self._x is None:
+            return None
+        # ignore the start point of the first compartment (if it exists)
+        return self._x[-self.n:]
+
+    @property
+    def end_y(self):
+        if self._y is None:
+            return None
+        # ignore the start point of the first compartment (if it exists)
+        return self._y[-self.n:]
+
+    @property
+    def end_z(self):
+        if self._z is None:
+            return None
+        # ignore the start point of the first compartment (if it exists)
+        return self._z[-self.n:]
+
+
+class Cylinder(Section):
+    '''
+    A section (unbranched structure), described as a sequence of cylinders
+
+    Parameters
+    ----------
+    n : int
+        The number of compartments in this section.
+    diameter : `Quantity`
+        Either a single value (the constant diameter along the whole section),
+        or a value of length ``n``, giving the diameter for each compartment.
+    length : `Quantity`, optional
+        Either a single value (the total length of the section), or a value of
+        length ``n``, the length of each individual compartment. Cannot be
+        combined with the specification of coordinates.
+    x : `Quantity`, optional
+        ``n`` values, specifying the x coordinates of the end-points of the
+        compartments, or ``n``+1 values, specifying the x coordinate at the
+        start-point of the first compartment and the x coordinates at the
+        end-points of all compartments. If only ``n`` points are specified, the
+        start point of the first compartment is considered to be the end-point
+        of the previous compartment. In that case, all coordinates are
+        considered to be relative to this point.
+        You can specify all of ``x``, ``y``, or ``z`` to specify
+        a morphology in 3D, or only one or two out of them to specify a
+        morphology in 1D or 2D (the non-specified components will be considered
+        as 0). Cannot be combined with the specification of ``length``.
+    y : `Quantity`, optional
+        See ``x``
+    z : `Quantity`, optional
+        See ``x``
+    parent : `Morphology`, optional
+        The parent of this section.
+    '''
+    @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
+    def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
+                 parent=None):
+        n = int(n)
+        Morphology.__init__(self, n=n, parent=parent)
+
+        diameter = np.atleast_1d(diameter)
+        if diameter.ndim > 1:
+            raise TypeError('The diameter argument has to be a single value '
+                            'or a one-dimensional array.')
+        if len(diameter) != 1 and len(diameter) != n:
+            raise TypeError(('Need to specify a single value or %d values '
+                             'for the diameter, got %d values '
+                             'instead') % (n, len(diameter)))
+        diameter = np.ones(n) * diameter
+        self._diameter = diameter
+
+        if length is not None:
+            # Specification by length
+            if x is not None or y is not None or z is not None:
+                raise TypeError('Cannot use both lengths and coordinates to '
+                                'specify a section.')
+            length = np.atleast_1d(length)
+            if length.ndim > 1:
+                raise TypeError('The length argument has to be a single value '
+                                'or a one-dimensional array.')
+            if len(length) != 1 and len(length) != n:
+                raise TypeError(('Need to specify a single value or %d values '
+                                 'for the length, got %d values '
+                                 'instead.') % (n, len(length)))
+            if len(length) == 1:
+                # This is the *total* length of the whole section
+                length = np.ones(n) * (length/n)
+        else:
+            if x is None and y is None and z is None:
+                raise TypeError('No length specified, need to specify at least '
+                                'one out of x, y, or z.')
+            for name, value in [('x', x), ('y', y), ('z', z)]:
+                if value is not None and value.shape != (n, ):
+                    raise TypeError(('Coordinates need to be one-dimensional '
+                                     'arrays of length %d, but the array '
+                                     'provided for %s has shape '
+                                     '%s') % (n, name, value.shape))
+            x = x if x is not None else np.zeros(n)*meter
+            y = y if y is not None else np.zeros(n)*meter
+            z = z if z is not None else np.zeros(n)*meter
+            if len(x) == n:
+                # Relative to start of the section
+                start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
+                start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
+                start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
+                end_x = x
+                end_y = y
+                end_z = z
+            else:
+                # Absolute coordinates
+                start_x = x[:-1]
+                start_y = y[:-1]
+                start_z = z[:-1]
+                end_x = x[1:]
+                end_y = y[1:]
+                end_z = z[1:]
+            length = np.sqrt((end_x - start_x)**2 +
+                             (end_y - start_y)**2 +
+                             (end_z - start_z)**2)
+
+        self._length = length
+        self._x = x
+        self._y = y
+        self._z = z
+
+    # Overwrite the properties that differ from `Section`
+
+    @property
+    def area(self):
+        return np.pi * self._diameter * self.length
+
+    @property
+    def volume(self):
+        return np.pi * (self._diameter/2)**2 * self.length
+
+    @property
+    def length(self):
+        return self._length
+
+    @property
+    def electrical_center(self):
+        return np.ones(self.n)*0.5
+
+    @property
+    def r_length(self):
+        return 4/np.pi * self._length/(self._diameter**2)
