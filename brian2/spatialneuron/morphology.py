@@ -3,7 +3,6 @@ Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 '''
 import abc
-import collections
 import numbers
 
 from brian2.units.allunits import meter
@@ -21,6 +20,8 @@ __all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
 # * loading from SWC files
 # * Conversion for SpatialNeuron
 # * plotting (goes directly to brian2tools?)
+# * calculation of coordinates for morphologies without coordinates
+# * [later?] re-segmentation
 
 
 class MorphologyData(object):
@@ -43,7 +44,6 @@ class MorphologyIndexWrapper(object):
         return self.morphology._indices(item)
 
 class Children(object):
-    # TODO: Maybe not necessary
     def __init__(self, owner):
         self._owner = owner
         self._counter = 0
@@ -72,6 +72,8 @@ class Children(object):
         if subtree._parent is not None:
             raise TypeError(('Cannot add subtree as "%s", it already has a '
                              'parent.') % name)
+        if name in self._named_children:
+            raise AttributeError('The subtree %s already exists' % name)
         self._counter += 1
         self._children.append(subtree)
         self._named_children[name] = subtree
@@ -86,6 +88,7 @@ class Children(object):
         self._children.remove(subtree)
         subtree.parent = None
 
+    # TODO: Useful __str__ and __repr__
     def __str__(self):
         return str(self._named_children)
     __repr__ = __str__
@@ -160,7 +163,6 @@ class Morphology(object):
         elif item == 'main':
             return SubMorphology(self, 0, self.n)
         elif isinstance(item, basestring):
-            raise NotImplementedError('String indices not yet supported')
             item = str(item)  # convert int to string
             if (len(item) > 1) and all([c in 'LR123456789' for c in
                                      item]):  # binary string of the form LLLRLR or 1213 (or mixed)
@@ -173,8 +175,6 @@ class Morphology(object):
             raise TypeError('Index of type %s not understood' % type(item))
 
         return SubMorphology(self, i, j)
-
-    # TODO: Implement the set/del functions
 
     def __setitem__(self, item, child):
         '''
@@ -189,9 +189,6 @@ class Morphology(object):
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
             self.children[item[0]][item[1:]] = child
-        elif item in self.children:
-            print 'self.children has', self.children._named_children
-            raise AttributeError('The subtree ' + item + ' already exists')
         elif item == 'main':
             raise AttributeError('The main branch cannot be changed')
         else:
@@ -242,6 +239,10 @@ class Morphology(object):
     @property
     def parent(self):
         return self._parent
+
+    @abc.abstractproperty
+    def total_distance(self):
+        pass
 
     # Per-compartment attributes
     @abc.abstractproperty
@@ -313,6 +314,7 @@ class SubMorphology(object):
         self._morphology = morphology
         self._i = i
         self._j = j
+
 
     @property
     def n(self):
@@ -410,6 +412,8 @@ class Soma(Morphology):
         self._y = y
         self._z = z
 
+    # Note that the per-compartment properties should always return 1D arrays,
+    # i.e. for the soma arrays of length 1 instead of scalar values
     @property
     def area(self):
         return np.pi * self.diameter ** 2
@@ -425,11 +429,11 @@ class Soma(Morphology):
     @property
     def r_length(self):
         # The soma does not have any resistance
-        return 0*um
+        return [0]*um
 
     @property
     def electrical_center(self):
-        return 0.0
+        return np.array([0.0])
 
     @property
     def distance(self):
@@ -472,6 +476,10 @@ class Soma(Morphology):
     def end_z(self):
         return self._z
 
+    @property
+    def total_distance(self):
+        dist = self._parent.total_distance if self._parent is not None else 0*um
+        return dist + self.diameter/2
 
 class Section(Morphology):
     '''
@@ -618,6 +626,15 @@ class Section(Morphology):
         return self._length
 
     @property
+    def distance(self):
+        dist = self._parent.total_distance if self._parent is not None else 0*um
+        return dist + np.cumsum(self.length) - (1 - self.electrical_center) * self.length
+
+    @property
+    def total_distance(self):
+        return self.distance[-1] + (1 - self.electrical_center[-1]) * self.length[-1]
+
+    @property
     def electrical_center(self):
         d_1 = self._diameter[:self.n]  # diameter at the start
         d_2 = self._diameter[1:]  # diameter at the end
@@ -628,11 +645,6 @@ class Section(Morphology):
         d_1 = self._diameter[:self.n]  # diameter at the start
         d_2 = self._diameter[1:]  # diameter at the end
         return 4/np.pi * self._length/(d_1 * d_2)
-
-    @property
-    def distance(self):
-        dist = self._parent.distance if self._parent else 0*um
-        return dist + np.cumsum(self.length) - self.length/2
 
     @property
     def x(self):
@@ -827,10 +839,6 @@ class Cylinder(Section):
     @property
     def volume(self):
         return np.pi * (self._diameter/2)**2 * self.length
-
-    @property
-    def length(self):
-        return self._length
 
     @property
     def electrical_center(self):
