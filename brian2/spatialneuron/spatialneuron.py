@@ -13,7 +13,7 @@ from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
 from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp, meter
-from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
+from brian2.units.fundamentalunits import Quantity, Unit, fail_for_dimension_mismatch, have_same_dimensions, DimensionMismatchError
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
@@ -382,26 +382,27 @@ class SpatialNeuron(NeuronGroup):
             return Group.__getattr__(neuron, x)
 
     @staticmethod
-    def spatialneuron_segment(neuron, x):
+    def spatialneuron_segment(neuron, item):
         '''
-        Selects a segment from `SpatialNeuron` neuron, where x is a slice of
+        Selects a segment from `SpatialNeuron` neuron, where item is a slice of
         either compartment indexes or distances.
         Note a: segment is not a `SpatialNeuron`, only a `Group`.
         '''
-        if not isinstance(x, slice):
+        if not isinstance(item, slice):
             raise TypeError(
                 'Subgroups can only be constructed using slicing syntax')
-        start, stop, step = x.start, x.stop, x.step
+        start, stop, step = item.start, item.stop, item.step
         if step is None:
             step = 1
         if step != 1:
             raise IndexError('Subgroups have to be contiguous')
 
-        if type(start) == type(1 * cm):  # e.g. 10*um:20*um
+        if isinstance(start, Quantity):
+            if not have_same_dimensions(start, meter) or not have_same_dimensions(stop, meter):
+                raise DimensionMismatchError('Start and stop should have units of meter')  #TODO
             # Convert to integers (compartment numbers)
-            morpho = neuron.morphology[x]
-            start = morpho._origin
-            stop = morpho._origin + len(morpho)
+            indices = neuron.morphology.indices[item]
+            start, stop = indices[0], indices[-1]
 
         if start >= stop:
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
