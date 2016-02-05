@@ -641,6 +641,9 @@ class Section(Morphology):
             x = x if x is not None else np.zeros(n)*meter
             y = y if y is not None else np.zeros(n)*meter
             z = z if z is not None else np.zeros(n)*meter
+            x = x if x.shape != () else np.linspace(0, float(x), n)*meter
+            y = y if y.shape != () else np.linspace(0, float(y), n)*meter
+            z = z if z.shape != () else np.linspace(0, float(z), n)*meter
             if len(x) == n:
                 # Relative to start of the section
                 start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
@@ -859,14 +862,17 @@ class Cylinder(Section):
                 raise TypeError('No length specified, need to specify at least '
                                 'one out of x, y, or z.')
             for name, value in [('x', x), ('y', y), ('z', z)]:
-                if value is not None and value.shape != (n, ):
-                    raise TypeError(('Coordinates need to be one-dimensional '
-                                     'arrays of length %d, but the array '
-                                     'provided for %s has shape '
-                                     '%s') % (n, name, value.shape))
+                if value is not None and value.shape not in [(), (n, ), (n+1, )]:
+                    raise TypeError(('Coordinates need to be single values or '
+                                     'one-dimensional arrays of length %d or '
+                                     '%d but the array provided for %s has '
+                                     'shape %s') % (n, n+1, name, value.shape))
             x = x if x is not None else np.zeros(n)*meter
             y = y if y is not None else np.zeros(n)*meter
             z = z if z is not None else np.zeros(n)*meter
+            x = x if x.shape != () else np.linspace(0, float(x), n)*meter
+            y = y if y.shape != () else np.linspace(0, float(y), n)*meter
+            z = z if z.shape != () else np.linspace(0, float(z), n)*meter
             if len(x) == n:
                 # Relative to start of the section
                 start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
