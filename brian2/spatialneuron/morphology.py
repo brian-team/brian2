@@ -462,8 +462,9 @@ class Soma(Morphology):
     '''
 
     @check_units(diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, diameter, x=None, y=None, z=None, parent=None):
-        Morphology.__init__(self, n=1, parent=parent)
+    def __init__(self, diameter, x=None, y=None, z=None, type='soma',
+                 parent=None):
+        Morphology.__init__(self, n=1, type=type, parent=parent)
         self.diameter = np.ones(1) * diameter
         if (any(coord is not None for coord in (x, y, z)) and
                 not all(coord is not None for coord in (x, y, z))):
@@ -585,9 +586,9 @@ class Section(Morphology):
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
-                 parent=None):
+                 type=None, parent=None):
         n = int(n)
-        Morphology.__init__(self, n=n, parent=parent)
+        Morphology.__init__(self, n=n, type=type, parent=parent)
 
         diameter = np.atleast_1d(diameter)
         if diameter.ndim > 1:
@@ -822,9 +823,9 @@ class Cylinder(Section):
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
-                 parent=None):
+                 type=None, parent=None):
         n = int(n)
-        Morphology.__init__(self, n=n, parent=parent)
+        Morphology.__init__(self, n=n, type=type, parent=parent)
 
         diameter = np.atleast_1d(diameter)
         if diameter.ndim > 1:
