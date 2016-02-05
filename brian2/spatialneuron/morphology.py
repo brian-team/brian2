@@ -41,7 +41,37 @@ class MorphologyIndexWrapper(object):
         if isinstance(item, basestring):
             raise NotImplementedError(('Morphologies do not support string '
                                        'indexing'))
+        assert isinstance(self.morphology, Morphology)
         return self.morphology._indices(item)
+
+
+def _calc_start_idx(section):
+    '''
+    Calculate the absolute start index that will be used by a flattened
+    representation.
+    '''
+    # calculate the absolute start index of this section
+    # 1. find the root of the tree
+    root = section
+    while root._parent is not None:
+        root = root._parent
+    # 2. go down from the root and advance the indices until we find
+    # the current section
+    start_idx = _find_start_index(root, section)
+    return start_idx
+
+
+def _find_start_index(current, target_section, index=0):
+    if current == target_section:
+        return index
+    index += current.n
+    for child in current.children:
+        if child == target_section:
+            break
+        else:
+            index = _find_start_index(child, target_section, index)
+    return index
+
 
 class Children(object):
     def __init__(self, owner):
@@ -114,6 +144,7 @@ class Morphology(object):
         self.type = type
         self.children = Children(self)
         self._parent = parent
+        self.indices = MorphologyIndexWrapper(self)
 
     def __getitem__(self, item):
         '''
@@ -225,6 +256,27 @@ class Morphology(object):
         else:  # If it is not a subtree, then it's a normal class attribute
             object.__setattr__(self, item, child)
 
+    def _indices(self, item=None, index_var='_idx'):
+        '''
+        Returns compartment indices for the main branch, relative to the
+        original morphology.
+        '''
+        if index_var != '_idx':
+            raise AssertionError('Unexpected index %s' % index_var)
+        if not (item is None or item == slice(None)):
+            if isinstance(item, slice):
+                # So that this always returns an array of values, even if it is
+                # just a single value
+                return self[item]._indices(slice(None))
+            else:
+                return self[item]._indices(None)
+        else:
+            start_idx = _calc_start_idx(self)
+            if self.n == 1 and item is None:
+                return start_idx
+            else:
+                return np.arange(start_idx, start_idx + self.n)
+
     @property
     def n(self):
         return self._n
@@ -315,6 +367,15 @@ class SubMorphology(object):
         self._i = i
         self._j = j
 
+    def _indices(self, item=None):
+        if not (item is None or item == slice(None)):
+            raise IndexError('Cannot index a view on a subset of a section further')
+        # Start index of the main section
+        start_idx = _calc_start_idx(self._morphology)
+        if item is None and self.n == 1:
+            return start_idx + self._i
+        else:
+            return np.arange(start_idx + self._i, start_idx + self._j)
 
     @property
     def n(self):
