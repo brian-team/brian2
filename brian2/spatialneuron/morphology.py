@@ -165,17 +165,21 @@ class Morphology(object):
                 if item.start is None:
                     i = 0
                 else:
-                    i = np.searchsorted(l, float(item.start))
+                    # Round to next start point
+                    i = np.argmin(np.abs(float(item.start) - l))
                 if item.stop is None:
                     j = len(l)
                 else:
-                    j = np.searchsorted(l, float(item.stop))
+                    j = np.argmin(np.abs(float(item.stop) - l))
             else:  # integers
                 i, j, step = item.indices(self.n)
                 if step != 1:
                     raise TypeError('Can only slice a contiguous segment')
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
-            l = np.cumsum(np.asarray(self.length))
+            l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
+            if item < 0*meter or item > l:
+                raise IndexError(('Invalid index %s, has to be in the interval '
+                                  '[%s, %s].' % (item, 0*meter, l[-1])))
             i = np.searchsorted(l, item)
             j = i + 1
         elif isinstance(item, numbers.Integral):  # int: returns one compartment

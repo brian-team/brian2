@@ -381,7 +381,6 @@ class SpatialNeuron(NeuronGroup):
             morpho = neuron.morphology[name]
             indices = morpho.indices[:]
             start, stop = indices[0], indices[-1]
-            print indices
             return SpatialSubgroup(neuron, start, stop + 1,
                                    morphology=morpho)
         else:
@@ -408,7 +407,7 @@ class SpatialNeuron(NeuronGroup):
                 raise DimensionMismatchError('Start and stop should have units of meter')  #TODO
             # Convert to integers (compartment numbers)
             indices = neuron.morphology.indices[item]
-            start, stop = indices[0], indices[-1]
+            start, stop = indices[0], indices[-1] + 1
 
         if start >= stop:
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
