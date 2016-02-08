@@ -375,7 +375,7 @@ class SpatialNeuron(NeuronGroup):
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
             return SpatialSubgroup(neuron, start, stop + 1,
-                                   morphology=neuron.morphology.main)
+                                   morphology=neuron.morphology)
         elif (name != 'morphology') and ((name in getattr(neuron.morphology, 'children', [])) or
                                       all([c in 'LR123456789' for c in name])):  # subtree
             morpho = neuron.morphology[name]

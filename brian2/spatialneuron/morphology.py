@@ -36,7 +36,7 @@ class MorphologyIndexWrapper(object):
         if isinstance(item, basestring):
             raise NotImplementedError(('Morphologies do not support string '
                                        'indexing'))
-        assert isinstance(self.morphology, Morphology)
+        assert isinstance(self.morphology, (SubMorphology, Morphology))
         return self.morphology._indices(item)
 
 
@@ -52,21 +52,23 @@ def _calc_start_idx(section):
         root = root._parent
     # 2. go down from the root and advance the indices until we find
     # the current section
-    start_idx = _find_start_index(root, section)
+    start_idx, found = _find_start_index(root, section)
+    assert found
     return start_idx
 
 
 def _find_start_index(current, target_section, index=0):
     if current == target_section:
-        return index
+        return index, True
     index += current.n
     for child in current.children:
         if child == target_section:
-            break
+            return index, True
         else:
-            index = _find_start_index(child, target_section, index)
-    return index
-
+            index, found = _find_start_index(child, target_section, index)
+            if found:
+                return index, True
+    return index, False
 
 class Children(object):
     def __init__(self, owner):
@@ -161,7 +163,7 @@ class Morphology(object):
                 if item.step is not None:
                     raise TypeError(('Cannot provide a step argument when '
                                      'slicing with lengths'))
-                l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
+                l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the branch
                 if item.start is None:
                     i = 0
                 else:
@@ -177,9 +179,9 @@ class Morphology(object):
                     raise TypeError('Can only slice a contiguous segment')
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
             l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
-            if item < 0*meter or item > l:
+            if float(item) < 0 or float(item) > l[-1]:
                 raise IndexError(('Invalid index %s, has to be in the interval '
-                                  '[%s, %s].' % (item, 0*meter, l[-1])))
+                                  '[%s, %s].' % (item, 0*meter, l[-1]*meter)))
             i = np.searchsorted(l, item)
             j = i + 1
         elif isinstance(item, numbers.Integral):  # int: returns one compartment
@@ -190,8 +192,6 @@ class Morphology(object):
                                   'for %d compartments') % (item, self.n))
             i = item
             j = i + 1
-        elif item == 'main':
-            return SubMorphology(self, 0, self.n)
         elif isinstance(item, basestring):
             item = str(item)  # convert int to string
             if (len(item) > 1) and all([c in 'LR123456789' for c in
@@ -219,8 +219,6 @@ class Morphology(object):
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
             self.children[item[0]][item[1:]] = child
-        elif item == 'main':
-            raise AttributeError('The main branch cannot be changed')
         else:
             self.children.add(item, child)
 
@@ -363,6 +361,7 @@ class SubMorphology(object):
     '''
     def __init__(self, morphology, i, j):
         self._morphology = morphology
+        self.indices = MorphologyIndexWrapper(self)
         self._i = i
         self._j = j
 
