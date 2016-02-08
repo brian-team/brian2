@@ -109,6 +109,8 @@ class FlatMorphology(object):
 
         # Section attributes
         idx = self._section_counter
+        # We start counting from 1 for the parent indices, since the index 0
+        # is used for the (virtual) root compartment
         self.morph_parent_i[idx] = parent_idx + 1
         self.morph_children.append([])
         self.starts[idx] = start

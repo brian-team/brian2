@@ -18,14 +18,9 @@ __all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
 
 # TODO: Missing:
 # * loading from SWC files
-# * Conversion for SpatialNeuron
 # * plotting (goes directly to brian2tools?)
 # * calculation of coordinates for morphologies without coordinates
 # * [later?] re-segmentation
-
-
-class MorphologyData(object):
-    pass
 
 
 class MorphologyIndexWrapper(object):

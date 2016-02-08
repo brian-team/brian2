@@ -215,7 +215,7 @@
         const int _i_parent = {{_morph_parent_i}}[_i];
         const int _j_start = {{_starts}}[_i];
         const int _j_end = {{_ends}}[_i];
-        for (int _j=_j_start; _j<_j_end + 1; _j++)
+        for (int _j=_j_start; _j<_j_end; _j++)
             if (_j < _numv)  // don't go beyond the last element
                 {{v}}[_j] = {{_v_star}}[_j] + {{_B}}[_i_parent] * {{_u_minus}}[_j]
                                            + {{_B}}[_i+1] * {{_u_plus}}[_j];
