@@ -736,9 +736,12 @@ class Section(Morphology):
         if self._x is None:
             return None
         if len(self._x) == self.n:
-            parent_x = self._parent.end_x[-1] if self._parent is not None else 0*meter
+            if self._parent is not None and self._parent.end_x is not None:
+                parent_x = self._parent.end_x[-1]
+            else:
+                parent_x = 0*meter
             # Note that numpy's hstack function does not conserve units
-            return np.hstack([float(parent_x), np.asarray(self._x)[:-1]])*meter
+            return np.hstack([0, np.asarray(self._x)[:-1]])*meter + parent_x
         else:
             # Do not return the last point (end point of the last compartment)
             return self._x[:self.n]
@@ -748,9 +751,12 @@ class Section(Morphology):
         if self._y is None:
             return None
         if len(self._y) == self.n:
-            parent_y = self._parent.end_y[-1] if self._parent is not None else 0*meter
+            if self._parent is not None and self._parent.end_y is not None:
+                parent_y = self._parent.end_x[-1]
+            else:
+                parent_y = 0*meter
             # Note that numpy's hstack function does not conserve units
-            return np.hstack([float(parent_y), np.asarray(self._y)[:-1]])*meter
+            return np.hstack([0, np.asarray(self._y)[:-1]])*meter + parent_y
         else:
             # Do not return the last point (end point of the last compartment)
             return self._y[:self.n]
@@ -760,9 +766,12 @@ class Section(Morphology):
         if self._z is None:
             return None
         if len(self._z) == self.n:
-            parent_z = self._parent.end_z[-1] if self._parent is not None else 0*meter
+            if self._parent is not None and self._parent.end_z is not None:
+                parent_z = self._parent.end_z[-1]
+            else:
+                parent_z = 0*meter
             # Note that numpy's hstack function does not conserve units
-            return np.hstack([float(parent_z), np.asarray(self._z)[:-1]])*meter
+            return np.hstack([0, np.asarray(self._z)[:-1]])*meter + parent_z
         else:
             # Do not return the last point (end point of the last compartment)
             return self._z[:self.n]
@@ -869,9 +878,9 @@ class Cylinder(Section):
             x = x if x is not None else np.zeros(n)*meter
             y = y if y is not None else np.zeros(n)*meter
             z = z if z is not None else np.zeros(n)*meter
-            x = x if x.shape != () else np.linspace(0, float(x), n)*meter
-            y = y if y.shape != () else np.linspace(0, float(y), n)*meter
-            z = z if z.shape != () else np.linspace(0, float(z), n)*meter
+            x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
+            y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
+            z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
             if len(x) == n:
                 # Relative to start of the section
                 start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
