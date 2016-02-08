@@ -36,6 +36,7 @@ class FlatMorphology(object):
         self.length = np.zeros(n)
         self.distance = np.zeros(n)
         self.area = np.zeros(n)
+        self.diameter = np.zeros(n)
         self.volume = np.zeros(n)
         self.r_length = np.zeros(n)
         self.x = np.zeros(n)
@@ -94,6 +95,7 @@ class FlatMorphology(object):
         self.length[start:end] = np.asarray(section.length)
         self.distance[start:end] = np.asarray(section.distance)
         self.area[start:end] = np.asarray(section.area)
+        self.diameter[start:end] = np.asarray(section.diameter)
         self.volume[start:end] = np.asarray(section.volume)
         self.r_length[start:end] = np.asarray(section.r_length)
         if section.x is None:
@@ -293,10 +295,11 @@ class SpatialNeuron(NeuronGroup):
         distance : meter (constant)
         area : meter**2 (constant)
         volume : meter**3
+        diameter : meter (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
         r_length : meter (constant)
-        #space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter
+        space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter
         """)
         if self.flat_morphology.has_coordinates:
             eqs_constants += Equations('''
@@ -336,6 +339,7 @@ class SpatialNeuron(NeuronGroup):
         self.distance_ = self.flat_morphology.distance
         self.length_ = self.flat_morphology.length
         self.area_ = self.flat_morphology.area
+        self.diameter_ = self.flat_morphology.diameter
         self.r_length_ = self.flat_morphology.r_length
         if self.flat_morphology.has_coordinates:
             self.x_ = self.flat_morphology.x

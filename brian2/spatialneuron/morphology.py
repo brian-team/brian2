@@ -299,6 +299,10 @@ class Morphology(object):
         pass
 
     @abc.abstractproperty
+    def diameter(self):
+        pass
+
+    @abc.abstractproperty
     def volume(self):
         pass
 
@@ -392,6 +396,10 @@ class SubMorphology(object):
         return self._morphology.area[self._i:self._j]
 
     @property
+    def diameter(self):
+        return self._morphology.diameter[self._i:self._j]
+
+    @property
     def volume(self):
         return self._morphology.volume[self._i:self._j]
 
@@ -463,7 +471,7 @@ class Soma(Morphology):
     def __init__(self, diameter, x=None, y=None, z=None, type='soma',
                  parent=None):
         Morphology.__init__(self, n=1, type=type, parent=parent)
-        self.diameter = np.ones(1) * diameter
+        self._diameter = np.ones(1) * diameter
         if (any(coord is not None for coord in (x, y, z)) and
                 not all(coord is not None for coord in (x, y, z))):
             raise TypeError('You need to either specify all of x, y, and z, '
@@ -477,6 +485,10 @@ class Soma(Morphology):
     @property
     def area(self):
         return np.pi * self.diameter ** 2
+
+    @property
+    def diameter(self):
+        return self._diameter
 
     @property
     def volume(self):
@@ -677,6 +689,12 @@ class Section(Morphology):
         d_1 = self._diameter[:self.n]  # diameter at the start
         d_2 = self._diameter[1:]  # diameter at the end
         return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
+
+    @property
+    def diameter(self):
+        d_1 = self._diameter[:self.n]  # diameter at the start
+        d_2 = self._diameter[1:]  # diameter at the end
+        return 0.5*(d_1 + d_2)
 
     @property
     def volume(self):
@@ -910,6 +928,10 @@ class Cylinder(Section):
     @property
     def area(self):
         return np.pi * self._diameter * self.length
+
+    @property
+    def diameter(self):
+        return self._diameter
 
     @property
     def volume(self):
