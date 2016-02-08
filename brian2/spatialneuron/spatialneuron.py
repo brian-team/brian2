@@ -351,37 +351,41 @@ class SpatialNeuron(NeuronGroup):
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
 
-    def __getattr__(self, x):
+    def __getattr__(self, name):
         '''
         Subtrees are accessed by attribute, e.g. neuron.axon.
         '''
-        return self.spatialneuron_attribute(self, x)
+        return self.spatialneuron_attribute(self, name)
 
-    def __getitem__(self, x):
+    def __getitem__(self, item):
         '''
         Selects a segment, where x is a slice of either compartment
         indexes or distances.
         Note a: segment is not a SpatialNeuron, only a Group.
         '''
-        return self.spatialneuron_segment(self, x)
+        return self.spatialneuron_segment(self, item)
 
     @staticmethod
-    def spatialneuron_attribute(neuron, x):
+    def spatialneuron_attribute(neuron, name):
         '''
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
         '''
-        if x == 'main':  # Main segment, without the subtrees
-            origin = neuron.morphology._origin
-            return Subgroup(neuron, origin, origin + len(neuron.morphology.x))
-        elif (x != 'morphology') and ((x in neuron.morphology.children) or
-                                      all([c in 'LR123456789' for c in x])):  # subtree
-            morpho = neuron.morphology[x]
-            return SpatialSubgroup(neuron, morpho._origin,
-                                   morpho._origin + len(morpho),
+        if name == 'main':  # Main segment, without the subtrees
+            indices = neuron.morphology.indices[:]
+            start, stop = indices[0], indices[-1]
+            return SpatialSubgroup(neuron, start, stop + 1,
+                                   morphology=neuron.morphology.main)
+        elif (name != 'morphology') and ((name in getattr(neuron.morphology, 'children', [])) or
+                                      all([c in 'LR123456789' for c in name])):  # subtree
+            morpho = neuron.morphology[name]
+            indices = morpho.indices[:]
+            start, stop = indices[0], indices[-1]
+            print indices
+            return SpatialSubgroup(neuron, start, stop + 1,
                                    morphology=morpho)
         else:
-            return Group.__getattr__(neuron, x)
+            return Group.__getattr__(neuron, name)
 
     @staticmethod
     def spatialneuron_segment(neuron, item):
@@ -434,11 +438,11 @@ class SpatialSubgroup(Subgroup):
         self.morphology = morphology
         Subgroup.__init__(self, source, start, stop, name)
 
-    def __getattr__(self, x):
-        return SpatialNeuron.spatialneuron_attribute(self, x)
+    def __getattr__(self, name):
+        return SpatialNeuron.spatialneuron_attribute(self, name)
 
-    def __getitem__(self, x):
-        return SpatialNeuron.spatialneuron_segment(self, x)
+    def __getitem__(self, item):
+        return SpatialNeuron.spatialneuron_segment(self, item)
 
 
 class SpatialStateUpdater(CodeRunner, Group):
