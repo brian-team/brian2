@@ -57,7 +57,7 @@ def test_construction():
     neuron.LL.v = EL
     assert_allclose(neuron.L.main.v, 0)
     assert_allclose(neuron.LL.v, EL)
-    neuron.LL[2*um:4*um].v = 0*mV
+    neuron.LL[1*um:3*um].v = 0*mV
     assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
     assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
@@ -117,7 +117,7 @@ def test_construction_coordinates():
     neuron.LL.v = EL
     assert_allclose(neuron.L.main.v, 0)
     assert_allclose(neuron.LL.v, EL)
-    neuron.LL[2*um:4*um].v = 0*mV
+    neuron.LL[1*um:3*um].v = 0*mV
     assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
     assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
@@ -183,7 +183,7 @@ def test_infinitecable():
     t = mon.t
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
-    x = 20*morpho.length[0] * meter
+    x = 20*morpho.length[0]
     la = neuron.space_constant[0]
     taum = Cm/gL # membrane time constant
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
@@ -307,15 +307,15 @@ def test_rallpack2():
     Ri = 100 * ohm * cm
 
     # Construct binary tree according to Rall's formula
-    morpho = Cylinder(diameter=diameter, x=0*umetre, y=length, z=0*umetre)
+    morpho = Cylinder(n=1, diameter=diameter, x=0*umetre, y=length, z=0*umetre)
     endpoints = {morpho}
     for depth in xrange(1, 10):
         diameter /= 2.**(1./3.)
         length /= 2.**(2./3.)
         new_endpoints = set()
         for endpoint in endpoints:
-            new_L = Cylinder(diameter=diameter, length=length)
-            new_R = Cylinder(diameter=diameter, length=length)
+            new_L = Cylinder(n=1, diameter=diameter, length=length)
+            new_R = Cylinder(n=1, diameter=diameter, length=length)
             new_endpoints.add(new_L)
             new_endpoints.add(new_R)
             endpoint.L = new_L
@@ -334,7 +334,7 @@ def test_rallpack2():
 
     neuron.I[0] = 0.1*nA  # injecting at the origin
 
-    endpoint_indices = [endpoint._origin for endpoint in endpoints]
+    endpoint_indices = [endpoint.indices[0] for endpoint in endpoints]
     mon = StateMonitor(neuron, 'v', record=[0] + endpoint_indices,
                        when='start', dt=0.05*ms)
 
