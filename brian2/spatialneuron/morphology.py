@@ -709,7 +709,7 @@ class Section(Morphology):
     def r_length(self):
         d_1 = self._diameter[:self.n]  # diameter at the start
         d_2 = self._diameter[1:]  # diameter at the end
-        return 4/np.pi * self._length/(d_1 * d_2)
+        return np.pi/4 * (d_1 * d_2)/self._length
 
     @property
     def x(self):
@@ -914,4 +914,4 @@ class Cylinder(Section):
 
     @property
     def r_length(self):
-        return 4/np.pi * self._length/(self._diameter**2)
+        return np.pi/4 * (self._diameter**2)/self.length

@@ -131,6 +131,7 @@ for _i, (_i_parent, _i_childind, _first, _last, _invr0, _invrn) in enumerate(zip
                                                                                  {{_ends}},
                                                                                  {{_invr0}},
                                                                                  {{_invrn}})):
+    _last = _last - 1 # the compartment indices are in the interval [starts, ends[
     # Towards parent
     if _i == 0: # first branch, sealed end
         {{_P_diag}}[0] = {{_u_minus}}[_first] - 1
@@ -185,6 +186,6 @@ for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}
         {{v}}[_j_start] = ({{_v_star}}[_j_start] + _B_parent * {{_u_minus}}[_j_start]
                      + _B_current * {{_u_plus}}[_j_start])
     else:
-        {{v}}[_j_start:_j_end+1] = ({{_v_star}}[_j_start:_j_end+1] + _B_parent * {{_u_minus}}[_j_start:_j_end+1]
-                     + _B_current * {{_u_plus}}[_j_start:_j_end+1])
+        {{v}}[_j_start:_j_end] = ({{_v_star}}[_j_start:_j_end] + _B_parent * {{_u_minus}}[_j_start:_j_end]
+                     + _B_current * {{_u_plus}}[_j_start:_j_end])
 

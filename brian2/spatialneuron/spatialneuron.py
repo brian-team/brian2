@@ -47,8 +47,6 @@ class FlatMorphology(object):
         # The children indices for each section (list of lists, will be later
         # transformed into an array representation)
         self.morph_children = []
-        # children count per branch
-        self.morph_children_num = np.zeros(sections, dtype=np.int32)
         # each branch is child of exactly one parent, this stores the index in
         # the parents list of children
         self.morph_idxchild = np.zeros(sections, dtype=np.int32)
@@ -80,6 +78,8 @@ class FlatMorphology(object):
         # branch is very different. In practice, this should not be much of a
         # problem since most sections have 0, 1, or 2 children (e.g. SWC files
         # on neuromorpho.org are all binary trees)
+        self.morph_children_num = np.array([len(c)
+                                            for c in self.morph_children] + [0])
         max_children = max(self.morph_children_num)
         morph_children = np.zeros((sections+1, max_children), dtype=np.int32)
         for idx, section_children in enumerate(self.morph_children):
@@ -109,15 +109,13 @@ class FlatMorphology(object):
 
         # Section attributes
         idx = self._section_counter
-        self.morph_parent_i[idx] = parent_idx
+        self.morph_parent_i[idx] = parent_idx + 1
         self.morph_children.append([])
-        self.morph_children_num[idx] = len(section.children)
         self.starts[idx] = start
         self.ends[idx] = end
         # Append ourselves to the children list of our parent
-        if parent_idx != -1:
-            self.morph_idxchild[idx] = len(self.morph_children[parent_idx])
-            self.morph_children[parent_idx].append(idx)
+        self.morph_idxchild[idx] = len(self.morph_children[parent_idx+1])
+        self.morph_children[parent_idx + 1].append(idx + 1)
         # Recurse down the tree
         self._offset += n
         self._section_counter += 1
@@ -295,7 +293,8 @@ class SpatialNeuron(NeuronGroup):
         volume : meter**3
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
-        space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter
+        r_length : meter (constant)
+        #space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter
         """)
         if self.flat_morphology.has_coordinates:
             eqs_constants += Equations('''
@@ -335,6 +334,7 @@ class SpatialNeuron(NeuronGroup):
         self.distance_ = self.flat_morphology.distance
         self.length_ = self.flat_morphology.length
         self.area_ = self.flat_morphology.area
+        self.r_length_ = self.flat_morphology.r_length
         if self.flat_morphology.has_coordinates:
             self.x_ = self.flat_morphology.x
             self.y_ = self.flat_morphology.y
@@ -474,8 +474,7 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_arange('_branch_idx', size=sections)
         self.variables.add_array('_P_parent', unit=Unit(1), size=sections,
                                  constant=True)  # elements below diagonal
-        self.variables.add_arrays(['_morph_parent_i', '_morph_idxchild',
-                                   '_morph_children_num',
+        self.variables.add_arrays(['_morph_idxchild', '_morph_parent_i',
                                    '_starts', '_ends'], unit=Unit(1),
                                   size=sections, dtype=np.int32, constant=True)
         self.variables.add_arrays(['_invr0', '_invrn'], unit=siemens,
@@ -485,6 +484,9 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_array('_P_diag', unit=Unit(1), size=sections+1,
                                  constant=True, index='_branch_root_idx')
         self.variables.add_array('_B', unit=Unit(1), size=sections+1,
+                                 constant=True, index='_branch_root_idx')
+        self.variables.add_array('_morph_children_num', unit=Unit(1),
+                                 size=sections+1, dtype=np.int32,
                                  constant=True, index='_branch_root_idx')
         # 2D matrices of size (branches + 1) x max children per branch
         self.variables.add_arange('_morph_children_idx',

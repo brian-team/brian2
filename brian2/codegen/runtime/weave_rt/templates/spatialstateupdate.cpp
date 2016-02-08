@@ -42,7 +42,7 @@
         double _ai, _bi, _m; // helper variables
 
         // upper triangularization of tridiagonal system for _v_star
-        for(int _j=_j_start; _j<_j_end+1; _j++)
+        for(int _j=_j_start; _j<_j_end; _j++)
         {
             {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j]; // RHS -> _v_star (solution)
             _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
@@ -68,12 +68,12 @@
     {
         // first and last index of the i-th branch
         const int _j_start = {{_starts}}[_i];
-        const int _j_end = {{_ends}}[_i];
+        const int _j_end = {{_ends}}[_i];  // the compartment indices are in the interval [starts, ends[
 
         double _ai, _bi, _m; // helper variables
 
         // upper triangularization of tridiagonal system for _u_plus
-        for(int _j=_j_start; _j<_j_end+1; _j++)
+        for(int _j=_j_start; _j<_j_end; _j++)
         {
             {{_u_plus}}[_j]={{_b_plus}}[_j]; // RHS -> _u_plus (solution)
             _bi={{_a_plus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
@@ -105,7 +105,7 @@
         double _ai, _bi, _m; // helper variables
 
         // upper triangularization of tridiagonal system for _u_minus
-        for(int _j=_j_start; _j<_j_end+1; _j++)
+        for(int _j=_j_start; _j<_j_end; _j++)
         {
             {{_u_minus}}[_j]={{_b_minus}}[_j]; // RHS -> _u_minus (solution)
             _bi={{_a_minus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
@@ -144,7 +144,7 @@
         const int _i_parent = {{_morph_parent_i}}[_i];
         const int _i_childind = {{_morph_idxchild}}[_i];
         const int _first = {{_starts}}[_i];
-        const int _last = {{_ends}}[_i];
+        const int _last = {{_ends}}[_i] - 1;  // the compartment indices are in the interval [starts, ends[
         const double _invr0 = {{_invr0}}[_i];
         const double _invrn = {{_invrn}}[_i];
 

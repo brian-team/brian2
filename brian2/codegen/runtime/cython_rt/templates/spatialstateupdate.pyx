@@ -51,7 +51,7 @@
         _j_end = {{_ends}}[_i]
 
         # upper triangularization of tridiagonal system for _v_star
-        for _j in range(_j_start, _j_end+1):
+        for _j in range(_j_start, _j_end):
             {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j] # RHS -> _v_star (solution)
             _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j] # main diagonal
             if _j < N-1:
@@ -74,7 +74,7 @@
         _j_end = {{_ends}}[_i]
 
         # upper triangularization of tridiagonal system for _u_plus
-        for _j in range(_j_start, _j_end + 1):
+        for _j in range(_j_start, _j_end):
             {{_u_plus}}[_j]={{_b_plus}}[_j] # RHS -> _u_plus (solution)
             _bi={{_a_plus1}}[_j]-{{_gtot_all}}[_j] # main diagonal
             if _j < N-1:
@@ -97,7 +97,7 @@
         _j_end = {{_ends}}[_i]
 
         # upper triangularization of tridiagonal system for _u_minus
-        for _j in range(_j_start, _j_end + 1):
+        for _j in range(_j_start, _j_end):
             {{_u_minus}}[_j]={{_b_minus}}[_j] # RHS -> _u_minus (solution)
             _bi={{_a_minus1}}[_j]-{{_gtot_all}}[_j] # main diagonal
             if _j < N-1:
@@ -129,7 +129,7 @@
         _i_parent = {{_morph_parent_i}}[_i]
         _i_childind = {{_morph_idxchild}}[_i]
         _first = {{_starts}}[_i]
-        _last = {{_ends}}[_i]
+        _last = {{_ends}}[_i] - 1  # the compartment indices are in the interval [starts, ends[
         _this_invr0 = {{_invr0}}[_i]
         _this_invrn = {{_invrn}}[_i]
 
@@ -188,7 +188,7 @@
         _i_parent = {{_morph_parent_i}}[_i]
         _j_start = {{_starts}}[_i]
         _j_end = {{_ends}}[_i]
-        for _j in range(_j_start, _j_end + 1):
+        for _j in range(_j_start, _j_end):
             if _j < _num{{v}}:  # don't go beyond the last element
                 {{v}}[_j] = ({{_v_star}}[_j] + {{_B}}[_i_parent] * {{_u_minus}}[_j]
                                             + {{_B}}[_i+1] * {{_u_plus}}[_j])
