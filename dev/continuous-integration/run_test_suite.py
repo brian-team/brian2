@@ -11,7 +11,7 @@ import brian2
 split_run = os.environ.get('SPLIT_RUN', None)
 standalone = os.environ.get('STANDALONE', 'FALSE').lower() == 'true'
 # If TRAVIS_OS_NAME is not defined, we are testing on appveyor
-os = os.environ.get('TRAVIS_OS_NAME', 'windows').lower()
+operating_system = os.environ.get('TRAVIS_OS_NAME', 'windows').lower()
 cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() == 'true'
 report_coverage = os.environ.get('REPORT_COVERAGE', 'FALSE').lower() == 'true'
 
@@ -25,12 +25,12 @@ else:
     targets = None
     independent = True
 
-if os == 'windows' or report_coverage:
+if operating_system == 'windows' or report_coverage:
     in_parallel = []
 else:
     in_parallel = ['codegen_independent', 'numpy', 'cython', 'cpp_standalone']
 
-if os in ['linux', 'windows']:
+if operating_system in ['linux', 'windows']:
     openmp = True
 else:
     openmp = False
