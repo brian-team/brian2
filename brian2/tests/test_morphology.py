@@ -40,7 +40,7 @@ def test_subgroup():
     assert_equal(morpho.L.indices[3*um:5*um],
                  morpho.L[3*um:5*um].indices[:])
     assert_equal(morpho.L.indices[:5*um], [1, 2, 3, 4, 5])
-    assert_equal(morpho.L.indices[3*um:], [4, 5, 6, 7, 8, 9, 10, 11])
+    assert_equal(morpho.L.indices[3*um:], [4, 5, 6, 7, 8, 9, 10])
     assert_equal(morpho.L.indices[3.5*um], 4)
     assert_equal(morpho.L.indices[3], 4)
     assert_equal(morpho.L.indices[-1], 10)

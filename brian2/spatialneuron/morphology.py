@@ -4,6 +4,7 @@ This module defines classes to load and build neuronal morphologies.
 '''
 import abc
 import numbers
+from collections import OrderedDict
 
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
@@ -69,6 +70,7 @@ def _find_start_index(current, target_section, index=0):
             if found:
                 return index, True
     return index, False
+
 
 class Children(object):
     def __init__(self, owner):
@@ -137,11 +139,11 @@ class Morphology(object):
     __metaclass__ = abc.ABCMeta
 
     @check_units(n=1)
-    def __init__(self, n, type=None, parent=None):
+    def __init__(self, n, type=None):
         self._n = int(n)
         self.type = type
         self.children = Children(self)
-        self._parent = parent
+        self._parent = None
         self.indices = MorphologyIndexWrapper(self)
 
     def __getitem__(self, item):
@@ -196,7 +198,7 @@ class Morphology(object):
             if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
                 raise IndexError(('Invalid index %s, has to be in the interval '
                                   '[%s, %s].' % (item, 0*meter, l[-1]*meter)))
-            diff = np.abs(float(item.start) - l)
+            diff = np.abs(float(item) - l)
             if min(diff) < 1e-12 * l[-1]:
                 i = np.argmin(diff)
             else:
@@ -381,6 +383,110 @@ class Morphology(object):
     def start_z(self):
         pass
 
+    @staticmethod
+    def from_points(points, spherical_soma=True):
+        '''
+        Format:
+
+        `index type x y z diameter parent`
+
+        Parameters
+        ----------
+        points : sequence of 7-tuples
+            The points of the morphology.
+
+        Returns
+        -------
+        morphology : `Morphology`
+
+        Notes
+        -----
+        This format closely follows the SWC format (see `Morphology.from_file`)
+        with two differences: the ``type`` should be a string (e.g. ``'soma'``)
+        instead of an integer and the 6-th element should be the diameter and
+        not the radius.
+        '''
+        # First pass through all points to get the dependency structure
+        compartments = OrderedDict()
+        for counter, point in enumerate(points):
+            index, comp_type, x, y, z, diameter, parent = point
+            if index in compartments:
+                raise ValueError('Two compartments with index %d' % index)
+            if parent == index:
+                raise ValueError('Compartment %d lists itself as the parent '
+                                 'compartment.' % index)
+            compartments[index] = (comp_type, x, y, z, diameter, parent, [])  # empty list for the children
+            if counter == 0 and parent == -1:
+                continue  # The first compartment does not have a parent
+            if parent not in compartments:
+                raise ValueError(('Did not find the compartment %d (parent '
+                                  'compartment of compartment %d). Make sure '
+                                  'that parent compartments are listed before '
+                                  'their children.') % (parent, index))
+            compartments[parent][-1].append(index)
+
+        # Merge all unbranched segments of the same type into a single section
+        sections = dict()
+        previous_type = compartments.values()[0][0]  # type of first compartment
+        current_compartments = []
+        previous_index = None
+        for index, compartment in compartments.iteritems():
+            comp_type, x, y, z, diameter, parent, children = compartment
+            if comp_type != previous_type or len(children) != 1:
+                if spherical_soma and previous_type == 'soma':
+                    if len(current_compartments) > 1:
+                        raise NotImplementedError('Only spherical somas '
+                                                  'described by a single point '
+                                                  'and diameter are supported.')
+                    soma_x, soma_y, soma_z, soma_diameter, soma_parent = current_compartments[0]
+                    section = Soma(diameter=soma_diameter, x=soma_x, y=soma_y, z=soma_z)
+                    sections[previous_index] = section, soma_parent
+                    # We did not yet deal with the current compartment
+                    current_compartments = [(x, y, z, diameter, parent)]
+                else:
+                    current_compartments.append((x, y, z, diameter, parent))
+                    sec_x, sec_y, sec_z, sec_diameter, parents = zip(*current_compartments)
+                    # Add a point for the end of the parent compartment
+                    if parents[0] != -1:
+                        n = len(current_compartments)
+                        _, parent_x, parent_y, parent_z, parent_diameter, _, _ = compartments[parents[0]]
+                        sec_x = [parent_x] + list(sec_x)
+                        sec_y = [parent_y] + list(sec_y)
+                        sec_z = [parent_z] + list(sec_z)
+                        sec_diameter = [parent_diameter] + list(sec_diameter)
+                    else:
+                        n = len(current_compartments) - 1
+                    section = Section(n, diameter=Quantity(sec_diameter),
+                                      x=Quantity(sec_x), y=Quantity(sec_y), z=Quantity(sec_z),
+                                      type=previous_type)
+                    print "current_compartments", current_compartments
+                    sections[index] = section, current_compartments[0][4]  # parent of the first compartment in the section
+                    current_compartments = []
+            else:
+                current_compartments.append((x, y, z, diameter, parent))
+
+            previous_type = comp_type
+            previous_index = index
+
+        # There should be no compartments left
+        assert len(current_compartments) == 0
+
+        print 'sections are', sections
+        # Connect the sections
+        for index, (section, parent) in sections.iteritems():
+            # Add section to its parent
+            if parent != -1:
+                children_list = sections[parent][0].children
+                n_children = len(children_list)
+                children_list.add(name='child%d' % (n_children+1),
+                                  subtree=section)
+
+        # There should only be one section without parents
+        root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
+        assert len(root) == 1
+        return root[0]
+
+
 class SubMorphology(object):
     '''
     A view on a subset of a section in a morphology.
@@ -490,9 +596,8 @@ class Soma(Morphology):
     '''
 
     @check_units(diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, diameter, x=None, y=None, z=None, type='soma',
-                 parent=None):
-        Morphology.__init__(self, n=1, type=type, parent=parent)
+    def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
+        Morphology.__init__(self, n=1, type=type)
         self._diameter = np.ones(1) * diameter
         if (any(coord is not None for coord in (x, y, z)) and
                 not all(coord is not None for coord in (x, y, z))):
@@ -618,9 +723,9 @@ class Section(Morphology):
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
-                 type=None, parent=None):
+                 type=None):
         n = int(n)
-        Morphology.__init__(self, n=n, type=type, parent=parent)
+        Morphology.__init__(self, n=n, type=type)
 
         diameter = np.atleast_1d(diameter)
         if diameter.ndim > 1:
@@ -873,9 +978,9 @@ class Cylinder(Section):
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
-                 type=None, parent=None):
+                 type=None):
         n = int(n)
-        Morphology.__init__(self, n=n, type=type, parent=parent)
+        Morphology.__init__(self, n=n, type=type)
 
         diameter = np.atleast_1d(diameter)
         if diameter.ndim > 1:
