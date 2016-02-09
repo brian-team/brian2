@@ -164,26 +164,43 @@ class Morphology(object):
                 if item.step is not None:
                     raise TypeError(('Cannot provide a step argument when '
                                      'slicing with lengths'))
-                l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the branch
+                l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
+                # We use a special handling for values very close to the points
+                # between the compartments to avoid non-intuitive rounding
+                # effects: a point closer than 1e-12*length of section will be
+                # considered to be within the following section (for a start
+                # index), respectively within the previous section (for an end
+                # index)
                 if item.start is None:
                     i = 0
                 else:
-                    # Round to next start point
-                    i = np.argmin(np.abs(float(item.start) - l))
+                    diff = np.abs(float(item.start) - l)
+                    if min(diff) < 1e-12 * l[-1]:
+                        i = np.argmin(diff) + 1
+                    else:
+                        i = np.searchsorted(l, item.start)
                 if item.stop is None:
                     j = len(l)
                 else:
-                    j = np.argmin(np.abs(float(item.stop) - l))
+                    diff = np.abs(float(item.stop) - l)
+                    if min(diff) < 1e-12 * l[-1]:
+                        j = np.argmin(diff) + 1
+                    else:
+                        j = np.searchsorted(l, item.stop) + 1
             else:  # integers
                 i, j, step = item.indices(self.n)
                 if step != 1:
                     raise TypeError('Can only slice a contiguous segment')
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
             l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
-            if float(item) < 0 or float(item) > l[-1]:
+            if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
                 raise IndexError(('Invalid index %s, has to be in the interval '
                                   '[%s, %s].' % (item, 0*meter, l[-1]*meter)))
-            i = np.searchsorted(l, item)
+            diff = np.abs(float(item.start) - l)
+            if min(diff) < 1e-12 * l[-1]:
+                i = np.argmin(diff)
+            else:
+                i = np.searchsorted(l, item)
             j = i + 1
         elif isinstance(item, numbers.Integral):  # int: returns one compartment
             if item < 0:  # allows e.g. to use -1 to get the last compartment
