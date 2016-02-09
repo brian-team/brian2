@@ -120,9 +120,8 @@ class Children(object):
         return str(self._named_children)
     __repr__ = __str__
 
-class Morphology(object):
-    __metaclass__ = abc.ABCMeta
 
+class Morphology(object):
     '''
     Neuronal morphology (tree structure).
 
@@ -135,6 +134,8 @@ class Morphology(object):
     You cannot create objects of this class, create a `Soma`, a `Section`, or
     a `Cylinder` instead.
     '''
+    __metaclass__ = abc.ABCMeta
+
     @check_units(n=1)
     def __init__(self, n, type=None, parent=None):
         self._n = int(n)
@@ -334,6 +335,10 @@ class Morphology(object):
     @abc.abstractproperty
     def z(self):
         pass
+
+    @property
+    def coordinates(self):
+        return np.vstack([self.x, self.y, self.z]).T
 
     @abc.abstractproperty
     def end_x(self):
