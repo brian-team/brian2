@@ -115,7 +115,7 @@ test_script:
   - 'cd \'
   # Since "CMD_IN_ENV" assumes we are in the source directory we cannot use it
   # here. We therefore copy its content and use the correct path
-  - 'cmd /E:ON /V:ON /C %SRC_DIR%\dev\continuous-integration\appveyor\run_with_env.cmd python %SRC_DIR%\dev\continuous-integration\appveyor\run_test_suite.py'
+  - 'cmd /E:ON /V:ON /C %SRC_DIR%\dev\continuous-integration\appveyor\run_with_env.cmd python %SRC_DIR%\dev\continuous-integration\run_test_suite.py'
 
 after_test:
   - 'IF "%CONDA_BUILD%" == "TRUE" (

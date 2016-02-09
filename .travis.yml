@@ -26,7 +26,10 @@ matrix:
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      os: osx
+    - python: "2.7"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: osx
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86"
@@ -142,24 +145,10 @@ script:
     sphinx-build docs_sphinx docs;
   else
     export SRCDIR=$(pwd);
-    if [[ $STANDALONE == 'yes' ]]; then
-      if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-        SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone_with_openmp.py;
-      else
-        SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests_standalone.py;
-      fi;
-    else
-      SCRIPTFILE=$SRCDIR/dev/tools/run_nose_tests.py;
-    fi;
+    SCRIPTFILE=$SRCDIR/dev/continuous-integration/run_test_suite.py;
     cd ~;
-    if [[ $ARCHITECTURE == 'x86' ]]; then mkdir ~/.brian; cp $SRCDIR/dev/continuous-integration/preferences_for_32_bit ~/.brian/user_preferences; fi;
-    if [[ $REPORT_COVERAGE == 'yes' ]]; then
-      coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE no-parallel;
-    elif [[ $ARCHITECTURE == 'x86' ]]; then
-      coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE cross-compiled;
-    else
-      coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE;
-    fi;
+    if [[ $ARCHITECTURE == 'x86' ]]; then mkdir ~/.brian; cp $SRCDIR/dev/continuous-integration/preferences_for_32_bit ~/.brian/user_preferences; export CROSS_COMPILED=TRUE; fi;
+    coverage run --rcfile=$SRCDIR/.coveragerc $SCRIPTFILE;
   fi
 
 after_success:
