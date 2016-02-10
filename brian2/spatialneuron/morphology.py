@@ -194,7 +194,7 @@ class Morphology(object):
                 if step != 1:
                     raise TypeError('Can only slice a contiguous segment')
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
-            l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
+            l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the branch
             if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
                 raise IndexError(('Invalid index %s, has to be in the interval '
                                   '[%s, %s].' % (item, 0*meter, l[-1]*meter)))
@@ -202,7 +202,7 @@ class Morphology(object):
             if min(diff) < 1e-12 * l[-1]:
                 i = np.argmin(diff)
             else:
-                i = np.searchsorted(l, item)
+                i = np.searchsorted(l, item) - 1
             j = i + 1
         elif isinstance(item, numbers.Integral):  # int: returns one compartment
             if item < 0:  # allows e.g. to use -1 to get the last compartment
@@ -461,6 +461,9 @@ class Morphology(object):
                         sec_x = [parent_x] + list(sec_x)
                         sec_y = [parent_y] + list(sec_y)
                         sec_z = [parent_z] + list(sec_z)
+                        if isinstance(sections[parents[0]][0], Soma):
+                            # For a Soma, we don't use its diameter
+                            parent_diameter = sec_diameter[0]
                         sec_diameter = [parent_diameter] + list(sec_diameter)
                     else:
                         n = len(current_compartments) - 1
@@ -607,13 +610,13 @@ class Soma(Morphology):
     def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
         Morphology.__init__(self, n=1, type=type)
         self._diameter = np.ones(1) * diameter
-        if (any(coord is not None for coord in (x, y, z)) and
-                not all(coord is not None for coord in (x, y, z))):
-            raise TypeError('You need to either specify all of x, y, and z, '
-                            'or none of them.')
-        self._x = x
-        self._y = y
-        self._z = z
+        if any(coord is not None for coord in (x, y, z)):
+            default_value = 0*um
+        else:
+            default_value = None
+        self._x = np.atleast_1d(x) if x is not None else default_value
+        self._y = np.atleast_1d(y) if y is not None else default_value
+        self._z = np.atleast_1d(z) if z is not None else default_value
 
     # Note that the per-compartment properties should always return 1D arrays,
     # i.e. for the soma arrays of length 1 instead of scalar values
@@ -623,7 +626,7 @@ class Soma(Morphology):
 
     @property
     def start_diameter(self):
-        return 0*um  # TODO: best value?
+        return [0]*um  # TODO: best value?
 
     @property
     def diameter(self):
@@ -631,7 +634,7 @@ class Soma(Morphology):
 
     @property
     def end_diameter(self):
-        return 0*um  # TODO: best value?
+        return [0]*um  # TODO: best value?
 
     @property
     def volume(self):
@@ -694,7 +697,7 @@ class Soma(Morphology):
     @property
     def total_distance(self):
         dist = self._parent.total_distance if self._parent is not None else 0*um
-        return dist + self.diameter/2
+        return dist  # TODO: + self.diameter/2 ?
 
 class Section(Morphology):
     '''
@@ -748,19 +751,18 @@ class Section(Morphology):
             raise TypeError('The diameter argument has to be a single value '
                             'or a one-dimensional array.')
         if len(diameter) == 1:
-            diameter = np.ones(n+1) * diameter
+            start_diameter = diameter
+            diameter = np.ones(n) * diameter
         elif len(diameter) == n:
-            # add NaN as the diameter for now -- it is not defined until the
-            # section is connected to a parent
-            # Note that numpy's hstack function does not conserve units
-            diameter = np.hstack([np.nan, np.asarray(diameter)])*meter
+            start_diameter = None
         elif len(diameter) == n+1:
-            # already in the correct shape
-            pass
+            start_diameter = diameter[0]
+            diameter = diameter[1:]
         else:
             raise TypeError(('Need to specify a single value or %d or %d values '
                  'for the diameter, got %d values '
                  'instead') % (n, n+1, len(diameter)))
+        self._start_diameter = start_diameter
         self._diameter = diameter
 
         if length is not None:
@@ -784,19 +786,24 @@ class Section(Morphology):
                 raise TypeError('No length specified, need to specify at least '
                                 'one out of x, y, or z.')
             for name, value in [('x', x), ('y', y), ('z', z)]:
-                if (value is not None and
-                            value.shape != (n, ) and
-                            value.shape != (n+1, )):
-                    raise TypeError(('Coordinates need to be one-dimensional '
-                                     'arrays of length %d or %d, but the array '
-                                     'provided for %s has shape '
-                                     '%s') % (n, n+1, name, value.shape))
+                if value is not None:
+                    if value.shape not in [(), (n,), (n+1, )]:
+                        raise TypeError(('Coordinates need to be a single '
+                                         'value or one-dimensional arrays of '
+                                         'length %d or %d, but the array '
+                                         'provided for %s has shape '
+                                         '%s') % (n, n+1, name, value.shape))
+                    elif value.shape == (n+1, ):
+                        if np.isnan(diameter[0]):
+                            raise TypeError('Coordinates have to be arrays of '
+                                            'the same length as the diameter '
+                                            'array.')
             x = x if x is not None else np.zeros(n)*meter
             y = y if y is not None else np.zeros(n)*meter
             z = z if z is not None else np.zeros(n)*meter
-            x = x if x.shape != () else np.linspace(0, float(x), n)*meter
-            y = y if y.shape != () else np.linspace(0, float(y), n)*meter
-            z = z if z.shape != () else np.linspace(0, float(z), n)*meter
+            x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
+            y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
+            z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
             if len(x) == n:
                 # Relative to start of the section
                 start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
@@ -835,17 +842,25 @@ class Section(Morphology):
 
     @property
     def start_diameter(self):
-        return self._diameter[:self.n]
+        if self._start_diameter is None:
+             start_diameter = (self.parent.end_diameter[-1]
+                               if self.parent is not None else np.nan*um)
+        else:
+            start_diameter = self._start_diameter
+        return Quantity(np.hstack([np.asarray(start_diameter),
+                                   np.asarray(self._diameter[:-1])]),
+                        dim=meter.dim)
 
     @property
     def diameter(self):
         d_1 = self.start_diameter
         d_2 = self.end_diameter
+        # TODO: Rather the diameter ath the electrical center?
         return 0.5*(d_1 + d_2)
 
     @property
     def end_diameter(self):
-        return self._diameter[1:]
+        return self._diameter
 
     @property
     def volume(self):
@@ -920,7 +935,7 @@ class Section(Morphology):
             return None
         if len(self._y) == self.n:
             if self._parent is not None and self._parent.end_y is not None:
-                parent_y = self._parent.end_x[-1]
+                parent_y = self._parent.end_y[-1]
             else:
                 parent_y = 0*meter
             # Note that numpy's hstack function does not conserve units
@@ -948,22 +963,43 @@ class Section(Morphology):
     def end_x(self):
         if self._x is None:
             return None
-        # ignore the start point of the first compartment (if it exists)
-        return self._x[-self.n:]
+        elif len(self._x) == self.n:
+            if self._parent is not None and self._parent.end_x is not None:
+                parent_x = self._parent.end_x[-1]
+            else:
+                parent_x = 0*meter
+            return self._x + parent_x
+        else:
+            # Do not return the first point (start point)
+            return self._x[1:]
 
     @property
     def end_y(self):
         if self._y is None:
             return None
-        # ignore the start point of the first compartment (if it exists)
-        return self._y[-self.n:]
+        elif len(self._y) == self.n:
+            if self._parent is not None and self._parent.end_y is not None:
+                parent_y = self._parent.end_y[-1]
+            else:
+                parent_y = 0*meter
+            return self._y + parent_y
+        else:
+            # Do not return the first point (start point)
+            return self._y[1:]
 
     @property
     def end_z(self):
         if self._z is None:
             return None
-        # ignore the start point of the first compartment (if it exists)
-        return self._z[-self.n:]
+        elif len(self._z) == self.n:
+            if self._parent is not None and self._parent.end_z is not None:
+                parent_z = self._parent.end_z[-1]
+            else:
+                parent_z = 0*meter
+            return self._z + parent_z
+        else:
+            # Do not return the first point (start point)
+            return self._z[1:]
 
 
 class Cylinder(Section):
