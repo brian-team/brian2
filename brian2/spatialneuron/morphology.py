@@ -319,7 +319,15 @@ class Morphology(object):
         pass
 
     @abc.abstractproperty
+    def start_diameter(self):
+        pass
+
+    @abc.abstractproperty
     def diameter(self):
+        pass
+
+    @abc.abstractproperty
+    def end_diameter(self):
         pass
 
     @abc.abstractproperty
@@ -614,8 +622,16 @@ class Soma(Morphology):
         return np.pi * self.diameter ** 2
 
     @property
+    def start_diameter(self):
+        return 0*um  # TODO: best value?
+
+    @property
     def diameter(self):
         return self._diameter
+
+    @property
+    def end_diameter(self):
+        return 0*um  # TODO: best value?
 
     @property
     def volume(self):
@@ -813,20 +829,28 @@ class Section(Morphology):
 
     @property
     def area(self):
-        d_1 = self._diameter[:self.n]  # diameter at the start
-        d_2 = self._diameter[1:]  # diameter at the end
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
         return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
 
     @property
+    def start_diameter(self):
+        return self._diameter[:self.n]
+
+    @property
     def diameter(self):
-        d_1 = self._diameter[:self.n]  # diameter at the start
-        d_2 = self._diameter[1:]  # diameter at the end
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
         return 0.5*(d_1 + d_2)
 
     @property
+    def end_diameter(self):
+        return self._diameter[1:]
+
+    @property
     def volume(self):
-        d_1 = self._diameter[:self.n]  # diameter at the start
-        d_2 = self._diameter[1:]  # diameter at the end
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
         return np.pi * self._length * (d_1**2 + d_1*d_2 + d_2**2)/12
 
     @property
@@ -844,14 +868,14 @@ class Section(Morphology):
 
     @property
     def electrical_center(self):
-        d_1 = self._diameter[:self.n]  # diameter at the start
-        d_2 = self._diameter[1:]  # diameter at the end
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
         return d_1 / (d_1 + d_2)
 
     @property
     def r_length(self):
-        d_1 = self._diameter[:self.n]  # diameter at the start
-        d_2 = self._diameter[1:]  # diameter at the end
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
         return np.pi/4 * (d_1 * d_2)/self._length
 
     @property
@@ -1057,7 +1081,15 @@ class Cylinder(Section):
         return np.pi * self._diameter * self.length
 
     @property
+    def start_diameter(self):
+        return self._diameter
+
+    @property
     def diameter(self):
+        return self._diameter
+
+    @property
+    def end_diameter(self):
         return self._diameter
 
     @property
