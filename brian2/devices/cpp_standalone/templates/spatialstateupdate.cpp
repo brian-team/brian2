@@ -84,7 +84,7 @@
                 }
             }
             // backwards substituation of the upper triangularized system for _v_star
-            for(int _j=_j_end-1; _j>=_j_start; _j--)
+            for(int _j=_j_end-2; _j>=_j_start; _j--)
                 {{_v_star}}[_j]={{_v_star}}[_j] - {{_c1}}[_j]*{{_v_star}}[_j+1];
         }
     }
@@ -122,7 +122,7 @@
                 }
             }
             // backwards substituation of the upper triangularized system for _u_plus
-            for(int _j=_j_end-1; _j>=_j_start; _j--)
+            for(int _j=_j_end-2; _j>=_j_start; _j--)
                 {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c2}}[_j]*{{_u_plus}}[_j+1];
         }
     }
@@ -160,7 +160,7 @@
                 }
             }
             // backwards substituation of the upper triangularized system for _u_minus
-            for(int _j=_j_end-1; _j>=_j_start; _j--)
+            for(int _j=_j_end-2; _j>=_j_start; _j--)
                 {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c3}}[_j]*{{_u_minus}}[_j+1];
         }
     } // (OpenMP section)

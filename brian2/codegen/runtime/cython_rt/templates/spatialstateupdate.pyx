@@ -65,7 +65,7 @@
                 {{_c1}}[0]={{_c1}}[0]/_bi
                 {{_v_star}}[0]={{_v_star}}[0]/_bi
         # backwards substitution of the upper triangularized system for _v_star
-        for _j in range(_j_end-1, _j_start-1, -1):
+        for _j in range(_j_end-2, _j_start-1, -1):
             {{_v_star}}[_j]={{_v_star}}[_j] - {{_c1}}[_j]*{{_v_star}}[_j+1]
 
     for _i in range(0, _num{{_B}} - 1):
@@ -88,7 +88,7 @@
                 {{_c2}}[0]={{_c2}}[0]/_bi
                 {{_u_plus}}[0]={{_u_plus}}[0]/_bi
         # backwards substitution of the upper triangularized system for _u_plus
-        for _j in range(_j_end-1, _j_start-1, -1):
+        for _j in range(_j_end-2, _j_start-1, -1):
             {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c2}}[_j]*{{_u_plus}}[_j+1]
 
     for _i in range(0, _num{{_B}} - 1):
@@ -111,7 +111,7 @@
                 {{_c3}}[0]={{_c3}}[0]/_bi
                 {{_u_minus}}[0]={{_u_minus}}[0]/_bi
         # backwards substitution of the upper triangularized system for _u_minus
-        for _j in range(_j_end-1, _j_start-1, -1):
+        for _j in range(_j_end-2, _j_start-1, -1):
             {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c3}}[_j]*{{_u_minus}}[_j+1]
 
     # STEP 3: solve the coupling system
