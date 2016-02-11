@@ -4,7 +4,8 @@ This module defines classes to load and build neuronal morphologies.
 '''
 import abc
 import numbers
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+import os
 
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
@@ -442,7 +443,7 @@ class Morphology(object):
             compartments[parent][-1].append(index)
 
         # Merge all unbranched segments of the same type into a single section
-        sections = dict()
+        sections = OrderedDict()
         previous_name = None
         current_compartments = []
         previous_index = None
@@ -512,6 +513,46 @@ class Morphology(object):
         assert len(root) == 1
         return root[0]
 
+
+    @staticmethod
+    def from_swc_file(filename):
+        swc_types = defaultdict(lambda: None)
+        # The following names will be translated into names, all other will be
+        # ignored
+        swc_types.update({'1': 'soma', '2': 'axon', '3': 'dend', '4': 'apic'})
+
+        with open(filename, 'r') as f:
+            points = []
+            for line_no, line in enumerate(f):
+                line = line.strip()
+                if line.startswith('#') or len(line) == 0:
+                    # Ignore comments or empty lines
+                    continue
+                splitted = line.split()
+                if len(splitted) != 7:
+                    raise ValueError('Each line of an SWC file has to contain '
+                                     '7 space-separated entries, but line %d '
+                                     'contains %d.' % (line_no + 1,
+                                                       len(splitted)))
+                index, comp_type, x, y, z, radius, parent = splitted
+                points.append((int(index),
+                               swc_types[comp_type],
+                               float(x),
+                               float(y),
+                               float(z),
+                               2*float(radius),
+                               int(parent)))
+
+        return Morphology.from_points(points)
+
+    @staticmethod
+    def from_file(filename):
+        _, ext = os.path.splitext(filename)
+        if ext.lower() == '.swc':
+            return Morphology.from_swc_file(filename)
+        else:
+            raise NotImplementedError('Currently, SWC is the only supported '
+                                      'file format.')
 
 class SubMorphology(object):
     '''
