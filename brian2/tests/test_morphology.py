@@ -3,7 +3,7 @@ from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 import numpy as np
 
 from brian2.spatialneuron import *
-from brian2.units import um, second
+from brian2.units import um, second, DimensionMismatchError
 
 
 @attr('codegen-independent')
@@ -387,6 +387,109 @@ def test_attributes_section_coordinates_allpoints():
     assert_allclose(sec.end_diameter, [10, 5, 2.5]*um)
     # TODO: Check area and volume
 
+
+def _check_tree_cables(morphology, coordinates=False, use_cylinders=True):
+    # number of compartments per section
+    assert morphology.n == 10
+    assert morphology.L.n == 5
+    assert morphology.R.n == 5
+    assert morphology.RL.n == 5
+    assert morphology.RR.n == 5
+    # number of compartments per subtree
+    assert len(morphology) == 30
+    assert len(morphology.L) == 5
+    assert len(morphology.R) == 15
+    assert len(morphology.RL) == 5
+    assert len(morphology.RR) == 5
+    # number of sections per subtree
+    assert morphology.n_sections == 5
+    assert morphology.L.n_sections == 1
+    assert morphology.R.n_sections == 3
+    assert morphology.RL.n_sections == 1
+    assert morphology.RR.n_sections == 1
+    # Check that distances (= distance to root at electrical midpoint)
+    # correctly follow the tree structure
+    assert_allclose(morphology.distance, np.arange(10) * 10 * um + 5 * um)
+    # TODO: for truncated cones the distance is more complicated
+    if use_cylinders:
+        assert_allclose(morphology.R.distance,
+                        100 * um + np.arange(5) * 10 * um + 5 * um)
+        assert_allclose(morphology.RL.distance,
+                        150 * um + np.arange(5) * 10 * um + 5 * um)
+    assert_allclose(morphology.total_distance, 100 * um)
+    assert_allclose(morphology.L.total_distance, 200 * um)
+    assert_allclose(morphology.R.total_distance, 150 * um)
+    assert_allclose(morphology.RL.total_distance, 200 * um)
+    assert_allclose(morphology.RR.total_distance, 200 * um)
+    # Check that section diameters are correctly inherited from the parent
+    # sections
+    assert_allclose(morphology.L.start_diameter, [10, 8, 6, 4, 2] * um)
+    assert_allclose(morphology.RR.start_diameter, [5, 4, 3, 2, 1] * um)
+
+    if coordinates:
+        # Coordinates should be absolute
+        # section: cable
+        assert_allclose(morphology.start_x, np.arange(10) * 10 * um)
+        assert_allclose(morphology.x, np.arange(10) * 10 * um + 5 * um)
+        assert_allclose(morphology.end_x, np.arange(10) * 10 * um + 10 * um)
+        assert_allclose(morphology.y, np.zeros(10) * um)
+        assert_allclose(morphology.z, np.zeros(10) * um)
+        # section: cable.L
+        step = 20 / np.sqrt(2) * um
+        assert_allclose(morphology.L.start_x, 100 * um + np.arange(5) * step)
+        # TODO: x at electrical midpoints
+        assert_allclose(morphology.L.end_x, 100 * um + np.arange(5) * step + step)
+        assert_allclose(morphology.L.start_y, np.arange(5) * step)
+        # TODO: y at electrical midpoints
+        assert_allclose(morphology.L.end_y, np.arange(5) * step + step)
+        assert_allclose(morphology.L.z, np.zeros(5) * um)
+        # section: cable.R
+        step = 10 / np.sqrt(2) * um
+        assert_allclose(morphology.R.start_x, 100 * um + np.arange(5) * step)
+        if use_cylinders:
+            assert_allclose(morphology.R.x, 100 * um + np.arange(5) * step + step / 2)
+        assert_allclose(morphology.R.end_x, 100 * um + np.arange(5) * step + step)
+        assert_allclose(morphology.R.start_y, -np.arange(5) * step)
+        if use_cylinders:
+            assert_allclose(morphology.R.y, -(np.arange(5) * step + step / 2))
+        assert_allclose(morphology.R.end_y, -(np.arange(5) * step + step))
+        if use_cylinders:
+            assert_allclose(morphology.R.z, np.zeros(5) * um)
+        # section: cable.RL
+        step = 10 / np.sqrt(2) * um
+        assert_allclose(morphology.RL.start_x,
+                        100 * um + 50 / np.sqrt(2) * um + np.arange(5) * step)
+        if use_cylinders:
+            assert_allclose(morphology.RL.x,
+                            100 * um + 50 / np.sqrt(2) * um + np.arange(
+                                5) * step + step / 2)
+        assert_allclose(morphology.RL.end_x,
+                        100 * um + 50 / np.sqrt(2) * um + np.arange(
+                            5) * step + step)
+        assert_allclose(morphology.RL.start_y, -np.ones(5) * 50 / np.sqrt(2) * um)
+        if use_cylinders:
+            assert_allclose(morphology.RL.y, -np.ones(5) * 50 / np.sqrt(2) * um)
+        assert_allclose(morphology.RL.end_y, -np.ones(5) * 50 / np.sqrt(2) * um)
+        assert_allclose(morphology.RL.start_z, np.arange(5) * step)
+        if use_cylinders:
+            assert_allclose(morphology.RL.z, np.arange(5) * step + step / 2)
+        assert_allclose(morphology.RL.end_z, np.arange(5) * step + step)
+        # section: cable.RR
+        step = 10 / np.sqrt(2) * um
+        assert_allclose(morphology.RR.start_x,
+                        100 * um + 50 / np.sqrt(2) * um + np.arange(5) * step)
+        # TODO: x at electrical midpoints
+        assert_allclose(morphology.RR.end_x,
+                        100 * um + 50 / np.sqrt(2) * um + np.arange(
+                            5) * step + step)
+        assert_allclose(morphology.RR.start_y, -np.ones(5) * 50 / np.sqrt(2) * um)
+        # TODO: y at electrical midpoints
+        assert_allclose(morphology.RR.end_y, -np.ones(5) * 50 / np.sqrt(2) * um)
+        assert_allclose(morphology.RR.start_z, -np.arange(5) * step)
+        # TODO: z at electrical midpoints
+        assert_allclose(morphology.RR.end_z, -(np.arange(5) * step + step))
+
+
 @attr('codegen-independent')
 def test_tree_cables_schematic():
     cable = Cylinder(10, diameter=10*um, length=100*um)
@@ -395,43 +498,7 @@ def test_tree_cables_schematic():
     cable.RL = Cylinder(5, diameter=2.5*um, length=50*um)
     cable.RR = Section(5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
 
-    # number of compartments per section
-    assert cable.n == 10
-    assert cable.L.n == 5
-    assert cable.R.n == 5
-    assert cable.RL.n == 5
-    assert cable.RR.n == 5
-
-    # number of compartments per subtree
-    assert len(cable) == 30
-    assert len(cable.L) == 5
-    assert len(cable.R) == 15
-    assert len(cable.RL) == 5
-    assert len(cable.RR) == 5
-
-    # number of sections per subtree
-    assert cable.n_sections == 5
-    assert cable.L.n_sections == 1
-    assert cable.R.n_sections == 3
-    assert cable.RL.n_sections == 1
-    assert cable.RR.n_sections == 1
-
-    # Check that distances (= distance to root at electrical midpoint)
-    # correctly follow the tree structure
-    assert_allclose(cable.distance, np.arange(10)*10*um + 5*um)
-    # TODO: for truncated cones the distance is more complicated
-    assert_allclose(cable.R.distance, 100*um + np.arange(5)*10*um + 5*um)
-    assert_allclose(cable.RL.distance, 150*um + np.arange(5)*10*um + 5*um)
-    assert_allclose(cable.total_distance, 100*um)
-    assert_allclose(cable.L.total_distance, 200*um)
-    assert_allclose(cable.R.total_distance, 150*um)
-    assert_allclose(cable.RL.total_distance, 200*um)
-    assert_allclose(cable.RR.total_distance, 200*um)
-
-    # Check that section diameters are correctly inherited from the parent
-    # sections
-    assert_allclose(cable.L.start_diameter, [10, 8, 6, 4, 2]*um)
-    assert_allclose(cable.RR.start_diameter, [5, 4, 3, 2, 1]*um)
+    _check_tree_cables(cable)
 
 @attr('codegen-independent')
 def test_tree_cables_rel_coordinates():
@@ -447,111 +514,141 @@ def test_tree_cables_rel_coordinates():
     cable.RR = Section(5, diameter=[4, 3, 2, 1, 0]*um,
                        x=50/np.sqrt(2)*um, z=-50/np.sqrt(2)*um)
 
-    # number of compartments per section
-    assert cable.n == 10
-    assert cable.L.n == 5
-    assert cable.R.n == 5
-    assert cable.RL.n == 5
-    assert cable.RR.n == 5
-
-    # number of compartments per subtree
-    assert len(cable) == 30
-    assert len(cable.L) == 5
-    assert len(cable.R) == 15
-    assert len(cable.RL) == 5
-    assert len(cable.RR) == 5
-
-    # number of sections per subtree
-    assert cable.n_sections == 5
-    assert cable.L.n_sections == 1
-    assert cable.R.n_sections == 3
-    assert cable.RL.n_sections == 1
-    assert cable.RR.n_sections == 1
-
-    # Check that distances (= distance to root at electrical midpoint)
-    # correctly follow the tree structure
-    assert_allclose(cable.distance, np.arange(10)*10*um + 5*um)
-    # TODO: for truncated cones the distance is more complicated
-    assert_allclose(cable.R.distance, 100*um + np.arange(5)*10*um + 5*um)
-    assert_allclose(cable.RL.distance, 150*um + np.arange(5)*10*um + 5*um)
-    assert_allclose(cable.total_distance, 100*um)
-    assert_allclose(cable.L.total_distance, 200*um)
-    assert_allclose(cable.R.total_distance, 150*um)
-    assert_allclose(cable.RL.total_distance, 200*um)
-    assert_allclose(cable.RR.total_distance, 200*um)
-
-    # Check that section diameters are correctly inherited from the parent
-    # sections
-    assert_allclose(cable.L.start_diameter, [10, 8, 6, 4, 2]*um)
-    assert_allclose(cable.RR.start_diameter, [5, 4, 3, 2, 1]*um)
-
-    # Coordinates should be absolute
-    # section: cable
-    assert_allclose(cable.start_x, np.arange(10)*10*um)
-    assert_allclose(cable.x, np.arange(10)*10*um + 5*um)
-    assert_allclose(cable.end_x, np.arange(10)*10*um + 10*um)
-    assert_allclose(cable.y, np.zeros(10)*um)
-    assert_allclose(cable.z, np.zeros(10)*um)
-    # section: cable.L
-    step = 20/np.sqrt(2)*um
-    assert_allclose(cable.L.start_x, 100*um + np.arange(5)*step)
-    # TODO: x at electrical midpoints
-    assert_allclose(cable.L.end_x, 100*um + np.arange(5)*step + step)
-    assert_allclose(cable.L.start_y, np.arange(5)*step)
-    # TODO: y at electrical midpoints
-    assert_allclose(cable.L.end_y, np.arange(5)*step + step)
-    assert_allclose(cable.L.z, np.zeros(5)*um)
-
-    # section: cable.R
-    step = 10/np.sqrt(2)*um
-    assert_allclose(cable.R.start_x, 100*um + np.arange(5)*step)
-    assert_allclose(cable.R.x, 100*um + np.arange(5)*step + step/2)
-    assert_allclose(cable.R.end_x, 100*um + np.arange(5)*step + step)
-    assert_allclose(cable.R.start_y, -np.arange(5)*step)
-    assert_allclose(cable.R.y, -(np.arange(5)*step + step/2))
-    assert_allclose(cable.R.end_y, -(np.arange(5)*step + step))
-    assert_allclose(cable.R.z, np.zeros(5)*um)
-
-    # section: cable.RL
-    step = 10/np.sqrt(2)*um
-    assert_allclose(cable.RL.start_x, 100*um + 50/np.sqrt(2)*um + np.arange(5)*step)
-    assert_allclose(cable.RL.x, 100*um + 50/np.sqrt(2)*um + np.arange(5)*step + step/2)
-    assert_allclose(cable.RL.end_x, 100*um + 50/np.sqrt(2)*um + np.arange(5)*step + step)
-    assert_allclose(cable.RL.start_y, -np.ones(5)*50/np.sqrt(2)*um)
-    assert_allclose(cable.RL.y, -np.ones(5)*50/np.sqrt(2)*um)
-    assert_allclose(cable.RL.end_y, -np.ones(5)*50/np.sqrt(2)*um)
-    assert_allclose(cable.RL.start_z, np.arange(5)*step)
-    assert_allclose(cable.RL.z, np.arange(5)*step + step/2)
-    assert_allclose(cable.RL.end_z, np.arange(5)*step + step)
-
-    # section: cable.RR
-    step = 10/np.sqrt(2)*um
-    assert_allclose(cable.RR.start_x, 100*um + 50/np.sqrt(2)*um + np.arange(5)*step)
-    # TODO: x at electrical midpoints
-    assert_allclose(cable.RR.end_x, 100*um + 50/np.sqrt(2)*um + np.arange(5)*step + step)
-    assert_allclose(cable.RR.start_y, -np.ones(5)*50/np.sqrt(2)*um)
-    # TODO: y at electrical midpoints
-    assert_allclose(cable.RR.end_y, -np.ones(5)*50/np.sqrt(2)*um)
-    assert_allclose(cable.RR.start_z, -np.arange(5)*step)
-    # TODO: z at electrical midpoints
-    assert_allclose(cable.RR.end_z, -(np.arange(5)*step + step))
+    _check_tree_cables(cable, coordinates=True)
 
 
 @attr('codegen-independent')
-def test_subgroup():
+def test_tree_cables_abs_coordinates():
+    # The coordinates should be identical to the previous test
+    cable = Cylinder(10, x=np.arange(11)*10*um, diameter=10*um)
+    cable.L = Section(5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      x=100*um+np.arange(6)*20/np.sqrt(2)*um,
+                      y=np.arange(6)*20/np.sqrt(2)*um)
+    cable.R = Cylinder(5, diameter=5*um, x=100*um+np.arange(6)*10/np.sqrt(2)*um,
+                       y=-np.arange(6)*10/np.sqrt(2)*um)
+    cable.RL = Cylinder(5, diameter=2.5*um,
+                        x=100*um+50/np.sqrt(2)*um + np.arange(6)*10/np.sqrt(2)*um,
+                        y=-np.ones(6)*50/np.sqrt(2)*um,
+                        z=np.arange(6)*10/np.sqrt(2)*um)
+    cable.RR = Section(5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                       x=100*um+50/np.sqrt(2)*um + np.arange(6)*10/np.sqrt(2)*um,
+                       y=-np.ones(6)*50/np.sqrt(2)*um,
+                       z=-np.arange(6)*10/np.sqrt(2)*um)
+
+    _check_tree_cables(cable, coordinates=True)
+
+
+@attr('codegen-independent')
+def test_tree_cables_from_points():
+    # The coordinates should be identical to the previous test
+    points = [ # cable
+              (1,  None, 0,                  0,                0,              10, -1),
+              (2,  None, 10,                 0,                0,              10,  1),
+              (3,  None, 20,                 0,                0,              10,  2),
+              (4,  None, 30,                 0,                0,              10,  3),
+              (5,  None, 40,                 0,                0,              10,  4),
+              (6,  None, 50,                 0,                0,              10,  5),
+              (7,  None, 60,                 0,                0,              10,  6),
+              (8,  None, 70,                 0,                0,              10,  7),
+              (9,  None, 80,                 0,                0,              10,  8),
+              (10, None, 90,                 0,                0,              10,  9),
+              (11, None, 100,                0,                0,              10,  10),
+              # cable.L
+              (12, 'L' , 100+20/np.sqrt(2),  20/np.sqrt(2),    0,              8 ,  11),
+              (13, 'L' , 100+40/np.sqrt(2),  40/np.sqrt(2),    0,              6 ,  12),
+              (14, 'L' , 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  13),
+              (15, 'L' , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  14),
+              (16, 'L' , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  15),
+              # cable.R
+              (17, 'R' , 100+10/np.sqrt(2),  -10/np.sqrt(2),   0,              5 ,  11),
+              (18, 'R' , 100+20/np.sqrt(2),  -20/np.sqrt(2),   0,              5 ,  17),
+              (19, 'R' , 100+30/np.sqrt(2),  -30/np.sqrt(2),   0,              5 ,  18),
+              (20, 'R' , 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  19),
+              (21, 'R' , 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  20),
+              # cable.RL
+              (22, 'L' , 100+60/np.sqrt(2),  -50/np.sqrt(2),   10/np.sqrt(2),  2.5, 21),
+              (23, 'L' , 100+70/np.sqrt(2),  -50/np.sqrt(2),   20/np.sqrt(2),  2.5, 22),
+              (24, 'L' , 100+80/np.sqrt(2),  -50/np.sqrt(2),   30/np.sqrt(2),  2.5, 23),
+              (25, 'L' , 100+90/np.sqrt(2),  -50/np.sqrt(2),   40/np.sqrt(2),  2.5, 24),
+              (26, 'L' , 100+100/np.sqrt(2),  -50/np.sqrt(2),  50/np.sqrt(2),  2.5, 25),
+              # cable.RR
+              (27, 'R' , 100+60/np.sqrt(2),  -50/np.sqrt(2),   -10/np.sqrt(2), 4,   21),
+              (28, 'R' , 100+70/np.sqrt(2),  -50/np.sqrt(2),   -20/np.sqrt(2), 3,   27),
+              (29, 'R' , 100+80/np.sqrt(2),  -50/np.sqrt(2),   -30/np.sqrt(2), 2,   28),
+              (30, 'R' , 100+90/np.sqrt(2),  -50/np.sqrt(2),   -40/np.sqrt(2), 1,   29),
+              (31, 'R' , 100+100/np.sqrt(2),  -50/np.sqrt(2),  -50/np.sqrt(2), 0,   30),
+              ]
+    cable = Morphology.from_points(points)
+    _check_tree_cables(cable, coordinates=True, use_cylinders=False)
+
+
+@attr('codegen-independent')
+def test_construction_incorrect_arguments():
+    ### Morphology
+    dummy_self = Soma(10*um)  # To allow testing of Morphology.__init__
+    assert_raises(TypeError, lambda: Morphology.__init__(dummy_self, n=1.5))
+    assert_raises(ValueError, lambda: Morphology.__init__(dummy_self, n=0))
+
+    ### Soma
+    assert_raises(DimensionMismatchError, lambda: Soma(10))
+    assert_raises(TypeError, lambda: Soma([10, 20]*um))
+    assert_raises(TypeError, lambda: Soma(x=[10, 20]*um))
+    assert_raises(TypeError, lambda: Soma(y=[10, 20]*um))
+    assert_raises(TypeError, lambda: Soma(z=[10, 20]*um))
+    assert_raises(DimensionMismatchError, lambda: Soma(x=10))
+    assert_raises(DimensionMismatchError, lambda: Soma(y=10))
+    assert_raises(DimensionMismatchError, lambda: Soma(z=10))
+
+    ### Cylinder
+    # Diameter can only be single value or n values
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=[10, 20]*um),length=100*um)
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=[10, 20, 30, 40]*um), length=100*um)
+    # Length can only be single value or n values
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, length=[10, 20]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, length=[10, 20, 30, 40]*um))
+    # Coordinates can be single, n, or n+1 values
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, x=[10, 20]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, x=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, y=[10, 20]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, y=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, z=[10, 20]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, z=[10, 20, 30, 40, 50]*um))
+    # Need either coordinates or lengths
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um))
+    # But not both
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, length=[10, 20, 30]*um,
+                                              x=[10, 20, 30]*um))
+
+    ### Section
+    # Diameter can be a single value, n, or n+1 values
+    assert_raises(TypeError, lambda: Section(3, diameter=[10, 20]*um, length=100*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=[10, 20, 30, 40, 50]*um, length=100*um))
+    # Length can only be single value or n values
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, length=[10, 20]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, length=[10, 20, 30, 40]*um))
+    # Coordinates can be single, n, or n+1 values
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, x=[10, 20]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, x=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, y=[10, 20]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, y=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, z=[10, 20]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, z=[10, 20, 30, 40, 50]*um))
+    # Need either coordinates or lengths
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um))
+    # But not both
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, length=[10, 20, 30]*um,
+                                              x=[10, 20, 30]*um))
+    # If coordinates have been given for the start point, then we need its
+    # diameter as well
+    assert_raises(TypeError, lambda: Section(3, diameter=[10, 20, 30]*um,
+                                             y=[0, 10, 20, 30]*um))
+
+@attr('codegen-independent')
+def test_subgroup_indices():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
     morpho.LL = Cylinder(length=5*um, diameter=2*um, n=5)
     morpho.right = Cylinder(length=3*um, diameter=1*um, n=7)
-    # # Getting a single compartment by index
-    assert_allclose(morpho.L[2].distance, 2.5*um)
-    # # Getting a single compartment by position
-    assert_allclose(morpho.LL[0*um].distance, 10.5*um)
-    assert_allclose(morpho.LL[1.1*um].distance, 11.5*um)
-    assert_allclose(morpho.LL[1.5*um].distance, 11.5*um)
-    assert_allclose(morpho.LL[5*um].distance, 14.5*um)
-    # Getting several compartments
-    assert_allclose(morpho.L[3*um:5*um].distance, [3.5, 4.5]*um)
 
     assert_equal(morpho.LL.indices[:], [11, 12, 13, 14, 15])
     assert_equal(morpho.L.indices[3*um:5*um], [4, 5])
@@ -567,6 +664,70 @@ def test_subgroup():
     assert_equal(morpho.L.indices[3:5], [4, 5])
     assert_equal(morpho.L.indices[3:], [4, 5, 6, 7, 8, 9, 10])
     assert_equal(morpho.L.indices[:5], [1, 2, 3, 4, 5])
+
+@attr('codegen-independent')
+def test_subgroup_attributes():
+    morpho = Soma(diameter=30*um)
+    morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
+    morpho.LL = Cylinder(x=5*um, diameter=2*um, n=5)
+    morpho.right = Cylinder(length=3*um, diameter=1*um, n=7)
+
+    # # Getting a single compartment by index
+    assert_allclose(morpho.L[2].area, morpho.L.area[2])
+    assert_allclose(morpho.L[2].volume, morpho.L.volume[2])
+    assert_allclose(morpho.L[2].length, morpho.L.length[2])
+    assert_allclose(morpho.L[2].r_length, morpho.L.r_length[2])
+    assert_allclose(morpho.L[2].distance, morpho.L.distance[2])
+    assert_allclose(morpho.L[2].diameter, morpho.L.diameter[2])
+    assert_allclose(morpho.L[2].electrical_center, morpho.L.electrical_center[2])
+    assert morpho.L[2].x is None
+    assert morpho.L[2].y is None
+    assert morpho.L[2].z is None
+    assert morpho.L[2].start_x is None
+    assert morpho.L[2].start_y is None
+    assert morpho.L[2].start_z is None
+    assert morpho.L[2].start_x is None
+    assert morpho.L[2].start_y is None
+    assert morpho.L[2].start_z is None
+
+    # # Getting a single compartment by position
+    assert_allclose(morpho.LL[1.5*um].area, morpho.LL.area[1])
+    assert_allclose(morpho.LL[1.5*um].volume, morpho.LL.volume[1])
+    assert_allclose(morpho.LL[1.5*um].length, morpho.LL.length[1])
+    assert_allclose(morpho.LL[1.5*um].r_length, morpho.LL.r_length[1])
+    assert_allclose(morpho.LL[1.5*um].distance, morpho.LL.distance[1])
+    assert_allclose(morpho.LL[1.5*um].diameter, morpho.LL.diameter[1])
+    assert_allclose(morpho.LL[1.5*um].electrical_center, morpho.LL.electrical_center[1])
+    assert_allclose(morpho.LL[1.5*um].x, morpho.LL.x[1])
+    assert_allclose(morpho.LL[1.5*um].y, morpho.LL.y[1])
+    assert_allclose(morpho.LL[1.5*um].z, morpho.LL.z[1])
+    assert_allclose(morpho.LL[1.5*um].start_x, morpho.LL.start_x[1])
+    assert_allclose(morpho.LL[1.5*um].start_y, morpho.LL.start_y[1])
+    assert_allclose(morpho.LL[1.5*um].start_z, morpho.LL.start_z[1])
+    assert_allclose(morpho.LL[1.5*um].end_x, morpho.LL.end_x[1])
+    assert_allclose(morpho.LL[1.5*um].end_y, morpho.LL.end_y[1])
+    assert_allclose(morpho.LL[1.5*um].end_z, morpho.LL.end_z[1])
+
+    # Getting several compartments by indices
+    assert_allclose(morpho.right[3:6].area, morpho.right.area[3:6])
+    assert_allclose(morpho.right[3:6].volume, morpho.right.volume[3:6])
+    assert_allclose(morpho.right[3:6].length, morpho.right.length[3:6])
+    assert_allclose(morpho.right[3:6].r_length, morpho.right.r_length[3:6])
+    assert_allclose(morpho.right[3:6].distance, morpho.right.distance[3:6])
+    assert_allclose(morpho.right[3:6].diameter, morpho.right.diameter[3:6])
+    assert_allclose(morpho.right[3:6].electrical_center, morpho.right.electrical_center[3:6])
+    assert morpho.right[3:6].x is None
+    assert morpho.right[3:6].y is None
+    assert morpho.right[3:6].z is None
+    assert morpho.right[3:6].start_x is None
+    assert morpho.right[3:6].start_y is None
+    assert morpho.right[3:6].start_z is None
+    assert morpho.right[3:6].start_x is None
+    assert morpho.right[3:6].start_y is None
+    assert morpho.right[3:6].start_z is None
+
+    # Getting several compartments by position
+    assert_allclose(morpho.L[3*um:5*um].distance, [3.5, 4.5]*um)
 
 @attr('codegen-independent')
 def test_subgroup_incorrect():
@@ -605,5 +766,9 @@ if __name__ == '__main__':
     test_attributes_section_coordinates_allpoints()
     test_tree_cables_schematic()
     test_tree_cables_rel_coordinates()
-    test_subgroup()
+    test_tree_cables_abs_coordinates()
+    test_tree_cables_from_points()
+    test_construction_incorrect_arguments()
+    test_subgroup_indices()
+    test_subgroup_attributes()
     test_subgroup_incorrect()
