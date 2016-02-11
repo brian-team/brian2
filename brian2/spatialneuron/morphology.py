@@ -141,6 +141,11 @@ class Morphology(object):
     @check_units(n=1)
     def __init__(self, n, type=None):
         self._n = int(n)
+        if self._n != n:
+            raise TypeError('The number of compartments n has to be an integer '
+                            'value.')
+        if n <= 0:
+            raise ValueError('The number of compartments n has to be at least 1.')
         self.type = type
         self.children = Children(self)
         self._parent = None
@@ -396,7 +401,10 @@ class Morphology(object):
         '''
         Format:
 
-        `index type x y z diameter parent`
+        `index name x y z diameter parent`
+
+        Note that the values should not use units, but are instead all taken
+        to be in micrometers.
 
         Parameters
         ----------
@@ -417,13 +425,13 @@ class Morphology(object):
         # First pass through all points to get the dependency structure
         compartments = OrderedDict()
         for counter, point in enumerate(points):
-            index, comp_type, x, y, z, diameter, parent = point
+            index, comp_name, x, y, z, diameter, parent = point
             if index in compartments:
                 raise ValueError('Two compartments with index %d' % index)
             if parent == index:
                 raise ValueError('Compartment %d lists itself as the parent '
                                  'compartment.' % index)
-            compartments[index] = (comp_type, x, y, z, diameter, parent, [])  # empty list for the children
+            compartments[index] = (comp_name, x, y, z, diameter, parent, [])  # empty list for the children
             if counter == 0 and parent == -1:
                 continue  # The first compartment does not have a parent
             if parent not in compartments:
@@ -435,20 +443,20 @@ class Morphology(object):
 
         # Merge all unbranched segments of the same type into a single section
         sections = dict()
-        previous_type = compartments.values()[0][0]  # type of first compartment
+        previous_name = None
         current_compartments = []
         previous_index = None
         for index, compartment in compartments.iteritems():
-            comp_type, x, y, z, diameter, parent, children = compartment
-            if comp_type != previous_type or len(children) != 1:
-                if spherical_soma and previous_type == 'soma':
+            comp_name, x, y, z, diameter, parent, children = compartment
+            if len(current_compartments) and comp_name != previous_name or len(children) != 1:
+                if spherical_soma and previous_name == 'soma':
                     if len(current_compartments) > 1:
                         raise NotImplementedError('Only spherical somas '
                                                   'described by a single point '
                                                   'and diameter are supported.')
                     soma_x, soma_y, soma_z, soma_diameter, soma_parent = current_compartments[0]
-                    section = Soma(diameter=soma_diameter, x=soma_x, y=soma_y, z=soma_z)
-                    sections[previous_index] = section, soma_parent
+                    section = Soma(diameter=soma_diameter*um, x=soma_x*um, y=soma_y*um, z=soma_z*um)
+                    sections[previous_index] = section, soma_parent, 'soma'
                     # We did not yet deal with the current compartment
                     current_compartments = [(x, y, z, diameter, parent)]
                 else:
@@ -467,33 +475,40 @@ class Morphology(object):
                         sec_diameter = [parent_diameter] + list(sec_diameter)
                     else:
                         n = len(current_compartments) - 1
-                    section = Section(n, diameter=Quantity(sec_diameter),
-                                      x=Quantity(sec_x), y=Quantity(sec_y), z=Quantity(sec_z),
-                                      type=previous_type)
-                    print "current_compartments", current_compartments
-                    sections[index] = section, current_compartments[0][4]  # parent of the first compartment in the section
+                    section = Section(n, diameter=sec_diameter*um,
+                                      x=sec_x*um, y=sec_y*um, z=sec_z*um,
+                                      type=previous_name)
+                    sections[index] = section, current_compartments[0][4], previous_name  # parent of the first compartment in the section
                     current_compartments = []
             else:
                 current_compartments.append((x, y, z, diameter, parent))
 
-            previous_type = comp_type
+            previous_name = comp_name
             previous_index = index
 
         # There should be no compartments left
         assert len(current_compartments) == 0
 
-        print 'sections are', sections
         # Connect the sections
-        for index, (section, parent) in sections.iteritems():
+        for index, (section, parent, name) in sections.iteritems():
             # Add section to its parent
             if parent != -1:
                 children_list = sections[parent][0].children
                 n_children = len(children_list)
-                children_list.add(name='child%d' % (n_children+1),
-                                  subtree=section)
+                if name is None:
+                    children_list.add(name='child%d' % (n_children+1),
+                                      subtree=section)
+                else:
+                    counter = 2
+                    basename = name
+                    while name in children_list:
+                        name = basename + str(counter)
+                        counter += 1
+                    children_list.add(name=name,
+                                      subtree=section)
 
         # There should only be one section without parents
-        root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
+        root = [sec for sec, _, _ in sections.itervalues() if sec.parent is None]
         assert len(root) == 1
         return root[0]
 
@@ -561,38 +576,56 @@ class SubMorphology(object):
 
     @property
     def x(self):
+        if self._morphology.x is None:
+            return None
         return self._morphology.x[self._i:self._j]
 
     @property
     def y(self):
+        if self._morphology.y is None:
+            return None
         return self._morphology.y[self._i:self._j]
 
     @property
     def z(self):
+        if self._morphology.z is None:
+            return None
         return self._morphology.z[self._i:self._j]
 
     @property
     def end_x(self):
+        if self._morphology.end_x is None:
+            return None
         return self._morphology.end_x[self._i:self._j]
 
     @property
     def end_y(self):
+        if self._morphology.end_y is None:
+            return None
         return self._morphology.end_y[self._i:self._j]
 
     @property
     def end_z(self):
+        if self._morphology.end_z is None:
+            return None
         return self._morphology.end_z[self._i:self._j]
 
     @property
     def start_x(self):
+        if self._morphology.start_x is None:
+            return None
         return self._morphology.start_x[self._i:self._j]
 
     @property
     def start_y(self):
+        if self._morphology.start_y is None:
+            return None
         return self._morphology.start_y[self._i:self._j]
 
     @property
     def start_z(self):
+        if self._morphology.start_z is None:
+            return None
         return self._morphology.start_z[self._i:self._j]
 
 
@@ -609,6 +642,11 @@ class Soma(Morphology):
     @check_units(diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
         Morphology.__init__(self, n=1, type=type)
+        if diameter.shape != ():
+            raise TypeError('Diameter has to be a scalar value.')
+        for coord in [x, y, z]:
+            if coord is not None and coord.shape != ():
+                raise TypeError('Coordinates have to be scalar values.')
         self._diameter = np.ones(1) * diameter
         if any(coord is not None for coord in (x, y, z)):
             default_value = 0*um
@@ -746,24 +784,22 @@ class Section(Morphology):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
 
-        diameter = np.atleast_1d(diameter)
         if diameter.ndim > 1:
             raise TypeError('The diameter argument has to be a single value '
                             'or a one-dimensional array.')
-        if len(diameter) == 1:
-            start_diameter = diameter
-            diameter = np.ones(n) * diameter
+        if diameter.shape == ():
+            self._start_diameter = diameter  # TODO: or None?
+            self._diameter = np.ones(n) * diameter
         elif len(diameter) == n:
-            start_diameter = None
+            self._start_diameter = None
+            self._diameter = diameter
         elif len(diameter) == n+1:
-            start_diameter = diameter[0]
-            diameter = diameter[1:]
+            self._start_diameter = diameter[0]
+            self._diameter = diameter[1:]
         else:
             raise TypeError(('Need to specify a single value or %d or %d values '
                  'for the diameter, got %d values '
                  'instead') % (n, n+1, len(diameter)))
-        self._start_diameter = start_diameter
-        self._diameter = diameter
 
         if length is not None:
             # Specification by length
@@ -785,8 +821,13 @@ class Section(Morphology):
             if x is None and y is None and z is None:
                 raise TypeError('No length specified, need to specify at least '
                                 'one out of x, y, or z.')
+            value_shape = None
+            include_startpoints = False
             for name, value in [('x', x), ('y', y), ('z', z)]:
                 if value is not None:
+                    if value_shape is not None and value.shape != value_shape:
+                        raise TypeError('All coordinate arrays have to have '
+                                        'the same length.')
                     if value.shape not in [(), (n,), (n+1, )]:
                         raise TypeError(('Coordinates need to be a single '
                                          'value or one-dimensional arrays of '
@@ -794,13 +835,20 @@ class Section(Morphology):
                                          'provided for %s has shape '
                                          '%s') % (n, n+1, name, value.shape))
                     elif value.shape == (n+1, ):
-                        if np.isnan(diameter[0]):
-                            raise TypeError('Coordinates have to be arrays of '
-                                            'the same length as the diameter '
-                                            'array.')
-            x = x if x is not None else np.zeros(n)*meter
-            y = y if y is not None else np.zeros(n)*meter
-            z = z if z is not None else np.zeros(n)*meter
+                        include_startpoints = True
+                        if self._start_diameter is None:
+                            raise TypeError('If start coordinates have been given,'
+                                            'then the diameter at the start has to '
+                                            'be given as well.')
+            if (include_startpoints and any([coord is not None and coord.shape != (n+1, )
+                         for coord in x, y, z])):
+                raise TypeError('If one coordinate is specified with absolute '
+                                'coordinates, then all coordinates have to be '
+                                'specified in this way.')
+            default_value = np.zeros(n+1)*meter if include_startpoints else np.zeros(n)*meter
+            x = x if x is not None else default_value
+            y = y if y is not None else default_value
+            z = z if z is not None else default_value
             x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
             y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
             z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
@@ -1073,15 +1121,24 @@ class Cylinder(Section):
             if x is None and y is None and z is None:
                 raise TypeError('No length specified, need to specify at least '
                                 'one out of x, y, or z.')
+            include_startpoints = False
             for name, value in [('x', x), ('y', y), ('z', z)]:
                 if value is not None and value.shape not in [(), (n, ), (n+1, )]:
                     raise TypeError(('Coordinates need to be single values or '
                                      'one-dimensional arrays of length %d or '
                                      '%d but the array provided for %s has '
                                      'shape %s') % (n, n+1, name, value.shape))
-            x = x if x is not None else np.zeros(n)*meter
-            y = y if y is not None else np.zeros(n)*meter
-            z = z if z is not None else np.zeros(n)*meter
+                elif value is not None and value.shape == (n+1,):
+                    include_startpoints = True
+            if (include_startpoints and any([coord is not None and coord.shape != (n+1, )
+                                             for coord in x, y, z])):
+                raise TypeError('If one coordinate is specified with absolute '
+                                'coordinates, then all coordinates have to be '
+                                'specified in this way.')
+            default_value = np.zeros(n+1)*meter if include_startpoints else np.zeros(n)*meter
+            x = x if x is not None else default_value
+            y = y if y is not None else default_value
+            z = z if z is not None else default_value
             x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
             y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
             z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
