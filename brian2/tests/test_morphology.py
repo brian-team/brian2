@@ -582,6 +582,128 @@ def test_tree_cables_from_points():
     _check_tree_cables(cable, coordinates=True, use_cylinders=False)
 
 
+def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
+
+    # number of compartments per section
+    assert morphology.n == 1
+    assert morphology.L.n == 5
+    assert morphology.R.n == 5
+
+    # number of compartments per subtree
+    assert len(morphology) == 11
+    assert len(morphology.L) == 5
+    assert len(morphology.R) == 5
+
+    # number of sections per subtree
+    assert morphology.n_sections == 3
+    assert morphology.L.n_sections == 1
+    assert morphology.R.n_sections == 1
+
+    # Check that distances (= distance to root at electrical midpoint)
+    # correctly follow the tree structure
+    # Note that the soma does add nothing to the distance
+    assert_equal(morphology.distance, 0 * um)
+    # TODO: for truncated cones the distance is more complicated
+    assert_allclose(morphology.R.distance, np.arange(5)*10*um + 5*um)
+
+    assert_allclose(morphology.total_distance, 0 * um)
+    assert_allclose(morphology.L.total_distance, 100 * um)
+    assert_allclose(morphology.R.total_distance, 50 * um)
+
+    # Check section diameters
+    assert_allclose(morphology.diameter, 30*um)
+    assert_allclose(morphology.L.start_diameter, [8, 8, 6, 4, 2]*um)
+    assert_allclose(morphology.L.end_diameter,   [8, 6, 4, 2, 0]*um)
+    assert_allclose(morphology.R.start_diameter, np.ones(5) * 5*um)
+    assert_allclose(morphology.R.diameter, np.ones(5) * 5*um)
+    assert_allclose(morphology.R.end_diameter, np.ones(5) * 5*um)
+
+    if coordinates:
+        # Coordinates should be absolute
+        # section: soma
+        assert_allclose(morphology.start_x, 100*um)
+        assert_allclose(morphology.x, 100*um)
+        assert_allclose(morphology.end_x, 100*um)
+        assert_allclose(morphology.y, 0*um)
+        assert_allclose(morphology.z, 0*um)
+        # section: cable.L
+        step = 20 / np.sqrt(2) * um
+        assert_allclose(morphology.L.start_x, 100 * um + np.arange(5) * step)
+        # TODO: x at electrical midpoints
+        assert_allclose(morphology.L.end_x, 100 * um + np.arange(5) * step + step)
+        assert_allclose(morphology.L.start_y, np.arange(5) * step)
+        # TODO: y at electrical midpoints
+        assert_allclose(morphology.L.end_y, np.arange(5) * step + step)
+        assert_allclose(morphology.L.z, np.zeros(5) * um)
+        # section: cable.R
+        step = 10 / np.sqrt(2) * um
+        assert_allclose(morphology.R.start_x, 100 * um + np.arange(5) * step)
+        if use_cylinders:
+            assert_allclose(morphology.R.x, 100 * um + np.arange(5) * step + step / 2)
+        assert_allclose(morphology.R.end_x, 100 * um + np.arange(5) * step + step)
+        assert_allclose(morphology.R.start_y, -np.arange(5) * step)
+        if use_cylinders:
+            assert_allclose(morphology.R.y, -(np.arange(5) * step + step / 2))
+        assert_allclose(morphology.R.end_y, -(np.arange(5) * step + step))
+        if use_cylinders:
+            assert_allclose(morphology.R.z, np.zeros(5) * um)
+
+
+@attr('codegen-independent')
+def test_tree_soma_schematic():
+    soma = Soma(diameter=30*um)
+    soma.L = Section(5, diameter=[8, 8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    soma.R = Cylinder(5, diameter=5*um, length=50*um)
+
+    _check_tree_soma(soma)
+
+
+@attr('codegen-independent')
+def test_tree_soma_rel_coordinates():
+    soma = Soma(diameter=30*um, x=100*um)
+    soma.L = Section(5, diameter=[8, 8, 6, 4, 2, 0]*um,
+                     x=100/np.sqrt(2)*um, y=100/np.sqrt(2)*um)  # tapering truncated cones
+    soma.R = Cylinder(5, diameter=5*um,
+                      x=50/np.sqrt(2)*um, y=-50/np.sqrt(2)*um)
+
+    _check_tree_soma(soma, coordinates=True)
+
+
+@attr('codegen-independent')
+def test_tree_soma_abs_coordinates():
+    soma = Soma(diameter=30*um, x=100*um)
+    soma.L = Section(5, diameter=[8, 8, 6, 4, 2, 0]*um,
+                     x=100*um+np.arange(6)*20/np.sqrt(2)*um,
+                     y=np.arange(6)*20/np.sqrt(2)*um)
+    soma.R = Cylinder(5, diameter=5*um,
+                      x=100*um+np.arange(6)*10/np.sqrt(2)*um,
+                      y=-np.arange(6)*10/np.sqrt(2)*um)
+
+    _check_tree_soma(soma, coordinates=True)
+
+
+@attr('codegen-independent')
+def test_tree_soma_from_points():
+    # The coordinates should be identical to the previous test
+    points = [ # soma
+              (1,  'soma', 100,                0,                0,              30, -1),
+              # soma.L
+              (2,  'L'   , 100+20/np.sqrt(2),  20/np.sqrt(2),    0,              8 ,  1),
+              (3,  'L'   , 100+40/np.sqrt(2),  40/np.sqrt(2),    0,              6 ,  2),
+              (4,  'L'   , 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  3),
+              (5,  'L'   , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  4),
+              (6,  'L'   , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  5),
+              # soma.R
+              (7,  'R'   , 100+10/np.sqrt(2),  -10/np.sqrt(2),   0,              5 ,  1),
+              (8,  'R'   , 100+20/np.sqrt(2),  -20/np.sqrt(2),   0,              5 ,  7),
+              (9,  'R'   , 100+30/np.sqrt(2),  -30/np.sqrt(2),   0,              5 ,  8),
+              (10, 'R'   , 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  9),
+              (11, 'R'   , 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  10),
+              ]
+    cable = Morphology.from_points(points)
+    _check_tree_soma(cable, coordinates=True, use_cylinders=False)
+
+
 @attr('codegen-independent')
 def test_construction_incorrect_arguments():
     ### Morphology
@@ -686,9 +808,9 @@ def test_subgroup_attributes():
     assert morpho.L[2].start_x is None
     assert morpho.L[2].start_y is None
     assert morpho.L[2].start_z is None
-    assert morpho.L[2].start_x is None
-    assert morpho.L[2].start_y is None
-    assert morpho.L[2].start_z is None
+    assert morpho.L[2].end_x is None
+    assert morpho.L[2].end_y is None
+    assert morpho.L[2].end_z is None
 
     # # Getting a single compartment by position
     assert_allclose(morpho.LL[1.5*um].area, morpho.LL.area[1])
@@ -722,9 +844,9 @@ def test_subgroup_attributes():
     assert morpho.right[3:6].start_x is None
     assert morpho.right[3:6].start_y is None
     assert morpho.right[3:6].start_z is None
-    assert morpho.right[3:6].start_x is None
-    assert morpho.right[3:6].start_y is None
-    assert morpho.right[3:6].start_z is None
+    assert morpho.right[3:6].end_x is None
+    assert morpho.right[3:6].end_y is None
+    assert morpho.right[3:6].end_z is None
 
     # Getting several compartments by position
     assert_allclose(morpho.L[3*um:5*um].distance, [3.5, 4.5]*um)
@@ -768,6 +890,10 @@ if __name__ == '__main__':
     test_tree_cables_rel_coordinates()
     test_tree_cables_abs_coordinates()
     test_tree_cables_from_points()
+    test_tree_soma_schematic()
+    test_tree_soma_rel_coordinates()
+    test_tree_soma_abs_coordinates()
+    test_tree_soma_from_points()
     test_construction_incorrect_arguments()
     test_subgroup_indices()
     test_subgroup_attributes()
