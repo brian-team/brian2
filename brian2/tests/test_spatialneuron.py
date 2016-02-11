@@ -72,15 +72,15 @@ def test_construction():
 
     # Check that length and distances make sense
     assert_allclose(sum(morpho.L.length), 10*um)
-    assert_allclose(morpho.L.distance, (15 + 0.5 + np.arange(10))*um)
+    assert_allclose(morpho.L.distance, (0.5 + np.arange(10))*um)
     assert_allclose(sum(morpho.LL.length), 5*um)
-    assert_allclose(morpho.LL.distance, (15 + 10 + .5 + np.arange(5))*um)
+    assert_allclose(morpho.LL.distance, (10 + .5 + np.arange(5))*um)
     assert_allclose(sum(morpho.LR.length), 5*um)
-    assert_allclose(morpho.LR.distance, (15 + 10 + 0.25 + np.arange(10)*0.5)*um)
+    assert_allclose(morpho.LR.distance, (10 + 0.25 + np.arange(10)*0.5)*um)
     assert_allclose(sum(morpho.right.length), 3*um)
-    assert_allclose(morpho.right.distance, 15*um + (0.5 + np.arange(7))*3./7.*um)
+    assert_allclose(morpho.right.distance, (0.5 + np.arange(7))*3./7.*um)
     assert_allclose(sum(morpho.right.nextone.length), 2*um)
-    assert_allclose(morpho.right.nextone.distance, 15*um + 3*um + (0.5 + np.arange(3))*2./3.*um)
+    assert_allclose(morpho.right.nextone.distance, 3*um + (0.5 + np.arange(3))*2./3.*um)
 
 
 @attr('codegen-independent')
@@ -136,15 +136,15 @@ def test_construction_coordinates():
 
     # Check that length and distances make sense
     assert_allclose(sum(morpho.L.length), 10*um)
-    assert_allclose(morpho.L.distance, (15 + 0.5 + np.arange(10))*um)
+    assert_allclose(morpho.L.distance, (0.5 + np.arange(10))*um)
     assert_allclose(sum(morpho.LL.length), 5*um)
-    assert_allclose(morpho.LL.distance, (15 + 10 + .5 + np.arange(5))*um)
+    assert_allclose(morpho.LL.distance, (10 + .5 + np.arange(5))*um)
     assert_allclose(sum(morpho.LR.length), 5*um)
-    assert_allclose(morpho.LR.distance, (15 + 10 + 0.25 + np.arange(10)*0.5)*um)
+    assert_allclose(morpho.LR.distance, (10 + 0.25 + np.arange(10)*0.5)*um)
     assert_allclose(sum(morpho.right.length), 3*um)
-    assert_allclose(morpho.right.distance, 15*um + (0.5 + np.arange(7))*3./7.*um)
+    assert_allclose(morpho.right.distance, (0.5 + np.arange(7))*3./7.*um)
     assert_allclose(sum(morpho.right.nextone.length), 2*um)
-    assert_allclose(morpho.right.nextone.distance, 15*um + 3*um + (0.5 + np.arange(3))*2./3.*um)
+    assert_allclose(morpho.right.nextone.distance, 3*um + (0.5 + np.arange(3))*2./3.*um)
 
 
 @attr('long')
