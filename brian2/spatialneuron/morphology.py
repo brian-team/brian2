@@ -448,7 +448,7 @@ class Morphology(object):
         previous_index = None
         for index, compartment in compartments.iteritems():
             comp_name, x, y, z, diameter, parent, children = compartment
-            if len(current_compartments) and comp_name != previous_name or len(children) != 1:
+            if len(current_compartments) > 0 and (comp_name != previous_name or len(children) != 1):
                 if spherical_soma and previous_name == 'soma':
                     if len(current_compartments) > 1:
                         raise NotImplementedError('Only spherical somas '
@@ -649,7 +649,7 @@ class Soma(Morphology):
                 raise TypeError('Coordinates have to be scalar values.')
         self._diameter = np.ones(1) * diameter
         if any(coord is not None for coord in (x, y, z)):
-            default_value = 0*um
+            default_value = [0]*um
         else:
             default_value = None
         self._x = np.atleast_1d(x) if x is not None else default_value
