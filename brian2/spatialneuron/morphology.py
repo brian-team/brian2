@@ -19,9 +19,7 @@ logger = get_logger(__name__)
 __all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
 
 # TODO: Missing:
-# * loading from SWC files
 # * plotting (goes directly to brian2tools?)
-# * calculation of coordinates for morphologies without coordinates
 # * [later?] re-segmentation
 
 
@@ -105,6 +103,135 @@ class Topology(object):
 
     __repr__ = __str__
 
+def _rotate(vec, axis, angle):
+    '''
+    Rotate a vector around an arbitrary axis.
+
+    Parameters
+    ----------
+    vec : `ndarray`
+        The vector to rotate.
+    axis : `ndarray`
+        The axis around which the vector should be rotated.
+    angle : float
+        The rotation angle (in radians).
+
+    Returns
+    -------
+    rotated : `ndarray`
+        The rotated vector.
+    '''
+    return (vec*np.cos(angle) -
+            np.cross(axis, vec)*np.sin(angle) +
+            axis*np.dot(axis, vec)*(1 - np.cos(angle)))
+
+
+def _perturb(vec, sigma):
+    if sigma == 0:
+        return vec
+    # Get an arbitrary orthogonal vector
+    if vec[1] != 0 or vec[0] != 0:
+        orthogonal = np.hstack([vec[1], vec[0], 0])
+    else:  # special case for the [0, 0, 1] vector
+        orthogonal = np.array([1, 0, 0])
+
+    # Rotate the orthogonal vector
+    orthogonal = _rotate(orthogonal, vec, np.random.rand()*np.pi*2)
+
+    # Use an exponentially distributed angle for the perturbation
+    perturbation = np.random.exponential(sigma, 1)
+    return _rotate(vec, orthogonal, perturbation)
+
+
+def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
+                     section_randomness=0, compartment_randomness=0,
+                     n_th_child=0, total_children=0):
+    # Normalized direction vector of the parent section
+    if parent is None:
+        parent_dir = np.array([0, 0, 0])
+    else:
+        parent_dir = np.hstack([np.asarray(parent.end_x[-1] - parent.start_x[0]),
+                                np.asarray(parent.end_y[-1] - parent.start_y[0]),
+                                np.asarray(parent.end_z[-1] - parent.start_z[0])])
+        parent_dir_norm = np.sqrt(np.sum(parent_dir**2))
+        if parent_dir_norm != 0:
+            parent_dir /= parent_dir_norm
+        else:
+            parent_dir = np.array([0, 0, 0])
+
+    # new direction for this section
+    section_dir = parent_dir
+
+    if np.sum(section_dir**2) == 0 and parent is not None:
+        # We don't have any direction to base this section on
+        section_dir = np.array([1, 0, 0])
+        rotation_axis = np.array([0, 0, 1])
+        angle_increment = 2*np.pi/total_children
+        rotation_angle = np.pi-angle_increment * n_th_child
+        print rotation_angle
+        section_dir = _rotate(section_dir, rotation_axis, rotation_angle)
+    elif section_randomness == 0:
+        rotation_axis = np.array([0, 0, 1])
+        angle_increment = np.pi/(total_children + 1)
+        rotation_angle = -np.pi/2 + angle_increment * (n_th_child + 1)
+        section_dir = _rotate(section_dir, rotation_axis, rotation_angle)
+    else:
+        # Chose the axis around which to rotate
+        rotation_axis = np.array([-section_dir[1], section_dir[2], 0])
+        rotation_axis_norm = np.sqrt(np.sum(rotation_axis**2))
+        if rotation_axis_norm != 0:
+            rotation_axis /= rotation_axis_norm
+        else:
+            rotation_axis = np.array([0, 0, 1])
+        # Chose rotation angle
+        rotation_angle = np.pi/16
+        section_dir = _perturb(section_dir, section_randomness)
+
+    section_dir_norm = np.sqrt(np.sum(section_dir**2))
+    if section_dir_norm != 0:
+        section_dir /= section_dir_norm
+
+    if isinstance(parent, Soma):
+        use_start = True
+        start_coords = np.hstack([parent.x, parent.y, parent.z])*meter + parent.diameter/2*section_dir
+    else:
+        use_start = False
+        start_coords = np.array([0, 0, 0])*meter
+
+    if use_start:
+        coordinates = np.zeros((orig_morphology.n + 1, 3))*meter
+        coordinates[0, :] = start_coords
+    else:
+        coordinates = np.zeros((orig_morphology.n, 3))*meter
+
+    for idx, length in enumerate(orig_morphology.length):
+        compartment_dir = _perturb(section_dir, compartment_randomness)
+        current_coords = start_coords + length*compartment_dir
+        if use_start:
+            coordinates[idx + 1, :] = current_coords
+        else:
+            coordinates[idx, :] = current_coords
+        start_coords = current_coords
+
+    # create the new section
+    section = type(orig_morphology)(n=orig_morphology.n,
+                                    diameter=orig_morphology.diameter,
+                                    x=coordinates[:, 0],
+                                    y=coordinates[:, 1],
+                                    z=coordinates[:, 2],
+                                    type=orig_morphology.type)
+    if parent is None:
+        root = section
+    else:
+        parent.children.add(name, section)
+
+    for idx, child in enumerate(orig_morphology.children):
+        _add_coordinates(child, root=root, parent=section,
+                         name=orig_morphology.children.name(child),
+                         n_th_child=idx, total_children=len(orig_morphology.children),
+                         section_randomness=section_randomness,
+                         compartment_randomness=compartment_randomness)
+    return section
 
 class Children(object):
     def __init__(self, owner):
@@ -166,9 +293,9 @@ class Morphology(object):
     '''
     Neuronal morphology (tree structure).
 
-    The data structure is a tree where each node is a segment consisting of a
-    number of connected compartments, each one defined by its geometrical
-    properties (length, area, diameter, position).
+    The data structure is a tree where each node is an un-branched section
+    consisting of a number of connected compartments, each one defined by its
+    geometrical properties (length, area, diameter, position).
 
     Notes
     -----
@@ -349,6 +476,25 @@ class Morphology(object):
         '''
         return Topology(self)
 
+    def generate_coordinates(self, section_randomness=0,
+                             compartment_randomness=0):
+        '''
+        Create a new `Morphology`, with coordinates filled in place where the
+        previous morphology did not have any. This is mostly useful for
+        plotting a morphology, it does not affect its electrical properties.
+
+        Notes
+        -----
+        Reference
+
+        Returns
+        -------
+        morpho_with_coordinates : `Morphology`
+            The same morphology, but with coordinates
+        '''
+        return _add_coordinates(self, section_randomness=section_randomness,
+                                compartment_randomness=compartment_randomness)
+
     @property
     def n(self):
         return self._n
@@ -419,8 +565,11 @@ class Morphology(object):
         pass
 
     @property
-    def coordinates(self):
-        return np.vstack([self.x, self.y, self.z]).T
+    def plot_coordinates(self):
+        return Quantity(np.vstack([np.hstack([self.start_x[0], self.end_x[:]]),
+                                   np.hstack([self.start_y[0], self.end_y[:]]),
+                                   np.hstack([self.start_z[0], self.end_z[:]])]).T,
+                        dim=meter.dim)
 
     @abc.abstractproperty
     def end_x(self):
@@ -445,6 +594,19 @@ class Morphology(object):
     @abc.abstractproperty
     def start_z(self):
         pass
+
+    def plot(self):
+        # TODO: Move into brian2tools
+        import matplotlib.pyplot as plt
+        if isinstance(self, Soma):
+            circle = plt.Circle((self.x/um, self.y/um), self.diameter/um/2, color='r')
+            plt.gcf().gca().add_artist(circle)
+        else:
+            coords = self.plot_coordinates
+            plt.plot(coords[:, 0]/um, coords[:, 1]/um, 'k-')
+
+        for child in self.children:
+            child.plot()
 
     @staticmethod
     def from_points(points, spherical_soma=True):
@@ -729,13 +891,16 @@ class Soma(Morphology):
         Diameter of the sphere.
     '''
 
-    @check_units(diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
+    @check_units(diameter=meter, x=meter, y=meter, z=meter, n=1)
+    def __init__(self, diameter, x=None, y=None, z=None, type='soma', n=1):
+        if n != 1:
+            raise ValueError('Cannot set the number of compartments for a '
+                             'spherical soma.')
         Morphology.__init__(self, n=1, type=type)
-        if diameter.shape != ():
+        if diameter.shape != () and len(diameter) != 1:
             raise TypeError('Diameter has to be a scalar value.')
         for coord in [x, y, z]:
-            if coord is not None and coord.shape != ():
+            if coord is not None and coord.shape != () and len(coord) != 1:
                 raise TypeError('Coordinates have to be scalar values.')
         self._diameter = np.ones(1) * diameter
         if any(coord is not None for coord in (x, y, z)):
