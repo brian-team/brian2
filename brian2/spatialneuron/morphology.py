@@ -73,12 +73,46 @@ def _find_start_index(current, target_section, index=0):
     return index, False
 
 
+def _str_topology(morphology, indent=0, right_column=60, named_path='',
+              parent=None):
+    description = ' '*indent
+    if parent is not None:
+        description += '|'
+    if isinstance(morphology, Soma):
+        description += '( )'
+    else:
+        if len(morphology.children) == 0:
+            description += '=)'
+        else:
+            description += '=\\'
+    padding = right_column - len(description)
+    description += ' '*padding
+    description += named_path + '\n'
+    for child in morphology.children:
+        name = morphology.children.name(child)
+        description += _str_topology(child, indent=indent+2,
+                                 named_path=named_path+'.'+name,
+                                 parent=morphology)
+    return description
+
+
+class Topology(object):
+    def __init__(self, morphology):
+        self.morphology = morphology
+
+    def __str__(self):
+        return _str_topology(self.morphology)
+
+    __repr__ = __str__
+
+
 class Children(object):
     def __init__(self, owner):
         self._owner = owner
         self._counter = 0
         self._children = []
         self._named_children = {}
+        self._given_names = {}
 
     def __iter__(self):
         return iter(self._children)
@@ -91,6 +125,9 @@ class Children(object):
 
     def values(self):
         return self._named_children.values()
+
+    def name(self, child):
+        return self._given_names[child]
 
     def __getitem__(self, item):
         if isinstance(item, basestring):
@@ -106,6 +143,7 @@ class Children(object):
             raise AttributeError('The subtree %s already exists' % name)
         self._counter += 1
         self._children.append(subtree)
+        self._given_names[subtree] = name
         self._named_children[name] = subtree
         self._named_children[str(self._counter)] = subtree
         subtree._parent = self._owner
@@ -299,6 +337,17 @@ class Morphology(object):
                 return start_idx
             else:
                 return np.arange(start_idx, start_idx + self.n)
+
+    def topology(self):
+        '''
+        Return a simple string representation of the topology
+
+        Returns
+        -------
+        topology : str
+            The topology as a string
+        '''
+        return Topology(self)
 
     @property
     def n(self):
