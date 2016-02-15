@@ -179,6 +179,7 @@ setup(name='Brian2',
       long_description=long_description,
       author='Marcel Stimberg, Dan Goodman, Romain Brette',
       author_email='Romain.Brette at ens.fr',
+      keywords='computational neuroscience simulation',
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
