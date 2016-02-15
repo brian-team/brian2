@@ -795,9 +795,11 @@ def test_construction_incorrect_arguments():
     # Diameter can only be single value or n values
     assert_raises(TypeError, lambda: Cylinder(3, diameter=[10, 20]*um),length=100*um)
     assert_raises(TypeError, lambda: Cylinder(3, diameter=[10, 20, 30, 40]*um), length=100*um)
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=np.ones(3, 2)*um), length=100*um)
     # Length can only be single value or n values
     assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, length=[10, 20]*um))
     assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, length=[10, 20, 30, 40]*um))
+    assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, length=np.ones(3, 2)*um))
     # Coordinates can be single, n, or n+1 values
     assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, x=[10, 20]*um))
     assert_raises(TypeError, lambda: Cylinder(3, diameter=10*um, x=[10, 20, 30, 40, 50]*um))
@@ -815,9 +817,11 @@ def test_construction_incorrect_arguments():
     # Diameter can be a single value, n, or n+1 values
     assert_raises(TypeError, lambda: Section(3, diameter=[10, 20]*um, length=100*um))
     assert_raises(TypeError, lambda: Section(3, diameter=[10, 20, 30, 40, 50]*um, length=100*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=np.ones(3, 2)*um), length=100*um)
     # Length can only be single value or n values
     assert_raises(TypeError, lambda: Section(3, diameter=10*um, length=[10, 20]*um))
     assert_raises(TypeError, lambda: Section(3, diameter=10*um, length=[10, 20, 30, 40]*um))
+    assert_raises(TypeError, lambda: Section(3, diameter=10*um, length=np.ones(3, 2)*um))
     # Coordinates can be single, n, or n+1 values
     assert_raises(TypeError, lambda: Section(3, diameter=10*um, x=[10, 20]*um))
     assert_raises(TypeError, lambda: Section(3, diameter=10*um, x=[10, 20, 30, 40, 50]*um))
@@ -834,6 +838,30 @@ def test_construction_incorrect_arguments():
     # diameter as well
     assert_raises(TypeError, lambda: Section(3, diameter=[10, 20, 30]*um,
                                              y=[0, 10, 20, 30]*um))
+
+
+@attr('codegen-independent')
+def test_subtree_deletion():
+    soma = Soma(diameter=30*um)
+    first_dendrite = Cylinder(5, diameter=5*um, length=50*um)
+    second_dendrite = Cylinder(5, diameter=5*um, length=50*um)
+    second_dendrite.L = Cylinder(5, diameter=5*um, length=50*um)
+    second_dendrite.R = Cylinder(5, diameter=5*um, length=50*um)
+    soma.dend1 = first_dendrite
+    soma.dend2 = second_dendrite
+    soma.dend3 = Cylinder(5, diameter=5*um, length=50*um)
+
+    assert len(soma) == 26
+
+    del soma.dend1
+    assert len(soma) == 21
+    assert_raises(AttributeError, lambda: soma.dend1)
+    assert first_dendrite not in soma.children
+
+    del soma['dend2']
+    assert len(soma) == 6
+    assert_raises(AttributeError, lambda: soma.dend2)
+    assert second_dendrite not in soma.children
 
 @attr('codegen-independent')
 def test_subgroup_indices():
@@ -967,6 +995,7 @@ if __name__ == '__main__':
     test_tree_soma_from_points()
     test_tree_soma_from_swc()
     test_construction_incorrect_arguments()
+    test_subtree_deletion()
     test_subgroup_indices()
     test_subgroup_attributes()
     test_subgroup_incorrect()

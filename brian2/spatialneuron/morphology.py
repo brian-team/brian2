@@ -168,7 +168,6 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
         rotation_axis = np.array([0, 0, 1])
         angle_increment = 2*np.pi/total_children
         rotation_angle = np.pi-angle_increment * n_th_child
-        print rotation_angle
         section_dir = _rotate(section_dir, rotation_axis, rotation_angle)
     elif section_randomness == 0:
         rotation_axis = np.array([0, 0, 1])
@@ -281,7 +280,7 @@ class Children(object):
         subtree = self._named_children[item]
         del self._named_children[item]
         self._children.remove(subtree)
-        subtree.parent = None
+        subtree._parent = None
 
     # TODO: Useful __str__ and __repr__
     def __str__(self):
@@ -313,7 +312,7 @@ class Morphology(object):
         if n <= 0:
             raise ValueError('The number of compartments n has to be at least 1.')
         self.type = type
-        self.children = Children(self)
+        self._children = Children(self)
         self._parent = None
         self.indices = MorphologyIndexWrapper(self)
 
@@ -420,18 +419,15 @@ class Morphology(object):
         item = str(item)  # convert int to string
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
-            del self.children[item[0]][item[1:]]
-        self.children.remove(item)
+            del self._children[item[0]][item[1:]]
+        self._children.remove(item)
 
     def __getattr__(self, item):
         '''
         Returns the subtree named `item`.
-        Ex.: ``axon=neuron.axon``
+        Ex.: ``axon = neuron.axon``
         '''
-        if item.startswith('_'):
-            return super(object, self).__getattr__(item)
-        else:
-            return self[item]
+        return self[item]
 
     def __setattr__(self, item, child):
         '''
@@ -443,6 +439,12 @@ class Morphology(object):
             self[item] = child
         else:  # If it is not a subtree, then it's a normal class attribute
             object.__setattr__(self, item, child)
+
+    def __delattr__(self, item):
+        '''
+        Removes the subtree `item`.
+        '''
+        del self[item]
 
     def _indices(self, item=None, index_var='_idx'):
         '''
@@ -509,6 +511,10 @@ class Morphology(object):
     @property
     def parent(self):
         return self._parent
+
+    @property
+    def children(self):
+        return self._children
 
     @abc.abstractproperty
     def total_distance(self):
