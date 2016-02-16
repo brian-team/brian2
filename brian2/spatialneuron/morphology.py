@@ -618,6 +618,40 @@ class Morphology(object):
             child.plot()
 
     @staticmethod
+    def _create_section(current_compartments, previous_name, parent):
+        sec_x, sec_y, sec_z, sec_diameter, _ = zip(*current_compartments)
+        # Add a point for the end of the parent compartment
+        if parent is not None:
+            n = len(current_compartments)
+            parent_x, parent_y, parent_z, parent_diameter = (parent.end_x[-1]/um,
+                                                             parent.end_y[-1]/um,
+                                                             parent.end_z[-1]/um,
+                                                             parent.end_diameter[-1]/um)
+            sec_x = [parent_x] + list(sec_x)
+            sec_y = [parent_y] + list(sec_y)
+            sec_z = [parent_z] + list(sec_z)
+            if isinstance(parent, Soma):
+                # For a Soma, we don't use its diameter
+                parent_diameter = sec_diameter[0]
+            sec_diameter = [parent_diameter] + list(sec_diameter)
+        else:
+            n = len(current_compartments) - 1
+        section = Section(n, diameter=sec_diameter * um,
+                          x=sec_x * um, y=sec_y * um, z=sec_z * um,
+                          type=previous_name)
+        return section
+
+    @staticmethod
+    def _create_soma(compartments):
+        if len(compartments) > 1:
+            raise NotImplementedError('Only spherical somas '
+                                      'described by a single point '
+                                      'and diameter are supported.')
+        soma_x, soma_y, soma_z, soma_diameter, soma_parent = compartments[0]
+        section = Soma(diameter=soma_diameter*um, x=soma_x*um, y=soma_y*um, z=soma_z*um)
+        return section
+
+    @staticmethod
     def from_points(points, spherical_soma=True):
         '''
         Format:
@@ -670,36 +704,22 @@ class Morphology(object):
         for index, compartment in compartments.iteritems():
             comp_name, x, y, z, diameter, parent, children = compartment
             if len(current_compartments) > 0 and (comp_name != previous_name or len(children) != 1):
+                parent_idx = current_compartments[0][4]
                 if spherical_soma and previous_name == 'soma':
-                    if len(current_compartments) > 1:
-                        raise NotImplementedError('Only spherical somas '
-                                                  'described by a single point '
-                                                  'and diameter are supported.')
-                    soma_x, soma_y, soma_z, soma_diameter, soma_parent = current_compartments[0]
-                    section = Soma(diameter=soma_diameter*um, x=soma_x*um, y=soma_y*um, z=soma_z*um)
-                    sections[previous_index] = section, soma_parent, 'soma'
+                    section = Morphology._create_soma(current_compartments)
+                    sections[previous_index] = section, parent_idx
                     # We did not yet deal with the current compartment
                     current_compartments = [(x, y, z, diameter, parent)]
                 else:
                     current_compartments.append((x, y, z, diameter, parent))
-                    sec_x, sec_y, sec_z, sec_diameter, parents = zip(*current_compartments)
-                    # Add a point for the end of the parent compartment
-                    if parents[0] != -1:
-                        n = len(current_compartments)
-                        _, parent_x, parent_y, parent_z, parent_diameter, _, _ = compartments[parents[0]]
-                        sec_x = [parent_x] + list(sec_x)
-                        sec_y = [parent_y] + list(sec_y)
-                        sec_z = [parent_z] + list(sec_z)
-                        if isinstance(sections[parents[0]][0], Soma):
-                            # For a Soma, we don't use its diameter
-                            parent_diameter = sec_diameter[0]
-                        sec_diameter = [parent_diameter] + list(sec_diameter)
+                    if parent_idx == -1:
+                        section_parent = None
                     else:
-                        n = len(current_compartments) - 1
-                    section = Section(n, diameter=sec_diameter*um,
-                                      x=sec_x*um, y=sec_y*um, z=sec_z*um,
-                                      type=previous_name)
-                    sections[index] = section, current_compartments[0][4], previous_name  # parent of the first compartment in the section
+                        section_parent = sections[parent_idx][0]
+                    section = Morphology._create_section(current_compartments,
+                                                         previous_name,
+                                                         section_parent)
+                    sections[index] = section, parent_idx
                     current_compartments = []
             else:
                 current_compartments.append((x, y, z, diameter, parent))
@@ -707,16 +727,30 @@ class Morphology(object):
             previous_name = comp_name
             previous_index = index
 
-        # There should be no compartments left
-        assert len(current_compartments) == 0
+        if len(current_compartments):
+            parent_idx = current_compartments[0][4]
+            # Deal with the final remaining compartment(s)
+            if spherical_soma and previous_name == 'soma':
+                section = Morphology._create_soma(current_compartments)
+                sections[previous_index] = section, parent_idx
+            else:
+                if parent_idx == -1:
+                    section_parent = None
+                else:
+                    section_parent = sections[parent_idx][0]
+                section = Morphology._create_section(current_compartments,
+                                                     previous_name,
+                                                     section_parent)
+                sections[index] = section, parent_idx
 
         # Connect the sections
-        for index, (section, parent, name) in sections.iteritems():
+        for index, (section, parent) in sections.iteritems():
+            name = section.type
             # Add section to its parent
             if parent != -1:
                 children_list = sections[parent][0].children
                 n_children = len(children_list)
-                if name is None:
+                if section.type is None:
                     children_list.add(name='child%d' % (n_children+1),
                                       subtree=section)
                 else:
@@ -729,10 +763,9 @@ class Morphology(object):
                                       subtree=section)
 
         # There should only be one section without parents
-        root = [sec for sec, _, _ in sections.itervalues() if sec.parent is None]
+        root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
         assert len(root) == 1
         return root[0]
-
 
     @staticmethod
     def from_swc_file(filename):
