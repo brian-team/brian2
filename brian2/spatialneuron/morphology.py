@@ -636,7 +636,7 @@ class Morphology(object):
             sec_diameter = [parent_diameter] + list(sec_diameter)
         else:
             n = len(current_compartments) - 1
-        section = Section(n, diameter=sec_diameter * um,
+        section = Section(n=n, diameter=sec_diameter * um,
                           x=sec_x * um, y=sec_y * um, z=sec_z * um,
                           type=previous_name)
         return section
@@ -1041,8 +1041,6 @@ class Section(Morphology):
 
     Parameters
     ----------
-    n : int
-        The number of compartments in this section.
     diameter : `Quantity`
         Either a single value (the constant diameter along the whole section),
         or a value of length ``n`` or ``n+1``. When ``n`` values are given, they
@@ -1052,11 +1050,13 @@ class Section(Morphology):
         connection will be continuous). When ``n+1`` values are given, then the
         first value specifies the diameter at the start of the compartment and
         the following values the diameter at the ends of each compartment.
-    length : `Quantity`
+    n : int, optional
+        The number of compartments in this section. Defaults to 1.
+    length : `Quantity`, optional
         Either a single value (the total length of the section), or a value of
         length ``n``, the length of each individual compartment. Cannot be
         combined with the specification of coordinates.
-    x : `Quantity`
+    x : `Quantity`, optional
         ``n`` values, specifying the x coordinates of the end-points of the
         compartments, or ``n``+1 values, specifying the x coordinate at the
         start-point of the first compartment and the x coordinates at the
@@ -1068,15 +1068,15 @@ class Section(Morphology):
         a morphology in 3D, or only one or two out of them to specify a
         morphology in 1D or 2D (the non-specified components will be considered
         as 0)
-    y : `Quantity`
+    y : `Quantity`, optional
         See ``x``
-    z : `Quantity`
+    z : `Quantity`, optional
         See ``x``
-    parent : `Morphology`, optional
-        The parent of this section.
+    type : str, optional
+        The type (e.g. ``"axon"``) of this `Section`.
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
+    def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
                  type=None):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
@@ -1349,15 +1349,15 @@ class Section(Morphology):
 
 class Cylinder(Section):
     '''
-    A section (unbranched structure), described as a sequence of cylinders
+    A section (unbranched structure), described as a sequence of cylinders.
 
     Parameters
     ----------
-    n : int
-        The number of compartments in this section.
     diameter : `Quantity`
         Either a single value (the constant diameter along the whole section),
         or a value of length ``n``, giving the diameter for each compartment.
+    n : int, optional
+        The number of compartments in this section.
     length : `Quantity`, optional
         Either a single value (the total length of the section), or a value of
         length ``n``, the length of each individual compartment. Cannot be
@@ -1378,11 +1378,11 @@ class Cylinder(Section):
         See ``x``
     z : `Quantity`, optional
         See ``x``
-    parent : `Morphology`, optional
-        The parent of this section.
+    type : str, optional
+        The type (e.g. ``"axon"``) of this `Section`.
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
-    def __init__(self, n, diameter, length=None, x=None, y=None, z=None,
+    def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
                  type=None):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
