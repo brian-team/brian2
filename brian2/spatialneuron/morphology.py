@@ -386,9 +386,9 @@ class Morphology(object):
             item = str(item)  # convert int to string
             if (len(item) > 1) and all([c in 'LR123456789' for c in
                                      item]):  # binary string of the form LLLRLR or 1213 (or mixed)
-                return self.children[item[0]][item[1:]]
-            elif item in self.children:
-                return self.children[item]
+                return self._children[item[0]][item[1:]]
+            elif item in self._children:
+                return self._children[item]
             else:
                 raise AttributeError('The subtree ' + item + ' does not exist')
         else:
@@ -427,7 +427,10 @@ class Morphology(object):
         Returns the subtree named `item`.
         Ex.: ``axon = neuron.axon``
         '''
-        return self[item]
+        if item.startswith('_'):
+            return super(object, self).__getattr__(item)
+        else:
+            return self[item]
 
     def __setattr__(self, item, child):
         '''
