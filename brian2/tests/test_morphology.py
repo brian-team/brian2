@@ -232,8 +232,11 @@ def test_attributes_cylinder_coordinates_allpoints():
 @attr('codegen-independent')
 def test_attributes_section():
     n = 10
-    # No difference to a cylinder
+    # No difference to a cylinder (if start diameter is inherited from something
+    # with the same diameter)
     sec = Section(n, diameter=10*um, length=200*um)
+    cyl = Cylinder(1, diameter=10*um, length=0*um)  # dummy cylinder
+    cyl.child = sec
     assert isinstance(sec, Morphology)
     # Single section with 10 compartments
     assert sec.n == n
@@ -264,13 +267,16 @@ def test_attributes_section():
 
 @attr('codegen-independent')
 def test_attributes_section_coordinates_single():
-    # Specify only the end-point of the section  (no difference to cylinder)
+    # Specify only the end-point of the section  (no difference to cylinder if
+    # connect to something with the same diameter)
     n = 10
     # Specify only one of the coordinates
     xyz = {'x', 'y', 'z'}
     for coord in xyz:
         kwds = {coord: 200*um}
         sec = Section(n, diameter=10*um, **kwds)
+        cyl = Cylinder(1, diameter=10*um, length=0*um)  # dummy cylinder
+        cyl.child = sec
         assert_equal(sec.diameter, np.ones(n)*10*um)
         assert_equal(sec.length, np.ones(n)*20*um)
         assert_equal(sec.distance, np.arange(n)*20*um + 10*um)
@@ -290,7 +296,8 @@ def test_attributes_section_coordinates_single():
     # Specify all coordinates
     val = 200.0/np.sqrt(3.0)*um
     sec = Section(n, diameter=10*um, x=val, y=val, z=val)
-
+    cyl = Cylinder(1, diameter=10*um, length=0*um)
+    cyl.child = sec
     assert_equal(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*20*um)
     assert_allclose(sec.distance, np.arange(n)*20*um + 10*um)
@@ -311,6 +318,8 @@ def test_attributes_section_coordinates_endpoints():
     for coord in xyz:
         kwds = {coord: [5, 15, 30]*um}
         sec = Section(n, diameter=10*um, **kwds)
+        cyl = Cylinder(1, diameter=10*um, length=0*um)  # dummy cylinder
+        cyl.child = sec
         assert_equal(sec.diameter, np.ones(n)*10*um)
         assert_equal(sec.length, [5, 10, 15]*um)
         assert_equal(sec.distance, [2.5, 10, 22.5]*um)
@@ -330,7 +339,8 @@ def test_attributes_section_coordinates_endpoints():
     # Specify all coordinates
     sec = Section(n, diameter=10*um, x=[1, 1, 1]*um, y=[0, 1, 1]*um,
                         z=[0, 0, 1]*um)
-
+    cyl = Cylinder(1, diameter=10*um, length=0*um)
+    cyl.child = sec
     assert_equal(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*um)
     assert_allclose(sec.distance, np.arange(n)*um + .5*um)
@@ -359,7 +369,7 @@ def test_attributes_section_coordinates_endpoints():
 def test_attributes_section_coordinates_allpoints():
     n = 3
     # Specify all coordinates, including the start point of the section
-    sec = Section(n, diameter=10*um,
+    sec = Section(n, diameter=[10, 10, 10, 10]*um,
                         x=[10, 11, 11, 11]*um,
                         y=[100, 100, 101, 101]*um,
                         z=[1000, 1000, 1000, 1001]*um)

@@ -1085,7 +1085,7 @@ class Section(Morphology):
             raise TypeError('The diameter argument has to be a single value '
                             'or a one-dimensional array.')
         if diameter.shape == ():
-            self._start_diameter = diameter  # TODO: or None?
+            self._start_diameter = None
             self._diameter = np.ones(n) * diameter
         elif len(diameter) == n:
             self._start_diameter = None
