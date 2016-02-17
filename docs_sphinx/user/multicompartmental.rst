@@ -25,7 +25,8 @@ of 10 compartments with identical diameter and the given total length. Finally, 
 that here, only the diameter at the end of each compartment was specified, which means that the diameter at the start
 of the first compartment will be automatically taken as the diameter of the parent compartment.
 
-The following table summarizes the different options to create schematic morphologies:
+The following table summarizes the different options to create schematic morphologies (the black compartment before the
+start of the section represents the parent compartment with diameter 15 μm, not specified in the code below):
 
 +-------------+-----------------------------------------------------------------------------------+
 |             | **Example**                                                                       |
