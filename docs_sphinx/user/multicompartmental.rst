@@ -9,98 +9,213 @@ and a morphology.
 
 Creating a neuron morphology
 ----------------------------
-Morphologies are stored and manipulated with
-`Morphology` objects. A new morphology can be loaded from a ``.swc`` file (a standard format for neuronal morphologies)::
 
-    morpho = Morphology('corticalcell.swc')
+Schematic morphologies
+~~~~~~~~~~~~~~~~~~~~~~
+Morphologies can be created combining different standard geometrical objects::
 
-There is a large database of morphologies in the swc format at http://neuromorpho.org/neuroMorpho.
+    soma = Soma(diameter=30*um)
+    cylinder = Cylinder(10, length=100*um, diameter=1*um)
+    section = Section(5, length=100*um, diameter=[5, 4, 3, 2, 1])*um
 
-Morphologies can also be created manually by combining different standard geometrical objects::
+The first statement creates a single iso-potential compartment (i.e. with no axial resistance within the compartment),
+with its area calculated as the area of a sphere with the given diameter. The second one specifies a cylinder consisting
+of 10 compartments with identical diameter and the given total length. Finally, the third statement creates a cable of
+5 compartments with the given total length, where each compartment is a truncated cone with the given diameters. Note
+that here, only the diameter at the end of each compartment was specified, which means that the diameter at the start
+of the first compartment will be automatically taken as the diameter of the parent compartment.
 
-    morpho = Soma(diameter = 30*um)
-    morpho = Cylinder(length = 100*um, diameter = 1*um, n = 10)
+The following table summarizes the different options to create schematic morphologies:
 
-The first statement creates a sphere (as a single compartment), the second one a cylinder with 10 compartments
-(default is 1 compartment). It is also possible to specify the type of process,
-which is ``soma``, ``axon`` or ``dendrite``, and the relative coordinates of the end point. For example::
++-------------+-----------------------------------------------------------------------------------+
+|             | **Example**                                                                       |
++=============+===================================================================================+
+|**Soma**     |  ::                                                                               |
+|             |                                                                                   |
+|             |      # Soma always has a single compartment                                       |
+|             |      Soma(diameter=30*um)                                                         |
+|             |                                                                                   |
+|             | .. image:: images/soma.*                                                          |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|**Cylinder** |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Defining total length                                                       |
+|             |     Cylinder(5, diameter=10*um, length=50*um)                                     |
+|             |                                                                                   |
+|             | .. image:: images/cylinder_1.*                                                    |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Defining lengths of individual compartments                                 |
+|             |     Cylinder(5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)                     |
+|             |                                                                                   |
+|             | .. image:: images/cylinder_2.*                                                    |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Diameters of individual compartments and total length                       |
+|             |     Cylinder(5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)                      |
+|             |                                                                                   |
+|             | .. image:: images/cylinder_3.*                                                    |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Lengths and diameters of individual compartments                            |
+|             |     Cylinder(5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)      |
+|             |                                                                                   |
+|             | .. image:: images/cylinder_4.*                                                    |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|**Section**  |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Total length, constant diameter (first diameter is diameter of parent)      |
+|             |     Section(5, diameter=10*um, length=50*um)                                      |
+|             |                                                                                   |
+|             | .. image:: images/section_1.*                                                     |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Lengths of individual compartments (first diameter is diameter of parent)   |
+|             |     Section(5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)                      |
+|             |                                                                                   |
+|             | .. image:: images/section_2.*                                                     |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Total length and diameters of individual compartments                       |
+|             |     # (diameters at the end of compartments, first diameter is parent diameter)   |
+|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)                       |
+|             |                                                                                   |
+|             | .. image:: images/section_3.*                                                     |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Lengths and diameters of individual compartments                            |
+|             |     # (diameters at the end of compartments, first diameter is parent diameter)   |
+|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)       |
+|             |                                                                                   |
+|             | .. image:: images/section_4.*                                                     |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Total length and diameters of individual compartments, including start      |
+|             |     # diameter                                                                    |
+|             |     Section(5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=50*um)                  |
+|             |                                                                                   |
+|             | .. image:: images/section_5.*                                                     |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
+|             |  ::                                                                               |
+|             |                                                                                   |
+|             |     # Lengths and diameters of individual compartments, including start           |
+|             |     # diameter                                                                    |
+|             |     Section(5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)  |
+|             |                                                                                   |
+|             | .. image:: images/section_6.*                                                     |
+|             |                                                                                   |
++-------------+-----------------------------------------------------------------------------------+
 
-    morpho = Cylinder(diameter = 1*um, n = 10, type = 'axon', x = 50*um, y = 100*um, z = 0*um)
 
-In this case, length must not be specified, as it is calculated from the coordinates.
-These coordinates are mostly helpful for visualization. If they are not specified, 3D direction is chosen at
-random.
+The tree structure of a morphology is created by attaching `Morphology` objects together::
 
-A tree is created by attaching `Morphology` objects together::
-
-    morpho = Soma(diameter = 30*um)
-    morpho.axon = Cylinder(length = 100*um, diameter = 1*um, n = 10)
-    morpho.dendrite = Cylinder(length = 50*um, diameter = 2*um, n = 5)
+    morpho = Soma(diameter=30*um)
+    morpho.axon = Cylinder(length=100*um, diameter=1*um, n=10)
+    morpho.dendrite = Cylinder(length=50*um, diameter=2*um, n=5)
 
 These statements create a morphology consisting of a cylindrical axon and a dendrite attached to a spherical soma.
 Note that the names ``axon`` and ``dendrite`` are arbitrary and chosen by the user. For example, the same morphology can
 be created as follows::
 
     morpho = Soma(diameter = 30*um)
-    morpho.output_process = Cylinder(length = 100*um, diameter = 1*um, n = 10)
-    morpho.input_process = Cylinder(length = 50*um, diameter = 2*um, n = 5)
+    morpho.output_process = Cylinder(length=100*um, diameter=1*um, n=10)
+    morpho.input_process = Cylinder(length=50*um, diameter=2*um, n=5)
 
 The syntax is recursive, for example two branches can be added at the end of the dendrite as follows::
 
-    morpho.dendrite.branch1 = Cylinder(length = 50*um, diameter = 1*um, n = 3)
-    morpho.dendrite.branch2 = Cylinder(length = 50*um, diameter = 1*um, n = 3)
+    morpho.dendrite.branch1 = Cylinder(length=50*um, diameter=1*um, n=3)
+    morpho.dendrite.branch2 = Cylinder(length=50*um, diameter=1*um, n=3)
 
 Equivalently, one can use an indexing syntax::
 
-    morpho['dendrite']['branch1'] = Cylinder(length = 50*um, diameter = 1*um, n = 3)
-    morpho['dendrite']['branch2'] = Cylinder(length = 50*um, diameter = 1*um, n = 3)
+    morpho['dendrite']['branch1'] = Cylinder(length=50*um, diameter=1*um, n=3)
+    morpho['dendrite']['branch2'] = Cylinder(length=50*um, diameter=1*um, n=3)
 
 Finally there is a special shorter syntax for quickly creating trees, using ``L`` (for left),
 ``R`` (for right), and digits from 1 to 9. These can be simply concatenated (without using the dot)::
 
-    morpho.L=Cylinder(length = 10*um, diameter = 1 *um, n = 3)
-    morpho.L1=Cylinder(length = 5*um, diameter = 1 *um, n = 3)
-    morpho.L2=Cylinder(length = 5*um, diameter = 1 *um, n = 3)
-    morpho.L3=Cylinder(length = 5*um, diameter = 1 *um, n = 3)
-    morpho.R=Cylinder(length = 10*um, diameter = 1 *um, n = 3)
-    morpho.RL=Cylinder(length = 5*um, diameter = 1 *um, n = 3)
-    morpho.RR=Cylinder(length = 5*um, diameter = 1 *um, n = 3)
+    morpho.L = Cylinder(length=10*um, diameter=1*um, n=3)
+    morpho.L1 = Cylinder(length=5*um, diameter=1*um, n=3)
+    morpho.L2 = Cylinder(length=5*um, diameter=1*um, n=3)
+    morpho.L3 = Cylinder(length=5*um, diameter=1*um, n=3)
+    morpho.R = Cylinder(length=10*um, diameter=1*um, n=3)
+    morpho.RL = Cylinder(length=5*um, diameter=1*um, n=3)
+    morpho.RR = Cylinder(length=5*um, diameter=1*um, n=3)
 
 These instructions create a dendritic tree with two main branches, 3 subbranches on the first branch and
-2 on the second branch. After these instructions are executed, ``morpho.L`` contains the entire subtree. To
-retrieve only the primary branch of this subtree, use the ``main`` attribute::
+2 on the second branch. After these instructions are executed, ``morpho.L`` contains the entire subtree. However,
+accessing the attributes (e.g. ``diameter``) will only return the values for the given section.
 
-    mainbranch = morpho.L.main
+.. note::
 
-The number of compartments in the entire tree can be obtained with
-``len(morpho)``. Finally, the morphology can be displayed as a 3D plot::
+    To avoid ambiguities, do not use names for sections that can be interpreted in the abreviated way detailed above.
+    For example, do not name a child branch ``L1`` (which will be interpreted as the first child of the child ``L``)
 
-    morpho.plot()
+
+The number of compartments in a section can be accessed with ``morpho.n`` (or ``morpho.L.n``, etc.), the number of
+total sections and compartments in a subtree can be accessed with ``morpho.n_sections`` and ``len(morpho)``
+respectively.
+
+.. todo::
+
+    Explain ``generate_coordinates``
 
 Complex morphologies
 ~~~~~~~~~~~~~~~~~~~~
-Neuronal morphologies can be created by assembling cylinders and spheres, but also more complex processes with
-variable diameter. This can be done by directly setting the attributes of a `Morphology` object.
-A `Morphology` object stores the ``diameter``, ``x``, ``y``, ``z``, ``length`` and ``area`` of all the
-compartments of the main branch (i.e., not children) as arrays. For example, ``morpho.length`` is
-an array containing the length of each of its compartments. When creating
-a cylinder, the length of each compartment is obtained by dividing the total length provided at creation by the
-number of compartments. The area is calculated automatically.
-Complex processes can be created manually by directly specifying the diameter and length of
-each compartment::
 
-    morpho.axon = Morphology(n = 5)
-    morpho.axon.diameter = ones(5) * 1 * um
-    morpho.axon.length = [1, 2, 1, 3, 1] * um
-    morpho.axon.set_coordinates()
-    morpho.axon.set_area()
+Morphologies can also be created from information about the compartment coordinates in 3D space. This can be done
+manually for individual sections, following the same syntax as the "schematic" morphologies::
 
-Note the last two statements: ``set_coordinates()`` creates x-y-z coordinates and is required for plotting;
-``set_area()`` calculates the area of each compartment (considered as a cylinder)
-and is required for using the morphology in simulations.
-Alternatively the coordinates can be specified, instead of the lengths of compartments, and then
-``set_length()`` must be called. Note that these methods only apply to the main branch of the morphology,
-not the children (subtrees).
+    soma = Soma(diameter=30*um, x=50*um, y=20*um)
+    cylinder = Cylinder(10, x=100*um, diameter=1*um)
+    section = Section(5,
+                      x=[10, 20, 30, 40, 50]*um,
+                      y=[10, 20, 30, 40, 50]*um,
+                      z=[10, 10, 10, 10, 10]*um,
+                      diameter=[5, 4, 3, 2, 1])*um
+
+A few notes:
+
+1. In the vast majority of simulations, coordinates are not used in the neuronal equations, therefore the
+   coordinates are purely for visualization purposes and do not affect the simulation results in any way.
+2. Coordinate specification cannot be combined with length specification -- lengths are automatically calculated from
+   the coordinates.
+3. The coordinate specification can also be 1- or 2-dimensional (as in the first two examples above), the unspecified
+   coordinate will be taken from the value of the parent section (or as 0 μm for the root section)
+4. Similar to the ``length`` argument, a single argument for multiple compartments (see the `Cylinder` example above) is
+   interpreted as the point at the end of the section.
+5. All coordinates are interpreted relative to the parent compartment, i.e. the point (0 μm, 0 μm, 0 μm) refers to the
+   end point of the previous compartment. There is one exception to this rule: if the section has ``n`` compartments,
+   and ``n+1`` coordinate values have been given, then the first point is interpreted as the start point of the section
+   and all values are considered to be *absolute*. This is similar to the semantics of the ``diameter`` argument of
+   `Section` and is mostly useful for morphologies created from neuronal reconstructions (see below). Another use is the
+   connection of dendrites and axons to a soma, which otherwise will be connected to the center of the sphere (as noted
+   before, this is only relevant for visualization).
+
+A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
+
+    morpho = Morphology.from_file('corticalcell.swc')
+
+There is a large database of morphologies in the swc format at http://neuromorpho.org.
+
+To manually create a morphology from a list of points in a similar format to SWC files, see `Morphology.from_points`
 
 Creating a spatially extended neuron
 ------------------------------------
@@ -115,17 +230,21 @@ A `SpatialNeuron` is a spatially extended neuron. It is created by specifying th
     Im=gL*(EL-v) : amp/meter**2
     I : amp (point current)
     '''
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm)
     neuron.v = EL+10*mV
 
-Several state variables are created automatically: all the variables of the morphology object are linked to
-state variables of the neuron (``diameter``, ``x``, ``y``, ``z``, ``length`` and ``area``). Additionally,
-a state variable ``Cm`` is created. It is initialized with the value given at construction, but it can be modified
-on a compartment per compartment basis (which is useful to model myelinated axons).
-Finally the membrane potential is stored in state variable ``v``.
-The integration method can be specified as for a `NeuronGroup` with the ``method`` keyword.
-In general, for models with nonlinear conductances, the exponential Euler method should be used:
-``method = "exponential_euler"``.
+Several state variables are created automatically: the `SpatialNeuron` inherits all the geometrical variables of the
+compartments (``length``, ``diameter``, ``area``, ``volume``), as well as the ``distance`` variable that gives the
+distance to the soma. For morphologies that use coordinates, the ``x``, ``y`` and ``z`` variables are provided as well.
+Additionally, a state variable ``Cm`` is created. It is initialized with the value given at construction, but it can be
+modified on a compartment per compartment basis (which is useful to model myelinated axons). The membrane potential is
+stored in state variable ``v``.
+
+Note that for all variable values that vary across a compartment (e.g. ``distance``, ``x``, ``y``, ``z``, ``v``), the
+value that is reported is the value at the "electrical midpoint" (the point with identical axial resistance to the two
+ends) of the compartment. For spherical and cylindrical compartments, this midpoints simply corresponds to the
+geometrical midpoint, but for compartments modeled as truncated cones with different diameters at their start and end,
+the electrical midpoint is closer to the end with the bigger diameter.
 
 The key state variable, which must be specified at construction, is ``Im``. It is the total transmembrane current,
 expressed in units of current per area. This is a mandatory line in the definition of the model. The rest of the
@@ -157,9 +276,9 @@ Subtrees can be accessed by attribute (in the same way as in `Morphology` object
 
     neuron.axon.gNa = 10*gL
 
-Note that the state variables correspond to the entire subtree, not just the main branch.
-That is, if the axon had branches, then the above statement would change ``gNa`` on the main branch
-and all the subbranches. To access the main branch only, use the attribute ``main``::
+Note that the state variables correspond to the entire subtree, not just the main section.
+That is, if the axon had branches, then the above statement would change ``gNa`` on the main section
+and all the sections in the subtree. To access the main section only, use the attribute ``main``::
 
     neuron.axon.main.gNa = 10*gL
 
@@ -173,7 +292,7 @@ A part of a branch can be accessed as follows::
     initial_segment = neuron.axon[10*um:50*um]
 
 Synaptic inputs
----------------
+~~~~~~~~~~~~~~~
 There are two methods to have synapses on `SpatialNeuron`.
 The first one to insert synaptic equations directly in the neuron equations::
 
@@ -182,7 +301,7 @@ The first one to insert synaptic equations directly in the neuron equations::
     Is = gs*(Es-v) : amp (point current)
     dgs/dt = -gs/taus : siemens
     '''
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm)
 
 Note that, as for electrode stimulation, the synaptic current must be defined as a point current.
 Then we use a `Synapses` object to connect a spike source to the neuron::
@@ -218,18 +337,18 @@ Here each synapse (instead of each compartment) has an associated value ``g``, a
 into the compartmental variable ``gs``.
 
 Detecting spikes
-----------------
+~~~~~~~~~~~~~~~~
 To detect and record spikes, we must specify a threshold condition, essentially in the same
 way as for a `NeuronGroup`::
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "v > 0*mV", refractory = "v > -10*mV")
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold='v > 0*mV', refractory='v > -10*mV')
 
 Here spikes are detected when the membrane potential ``v`` reaches 0 mV. Because there is generally
 no explicit reset in this type of model (although it is possible to specify one), ``v`` remains above
 0 mV for some time. To avoid detecting spikes during this entire time, we specify a refractory period.
 In this case no spike is detected as long as ``v`` is greater than -10 mV. Another possibility could be::
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5", refractory = "m > 0.4")
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold='m > 0.5', refractory='m > 0.4')
 
 where ``m`` is the state variable for sodium channel activation (assuming this has been defined in the
 model). Here a spike is detected when half of the sodium channels are open.
@@ -237,13 +356,13 @@ model). Here a spike is detected when half of the sodium channels are open.
 With the syntax above, spikes are detected in all compartments of the neuron. To detect them in a single
 compartment, use the ``threshold_location`` keyword::
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5", threshold_location = 30,
-                           refractory = "m > 0.4")
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold='m > 0.5', threshold_location=30,
+                           refractory='m > 0.4')
 
 In this case, spikes are only detecting in compartment number 30. Reset then applies locally to
 that compartment (if a reset statement is defined).
 Again the location of the threshold can be specified with spatial position::
 
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold = "m > 0.5",
-                           threshold_location = morpho.axon[30*um],
-                           refractory = "m > 0.4")
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold='m > 0.5',
+                           threshold_location=morpho.axon[30*um],
+                           refractory='m > 0.4')

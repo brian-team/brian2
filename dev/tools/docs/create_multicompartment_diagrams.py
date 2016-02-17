@@ -1,13 +1,14 @@
+import os
+
 from brian2 import *
 
 HEADER = '''<?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20001102//EN"
  "http://www.w3.org/TR/2000/CR-SVG-20001102/DTD/svg-20001102.dtd">
 
-<svg width="100%" height="100%" viewBox="{minx} {miny} {width} {height}"
+<svg height="3em" viewBox="{minx} {miny} {width} {height}"
     xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink/"
-    baseProfile="tiny" version="1.2">
+    xmlns:xlink="http://www.w3.org/1999/xlink/">
 '''
 
 # For now, we do not bother showing the actual size of the Soma
@@ -53,9 +54,10 @@ FRUSTRUM = '''
 
 FRUSTRUM_NO_START = '''
 <defs>
-<linearGradient id="gradient_to_transparent" x1="0%" x2="100%">
-    <stop offset="0.5" stop-opacity="1" stop-color="blue"></stop>
-    <stop offset="0" stop-opacity="0" stop-color="blue"></stop>
+<linearGradient id="gradient_to_transparent" x1="0" y1="0" x2="100%" y2="0">
+    <stop offset="0" stop-color="white" stop-opacity="0"/>
+    <stop offset="0.75" stop-color="blue"  stop-opacity="1"/>
+    <stop offset="1" stop-color="blue"  stop-opacity="1"/>
 </linearGradient>
 </defs>
 <g transform="translate({startx},0)">
@@ -65,7 +67,7 @@ FRUSTRUM_NO_START = '''
             rx="0.5"  ry="{radius2}"
             stroke="darkblue" fill="darkblue" stroke-width="1"/>
    <text x="0" y="{center}" fill="darkblue" dominant-baseline="central" alignment-baseline="central" text-anchor="middle"
-    style="font-size: 8px">?</text>
+    style="font-family: sans-serif;font-size: 8px">?</text>
 </g>
 '''
 
@@ -94,7 +96,7 @@ def to_svg(morphology):
                                             length=str(length/um),
                                             center=str(center/um)))
             summed_length += length + 3*um
-        return HEADER.format(minx=-2.5, miny=0, width=summed_length/um+0.5, height=center*2/um) + ('\n'.join(elements)) + FOOTER
+        return HEADER.format(minx=-2.5, miny=-1, width=summed_length/um+0.5, height=center*2/um+2) + ('\n'.join(elements)) + FOOTER
     elif isinstance(morphology, Section):
         summed_length = 0*um
         elements = []
@@ -125,15 +127,25 @@ def to_svg(morphology):
                                                 center=center/um))
 
             summed_length += length + 3*um
-        return HEADER.format(minx=-2.5, miny=0, width=summed_length/um+1.5,
-                             height=center*2/um) + ('\n'.join(elements)) + FOOTER
+        return HEADER.format(minx=-2.5, miny=-1, width=summed_length/um+1.5,
+                             height=center*2/um+2) + ('\n'.join(elements)) + FOOTER
     else:
         raise NotImplementedError()
 
 if __name__ == '__main__':
-    # morpho = Cylinder(5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)
-    morpho = Section(5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)
-    #morpho = Soma(20*um)
-    print to_svg(morpho)
-
-
+    dirname = os.path.dirname(__file__)
+    PATH = os.path.join(dirname, '..', '..', '..', 'docs_sphinx', 'user', 'images')
+    for filename, morpho in [('soma.svg', Soma(diameter=30*um)),
+                             ('cylinder_1.svg', Cylinder(n=5, diameter=10*um, length=50*um)),
+                             ('cylinder_2.svg', Cylinder(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)),
+                             ('cylinder_3.svg', Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)),
+                             ('cylinder_4.svg', Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)),
+                             ('section_1.svg', Section(n=5, diameter=10*um, length=50*um)),
+                             ('section_2.svg', Section(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)),
+                             ('section_3.svg', Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)),
+                             ('section_4.svg', Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)),
+                             ('section_5.svg', Section(n=5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=50*um)),
+                             ('section_6.svg', Section(n=5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um))]:
+        with open(os.path.join(PATH, filename), 'w') as f:
+            print(filename)
+            f.write(to_svg(morpho))

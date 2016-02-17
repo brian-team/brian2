@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20001102//EN"
+ "http://www.w3.org/TR/2000/CR-SVG-20001102/DTD/svg-20001102.dtd">
+
+<svg height="3em" viewBox="-2.5 -1 65.5 12.0"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink/">
+
+<line x1="-3.0" x2="0.0" y1="5.0" y2="5.0" stroke="black" stroke-width="1"/>
+
+
+<g transform="translate(0.0,0)">
+   <ellipse cx="0"  cy="5.0"
+            rx="0.5" ry="2.5"
+            stroke="blue" stroke-width="1"
+            fill="blue"/>
+   <rect x="0" y="2.5" width="10.0" height="5.0" fill="blue"
+    stroke="blue" stroke-width="1"/>
+   <ellipse cx="10.0" cy="5.0"
+            rx="0.5"  ry="2.5"
+            stroke="darkblue" fill="darkblue" stroke-width="1"/>
+</g>
+
+
+<line x1="10.0" x2="13.0" y1="5.0" y2="5.0" stroke="black" stroke-width="1"/>
+
+
+<g transform="translate(13.0,0)">
+   <ellipse cx="0"  cy="5.0"
+            rx="0.5" ry="5.0"
+            stroke="blue" stroke-width="1"
+            fill="blue"/>
+   <rect x="0" y="0.0" width="20.0" height="10.0" fill="blue"
+    stroke="blue" stroke-width="1"/>
+   <ellipse cx="20.0" cy="5.0"
+            rx="0.5"  ry="5.0"
+            stroke="darkblue" fill="darkblue" stroke-width="1"/>
+</g>
+
+
+<line x1="33.0" x2="36.0" y1="5.0" y2="5.0" stroke="black" stroke-width="1"/>
+
+
+<g transform="translate(36.0,0)">
+   <ellipse cx="0"  cy="5.0"
+            rx="0.5" ry="2.5"
+            stroke="blue" stroke-width="1"
+            fill="blue"/>
+   <rect x="0" y="2.5" width="5.0" height="5.0" fill="blue"
+    stroke="blue" stroke-width="1"/>
+   <ellipse cx="5.0" cy="5.0"
+            rx="0.5"  ry="2.5"
+            stroke="darkblue" fill="darkblue" stroke-width="1"/>
+</g>
+
+
+<line x1="41.0" x2="44.0" y1="5.0" y2="5.0" stroke="black" stroke-width="1"/>
+
+
+<g transform="translate(44.0,0)">
+   <ellipse cx="0"  cy="5.0"
+            rx="0.5" ry="5.0"
+            stroke="blue" stroke-width="1"
+            fill="blue"/>
+   <rect x="0" y="0.0" width="5.0" height="10.0" fill="blue"
+    stroke="blue" stroke-width="1"/>
+   <ellipse cx="5.0" cy="5.0"
+            rx="0.5"  ry="5.0"
+            stroke="darkblue" fill="darkblue" stroke-width="1"/>
+</g>
+
+
+<line x1="49.0" x2="52.0" y1="5.0" y2="5.0" stroke="black" stroke-width="1"/>
+
+
+<g transform="translate(52.0,0)">
+   <ellipse cx="0"  cy="5.0"
+            rx="0.5" ry="2.5"
+            stroke="blue" stroke-width="1"
+            fill="blue"/>
+   <rect x="0" y="2.5" width="10.0" height="5.0" fill="blue"
+    stroke="blue" stroke-width="1"/>
+   <ellipse cx="10.0" cy="5.0"
+            rx="0.5"  ry="2.5"
+            stroke="darkblue" fill="darkblue" stroke-width="1"/>
+</g>
+
+</svg>
