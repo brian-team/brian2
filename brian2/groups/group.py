@@ -235,7 +235,7 @@ class Indexing(object):
                 if index_var == '0':
                     return 0
                 if index_var == '_idx':
-                    start, stop, step = item.indices(self.N.get_value())
+                    start, stop, step = item.indices(int(self.N.get_value()))
                 else:
                     start, stop, step = item.indices(index_var.size)
                 index_array = np.arange(start, stop, step, dtype=np.int32)
