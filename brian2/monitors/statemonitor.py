@@ -255,7 +255,8 @@ class StateMonitor(Group, CodeRunner):
                                              resize_along_first=True,
                                              unit=var.unit,
                                              dtype=var.dtype,
-                                             constant=False)
+                                             constant=False,
+                                             read_only=True)
 
         for varname in variables:
             var = self.source.variables[varname]

@@ -1061,6 +1061,24 @@ def test_inplace_on_scalars():
         # also check that it worked correctly for the vector itself
         assert_allclose(vector, (vector_copy + vector_copy)*1.5/2)
 
+def test_units_vs_quantities():
+    # Unit objects should stay Unit objects under certain operations
+    # (important e.g. in the unit definition of Equations, where only units but
+    # not quantities are allowed)
+    assert type(meter**2) == Unit
+    assert type(meter**-1) == Unit
+    assert type(meter**0.5) == Unit
+    assert type(meter/second) == Unit
+    assert type(amp/meter**2) == Unit
+    assert type(1/meter) == Unit
+    assert type(1.0/meter) == Unit
+
+    assert type(2/meter) == Quantity
+    assert type(2*meter) == Quantity
+    assert type(meter + meter) == Quantity
+    assert type(meter - meter) == Quantity
+
+
 if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
@@ -1092,3 +1110,4 @@ if __name__ == '__main__':
     test_fail_for_dimension_mismatch()
     test_deepcopy()
     test_inplace_on_scalars()
+    test_units_vs_quantities()

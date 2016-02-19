@@ -1151,8 +1151,8 @@ class Synapses(Group):
         source_offset = self.variables['_source_offset'].get_value()
         target_offset = self.variables['_target_offset'].get_value()
         # This resizing is only necessary if we are connecting to/from synapses
-        self.variables['N_incoming'].resize(self.variables['N_post'].get_value() + target_offset)
-        self.variables['N_outgoing'].resize(self.variables['N_pre'].get_value() + source_offset)
+        self.variables['N_incoming'].resize(int(self.variables['N_post'].get_value()) + target_offset)
+        self.variables['N_outgoing'].resize(int(self.variables['N_pre'].get_value()) + source_offset)
         N_outgoing = self.variables['N_outgoing'].get_value()
         N_incoming = self.variables['N_incoming'].get_value()
         synaptic_pre = self.variables['_synaptic_pre'].get_value()

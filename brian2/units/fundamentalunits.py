@@ -2035,6 +2035,11 @@ class Unit(Quantity):
         if isinstance(other, Unit):
             return other.__div__(self)
         else:
+            try:
+                if other == 1:
+                    return self**-1
+            except (ValueError, TypeError, DimensionMismatchError):
+                pass
             return super(Unit, self).__rdiv__(other)
 
     def __pow__(self, other):

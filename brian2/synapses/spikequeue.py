@@ -136,7 +136,7 @@ class SpikeQueue(object):
             The first column gives the time (as integer time steps) and the
             second column gives the index of the target synapse.
         '''
-        spikes = np.zeros((np.sum(self.n), 2))
+        spikes = np.zeros((np.sum(self.n), 2), dtype=int)
         counter = 0
         for idx, n in enumerate(self.n):
             t = (idx - self.currenttime) % len(self.n)
@@ -173,7 +173,7 @@ class SpikeQueue(object):
             # It is possible that _full_state was called in `SynapticPathway`,
             # before the `SpikeQueue` was created. In that case, delete all spikes in
             # the queue
-            self._store_spikes(np.empty((0, 2)))
+            self._store_spikes(np.empty((0, 2), dtype=int))
             self._dt = None
         else:
             self._dt, spikes, X_shape = state

@@ -122,7 +122,8 @@ class EventMonitor(Group, CodeRunner):
                                                    dtype=source_var.dtype)
             self.variables.add_dynamic_array(variable, size=0,
                                              unit=source_var.unit,
-                                             dtype=source_var.dtype)
+                                             dtype=source_var.dtype,
+                                             read_only=True)
         self.variables.add_arange('_source_idx', size=len(source))
         self.variables.add_array('count', size=len(source), unit=Unit(1),
                                  dtype=np.int32, read_only=True,
