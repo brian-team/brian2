@@ -565,25 +565,25 @@ def test_tree_cables_from_points():
               (9,  None, 80,                 0,                0,              10,  8),
               (10, None, 90,                 0,                0,              10,  9),
               (11, None, 100,                0,                0,              10,  10),
-              # cable.L
-              (12, 'L' , 100+20/np.sqrt(2),  20/np.sqrt(2),    0,              8 ,  11),
-              (13, 'L' , 100+40/np.sqrt(2),  40/np.sqrt(2),    0,              6 ,  12),
-              (14, 'L' , 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  13),
-              (15, 'L' , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  14),
-              (16, 'L' , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  15),
-              # cable.R
-              (17, 'R' , 100+10/np.sqrt(2),  -10/np.sqrt(2),   0,              5 ,  11),
-              (18, 'R' , 100+20/np.sqrt(2),  -20/np.sqrt(2),   0,              5 ,  17),
-              (19, 'R' , 100+30/np.sqrt(2),  -30/np.sqrt(2),   0,              5 ,  18),
-              (20, 'R' , 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  19),
-              (21, 'R' , 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  20),
-              # cable.RL
+              # cable.L  (using automatic names)
+              (12, None, 100+20/np.sqrt(2),  20/np.sqrt(2),    0,              8 ,  11),
+              (13, None, 100+40/np.sqrt(2),  40/np.sqrt(2),    0,              6 ,  12),
+              (14, None, 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  13),
+              (15, None, 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  14),
+              (16, None, 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  15),
+              # cable.R  (using automatic names)
+              (17, None, 100+10/np.sqrt(2),  -10/np.sqrt(2),   0,              5 ,  11),
+              (18, None, 100+20/np.sqrt(2),  -20/np.sqrt(2),   0,              5 ,  17),
+              (19, None, 100+30/np.sqrt(2),  -30/np.sqrt(2),   0,              5 ,  18),
+              (20, None, 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  19),
+              (21, None, 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  20),
+              # cable.RL (using explicit names)
               (22, 'L' , 100+60/np.sqrt(2),  -50/np.sqrt(2),   10/np.sqrt(2),  2.5, 21),
               (23, 'L' , 100+70/np.sqrt(2),  -50/np.sqrt(2),   20/np.sqrt(2),  2.5, 22),
               (24, 'L' , 100+80/np.sqrt(2),  -50/np.sqrt(2),   30/np.sqrt(2),  2.5, 23),
               (25, 'L' , 100+90/np.sqrt(2),  -50/np.sqrt(2),   40/np.sqrt(2),  2.5, 24),
               (26, 'L' , 100+100/np.sqrt(2),  -50/np.sqrt(2),  50/np.sqrt(2),  2.5, 25),
-              # cable.RR
+              # cable.RR (using explicit names)
               (27, 'R' , 100+60/np.sqrt(2),  -50/np.sqrt(2),   -10/np.sqrt(2), 4,   21),
               (28, 'R' , 100+70/np.sqrt(2),  -50/np.sqrt(2),   -20/np.sqrt(2), 3,   27),
               (29, 'R' , 100+80/np.sqrt(2),  -50/np.sqrt(2),   -30/np.sqrt(2), 2,   28),

@@ -143,7 +143,7 @@ def _perturb(vec, sigma):
     return _rotate(vec, orthogonal, perturbation)
 
 
-def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
+def _add_coordinates(orig_morphology, root=None, parent=None, names=None,
                      section_randomness=0.0, compartment_randomness=0.0,
                      n_th_child=0, total_children=0):
     # Note that in the following, all values are without physical units
@@ -227,11 +227,11 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
     if parent is None:
         root = section
     else:
-        parent.children.add(name, section)
+        parent.children.add(names, section)
 
     for idx, child in enumerate(orig_morphology.children):
         _add_coordinates(child, root=root, parent=section,
-                         name=orig_morphology.children.name(child),
+                         name=orig_morphology.children.names(child),
                          n_th_child=idx, total_children=len(orig_morphology.children),
                          section_randomness=section_randomness,
                          compartment_randomness=compartment_randomness)
@@ -243,7 +243,7 @@ class Children(object):
         self._counter = 0
         self._children = []
         self._named_children = {}
-        self._given_names = {}
+        self._given_name = defaultdict(lambda: None)
 
     def __iter__(self):
         return iter(self._children)
@@ -258,7 +258,7 @@ class Children(object):
         return self._named_children.values()
 
     def name(self, child):
-        return self._given_names[child]
+        return self._given_name[child]
 
     def __getitem__(self, item):
         if isinstance(item, basestring):
@@ -267,16 +267,18 @@ class Children(object):
             raise TypeError('Index has to be an integer or a string.')
 
     def add(self, name, subtree):
-        if subtree._parent is not None:
-            raise TypeError(('Cannot add subtree as "%s", it already has a '
-                             'parent.') % name)
         if name in self._named_children:
-            raise AttributeError('The subtree %s already exists' % name)
-        self._counter += 1
-        self._children.append(subtree)
-        self._given_names[subtree] = name
-        self._named_children[name] = subtree
-        self._named_children[str(self._counter)] = subtree
+            raise AttributeError('The name %s is already used for a subtree' % name)
+
+        if subtree not in self._children:
+            self._counter += 1
+            self._children.append(subtree)
+            self._named_children[str(self._counter)] = subtree
+
+        self._given_name[subtree] = name
+        if name is not None:
+            self._named_children[name] = subtree
+
         subtree._parent = self._owner
 
     def remove(self, item):
@@ -766,14 +768,13 @@ class Morphology(object):
                 sections[index] = section, parent_idx
 
         # Connect the sections
-        for index, (section, parent) in sections.iteritems():
+        for section, parent in sections.itervalues():
             name = section.type
             # Add section to its parent
             if parent != -1:
                 children_list = sections[parent][0].children
-                n_children = len(children_list)
                 if section.type is None:
-                    children_list.add(name='child%d' % (n_children+1),
+                    children_list.add(name=None,
                                       subtree=section)
                 else:
                     counter = 2
@@ -783,6 +784,22 @@ class Morphology(object):
                         counter += 1
                     children_list.add(name=name,
                                       subtree=section)
+
+        # Go through all the sections again and add standard names for all
+        # sections that don't have a name: "L" + "R" for 1 or two children,
+        # "child_1", "child_2", etc. otherwise
+        children_counter = defaultdict(int)
+        for section, parent in sections.itervalues():
+            if parent != -1:
+                children_counter[parent] += 1
+                children = sections[parent][0].children
+                nth_child = children_counter[parent]
+                if children.name(section) is None:
+                    if len(children) <= 2:
+                        name = 'L' if nth_child == 1 else 'R'
+                    else:
+                        name = 'child_%d' % nth_child
+                    children.add(name, section)
 
         # There should only be one section without parents
         root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
