@@ -50,8 +50,10 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_start', Unit(1), start)
         self.variables.add_constant('_source_stop', Unit(1), stop)
         self.variables.add_reference('_spikespace', source)
-        self.variables.add_dynamic_array('rate', size=0, unit=hertz)
-        self.variables.add_dynamic_array('t', size=0, unit=second)
+        self.variables.add_dynamic_array('rate', size=0, unit=hertz,
+                                         read_only=True)
+        self.variables.add_dynamic_array('t', size=0, unit=second,
+                                         read_only=True)
         self.variables.add_reference('_num_source_neurons', source, 'N')
         self.variables.add_array('N', unit=Unit(1), dtype=np.int32, size=1,
                                  scalar=True, read_only=True)
