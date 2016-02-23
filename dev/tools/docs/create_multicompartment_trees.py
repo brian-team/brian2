@@ -1,27 +1,40 @@
 import os
 
+import mayavi.mlab as mayavi
 from brian2 import *
 
+def find_max_coordinates(morpho, current_max):
+    max_x, max_y, max_z = np.max(np.abs(morpho.plot_coordinates), axis=0)
+    new_max = (max([max_x, current_max[0]]),
+               max([max_y, current_max[1]]),
+               max([max_z, current_max[2]]))
+    for child in morpho.children:
+        new_max = find_max_coordinates(child, new_max)
+    return new_max
 
-def plot_morphology3D(morpho, axis, color_switch=False, show_compartments=False):
+DARKRED = (0.5450980392156862, 0.0, 0.0)
+DARKBLUE = (0.0, 0.0, 0.5450980392156862)
+
+def plot_morphology3D(morpho, color_switch=False, show_compartments=False):
     if isinstance(morpho, Soma):
-        ax.plot(morpho.x/um, morpho.y/um, morpho.z/um, 'o', color='darkred',
-                ms=morpho.diameter/um, mec='none')
+        mayavi.points3d(morpho.x/um, morpho.y/um, morpho.z/um, morpho.diameter/um,
+                        color=DARKRED, scale_factor=1.0, resolution=16)
     else:
         coords = morpho.plot_coordinates
         if color_switch:
-            color = 'darkblue'
+            color = DARKBLUE
         else:
-            color = 'darkred'
-        ax.plot(coords[:, 0]/um, coords[:, 1]/um, coords[:, 2]/um, color='black',
-                lw=2)
+            color = DARKRED
+        mayavi.plot3d(coords[:, 0]/um, coords[:, 1]/um, coords[:, 2]/um, color=color,
+                      tube_radius=1)
         # dots at the center of the compartments
         if show_compartments:
-            ax.plot(morpho.x/um, morpho.y/um, morpho.z/um, 'o', color=color,
-                    mec='none', alpha=0.75)
+            mayavi.points3d(coords[:, 0]/um, coords[:, 1]/um, coords[:, 2]/um,
+                            np.ones(coords.shape[0]), color=color, scale_factor=1,
+                            transparent=0.25)
 
     for child in morpho.children:
-        plot_morphology3D(child, axis=axis, color_switch=not color_switch)
+        plot_morphology3D(child, color_switch=not color_switch)
 
 def plot_morphology2D(morpho, axis, color_switch=False):
     if isinstance(morpho, Soma):
@@ -75,20 +88,19 @@ if __name__ == '__main__':
     plt.ylabel('y ($\mu$ m)')
 
     plt.savefig(os.path.join(PATH, 'morphology_deterministic_coords.png'))
-    import sys; sys.exit(0)
+
     print 'be careful, this plotting takes a long time'
-    from mpl_toolkits.mplot3d import Axes3D
     for title, noise_sec, noise_comp in [('section', 25, 0),
                                          ('section_compartment', 25, 15)]:
-        fig = plt.figure()
+
         for idx in xrange(3):
+            fig = mayavi.figure(bgcolor=(0.95, 0.95, 0.95))
             print idx
             morpho_with_coords = morpho.generate_coordinates(section_randomness=noise_sec,
                                                  compartment_randomness=noise_comp)
-            ax = fig.add_subplot(1, 3, idx + 1, projection='3d')
-            plot_morphology3D(morpho_with_coords, ax)
-            ax.set_xlim(-150, 150)
-            ax.set_ylim(-150, 150)
-            ax.set_zlim(-150, 150)
-        plt.tight_layout()
-        plt.savefig(os.path.join(PATH, 'morphology_random_%s.png' % title))
+            plot_morphology3D(morpho_with_coords)
+            cam = fig.scene.camera
+            cam.zoom(1.1)
+            mayavi.draw()
+            mayavi.savefig(os.path.join(PATH, 'morphology_random_%s_%d.png' % (title, idx+1)))
+            mayavi.close()

@@ -189,14 +189,20 @@ each section differs from the orientation of the parent section by a random amou
 
       new_morpho = morpho.generate_coordinates(section_randomness=25)
 
-.. image:: images/morphology_random_section.*
+===============================================  ===============================================  ===============================================
+.. image:: images/morphology_random_section_1.*  .. image:: images/morphology_random_section_2.*  .. image:: images/morphology_random_section_3.*
+===============================================  ===============================================  ===============================================
+
 
 In addition, also the orientation of each compartment within a section can be randomly varied::
 
       new_morpho = morpho.generate_coordinates(section_randomness=25,
                                                compartment_randomness=15)
 
-.. image:: images/morphology_random_section_compartment.*
+===========================================================  ===========================================================  ===========================================================
+.. image:: images/morphology_random_section_compartment_1.*  .. image:: images/morphology_random_section_compartment_2.*  .. image:: images/morphology_random_section_compartment_3.*
+===========================================================  ===========================================================  ===========================================================
+
 
 Complex morphologies
 ~~~~~~~~~~~~~~~~~~~~
