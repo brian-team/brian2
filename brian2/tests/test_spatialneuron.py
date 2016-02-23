@@ -522,6 +522,36 @@ def test_rall():
     v = neuron.R.v
     assert_allclose(v-EL, theory-EL, rtol=0.001)
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_basic_diffusion():
+    # A very basic test that shows that propagation is working in a very basic
+    # sense, testing all morphological classes
+
+    defaultclock.dt = 0.01*ms
+
+    EL = -70*mV
+    gL = 1e-4*siemens/cm**2
+    target = -10*mV
+    eqs = '''
+    Im = gL*(EL-v) + gClamp*(target-v): amp/meter**2
+    gClamp : siemens/meter**2
+    '''
+
+    morph = Soma(diameter=30*um)
+    morph.axon = Cylinder(n=10, diameter=10*um, length=100*um)
+    morph.dend = Section(n=10, diameter=[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.1]*um,
+                         length=100*um)
+
+    neuron = SpatialNeuron(morph, eqs)
+    neuron.v = EL
+    neuron.axon.gClamp[0] = 100*siemens/cm**2
+
+    mon = StateMonitor(neuron, 'v', record=True)
+
+    run(0.25*ms)
+    assert all(abs(mon.v[:, -1]/mV + 10) < 0.25), mon.v[:, -1]/mV
+
 if __name__ == '__main__':
     test_custom_events()
     test_construction()
@@ -532,3 +562,4 @@ if __name__ == '__main__':
     test_rallpack2()
     test_rallpack3()
     test_rall()
+    test_basic_diffusion()

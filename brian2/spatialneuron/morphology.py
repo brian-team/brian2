@@ -1022,7 +1022,7 @@ class Soma(Morphology):
     @property
     def r_length(self):
         # The soma does not have any resistance
-        return [0]*um
+        return [1e6]*meter
 
     @property
     def electrical_center(self):
