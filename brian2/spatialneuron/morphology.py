@@ -143,7 +143,7 @@ def _perturb(vec, sigma):
     return _rotate(vec, orthogonal, perturbation)
 
 
-def _add_coordinates(orig_morphology, root=None, parent=None, names=None,
+def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
                      section_randomness=0.0, compartment_randomness=0.0,
                      n_th_child=0, total_children=0):
     # Note that in the following, all values are without physical units
@@ -227,11 +227,11 @@ def _add_coordinates(orig_morphology, root=None, parent=None, names=None,
     if parent is None:
         root = section
     else:
-        parent.children.add(names, section)
+        parent.children.add(name, section)
 
     for idx, child in enumerate(orig_morphology.children):
         _add_coordinates(child, root=root, parent=section,
-                         name=orig_morphology.children.names(child),
+                         name=orig_morphology.children.name(child),
                          n_th_child=idx, total_children=len(orig_morphology.children),
                          section_randomness=section_randomness,
                          compartment_randomness=compartment_randomness)
