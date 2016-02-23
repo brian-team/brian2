@@ -1001,7 +1001,7 @@ class Soma(Morphology):
 
     @property
     def start_diameter(self):
-        return [0]*um  # TODO: best value?
+        return self._diameter  # TODO: Best value?
 
     @property
     def diameter(self):
@@ -1009,7 +1009,7 @@ class Soma(Morphology):
 
     @property
     def end_diameter(self):
-        return [0]*um  # TODO: best value?
+        return self._diameter  # TODO: Best value?
 
     @property
     def volume(self):
@@ -1240,8 +1240,8 @@ class Section(Morphology):
     def diameter(self):
         d_1 = self.start_diameter
         d_2 = self.end_diameter
-        # TODO: Rather the diameter ath the electrical center?
-        return 0.5*(d_1 + d_2)
+        # Diameter at the electrical center
+        return d_1 + self.electrical_center*(d_2 - d_1)
 
     @property
     def end_diameter(self):

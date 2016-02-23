@@ -360,7 +360,9 @@ def test_attributes_section_coordinates_endpoints():
     sec = Section(n=n, diameter=[20, 10, 5, 2.5]*um, x=[1, 1, 1]*um,
                   y=[0, 1, 1]*um, z=[0, 0, 1]*um)
     assert_allclose(sec.start_diameter, [20, 10, 5]*um)
-    assert_allclose(sec.diameter, [15, 7.5, 3.75]*um)  # average diameter
+    # diameter at electrical midpoint
+    assert_allclose(sec.diameter, sec.start_diameter +
+                    sec.electrical_center*(sec.end_diameter - sec.start_diameter))
     assert_allclose(sec.end_diameter, [10, 5, 2.5]*um)
     # TODO: Check area and volume
 
@@ -395,7 +397,9 @@ def test_attributes_section_coordinates_allpoints():
                   y=[100, 100, 101, 101]*um,
                   z=[1000, 1000, 1000, 1001]*um)
     assert_allclose(sec.start_diameter, [20, 10, 5]*um)
-    assert_allclose(sec.diameter, [15, 7.5, 3.75]*um)  # average diameter
+    # diameter at electrical midpoint
+    assert_allclose(sec.diameter, sec.start_diameter +
+                    sec.electrical_center*(sec.end_diameter - sec.start_diameter))
     assert_allclose(sec.end_diameter, [10, 5, 2.5]*um)
     # TODO: Check area and volume
 
