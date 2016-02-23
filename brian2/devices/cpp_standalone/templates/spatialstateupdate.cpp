@@ -17,7 +17,7 @@
 
     {% set strategy = prefs.devices.cpp_standalone.openmp_spatialneuron_strategy %}
     {% if strategy == None %}
-        {% if prefs.devices.cpp_standalone.openmp_threads <= 3 or number_branches < 3%}
+        {% if prefs.devices.cpp_standalone.openmp_threads <= 3 or number_sections < 3%}
             {% set strategy = 'systems' %}
         {% else %}
             {% set strategy = 'branches' %}
