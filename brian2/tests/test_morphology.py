@@ -5,7 +5,7 @@ import tempfile
 import os
 
 from brian2.spatialneuron import *
-from brian2.units import um, second, DimensionMismatchError, meter
+from brian2.units import um, cm, second, DimensionMismatchError
 
 
 @attr('codegen-independent')
@@ -21,7 +21,7 @@ def test_attributes_soma():
     assert_equal(soma.length, [10]*um)
     assert_equal(soma.distance, [0]*um)
     assert_equal(soma.total_distance, 0*um)
-    assert soma.r_length > 1*meter
+    assert soma.r_length > 1*cm
     assert_equal(soma.area, np.pi*soma.diameter**2)
     assert_allclose(soma.volume, 1.0/6.0*np.pi*(10*um)**3)
 
