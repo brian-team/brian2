@@ -170,7 +170,7 @@ def _add_coordinates(orig_morphology, root=None, parent=None, names=None,
     else:
         if np.sum(section_dir**2) == 0:
             # We don't have any direction to base this section on (most common
-            # case is that the root segment is a soma)
+            # case is that the root section is a soma)
             # We stay in the x-y plane and distribute all children in a 360 degree
             # circle around (0, 0, 0)
             section_dir = np.array([1, 0, 0])
@@ -343,7 +343,7 @@ class Morphology(object):
                 if item.step is not None:
                     raise TypeError(('Cannot provide a step argument when '
                                      'slicing with lengths'))
-                l = np.cumsum(np.asarray(self.length))  # coordinate on the branch
+                l = np.cumsum(np.asarray(self.length))  # coordinate on the section
                 # We use a special handling for values very close to the points
                 # between the compartments to avoid non-intuitive rounding
                 # effects: a point closer than 1e-12*length of section will be
@@ -371,7 +371,7 @@ class Morphology(object):
                 if step != 1:
                     raise TypeError('Can only slice a contiguous segment')
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
-            l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the branch
+            l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the section
             if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
                 raise IndexError(('Invalid index %s, has to be in the interval '
                                   '[%s, %s].' % (item, 0*meter, l[-1]*meter)))
@@ -458,7 +458,7 @@ class Morphology(object):
 
     def _indices(self, item=None, index_var='_idx'):
         '''
-        Returns compartment indices for the main branch, relative to the
+        Returns compartment indices for the main section, relative to the
         original morphology.
         '''
         if index_var != '_idx':
@@ -720,7 +720,8 @@ class Morphology(object):
                                   'their children.') % (parent, index))
             compartments[parent][-1].append(index)
 
-        # Merge all unbranched segments of the same type into a single section
+        # Merge all unbranched compartments of the same type into a single
+        # section
         sections = OrderedDict()
         previous_name = None
         current_compartments = []

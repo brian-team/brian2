@@ -18,8 +18,7 @@
     # Inverse axial resistance
     for _i in range(1, N):
         {{_invr}}[_i] = 0.5*({{r_length}}[_i-1] + {{r_length}}[_i])/_Ri
-    # Note: this would give nan for the soma
-    # Cut branches
+    # Cut sections
     for _i in range(_num{{_starts}}):
         {{_invr}}[{{_starts}}[_i]] = 0
 

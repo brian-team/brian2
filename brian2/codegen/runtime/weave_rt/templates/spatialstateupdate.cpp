@@ -30,12 +30,12 @@
         {{_I0_all}}[_idx] = _I0;
     }
 
-    // STEP 2: for each branch: solve three tridiagonal systems
+    // STEP 2: for each section: solve three tridiagonal systems
 
     // system 2a: solve for _v_star
     for (int _i=0; _i<_num_B - 1; _i++)
     {
-        // first and last index of the i-th branch
+        // first and last index of the i-th section
         const int _j_start = {{_starts}}[_i];
         const int _j_end = {{_ends}}[_i];
 
@@ -66,7 +66,7 @@
     }
     for (int _i=0; _i<_num_B - 1; _i++)
     {
-        // first and last index of the i-th branch
+        // first and last index of the i-th section
         const int _j_start = {{_starts}}[_i];
         const int _j_end = {{_ends}}[_i];  // the compartment indices are in the interval [starts, ends[
 
@@ -98,7 +98,7 @@
 
     for (int _i=0; _i<_num_B - 1; _i++)
     {
-        // first and last index of the i-th branch
+        // first and last index of the i-th section
         const int _j_start = {{_starts}}[_i];
         const int _j_end = {{_ends}}[_i];
 
@@ -149,7 +149,7 @@
         const double _invrn = {{_invrn}}[_i];
 
         // Towards parent
-        if (_i == 0) // first branch, sealed end
+        if (_i == 0) // first section, sealed end
         {
             {{_P_diag}}[0] = {{_u_minus}}[_first] - 1;
             {{_P_children}}[_IDX_C(0,0)] = {{_u_plus}}[_first];
@@ -200,7 +200,7 @@
     }
 
     // part 2: forwards substitution
-    {{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]; // the first branch does not have a parent
+    {{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]; // the first section does not have a parent
     for (int _i=1; _i<_num_B; _i++) {
         const int _j = {{_morph_parent_i}}[_i-1]; // parent index
         {{_B}}[_i] = {{_B}}[_i] - {{_P_parent}}[_i-1] * {{_B}}[_j];
@@ -208,8 +208,8 @@
 
     }
 
-    // STEP 4: for each branch compute the final solution by linear
-    // combination of the general solution (independent: branches & compartments)
+    // STEP 4: for each section compute the final solution by linear
+    // combination of the general solution (independent: sections & compartments)
     for (int _i=0; _i<_num_B - 1; _i++)
     {
         const int _i_parent = {{_morph_parent_i}}[_i];

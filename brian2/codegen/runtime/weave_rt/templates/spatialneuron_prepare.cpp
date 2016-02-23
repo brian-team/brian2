@@ -11,8 +11,7 @@
     // Inverse axial resistance
     for (int _i=1; _i<N; _i++)
         {{_invr}}[_i] = 0.5*({{r_length}}[_i-1] + {{r_length}}[_i])/_Ri;
-    // Note: this would give nan for the soma
-    // Cut branches
+    // Cut sections
     for (int _i=0; _i<_num_starts; _i++)
         {{_invr}}[{{_starts}}[_i]] = 0;
 

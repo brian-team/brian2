@@ -8,8 +8,7 @@ from numpy import pi
 
 # Inverse axial resistance
 {{_invr}}[1:] = 0.5*({{r_length}}[:-1] + {{r_length}}[1:])/{{Ri}}
-# Note: this would give nan for the soma
-# Cut branches
+# Cut sections
 for _first in {{_starts}}:
     {{_invr}}[_first] = 0
 

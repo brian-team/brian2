@@ -48,7 +48,7 @@ class FlatMorphology(object):
         # The children indices for each section (list of lists, will be later
         # transformed into an array representation)
         self.morph_children = []
-        # each branch is child of exactly one parent, this stores the index in
+        # each section is child of exactly one parent, this stores the index in
         # the parents list of children
         self.morph_idxchild = np.zeros(sections, dtype=np.int32)
         self.starts = np.zeros(sections, dtype=np.int32)
@@ -76,7 +76,7 @@ class FlatMorphology(object):
 
         # Transform the list of list of children into a 2D array (stored as
         # 1D) -- note that this wastes space if the number of children per
-        # branch is very different. In practice, this should not be much of a
+        # section is very different. In practice, this should not be much of a
         # problem since most sections have 0, 1, or 2 children (e.g. SWC files
         # on neuromorpho.org are all binary trees)
         self.morph_children_num = np.array([len(c)
@@ -375,7 +375,7 @@ class SpatialNeuron(NeuronGroup):
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
         '''
-        if name == 'main':  # Main segment, without the subtrees
+        if name == 'main':  # Main section, without the subtrees
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
             return SpatialSubgroup(neuron, start, stop + 1,
@@ -471,16 +471,16 @@ class SpatialStateUpdater(CodeRunner, Group):
                             order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False,
-                            template_kwds={'number_branches': sections})
+                            template_kwds={'number_sections': sections})
 
-        self.variables = Variables(self, default_index='_branch_idx')
+        self.variables = Variables(self, default_index='_section_idx')
         self.variables.add_reference('N', group)
         # One value per compartment
         self.variables.add_arange('_compartment_idx', size=compartments)
         self.variables.add_array('_invr', unit=siemens, size=compartments,
                                  constant=True, index='_compartment_idx')
-        # one value per branch
-        self.variables.add_arange('_branch_idx', size=sections)
+        # one value per section
+        self.variables.add_arange('_section_idx', size=sections)
         self.variables.add_array('_P_parent', unit=Unit(1), size=sections,
                                  constant=True)  # elements below diagonal
         self.variables.add_arrays(['_morph_idxchild', '_morph_parent_i',
@@ -488,16 +488,16 @@ class SpatialStateUpdater(CodeRunner, Group):
                                   size=sections, dtype=np.int32, constant=True)
         self.variables.add_arrays(['_invr0', '_invrn'], unit=siemens,
                                   size=sections, constant=True)
-        # one value per branch + 1 value for the root
-        self.variables.add_arange('_branch_root_idx', size=sections+1)
+        # one value per section + 1 value for the root
+        self.variables.add_arange('_section_root_idx', size=sections+1)
         self.variables.add_array('_P_diag', unit=Unit(1), size=sections+1,
-                                 constant=True, index='_branch_root_idx')
+                                 constant=True, index='_section_root_idx')
         self.variables.add_array('_B', unit=Unit(1), size=sections+1,
-                                 constant=True, index='_branch_root_idx')
+                                 constant=True, index='_section_root_idx')
         self.variables.add_array('_morph_children_num', unit=Unit(1),
                                  size=sections+1, dtype=np.int32,
-                                 constant=True, index='_branch_root_idx')
-        # 2D matrices of size (branches + 1) x max children per branch
+                                 constant=True, index='_section_root_idx')
+        # 2D matrices of size (sections + 1) x max children per section
         self.variables.add_arange('_morph_children_idx',
                                   size=len(group.flat_morphology.morph_children))
         self.variables.add_array('_P_children', unit=Unit(1),
