@@ -141,7 +141,8 @@ class StateUpdateMethod(object):
                             "using method '{method}' ({timing}).")
             logger.info(msg_text.format(group_name=group_name,
                                         method=the_method,
-                                        timing=timing), 'method_choice')
+                                        timing=timing), 'method_choice',
+                        once=True)
             return code
         else:
             if hasattr(method, '__call__'):
