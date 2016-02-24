@@ -855,6 +855,35 @@ def test_construction_incorrect_arguments():
 
 
 @attr('codegen-independent')
+def test_from_points_incorrect():
+    # The coordinates should be identical to the previous test
+    points = [
+              (1,  None, 0,                  0,                0,              10, -1),
+              (2,  None, 10,                 0,                0,              10,  1),
+              (2,  None, 20,                 0,                0,              10,  2),
+              ]
+    points2 = [
+              (1,  None, 0,                  0,                0,              10, -1),
+              (2,  None, 10,                 0,                0,              10,  1),
+              (3,  None, 20,                 0,                0,              10,  3),
+              ]
+    points3 = [
+              (1,  None, 0,                  0,                0,              10, -1),
+              (2,  None, 10,                 0,                0,              10,  1),
+              (3,  None, 20,                 0,                0,              10,  4),
+              ]
+    points4 = [
+              (1,  0,                  0,                0,              10, -1),
+              (2,  10,                 0,                0,              10,  1),
+              (3,  20,                 0,                0,              10,  2),
+              ]
+    assert_raises(ValueError, lambda: Morphology.from_points(points))
+    assert_raises(ValueError, lambda: Morphology.from_points(points2))
+    assert_raises(ValueError, lambda: Morphology.from_points(points3))
+    assert_raises(ValueError, lambda: Morphology.from_points(points4))
+
+
+@attr('codegen-independent')
 def test_subtree_deletion():
     soma = Soma(diameter=30*um)
     first_dendrite = Cylinder(n=5, diameter=5*um, length=50*um)
@@ -962,6 +991,8 @@ def test_subgroup_attributes():
 
     # Getting several compartments by position
     assert_allclose(morpho.L[3*um:5*um].distance, [3.5, 4.5]*um)
+    assert_allclose(morpho.L[3.5*um:4.5*um].distance, [3.5, 4.5]*um)
+
 
 @attr('codegen-independent')
 def test_subgroup_incorrect():
@@ -976,15 +1007,15 @@ def test_subgroup_incorrect():
 
     # Incorrect indexing
     #  wrong units or mixing units
-    assert_raises(TypeError, lambda: morpho.indices[3*second:5*second])
-    assert_raises(TypeError, lambda: morpho.indices[3.4:5.3])
-    assert_raises(TypeError, lambda: morpho.indices[3:5*um])
-    assert_raises(TypeError, lambda: morpho.indices[3*um:5])
+    assert_raises(TypeError, lambda: morpho[3*second:5*second])
+    assert_raises(TypeError, lambda: morpho[3.4:5.3])
+    assert_raises(TypeError, lambda: morpho[3:5*um])
+    assert_raises(TypeError, lambda: morpho[3*um:5])
     #   providing a step
-    assert_raises(TypeError, lambda: morpho.indices[3*um:5*um:2*um])
-    assert_raises(TypeError, lambda: morpho.indices[3:5:2])
+    assert_raises(TypeError, lambda: morpho[3*um:5*um:2*um])
+    assert_raises(TypeError, lambda: morpho[3:5:2])
     #   incorrect type
-    assert_raises(TypeError, lambda: morpho.indices[object()])
+    assert_raises(TypeError, lambda: morpho[object()])
 
 
 @attr('codegen-independent')
@@ -1072,6 +1103,7 @@ def test_copy_section_section():
     assert_allclose(sec_copy.y, sec.y)
     assert_allclose(sec_copy.z, sec.z)
     assert sec_copy.type is None
+
 
 @attr('codegen-independent')
 def test_copy_section_cylinder():
@@ -1320,6 +1352,7 @@ if __name__ == '__main__':
     test_tree_soma_from_points()
     test_tree_soma_from_swc()
     test_construction_incorrect_arguments()
+    test_from_points_incorrect()
     test_subtree_deletion()
     test_subgroup_indices()
     test_subgroup_attributes()
@@ -1335,4 +1368,3 @@ if __name__ == '__main__':
     test_generate_coordinates_no_overwrite()
     test_generate_coordinates_overwrite()
     test_generate_coordinates_mixed_overwrite()
-

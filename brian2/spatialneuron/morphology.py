@@ -745,6 +745,9 @@ class Morphology(object):
         # First pass through all points to get the dependency structure
         compartments = OrderedDict()
         for counter, point in enumerate(points):
+            if len(point) != 7:
+                raise ValueError('Each point needs to be described by 7 '
+                                 'values, got %d instead.' % len(point))
             index, comp_name, x, y, z, diameter, parent = point
             if index in compartments:
                 raise ValueError('Two compartments with index %d' % index)
