@@ -1002,6 +1002,104 @@ def test_topology():
         assert name in line
 
 
+@attr('codegen-independent')
+def test_copy_section_soma():
+    soma = Soma(diameter=30*um)
+    soma_copy = soma.copy_section()
+    assert soma_copy.diameter[0] == 30*um
+    assert soma_copy.x is None
+    assert soma_copy.y is None
+    assert soma_copy.z is None
+    assert soma_copy.type == 'soma'
+
+    soma = Soma(diameter=30*um, x=5*um, z=-10*um)
+    soma_copy = soma.copy_section()
+    assert soma_copy.diameter[0] == 30*um
+    assert_allclose(soma_copy.x[0], 5*um)
+    assert_allclose(soma_copy.y[0], 0*um)
+    assert_allclose(soma_copy.z[0], -10*um)
+    assert soma_copy.type == 'soma'
+
+
+@attr('codegen-independent')
+def test_copy_section_section():
+    # Without start diameter (no coordinates)
+    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5, length=100*um, type='dend')
+    sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
+    assert_allclose(sec_copy.length, sec.length)
+    assert sec_copy.n == sec.n
+    assert sec_copy.x is None
+    assert sec_copy.y is None
+    assert sec_copy.z is None
+    assert sec_copy.type == 'dend'
+
+    # With start diameter (no coordinates)
+    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5, length=100*um)
+    sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.start_diameter, sec.start_diameter)
+    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
+    assert_allclose(sec_copy.length, sec.length)
+    assert sec_copy.n == sec.n
+    assert sec_copy.x is None
+    assert sec_copy.y is None
+    assert sec_copy.z is None
+    assert sec_copy.type is None
+
+    # Without start diameter (with coordinates)
+    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5,
+                  x=[1, 2, 3, 4, 5]*um, y=[-1, -2, -3, -4, -5]*um)
+    sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
+    assert_allclose(sec_copy.length, sec.length)
+    assert sec_copy.n == sec.n
+    assert_allclose(sec_copy.x, sec.x)
+    assert_allclose(sec_copy.y, sec.y)
+    assert_allclose(sec_copy.z, sec.z)
+
+    assert sec_copy.type is None
+
+    # With start diameter (with coordinates)
+    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um,
+                  x=[0, 1, 2, 3, 4, 5]*um, y=[0, -1, -2, -3, -4, -5]*um,
+                  n=5)
+    sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.start_diameter, sec.start_diameter)
+    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
+    assert_allclose(sec_copy.length, sec.length)
+    assert sec_copy.n == sec.n
+    assert_allclose(sec_copy.x, sec.x)
+    assert_allclose(sec_copy.y, sec.y)
+    assert_allclose(sec_copy.z, sec.z)
+    assert sec_copy.type is None
+
+@attr('codegen-independent')
+def test_copy_section_cylinder():
+    # no coordinates
+    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5, length=100*um, type='dend')
+    sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
+    assert_allclose(sec_copy.length, sec.length)
+    assert sec_copy.n == sec.n
+    assert sec_copy.x is None
+    assert sec_copy.y is None
+    assert sec_copy.z is None
+    assert sec_copy.type == 'dend'
+
+    # with coordinates
+    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5,
+                  x=[1, 2, 3, 4, 5]*um, y=[-1, -2, -3, -4, -5]*um)
+    sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
+    assert_allclose(sec_copy.length, sec.length)
+    assert sec_copy.n == sec.n
+    assert_allclose(sec_copy.x, sec.x)
+    assert_allclose(sec_copy.y, sec.y)
+    assert_allclose(sec_copy.z, sec.z)
+
+    assert sec_copy.type is None
+
+
 if __name__ == '__main__':
     test_attributes_soma()
     test_attributes_soma_coordinates()
@@ -1029,3 +1127,6 @@ if __name__ == '__main__':
     test_subgroup_attributes()
     test_subgroup_incorrect()
     test_topology()
+    test_copy_section_soma()
+    test_copy_section_section()
+    test_copy_section_cylinder()

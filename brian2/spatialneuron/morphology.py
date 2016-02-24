@@ -4,6 +4,7 @@ This module defines classes to load and build neuronal morphologies.
 '''
 import abc
 import numbers
+from abc import abstractmethod
 from collections import OrderedDict, defaultdict
 import os
 
@@ -527,6 +528,19 @@ class Morphology(object):
         return _add_coordinates(self, section_randomness=section_randomness,
                                 compartment_randomness=compartment_randomness)
 
+    @abstractmethod
+    def copy_section(self):
+        '''
+        Create a copy of the current section (attributes of this section only,
+        not re-creating the parent/children relation)
+
+        Returns
+        -------
+        copy : `Morphology`
+            A copy of this section (without the links to the parent/children)
+        '''
+        pass
+
     @property
     def n(self):
         return self._n
@@ -996,6 +1010,10 @@ class Soma(Morphology):
         self._y = np.atleast_1d(y) if y is not None else default_value
         self._z = np.atleast_1d(z) if z is not None else default_value
 
+    def copy_section(self):
+        return Soma(self.diameter, x=self.x, y=self.y, z=self.z,
+                    type=self.type)
+
     # Note that the per-compartment properties should always return 1D arrays,
     # i.e. for the soma arrays of length 1 instead of scalar values
     @property
@@ -1221,6 +1239,21 @@ class Section(Morphology):
         self._z = z
 
         self._length = length
+
+    def copy_section(self):
+        if self.x is None:
+            x, y, z = None, None, None
+            length = self.length
+        else:
+            x, y, z = self._x, self._y, self._z
+            length = None
+        if self._start_diameter is None:
+            diameter = self._diameter
+        else:
+            diameter = np.hstack([np.asarray(self._start_diameter),
+                                  np.asarray(self._diameter)])*meter
+        return Section(diameter=diameter, n=self.n, x=x, y=y, z=z, length=length,
+                       type=self.type)
 
     @property
     def area(self):
@@ -1507,8 +1540,16 @@ class Cylinder(Section):
         self._y = y
         self._z = z
 
-    # Overwrite the properties that differ from `Section`
+    def copy_section(self):
+        if self.x is None:
+            return Cylinder(self.diameter, n=self.n, length=self.length,
+                            type=self.type)
+        else:
+            return Cylinder(self.diameter, n=self.n,
+                            x=self._x, y=self._y, z=self._z,
+                            type=self.type)
 
+    # Overwrite the properties that differ from `Section`
     @property
     def area(self):
         return np.pi * self._diameter * self.length
