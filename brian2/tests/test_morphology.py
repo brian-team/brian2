@@ -987,6 +987,21 @@ def test_subgroup_incorrect():
     assert_raises(TypeError, lambda: morpho.indices[object()])
 
 
+@attr('codegen-independent')
+def test_topology():
+    soma = Soma(diameter=30*um)
+    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    soma.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    soma.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    soma.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    str_topology = str(soma.topology())
+    lines = [l for l in str_topology.split('\n') if len(l.strip())]
+    assert len(lines) == 5  # one line for each section
+    for line, name in zip(lines, ['root', '.L', '.R', '.R.left', 'R.right']):
+        assert name in line
+
+
 if __name__ == '__main__':
     test_attributes_soma()
     test_attributes_soma_coordinates()
@@ -1013,3 +1028,4 @@ if __name__ == '__main__':
     test_subgroup_indices()
     test_subgroup_attributes()
     test_subgroup_incorrect()
+    test_topology()

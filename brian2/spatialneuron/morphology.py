@@ -71,26 +71,27 @@ def _find_start_index(current, target_section, index=0):
     return index, False
 
 
-def _str_topology(morphology, indent=0, right_column=60, named_path='',
-              parent=None):
+def _str_topology(morphology, indent=0, named_path='',
+                  compartments_divisor=1, parent=None):
     description = ' '*indent
+    length = max([1, morphology.n//compartments_divisor])
     if parent is not None:
-        description += '|'
+        description += '`'
     if isinstance(morphology, Soma):
         description += '( )'
     else:
-        if len(morphology.children) == 0:
-            description += '=)'
-        else:
-            description += '=\\'
-    padding = right_column - len(description)
-    description += ' '*padding
-    description += named_path + '\n'
+        description += '-' * length
+        description += '|'
+    if len(named_path) == 0:
+        description += '  [root] \n'
+    else:
+        description += '  ' + named_path + '\n'
     for child in morphology.children:
         name = morphology.children.name(child)
-        description += _str_topology(child, indent=indent+2,
-                                 named_path=named_path+'.'+name,
-                                 parent=morphology)
+        description += _str_topology(child, indent=indent+2+length,
+                                     named_path=named_path+'.'+name,
+                                     compartments_divisor=compartments_divisor,
+                                     parent=morphology)
     return description
 
 
@@ -99,7 +100,9 @@ class Topology(object):
         self.morphology = morphology
 
     def __str__(self):
-        return _str_topology(self.morphology)
+        # TODO: Make sure that the shown compartments do not get out of hand
+        divisor = 1
+        return _str_topology(self.morphology, compartments_divisor=divisor)
 
     __repr__ = __str__
 
