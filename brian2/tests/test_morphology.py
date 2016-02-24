@@ -1100,6 +1100,204 @@ def test_copy_section_cylinder():
     assert sec_copy.type is None
 
 
+def _check_length_coord_consistency(morph_with_coords):
+    if not isinstance(morph_with_coords, Soma):
+        vectors = np.diff(morph_with_coords.plot_coordinates, axis=0)
+        calculated_length = np.sqrt(np.sum(vectors**2, axis=1))
+        assert_allclose(calculated_length, morph_with_coords.length)
+    for child in morph_with_coords.children:
+        _check_length_coord_consistency(child)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_deterministic():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    morph_with_coords = morph.generate_coordinates()
+    assert len(morph_with_coords) == len(morph)
+    assert morph_with_coords.n_sections == morph.n_sections
+
+    for new, old in [(morph_with_coords, morph),
+                     (morph_with_coords.L, morph.L),
+                     (morph_with_coords.R, morph.R),
+                     (morph_with_coords.R.left, morph.R.left),
+                     (morph_with_coords.R.right, morph.R.right)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+        # The morphology should be in the x/y plane
+        assert_equal(new.z, 0*um)
+
+    _check_length_coord_consistency(morph_with_coords)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_random_sections():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    morph_with_coords = morph.generate_coordinates(section_randomness=25)
+    assert len(morph_with_coords) == len(morph)
+    assert morph_with_coords.n_sections == morph.n_sections
+
+    for new, old in [(morph_with_coords, morph),
+                     (morph_with_coords.L, morph.L),
+                     (morph_with_coords.R, morph.R),
+                     (morph_with_coords.R.left, morph.R.left),
+                     (morph_with_coords.R.right, morph.R.right)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+
+    _check_length_coord_consistency(morph_with_coords)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_random_compartments():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
+    assert len(morph_with_coords) == len(morph)
+    assert morph_with_coords.n_sections == morph.n_sections
+
+    for new, old in [(morph_with_coords, morph),
+                     (morph_with_coords.L, morph.L),
+                     (morph_with_coords.R, morph.R),
+                     (morph_with_coords.R.left, morph.R.left),
+                     (morph_with_coords.R.right, morph.R.right)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+
+    _check_length_coord_consistency(morph_with_coords)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_random_all():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    morph_with_coords = morph.generate_coordinates(section_randomness=25,
+                                                   compartment_randomness=15)
+    assert len(morph_with_coords) == len(morph)
+    assert morph_with_coords.n_sections == morph.n_sections
+
+    for new, old in [(morph_with_coords, morph),
+                     (morph_with_coords.L, morph.L),
+                     (morph_with_coords.R, morph.R),
+                     (morph_with_coords.R.left, morph.R.left),
+                     (morph_with_coords.R.right, morph.R.right)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+
+    _check_length_coord_consistency(morph_with_coords)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_no_overwrite():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
+    # This should not change anything because the morphology already has coordinates!
+    morph_with_coords2 = morph_with_coords.generate_coordinates(section_randomness=25,
+                                                                compartment_randomness=15)
+
+    for new, old in [(morph_with_coords2, morph_with_coords),
+                     (morph_with_coords2.L, morph_with_coords.L),
+                     (morph_with_coords2.R, morph_with_coords.R),
+                     (morph_with_coords2.R.left, morph_with_coords.R.left),
+                     (morph_with_coords2.R.right, morph_with_coords.R.right)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+        assert_allclose(new.x, old.x)
+        assert_allclose(new.y, old.y)
+        assert_allclose(new.z, old.z)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_overwrite():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
+    # This should change things since we explicitly ask for it
+    morph_with_coords2 = morph_with_coords.generate_coordinates(section_randomness=25,
+                                                                compartment_randomness=15,
+                                                                overwrite_existing=True)
+
+    for new, old in [# ignore the root compartment
+                     (morph_with_coords2.L, morph_with_coords.L),
+                     (morph_with_coords2.R, morph_with_coords.R),
+                     (morph_with_coords2.R.left, morph_with_coords.R.left),
+                     (morph_with_coords2.R.right, morph_with_coords.R.right)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+        assert all(np.abs(new.x - old.x) > 0)
+        assert all(np.abs(new.y - old.y) > 0)
+        assert all(np.abs(new.z - old.z) > 0)
+
+    _check_length_coord_consistency(morph_with_coords2)
+
+
+@attr('codegen-independent')
+def test_generate_coordinates_mixed_overwrite():
+    morph = Soma(diameter=30*um)
+    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
+    morph_with_coords = morph.generate_coordinates(section_randomness=25,
+                                                   compartment_randomness=15)
+    # The following just returns a copy, as all coordinates are already
+    # specified
+    morph_copy = morph_with_coords.generate_coordinates()
+
+    # Add new sections that do not yet have coordinates
+    morph_with_coords.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
+    morph_with_coords.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+
+    # This should change things since we explicitly ask for it
+    morph_with_coords2 = morph_with_coords.generate_coordinates(section_randomness=25,
+                                                                compartment_randomness=15)
+
+    for new, old in [(morph_with_coords2, morph_with_coords),
+                     (morph_with_coords2.L, morph_with_coords.L),
+                     (morph_with_coords2.R, morph_with_coords.R)]:
+        assert new.n == old.n
+        assert_allclose(new.length, old.length)
+        assert_allclose(new.diameter, old.diameter)
+        assert_allclose(new.x, old.x)
+        assert_allclose(new.y, old.y)
+        assert_allclose(new.z, old.z)
+
+    assert morph_with_coords.R.left.x is None
+    assert len(morph_with_coords2.R.left.x) == morph_with_coords2.R.left.n
+
+    _check_length_coord_consistency(morph_with_coords2)
+
+
 if __name__ == '__main__':
     test_attributes_soma()
     test_attributes_soma_coordinates()
@@ -1130,3 +1328,11 @@ if __name__ == '__main__':
     test_copy_section_soma()
     test_copy_section_section()
     test_copy_section_cylinder()
+    test_generate_coordinates_deterministic()
+    test_generate_coordinates_random_sections()
+    test_generate_coordinates_random_compartments()
+    test_generate_coordinates_random_all()
+    test_generate_coordinates_no_overwrite()
+    test_generate_coordinates_overwrite()
+    test_generate_coordinates_mixed_overwrite()
+

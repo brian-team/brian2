@@ -149,7 +149,8 @@ def _perturb(vec, sigma):
 
 def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
                      section_randomness=0.0, compartment_randomness=0.0,
-                     n_th_child=0, total_children=0):
+                     n_th_child=0, total_children=0,
+                     overwrite_existing=False):
     # Note that in the following, all values are without physical units
 
     # The new direction is based on the direction of the parent section
@@ -164,8 +165,9 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
             section_dir /= parent_dir_norm
         else:
             section_dir = np.array([0, 0, 0])
-
-    if isinstance(orig_morphology, Soma):
+    if not overwrite_existing and orig_morphology.x is not None:
+        section = orig_morphology.copy_section()
+    elif isinstance(orig_morphology, Soma):
         # No perturbation for the soma
         section = Soma(diameter=orig_morphology.diameter,
                        x=section_dir[0]*meter,
@@ -222,8 +224,14 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
             start_coords = current_coords
 
         # create the new section
+        if np.isnan(orig_morphology.start_diameter[0]) or isinstance(orig_morphology, Cylinder):
+            diameter = orig_morphology.end_diameter
+        else:
+            diameter = np.hstack([np.asarray(orig_morphology.start_diameter[0]),
+                                  np.asarray(orig_morphology.end_diameter)])*meter
+
         section = type(orig_morphology)(n=orig_morphology.n,
-                                        diameter=orig_morphology.diameter,
+                                        diameter=diameter,
                                         x=coordinates[:, 0],
                                         y=coordinates[:, 1],
                                         z=coordinates[:, 2],
@@ -238,7 +246,8 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
                          name=orig_morphology.children.name(child),
                          n_th_child=idx, total_children=len(orig_morphology.children),
                          section_randomness=section_randomness,
-                         compartment_randomness=compartment_randomness)
+                         compartment_randomness=compartment_randomness,
+                         overwrite_existing=overwrite_existing)
     return section
 
 class Children(object):
@@ -494,7 +503,8 @@ class Morphology(object):
 
     def generate_coordinates(self,
                              section_randomness=0.0,
-                             compartment_randomness=0.0):
+                             compartment_randomness=0.0,
+                             overwrite_existing=False):
         '''
         Create a new `Morphology`, with coordinates filled in place where the
         previous morphology did not have any. This is mostly useful for
@@ -509,13 +519,26 @@ class Morphology(object):
             determine the deviation from the direction of the parent section.
             If the given value equals 0 (the default), then a deterministic
             algorithm will be used instead.
-        compartment_randomness : float, optionals
+        compartment_randomness : float, optional
             The randomness when deciding the direction vector for each
             compartment within a section. The given number is the :math:`\beta`
             parameter of an exponential distribution (in degrees) which will be
             used to determine the deviation from the main direction of the
             current section. If the given value equals 0 (the default), then all
             compartments will be along a straight line.
+        overwrite_existing : bool, optional
+            Whether to overwrite existing coordinates in the morphology. This
+            is by default set to ``False``, meaning that only sections that do
+            not currently have any coordinates set will get new coordinates.
+            This allows to conveniently generate a morphology that can be
+            plotted for a morphology that is based on points but also has
+            artificially added sections (the most common case: an axon added
+            to a reconstructed morphology). If set to ``True``, all sections
+            will get new coordinates. This can be useful to either get a
+            schematic representation of the morphology (with
+            ``section_randomness`` and ``compartment_randomness`` both 0) or to
+            simply generate a new random variation of a morphology (which will
+            still be electrically equivalent, of course).
 
         Returns
         -------
@@ -526,7 +549,8 @@ class Morphology(object):
         section_randomness *= np.pi/180
         compartment_randomness *= np.pi/180
         return _add_coordinates(self, section_randomness=section_randomness,
-                                compartment_randomness=compartment_randomness)
+                                compartment_randomness=compartment_randomness,
+                                overwrite_existing=overwrite_existing)
 
     @abstractmethod
     def copy_section(self):
