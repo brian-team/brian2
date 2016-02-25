@@ -104,7 +104,7 @@ def to_svg(morphology):
                                             length=length/um,
                                             center=center/um))
             summed_length += length + 3*um
-        return HEADER.format(minx=minx, miny=-1, width=summed_length/um+0.5, height=center*2/um+2) + ('\n'.join(elements)) + FOOTER
+        return HEADER.format(minx=minx, miny=-1, width=summed_length/um+0.5-minx, height=center*2/um+2) + ('\n'.join(elements)) + FOOTER
     elif isinstance(morphology, Section):
         summed_length = 0*um
         elements = []
@@ -131,7 +131,7 @@ def to_svg(morphology):
                                             length=length/um,
                                             center=center/um))
             summed_length += length + 3*um
-        return HEADER.format(minx=minx, miny=-1, width=summed_length/um+1.5,
+        return HEADER.format(minx=minx, miny=-1, width=summed_length/um+1.5-minx,
                              height=center*2/um+2) + ('\n'.join(elements)) + FOOTER
     else:
         raise NotImplementedError()
@@ -148,8 +148,8 @@ if __name__ == '__main__':
     root.sec_2 = Section(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)
     root.sec_3 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)
     root.sec_4 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)
-    root.sec_5 = Section(n=5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=50*um)
-    root.sec_6 = Section(n=5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)
+    root.sec_5 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=50*um)
+    root.sec_6 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=[10, 20, 5, 5, 10]*um)
     for filename, morpho in [('soma.svg', Soma(diameter=30*um)),
                              ('cylinder_1.svg', root.cyl_1),
                              ('cylinder_2.svg', root.cyl_2),

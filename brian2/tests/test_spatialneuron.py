@@ -540,8 +540,8 @@ def test_basic_diffusion():
 
     morph = Soma(diameter=30*um)
     morph.axon = Cylinder(n=10, diameter=10*um, length=100*um)
-    morph.dend = Section(n=10, diameter=[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.1]*um,
-                         length=100*um)
+    morph.dend = Section(n=10, diameter=[9, 8, 7, 6, 5, 4, 3, 2, 1, 0.1]*um,
+                         start_diameter=10*um, length=100*um)
 
     neuron = SpatialNeuron(morph, eqs)
     neuron.v = EL

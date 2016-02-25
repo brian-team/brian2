@@ -12,7 +12,7 @@ from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
 from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
-                                           check_units)
+                                           check_units, DimensionMismatchError)
 from brian2 import numpy as np
 
 logger = get_logger(__name__)
@@ -202,40 +202,40 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
 
         # For a soma, we let child sections begin at the surface of the sphere
         if isinstance(parent, Soma):
-            use_start = True
-            start_coords = np.hstack([parent.x, parent.y, parent.z])*meter + parent.diameter/2*section_dir
-            coordinates = np.zeros((orig_morphology.n + 1, 3))*meter
-            coordinates[0, :] = start_coords
+            origin = np.hstack([parent.x, parent.y, parent.z])*meter + parent.diameter/2*section_dir
         else:
-            use_start = False
-            start_coords = np.zeros(3)*meter  # relative coordinates
-            coordinates = np.zeros((orig_morphology.n, 3))*meter
-
+            origin = None
+        coordinates = np.zeros((orig_morphology.n, 3))*meter
+        start_coords = [0, 0, 0]*um
         # Perturb individual compartments as well
         for idx, length in enumerate(orig_morphology.length):
             compartment_dir = _perturb(section_dir, compartment_randomness)
             compartment_dir_norm = np.sqrt(np.sum(compartment_dir**2))
             compartment_dir /= compartment_dir_norm
             current_coords = start_coords + length*compartment_dir
-            if use_start:
-                coordinates[idx + 1, :] = current_coords
-            else:
-                coordinates[idx, :] = current_coords
+            coordinates[idx, :] = current_coords
             start_coords = current_coords
 
-        # create the new section
-        if np.isnan(orig_morphology.start_diameter[0]) or isinstance(orig_morphology, Cylinder):
-            diameter = orig_morphology.end_diameter
+        if isinstance(orig_morphology, Cylinder):
+            section = Cylinder(n=orig_morphology.n,
+                               diameter=orig_morphology.diameter,
+                               x=coordinates[:, 0],
+                               y=coordinates[:, 1],
+                               z=coordinates[:, 2],
+                               origin=origin,
+                               type=orig_morphology.type)
+        elif isinstance(orig_morphology, Section):
+            section = Section(n=orig_morphology.n,
+                              diameter=orig_morphology.end_diameter,
+                              start_diameter=orig_morphology.start_diameter[0],
+                              x=coordinates[:, 0],
+                              y=coordinates[:, 1],
+                              z=coordinates[:, 2],
+                              origin=origin,
+                              type=orig_morphology.type)
         else:
-            diameter = np.hstack([np.asarray(orig_morphology.start_diameter[0]),
-                                  np.asarray(orig_morphology.end_diameter)])*meter
-
-        section = type(orig_morphology)(n=orig_morphology.n,
-                                        diameter=diameter,
-                                        x=coordinates[:, 0],
-                                        y=coordinates[:, 1],
-                                        z=coordinates[:, 2],
-                                        type=orig_morphology.type)
+            raise NotImplementedError(('Do not know how to deal with section of '
+                                       'type %s.' % type(orig_morphology)))
     if parent is None:
         root = section
     else:
@@ -692,18 +692,32 @@ class Morphology(object):
                                                              parent.end_y[-1]/um,
                                                              parent.end_z[-1]/um,
                                                              parent.end_diameter[-1]/um)
-            sec_x = [parent_x] + list(sec_x)
-            sec_y = [parent_y] + list(sec_y)
-            sec_z = [parent_z] + list(sec_z)
             if isinstance(parent, Soma):
                 # For a Soma, we don't use its diameter
-                parent_diameter = sec_diameter[0]
-            sec_diameter = [parent_diameter] + list(sec_diameter)
+                start_diameter = sec_diameter[0]
+            else:
+                start_diameter = None
+            # Use relative coordinates
+            origin = (parent_x, parent_y, parent_z)
+            sec_x = np.array(sec_x) - parent_x
+            sec_y = np.array(sec_y) - parent_y
+            sec_z = np.array(sec_z) - parent_z
         else:
             n = len(current_compartments) - 1
-        section = Section(n=n, diameter=sec_diameter * um,
-                          x=sec_x * um, y=sec_y * um, z=sec_z * um,
-                          type=previous_name)
+            start_diameter = sec_diameter[0]
+            sec_diameter = sec_diameter[1:]
+            sec_x = sec_x[1:]
+            sec_y = sec_y[1:]
+            sec_z = sec_z[1:]
+            origin = None
+        if start_diameter is not None:
+            start_diameter *= um
+        if origin is not None:
+            origin *= um
+        section = Section(n=n, diameter=sec_diameter*um,
+                          start_diameter=start_diameter,
+                          x=sec_x*um, y=sec_y*um, z=sec_z*um,
+                          origin=origin, type=previous_name)
         return section
 
     @staticmethod
@@ -1131,13 +1145,15 @@ class Section(Morphology):
     ----------
     diameter : `Quantity`
         Either a single value (the constant diameter along the whole section),
-        or a value of length ``n`` or ``n+1``. When ``n`` values are given, they
+        or a value of length ``n``. When ``n`` values are given, they
         will be interpreted as the diameter at the ends of each compartment. In
         this case, the diameter at the start of the first compartment will be
-        taken as the diameter at the end of the parent compartment (i.e., the
-        connection will be continuous). When ``n+1`` values are given, then the
-        first value specifies the diameter at the start of the compartment and
-        the following values the diameter at the ends of each compartment.
+        taken as the diameter at the end of the parent compartment (see
+        ``start_diameter`` argument).
+    start_diameter : `Quantity`, optional
+        The diameter at the beginning of the first compartment. If not specified
+        (the default), then the diameter is set identical to the diameter at the
+        end of the parent compartment, i.e. the connection is continuous.
     n : int, optional
         The number of compartments in this section. Defaults to 1.
     length : `Quantity`, optional
@@ -1146,26 +1162,29 @@ class Section(Morphology):
         combined with the specification of coordinates.
     x : `Quantity`, optional
         ``n`` values, specifying the x coordinates of the end-points of the
-        compartments, or ``n``+1 values, specifying the x coordinate at the
-        start-point of the first compartment and the x coordinates at the
-        end-points of all compartments. If only ``n`` points are specified, the
-        start point of the first compartment is considered to be the end-point
-        of the previous compartment. In that case, all coordinates are
-        considered to be relative to this point.
+        compartments, or a single value, specifying the x coordinate at the end
+        of the last compartment. All coordinates will be taken as relative to
+        the end point of the parent compartment, or relative to the point given
+        as ``origin`` (if specified).
         You can specify all of ``x``, ``y``, or ``z`` to specify
         a morphology in 3D, or only one or two out of them to specify a
-        morphology in 1D or 2D (the non-specified components will be considered
-        as 0)
+        morphology in 1D or 2D.
     y : `Quantity`, optional
         See ``x``
     z : `Quantity`, optional
         See ``x``
+    origin : `Quantity`, optional
+        The reference point for the coordinates. Useful to (visually) connect
+        a section to points on the surface of a soma (instead of connecting
+        them to the center of the soma). Defaults to the end point of the
+        parent compartment.
     type : str, optional
         The type (e.g. ``"axon"``) of this `Section`.
     '''
-    @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
+    @check_units(n=1, length=meter, diameter=meter, start_diameter=meter,
+                 x=meter, y=meter, z=meter)
     def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
-                 type=None):
+                 start_diameter=None, origin=None, type=None):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
 
@@ -1175,22 +1194,22 @@ class Section(Morphology):
         if diameter.shape == ():
             self._start_diameter = None
             self._diameter = np.ones(n) * diameter
-        elif len(diameter) == n:
-            self._start_diameter = None
+        elif diameter.ndim == 1 and len(diameter) == n:
+            self._start_diameter = start_diameter
             self._diameter = diameter
-        elif len(diameter) == n+1:
-            self._start_diameter = diameter[0]
-            self._diameter = diameter[1:]
         else:
-            raise TypeError(('Need to specify a single value or %d or %d values '
-                 'for the diameter, got %d values '
-                 'instead') % (n, n+1, len(diameter)))
+            raise TypeError(('The diameter argument has to be a single value '
+                             'or a one-dimensional array of length %d, but '
+                             'it had shape %s instead.') % (n, diameter.shape))
 
         if length is not None:
             # Specification by length
             if x is not None or y is not None or z is not None:
                 raise TypeError('Cannot use both lengths and coordinates to '
                                 'specify a section.')
+            if origin is not None:
+                raise TypeError('Cannot specify an origin when providing a '
+                                'length.')
             length = np.atleast_1d(length)
             if length.ndim > 1:
                 raise TypeError('The length argument has to be a single value '
@@ -1207,63 +1226,53 @@ class Section(Morphology):
                 raise TypeError('No length specified, need to specify at least '
                                 'one out of x, y, or z.')
             value_shape = None
-            include_startpoints = False
             for name, value in [('x', x), ('y', y), ('z', z)]:
                 if value is not None:
                     if value_shape is not None and value.shape != value_shape:
                         raise TypeError('All coordinate arrays have to have '
                                         'the same length.')
-                    if value.shape not in [(), (n,), (n+1, )]:
+                    if value.shape != () and len(value) != n:
                         raise TypeError(('Coordinates need to be a single '
                                          'value or one-dimensional arrays of '
-                                         'length %d or %d, but the array '
+                                         'length %d, but the array '
                                          'provided for %s has shape '
-                                         '%s') % (n, n+1, name, value.shape))
-                    elif value.shape == (n+1, ):
-                        include_startpoints = True
-                        if self._start_diameter is None:
-                            raise TypeError('If start coordinates have been given,'
-                                            'then the diameter at the start has to '
-                                            'be given as well.')
-            if (include_startpoints and any([coord is not None and coord.shape != (n+1, )
-                         for coord in x, y, z])):
-                raise TypeError('If one coordinate is specified with absolute '
-                                'coordinates, then all coordinates have to be '
-                                'specified in this way.')
-            default_value = np.zeros(n+1)*meter if include_startpoints else np.zeros(n)*meter
-            x = x if x is not None else default_value
-            y = y if y is not None else default_value
-            z = z if z is not None else default_value
+                                         '%s') % (n, name, value.shape))
+                    value_shape = value.shape
+
+            if origin is not None:
+                try:
+                    if not len(origin) == 3:
+                        raise TypeError()
+                    origin = Quantity(origin, copy=True)
+                    if origin.dim != meter.dim:
+                        raise DimensionMismatchError('Values provided for the '
+                                                     'origin have to be in '
+                                                     'meters.', origin)
+                except TypeError:
+                    raise TypeError('origin argument has to be a tuple with 3 '
+                                    'values')
+            x = x if x is not None else 0*meter
+            y = y if y is not None else 0*meter
+            z = z if z is not None else 0*meter
             x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
             y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
             z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
-            if len(x) == n:
-                # Relative to start of the section
-                start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
-                start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
-                start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
-                end_x = x
-                end_y = y
-                end_z = z
-            else:
-                # Absolute coordinates
-                start_x = x[:-1]
-                start_y = y[:-1]
-                start_z = z[:-1]
-                end_x = x[1:]
-                end_y = y[1:]
-                end_z = z[1:]
+            # Relative to start of the section
+            start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
+            start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
+            start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
+            end_x = x
+            end_y = y
+            end_z = z
             length = np.sqrt((end_x - start_x)**2 +
                              (end_y - start_y)**2 +
                              (end_z - start_z)**2)
 
-            x = x if x is not None else np.zeros(n)*meter
-            y = y if y is not None else np.zeros(n)*meter
-            z = z if z is not None else np.zeros(n)*meter
-
         self._x = x
         self._y = y
         self._z = z
+
+        self._origin = origin
 
         self._length = length
 
@@ -1274,13 +1283,9 @@ class Section(Morphology):
         else:
             x, y, z = self._x, self._y, self._z
             length = None
-        if self._start_diameter is None:
-            diameter = self._diameter
-        else:
-            diameter = np.hstack([np.asarray(self._start_diameter),
-                                  np.asarray(self._diameter)])*meter
-        return Section(diameter=diameter, n=self.n, x=x, y=y, z=z, length=length,
-                       type=self.type)
+        return Section(diameter=self._diameter, start_diameter=self._start_diameter,
+                       n=self.n, x=x, y=y, z=z, length=length,
+                       origin=self._origin, type=self.type)
 
     @property
     def area(self):
@@ -1366,88 +1371,85 @@ class Section(Morphology):
     def start_x(self):
         if self._x is None:
             return None
-        if len(self._x) == self.n:
-            if self._parent is not None and self._parent.end_x is not None:
-                parent_x = self._parent.end_x[-1]
+        if self._origin is None:
+            parent = self._parent
+            if parent is None or parent.end_x is None:
+                origin = 0*um
             else:
-                parent_x = 0*meter
-            # Note that numpy's hstack function does not conserve units
-            return np.hstack([0, np.asarray(self._x)[:-1]])*meter + parent_x
+                origin = parent.end_x[-1]
         else:
-            # Do not return the last point (end point of the last compartment)
-            return self._x[:self.n]
+            origin = self._origin[0]
+        return origin + np.hstack([0, np.asarray(self._x[:-1])])*meter
 
     @property
     def start_y(self):
         if self._y is None:
             return None
-        if len(self._y) == self.n:
-            if self._parent is not None and self._parent.end_y is not None:
-                parent_y = self._parent.end_y[-1]
+        if self._origin is None:
+            parent = self._parent
+            if parent is None or parent.end_y is None:
+                origin = 0*um
             else:
-                parent_y = 0*meter
-            # Note that numpy's hstack function does not conserve units
-            return np.hstack([0, np.asarray(self._y)[:-1]])*meter + parent_y
+                origin = parent.end_y[-1]
         else:
-            # Do not return the last point (end point of the last compartment)
-            return self._y[:self.n]
+            origin = self._origin[1]
+        return origin + np.hstack([0, np.asarray(self._y[:-1])])*meter
 
     @property
     def start_z(self):
         if self._z is None:
             return None
-        if len(self._z) == self.n:
-            if self._parent is not None and self._parent.end_z is not None:
-                parent_z = self._parent.end_z[-1]
+        if self._origin is None:
+            parent = self._parent
+            if parent is None or parent.end_z is None:
+                origin = 0*um
             else:
-                parent_z = 0*meter
-            # Note that numpy's hstack function does not conserve units
-            return np.hstack([0, np.asarray(self._z)[:-1]])*meter + parent_z
+                origin = parent.end_z[-1]
         else:
-            # Do not return the last point (end point of the last compartment)
-            return self._z[:self.n]
+            origin = self._origin[2]
+        return origin + np.hstack([0, np.asarray(self._z[:-1])])*meter
 
     @property
     def end_x(self):
         if self._x is None:
             return None
-        elif len(self._x) == self.n:
-            if self._parent is not None and self._parent.end_x is not None:
-                parent_x = self._parent.end_x[-1]
+        if self._origin is None:
+            parent = self._parent
+            if parent is None or parent.end_x is None:
+                origin = 0*um
             else:
-                parent_x = 0*meter
-            return self._x + parent_x
+                origin = parent.end_x[-1]
         else:
-            # Do not return the first point (start point)
-            return self._x[1:]
+            origin = self._origin[0]
+        return origin + self._x
 
     @property
     def end_y(self):
         if self._y is None:
             return None
-        elif len(self._y) == self.n:
-            if self._parent is not None and self._parent.end_y is not None:
-                parent_y = self._parent.end_y[-1]
+        if self._origin is None:
+            parent = self._parent
+            if parent is None or parent.end_y is None:
+                origin = 0*um
             else:
-                parent_y = 0*meter
-            return self._y + parent_y
+                origin = parent.end_y[-1]
         else:
-            # Do not return the first point (start point)
-            return self._y[1:]
+            origin = self._origin[1]
+        return origin + self._y
 
     @property
     def end_z(self):
         if self._z is None:
             return None
-        elif len(self._z) == self.n:
-            if self._parent is not None and self._parent.end_z is not None:
-                parent_z = self._parent.end_z[-1]
+        if self._origin is None:
+            parent = self._parent
+            if parent is None or parent.end_z is None:
+                origin = 0*um
             else:
-                parent_z = 0*meter
-            return self._z + parent_z
+                origin = parent.end_z[-1]
         else:
-            # Do not return the first point (start point)
-            return self._z[1:]
+            origin = self._origin[2]
+        return origin + self._z
 
 
 class Cylinder(Section):
@@ -1467,26 +1469,28 @@ class Cylinder(Section):
         combined with the specification of coordinates.
     x : `Quantity`, optional
         ``n`` values, specifying the x coordinates of the end-points of the
-        compartments, or ``n``+1 values, specifying the x coordinate at the
-        start-point of the first compartment and the x coordinates at the
-        end-points of all compartments. If only ``n`` points are specified, the
-        start point of the first compartment is considered to be the end-point
-        of the previous compartment. In that case, all coordinates are
-        considered to be relative to this point.
+        compartments, or a single value, specifying the x coordinate at the end
+        of the last compartment. All coordinates will be taken as relative to
+        the end point of the parent compartment, or relative to the point given
+        as ``origin`` (if specified).
         You can specify all of ``x``, ``y``, or ``z`` to specify
         a morphology in 3D, or only one or two out of them to specify a
-        morphology in 1D or 2D (the non-specified components will be considered
-        as 0). Cannot be combined with the specification of ``length``.
+        morphology in 1D or 2D.
     y : `Quantity`, optional
         See ``x``
     z : `Quantity`, optional
         See ``x``
+    origin : `Quantity`, optional
+        The reference point for the coordinates. Useful to (visually) connect
+        a section to points on the surface of a soma (instead of connecting
+        them to the center of the soma). Defaults to the end point of the
+        parent compartment.
     type : str, optional
         The type (e.g. ``"axon"``) of this `Section`.
     '''
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
-                 type=None):
+                 origin=None, type=None):
         n = int(n)
         Morphology.__init__(self, n=n, type=type)
 
@@ -1506,6 +1510,9 @@ class Cylinder(Section):
             if x is not None or y is not None or z is not None:
                 raise TypeError('Cannot use both lengths and coordinates to '
                                 'specify a section.')
+            if origin is not None:
+                raise TypeError('Cannot specify an origin when providing a '
+                                'length.')
             length = np.atleast_1d(length)
             if length.ndim > 1:
                 raise TypeError('The length argument has to be a single value '
@@ -1521,47 +1528,36 @@ class Cylinder(Section):
             if x is None and y is None and z is None:
                 raise TypeError('No length specified, need to specify at least '
                                 'one out of x, y, or z.')
-            include_startpoints = False
+            value_shape = None
             for name, value in [('x', x), ('y', y), ('z', z)]:
-                if value is not None and value.shape not in [(), (n, ), (n+1, )]:
-                    raise TypeError(('Coordinates need to be single values or '
-                                     'one-dimensional arrays of length %d or '
-                                     '%d but the array provided for %s has '
-                                     'shape %s') % (n, n+1, name, value.shape))
-                elif value is not None and value.shape == (n+1,):
-                    include_startpoints = True
-            if (include_startpoints and any([coord is not None and coord.shape != (n+1, )
-                                             for coord in x, y, z])):
-                raise TypeError('If one coordinate is specified with absolute '
-                                'coordinates, then all coordinates have to be '
-                                'specified in this way.')
-            default_value = np.zeros(n+1)*meter if include_startpoints else np.zeros(n)*meter
-            x = x if x is not None else default_value
-            y = y if y is not None else default_value
-            z = z if z is not None else default_value
+                if value is not None:
+                    if value_shape is not None and value.shape != value_shape:
+                        raise TypeError('All coordinate arrays have to have '
+                                        'the same length.')
+                    if value.shape != () and len(value) != n:
+                        raise TypeError(('Coordinates need to be a single '
+                                         'value or one-dimensional arrays of '
+                                         'length %d, but the array '
+                                         'provided for %s has shape '
+                                         '%s') % (n, name, value.shape))
+                    value_shape = value.shape
+            x = x if x is not None else 0*meter
+            y = y if y is not None else 0*meter
+            z = z if z is not None else 0*meter
             x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
             y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
             z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
-            if len(x) == n:
-                # Relative to start of the section
-                start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
-                start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
-                start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
-                end_x = x
-                end_y = y
-                end_z = z
-            else:
-                # Absolute coordinates
-                start_x = x[:-1]
-                start_y = y[:-1]
-                start_z = z[:-1]
-                end_x = x[1:]
-                end_y = y[1:]
-                end_z = z[1:]
+            # Relative to start of the section
+            start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
+            start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
+            start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
+            end_x = x
+            end_y = y
+            end_z = z
             length = np.sqrt((end_x - start_x)**2 +
                              (end_y - start_y)**2 +
                              (end_z - start_z)**2)
-
+        self._origin = origin
         self._length = length
         self._x = x
         self._y = y
@@ -1570,11 +1566,11 @@ class Cylinder(Section):
     def copy_section(self):
         if self.x is None:
             return Cylinder(self.diameter, n=self.n, length=self.length,
-                            type=self.type)
+                            origin=self._origin, type=self.type)
         else:
             return Cylinder(self.diameter, n=self.n,
                             x=self._x, y=self._y, z=self._z,
-                            type=self.type)
+                            origin=self._origin, type=self.type)
 
     # Overwrite the properties that differ from `Section`
     @property

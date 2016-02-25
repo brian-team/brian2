@@ -23,7 +23,9 @@ with its area calculated as the area of a sphere with the given diameter. The se
 of 10 compartments with identical diameter and the given total length. Finally, the third statement creates a cable of
 5 compartments with the given total length, where each compartment is a truncated cone with the given diameters. Note
 that here, only the diameter at the end of each compartment was specified, which means that the diameter at the start
-of the first compartment will be automatically taken as the diameter of the parent compartment.
+of the first compartment will be automatically taken as the diameter of the parent compartment. If this is not the
+desired behaviour (most commonly for a `Section` connecting to a `Soma`, which has a much bigger diameter), then the
+diameter at the start of the first compartment can be specified with the ``start_diameter`` keyword.
 
 The following table summarizes the different options to create schematic morphologies (the black compartment before the
 start of the section represents the parent compartment with diameter 15 μm, not specified in the code below):
@@ -109,7 +111,7 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |             |                                                                                   |
 |             |     # Total length and diameters of individual compartments, including start      |
 |             |     # diameter                                                                    |
-|             |     Section(5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=50*um)                  |
+|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=50*um)|
 |             |                                                                                   |
 |             | .. image:: images/section_5.*                                                     |
 |             |                                                                                   |
@@ -118,7 +120,8 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |             |                                                                                   |
 |             |     # Lengths and diameters of individual compartments, including start           |
 |             |     # diameter                                                                    |
-|             |     Section(5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)  |
+|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um,              |
+|             |             length=[10, 20, 5, 5, 10]*um)                                         |
 |             |                                                                                   |
 |             | .. image:: images/section_6.*                                                     |
 |             |                                                                                   |
@@ -229,12 +232,11 @@ A few notes:
 4. Similar to the ``length`` argument, a single argument for multiple compartments (see the `Cylinder` example above) is
    interpreted as the point at the end of the section.
 5. All coordinates are interpreted relative to the parent compartment, i.e. the point (0 μm, 0 μm, 0 μm) refers to the
-   end point of the previous compartment. There is one exception to this rule: if the section has ``n`` compartments,
-   and ``n+1`` coordinate values have been given, then the first point is interpreted as the start point of the section
-   and all values are considered to be *absolute*. This is similar to the semantics of the ``diameter`` argument of
-   `Section` and is mostly useful for morphologies created from neuronal reconstructions (see below). Another use is the
-   connection of dendrites and axons to a soma, which otherwise will be connected to the center of the sphere (as noted
-   before, this is only relevant for visualization).
+   end point of the previous compartment. If the first compartment is not supposed to start at the end point of the
+   previous compartment, then a different start point can be specified with the ``origin`` keyword argument (in absolute
+   coordinates). In general this should not be necessary as it can (visually) disconnect a section from its parent.
+   However, it can be convenient to use this mechanism to let sections connecting to the `Soma` connect to a point on
+   the sphere surface instead of the center of the sphere.
 
 A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
 
@@ -281,9 +283,11 @@ transmembrane current at every point on the neuronal morphology, and updates ``v
 the diffusion current, which is calculated based on the morphology and the intracellular resistivity.
 Note that the transmembrane current is a surfacic current, not the total current in the compartement.
 This choice means that the model equations are independent of the number of compartments chosen for the simulation.
-The space constant can obtained for any point of the neuron with the ``space_constant`` attribute::
+The space and time constants can obtained for any point of the neuron with the ``space_constant`` respectively
+``time_constant`` attributes::
 
     l = neuron.space_constant[0]
+    tau = neuron.time_constant[0]
 
 The calculation is based on the local total conductance (not just the leak conductance).
 Therefore, it can potentially vary during a simulation (e.g. decrease during an action potential).

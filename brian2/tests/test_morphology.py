@@ -202,9 +202,10 @@ def test_attributes_cylinder_coordinates_allpoints():
     n = 3
     # Specify all coordinates, including the start point of the section
     cylinder = Cylinder(n=n, diameter=10*um,
-                        x=[10, 11, 11, 11]*um,
-                        y=[100, 100, 101, 101]*um,
-                        z=[1000, 1000, 1000, 1001]*um)
+                        x=[1, 1, 1]*um,
+                        y=[0, 1, 1]*um,
+                        z=[0, 0, 1]*um,
+                        origin=(10, 100, 1000)*um)
 
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
     assert_allclose(cylinder.length, np.ones(n)*um)
@@ -223,9 +224,9 @@ def test_attributes_cylinder_coordinates_allpoints():
 
     # Specify varying diameters
     cylinder = Cylinder(n=n, diameter=[10, 5, 2.5]*um,
-                        x=[10, 11, 11, 11]*um,
-                        y=[100, 100, 101, 101]*um,
-                        z=[1000, 1000, 1000, 1001]*um)
+                        x=[1, 1, 1]*um,
+                        y=[0, 1, 1]*um,
+                        z=[0, 0, 1]*um)
     assert_equal(cylinder.diameter, [10, 5, 2.5]*um)
 
 
@@ -357,8 +358,8 @@ def test_attributes_section_coordinates_endpoints():
     assert_equal(sec.end_z, [0, 0, 1]*um)
 
     # Specify varying diameters
-    sec = Section(n=n, diameter=[20, 10, 5, 2.5]*um, x=[1, 1, 1]*um,
-                  y=[0, 1, 1]*um, z=[0, 0, 1]*um)
+    sec = Section(n=n, diameter=[10, 5, 2.5]*um, start_diameter=20*um,
+                  x=[1, 1, 1]*um, y=[0, 1, 1]*um, z=[0, 0, 1]*um)
     assert_allclose(sec.start_diameter, [20, 10, 5]*um)
     # diameter at electrical midpoint
     assert_allclose(sec.diameter, sec.start_diameter +
@@ -371,10 +372,10 @@ def test_attributes_section_coordinates_endpoints():
 def test_attributes_section_coordinates_allpoints():
     n = 3
     # Specify all coordinates, including the start point of the section
-    sec = Section(n=n, diameter=[10, 10, 10, 10]*um,
-                  x=[10, 11, 11, 11]*um,
-                  y=[100, 100, 101, 101]*um,
-                  z=[1000, 1000, 1000, 1001]*um)
+    sec = Section(n=n, diameter=[10, 10, 10]*um, start_diameter=10*um,
+                  x=[1, 1, 1]*um,
+                  y=[0, 1, 1]*um,
+                  z=[0, 0, 1]*um, origin=(10, 100, 1000)*um)
 
     assert_equal(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*um)
@@ -392,10 +393,9 @@ def test_attributes_section_coordinates_allpoints():
     assert_allclose(sec.end_z, [1000, 1000, 1001]*um)
 
     # Specify varying diameters
-    sec = Section(n=n, diameter=[20, 10, 5, 2.5]*um,
-                  x=[10, 11, 11, 11]*um,
-                  y=[100, 100, 101, 101]*um,
-                  z=[1000, 1000, 1000, 1001]*um)
+    sec = Section(n=n, diameter=[10, 5, 2.5]*um,
+                  start_diameter=20*um,
+                  x=[1, 1, 1]*um, y=[0, 1, 1]*um, z=[0, 0, 1]*um)
     assert_allclose(sec.start_diameter, [20, 10, 5]*um)
     # diameter at electrical midpoint
     assert_allclose(sec.diameter, sec.start_diameter +
@@ -536,20 +536,18 @@ def test_tree_cables_rel_coordinates():
 @attr('codegen-independent')
 def test_tree_cables_abs_coordinates():
     # The coordinates should be identical to the previous test
-    cable = Cylinder(n=10, x=np.arange(11)*10*um, diameter=10*um)
-    cable.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
-                      x=100*um+np.arange(6)*20/np.sqrt(2)*um,
-                      y=np.arange(6)*20/np.sqrt(2)*um)
-    cable.R = Cylinder(n=5, diameter=5*um, x=100*um+np.arange(6)*10/np.sqrt(2)*um,
-                       y=-np.arange(6)*10/np.sqrt(2)*um)
+    cable = Cylinder(n=10, x=np.arange(1, 11)*10*um, diameter=10*um)
+    cable.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
+                      x=np.arange(1, 6)*20/np.sqrt(2)*um,
+                      y=np.arange(1, 6)*20/np.sqrt(2)*um)
+    cable.R = Cylinder(n=5, diameter=5*um, x=np.arange(1, 6)*10/np.sqrt(2)*um,
+                       y=-np.arange(1, 6)*10/np.sqrt(2)*um)
     cable.RL = Cylinder(n=5, diameter=2.5*um,
-                        x=100*um+50/np.sqrt(2)*um + np.arange(6)*10/np.sqrt(2)*um,
-                        y=-np.ones(6)*50/np.sqrt(2)*um,
-                        z=np.arange(6)*10/np.sqrt(2)*um)
-    cable.RR = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
-                       x=100*um+50/np.sqrt(2)*um + np.arange(6)*10/np.sqrt(2)*um,
-                       y=-np.ones(6)*50/np.sqrt(2)*um,
-                       z=-np.arange(6)*10/np.sqrt(2)*um)
+                        x=np.arange(1, 6)*10/np.sqrt(2)*um,
+                        z=np.arange(1, 6)*10/np.sqrt(2)*um)
+    cable.RR = Section(n=5, diameter=[4, 3, 2, 1, 0]*um,
+                       x=np.arange(1, 6)*10/np.sqrt(2)*um,
+                       z=-np.arange(1, 6)*10/np.sqrt(2)*um)
 
     _check_tree_cables(cable, coordinates=True)
 
@@ -715,7 +713,8 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
 @attr('codegen-independent')
 def test_tree_soma_schematic():
     soma = Soma(diameter=30*um)
-    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, start_diameter=8*um,
+                     length=100*um)  # tapering truncated cones
     soma.R = Cylinder(n=5, diameter=5*um, length=50*um)
 
     _check_tree_soma(soma)
@@ -724,7 +723,8 @@ def test_tree_soma_schematic():
 @attr('codegen-independent')
 def test_tree_soma_rel_coordinates():
     soma = Soma(diameter=30*um, x=100*um)
-    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
+    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
+                     start_diameter=8*um,
                      x=100/np.sqrt(2)*um, y=100/np.sqrt(2)*um)  # tapering truncated cones
     soma.R = Cylinder(n=5, diameter=5*um,
                       x=50/np.sqrt(2)*um, y=-50/np.sqrt(2)*um)
@@ -735,12 +735,13 @@ def test_tree_soma_rel_coordinates():
 @attr('codegen-independent')
 def test_tree_soma_abs_coordinates():
     soma = Soma(diameter=30*um, x=100*um)
-    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
-                     x=100*um+np.arange(6)*20/np.sqrt(2)*um,
-                     y=np.arange(6)*20/np.sqrt(2)*um)
+    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
+                     start_diameter=8*um,
+                     x=np.arange(1, 6)*20/np.sqrt(2)*um,
+                     y=np.arange(1, 6)*20/np.sqrt(2)*um)
     soma.R = Cylinder(n=5, diameter=5*um,
-                      x=100*um+np.arange(6)*10/np.sqrt(2)*um,
-                      y=-np.arange(6)*10/np.sqrt(2)*um)
+                      x=np.arange(1, 6)*10/np.sqrt(2)*um,
+                      y=-np.arange(1, 6)*10/np.sqrt(2)*um)
 
     _check_tree_soma(soma, coordinates=True)
 
@@ -1066,7 +1067,8 @@ def test_copy_section_section():
     assert sec_copy.type == 'dend'
 
     # With start diameter (no coordinates)
-    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5, length=100*um)
+    sec = Section(diameter=[5, 4, 3, 2, 1]*um, start_diameter=10*um,
+                  n=5, length=100*um)
     sec_copy = sec.copy_section()
     assert_allclose(sec_copy.start_diameter, sec.start_diameter)
     assert_allclose(sec_copy.end_diameter, sec.end_diameter)
@@ -1091,8 +1093,8 @@ def test_copy_section_section():
     assert sec_copy.type is None
 
     # With start diameter (with coordinates)
-    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um,
-                  x=[0, 1, 2, 3, 4, 5]*um, y=[0, -1, -2, -3, -4, -5]*um,
+    sec = Section(diameter=[5, 4, 3, 2, 1]*um, start_diameter=10*um,
+                  x=[1, 2, 3, 4, 5]*um, y=[-1, -2, -3, -4, -5]*um,
                   n=5)
     sec_copy = sec.copy_section()
     assert_allclose(sec_copy.start_diameter, sec.start_diameter)
