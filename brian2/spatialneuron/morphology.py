@@ -586,57 +586,57 @@ class Morphology(object):
 
     @abc.abstractproperty
     def total_distance(self):
-        pass
+        raise NotImplementedError()
 
     # Per-compartment attributes
     @abc.abstractproperty
     def area(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def start_diameter(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def diameter(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def end_diameter(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def volume(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def length(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def r_length(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def electrical_center(self):
-        pass
+        raise NotImplementedError()
 
     # At-electrical-midpoint attributes
     @abc.abstractproperty
     def distance(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def x(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def y(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def z(self):
-        pass
+        raise NotImplementedError()
 
     @property
     def plot_coordinates(self):
@@ -647,27 +647,27 @@ class Morphology(object):
 
     @abc.abstractproperty
     def end_x(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def end_y(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def end_z(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def start_x(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def start_y(self):
-        pass
+        raise NotImplementedError()
 
     @abc.abstractproperty
     def start_z(self):
-        pass
+        raise NotImplementedError()
 
     def plot(self):
         # TODO: Move into brian2tools
