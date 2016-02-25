@@ -418,7 +418,7 @@ class SpatialNeuron(NeuronGroup):
 
         if isinstance(start, Quantity):
             if not have_same_dimensions(start, meter) or not have_same_dimensions(stop, meter):
-                raise DimensionMismatchError('Start and stop should have units of meter')  #TODO
+                raise DimensionMismatchError('Start and stop should have units of meter', start, stop)
             # Convert to integers (compartment numbers)
             indices = neuron.morphology.indices[item]
             start, stop = indices[0], indices[-1] + 1

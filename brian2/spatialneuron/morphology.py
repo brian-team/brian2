@@ -19,10 +19,6 @@ logger = get_logger(__name__)
 
 __all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
 
-# TODO: Missing:
-# * plotting (goes directly to brian2tools?)
-# * [later?] re-segmentation
-
 
 class MorphologyIndexWrapper(object):
     '''
@@ -72,38 +68,47 @@ def _find_start_index(current, target_section, index=0):
     return index, False
 
 
-def _str_topology(morphology, indent=0, named_path='',
-                  compartments_divisor=1, parent=None):
-    description = ' '*indent
-    length = max([1, morphology.n//compartments_divisor])
-    if parent is not None:
-        description += '`'
-    if isinstance(morphology, Soma):
-        description += '( )'
-    else:
-        description += '-' * length
-        description += '|'
-    if len(named_path) == 0:
-        description += '  [root] \n'
-    else:
-        description += '  ' + named_path + '\n'
-    for child in morphology.children:
-        name = morphology.children.name(child)
-        description += _str_topology(child, indent=indent+2+length,
-                                     named_path=named_path+'.'+name,
-                                     compartments_divisor=compartments_divisor,
-                                     parent=morphology)
-    return description
-
-
 class Topology(object):
+    '''
+    A representation of the topology of a `Morphology`. Has a useful string
+    representation, inspired by NEURON's ``topology`` function.
+    '''
     def __init__(self, morphology):
         self.morphology = morphology
 
     def __str__(self):
         # TODO: Make sure that the shown compartments do not get out of hand
         divisor = 1
-        return _str_topology(self.morphology, compartments_divisor=divisor)
+        return Topology._str_topology(self.morphology, compartments_divisor=divisor)
+
+    @staticmethod
+    def _str_topology(morphology, indent=0, named_path='',
+                      compartments_divisor=1, parent=None):
+        '''
+        A simple string-based representation of a morphology. Inspired by
+        NEURON's ``topology`` function.
+        '''
+        description = ' '*indent
+        length = max([1, morphology.n//compartments_divisor])
+        if parent is not None:
+            description += '`'
+        if isinstance(morphology, Soma):
+            description += '( )'
+        else:
+            description += '-' * length
+            description += '|'
+        if len(named_path) == 0:
+            description += '  [root] \n'
+        else:
+            description += '  ' + named_path + '\n'
+        for child in morphology.children:
+            name = morphology.children.name(child)
+            description += Topology._str_topology(child,
+                                                  indent=indent+2+length,
+                                                  named_path=named_path+'.'+name,
+                                                  compartments_divisor=compartments_divisor,
+                                                  parent=morphology)
+        return description
 
     __repr__ = __str__
 
@@ -251,6 +256,11 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
     return section
 
 class Children(object):
+    '''
+    Helper class to represent the children (sub trees) of a section. Can be
+    used like a dictionary (mapping names to `Morphology` objects), but iterates
+    over the values (sub trees) instead of over the keys (names).
+    '''
     def __init__(self, owner):
         self._owner = owner
         self._counter = 0
@@ -267,10 +277,20 @@ class Children(object):
     def __contains__(self, item):
         return item in self._named_children
 
-    def values(self):
-        return self._named_children.values()
-
     def name(self, child):
+        '''
+        Return the given name (i.e. not the automatic name such as ``1``) for a
+        child subtree.
+
+        Parameters
+        ----------
+        child : `Morphology`
+
+        Returns
+        -------
+        name : str
+            The given name for the ``child``.
+        '''
         return self._given_name[child]
 
     def __getitem__(self, item):
@@ -280,6 +300,16 @@ class Children(object):
             raise TypeError('Index has to be an integer or a string.')
 
     def add(self, name, subtree):
+        '''
+        Add a new child to the morphology.
+
+        Parameters
+        ----------
+        name : str
+            The name (e.g. ``"axon"``, ``"L"``) to use for this sub tree.
+        subtree : `Morphology`
+            The subtree to link as a child.
+        '''
         if name in self._named_children:
             raise AttributeError('The name %s is already used for a subtree' % name)
 
@@ -294,11 +324,19 @@ class Children(object):
 
         subtree._parent = self._owner
 
-    def remove(self, item):
-        if item not in self:
-            raise AttributeError('The subtree ' + item + ' does not exist')
-        subtree = self._named_children[item]
-        del self._named_children[item]
+    def remove(self, name):
+        '''
+        Remove a subtree from this morphology.
+
+        Parameters
+        ----------
+        name : str
+            The name of the sub tree to remove.
+        '''
+        if name not in self:
+            raise AttributeError('The subtree ' + name + ' does not exist')
+        subtree = self._named_children[name]
+        del self._named_children[name]
         self._children.remove(subtree)
         subtree._parent = None
 
@@ -338,7 +376,8 @@ class Morphology(object):
 
     def __getitem__(self, item):
         '''
-        Returns the subtree named item.
+        Return the subtree with the given name/index.
+
         Ex.: ```neuron['axon']``` or ```neuron['11213']```
         ```neuron[10*um:20*um]``` returns the subbranch from 10 um to 20 um.
         ```neuron[10*um]``` returns one compartment.
@@ -434,7 +473,7 @@ class Morphology(object):
 
     def __delitem__(self, item):
         '''
-        Removes the subtree `item`.
+        Remove the subtree ``item``.
         '''
         item = str(item)  # convert int to string
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
@@ -444,7 +483,8 @@ class Morphology(object):
 
     def __getattr__(self, item):
         '''
-        Returns the subtree named `item`.
+        Return the subtree named ``item``.
+
         Ex.: ``axon = neuron.axon``
         '''
         if item.startswith('_'):
@@ -454,7 +494,8 @@ class Morphology(object):
 
     def __setattr__(self, item, child):
         '''
-        Attach a subtree and name it `item`.
+        Attach a subtree and name it ``item``.
+
         Ex.: ``neuron.axon = Soma(diameter=10*um)``
         Ex.: ``neuron.axon = None``
         '''
@@ -465,13 +506,13 @@ class Morphology(object):
 
     def __delattr__(self, item):
         '''
-        Removes the subtree `item`.
+        Remove the subtree ``item``.
         '''
         del self[item]
 
     def _indices(self, item=None, index_var='_idx'):
         '''
-        Returns compartment indices for the main section, relative to the
+        Return compartment indices for the main section, relative to the
         original morphology.
         '''
         if index_var != '_idx':
@@ -492,12 +533,13 @@ class Morphology(object):
 
     def topology(self):
         '''
-        Return a simple string representation of the topology
+        Return a representation of the topology
 
         Returns
         -------
-        topology : str
-            The topology as a string
+        topology : `Topology`
+            An object representing the topology (can be converted to a string
+            by using ``str(...)`` or simply by printing it with `print`.)
         '''
         return Topology(self)
 
@@ -735,7 +777,7 @@ class Morphology(object):
         '''
         Format:
 
-        `index name x y z diameter parent`
+        ``index name x y z diameter parent``
 
         Note that the values should not use units, but are instead all taken
         to be in micrometers.
@@ -1136,6 +1178,7 @@ class Soma(Morphology):
         dist = self._parent.total_distance if self._parent is not None else 0*um
         return dist  # TODO: + self.diameter/2 ?
 
+
 class Section(Morphology):
     '''
     A section (unbranched structure), described as a sequence of truncated
@@ -1202,6 +1245,9 @@ class Section(Morphology):
                              'or a one-dimensional array of length %d, but '
                              'it had shape %s instead.') % (n, diameter.shape))
 
+        self._set_coordinates_and_length(n, length, x, y, z, origin)
+
+    def _set_coordinates_and_length(self, n, length, x, y, z, origin):
         if length is not None:
             # Specification by length
             if x is not None or y is not None or z is not None:
@@ -1220,7 +1266,7 @@ class Section(Morphology):
                                  'instead.') % (n, len(length)))
             if len(length) == 1:
                 # This is the *total* length of the whole section
-                length = np.ones(n) * length/n
+                length = np.ones(n) * length / n
         else:
             if x is None and y is None and z is None:
                 raise TypeError('No length specified, need to specify at least '
@@ -1251,29 +1297,29 @@ class Section(Morphology):
                 except TypeError:
                     raise TypeError('origin argument has to be a tuple with 3 '
                                     'values')
-            x = x if x is not None else 0*meter
-            y = y if y is not None else 0*meter
-            z = z if z is not None else 0*meter
-            x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
-            y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
-            z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
+            x = x if x is not None else 0 * meter
+            y = y if y is not None else 0 * meter
+            z = z if z is not None else 0 * meter
+            x = x if x.shape != () else np.linspace(float(x) / n, float(x),
+                                                    n) * meter
+            y = y if y.shape != () else np.linspace(float(y) / n, float(y),
+                                                    n) * meter
+            z = z if z.shape != () else np.linspace(float(z) / n, float(z),
+                                                    n) * meter
             # Relative to start of the section
-            start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
-            start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
-            start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
+            start_x = np.hstack([0, np.asarray(x)[:-1]]) * meter
+            start_y = np.hstack([0, np.asarray(y)[:-1]]) * meter
+            start_z = np.hstack([0, np.asarray(z)[:-1]]) * meter
             end_x = x
             end_y = y
             end_z = z
-            length = np.sqrt((end_x - start_x)**2 +
-                             (end_y - start_y)**2 +
-                             (end_z - start_z)**2)
-
+            length = np.sqrt((end_x - start_x) ** 2 +
+                             (end_y - start_y) ** 2 +
+                             (end_z - start_z) ** 2)
         self._x = x
         self._y = y
         self._z = z
-
         self._origin = origin
-
         self._length = length
 
     def copy_section(self):
@@ -1505,63 +1551,7 @@ class Cylinder(Section):
         diameter = np.ones(n) * diameter
         self._diameter = diameter
 
-        if length is not None:
-            # Specification by length
-            if x is not None or y is not None or z is not None:
-                raise TypeError('Cannot use both lengths and coordinates to '
-                                'specify a section.')
-            if origin is not None:
-                raise TypeError('Cannot specify an origin when providing a '
-                                'length.')
-            length = np.atleast_1d(length)
-            if length.ndim > 1:
-                raise TypeError('The length argument has to be a single value '
-                                'or a one-dimensional array.')
-            if len(length) != 1 and len(length) != n:
-                raise TypeError(('Need to specify a single value or %d values '
-                                 'for the length, got %d values '
-                                 'instead.') % (n, len(length)))
-            if len(length) == 1:
-                # This is the *total* length of the whole section
-                length = np.ones(n) * (length/n)
-        else:
-            if x is None and y is None and z is None:
-                raise TypeError('No length specified, need to specify at least '
-                                'one out of x, y, or z.')
-            value_shape = None
-            for name, value in [('x', x), ('y', y), ('z', z)]:
-                if value is not None:
-                    if value_shape is not None and value.shape != value_shape:
-                        raise TypeError('All coordinate arrays have to have '
-                                        'the same length.')
-                    if value.shape != () and len(value) != n:
-                        raise TypeError(('Coordinates need to be a single '
-                                         'value or one-dimensional arrays of '
-                                         'length %d, but the array '
-                                         'provided for %s has shape '
-                                         '%s') % (n, name, value.shape))
-                    value_shape = value.shape
-            x = x if x is not None else 0*meter
-            y = y if y is not None else 0*meter
-            z = z if z is not None else 0*meter
-            x = x if x.shape != () else np.linspace(float(x)/n, float(x), n)*meter
-            y = y if y.shape != () else np.linspace(float(y)/n, float(y), n)*meter
-            z = z if z.shape != () else np.linspace(float(z)/n, float(z), n)*meter
-            # Relative to start of the section
-            start_x = np.hstack([0, np.asarray(x)[:-1]])*meter
-            start_y = np.hstack([0, np.asarray(y)[:-1]])*meter
-            start_z = np.hstack([0, np.asarray(z)[:-1]])*meter
-            end_x = x
-            end_y = y
-            end_z = z
-            length = np.sqrt((end_x - start_x)**2 +
-                             (end_y - start_y)**2 +
-                             (end_z - start_z)**2)
-        self._origin = origin
-        self._length = length
-        self._x = x
-        self._y = y
-        self._z = z
+        self._set_coordinates_and_length(n, length, x, y, z, origin)
 
     def copy_section(self):
         if self.x is None:

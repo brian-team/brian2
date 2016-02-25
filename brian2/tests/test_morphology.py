@@ -805,6 +805,7 @@ def test_construction_incorrect_arguments():
     assert_raises(DimensionMismatchError, lambda: Soma(x=10))
     assert_raises(DimensionMismatchError, lambda: Soma(y=10))
     assert_raises(DimensionMismatchError, lambda: Soma(z=10))
+    assert_raises(ValueError, lambda: Soma(10*um, n=2))
 
     ### Cylinder
     # Diameter can only be single value or n values
@@ -827,23 +828,26 @@ def test_construction_incorrect_arguments():
     # But not both
     assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um,
                                               x=[10, 20, 30]*um))
+    # Length and origin together does not make sense
+    assert_raises(TypeError, lambda: Cylinder(n=10, diameter=10*um, length=100*um,
+                                              origin=[0, 10, 0]*um))
 
     ### Section
-    # Diameter can be a single value, n, or n+1 values
+    # Diameter can be a single value, or n values
     assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20]*um, length=100*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30, 40, 50]*um, length=100*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30, 40]*um, length=100*um))
     assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(3, 2)*um), length=100*um)
     # Length can only be single value or n values
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=[10, 20]*um))
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=[10, 20, 30, 40]*um))
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=np.ones(3, 2)*um))
-    # Coordinates can be single, n, or n+1 values
+    # Coordinates can be single, or n values
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, x=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, x=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, x=[10, 20, 30, 40]*um))
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, y=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, y=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, y=[10, 20, 30, 40]*um))
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, z=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, z=[10, 20, 30, 40, 50]*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, z=[10, 20, 30, 40]*um))
     # Need either coordinates or lengths
     assert_raises(TypeError, lambda: Section(n=3, diameter=10*um))
     # But not both
@@ -853,6 +857,9 @@ def test_construction_incorrect_arguments():
     # diameter as well
     assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30]*um,
                                              y=[0, 10, 20, 30]*um))
+    # Length and origin together does not make sense
+    assert_raises(TypeError, lambda: Section(n=10, diameter=10*um, length=100*um,
+                                              origin=[0, 10, 0]*um))
 
 
 @attr('codegen-independent')
