@@ -4,8 +4,11 @@ Multicompartment models
 It is possible to create neuron models with a spatially extended morphology, using
 the `SpatialNeuron` class. A `SpatialNeuron` is a single neuron with many compartments.
 Essentially, it works as a `NeuronGroup` where elements are compartments instead of neurons.
-A `SpatialNeuron` is specified mainly by a set of equations for transmembrane currents (ionic channels)
-and a morphology.
+
+A `SpatialNeuron` is specified by a morphology (see :ref:`creating_morphology`) and a set of equations for
+transmembrane currents (see :ref:`creating_spatialneuron`).
+
+.. _creating_morphology:
 
 Creating a neuron morphology
 ----------------------------
@@ -127,6 +130,13 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |             |                                                                                   |
 +-------------+-----------------------------------------------------------------------------------+
 
+.. note::
+
+    For a `Section`, the ``diameter`` argument specifies the diameter at the end of each compartment,
+    the corresponding values can therefore be later retrieved from the `Morphology` via the
+    ``end_diameter`` attribute. The ``diameter`` attribute of a `Morphology` does however correspond
+    to the diameter at the "electrical midpoint" (see :ref:`creating_spatialneuron`). For a `Cylinder`,
+    ``start_diameter``, ``diameter``, and ``end_diameter`` are of course all identical.
 
 The tree structure of a morphology is created by attaching `Morphology` objects together::
 
@@ -237,6 +247,9 @@ A few notes:
    coordinates). In general this should not be necessary as it can (visually) disconnect a section from its parent.
    However, it can be convenient to use this mechanism to let sections connecting to the `Soma` connect to a point on
    the sphere surface instead of the center of the sphere.
+6. When creating sections, coordinates are given at the end of each compartment. The ``x``, ``y``, ``z`` attributes of
+   `Morphology` and `SpatialNeuron` however return the coordinates at the electrical midpoint of each compartment (as
+   for all other attributes that vary over the length of a compartment, e.g. ``distance``).
 
 A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
 
@@ -245,6 +258,8 @@ A neuronal morphology can be directly load from a ``.swc`` file (a standard form
 There is a large database of morphologies in the swc format at http://neuromorpho.org.
 
 To manually create a morphology from a list of points in a similar format to SWC files, see `Morphology.from_points`
+
+.. _creating_spatialneuron:
 
 Creating a spatially extended neuron
 ------------------------------------
