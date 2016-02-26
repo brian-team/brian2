@@ -340,10 +340,13 @@ class Children(object):
         self._children.remove(subtree)
         subtree._parent = None
 
-    # TODO: Useful __str__ and __repr__
-    def __str__(self):
-        return str(self._named_children)
-    __repr__ = __str__
+    def __repr__(self):
+        n = len(self._children)
+        s = '<%d children' % n
+        if n > 0:
+            name_dict = {self.name(sec): sec for sec in self._children}
+            s += ': %r' % name_dict
+        return s + '>'
 
 
 class Morphology(object):
@@ -1075,13 +1078,18 @@ class Soma(Morphology):
     ----------
     diameter : `Quantity`, optional
         Diameter of the sphere.
+    x : `Quantity`, optional
+        The x coordinate of the position of the soma.
+    y : `Quantity`, optional
+        The y coordinate of the position of the soma.
+    z : `Quantity`, optional
+        The z coordinate of the position of the soma.
+    type : str, optional
+        The ``type`` of this section, defaults to ``'soma'``.
     '''
 
-    @check_units(diameter=meter, x=meter, y=meter, z=meter, n=1)
-    def __init__(self, diameter, x=None, y=None, z=None, type='soma', n=1):
-        if n != 1:
-            raise ValueError('Cannot set the number of compartments for a '
-                             'spherical soma.')
+    @check_units(diameter=meter, x=meter, y=meter, z=meter)
+    def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
         Morphology.__init__(self, n=1, type=type)
         if diameter.shape != () and len(diameter) != 1:
             raise TypeError('Diameter has to be a scalar value.')
@@ -1096,6 +1104,17 @@ class Soma(Morphology):
         self._x = np.atleast_1d(x) if x is not None else default_value
         self._y = np.atleast_1d(y) if y is not None else default_value
         self._z = np.atleast_1d(z) if z is not None else default_value
+
+    def __repr__(self):
+        s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
+                                                 diam=self.diameter[0])
+        if self._x is not None:
+            s += ', x={x!r}, y={y!r}, z={z!r}'.format(x=self.x[0],
+                                                      y=self.y[0],
+                                                      z=self.z[0])
+        if self.type != 'soma':
+            s += ', type={type!r}'.format(type=self.type)
+        return s + ')'
 
     def copy_section(self):
         return Soma(self.diameter, x=self.x, y=self.y, z=self.z,
@@ -1325,6 +1344,41 @@ class Section(Morphology):
         self._z = z
         self._origin = origin
         self._length = length
+
+    def __repr__(self):
+        if all(np.abs(self.end_diameter - self.end_diameter[0]) < self.end_diameter[0]*1e-12):
+            # Constant diameter
+            diam = self.end_diameter[0]
+        else:
+            diam = self.end_diameter
+        s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
+                                               diam=diam)
+        if self.n != 1:
+            s += ', n={n}'.format(n=self.n)
+        if all(np.abs(self.length - self.length[0]) < self.length[0]*1e-12):
+            # Total length/coordinates given
+            if self._x is not None:
+                s += ', x={x!r}, y={y!r}, z={z!r}'.format(x=self._x[-1],
+                                                          y=self._y[-1],
+                                                          z=self._z[-1])
+            else:
+                s += ', length={length!r}'.format(length=sum(self.length))
+        else:
+            # Individual length/coordinates
+            if self._x is not None:
+                s += ', x={x!r}, y={y!r}, z={z!r}'.format(x=self._x,
+                                                          y=self._y,
+                                                          z=self._z)
+            else:
+                s += ', length={length!r}'.format(length=self.length)
+        # This is formulated in a way that it works for `Cylinder` as well
+        if getattr(self, '_start_diameter', None):
+            s += ', start_diameter={start_diam!r}'.format(start_diam=self._start_diameter)
+        if self._origin is not None:
+            s += ', origin={origin!r}'.format(origin=self._origin)
+        if self.type is not None:
+            s += ', type={type!r}'.format(type=self.type)
+        return s + ')'
 
     def copy_section(self):
         if self.x is None:

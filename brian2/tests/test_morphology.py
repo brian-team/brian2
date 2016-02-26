@@ -805,7 +805,6 @@ def test_construction_incorrect_arguments():
     assert_raises(DimensionMismatchError, lambda: Soma(x=10))
     assert_raises(DimensionMismatchError, lambda: Soma(y=10))
     assert_raises(DimensionMismatchError, lambda: Soma(z=10))
-    assert_raises(ValueError, lambda: Soma(10*um, n=2))
 
     ### Cylinder
     # Diameter can only be single value or n values
@@ -1354,6 +1353,41 @@ def test_generate_coordinates_mixed_overwrite():
     _check_length_coord_consistency(morph_with_coords2)
 
 
+@attr('codegen-independent')
+def test_str_repr():
+    # A very basic test, make sure that the str/repr functions return
+    # something and do not raise an error
+    for morph in [Soma(diameter=30*um),
+                  Soma(diameter=30*um, x=5*um, y=10*um),
+                  Cylinder(n=5, diameter=10*um, length=50*um),
+                  Cylinder(n=5, diameter=10*um, x=50*um),
+                  Cylinder(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um),
+                  Cylinder(n=5, diameter=10*um, x=[10, 30, 35, 40, 50]*um),
+                  Cylinder(n=5, diameter=10*um, x=[10, 30, 35, 40, 50]*um,
+                           origin=(50, 0, 0)*um),
+                  Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um),
+                  Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um),
+                  Section(n=5, diameter=10*um, length=50*um),
+                  Section(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um),
+                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um),
+                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um),
+                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=50*um),
+                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=[10, 20, 5, 5, 10]*um),
+                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=[10, 20, 5, 5, 10]*um),
+                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, x=[10, 30, 35, 40, 50]*um,
+                          origin=(0, 0, 50)*um)]:
+
+        assert len(repr(morph)) > 0
+        assert len(str(morph)) > 0
+    morph = Soma(30*um)
+    assert len(repr(morph.children)) > 0
+    assert len(str(morph.children)) > 0
+    morph.axon = Cylinder(1*um, n=10, length=100*um)
+    morph.dend = Section(1*um, n=10, length=50*um)
+    assert len(repr(morph.children)) > 0
+    assert len(str(morph.children)) > 0
+
+
 if __name__ == '__main__':
     test_attributes_soma()
     test_attributes_soma_coordinates()
@@ -1393,3 +1427,4 @@ if __name__ == '__main__':
     test_generate_coordinates_no_overwrite()
     test_generate_coordinates_overwrite()
     test_generate_coordinates_mixed_overwrite()
+    test_str_repr()
