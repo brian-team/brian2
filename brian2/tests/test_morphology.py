@@ -861,6 +861,15 @@ def test_construction_incorrect_arguments():
     assert_raises(TypeError, lambda: Section(n=10, diameter=10*um, length=100*um,
                                               origin=[0, 10, 0]*um))
 
+@attr('codegen-independent')
+def test_from_points_minimal():
+    points = [(1, 'soma', 10, 20, 30,  30,  -1)]
+    morph = Morphology.from_points(points)
+    assert len(morph) == 1
+    assert_allclose(morph.diameter, 30*um)
+    assert_allclose(morph.x, 10*um)
+    assert_allclose(morph.y, 20*um)
+    assert_allclose(morph.z, 30*um)
 
 @attr('codegen-independent')
 def test_from_points_incorrect():
@@ -907,6 +916,8 @@ def test_subtree_deletion():
     del soma.dend1
     assert len(soma) == 21
     assert_raises(AttributeError, lambda: soma.dend1)
+    assert_raises(AttributeError, lambda: delattr(soma, 'dend1'))
+    assert_raises(AttributeError, lambda: soma.__delitem__('dend1'))
     assert first_dendrite not in soma.children
 
     del soma['dend2']
@@ -1015,15 +1026,19 @@ def test_subgroup_incorrect():
 
     # Incorrect indexing
     #  wrong units or mixing units
-    assert_raises(TypeError, lambda: morpho[3*second:5*second])
-    assert_raises(TypeError, lambda: morpho[3.4:5.3])
-    assert_raises(TypeError, lambda: morpho[3:5*um])
-    assert_raises(TypeError, lambda: morpho[3*um:5])
+    assert_raises(TypeError, lambda: morpho.L[3*second:5*second])
+    assert_raises(TypeError, lambda: morpho.L[3.4:5.3])
+    assert_raises(TypeError, lambda: morpho.L[3:5*um])
+    assert_raises(TypeError, lambda: morpho.L[3*um:5])
     #   providing a step
-    assert_raises(TypeError, lambda: morpho[3*um:5*um:2*um])
-    assert_raises(TypeError, lambda: morpho[3:5:2])
+    assert_raises(TypeError, lambda: morpho.L[3*um:5*um:2*um])
+    assert_raises(TypeError, lambda: morpho.L[3:5:2])
     #   incorrect type
-    assert_raises(TypeError, lambda: morpho[object()])
+    assert_raises(TypeError, lambda: morpho.L[object()])
+    # out of range
+    assert_raises(IndexError, lambda: morpho.L[-10*um])
+    assert_raises(IndexError, lambda: morpho.L[15*um])
+    assert_raises(IndexError, lambda: morpho.L[10])
 
 
 @attr('codegen-independent')
@@ -1361,6 +1376,7 @@ if __name__ == '__main__':
     test_tree_soma_from_points()
     test_tree_soma_from_swc()
     test_construction_incorrect_arguments()
+    test_from_points_minimal()
     test_from_points_incorrect()
     test_subtree_deletion()
     test_subgroup_indices()

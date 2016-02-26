@@ -363,6 +363,10 @@ class Morphology(object):
 
     @check_units(n=1)
     def __init__(self, n, type=None):
+        if isinstance(n, basestring):
+            raise TypeError('Need the number of compartments, not a string. '
+                            'If you want to load a morphology from a file, '
+                            'use Morphology.from_file instead.')
         self._n = int(n)
         if self._n != n:
             raise TypeError('The number of compartments n has to be an integer '
@@ -605,7 +609,7 @@ class Morphology(object):
         copy : `Morphology`
             A copy of this section (without the links to the parent/children)
         '''
-        pass
+        raise NotImplementedError()
 
     @property
     def n(self):
