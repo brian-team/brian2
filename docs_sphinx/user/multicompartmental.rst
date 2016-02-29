@@ -15,20 +15,23 @@ Creating a neuron morphology
 
 Schematic morphologies
 ~~~~~~~~~~~~~~~~~~~~~~
-Morphologies can be created combining different standard geometrical objects::
+Morphologies can be created combining geometrical objects::
 
     soma = Soma(diameter=30*um)
-    cylinder = Cylinder(10, length=100*um, diameter=1*um)
-    section = Section(5, length=100*um, diameter=[5, 4, 3, 2, 1])*um
+    cylinder = Cylinder(diameter=1*um, length=100*um, n=10)
 
 The first statement creates a single iso-potential compartment (i.e. with no axial resistance within the compartment),
 with its area calculated as the area of a sphere with the given diameter. The second one specifies a cylinder consisting
-of 10 compartments with identical diameter and the given total length. Finally, the third statement creates a cable of
-5 compartments with the given total length, where each compartment is a truncated cone with the given diameters. Note
-that here, only the diameter at the end of each compartment was specified, which means that the diameter at the start
-of the first compartment will be automatically taken as the diameter of the parent compartment. If this is not the
-desired behaviour (most commonly for a `Section` connecting to a `Soma`, which has a much bigger diameter), then the
-diameter at the start of the first compartment can be specified with the ``start_diameter`` keyword.
+of 10 compartments with identical diameter and the given total length.
+
+For more precise control over the geometry, you can specify the length and diameter of each individual compartment,
+including the diameter at the start of the section (i.e. for ``n`` compartments: ``n`` length and ``n+1`` diameter
+values) in a `Section` object::
+
+    section = Section(diameter=[6, 5, 4, 3, 2, 1], length=[10, 10, 10, 5, 5]*um, n=5)
+
+The individual compartments are modeled as truncated cones, changing the diameter linearly between the given diameters
+over the length of the compartment.
 
 The following table summarizes the different options to create schematic morphologies (the black compartment before the
 start of the section represents the parent compartment with diameter 15 μm, not specified in the code below):
@@ -46,97 +49,30 @@ start of the section represents the parent compartment with diameter 15 μm, no
 +-------------+-----------------------------------------------------------------------------------+
 |**Cylinder** |  ::                                                                               |
 |             |                                                                                   |
-|             |     # Defining total length                                                       |
+|             |     # Each compartment has fixed length and diameter                              |
 |             |     Cylinder(5, diameter=10*um, length=50*um)                                     |
 |             |                                                                                   |
-|             | .. image:: images/cylinder_1.*                                                    |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Defining lengths of individual compartments                                 |
-|             |     Cylinder(5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)                     |
-|             |                                                                                   |
-|             | .. image:: images/cylinder_2.*                                                    |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Diameters of individual compartments and total length                       |
-|             |     Cylinder(5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)                      |
-|             |                                                                                   |
-|             | .. image:: images/cylinder_3.*                                                    |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Lengths and diameters of individual compartments                            |
-|             |     Cylinder(5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)      |
-|             |                                                                                   |
-|             | .. image:: images/cylinder_4.*                                                    |
+|             | .. image:: images/cylinder.*                                                      |
 |             |                                                                                   |
 +-------------+-----------------------------------------------------------------------------------+
 |**Section**  |  ::                                                                               |
 |             |                                                                                   |
-|             |     # Total length, constant diameter (first diameter is diameter of parent)      |
-|             |     Section(5, diameter=10*um, length=50*um)                                      |
-|             |                                                                                   |
-|             | .. image:: images/section_1.*                                                     |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Lengths of individual compartments (first diameter is diameter of parent)   |
-|             |     Section(5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)                      |
-|             |                                                                                   |
-|             | .. image:: images/section_2.*                                                     |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Total length and diameters of individual compartments                       |
-|             |     # (diameters at the end of compartments, first diameter is parent diameter)   |
-|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)                       |
-|             |                                                                                   |
-|             | .. image:: images/section_3.*                                                     |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Lengths and diameters of individual compartments                            |
-|             |     # (diameters at the end of compartments, first diameter is parent diameter)   |
-|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)       |
-|             |                                                                                   |
-|             | .. image:: images/section_4.*                                                     |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Total length and diameters of individual compartments, including start      |
-|             |     # diameter                                                                    |
-|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=50*um)|
-|             |                                                                                   |
-|             | .. image:: images/section_5.*                                                     |
-|             |                                                                                   |
-+-------------+-----------------------------------------------------------------------------------+
-|             |  ::                                                                               |
-|             |                                                                                   |
-|             |     # Lengths and diameters of individual compartments, including start           |
-|             |     # diameter                                                                    |
-|             |     Section(5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um,              |
+|             |     # Length and diameter individually defined for each compartment (at start     |
+|             |     # and end)                                                                    |
+|             |     Section(5, diameter=[15, 5, 10, 5, 10, 5]*um,                                 |
 |             |             length=[10, 20, 5, 5, 10]*um)                                         |
 |             |                                                                                   |
-|             | .. image:: images/section_6.*                                                     |
+|             | .. image:: images/section.*                                                       |
 |             |                                                                                   |
 +-------------+-----------------------------------------------------------------------------------+
 
 .. note::
 
-    For a `Section`, the ``diameter`` argument specifies the diameter at the end of each compartment,
-    the corresponding values can therefore be later retrieved from the `Morphology` via the
-    ``end_diameter`` attribute. The ``diameter`` attribute of a `Morphology` does however correspond
-    to the diameter at the "electrical midpoint" (see :ref:`creating_spatialneuron`). For a `Cylinder`,
-    ``start_diameter``, ``diameter``, and ``end_diameter`` are of course all identical.
+    For a `Section`, the ``diameter`` argument specifies the diameter *between* the compartments
+    (and at the beginning/end of the first/last compartment). the corresponding values can therefore be later retrieved
+    from the `Morphology` via the ``start_diameter`` and ``end_diameter`` attributes. The ``diameter`` attribute of a
+    `Morphology` does correspond to the diameter at the "electrical midpoint" (see :ref:`creating_spatialneuron`). For
+    a `Cylinder`, ``start_diameter``, ``diameter``, and ``end_diameter`` are of course all identical.
 
 The tree structure of a morphology is created by attaching `Morphology` objects together::
 
@@ -224,12 +160,12 @@ Morphologies can also be created from information about the compartment coordina
 manually for individual sections, following the same syntax as the "schematic" morphologies::
 
     soma = Soma(diameter=30*um, x=50*um, y=20*um)
-    cylinder = Cylinder(10, x=100*um, diameter=1*um)
+    cylinder = Cylinder(10, x=[0, 100]*um, diameter=1*um)
     section = Section(5,
-                      x=[10, 20, 30, 40, 50]*um,
-                      y=[10, 20, 30, 40, 50]*um,
-                      z=[10, 10, 10, 10, 10]*um,
-                      diameter=[5, 4, 3, 2, 1])*um
+                      x=[0, 10, 20, 30, 40, 50]*um,
+                      y=[0, 10, 20, 30, 40, 50]*um,
+                      z=[0, 10, 10, 10, 10, 10]*um,
+                      diameter=[6, 5, 4, 3, 2, 1])*um
 
 A few notes:
 
@@ -239,17 +175,14 @@ A few notes:
    the coordinates.
 3. The coordinate specification can also be 1- or 2-dimensional (as in the first two examples above), the unspecified
    coordinate will be taken from the value of the parent section (or as 0 μm for the root section)
-4. Similar to the ``length`` argument, a single argument for multiple compartments (see the `Cylinder` example above) is
-   interpreted as the point at the end of the section.
-5. All coordinates are interpreted relative to the parent compartment, i.e. the point (0 μm, 0 μm, 0 μm) refers to the
-   end point of the previous compartment. If the first compartment is not supposed to start at the end point of the
-   previous compartment, then a different start point can be specified with the ``origin`` keyword argument (in absolute
-   coordinates). In general this should not be necessary as it can (visually) disconnect a section from its parent.
-   However, it can be convenient to use this mechanism to let sections connecting to the `Soma` connect to a point on
-   the sphere surface instead of the center of the sphere.
-6. When creating sections, coordinates are given at the end of each compartment. The ``x``, ``y``, ``z`` attributes of
-   `Morphology` and `SpatialNeuron` however return the coordinates at the electrical midpoint of each compartment (as
-   for all other attributes that vary over the length of a compartment, e.g. ``distance``).
+4. All coordinates are interpreted relative to the parent compartment, i.e. the point (0 μm, 0 μm, 0 μm) refers to the
+   end point of the previous compartment. Most of the time, the first part element of the coordinate is therefore 0 μm,
+   to continue a section where the previous one ended. However, it can be convenient to use a value different from 0 μm
+   for sections connecting to the `Soma` to make them (visually) connect to a point on the sphere surface instead of the
+   center of the sphere.
+5. The ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` return the coordinates at the electrical
+   midpoint of each compartment (as for all other attributes that vary over the length of a compartment, e.g.
+   ``diameter`` or ``distance``).
 
 A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
 

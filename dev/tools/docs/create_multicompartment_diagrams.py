@@ -135,32 +135,16 @@ def to_svg(morphology):
                              height=center*2/um+2) + ('\n'.join(elements)) + FOOTER
     else:
         raise NotImplementedError()
-
 if __name__ == '__main__':
     dirname = os.path.dirname(__file__)
     PATH = os.path.join(dirname, '..', '..', '..', 'docs_sphinx', 'user', 'images')
     root = Cylinder(n=1, diameter=15*um, length=10*um)
-    root.cyl_1 = Cylinder(n=5, diameter=10*um, length=50*um)
-    root.cyl_2 = Cylinder(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)
-    root.cyl_3 = Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)
-    root.cyl_4 = Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)
-    root.sec_1 = Section(n=5, diameter=10*um, length=50*um)
-    root.sec_2 = Section(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um)
-    root.sec_3 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um)
-    root.sec_4 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um)
-    root.sec_5 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=50*um)
-    root.sec_6 = Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=[10, 20, 5, 5, 10]*um)
+    root.cyl = Cylinder(n=5, diameter=10*um, length=50*um)
+    root.sec = Section(n=5, diameter=[15, 5, 10, 5, 10, 5]*um,
+                       length=[10, 20, 5, 5, 10]*um)
     for filename, morpho in [('soma.svg', Soma(diameter=30*um)),
-                             ('cylinder_1.svg', root.cyl_1),
-                             ('cylinder_2.svg', root.cyl_2),
-                             ('cylinder_3.svg', root.cyl_3),
-                             ('cylinder_4.svg', root.cyl_4),
-                             ('section_1.svg', root.sec_1),
-                             ('section_2.svg', root.sec_2),
-                             ('section_3.svg', root.sec_3),
-                             ('section_4.svg', root.sec_4),
-                             ('section_5.svg', root.sec_5),
-                             ('section_6.svg', root.sec_6)]:
+                             ('cylinder.svg', root.cyl),
+                             ('section.svg', root.sec)]:
         with open(os.path.join(PATH, filename), 'w') as f:
             print(filename)
             f.write(to_svg(morpho))

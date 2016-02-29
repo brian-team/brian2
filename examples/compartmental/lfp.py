@@ -6,7 +6,7 @@ Shape looks approximately ok!
 '''
 from brian2 import *
 
-morpho = Cylinder(x=10*cm, y=0*cm, z=0*cm, diameter=2*238*um, n=1000, type='axon')
+morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=1000, type='axon')
 
 El = 10.613* mV
 ENa = 115*mV
@@ -72,7 +72,7 @@ run(100*ms, report='text')
 subplot(211)
 for i in range(10):
     plot(M.t/ms,M.v[i*100]/mV)
-ylabel('LFP (mV)')
+ylabel('$V_m$ (mV)')
 subplot(212)
 for i in range(5):
     plot(M.t/ms,Mlfp.v[i]/mV)

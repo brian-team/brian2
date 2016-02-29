@@ -177,7 +177,7 @@ By default, functions are assumed to take any type of argument, and return a flo
 point value. If you want to put a restriction on the type of an argument, or specify
 that the return type should be something other than float, either declare it as a
 `Function` (and see its documentation on specifying types) or use the `declare_types`
-decorator, e.g.:
+decorator, e.g.::
 
     @check_units(a=1, b=1, result=1)
     @declare_types(a='integer', result='highest')

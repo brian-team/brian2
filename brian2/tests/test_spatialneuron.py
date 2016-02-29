@@ -92,11 +92,13 @@ def test_construction_coordinates():
     # respective cylinder
     BrianLogger.suppress_name('resolution_conflict')
     morpho = Soma(diameter=30*um)
-    morpho.L = Cylinder(x=10*um, y=0*um, z=0*um, diameter=1*um, n=10)
-    morpho.LL = Cylinder(x=0*um, y=5*um, z=0*um, diameter=2*um, n=5)
-    morpho.LR = Cylinder(x=0*um, y=0*um, z=5*um, diameter=2*um, n=10)
-    morpho.right = Cylinder(x=sqrt(2)*1.5*um, y=sqrt(2)*1.5*um, z=0*um, diameter=1*um, n=7)
-    morpho.right.nextone = Cylinder(x=0*um, y=sqrt(2)*um, z=sqrt(2)*um, diameter=1*um, n=3)
+    morpho.L = Cylinder(x=[0, 10]*um, diameter=1*um, n=10)
+    morpho.LL = Cylinder(y=[0, 5]*um, diameter=2*um, n=5)
+    morpho.LR = Cylinder(z=[0, 5]*um, diameter=2*um, n=10)
+    morpho.right = Cylinder(x=[0, sqrt(2)*1.5]*um, y=[0, sqrt(2)*1.5]*um,
+                            diameter=1*um, n=7)
+    morpho.right.nextone = Cylinder(y=[0, sqrt(2)]*um, z=[0, sqrt(2)]*um,
+                                    diameter=1*um, n=3)
     gL=1e-4*siemens/cm**2
     EL=-70*mV
     eqs='''
@@ -307,7 +309,7 @@ def test_rallpack2():
     Ri = 100 * ohm * cm
 
     # Construct binary tree according to Rall's formula
-    morpho = Cylinder(n=1, diameter=diameter, x=0*umetre, y=length, z=0*umetre)
+    morpho = Cylinder(n=1, diameter=diameter, y=[0, float(length)]*meter)
     endpoints = {morpho}
     for depth in xrange(1, 10):
         diameter /= 2.**(1./3.)
@@ -540,8 +542,8 @@ def test_basic_diffusion():
 
     morph = Soma(diameter=30*um)
     morph.axon = Cylinder(n=10, diameter=10*um, length=100*um)
-    morph.dend = Section(n=10, diameter=[9, 8, 7, 6, 5, 4, 3, 2, 1, 0.1]*um,
-                         start_diameter=10*um, length=100*um)
+    morph.dend = Section(n=10, diameter=[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.1]*um,
+                         length=np.ones(10)*10*um)
 
     neuron = SpatialNeuron(morph, eqs)
     neuron.v = EL

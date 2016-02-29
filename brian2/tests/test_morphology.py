@@ -1,11 +1,11 @@
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
-import numpy as np
 import tempfile
 import os
 
 from brian2.spatialneuron import *
 from brian2.units import um, cm, second, DimensionMismatchError
+from brian2 import numpy as np
 
 
 @attr('codegen-independent')
@@ -108,13 +108,13 @@ def test_attributes_cylinder():
 
 
 @attr('codegen-independent')
-def test_attributes_cylinder_coordinates_single():
+def test_attributes_cylinder_coordinates():
     # Specify only the end-point of the section
     n = 10
     # Specify only one of the coordinates
     xyz = {'x', 'y', 'z'}
     for coord in xyz:
-        kwds = {coord: 200*um}
+        kwds = {coord: [0, 200]*um}
         cylinder = Cylinder(n=n, diameter=10*um, **kwds)
         assert_equal(cylinder.diameter, np.ones(n)*10*um)
         assert_equal(cylinder.length, np.ones(n)*20*um)
@@ -133,7 +133,7 @@ def test_attributes_cylinder_coordinates_single():
         assert_equal(getattr(cylinder, 'end_' + coord), np.arange(n)*20*um + 20*um)
 
     # Specify all coordinates
-    val = 200.0/np.sqrt(3.0)*um
+    val = [0, 200.0/np.sqrt(3.0)]*um
     cylinder = Cylinder(n=n, diameter=10*um, x=val, y=val, z=val)
 
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
@@ -142,100 +142,16 @@ def test_attributes_cylinder_coordinates_single():
     assert_allclose(cylinder.total_distance, 200*um)
 
     for coord in ['x', 'y', 'z']:
-        assert_allclose(getattr(cylinder, 'start_' + coord), np.arange(n)*val/n)
-        assert_allclose(getattr(cylinder, coord), np.arange(n)*val/n + 0.5*val/n)
-        assert_allclose(getattr(cylinder, 'end_' + coord), np.arange(n)*val/n + val/n)
-
-
-@attr('codegen-independent')
-def test_attributes_cylinder_coordinates_endpoints():
-    # Specify only the end-point of the section
-    n = 3
-    # Specify only one of the coordinates
-    xyz = {'x', 'y', 'z'}
-    for coord in xyz:
-        kwds = {coord: [5, 15, 30]*um}
-        cylinder = Cylinder(n=n, diameter=10*um, **kwds)
-        assert_equal(cylinder.diameter, np.ones(n)*10*um)
-        assert_equal(cylinder.length, [5, 10, 15]*um)
-        assert_equal(cylinder.distance, [2.5, 10, 22.5]*um)
-        assert_equal(cylinder.total_distance, 30*um)
-
-        # Coordinates should be specified now, with 0 values for the other
-        # coordinates
-        for other_coord in xyz - {coord}:
-            assert_equal(getattr(cylinder, 'start_' + other_coord), np.zeros(n)*um)
-            assert_equal(getattr(cylinder, other_coord), np.zeros(n)*um)
-            assert_equal(getattr(cylinder, 'end_' + other_coord), np.zeros(n)*um)
-
-        assert_equal(getattr(cylinder, 'start_' + coord), [0, 5, 15]*um)
-        assert_equal(getattr(cylinder, coord), [2.5, 10.0, 22.5]*um)
-        assert_equal(getattr(cylinder, 'end_' + coord), [5, 15, 30]*um)
-
-    # Specify all coordinates
-    cylinder = Cylinder(n=n, diameter=10*um, x=[1, 1, 1]*um, y=[0, 1, 1]*um,
-                        z=[0, 0, 1]*um)
-
-    assert_equal(cylinder.diameter, np.ones(n)*10*um)
-    assert_allclose(cylinder.length, np.ones(n)*um)
-    assert_allclose(cylinder.distance, np.arange(n)*um + .5*um)
-    assert_allclose(cylinder.total_distance, 3*um)
-
-    assert_equal(cylinder.start_x, [0, 1, 1]*um)
-    assert_equal(cylinder.x, [0.5, 1, 1]*um)
-    assert_equal(cylinder.end_x, [1, 1, 1]*um)
-    assert_equal(cylinder.start_y, [0, 0, 1]*um)
-    assert_equal(cylinder.y, [0, .5, 1]*um)
-    assert_equal(cylinder.end_y, [0, 1, 1]*um)
-    assert_equal(cylinder.start_z, [0, 0, 0]*um)
-    assert_equal(cylinder.z, [0, 0, 0.5]*um)
-    assert_equal(cylinder.end_z, [0, 0, 1]*um)
-
-    # Specify varying diameters
-    cylinder = Cylinder(n=n, diameter=[10, 5, 2.5]*um, x=[1, 1, 1]*um,
-                        y=[0, 1, 1]*um, z=[0, 0, 1]*um)
-    assert_equal(cylinder.diameter, [10, 5, 2.5]*um)
-
-
-@attr('codegen-independent')
-def test_attributes_cylinder_coordinates_allpoints():
-    n = 3
-    # Specify all coordinates, including the start point of the section
-    cylinder = Cylinder(n=n, diameter=10*um,
-                        x=[1, 1, 1]*um,
-                        y=[0, 1, 1]*um,
-                        z=[0, 0, 1]*um,
-                        origin=(10, 100, 1000)*um)
-
-    assert_equal(cylinder.diameter, np.ones(n)*10*um)
-    assert_allclose(cylinder.length, np.ones(n)*um)
-    assert_allclose(cylinder.distance, np.arange(n)*um + .5*um)
-    assert_allclose(cylinder.total_distance, 3*um)
-
-    assert_allclose(cylinder.start_x, [10, 11, 11]*um)
-    assert_allclose(cylinder.x, [10.5, 11, 11]*um)
-    assert_allclose(cylinder.end_x, [11, 11, 11]*um)
-    assert_allclose(cylinder.start_y, [100, 100, 101]*um)
-    assert_allclose(cylinder.y, [100, 100.5, 101]*um)
-    assert_allclose(cylinder.end_y, [100, 101, 101]*um)
-    assert_allclose(cylinder.start_z, [1000, 1000, 1000]*um)
-    assert_allclose(cylinder.z, [1000, 1000, 1000.5]*um)
-    assert_allclose(cylinder.end_z, [1000, 1000, 1001]*um)
-
-    # Specify varying diameters
-    cylinder = Cylinder(n=n, diameter=[10, 5, 2.5]*um,
-                        x=[1, 1, 1]*um,
-                        y=[0, 1, 1]*um,
-                        z=[0, 0, 1]*um)
-    assert_equal(cylinder.diameter, [10, 5, 2.5]*um)
+        assert_allclose(getattr(cylinder, 'start_' + coord), np.arange(n)*val[1]/n)
+        assert_allclose(getattr(cylinder, coord), np.arange(n)*val[1]/n + 0.5*val[1]/n)
+        assert_allclose(getattr(cylinder, 'end_' + coord), np.arange(n)*val[1]/n + val[1]/n)
 
 
 @attr('codegen-independent')
 def test_attributes_section():
     n = 10
-    # No difference to a cylinder (if start diameter is inherited from something
-    # with the same diameter)
-    sec = Section(n=n, diameter=10*um, length=200*um)
+    # No difference to a cylinder
+    sec = Section(n=n, diameter=np.ones(n+1)*10*um, length=np.ones(n)*20*um)
     cyl = Cylinder(n=1, diameter=10*um, length=0*um)  # dummy cylinder
     cyl.child = sec
     assert isinstance(sec, Morphology)
@@ -245,10 +161,10 @@ def test_attributes_section():
     assert len(sec) == n
 
     # Compartment attributes
-    assert_equal(sec.diameter, np.ones(n)*10*um)
-    assert_equal(sec.length, np.ones(n)*20*um)
-    assert_equal(sec.distance, np.arange(n)*20*um + 10*um)
-    assert_equal(sec.total_distance, 200*um)
+    assert_allclose(sec.diameter, np.ones(n)*10*um)
+    assert_allclose(sec.length, np.ones(n)*20*um)
+    assert_allclose(sec.distance, np.arange(n)*20*um + 10*um)
+    assert_allclose(sec.total_distance, 200*um)
     # TODO: r_length
     assert_allclose(sec.area,
                     np.pi*0.5*(sec.start_diameter + sec.end_diameter)*sec.length)
@@ -268,14 +184,13 @@ def test_attributes_section():
 
 @attr('codegen-independent')
 def test_attributes_section_coordinates_single():
-    # Specify only the end-point of the section  (no difference to cylinder if
-    # connect to something with the same diameter)
+    # Specify only the end-point of the section  (no difference to cylinder)
     n = 10
     # Specify only one of the coordinates
     xyz = {'x', 'y', 'z'}
     for coord in xyz:
-        kwds = {coord: 200*um}
-        sec = Section(n=n, diameter=10*um, **kwds)
+        kwds = {coord: np.linspace(0*um, 200*um, n+1)}
+        sec = Section(n=n, diameter=np.ones(n+1)*10*um, **kwds)
         cyl = Cylinder(n=1, diameter=10*um, length=0*um)  # dummy cylinder
         cyl.child = sec
         assert_equal(sec.diameter, np.ones(n)*10*um)
@@ -296,7 +211,10 @@ def test_attributes_section_coordinates_single():
 
     # Specify all coordinates
     val = 200.0/np.sqrt(3.0)*um
-    sec = Section(n=n, diameter=10*um, x=val, y=val, z=val)
+    sec = Section(n=n, diameter=np.ones(n+1)*10*um,
+                  x=np.linspace(0*um, val, n+1),
+                  y=np.linspace(0*um, val, n+1),
+                  z=np.linspace(0*um, val, n+1))
     cyl = Cylinder(n=1, diameter=10*um, length=0*um)
     cyl.child = sec
     assert_equal(sec.diameter, np.ones(n)*10*um)
@@ -311,71 +229,13 @@ def test_attributes_section_coordinates_single():
 
 
 @attr('codegen-independent')
-def test_attributes_section_coordinates_endpoints():
-    # Specify only the end-point of the section
+def test_attributes_section_coordinates_all():
     n = 3
-    # Specify only one of the coordinates
-    xyz = {'x', 'y', 'z'}
-    for coord in xyz:
-        kwds = {coord: [5, 15, 30]*um}
-        sec = Section(n=n, diameter=10*um, **kwds)
-        cyl = Cylinder(n=1, diameter=10*um, length=0*um)  # dummy cylinder
-        cyl.child = sec
-        assert_equal(sec.diameter, np.ones(n)*10*um)
-        assert_equal(sec.length, [5, 10, 15]*um)
-        assert_equal(sec.distance, [2.5, 10, 22.5]*um)
-        assert_equal(sec.total_distance, 30*um)
-
-        # Coordinates should be specified now, with 0 values for the other
-        # coordinates
-        for other_coord in xyz - {coord}:
-            assert_equal(getattr(sec, 'start_' + other_coord), np.zeros(n)*um)
-            assert_equal(getattr(sec, other_coord), np.zeros(n)*um)
-            assert_equal(getattr(sec, 'end_' + other_coord), np.zeros(n)*um)
-
-        assert_equal(getattr(sec, 'start_' + coord), [0, 5, 15]*um)
-        assert_equal(getattr(sec, coord), [2.5, 10.0, 22.5]*um)
-        assert_equal(getattr(sec, 'end_' + coord), [5, 15, 30]*um)
-
     # Specify all coordinates
-    sec = Section(n=n, diameter=10*um, x=[1, 1, 1]*um, y=[0, 1, 1]*um,
-                        z=[0, 0, 1]*um)
-    cyl = Cylinder(n=1, diameter=10*um, length=0*um)
-    cyl.child = sec
-    assert_equal(sec.diameter, np.ones(n)*10*um)
-    assert_allclose(sec.length, np.ones(n)*um)
-    assert_allclose(sec.distance, np.arange(n)*um + .5*um)
-    assert_allclose(sec.total_distance, 3*um)
-
-    assert_equal(sec.start_x, [0, 1, 1]*um)
-    assert_equal(sec.x, [0.5, 1, 1]*um)
-    assert_equal(sec.end_x, [1, 1, 1]*um)
-    assert_equal(sec.start_y, [0, 0, 1]*um)
-    assert_equal(sec.y, [0, .5, 1]*um)
-    assert_equal(sec.end_y, [0, 1, 1]*um)
-    assert_equal(sec.start_z, [0, 0, 0]*um)
-    assert_equal(sec.z, [0, 0, 0.5]*um)
-    assert_equal(sec.end_z, [0, 0, 1]*um)
-
-    # Specify varying diameters
-    sec = Section(n=n, diameter=[10, 5, 2.5]*um, start_diameter=20*um,
-                  x=[1, 1, 1]*um, y=[0, 1, 1]*um, z=[0, 0, 1]*um)
-    assert_allclose(sec.start_diameter, [20, 10, 5]*um)
-    # diameter at electrical midpoint
-    assert_allclose(sec.diameter, sec.start_diameter +
-                    sec.electrical_center*(sec.end_diameter - sec.start_diameter))
-    assert_allclose(sec.end_diameter, [10, 5, 2.5]*um)
-    # TODO: Check area and volume
-
-
-@attr('codegen-independent')
-def test_attributes_section_coordinates_allpoints():
-    n = 3
-    # Specify all coordinates, including the start point of the section
-    sec = Section(n=n, diameter=[10, 10, 10]*um, start_diameter=10*um,
-                  x=[1, 1, 1]*um,
-                  y=[0, 1, 1]*um,
-                  z=[0, 0, 1]*um, origin=(10, 100, 1000)*um)
+    sec = Section(n=n, diameter=[10, 10, 10, 10]*um,
+                  x=[10, 11, 11, 11]*um,
+                  y=[100, 100, 101, 101]*um,
+                  z=[1000, 1000, 1000, 1001]*um)
 
     assert_equal(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*um)
@@ -393,9 +253,8 @@ def test_attributes_section_coordinates_allpoints():
     assert_allclose(sec.end_z, [1000, 1000, 1001]*um)
 
     # Specify varying diameters
-    sec = Section(n=n, diameter=[10, 5, 2.5]*um,
-                  start_diameter=20*um,
-                  x=[1, 1, 1]*um, y=[0, 1, 1]*um, z=[0, 0, 1]*um)
+    sec = Section(n=n, diameter=[20, 10, 5, 2.5]*um,
+                  x=[0, 1, 1, 1]*um, y=[0, 0, 1, 1]*um, z=[0, 0, 0, 1]*um)
     assert_allclose(sec.start_diameter, [20, 10, 5]*um)
     # diameter at electrical midpoint
     assert_allclose(sec.diameter, sec.start_diameter +
@@ -509,45 +368,28 @@ def _check_tree_cables(morphology, coordinates=False, use_cylinders=True):
 @attr('codegen-independent')
 def test_tree_cables_schematic():
     cable = Cylinder(n=10, diameter=10*um, length=100*um)
-    cable.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    cable.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um, length=np.ones(5)*20*um)  # tapering truncated cones
     cable.R = Cylinder(n=5, diameter=5*um, length=50*um)
     cable.RL = Cylinder(n=5, diameter=2.5*um, length=50*um)
-    cable.RR = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    cable.RR = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um, length=np.ones(5)*10*um)
 
     _check_tree_cables(cable)
 
 @attr('codegen-independent')
-def test_tree_cables_rel_coordinates():
+def test_tree_cables_coordinates():
     # The lengths of the sections should be identical to the previous test
-    cable = Cylinder(n=10, x=100*um, diameter=10*um)
-    cable.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
-                      x=100/np.sqrt(2)*um, y=100/np.sqrt(2)*um)
-    cable.R = Cylinder(n=5, diameter=5*um, x=50/np.sqrt(2)*um,
-                       y=-50/np.sqrt(2)*um)
+    cable = Cylinder(n=10, x=[0, 100]*um, diameter=10*um)
+    cable.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      x=np.linspace(0, 100, 6)/np.sqrt(2)*um,
+                      y=np.linspace(0, 100, 6)/np.sqrt(2)*um)
+    cable.R = Cylinder(n=5, diameter=5*um, x=[0, 50]*um/np.sqrt(2),
+                       y=[0, -50]*um/np.sqrt(2))
     cable.RL = Cylinder(n=5, diameter=2.5*um,
-                        x=50/np.sqrt(2)*um,
-                        z=50/np.sqrt(2)*um)
-    cable.RR = Section(n=5, diameter=[4, 3, 2, 1, 0]*um,
-                       x=50/np.sqrt(2)*um, z=-50/np.sqrt(2)*um)
-
-    _check_tree_cables(cable, coordinates=True)
-
-
-@attr('codegen-independent')
-def test_tree_cables_abs_coordinates():
-    # The coordinates should be identical to the previous test
-    cable = Cylinder(n=10, x=np.arange(1, 11)*10*um, diameter=10*um)
-    cable.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
-                      x=np.arange(1, 6)*20/np.sqrt(2)*um,
-                      y=np.arange(1, 6)*20/np.sqrt(2)*um)
-    cable.R = Cylinder(n=5, diameter=5*um, x=np.arange(1, 6)*10/np.sqrt(2)*um,
-                       y=-np.arange(1, 6)*10/np.sqrt(2)*um)
-    cable.RL = Cylinder(n=5, diameter=2.5*um,
-                        x=np.arange(1, 6)*10/np.sqrt(2)*um,
-                        z=np.arange(1, 6)*10/np.sqrt(2)*um)
-    cable.RR = Section(n=5, diameter=[4, 3, 2, 1, 0]*um,
-                       x=np.arange(1, 6)*10/np.sqrt(2)*um,
-                       z=-np.arange(1, 6)*10/np.sqrt(2)*um)
+                        x=[0, 50]*um/np.sqrt(2),
+                        z=[0, 50]*um/np.sqrt(2))
+    cable.RR = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                       x=np.linspace(0, 50, 6)*um/np.sqrt(2),
+                       z=np.linspace(0, -50, 6)*um/np.sqrt(2))
 
     _check_tree_cables(cable, coordinates=True)
 
@@ -713,35 +555,21 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
 @attr('codegen-independent')
 def test_tree_soma_schematic():
     soma = Soma(diameter=30*um)
-    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, start_diameter=8*um,
-                     length=100*um)  # tapering truncated cones
+    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
+                     length=np.ones(5)*20*um)  # tapering truncated cones
     soma.R = Cylinder(n=5, diameter=5*um, length=50*um)
 
     _check_tree_soma(soma)
 
 
 @attr('codegen-independent')
-def test_tree_soma_rel_coordinates():
+def test_tree_soma_coordinates():
     soma = Soma(diameter=30*um, x=100*um)
-    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
-                     start_diameter=8*um,
-                     x=100/np.sqrt(2)*um, y=100/np.sqrt(2)*um)  # tapering truncated cones
+    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
+                     x=np.linspace(0, 100, 6)/np.sqrt(2)*um,
+                     y=np.linspace(0, 100, 6)/np.sqrt(2)*um)  # tapering truncated cones
     soma.R = Cylinder(n=5, diameter=5*um,
-                      x=50/np.sqrt(2)*um, y=-50/np.sqrt(2)*um)
-
-    _check_tree_soma(soma, coordinates=True)
-
-
-@attr('codegen-independent')
-def test_tree_soma_abs_coordinates():
-    soma = Soma(diameter=30*um, x=100*um)
-    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um,
-                     start_diameter=8*um,
-                     x=np.arange(1, 6)*20/np.sqrt(2)*um,
-                     y=np.arange(1, 6)*20/np.sqrt(2)*um)
-    soma.R = Cylinder(n=5, diameter=5*um,
-                      x=np.arange(1, 6)*10/np.sqrt(2)*um,
-                      y=-np.arange(1, 6)*10/np.sqrt(2)*um)
+                      x=[0, 50]*um/np.sqrt(2), y=[0, -50]*um/np.sqrt(2))
 
     _check_tree_soma(soma, coordinates=True)
 
@@ -807,58 +635,59 @@ def test_construction_incorrect_arguments():
     assert_raises(DimensionMismatchError, lambda: Soma(z=10))
 
     ### Cylinder
-    # Diameter can only be single value or n values
+    # Diameter can only be single value
     assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20]*um),length=100*um)
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20, 30, 40]*um), length=100*um)
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20, 30]*um), length=100*um)
     assert_raises(TypeError, lambda: Cylinder(n=3, diameter=np.ones(3, 2)*um), length=100*um)
-    # Length can only be single value or n values
+    # Length can only be single value
     assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20, 30, 40]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um))
     assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=np.ones(3, 2)*um))
-    # Coordinates can be single, n, or n+1 values
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10, 20]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10, 20, 30, 40, 50]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10, 20]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10, 20, 30, 40, 50]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10, 20]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10, 20, 30, 40, 50]*um))
+    # Coordinates have to be two values
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10, 20, 30]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10, 20, 30]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10, 20, 30]*um))
     # Need either coordinates or lengths
     assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um))
     # But not both
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um,
-                                              x=[10, 20, 30]*um))
-    # Length and origin together does not make sense
-    assert_raises(TypeError, lambda: Cylinder(n=10, diameter=10*um, length=100*um,
-                                              origin=[0, 10, 0]*um))
+    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=30*um,
+                                              x=[0, 30]*um))
 
     ### Section
-    # Diameter can be a single value, or n values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20]*um, length=100*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30, 40]*um, length=100*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(3, 2)*um), length=100*um)
-    # Length can only be single value or n values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=[10, 20, 30, 40]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=np.ones(3, 2)*um))
-    # Coordinates can be single, or n values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, x=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, x=[10, 20, 30, 40]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, y=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, y=[10, 20, 30, 40]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, z=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, z=[10, 20, 30, 40]*um))
-    # Need either coordinates or lengths
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um))
-    # But not both
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=[10, 20, 30]*um,
+    # Diameter have to be n+1 values
+    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=np.ones(3)*10*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30]*um, length=np.ones(3)*10*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4, 2)*um), length=np.ones(3)*10*um)
+    # Length have to be n values
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             length=10*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             length=[10, 20]*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             length=np.ones(3, 2)*um))
+    # Coordinates have to be n+1 values
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             x=10*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
                                              x=[10, 20, 30]*um))
-    # If coordinates have been given for the start point, then we need its
-    # diameter as well
-    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30]*um,
-                                             y=[0, 10, 20, 30]*um))
-    # Length and origin together does not make sense
-    assert_raises(TypeError, lambda: Section(n=10, diameter=10*um, length=100*um,
-                                              origin=[0, 10, 0]*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             y=10*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             y=[10, 20, 30]*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             z=10*um))
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             z=[10, 20, 30]*um))
+    # Need either coordinates or lengths
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um))
+    # But not both
+    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
+                                             length=[10, 20, 30]*um,
+                                             x=[0, 10, 20, 30]*um))
+
 
 @attr('codegen-independent')
 def test_from_points_minimal():
@@ -950,7 +779,7 @@ def test_subgroup_indices():
 def test_subgroup_attributes():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
-    morpho.LL = Cylinder(x=5*um, diameter=2*um, n=5)
+    morpho.LL = Cylinder(x=[0, 5]*um, diameter=2*um, n=5)
     morpho.right = Cylinder(length=3*um, diameter=1*um, n=7)
 
     # # Getting a single compartment by index
@@ -1043,10 +872,12 @@ def test_subgroup_incorrect():
 @attr('codegen-independent')
 def test_topology():
     soma = Soma(diameter=30*um)
-    soma.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    soma.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                     length=np.ones(5)*20*um)  # tapering truncated cones
     soma.R = Cylinder(n=10, diameter=5*um, length=50*um)
     soma.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    soma.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    soma.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                           length=np.ones(5)*10*um)
 
     str_topology = str(soma.topology())
     lines = [l for l in str_topology.split('\n') if len(l.strip())]
@@ -1076,9 +907,11 @@ def test_copy_section_soma():
 
 @attr('codegen-independent')
 def test_copy_section_section():
-    # Without start diameter (no coordinates)
-    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5, length=100*um, type='dend')
+    # No coordinates
+    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
+                  length=np.ones(5)*10*um, type='dend')
     sec_copy = sec.copy_section()
+    assert_allclose(sec_copy.start_diameter, sec.start_diameter)
     assert_allclose(sec_copy.end_diameter, sec.end_diameter)
     assert_allclose(sec_copy.length, sec.length)
     assert sec_copy.n == sec.n
@@ -1087,36 +920,10 @@ def test_copy_section_section():
     assert sec_copy.z is None
     assert sec_copy.type == 'dend'
 
-    # With start diameter (no coordinates)
-    sec = Section(diameter=[5, 4, 3, 2, 1]*um, start_diameter=10*um,
-                  n=5, length=100*um)
-    sec_copy = sec.copy_section()
-    assert_allclose(sec_copy.start_diameter, sec.start_diameter)
-    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
-    assert_allclose(sec_copy.length, sec.length)
-    assert sec_copy.n == sec.n
-    assert sec_copy.x is None
-    assert sec_copy.y is None
-    assert sec_copy.z is None
-    assert sec_copy.type is None
-
-    # Without start diameter (with coordinates)
-    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5,
-                  x=[1, 2, 3, 4, 5]*um, y=[-1, -2, -3, -4, -5]*um)
-    sec_copy = sec.copy_section()
-    assert_allclose(sec_copy.end_diameter, sec.end_diameter)
-    assert_allclose(sec_copy.length, sec.length)
-    assert sec_copy.n == sec.n
-    assert_allclose(sec_copy.x, sec.x)
-    assert_allclose(sec_copy.y, sec.y)
-    assert_allclose(sec_copy.z, sec.z)
-
-    assert sec_copy.type is None
-
-    # With start diameter (with coordinates)
-    sec = Section(diameter=[5, 4, 3, 2, 1]*um, start_diameter=10*um,
-                  x=[1, 2, 3, 4, 5]*um, y=[-1, -2, -3, -4, -5]*um,
-                  n=5)
+    # With coordinates
+    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
+                  x=[0, 1, 2, 3, 4, 5]*um,
+                  y=[0, -1, -2, -3, -4, -5]*um)
     sec_copy = sec.copy_section()
     assert_allclose(sec_copy.start_diameter, sec.start_diameter)
     assert_allclose(sec_copy.end_diameter, sec.end_diameter)
@@ -1125,13 +932,14 @@ def test_copy_section_section():
     assert_allclose(sec_copy.x, sec.x)
     assert_allclose(sec_copy.y, sec.y)
     assert_allclose(sec_copy.z, sec.z)
-    assert sec_copy.type is None
 
+    assert sec_copy.type is None
 
 @attr('codegen-independent')
 def test_copy_section_cylinder():
     # no coordinates
-    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5, length=100*um, type='dend')
+    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
+                  length=np.ones(5)*20*um, type='dend')
     sec_copy = sec.copy_section()
     assert_allclose(sec_copy.end_diameter, sec.end_diameter)
     assert_allclose(sec_copy.length, sec.length)
@@ -1142,8 +950,8 @@ def test_copy_section_cylinder():
     assert sec_copy.type == 'dend'
 
     # with coordinates
-    sec = Section(diameter=[5, 4, 3, 2, 1]*um, n=5,
-                  x=[1, 2, 3, 4, 5]*um, y=[-1, -2, -3, -4, -5]*um)
+    sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
+                  x=[0, 1, 2, 3, 4, 5]*um, y=[0, -1, -2, -3, -4, -5]*um)
     sec_copy = sec.copy_section()
     assert_allclose(sec_copy.end_diameter, sec.end_diameter)
     assert_allclose(sec_copy.length, sec.length)
@@ -1167,10 +975,12 @@ def _check_length_coord_consistency(morph_with_coords):
 @attr('codegen-independent')
 def test_generate_coordinates_deterministic():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                            length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates()
     assert len(morph_with_coords) == len(morph)
@@ -1193,10 +1003,12 @@ def test_generate_coordinates_deterministic():
 @attr('codegen-independent')
 def test_generate_coordinates_random_sections():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                            length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(section_randomness=25)
     assert len(morph_with_coords) == len(morph)
@@ -1217,10 +1029,12 @@ def test_generate_coordinates_random_sections():
 @attr('codegen-independent')
 def test_generate_coordinates_random_compartments():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                            length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
     assert len(morph_with_coords) == len(morph)
@@ -1241,10 +1055,12 @@ def test_generate_coordinates_random_compartments():
 @attr('codegen-independent')
 def test_generate_coordinates_random_all():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                            length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(section_randomness=25,
                                                    compartment_randomness=15)
@@ -1266,10 +1082,12 @@ def test_generate_coordinates_random_all():
 @attr('codegen-independent')
 def test_generate_coordinates_no_overwrite():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                            length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
     # This should not change anything because the morphology already has coordinates!
@@ -1292,10 +1110,12 @@ def test_generate_coordinates_no_overwrite():
 @attr('codegen-independent')
 def test_generate_coordinates_overwrite():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                            length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
     # This should change things since we explicitly ask for it
@@ -1321,7 +1141,8 @@ def test_generate_coordinates_overwrite():
 @attr('codegen-independent')
 def test_generate_coordinates_mixed_overwrite():
     morph = Soma(diameter=30*um)
-    morph.L = Section(n=5, diameter=[8, 6, 4, 2, 0]*um, length=100*um)  # tapering truncated cones
+    morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
+                      length=np.ones(5)*20*um)  # tapering truncated cones
     morph.R = Cylinder(n=10, diameter=5*um, length=50*um)
     morph_with_coords = morph.generate_coordinates(section_randomness=25,
                                                    compartment_randomness=15)
@@ -1331,7 +1152,8 @@ def test_generate_coordinates_mixed_overwrite():
 
     # Add new sections that do not yet have coordinates
     morph_with_coords.R.left = Cylinder(n=10, diameter=2.5*um, length=50*um)
-    morph_with_coords.R.right = Section(n=5, diameter=[4, 3, 2, 1, 0]*um, length=50*um)
+    morph_with_coords.R.right = Section(n=5, diameter=[5, 4, 3, 2, 1, 0]*um,
+                                        length=np.ones(5)*10*um)
 
     # This should change things since we explicitly ask for it
     morph_with_coords2 = morph_with_coords.generate_coordinates(section_randomness=25,
@@ -1360,22 +1182,9 @@ def test_str_repr():
     for morph in [Soma(diameter=30*um),
                   Soma(diameter=30*um, x=5*um, y=10*um),
                   Cylinder(n=5, diameter=10*um, length=50*um),
-                  Cylinder(n=5, diameter=10*um, x=50*um),
-                  Cylinder(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um),
-                  Cylinder(n=5, diameter=10*um, x=[10, 30, 35, 40, 50]*um),
-                  Cylinder(n=5, diameter=10*um, x=[10, 30, 35, 40, 50]*um,
-                           origin=(50, 0, 0)*um),
-                  Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um),
-                  Cylinder(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um),
-                  Section(n=5, diameter=10*um, length=50*um),
-                  Section(n=5, diameter=10*um, length=[10, 20, 5, 5, 10]*um),
-                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=50*um),
-                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um),
-                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=50*um),
-                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=[10, 20, 5, 5, 10]*um),
-                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, length=[10, 20, 5, 5, 10]*um),
-                  Section(n=5, diameter=[5, 10, 5, 10, 5]*um, start_diameter=2.5*um, x=[10, 30, 35, 40, 50]*um,
-                          origin=(0, 0, 50)*um)]:
+                  Cylinder(n=5, diameter=10*um, x=[0, 50]*um),
+                  Section(n=5, diameter=[2.5, 5, 10, 5, 10, 5]*um, length=[10, 20, 5, 5, 10]*um),
+                  Section(n=5, diameter=[2.5, 5, 10, 5, 10, 5]*um, x=[0, 10, 30, 35, 40, 50]*um)]:
 
         assert len(repr(morph)) > 0
         assert len(str(morph)) > 0
@@ -1383,7 +1192,7 @@ def test_str_repr():
     assert len(repr(morph.children)) > 0
     assert len(str(morph.children)) > 0
     morph.axon = Cylinder(1*um, n=10, length=100*um)
-    morph.dend = Section(1*um, n=10, length=50*um)
+    morph.dend = Cylinder(1*um, n=10, length=50*um)
     assert len(repr(morph.children)) > 0
     assert len(str(morph.children)) > 0
 
@@ -1392,21 +1201,16 @@ if __name__ == '__main__':
     test_attributes_soma()
     test_attributes_soma_coordinates()
     test_attributes_cylinder()
-    test_attributes_cylinder_coordinates_single()
-    test_attributes_cylinder_coordinates_endpoints()
-    test_attributes_cylinder_coordinates_allpoints()
+    test_attributes_cylinder_coordinates()
     test_attributes_section()
     test_attributes_section_coordinates_single()
-    test_attributes_section_coordinates_endpoints()
-    test_attributes_section_coordinates_allpoints()
+    test_attributes_section_coordinates_all()
     test_tree_cables_schematic()
-    test_tree_cables_rel_coordinates()
-    test_tree_cables_abs_coordinates()
+    test_tree_cables_coordinates()
     test_tree_cables_from_points()
     test_tree_cables_from_swc()
     test_tree_soma_schematic()
-    test_tree_soma_rel_coordinates()
-    test_tree_soma_abs_coordinates()
+    test_tree_soma_coordinates()
     test_tree_soma_from_points()
     test_tree_soma_from_swc()
     test_construction_incorrect_arguments()
