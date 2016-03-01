@@ -463,12 +463,8 @@ class Morphology(object):
 
     def __setitem__(self, item, child):
         '''
-        Inserts the subtree and name it item.
+        Inserts the subtree and name it ``item``.
         Ex.: ``neuron['axon']`` or ``neuron['11213']``
-        If the tree already exists with another name, then it creates a synonym
-        for this tree.
-        The coordinates of the subtree are relative before function call,
-        and are absolute after function call.
         '''
         item = str(item)  # convert int to string
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
@@ -503,7 +499,6 @@ class Morphology(object):
         Attach a subtree and name it ``item``.
 
         Ex.: ``neuron.axon = Soma(diameter=10*um)``
-        Ex.: ``neuron.axon = None``
         '''
         if isinstance(child, Morphology) and not item.startswith('_'):
             self[item] = child
@@ -642,15 +637,7 @@ class Morphology(object):
         raise NotImplementedError()
 
     @abc.abstractproperty
-    def start_diameter(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
     def diameter(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def end_diameter(self):
         raise NotImplementedError()
 
     @abc.abstractproperty
@@ -1126,16 +1113,8 @@ class Soma(Morphology):
         return np.pi * self.diameter ** 2
 
     @property
-    def start_diameter(self):
-        return self._diameter  # TODO: Best value?
-
-    @property
     def diameter(self):
         return self._diameter
-
-    @property
-    def end_diameter(self):
-        return self._diameter  # TODO: Best value?
 
     @property
     def volume(self):
