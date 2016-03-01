@@ -36,9 +36,7 @@ class FlatMorphology(object):
         self.length = np.zeros(n)
         self.distance = np.zeros(n)
         self.area = np.zeros(n)
-        self.start_diameter = np.zeros(n)
         self.diameter = np.zeros(n)
-        self.end_diameter = np.zeros(n)
         self.volume = np.zeros(n)
         self.r_length = np.zeros(n)
         self.x = np.zeros(n)
@@ -97,9 +95,7 @@ class FlatMorphology(object):
         self.length[start:end] = np.asarray(section.length)
         self.distance[start:end] = np.asarray(section.distance)
         self.area[start:end] = np.asarray(section.area)
-        self.start_diameter[start:end] = np.asarray(section.start_diameter)
         self.diameter[start:end] = np.asarray(section.diameter)
-        self.end_diameter[start:end] = np.asarray(section.end_diameter)
         self.volume[start:end] = np.asarray(section.volume)
         self.r_length[start:end] = np.asarray(section.r_length)
         if section.x is None:
@@ -299,15 +295,13 @@ class SpatialNeuron(NeuronGroup):
         distance : meter (constant)
         area : meter**2 (constant)
         volume : meter**3
-        start_diameter : meter (constant)
         diameter : meter (constant)
-        end_diameter : meter (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
         r_length : meter (constant)
         time_constant = Cm/gtot__private : second
-        space_constant = (sqrt(start_diameter) + sqrt(end_diameter))/
-                         (4 * sqrt(Ri * gtot__private)) : meter
+        space_constant = (2/pi)**(1.0/3.0) * (r_length*area)**(1.0/6.0) /
+                         (2*(Ri*gtot__private)**(1.0/2.0)) : meter
         """)
         if self.flat_morphology.has_coordinates:
             eqs_constants += Equations('''
@@ -347,9 +341,7 @@ class SpatialNeuron(NeuronGroup):
         self.distance_ = self.flat_morphology.distance
         self.length_ = self.flat_morphology.length
         self.area_ = self.flat_morphology.area
-        self.start_diameter_ = self.flat_morphology.start_diameter
         self.diameter_ = self.flat_morphology.diameter
-        self.end_diameter_ = self.flat_morphology.end_diameter
         self.r_length_ = self.flat_morphology.r_length
         if self.flat_morphology.has_coordinates:
             self.x_ = self.flat_morphology.x
