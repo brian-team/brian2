@@ -1,4 +1,4 @@
-{# USES_VARIABLES { _invr, Ri, Cm, dt, area, r_length,
+{# USES_VARIABLES { _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
                     _ab_star0, _ab_star1, _ab_star2,
                     _a_plus0, _a_plus1, _a_plus2,
                     _a_minus0, _a_minus1, _a_minus2,
@@ -7,7 +7,7 @@ import numpy as _numpy
 from numpy import pi
 
 # Inverse axial resistance
-{{_invr}}[1:] = 0.5*({{r_length}}[:-1] + {{r_length}}[1:])/{{Ri}}
+{{_invr}}[1:] = 1.0/({{Ri}}*(1/{{r_length_2}}[:-1] + 1/{{r_length_1}}[1:]));
 # Cut sections
 for _first in {{_starts}}:
     {{_invr}}[_first] = 0
@@ -33,8 +33,8 @@ for _counter, (_first, _last) in enumerate(zip({{_starts}},
                                                {{_ends}})):
     _last = _last -1  # the compartment indices are in the interval [starts, ends[
     # Inverse axial resistances at the ends: r0 and rn
-    {{_invr0}}[_counter] = _invr0 = 2*{{r_length}}[_first]/{{Ri}}
-    {{_invrn}}[_counter] = _invrn = 2*{{r_length}}[_last]/{{Ri}}
+    {{_invr0}}[_counter] = _invr0 = {{r_length_1}}[_first]/{{Ri}}
+    {{_invrn}}[_counter] = _invrn = {{r_length_2}}[_last]/{{Ri}}
     # Correction for boundary conditions
     {{_ab_star1}}[_first] -= (_invr0 / {{area}}[_first])
     {{_ab_star1}}[_last] -= (_invrn / {{area}}[_last])

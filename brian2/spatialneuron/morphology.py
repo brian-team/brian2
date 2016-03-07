@@ -649,14 +649,14 @@ class Morphology(object):
         raise NotImplementedError()
 
     @abc.abstractproperty
-    def r_length(self):
+    def r_length_1(self):
         raise NotImplementedError()
 
     @abc.abstractproperty
-    def electrical_center(self):
+    def r_length_2(self):
         raise NotImplementedError()
 
-    # At-electrical-midpoint attributes
+    # At-midpoint attributes
     @abc.abstractproperty
     def distance(self):
         raise NotImplementedError()
@@ -989,14 +989,14 @@ class SubMorphology(object):
         return self._morphology.length[self._i:self._j]
 
     @property
-    def r_length(self):
-        return self._morphology.r_length[self._i:self._j]
+    def r_length_1(self):
+        return self._morphology.r_length_1[self._i:self._j]
 
     @property
-    def electrical_center(self):
-        return self._morphology.electrical_center[self._i:self._j]
+    def r_length_2(self):
+        return self._morphology.r_length_2[self._i:self._j]
 
-    # At-electrical-midpoint attributes
+    # At-midpoint attributes
     @property
     def distance(self):
         return self._morphology.distance[self._i:self._j]
@@ -1125,13 +1125,14 @@ class Soma(Morphology):
         return self.diameter
 
     @property
-    def r_length(self):
+    def r_length_1(self):
         # The soma does not have any resistance
         return 1*meter
 
     @property
-    def electrical_center(self):
-        return np.array([0.0])
+    def r_length_2(self):
+        # The soma does not have any resistance
+        return 1*meter
 
     @property
     def distance(self):
@@ -1306,8 +1307,8 @@ class Section(Morphology):
     def diameter(self):
         d_1 = self.start_diameter
         d_2 = self.end_diameter
-        # Diameter at the electrical center
-        return d_1 + self.electrical_center*(d_2 - d_1)
+        # Diameter at the center
+        return 0.5*(d_1 + d_2)
 
     @property
     def end_diameter(self):
@@ -1326,44 +1327,44 @@ class Section(Morphology):
     @property
     def distance(self):
         dist = self._parent.total_distance if self._parent is not None else 0*um
-        return dist + np.cumsum(self.length) - (1 - self.electrical_center) * self.length
+        return dist + np.cumsum(self.length) - 0.5 * self.length
 
     @property
     def total_distance(self):
-        return self.distance[-1] + (1 - self.electrical_center[-1]) * self.length[-1]
+        return self.distance[-1] + 0.5 * self.length[-1]
 
     @property
-    def electrical_center(self):
+    def r_length_1(self):
         d_1 = self.start_diameter
-        d_2 = self.end_diameter
-        return d_1 / (d_1 + d_2)
+        d_2 = (self.start_diameter + self.end_diameter)*0.5
+        return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
-    def r_length(self):
-        d_1 = self.start_diameter
+    def r_length_2(self):
+        d_1 = (self.start_diameter + self.end_diameter)*0.5
         d_2 = self.end_diameter
-        return np.pi/4 * (d_1 * d_2)/self._length
+        return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
     def x(self):
         if self._x is None:
             return None
         diff_x = (self.end_x - self.start_x)
-        return self.start_x + self.electrical_center*diff_x
+        return self.start_x + 0.5*diff_x
 
     @property
     def y(self):
         if self._y is None:
             return None
         diff_y = (self.end_y - self.start_y)
-        return self.start_y + self.electrical_center*diff_y
+        return self.start_y + 0.5*diff_y
 
     @property
     def z(self):
         if self._z is None:
             return None
         diff_z = (self.end_z - self.start_z)
-        return self.start_z + self.electrical_center*diff_z
+        return self.start_z + 0.5*diff_z
 
     @property
     def start_x(self):
@@ -1543,9 +1544,9 @@ class Cylinder(Section):
         return np.pi * (self._diameter/2)**2 * self.length
 
     @property
-    def electrical_center(self):
-        return np.ones(self.n)*0.5
+    def r_length_1(self):
+        return np.pi/2 * (self._diameter**2)/self.length
 
     @property
-    def r_length(self):
-        return np.pi/4 * (self._diameter**2)/self.length
+    def r_length_2(self):
+        return np.pi/2 * (self._diameter**2)/self.length

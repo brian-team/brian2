@@ -71,8 +71,8 @@ start of the section represents the parent compartment with diameter 15 μm, no
     For a `Section`, the ``diameter`` argument specifies the diameter *between* the compartments
     (and at the beginning/end of the first/last compartment). the corresponding values can therefore be later retrieved
     from the `Morphology` via the ``start_diameter`` and ``end_diameter`` attributes. The ``diameter`` attribute of a
-    `Morphology` does correspond to the diameter at the "electrical midpoint" (see :ref:`creating_spatialneuron`). For
-    a `Cylinder`, ``start_diameter``, ``diameter``, and ``end_diameter`` are of course all identical.
+    `Morphology` does correspond to the diameter at the midpoint of the compartment. For a `Cylinder`,
+    ``start_diameter``, ``diameter``, and ``end_diameter`` are of course all identical.
 
 The tree structure of a morphology is created by attaching `Morphology` objects together::
 
@@ -115,7 +115,7 @@ accessing the attributes (e.g. ``diameter``) will only return the values for the
 
 .. note::
 
-    To avoid ambiguities, do not use names for sections that can be interpreted in the abreviated way detailed above.
+    To avoid ambiguities, do not use names for sections that can be interpreted in the abbreviated way detailed above.
     For example, do not name a child branch ``L1`` (which will be interpreted as the first child of the child ``L``)
 
 
@@ -169,20 +169,20 @@ manually for individual sections, following the same syntax as the "schematic" m
 
 A few notes:
 
-1. In the vast majority of simulations, coordinates are not used in the neuronal equations, therefore the
-   coordinates are purely for visualization purposes and do not affect the simulation results in any way.
+1. In the majority of simulations, coordinates are not used in the neuronal equations, therefore the coordinates are
+   purely for visualization purposes and do not affect the simulation results in any way.
 2. Coordinate specification cannot be combined with length specification -- lengths are automatically calculated from
    the coordinates.
 3. The coordinate specification can also be 1- or 2-dimensional (as in the first two examples above), the unspecified
-   coordinate will be taken from the value of the parent section (or as 0 μm for the root section)
+   coordinate will use 0 μm.
 4. All coordinates are interpreted relative to the parent compartment, i.e. the point (0 μm, 0 μm, 0 μm) refers to the
-   end point of the previous compartment. Most of the time, the first part element of the coordinate is therefore 0 μm,
-   to continue a section where the previous one ended. However, it can be convenient to use a value different from 0 μm
-   for sections connecting to the `Soma` to make them (visually) connect to a point on the sphere surface instead of the
-   center of the sphere.
-5. The ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` return the coordinates at the electrical
-   midpoint of each compartment (as for all other attributes that vary over the length of a compartment, e.g.
-   ``diameter`` or ``distance``).
+   end point of the previous compartment. Most of the time, the first element of the coordinate specification is
+   therefore 0 μm, to continue a section where the previous one ended. However, it can be convenient to use a value
+   different from 0 μm for sections connecting to the `Soma` to make them (visually) connect to a point on the sphere
+   surface instead of the center of the sphere.
+5. The ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` return the coordinates at the midpoint of each
+   compartment (as for all other attributes that vary over the length of a compartment, e.g. ``diameter`` or
+   ``distance``).
 
 A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
 
@@ -218,10 +218,7 @@ modified on a compartment per compartment basis (which is useful to model myelin
 stored in state variable ``v``.
 
 Note that for all variable values that vary across a compartment (e.g. ``distance``, ``x``, ``y``, ``z``, ``v``), the
-value that is reported is the value at the "electrical midpoint" (the point with identical axial resistance to the two
-ends) of the compartment. For spherical and cylindrical compartments, this midpoints simply corresponds to the
-geometrical midpoint, but for compartments modeled as truncated cones with different diameters at their start and end,
-the electrical midpoint is closer to the end with the bigger diameter.
+value that is reported is the value at the midpoint of the compartment.
 
 The key state variable, which must be specified at construction, is ``Im``. It is the total transmembrane current,
 expressed in units of current per area. This is a mandatory line in the definition of the model. The rest of the

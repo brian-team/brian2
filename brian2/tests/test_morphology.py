@@ -21,7 +21,8 @@ def test_attributes_soma():
     assert_equal(soma.length, [10]*um)
     assert_equal(soma.distance, [0]*um)
     assert_equal(soma.total_distance, 0*um)
-    assert soma.r_length > 1*cm
+    assert soma.r_length_1 > 1*cm
+    assert soma.r_length_2 > 1*cm
     assert_equal(soma.area, np.pi*soma.diameter**2)
     assert_allclose(soma.volume, 1.0/6.0*np.pi*(10*um)**3)
 
@@ -256,14 +257,13 @@ def test_attributes_section_coordinates_all():
     sec = Section(n=n, diameter=[20, 10, 5, 2.5]*um,
                   x=[0, 1, 1, 1]*um, y=[0, 0, 1, 1]*um, z=[0, 0, 0, 1]*um)
     assert_allclose(sec.start_diameter, [20, 10, 5]*um)
-    # diameter at electrical midpoint
-    assert_allclose(sec.diameter, sec.start_diameter +
-                    sec.electrical_center*(sec.end_diameter - sec.start_diameter))
+    # diameter at midpoint
+    assert_allclose(sec.diameter, 0.5*(sec.start_diameter + sec.end_diameter))
     assert_allclose(sec.end_diameter, [10, 5, 2.5]*um)
     # TODO: Check area and volume
 
 
-def _check_tree_cables(morphology, coordinates=False, use_cylinders=True):
+def _check_tree_cables(morphology, coordinates=False):
     # number of compartments per section
     assert morphology.n == 10
     assert morphology['1'].n == 5
@@ -285,12 +285,10 @@ def _check_tree_cables(morphology, coordinates=False, use_cylinders=True):
     # Check that distances (= distance to root at electrical midpoint)
     # correctly follow the tree structure
     assert_allclose(morphology.distance, np.arange(10) * 10 * um + 5 * um)
-    # TODO: for truncated cones the distance is more complicated
-    if use_cylinders:
-        assert_allclose(morphology['2'].distance,
-                        100 * um + np.arange(5) * 10 * um + 5 * um)
-        assert_allclose(morphology['21'].distance,
-                        150 * um + np.arange(5) * 10 * um + 5 * um)
+    assert_allclose(morphology['2'].distance,
+                    100 * um + np.arange(5) * 10 * um + 5 * um)
+    assert_allclose(morphology['21'].distance,
+                    150 * um + np.arange(5) * 10 * um + 5 * um)
     assert_allclose(morphology.total_distance, 100 * um)
     assert_allclose(morphology['1'].total_distance, 200 * um)
     assert_allclose(morphology['2'].total_distance, 150 * um)
@@ -312,56 +310,51 @@ def _check_tree_cables(morphology, coordinates=False, use_cylinders=True):
         # section: cable['1']
         step = 20 / np.sqrt(2) * um
         assert_allclose(morphology['1'].start_x, 100 * um + np.arange(5) * step)
-        # TODO: x at electrical midpoints
+        assert_allclose(morphology['1'].x, 100 * um + np.arange(5) * step + step/2)
         assert_allclose(morphology['1'].end_x, 100 * um + np.arange(5) * step + step)
         assert_allclose(morphology['1'].start_y, np.arange(5) * step)
-        # TODO: y at electrical midpoints
+        assert_allclose(morphology['1'].y, np.arange(5) * step + step/2)
         assert_allclose(morphology['1'].end_y, np.arange(5) * step + step)
         assert_allclose(morphology['1'].z, np.zeros(5) * um)
         # section: cable['2']
         step = 10 / np.sqrt(2) * um
         assert_allclose(morphology['2'].start_x, 100 * um + np.arange(5) * step)
-        if use_cylinders:
-            assert_allclose(morphology['2'].x, 100 * um + np.arange(5) * step + step / 2)
+        assert_allclose(morphology['2'].x, 100 * um + np.arange(5) * step + step / 2)
         assert_allclose(morphology['2'].end_x, 100 * um + np.arange(5) * step + step)
         assert_allclose(morphology['2'].start_y, -np.arange(5) * step)
-        if use_cylinders:
-            assert_allclose(morphology['2'].y, -(np.arange(5) * step + step / 2))
+        assert_allclose(morphology['2'].y, -(np.arange(5) * step + step / 2))
         assert_allclose(morphology['2'].end_y, -(np.arange(5) * step + step))
-        if use_cylinders:
-            assert_allclose(morphology['2'].z, np.zeros(5) * um)
+        assert_allclose(morphology['2'].z, np.zeros(5) * um)
         # section: cable ['21']
         step = 10 / np.sqrt(2) * um
         assert_allclose(morphology['21'].start_x,
                         100 * um + 50 / np.sqrt(2) * um + np.arange(5) * step)
-        if use_cylinders:
-            assert_allclose(morphology['21'].x,
-                            100 * um + 50 / np.sqrt(2) * um + np.arange(
-                                5) * step + step / 2)
+        assert_allclose(morphology['21'].x,
+                        100 * um + 50 / np.sqrt(2) * um + np.arange(
+                            5) * step + step / 2)
         assert_allclose(morphology ['21'].end_x,
                         100 * um + 50 / np.sqrt(2) * um + np.arange(
                             5) * step + step)
         assert_allclose(morphology['21'].start_y, -np.ones(5) * 50 / np.sqrt(2) * um)
-        if use_cylinders:
-            assert_allclose(morphology['21'].y, -np.ones(5) * 50 / np.sqrt(2) * um)
+        assert_allclose(morphology['21'].y, -np.ones(5) * 50 / np.sqrt(2) * um)
         assert_allclose(morphology['21'].end_y, -np.ones(5) * 50 / np.sqrt(2) * um)
         assert_allclose(morphology['21'].start_z, np.arange(5) * step)
-        if use_cylinders:
-            assert_allclose(morphology['21'].z, np.arange(5) * step + step / 2)
+        assert_allclose(morphology['21'].z, np.arange(5) * step + step / 2)
         assert_allclose(morphology['21'].end_z, np.arange(5) * step + step)
         # section: cable['22']
         step = 10 / np.sqrt(2) * um
         assert_allclose(morphology['22'].start_x,
                         100 * um + 50 / np.sqrt(2) * um + np.arange(5) * step)
-        # TODO: x at electrical midpoints
+        assert_allclose(morphology['22'].x,
+                        100 * um + 50 / np.sqrt(2) * um + np.arange(5) * step + step/2)
         assert_allclose(morphology['22'].end_x,
                         100 * um + 50 / np.sqrt(2) * um + np.arange(
                             5) * step + step)
         assert_allclose(morphology['22'].start_y, -np.ones(5) * 50 / np.sqrt(2) * um)
-        # TODO: y at electrical midpoints
+        assert_allclose(morphology['22'].y, -np.ones(5) * 50 / np.sqrt(2) * um)
         assert_allclose(morphology['22'].end_y, -np.ones(5) * 50 / np.sqrt(2) * um)
         assert_allclose(morphology['22'].start_z, -np.arange(5) * step)
-        # TODO: z at electrical midpoints
+        assert_allclose(morphology['22'].z, -(np.arange(5) * step + step/2))
         assert_allclose(morphology['22'].end_z, -(np.arange(5) * step + step))
 
 
@@ -441,7 +434,7 @@ def test_tree_cables_from_points():
     assert cable.R.n == 5
     assert cable.RL.n == 5
     assert cable.RR.n == 5
-    _check_tree_cables(cable, coordinates=True, use_cylinders=False)
+    _check_tree_cables(cable, coordinates=True)
 
 def test_tree_cables_from_swc():
     swc_content = '''
@@ -483,7 +476,7 @@ def test_tree_cables_from_swc():
         f.write(swc_content)
     cable = Morphology.from_file(tmp_filename)
     os.remove(tmp_filename)
-    _check_tree_cables(cable, coordinates=True, use_cylinders=False)
+    _check_tree_cables(cable, coordinates=True)
 
 def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
 
@@ -506,16 +499,15 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
     # correctly follow the tree structure
     # Note that the soma does add nothing to the distance
     assert_equal(morphology.distance, 0 * um)
-    # TODO: for truncated cones the distance is more complicated
+    assert_allclose(morphology['1'].distance, np.arange(5)*20*um + 10*um)
     assert_allclose(morphology['2'].distance, np.arange(5)*10*um + 5*um)
-
     assert_allclose(morphology.total_distance, 0 * um)
     assert_allclose(morphology['1'].total_distance, 100 * um)
     assert_allclose(morphology['2'].total_distance, 50 * um)
 
-    # Check section diameters
     assert_allclose(morphology.diameter, 30*um)
     assert_allclose(morphology['1'].start_diameter, [8, 8, 6, 4, 2]*um)
+    assert_allclose(morphology['1'].diameter, [8, 7, 5, 3, 1]*um)
     assert_allclose(morphology['1'].end_diameter,   [8, 6, 4, 2, 0]*um)
     assert_allclose(morphology['2'].start_diameter, np.ones(5) * 5*um)
     assert_allclose(morphology['2'].diameter, np.ones(5) * 5*um)
@@ -532,10 +524,10 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
         # section: cable['1']
         step = 20 / np.sqrt(2) * um
         assert_allclose(morphology['1'].start_x, 100 * um + np.arange(5) * step)
-        # TODO: x at electrical midpoints
+        assert_allclose(morphology['1'].x, 100 * um + np.arange(5) * step + step/2)
         assert_allclose(morphology['1'].end_x, 100 * um + np.arange(5) * step + step)
         assert_allclose(morphology['1'].start_y, np.arange(5) * step)
-        # TODO: y at electrical midpoints
+        assert_allclose(morphology['1'].y, np.arange(5) * step + step/2)
         assert_allclose(morphology['1'].end_y, np.arange(5) * step + step)
         assert_allclose(morphology['1'].z, np.zeros(5) * um)
         # section: cable['2']
@@ -786,10 +778,10 @@ def test_subgroup_attributes():
     assert_allclose(morpho.L[2].area, morpho.L.area[2])
     assert_allclose(morpho.L[2].volume, morpho.L.volume[2])
     assert_allclose(morpho.L[2].length, morpho.L.length[2])
-    assert_allclose(morpho.L[2].r_length, morpho.L.r_length[2])
+    assert_allclose(morpho.L[2].r_length_1, morpho.L.r_length_1[2])
+    assert_allclose(morpho.L[2].r_length_2, morpho.L.r_length_2[2])
     assert_allclose(morpho.L[2].distance, morpho.L.distance[2])
     assert_allclose(morpho.L[2].diameter, morpho.L.diameter[2])
-    assert_allclose(morpho.L[2].electrical_center, morpho.L.electrical_center[2])
     assert morpho.L[2].x is None
     assert morpho.L[2].y is None
     assert morpho.L[2].z is None
@@ -804,10 +796,10 @@ def test_subgroup_attributes():
     assert_allclose(morpho.LL[1.5*um].area, morpho.LL.area[1])
     assert_allclose(morpho.LL[1.5*um].volume, morpho.LL.volume[1])
     assert_allclose(morpho.LL[1.5*um].length, morpho.LL.length[1])
-    assert_allclose(morpho.LL[1.5*um].r_length, morpho.LL.r_length[1])
+    assert_allclose(morpho.LL[1.5*um].r_length_1, morpho.LL.r_length_1[1])
+    assert_allclose(morpho.LL[1.5*um].r_length_2, morpho.LL.r_length_2[1])
     assert_allclose(morpho.LL[1.5*um].distance, morpho.LL.distance[1])
     assert_allclose(morpho.LL[1.5*um].diameter, morpho.LL.diameter[1])
-    assert_allclose(morpho.LL[1.5*um].electrical_center, morpho.LL.electrical_center[1])
     assert_allclose(morpho.LL[1.5*um].x, morpho.LL.x[1])
     assert_allclose(morpho.LL[1.5*um].y, morpho.LL.y[1])
     assert_allclose(morpho.LL[1.5*um].z, morpho.LL.z[1])
@@ -822,10 +814,10 @@ def test_subgroup_attributes():
     assert_allclose(morpho.right[3:6].area, morpho.right.area[3:6])
     assert_allclose(morpho.right[3:6].volume, morpho.right.volume[3:6])
     assert_allclose(morpho.right[3:6].length, morpho.right.length[3:6])
-    assert_allclose(morpho.right[3:6].r_length, morpho.right.r_length[3:6])
+    assert_allclose(morpho.right[3:6].r_length_1, morpho.right.r_length_1[3:6])
+    assert_allclose(morpho.right[3:6].r_length_2, morpho.right.r_length_2[3:6])
     assert_allclose(morpho.right[3:6].distance, morpho.right.distance[3:6])
     assert_allclose(morpho.right[3:6].diameter, morpho.right.diameter[3:6])
-    assert_allclose(morpho.right[3:6].electrical_center, morpho.right.electrical_center[3:6])
     assert morpho.right[3:6].x is None
     assert morpho.right[3:6].y is None
     assert morpho.right[3:6].z is None

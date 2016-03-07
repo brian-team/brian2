@@ -38,7 +38,8 @@ class FlatMorphology(object):
         self.area = np.zeros(n)
         self.diameter = np.zeros(n)
         self.volume = np.zeros(n)
-        self.r_length = np.zeros(n)
+        self.r_length_1 = np.zeros(n)
+        self.r_length_2 = np.zeros(n)
         self.x = np.zeros(n)
         self.y = np.zeros(n)
         self.z = np.zeros(n)
@@ -97,7 +98,8 @@ class FlatMorphology(object):
         self.area[start:end] = np.asarray(section.area)
         self.diameter[start:end] = np.asarray(section.diameter)
         self.volume[start:end] = np.asarray(section.volume)
-        self.r_length[start:end] = np.asarray(section.r_length)
+        self.r_length_1[start:end] = np.asarray(section.r_length_1)
+        self.r_length_2[start:end] = np.asarray(section.r_length_2)
         if section.x is None:
             self._sections_without_coordinates = True
             self.x[start:end] = np.ones(n)*np.nan
@@ -298,9 +300,10 @@ class SpatialNeuron(NeuronGroup):
         diameter : meter (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
-        r_length : meter (constant)
+        r_length_1 : meter (constant)
+        r_length_2 : meter (constant)
         time_constant = Cm/gtot__private : second
-        space_constant = (2/pi)**(1.0/3.0) * (r_length*area)**(1.0/6.0) /
+        space_constant = (2/pi)**(1.0/3.0) * (area/(1/r_length_1 + 1/r_length_2))**(1.0/6.0) /
                          (2*(Ri*gtot__private)**(1.0/2.0)) : meter
         """)
         if self.flat_morphology.has_coordinates:
@@ -342,7 +345,8 @@ class SpatialNeuron(NeuronGroup):
         self.length_ = self.flat_morphology.length
         self.area_ = self.flat_morphology.area
         self.diameter_ = self.flat_morphology.diameter
-        self.r_length_ = self.flat_morphology.r_length
+        self.r_length_1_ = self.flat_morphology.r_length_1
+        self.r_length_2_ = self.flat_morphology.r_length_2
         if self.flat_morphology.has_coordinates:
             self.x_ = self.flat_morphology.x
             self.y_ = self.flat_morphology.y

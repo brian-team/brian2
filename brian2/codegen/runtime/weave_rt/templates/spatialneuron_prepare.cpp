@@ -1,4 +1,4 @@
-{# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, r_length,
+{# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
                     _ab_star0, _ab_star1, _ab_star2,
                     _a_plus0, _a_plus1, _a_plus2,
                     _a_minus0, _a_minus1, _a_minus2,
@@ -10,7 +10,7 @@
 
     // Inverse axial resistance
     for (int _i=1; _i<N; _i++)
-        {{_invr}}[_i] = 0.5*({{r_length}}[_i-1] + {{r_length}}[_i])/_Ri;
+        {{_invr}}[_i] = 1.0/(_Ri*(1/{{r_length_2}}[_i-1] + 1/{{r_length_1}}[_i]));
     // Cut sections
     for (int _i=0; _i<_num_starts; _i++)
         {{_invr}}[{{_starts}}[_i]] = 0;
@@ -43,8 +43,8 @@
         const int _first = {{_starts}}[_counter];
         const int _last = {{_ends}}[_counter] - 1;  // the compartment indices are in the interval [starts, ends[
         // Inverse axial resistances at the ends: r0 and rn
-        const double _invr0 = 2*{{r_length}}[_first]/_Ri;
-        const double _invrn = 2*{{r_length}}[_last]/_Ri;
+        const double _invr0 = {{r_length_1}}[_first]/_Ri;
+        const double _invrn = {{r_length_2}}[_last]/_Ri;
         {{_invr0}}[_counter] = _invr0;
         {{_invrn}}[_counter] = _invrn;
         // Correction for boundary conditions
