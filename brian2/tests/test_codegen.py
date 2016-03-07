@@ -35,10 +35,10 @@ def test_analyse_identifiers():
     a = b+c
     d = e+f
     '''
-    known = {'b': Variable(unit=None, name='b'),
-             'c': Variable(unit=None, name='c'),
-             'd': Variable(unit=None, name='d'),
-             'g': Variable(unit=None, name='g')}
+    known = {'b': Variable(unit=1, name='b'),
+             'c': Variable(unit=1, name='c'),
+             'd': Variable(unit=1, name='d'),
+             'g': Variable(unit=1, name='g')}
     
     defined, used_known, dependent = analyse_identifiers(code, known)
     assert 'a' in defined  # There might be an additional constant added by the
@@ -60,7 +60,7 @@ def test_get_identifiers_recursively():
                                        dtype=np.float32, expr='5 + y',
                                        owner=FakeGroup(variables={}),
                                        device=None),
-                 'x': Variable(unit=None, name='x')}
+                 'x': Variable(unit=1, name='x')}
     identifiers = get_identifiers_recursively(['_x = sub1 + x'],
                                               variables)
     assert identifiers == {'x', '_x', 'y', 'z', 'sub1', 'sub2'}
@@ -83,8 +83,8 @@ def test_nested_subexpressions():
                            expr='b*b+d'),
         'b': Subexpression(name='b', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
                            expr='c*c*c'),
-        'c': Variable(unit=None, name='c'),
-        'd': Variable(unit=None, name='d'),
+        'c': Variable(unit=1, name='c'),
+        'd': Variable(unit=1, name='d'),
         }
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
