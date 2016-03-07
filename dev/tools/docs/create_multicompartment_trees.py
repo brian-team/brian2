@@ -4,7 +4,7 @@ import mayavi.mlab as mayavi
 from brian2 import *
 
 def find_max_coordinates(morpho, current_max):
-    max_x, max_y, max_z = np.max(np.abs(morpho.plot_coordinates), axis=0)
+    max_x, max_y, max_z = np.max(np.abs(morpho.coordinates), axis=0)
     new_max = (max([max_x, current_max[0]]),
                max([max_y, current_max[1]]),
                max([max_z, current_max[2]]))
@@ -20,7 +20,7 @@ def plot_morphology3D(morpho, color_switch=False, show_compartments=False):
         mayavi.points3d(morpho.x/um, morpho.y/um, morpho.z/um, morpho.diameter/um,
                         color=DARKRED, scale_factor=1.0, resolution=16)
     else:
-        coords = morpho.plot_coordinates
+        coords = morpho.coordinates
         if color_switch:
             color = DARKBLUE
         else:
@@ -41,7 +41,7 @@ def plot_morphology2D(morpho, axis, color_switch=False):
         ax.plot(morpho.x/um, morpho.y/um, 'o', color='darkred',
                 ms=morpho.diameter/um, mec='none')
     else:
-        coords = morpho.plot_coordinates
+        coords = morpho.coordinates
         if color_switch:
             color = 'darkblue'
         else:

@@ -20,7 +20,7 @@ def test_attributes_soma():
     assert_equal(soma.diameter, [10]*um)
     assert_equal(soma.length, [10]*um)
     assert_equal(soma.distance, [0]*um)
-    assert_equal(soma.total_distance, 0*um)
+    assert_equal(soma.end_distance, 0 * um)
     assert soma.r_length_1 > 1*cm
     assert soma.r_length_2 > 1*cm
     assert_equal(soma.area, np.pi*soma.diameter**2)
@@ -91,7 +91,7 @@ def test_attributes_cylinder():
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
     assert_equal(cylinder.length, np.ones(n)*20*um)
     assert_equal(cylinder.distance, np.arange(n)*20*um + 10*um)
-    assert_equal(cylinder.total_distance, 200*um)
+    assert_equal(cylinder.end_distance, 200 * um)
     # TODO: r_length
     assert_allclose(cylinder.area, np.pi*cylinder.diameter*cylinder.length)
     assert_allclose(cylinder.volume, 1.0/4.0*np.pi*cylinder.diameter**2*cylinder.length)
@@ -120,7 +120,7 @@ def test_attributes_cylinder_coordinates():
         assert_equal(cylinder.diameter, np.ones(n)*10*um)
         assert_equal(cylinder.length, np.ones(n)*20*um)
         assert_equal(cylinder.distance, np.arange(n)*20*um + 10*um)
-        assert_equal(cylinder.total_distance, 200*um)
+        assert_equal(cylinder.end_distance, 200 * um)
 
         # Coordinates should be specified now, with 0 values for the other
         # coordinates
@@ -140,7 +140,7 @@ def test_attributes_cylinder_coordinates():
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
     assert_allclose(cylinder.length, np.ones(n)*20*um)
     assert_allclose(cylinder.distance, np.arange(n)*20*um + 10*um)
-    assert_allclose(cylinder.total_distance, 200*um)
+    assert_allclose(cylinder.end_distance, 200 * um)
 
     for coord in ['x', 'y', 'z']:
         assert_allclose(getattr(cylinder, 'start_' + coord), np.arange(n)*val[1]/n)
@@ -165,7 +165,7 @@ def test_attributes_section():
     assert_allclose(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*20*um)
     assert_allclose(sec.distance, np.arange(n)*20*um + 10*um)
-    assert_allclose(sec.total_distance, 200*um)
+    assert_allclose(sec.end_distance, 200 * um)
     # TODO: r_length
     assert_allclose(sec.area,
                     np.pi*0.5*(sec.start_diameter + sec.end_diameter)*sec.length)
@@ -197,7 +197,7 @@ def test_attributes_section_coordinates_single():
         assert_equal(sec.diameter, np.ones(n)*10*um)
         assert_equal(sec.length, np.ones(n)*20*um)
         assert_equal(sec.distance, np.arange(n)*20*um + 10*um)
-        assert_equal(sec.total_distance, 200*um)
+        assert_equal(sec.end_distance, 200 * um)
 
         # Coordinates should be specified now, with 0 values for the other
         # coordinates
@@ -221,7 +221,7 @@ def test_attributes_section_coordinates_single():
     assert_equal(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*20*um)
     assert_allclose(sec.distance, np.arange(n)*20*um + 10*um)
-    assert_allclose(sec.total_distance, 200*um)
+    assert_allclose(sec.end_distance, 200 * um)
 
     for coord in ['x', 'y', 'z']:
         assert_allclose(getattr(sec, 'start_' + coord), np.arange(n)*val/n)
@@ -241,7 +241,7 @@ def test_attributes_section_coordinates_all():
     assert_equal(sec.diameter, np.ones(n)*10*um)
     assert_allclose(sec.length, np.ones(n)*um)
     assert_allclose(sec.distance, np.arange(n)*um + .5*um)
-    assert_allclose(sec.total_distance, 3*um)
+    assert_allclose(sec.end_distance, 3 * um)
 
     assert_allclose(sec.start_x, [10, 11, 11]*um)
     assert_allclose(sec.x, [10.5, 11, 11]*um)
@@ -289,11 +289,11 @@ def _check_tree_cables(morphology, coordinates=False):
                     100 * um + np.arange(5) * 10 * um + 5 * um)
     assert_allclose(morphology['21'].distance,
                     150 * um + np.arange(5) * 10 * um + 5 * um)
-    assert_allclose(morphology.total_distance, 100 * um)
-    assert_allclose(morphology['1'].total_distance, 200 * um)
-    assert_allclose(morphology['2'].total_distance, 150 * um)
-    assert_allclose(morphology['21'].total_distance, 200 * um)
-    assert_allclose(morphology['22'].total_distance, 200 * um)
+    assert_allclose(morphology.end_distance, 100 * um)
+    assert_allclose(morphology['1'].end_distance, 200 * um)
+    assert_allclose(morphology['2'].end_distance, 150 * um)
+    assert_allclose(morphology['21'].end_distance, 200 * um)
+    assert_allclose(morphology['22'].end_distance, 200 * um)
     # Check that section diameters are correctly inherited from the parent
     # sections
     assert_allclose(morphology['1'].start_diameter, [10, 8, 6, 4, 2] * um)
@@ -501,9 +501,9 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
     assert_equal(morphology.distance, 0 * um)
     assert_allclose(morphology['1'].distance, np.arange(5)*20*um + 10*um)
     assert_allclose(morphology['2'].distance, np.arange(5)*10*um + 5*um)
-    assert_allclose(morphology.total_distance, 0 * um)
-    assert_allclose(morphology['1'].total_distance, 100 * um)
-    assert_allclose(morphology['2'].total_distance, 50 * um)
+    assert_allclose(morphology.end_distance, 0 * um)
+    assert_allclose(morphology['1'].end_distance, 100 * um)
+    assert_allclose(morphology['2'].end_distance, 50 * um)
 
     assert_allclose(morphology.diameter, 30*um)
     assert_allclose(morphology['1'].start_diameter, [8, 8, 6, 4, 2]*um)
@@ -957,7 +957,7 @@ def test_copy_section_cylinder():
 
 def _check_length_coord_consistency(morph_with_coords):
     if not isinstance(morph_with_coords, Soma):
-        vectors = np.diff(morph_with_coords.plot_coordinates, axis=0)
+        vectors = np.diff(morph_with_coords.coordinates, axis=0)
         calculated_length = np.sqrt(np.sum(vectors**2, axis=1))
         assert_allclose(calculated_length, morph_with_coords.length)
     for child in morph_with_coords.children:

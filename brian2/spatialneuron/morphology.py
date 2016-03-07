@@ -610,99 +610,193 @@ class Morphology(object):
 
     @property
     def n(self):
+        '''
+        The number of compartments in this section.
+        '''
         return self._n
 
     def __len__(self):
+        '''
+        The total number of compartments in this subtree (i.e. the number of
+        compartments in this section plus all the compartments in the sections
+        deeper in the tree).
+        '''
         return self.n + sum(len(c) for c in self.children)
 
     @property
     def n_sections(self):
+        '''
+        The total number of sections in this subtree.
+        '''
         return 1 + sum(c.n_sections for c in self.children)
 
     @property
     def parent(self):
+        '''
+        The parent section of this section.
+        '''
         return self._parent
 
     @property
     def children(self):
+        '''
+        The children (as a `Children` object) of this section.
+        '''
         return self._children
 
     @abc.abstractproperty
-    def total_distance(self):
+    def end_distance(self):
+        '''
+        The distance to the root of the morphology at the end of this section.
+        '''
         raise NotImplementedError()
 
     # Per-compartment attributes
     @abc.abstractproperty
     def area(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def diameter(self):
+        '''
+        The membrane surface area of each compartment in this section.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def volume(self):
+        '''
+        The volume of each compartment in this section.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def length(self):
+        '''
+        The length of each compartment in this section.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def r_length_1(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        start and the midpoint of each compartment. Dividing this value by the
+        Intracellular resistivity gives the conductance.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def r_length_2(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        midpoint and the end of each compartment. Dividing this value by the
+        Intracellular resistivity gives the conductance.
+        '''
         raise NotImplementedError()
 
     # At-midpoint attributes
     @abc.abstractproperty
+    def diameter(self):
+        '''
+        The diameter at the middle of each compartment in this section.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
     def distance(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def x(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def y(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def z(self):
-        raise NotImplementedError()
-
-    @property
-    def plot_coordinates(self):
-        return Quantity(np.vstack([np.hstack([self.start_x[0], self.end_x[:]]),
-                                   np.hstack([self.start_y[0], self.end_y[:]]),
-                                   np.hstack([self.start_z[0], self.end_z[:]])]).T,
-                        dim=meter.dim)
-
-    @abc.abstractproperty
-    def end_x(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def end_y(self):
-        raise NotImplementedError()
-
-    @abc.abstractproperty
-    def end_z(self):
+        '''
+        The total distance between the midpoint of each compartment and the root
+        of the morphology.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def start_x(self):
+        '''
+        The x coordinate at the beginning of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def start_y(self):
+        '''
+        The y coordinate at the beginning of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
     def start_z(self):
+        '''
+        The z coordinate at the beginning of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         raise NotImplementedError()
+
+    @abc.abstractproperty
+    def x(self):
+        '''
+        The x coordinate at the midpoint of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def y(self):
+        '''
+        The y coordinate at the midpoint of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def z(self):
+        '''
+        The y coordinate at the midpoint of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def end_x(self):
+        '''
+        The x coordinate at the end of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def end_y(self):
+        '''
+        The y coordinate at the end of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def end_z(self):
+        '''
+        The z coordinate at the end of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @property
+    def coordinates(self):
+        r'''
+        Array with all coordinates at the start- and end-points of each
+        compartment in this section. The array has size :math:`(n+1) \times 3`,
+        where :math:`n` is the number of compartments in this section. Each
+        row is one point (start point of first compartment, end point of first
+        compartment, end point of second compartment, ...), with the columns
+        being the x, y, and z coordinates. Returns ``None`` for morphologies
+        without coordinates.
+        '''
+        if self.x is None:
+            return None
+        else:
+            return Quantity(np.vstack([np.hstack([self.start_x[0], self.end_x[:]]),
+                                       np.hstack([self.start_y[0], self.end_y[:]]),
+                                       np.hstack([self.start_z[0], self.end_z[:]])]).T,
+                            dim=meter.dim)
 
     def plot(self):
         # TODO: Move into brian2tools
@@ -711,7 +805,7 @@ class Morphology(object):
             circle = plt.Circle((self.x/um, self.y/um), self.diameter/um/2, color='r')
             plt.gcf().gca().add_artist(circle)
         else:
-            coords = self.plot_coordinates
+            coords = self.coordinates
             plt.plot(coords[:, 0]/um, coords[:, 1]/um, 'k-')
 
         for child in self.children:
@@ -770,9 +864,9 @@ class Morphology(object):
     @staticmethod
     def from_points(points, spherical_soma=True):
         '''
-        Format:
-
-        ``index name x y z diameter parent``
+        Create a morphology from a sequence of points (similar to the ``SWC``
+        format, see `Morphology.from_swc_file`). Each point has to be
+        a 7-tuple: ``(index, name, x, y, z, diameter, parent)``
 
         Note that the values should not use units, but are instead all taken
         to be in micrometers.
@@ -788,10 +882,10 @@ class Morphology(object):
 
         Notes
         -----
-        This format closely follows the SWC format (see `Morphology.from_file`)
-        with two differences: the ``type`` should be a string (e.g. ``'soma'``)
-        instead of an integer and the 6-th element should be the diameter and
-        not the radius.
+        This format closely follows the SWC format (see
+        `Morphology.from_swc_file`) with two differences: the ``type`` should
+        be a string (e.g. ``'soma'``) instead of an integer and the 6-th element
+        should be the diameter and not the radius.
         '''
         # First pass through all points to get the dependency structure
         compartments = OrderedDict()
@@ -902,6 +996,36 @@ class Morphology(object):
 
     @staticmethod
     def from_swc_file(filename):
+        '''
+        Load a morphology from a ``SWC`` file. A large database of morphologies
+        in this format can be found at http://neuromorpho.org
+
+        The format consists of an optional header of lines starting with ``#``
+        (ignored), followed by a sequence of points, each described in a line
+        following the format::
+
+            index type x y z radius parent
+
+        ``index`` is an integer label (starting at 1) that identifies the
+        current point and increases by one each line. ``type`` is an integer
+        representing the type of the neural segment. The only type that changes
+        the interpretation by Brian is the type ``1`` which signals a soma.
+        Types ``2`` (axon), ``3`` (dendrite), and ``4`` (apical dendrite) are
+        used to give corresponding names to the respective sections. All other
+        types are ignored. ``x``, ``y``, and ``z`` are the cartesian coordinates
+        at each point and ``r`` is its radius. ``parent`` refers to the index
+        of the parent point or is ``-1`` for the root point.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the ``SWC`` file.
+
+        Returns
+        -------
+        morpho : `Morphology`
+            The morphology stored in the given file.
+        '''
         swc_types = defaultdict(lambda: None)
         # The following names will be translated into names, all other will be
         # ignored
@@ -933,12 +1057,28 @@ class Morphology(object):
 
     @staticmethod
     def from_file(filename):
+        '''
+        Convencience method to load a morphology from a given file. At the
+        moment, only ``SWC`` files are supported, calling this function is
+        therefore equivalent to calling `Morphology.from_swc_file` directly.
+
+        Parameters
+        ----------
+        filename : str
+            The name of a file storing a morphology.
+
+        Returns
+        -------
+        morphology : `Morphology`
+            The morphology stored in the given file.
+        '''
         _, ext = os.path.splitext(filename)
         if ext.lower() == '.swc':
             return Morphology.from_swc_file(filename)
         else:
             raise NotImplementedError('Currently, SWC is the only supported '
                                       'file format.')
+
 
 class SubMorphology(object):
     '''
@@ -962,6 +1102,9 @@ class SubMorphology(object):
 
     @property
     def n(self):
+        '''
+        The number of compartments in this sub-section.
+        '''
         return self._j - self._i
 
     def __len__(self):
@@ -969,91 +1112,157 @@ class SubMorphology(object):
 
     @property
     def n_sections(self):
+        '''
+        The number of sections in this sub-section (always 1).
+        '''
         return 1
 
     # Per-compartment attributes
     @property
     def area(self):
+        '''
+        The membrane surface area of each compartment in this sub-section.
+        '''
         return self._morphology.area[self._i:self._j]
 
     @property
-    def diameter(self):
-        return self._morphology.diameter[self._i:self._j]
-
-    @property
     def volume(self):
+        '''
+        The volume of each compartment in this sub-section.
+        '''
         return self._morphology.volume[self._i:self._j]
 
     @property
     def length(self):
+        '''
+        The length of each compartment in this sub-section.
+        '''
         return self._morphology.length[self._i:self._j]
 
     @property
     def r_length_1(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        start and the midpoint of each compartment in this sub-section.
+        Dividing this value by the Intracellular resistivity gives the
+        conductance.
+        '''
         return self._morphology.r_length_1[self._i:self._j]
 
     @property
     def r_length_2(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        midpoint and the end of each compartment in this sub-section. Dividing
+        this value by the Intracellular resistivity gives the conductance.
+        '''
         return self._morphology.r_length_2[self._i:self._j]
 
     # At-midpoint attributes
     @property
+    def diameter(self):
+        '''
+        The diameter at the middle of each compartment in this sub-section.
+        '''
+        return self._morphology.diameter[self._i:self._j]
+
+    @property
     def distance(self):
+        '''
+        The total distance between the midpoint of each compartment in this
+        sub-section and the root of the morphology.
+        '''
         return self._morphology.distance[self._i:self._j]
 
     @property
-    def x(self):
-        if self._morphology.x is None:
-            return None
-        return self._morphology.x[self._i:self._j]
-
-    @property
-    def y(self):
-        if self._morphology.y is None:
-            return None
-        return self._morphology.y[self._i:self._j]
-
-    @property
-    def z(self):
-        if self._morphology.z is None:
-            return None
-        return self._morphology.z[self._i:self._j]
-
-    @property
-    def end_x(self):
-        if self._morphology.end_x is None:
-            return None
-        return self._morphology.end_x[self._i:self._j]
-
-    @property
-    def end_y(self):
-        if self._morphology.end_y is None:
-            return None
-        return self._morphology.end_y[self._i:self._j]
-
-    @property
-    def end_z(self):
-        if self._morphology.end_z is None:
-            return None
-        return self._morphology.end_z[self._i:self._j]
-
-    @property
     def start_x(self):
+        '''
+        The x coordinate at the beginning of each compartment in this
+        sub-section. Returns ``None`` for morphologies without coordinates.
+        '''
         if self._morphology.start_x is None:
             return None
         return self._morphology.start_x[self._i:self._j]
 
     @property
     def start_y(self):
+        '''
+        The y coordinate at the beginning of each compartment in this
+        sub-section. Returns ``None`` for morphologies without coordinates.
+        '''
         if self._morphology.start_y is None:
             return None
         return self._morphology.start_y[self._i:self._j]
 
     @property
     def start_z(self):
+        '''
+        The z coordinate at the beginning of each compartment in this
+        sub-section. Returns ``None`` for morphologies without coordinates.
+        '''
         if self._morphology.start_z is None:
             return None
         return self._morphology.start_z[self._i:self._j]
+
+    @property
+    def x(self):
+        '''
+        The x coordinate at the midpoint of each compartment in this
+        sub-section. Returns ``None`` for morphologies without coordinates.
+        '''
+        if self._morphology.x is None:
+            return None
+        return self._morphology.x[self._i:self._j]
+
+    @property
+    def y(self):
+        '''
+        The y coordinate at the midpoint of each compartment in this
+        sub-section. Returns ``None`` for morphologies without coordinates.
+        '''
+        if self._morphology.y is None:
+            return None
+        return self._morphology.y[self._i:self._j]
+
+    @property
+    def z(self):
+        '''
+        The z coordinate at the midpoint of each compartment in this
+        sub-section. Returns ``None`` for morphologies without coordinates.
+        '''
+        if self._morphology.z is None:
+            return None
+        return self._morphology.z[self._i:self._j]
+
+    @property
+    def end_x(self):
+        '''
+        The x coordinate at the end of each compartment in this sub-section.
+        Returns ``None`` for morphologies without coordinates.
+        '''
+        if self._morphology.end_x is None:
+            return None
+        return self._morphology.end_x[self._i:self._j]
+
+    @property
+    def end_y(self):
+        '''
+        The y coordinate at the end of each compartment in this sub-section.
+        Returns ``None`` for morphologies without coordinates.
+        '''
+        if self._morphology.end_y is None:
+            return None
+        return self._morphology.end_y[self._i:self._j]
+
+    @property
+    def end_z(self):
+        '''
+        The z coordinate at the end of each compartment in this sub-section.
+        Returns ``None`` for morphologies without coordinates.
+        '''
+        if self._morphology.end_z is None:
+            return None
+        return self._morphology.end_z[self._i:self._j]
 
 
 class Soma(Morphology):
@@ -1062,7 +1271,7 @@ class Soma(Morphology):
 
     Parameters
     ----------
-    diameter : `Quantity`, optional
+    diameter : `Quantity`
         Diameter of the sphere.
     x : `Quantity`, optional
         The x coordinate of the position of the soma.
@@ -1110,75 +1319,163 @@ class Soma(Morphology):
     # i.e. for the soma arrays of length 1 instead of scalar values
     @property
     def area(self):
+        '''
+        The membrane surface area of this section (as an array of length 1).
+        '''
         return np.pi * self.diameter ** 2
 
     @property
-    def diameter(self):
-        return self._diameter
-
-    @property
     def volume(self):
+        '''
+        The volume of this section (as an array of length 1).
+        '''
         return (np.pi * self.diameter ** 3)/6
 
     @property
     def length(self):
+        '''
+        The "length" (equal to `diameter`) of this section (as an array of
+        length 1).
+        '''
         return self.diameter
 
     @property
     def r_length_1(self):
-        # The soma does not have any resistance
-        return 1*meter
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        start and the midpoint of each compartment. Returns a fixed (high)
+        value for a `Soma`, corresponding to a section with very low
+        intracellular resistance.
+        '''
+        return [1]*meter
 
     @property
     def r_length_2(self):
-        # The soma does not have any resistance
-        return 1*meter
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        midpoint and the end of each compartment. Returns a fixed (high)
+        value for a `Soma`, corresponding to a section with very low
+        intracellular resistance.
+        '''
+        return [1]*meter
+
+    @property
+    def diameter(self):
+        '''
+        The diameter of this section (as an array of length 1).
+        '''
+        return self._diameter
 
     @property
     def distance(self):
+        '''
+        The total distance between the midpoint of this section and the root
+        of the morphology. The `Soma` is most likely the root of the
+        morphology, and therefore the `distance` is 0.
+        '''
         dist = self._parent.distance if self._parent else 0*um
         return dist
 
     @property
-    def x(self):
-        return self._x
-
-    @property
-    def y(self):
-        return self._y
-
-    @property
-    def z(self):
-        return self._z
-
-    @property
     def start_x(self):
+        '''
+        The x-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
         return self._x
 
     @property
     def start_y(self):
+        '''
+        The y-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
         return self._y
 
     @property
     def start_z(self):
+        '''
+        The z-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
+        return self._z
+
+    @property
+    def x(self):
+        '''
+        The x-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
+        return self._x
+
+    @property
+    def y(self):
+        '''
+        The y-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
+        return self._y
+
+    @property
+    def z(self):
+        '''
+        The z-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
         return self._z
 
     @property
     def end_x(self):
+        '''
+        The x-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
         return self._x
 
     @property
     def end_y(self):
+        '''
+        The y-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
         return self._y
 
     @property
     def end_z(self):
+        '''
+        The z-coordinate of the current section (as an array of length 1). Note
+        that a `Soma` is modelled as a "point" with finite surface/volume,
+        equivalent to that of a sphere with the given `diameter`. It's start-,
+        midpoint-, and end-coordinates are therefore identical.
+        '''
         return self._z
 
     @property
-    def total_distance(self):
-        dist = self._parent.total_distance if self._parent is not None else 0*um
-        return dist  # TODO: + self.diameter/2 ?
+    def end_distance(self):
+        '''
+        The distance to the root of the morphology at the end of this section.
+        Note that since a `Soma` is modeled as a point (see docs of `x`, etc.),
+        it does not add anything to the total distance, e.g. a section
+        connecting to a `Soma` has a `distance` of 0 um at its start.
+        '''
+        dist = self._parent.end_distance if self._parent is not None else 0 * um
+        return dist
 
 
 class Section(Morphology):
@@ -1295,79 +1592,108 @@ class Section(Morphology):
 
     @property
     def area(self):
+        r'''
+        The membrane surface area of each compartment in this section. The
+        surface area of each compartment is calculated as
+        :math:`\frac{\pi}{2}(d_1 + d_2)\sqrt{\frac{(d_1 - d_2)^2}{4} + l^2)}`,
+        where :math:`l` is the length of the compartment, and :math:`d_1` and
+        :math:`d_2` are the diameter at the start and end of the compartment,
+        respectively. Note that this surface area does not contain the area of
+        the two disks at the two sides of the truncated cone.
+        '''
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
 
     @property
-    def start_diameter(self):
-        return Quantity(self._diameter[:-1], copy=True)
-
-    @property
-    def diameter(self):
-        d_1 = self.start_diameter
-        d_2 = self.end_diameter
-        # Diameter at the center
-        return 0.5*(d_1 + d_2)
-
-    @property
-    def end_diameter(self):
-        return Quantity(self._diameter[1:], copy=True)
-
-    @property
     def volume(self):
+        r'''
+        The volume of each compartment in this section. The volume of each
+        compartment is calculated as
+        :math:`\frac{\pi}{12} l (d_1^2 + d_1 d_2 + d_2^2)`,
+        where :math:`l` is the length of the compartment, and :math:`d_1` and
+        :math:`d_2` are the diameter at the start and end of the compartment,
+        respectively.
+        '''
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         return np.pi * self._length * (d_1**2 + d_1*d_2 + d_2**2)/12
 
     @property
     def length(self):
+        '''
+        The length of each compartment in this section.
+        '''
         return self._length
 
     @property
+    def start_diameter(self):
+        '''
+        The diameter at the start of each compartment in this section.
+        '''
+        return Quantity(self._diameter[:-1], copy=True)
+
+    @property
+    def end_diameter(self):
+        '''
+        The diameter at the end of each compartment in this section.
+        '''
+        return Quantity(self._diameter[1:], copy=True)
+
+    @property
+    def diameter(self):
+        '''
+        The diameter at the middle of each compartment in this section.
+        '''
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
+        # Diameter at the center
+        return 0.5*(d_1 + d_2)
+
+    @property
     def distance(self):
-        dist = self._parent.total_distance if self._parent is not None else 0*um
+        '''
+        The total distance between the midpoint of each compartment and the root
+        of the morphology.
+        '''
+        dist = self._parent.end_distance if self._parent is not None else 0 * um
         return dist + np.cumsum(self.length) - 0.5 * self.length
 
     @property
-    def total_distance(self):
+    def end_distance(self):
+        '''
+        The distance to the root of the morphology at the end of this section.
+        '''
         return self.distance[-1] + 0.5 * self.length[-1]
 
     @property
     def r_length_1(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        start and the midpoint of each compartment. Dividing this value by the
+        Intracellular resistivity gives the conductance.
+        '''
         d_1 = self.start_diameter
         d_2 = (self.start_diameter + self.end_diameter)*0.5
         return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
     def r_length_2(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        midpoint and the end of each compartment. Dividing this value by the
+        Intracellular resistivity gives the conductance.
+        '''
         d_1 = (self.start_diameter + self.end_diameter)*0.5
         d_2 = self.end_diameter
         return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
-    def x(self):
-        if self._x is None:
-            return None
-        diff_x = (self.end_x - self.start_x)
-        return self.start_x + 0.5*diff_x
-
-    @property
-    def y(self):
-        if self._y is None:
-            return None
-        diff_y = (self.end_y - self.start_y)
-        return self.start_y + 0.5*diff_y
-
-    @property
-    def z(self):
-        if self._z is None:
-            return None
-        diff_z = (self.end_z - self.start_z)
-        return self.start_z + 0.5*diff_z
-
-    @property
     def start_x(self):
+        '''
+        The x coordinate at the beginning of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         if self._x is None:
             return None
         if self.parent is not None and self.parent.end_x is not None:
@@ -1378,6 +1704,10 @@ class Section(Morphology):
 
     @property
     def start_y(self):
+        '''
+        The y coordinate at the beginning of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         if self._y is None:
             return None
         if self.parent is not None and self.parent.end_y is not None:
@@ -1388,6 +1718,10 @@ class Section(Morphology):
 
     @property
     def start_z(self):
+        '''
+        The z coordinate at the beginning of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         if self._z is None:
             return None
         if self.parent is not None and self.parent.end_z is not None:
@@ -1397,7 +1731,44 @@ class Section(Morphology):
         return parent_z + self._z[:-1]
 
     @property
+    def x(self):
+        '''
+        The x coordinate at the midpoint of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        if self._x is None:
+            return None
+        diff_x = (self.end_x - self.start_x)
+        return self.start_x + 0.5*diff_x
+
+    @property
+    def y(self):
+        '''
+        The y coordinate at the midpoint of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        if self._y is None:
+            return None
+        diff_y = (self.end_y - self.start_y)
+        return self.start_y + 0.5*diff_y
+
+    @property
+    def z(self):
+        '''
+        The z coordinate at the midpoint of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
+        if self._z is None:
+            return None
+        diff_z = (self.end_z - self.start_z)
+        return self.start_z + 0.5*diff_z
+
+    @property
     def end_x(self):
+        '''
+        The x coordinate at the end of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         if self._x is None:
             return None
         if self.parent is not None and self.parent.end_x is not None:
@@ -1408,6 +1779,10 @@ class Section(Morphology):
 
     @property
     def end_y(self):
+        '''
+        The y coordinate at the end of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         if self._y is None:
             return None
         if self.parent is not None and self.parent.end_y is not None:
@@ -1418,6 +1793,10 @@ class Section(Morphology):
 
     @property
     def end_z(self):
+        '''
+        The z coordinate at the end of each compartment. Returns ``None``
+        for morphologies without coordinates.
+        '''
         if self._z is None:
             return None
         if self.parent is not None and self.parent.end_z is not None:
@@ -1525,28 +1904,62 @@ class Cylinder(Section):
     # Overwrite the properties that differ from `Section`
     @property
     def area(self):
+        r'''
+        The membrane surface area of each compartment in this section. The
+        surface area of each compartment is calculated as
+        :math:`\pi d l`,
+        where :math:`l` is the length of the compartment, and :math:`d` is its
+        diameter. Note that this surface area does not contain the area of
+        the two disks at the two sides of the cylinder.
+        '''
         return np.pi * self._diameter * self.length
 
     @property
     def start_diameter(self):
+        '''
+        The diameter at the start of each compartment in this section.
+        '''
         return self._diameter
 
     @property
     def diameter(self):
+        '''
+        The diameter at the middle of each compartment in this section.
+        '''
         return self._diameter
 
     @property
     def end_diameter(self):
+        '''
+        The diameter at the end of each compartment in this section.
+        '''
         return self._diameter
 
     @property
     def volume(self):
+        r'''
+        The volume of each compartment in this section. The volume of each
+        compartment is calculated as
+        :math:`\pi \frac{d}{2}^2 l` ,
+        where :math:`l` is the length of the compartment, and :math:`d` is its
+        diameter.
+        '''
         return np.pi * (self._diameter/2)**2 * self.length
 
     @property
     def r_length_1(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        start and the midpoint of each compartment. Dividing this value by the
+        Intracellular resistivity gives the conductance.
+        '''
         return np.pi/2 * (self._diameter**2)/self.length
 
     @property
     def r_length_2(self):
+        '''
+        The geometry-dependent term to calculate the conductance between the
+        midpoint and the end of each compartment. Dividing this value by the
+        Intracellular resistivity gives the conductance.
+        '''
         return np.pi/2 * (self._diameter**2)/self.length
