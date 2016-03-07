@@ -875,7 +875,8 @@ class Morphology(object):
         ----------
         points : sequence of 7-tuples
             The points of the morphology.
-
+        spherical_soma : bool, optional
+            Whether to model a soma as a sphere.
         Returns
         -------
         morphology : `Morphology`
@@ -995,7 +996,7 @@ class Morphology(object):
         return root[0]
 
     @staticmethod
-    def from_swc_file(filename):
+    def from_swc_file(filename, spherical_soma=True):
         '''
         Load a morphology from a ``SWC`` file. A large database of morphologies
         in this format can be found at http://neuromorpho.org
@@ -1020,6 +1021,8 @@ class Morphology(object):
         ----------
         filename : str
             The name of the ``SWC`` file.
+        spherical_soma : bool, optional
+            Whether to model the soma as a sphere.
 
         Returns
         -------
@@ -1053,10 +1056,10 @@ class Morphology(object):
                                2*float(radius),
                                int(parent)))
 
-        return Morphology.from_points(points)
+        return Morphology.from_points(points, spherical_soma=spherical_soma)
 
     @staticmethod
-    def from_file(filename):
+    def from_file(filename, spherical_soma=True):
         '''
         Convencience method to load a morphology from a given file. At the
         moment, only ``SWC`` files are supported, calling this function is
@@ -1066,7 +1069,8 @@ class Morphology(object):
         ----------
         filename : str
             The name of a file storing a morphology.
-
+        spherical_soma : bool, optional
+            Whether to model the soma as a sphere.
         Returns
         -------
         morphology : `Morphology`
@@ -1074,7 +1078,8 @@ class Morphology(object):
         '''
         _, ext = os.path.splitext(filename)
         if ext.lower() == '.swc':
-            return Morphology.from_swc_file(filename)
+            return Morphology.from_swc_file(filename,
+                                            spherical_soma=spherical_soma)
         else:
             raise NotImplementedError('Currently, SWC is the only supported '
                                       'file format.')
