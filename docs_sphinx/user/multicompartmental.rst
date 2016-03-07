@@ -234,8 +234,10 @@ The space and time constants can obtained for any point of the neuron with the `
     l = neuron.space_constant[0]
     tau = neuron.time_constant[0]
 
-The calculation is based on the local total conductance (not just the leak conductance).
-Therefore, it can potentially vary during a simulation (e.g. decrease during an action potential).
+The calculation is based on the local total conductance (not just the leak conductance), therefore, it can potentially
+vary during a simulation (e.g. decrease during an action potential). The reported value is only correct for compartments
+with a cylindrical geometry, though, it does not give reasonable values for compartments with strongly varying
+diameter.
 
 To inject a current `I` at a particular point (e.g. through an electrode or a synapse), this current must be divided by
 the area of the compartment when inserted in the transmembrane current equation. This is done automatically when
