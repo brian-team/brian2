@@ -1,5 +1,6 @@
 import uuid
 import tempfile
+import logging
 
 from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
 from nose import with_setup
@@ -397,6 +398,61 @@ def test_rate_monitor_2():
     assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
     assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
 
+@attr('codegen-independent')
+def test_rate_monitor_smoothed_rate():
+    # Test the filter response by having a single spiking neuron
+    G = SpikeGeneratorGroup(1, [0], [1]*ms)
+    r_mon = PopulationRateMonitor(G)
+    run(3*ms)
+    index = int(np.round(1*ms/defaultclock.dt))
+    except_index = np.array([idx for idx in xrange(len(r_mon.rate))
+                             if idx != index])
+    assert_array_equal(r_mon.rate[except_index], 0*Hz)
+    assert_allclose(r_mon.rate[index], 1/defaultclock.dt)
+    ### Flat window
+    # Using a flat window of size = dt should not change anything
+    assert_allclose(r_mon.rate, r_mon.smooth_rate(window='flat', width=defaultclock.dt))
+    smoothed = r_mon.smooth_rate(window='flat', width=5*defaultclock.dt)
+    assert_array_equal(smoothed[:index-2], 0*Hz)
+    assert_array_equal(smoothed[index+3:], 0*Hz)
+    assert_allclose(smoothed[index-2:index+3], 0.2/defaultclock.dt)
+    with catch_logs(log_level=logging.INFO):
+        smoothed2 = r_mon.smooth_rate(window='flat', width=5.4*defaultclock.dt)
+        assert_array_equal(smoothed, smoothed2)
+
+    ### Gaussian window
+    width = 5*defaultclock.dt
+    smoothed = r_mon.smooth_rate(window='gaussian', width=width)
+    # 0 outside of window
+    assert_array_equal(smoothed[:index-10], 0*Hz)
+    assert_array_equal(smoothed[index+11:], 0*Hz)
+    # Gaussian around the spike
+    gaussian = np.exp(-(r_mon.t[index-10:index+11] - 1*ms)**2/(2*width**2))
+    gaussian /= sum(gaussian)
+    assert_allclose(smoothed[index-10:index+11], 1/defaultclock.dt*gaussian)
+
+    ### Arbitrary window
+    window = np.ones(5)
+    smoothed_flat = r_mon.smooth_rate(window='flat', width=5*defaultclock.dt)
+    smoothed_custom = r_mon.smooth_rate(window=window)
+    assert_allclose(smoothed_flat, smoothed_custom)
+
+
+@attr('codegen-independent')
+def test_rate_monitor_smoothed_rate_incorrect():
+    # Test the filter response by having a single spiking neuron
+    G = SpikeGeneratorGroup(1, [0], [1]*ms)
+    r_mon = PopulationRateMonitor(G)
+    run(2*ms)
+
+    assert_raises(TypeError, lambda: r_mon.smooth_rate(window='flat'))  # no width
+    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(5), width=1*ms))
+    assert_raises(NotImplementedError, lambda: r_mon.smooth_rate(window='unknown', width=1*ms))
+    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=object()))
+    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(5, 2)))
+    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(4)))  # even number
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_rate_monitor_get_states():
@@ -444,5 +500,7 @@ if __name__ == '__main__':
     test_state_monitor_resize()
     test_rate_monitor_1()
     test_rate_monitor_2()
+    test_rate_monitor_smoothed_rate()
+    test_rate_monitor_smoothed_rate_incorrect()
     test_rate_monitor_get_states()
     test_rate_monitor_subgroups()
