@@ -141,11 +141,11 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
     if not unit_checking:
         return
 
-    dim1 = get_dimensions(Quantity(obj1))
+    dim1 = get_dimensions(obj1)
     if obj2 is None:
         dim2 = DIMENSIONLESS
     else:
-        dim2 = get_dimensions(Quantity(obj2))
+        dim2 = get_dimensions(obj2)
 
     if dim1 is not dim2:
         # Special treatment for "0":
@@ -155,13 +155,8 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
         # builtin) or comparisons like 3 * mV == 0 to return False instead of
         # failing # with a DimensionMismatchError. Note that 3*mV == 0*second
         # is not allowed, though.
-        obj1_is_dimensionless = (not isinstance(obj1, Quantity) or
-                                 obj1.dim is DIMENSIONLESS)
-        obj2_is_dimensionless = (not isinstance(obj2, Quantity) or
-                                 obj2.dim is DIMENSIONLESS)
-
-        if ((obj1_is_dimensionless and np.all(obj1 == 0)) or
-                (obj2_is_dimensionless and np.all(obj2 == 0))):
+        if ((dim1 is DIMENSIONLESS and np.all(obj1 == 0)) or
+                (dim2 is DIMENSIONLESS and np.all(obj2 == 0))):
             return
 
         # We do another check here, this should allow Brian1 units to pass as
@@ -355,6 +350,16 @@ class Dimension(object):
         `DIMENSIONLESS`.
         '''
         return all([x == 0 for x in self._dims])
+
+    @property
+    def dim(self):
+        '''
+        Returns the `Dimension` object itself. This can be useful, because it
+        allows to check for the dimension of an object by checking its ``dim``
+        attribute -- this will return a `Dimension` object for `Quantity`,
+        `Unit` and `Dimension`.
+        '''
+        return self
 
     #### REPRESENTATION ####
     def _str_representation(self, python_code=False):
@@ -611,15 +616,15 @@ def get_dimensions(obj):
     dim: `Dimension`
         The dimensions of the `obj`.
     """
-    if (isinstance(obj, numbers.Number) or isinstance(obj, np.number) or
-        isinstance(obj, np.ndarray) and not isinstance(obj, Quantity)):
-        return DIMENSIONLESS
-    elif isinstance(obj, Dimension):
-        return obj
-
     try:
         return obj.dim
     except AttributeError:
+        # The following is not very pretty, but it will avoid the costly
+        # isinstance check for the common types
+        if (type(obj) in [int, long, float, np.int32, np.int64,
+                          np.float32, np.float64, np.ndarray] or
+                isinstance(obj, (numbers.Number, np.number, np.ndarray))):
+            return DIMENSIONLESS
         raise TypeError('Object of type %s does not have dimensions' %
                         type(obj))
 
