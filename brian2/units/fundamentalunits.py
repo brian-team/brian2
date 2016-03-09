@@ -194,7 +194,7 @@ def wrap_function_dimensionless(func):
                                                    'argument but got '
                                                    '{value}' % func.__name__),
                                     value=x)
-        return func(np.asarray(x), *args, **kwds)
+        return func(np.array(x, copy=False), *args, **kwds)
     f._arg_units = [1]
     f._return_unit = 1
     f.__name__ = func.__name__
@@ -214,7 +214,7 @@ def wrap_function_keep_dimensions(func):
     ``sum`` to work as expected with additional ``axis`` etc. arguments.
     '''
     def f(x, *args, **kwds):  # pylint: disable=C0111
-        return Quantity(func(np.asarray(x), *args, **kwds), dim=x.dim)
+        return Quantity(func(np.array(x, copy=False), *args, **kwds), dim=x.dim)
     f._arg_units = [None]
     f._return_unit = lambda u : u
     f.__name__ = func.__name__
@@ -235,7 +235,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
     other arguments are ignored/untouched.
     '''
     def f(x, *args, **kwds):  # pylint: disable=C0111
-        ar = np.asarray(x)
+        ar = np.array(x, copy=False)
         return Quantity(func(ar, *args, **kwds),
                         dim=change_dim_func(ar, x.dim))
     f._arg_units = [None]
@@ -256,7 +256,7 @@ def wrap_function_remove_dimensions(func):
     other arguments are ignored/untouched.
     '''
     def f(x, *args, **kwds):  # pylint: disable=C0111
-        return func(np.asarray(x), *args, **kwds)
+        return func(np.array(x, copy=False), *args, **kwds)
     f._arg_units = [None]
     f._return_unit = 1
     f.__name__ = func.__name__
@@ -432,7 +432,7 @@ class Dimension(object):
         return self.__div__(value)
 
     def __pow__(self, value):
-        value = np.asarray(value)
+        value = np.array(value, copy=False)
         if value.size > 1:
             raise TypeError('Too many exponents')
         return get_or_create_dimension([x * value for x in self._dims])
@@ -628,8 +628,11 @@ def get_dimensions(obj):
                           np.float32, np.float64, np.ndarray] or
                 isinstance(obj, (numbers.Number, np.number, np.ndarray))):
             return DIMENSIONLESS
-        raise TypeError('Object of type %s does not have dimensions' %
-                        type(obj))
+        try:
+            return Quantity(obj).dim
+        except TypeError:
+            raise TypeError('Object of type %s does not have dimensions' %
+                            type(obj))
 
 
 def is_dimensionless(obj):
@@ -722,7 +725,7 @@ def in_unit(x, u, precision=None):
         fail_for_dimension_mismatch(x, u,   
                                     'Non-matching unit for function '
                                     '"in_unit"')        
-        return str(np.asarray(x / u))
+        return str(np.array(x / u, copy=False))
     else:
         return x.in_unit(u, precision=precision)
 
@@ -991,11 +994,11 @@ class Quantity(np.ndarray, object):
                                                       'be dimensionless but '
                                                       'was {value}',
                                         value=args[1])
-            if np.asarray(args[1]).size != 1:
+            if np.array(args[1], copy=False).size != 1:
                 raise TypeError('Only length-1 arrays can be used as an '
                                 'exponent for quantities.')
         elif uf.__name__ in ('sign', 'ones_like'):
-            return np.asarray(array)
+            return np.array(array, copy=False)
         else:
             warn("Unknown ufunc '%s' in __array_prepare__" % uf.__name__)
 
@@ -1022,7 +1025,7 @@ class Quantity(np.ndarray, object):
             elif uf.__name__ == 'sqrt':
                 dim = self.dim ** 0.5
             elif uf.__name__ == 'power':
-                dim = get_dimensions(args[0]) ** np.asarray(args[1])
+                dim = get_dimensions(args[0]) ** np.array(args[1], copy=False)
             elif uf.__name__ == 'square':
                 dim = self.dim ** 2
             elif uf.__name__ in ('divide', 'true_divide', 'floor_divide'):
@@ -1166,7 +1169,7 @@ class Quantity(np.ndarray, object):
         fail_for_dimension_mismatch(self, u,
                                     'Non-matching unit for method "in_unit"')
         
-        value = np.asarray(self / u)
+        value = np.array(self / u, copy=False)
         # numpy uses the printoptions setting only in arrays, not in array
         # scalars, so we use this hackish way of turning the scalar first into
         # an array, then removing the square brackets from the output
@@ -1322,12 +1325,11 @@ class Quantity(np.ndarray, object):
         not like a numpy array scalar, preventing weird effects when a reference
         to the same value was stored in another variable. See github issue #469.
         '''
-        if not (isinstance(other, np.ndarray) or is_scalar_type(other)):
-            try:
-                other = Quantity(other)
-            except TypeError:
-                return NotImplemented
-        
+        # try:
+        #     other = Quantity(other)
+        # except TypeError:
+        #     return NotImplemented
+
         if fail_for_mismatch:
             if inplace:
                 message = ('Cannot calculate ... %s {value}, units do not '
@@ -1350,8 +1352,8 @@ class Quantity(np.ndarray, object):
         else:
             other_dim = get_dimensions(other)
             newdims = dim_operation(self.dim, other_dim)
-            self_arr = np.asarray(self)
-            other_arr = np.asarray(other)
+            self_arr = np.array(self, copy=False)
+            other_arr = np.array(other, copy=False)
             result = operation(self_arr, other_arr)
             return Quantity(result, newdims)
 
@@ -1434,15 +1436,17 @@ class Quantity(np.ndarray, object):
                                                       'the exponent has to be '
                                                       'dimensionless',
                                         base=self, exponent=other)
-            return Quantity(np.asarray(self)**np.asarray(other),
-                            self.dim**np.asarray(other))
+            other = np.array(other, copy=False)
+            return Quantity(np.array(self, copy=False)**other,
+                            self.dim**other)
         else:
             return NotImplemented
 
     def __rpow__(self, other):
         if self.is_dimensionless:
             if isinstance(other, np.ndarray) or isinstance(other, np.ndarray):
-                new_array = np.asarray(other)**np.asarray(self)
+                new_array = np.array(other, copy=False)**np.array(self,
+                                                                  copy=False)
                 return Quantity(new_array, DIMENSIONLESS)
             else:
                 return NotImplemented
@@ -1462,20 +1466,21 @@ class Quantity(np.ndarray, object):
                                                       'the exponent has to be '
                                                       'dimensionless',
                                         exponent=other)
-            super(Quantity, self).__ipow__(np.asarray(other))
-            self.dim = self.dim ** np.asarray(other)
+            other = np.array(other, copy=False)
+            super(Quantity, self).__ipow__(other)
+            self.dim = self.dim ** other
             return self
         else:
             return NotImplemented
 
     def __neg__(self):
-        return Quantity(-np.asarray(self), self.dim)
+        return Quantity(-np.array(self, copy=False), self.dim)
 
     def __pos__(self):
         return self
 
     def __abs__(self):
-        return Quantity(abs(np.asarray(self)), self.dim)
+        return Quantity(abs(np.array(self, copy=False)), self.dim)
 
     def tolist(self):
         '''
@@ -1507,7 +1512,8 @@ class Quantity(np.ndarray, object):
 
             return type(seq)(top_replace(seq))
 
-        return replace_with_quantity(np.asarray(self).tolist(), self.dim)
+        return replace_with_quantity(np.array(self, copy=False).tolist(),
+                                     self.dim)
 
     #### COMPARISONS ####
     def _comparison(self, other, operator_str, operation):
@@ -1519,7 +1525,8 @@ class Quantity(np.ndarray, object):
                            'units do not match') % operator_str
                 fail_for_dimension_mismatch(self, other, message,
                                             value1=self, value2=other)
-        return operation(np.asarray(self), np.asarray(other))
+        return operation(np.array(self, copy=False),
+                         np.array(other, copy=False))
 
     def __lt__(self, other):
         return self._comparison(other, '<', operator.lt)
@@ -1541,7 +1548,7 @@ class Quantity(np.ndarray, object):
 
     #### MAKE QUANTITY PICKABLE ####
     def __reduce__(self):
-        return quantity_with_dimensions, (np.asarray(self), self.dim)
+        return quantity_with_dimensions, (np.array(self, copy=False), self.dim)
 
     #### REPRESENTATION ####
     def __repr__(self):
@@ -1555,7 +1562,7 @@ class Quantity(np.ndarray, object):
             best_unit_latex = latex(best_unit)
         else: # A quantity
             best_unit_latex = latex(best_unit.dimensions)
-        unitless = np.asarray(self / best_unit)
+        unitless = np.array(self / best_unit, copy=False)
         if unitless.ndim == 0:
             sympy_quantity = np.float(unitless)
         else:
@@ -1598,7 +1605,7 @@ class Quantity(np.ndarray, object):
                   'before plotting, e.g. by dividing by the unit. If you are '
                   'explicitly calling "ravel()", consider using "flatten()" '
                   'instead.'))
-            return np.asarray(self).ravel(*args, **kwds)
+            return np.array(self, copy=False).ravel(*args, **kwds)
 
         ravel._arg_units = [None]
         ravel._return_unit = 1
@@ -1632,9 +1639,9 @@ class Quantity(np.ndarray, object):
     def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
         fail_for_dimension_mismatch(self, a_max, 'clip')
-        return Quantity(np.clip(np.asarray(self),
-                                np.asarray(a_min),
-                                np.asarray(a_max),
+        return Quantity(np.clip(np.array(self, copy=False),
+                                np.array(a_min, copy=False),
+                                np.array(a_max, copy=False),
                                 *args, **kwds),
                         self.dim)
     clip.__doc__ = np.ndarray.clip.__doc__
@@ -1647,7 +1654,8 @@ class Quantity(np.ndarray, object):
 
     def searchsorted(self, v, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, v, 'searchsorted')
-        return super(Quantity, self).searchsorted(np.asarray(v), **kwds)
+        return super(Quantity, self).searchsorted(np.array(v, copy=False),
+                                                  **kwds)
     searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
 
     def prod(self, *args, **kwds): # pylint: disable=C0111
@@ -1665,14 +1673,15 @@ class Quantity(np.ndarray, object):
         # identical
         if dim_exponent.size > 1:
             dim_exponent = dim_exponent[0]
-        return Quantity(np.asarray(prod_result), self.dim ** dim_exponent)
+        return Quantity(np.array(prod_result, copy=False),
+                        self.dim ** dim_exponent)
     prod.__doc__ = np.ndarray.prod.__doc__
 
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
         if not self.is_dimensionless:
             raise TypeError('cumprod over array elements on quantities '
                             'with dimensions is not possible.')
-        return Quantity(np.asarray(self).cumprod(*args, **kwds))
+        return Quantity(np.array(self, copy=False).cumprod(*args, **kwds))
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
 
 
@@ -1889,7 +1898,7 @@ class Unit(Quantity):
         u : `Unit`
             The new unit.
         """
-        u = Unit(np.asarray(baseunit) * _siprefixes[scalefactor],
+        u = Unit(np.array(baseunit, copy=False) * _siprefixes[scalefactor],
                  dim=baseunit.dim, scale=baseunit.scale)
         u.scalefactor = scalefactor
         u.name = scalefactor + baseunit.name
@@ -1985,7 +1994,7 @@ class Unit(Quantity):
     #### ARITHMETIC ####
     def __mul__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.asarray(self) * np.asarray(other))
+            u = Unit(np.array(self, copy=False) * np.array(other, copy=False))
             u.name = self.name + " * " + other.name
             u.dispname = self.dispname + ' ' + other.dispname
             u.latexname = self.latexname + r'\,' + other.latexname
@@ -2000,7 +2009,7 @@ class Unit(Quantity):
 
     def __div__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.asarray(self) / np.asarray(other))
+            u = Unit(np.array(self, copy=False) / np.array(other, copy=False))
             if other.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
@@ -2037,7 +2046,7 @@ class Unit(Quantity):
 
     def __pow__(self, other):
         if is_scalar_type(other):
-            u = Unit(np.asarray(self) ** other)
+            u = Unit(np.array(self, copy=False) ** other)
             if self.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
@@ -2154,8 +2163,8 @@ class UnitRegistry(object):
             raise KeyError("Unit not found in registry.")
 
         # determine how well this unit represents the value
-        matching_values = np.asarray(matching)
-        x_flat = np.asarray(x).flatten()
+        matching_values = np.array(matching, copy=False)
+        x_flat = np.array(x, copy=False).flatten()
         floatreps = np.tile(np.abs(x_flat), (len(matching), 1)).T / matching_values
         # ignore zeros, they are well represented in any unit
         floatreps[floatreps == 0] = np.nan
@@ -2248,7 +2257,7 @@ def get_unit(x, *regs):
         The equivalent `Unit` for the quantity `x`.
     '''
     for u in all_registered_units(*regs):
-        if np.asarray(u) == 1 and have_same_dimensions(u, x):
+        if np.array(u, copy=False) == 1 and have_same_dimensions(u, x):
             return u
     dim = getattr(x, 'dim', x)  # For units, get dimensions
     return Unit(1.0, dim=dim)

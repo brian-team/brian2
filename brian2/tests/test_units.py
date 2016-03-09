@@ -130,11 +130,10 @@ def test_get_dimensions():
     assert is_scalar_type(np.float32(5.0))
     assert is_scalar_type(np.float64(5.0))
     assert_raises(TypeError, lambda: get_dimensions('a string'))
-    
     # wrong number of indices
-    assert_raises(ValueError, lambda: get_or_create_dimension([1, 2, 3, 4, 5, 6]))
+    assert_raises(TypeError, lambda: get_or_create_dimension([1, 2, 3, 4, 5, 6]))
     # not a sequence
-    assert_raises(ValueError, lambda: get_or_create_dimension(42))
+    assert_raises(TypeError, lambda: get_or_create_dimension(42))
 
 
 @attr('codegen-independent')
