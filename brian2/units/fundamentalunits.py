@@ -1334,21 +1334,23 @@ class Quantity(np.ndarray, object):
         not like a numpy array scalar, preventing weird effects when a reference
         to the same value was stored in another variable. See github issue #469.
         '''
-        # try:
-        #     other = Quantity(other)
-        # except TypeError:
-        #     return NotImplemented
+        other_dim = None
 
         if fail_for_mismatch:
             if inplace:
                 message = ('Cannot calculate ... %s {value}, units do not '
                            'match') % operator_str
-                fail_for_dimension_mismatch(self, other, message, value=other)
+                _, other_dim = fail_for_dimension_mismatch(self, other,
+                                                           message, value=other)
             else:
                 message = ('Cannot calculate {value1} %s {value2}, units do not '
                            'match') % operator_str
-                fail_for_dimension_mismatch(self, other, message,
-                                            value1=self, value2=other)
+                _, other_dim = fail_for_dimension_mismatch(self, other, message,
+                                                           value1=self,
+                                                           value2=other)
+
+        if other_dim is None:
+            other_dim = get_dimensions(other)
 
         if inplace:
             if self.shape == ():
@@ -1356,10 +1358,9 @@ class Quantity(np.ndarray, object):
             else:
                 self_value = self
             operation(self_value, other)
-            self_value.dim = dim_operation(self.dim, get_dimensions(other))
+            self_value.dim = dim_operation(self.dim, other_dim)
             return self_value
         else:
-            other_dim = get_dimensions(other)
             newdims = dim_operation(self.dim, other_dim)
             self_arr = np.array(self, copy=False)
             other_arr = np.array(other, copy=False)
