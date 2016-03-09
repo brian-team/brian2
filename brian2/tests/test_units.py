@@ -1004,11 +1004,19 @@ def test_fail_for_dimension_mismatch():
     Test the fail_for_dimension_mismatch function.
     '''
     # examples that should not raise an error
-    fail_for_dimension_mismatch(3)
-    fail_for_dimension_mismatch(3 * volt/volt)
-    fail_for_dimension_mismatch(3 * volt/volt, 7)
-    fail_for_dimension_mismatch(3 * volt, 5 * volt)
-    
+    dim1, dim2 = fail_for_dimension_mismatch(3)
+    assert dim1 is DIMENSIONLESS
+    assert dim2 is DIMENSIONLESS
+    dim1, dim2 = fail_for_dimension_mismatch(3 * volt/volt)
+    assert dim1 is DIMENSIONLESS
+    assert dim2 is DIMENSIONLESS
+    dim1, dim2 = fail_for_dimension_mismatch(3 * volt/volt, 7)
+    assert dim1 is DIMENSIONLESS
+    assert dim2 is DIMENSIONLESS
+    dim1, dim2 = fail_for_dimension_mismatch(3 * volt, 5 * volt)
+    assert dim1 is volt.dim
+    assert dim2 is volt.dim
+
     # examples that should raise an error
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt))
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    

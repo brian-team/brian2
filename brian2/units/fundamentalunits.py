@@ -127,6 +127,13 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
         details in ``error_messsage`` is that converting large quantity arrays
         to strings can be rather costly and we don't want to do it if no error
         occured.
+
+    Returns
+    -------
+    dim1, dim2 : `Dimension`, `Dimension`
+        The dimensions of the two arguments (so that later code does not need
+        to get the dimensions again).
+
     Raises
     ------
     DimensionMismatchError
@@ -139,7 +146,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
     dimensions".
     '''
     if not unit_checking:
-        return
+        return None, None
 
     dim1 = get_dimensions(obj1)
     if obj2 is None:
@@ -157,12 +164,12 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
         # is not allowed, though.
         if ((dim1 is DIMENSIONLESS and np.all(obj1 == 0)) or
                 (dim2 is DIMENSIONLESS and np.all(obj2 == 0))):
-            return
+            return dim1, dim2
 
         # We do another check here, this should allow Brian1 units to pass as
         # having the same dimensions as a Brian2 unit
         if dim1 == dim2:
-            return
+            return dim1, dim2
 
         if error_message is None:
             error_message = 'Dimension mismatch'
@@ -176,6 +183,8 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
             raise DimensionMismatchError(error_message, dim1)
         else:
             raise DimensionMismatchError(error_message, dim1, dim2)
+    else:
+        return dim1, dim2
 
 
 def wrap_function_dimensionless(func):
