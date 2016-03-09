@@ -510,11 +510,13 @@ def get_or_create_dimension(*args, **kwds):
     e.g. length, metre, and m all refer to the same thing here.
     """
     if len(args):
-        if isinstance(args[0], collections.Sequence) and len(args[0]) == 7:
-            # initialisation by list
-            dims = args[0]
-        else:
-            raise ValueError('Need a sequence of exactly 7 items')
+        # initialisation by list
+        dims = args[0]
+        try:
+            if len(dims) != 7:
+                raise TypeError()
+        except TypeError:
+            raise TypeError('Need a sequence of exactly 7 items')
     else:
         # initialisation by keywords
         dims = [0, 0, 0, 0, 0, 0, 0]
@@ -577,6 +579,7 @@ class DimensionMismatchError(Exception):
                             for d in self.dims]))
         return s + ').'
 
+
 def is_scalar_type(obj):
     """
     Tells you if the object is a 1d number type.
@@ -592,10 +595,10 @@ def is_scalar_type(obj):
         ``True`` if `obj` is a scalar that can be interpreted as a
         dimensionless `Quantity`.
     """
-    if isinstance(obj, np.number) or isinstance(obj, np.ndarray):
-        return np.isscalar(obj) or np.ndim(obj) == 0
-    else:
-        return isinstance(obj, numbers.Number)
+    try:
+        return obj.ndim == 0
+    except AttributeError:
+        return np.isscalar(obj) and not isinstance(obj, basestring)
 
 
 def get_dimensions(obj):
