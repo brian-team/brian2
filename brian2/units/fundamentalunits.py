@@ -895,53 +895,40 @@ class Quantity(np.ndarray, object):
                 np.issubdtype(subarr.dtype, np.bool_)):
             raise TypeError('Quantities can only be created from numerical data.')
 
-        # Use the given dimension or the dimension of the given array (if any)
-        if hasattr(arr, 'dim'):
-            subarr.dim = arr.dim
-            if not (dim is None) and not (dim is subarr.dim):
-                raise DimensionMismatchError('Conflicting dimension '
-                                             'information between array and '
-                                             'dim keyword',
-                                             arr.dim, dim)
-        elif hasattr(arr, 'unit'):
-            subarr.dim = arr.unit.dim if arr.unit is not None else None
-            if not (dim is None or subarr.dim is None) and not (dim is subarr.dim):
-                raise DimensionMismatchError('Conflicting dimension '
-                                             'information between array and '
-                                             'dim keyword',
-                                             arr.dim, dim)
-        elif not isinstance(arr, (np.ndarray, np.number, numbers.Number)):
-            # check whether it is an iterable containing Quantity objects
-            try:
-                is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
-            except TypeError:
-                # Not iterable
-                is_quantity = [False]
-            if len(is_quantity) == 0:
-                # Empty list
-                dim = DIMENSIONLESS
-            elif all(is_quantity):
-                dims = [x.dim for x in _flatten(arr)]
-                one_dim = dims[0]
-                for d in dims:
-                    if d != one_dim:
-                        raise DimensionMismatchError('Mixing quantities '
-                                                     'with different '
-                                                     'dimensions is not '
-                                                     'allowed',
-                                                     d, one_dim)
-                subarr.dim = dims[0]
-                if not (dim is None) and not (dim is subarr.dim):
-                    raise DimensionMismatchError('Conflicting dimension '
-                                                 'information between '
-                                                 'sequence and dim keyword',
-                                                 subarr.dim, dim)
-            elif any(is_quantity):
-                raise TypeError('Mixing quantities and non-quantities is '
-                                'not allowed.')
-
+        # If a dimension is given, force this dimension
         if dim is not None:
             subarr.dim = dim
+            return subarr
+
+        # Use the given dimension or the dimension of the given array (if any)
+        try:
+            subarr.dim = arr.dim
+        except AttributeError:
+            if not isinstance(arr, (np.ndarray, np.number, numbers.Number)):
+                # check whether it is an iterable containing Quantity objects
+                try:
+                    is_quantity = [isinstance(x, Quantity)
+                                   for x in _flatten(arr)]
+                except TypeError:
+                    # Not iterable
+                    is_quantity = [False]
+                if len(is_quantity) == 0:
+                    # Empty list
+                    subarr.dim = DIMENSIONLESS
+                elif all(is_quantity):
+                    dims = [x.dim for x in _flatten(arr)]
+                    one_dim = dims[0]
+                    for d in dims:
+                        if d != one_dim:
+                            raise DimensionMismatchError('Mixing quantities '
+                                                         'with different '
+                                                         'dimensions is not '
+                                                         'allowed',
+                                                         d, one_dim)
+                    subarr.dim = dims[0]
+                elif any(is_quantity):
+                    raise TypeError('Mixing quantities and non-quantities is '
+                                    'not allowed.')
 
         return subarr
 
@@ -1359,10 +1346,11 @@ class Quantity(np.ndarray, object):
             return self_value
         else:
             other_dim = get_dimensions(other)
-            return Quantity(operation(np.asarray(self),
-                                      np.asarray(other)),
-                            dim_operation(self.dim,
-                                          other_dim))
+            newdims = dim_operation(self.dim, other_dim)
+            self_arr = np.asarray(self)
+            other_arr = np.asarray(other)
+            result = operation(self_arr, other_arr)
+            return Quantity(result, newdims)
 
     def __mul__(self, other):
         return self._binary_operation(other, operator.mul, operator.mul)
