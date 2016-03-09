@@ -791,8 +791,7 @@ def quantity_with_dimensions(floatval, dims):
     --------
     get_or_create_dimensions
     '''
-    return Quantity.with_dimensions(floatval,
-                                    get_or_create_dimension(dims._dims))
+    return Quantity(floatval, get_or_create_dimension(dims._dims))
 
 
 class Quantity(np.ndarray, object):
@@ -1223,7 +1222,7 @@ class Quantity(np.ndarray, object):
                     return r[self]
                 except KeyError:
                     pass
-            return Quantity.with_dimensions(1, self.dim)
+            return Quantity(1, self.dim)
         else:
             return self._get_best_unit(standard_unit_register, user_unit_register,
                                        additional_unit_register)
@@ -1280,8 +1279,7 @@ class Quantity(np.ndarray, object):
         ''' Overwritten to assure that single elements (i.e., indexed with a
         single integer or a tuple of integers) retain their unit.
         '''
-        return Quantity.with_dimensions(np.ndarray.__getitem__(self, key),
-                                        self.dim)
+        return Quantity(np.ndarray.__getitem__(self, key), self.dim)
 
     def __getslice__(self, start, end):
         return self.__getitem__(slice(start, end))
@@ -1295,7 +1293,6 @@ class Quantity(np.ndarray, object):
         return self.__setitem__(slice(start, end), value)
 
     #### ARITHMETIC ####
-
     def _binary_operation(self, other, operation,
                           dim_operation=lambda a, b: a, fail_for_mismatch=False,
                           operator_str=None, inplace=False):
@@ -1357,10 +1354,10 @@ class Quantity(np.ndarray, object):
             return self_value
         else:
             other_dim = get_dimensions(other)
-            return Quantity.with_dimensions(operation(np.asarray(self),
-                                                      np.asarray(other)),
-                                            dim_operation(self.dim,
-                                                          other_dim))
+            return Quantity(operation(np.asarray(self),
+                                      np.asarray(other)),
+                            dim_operation(self.dim,
+                                          other_dim))
 
     def __mul__(self, other):
         return self._binary_operation(other, operator.mul, operator.mul)
@@ -1441,8 +1438,8 @@ class Quantity(np.ndarray, object):
                                                       'the exponent has to be '
                                                       'dimensionless',
                                         base=self, exponent=other)
-            return Quantity.with_dimensions(np.asarray(self)**np.asarray(other),
-                                            self.dim**np.asarray(other))
+            return Quantity(np.asarray(self)**np.asarray(other),
+                            self.dim**np.asarray(other))
         else:
             return NotImplemented
 
@@ -1450,7 +1447,7 @@ class Quantity(np.ndarray, object):
         if self.is_dimensionless:
             if isinstance(other, np.ndarray) or isinstance(other, np.ndarray):
                 new_array = np.asarray(other)**np.asarray(self)
-                return Quantity.with_dimensions(new_array, DIMENSIONLESS)
+                return Quantity(new_array, DIMENSIONLESS)
             else:
                 return NotImplemented
         else:
@@ -1476,13 +1473,13 @@ class Quantity(np.ndarray, object):
             return NotImplemented
 
     def __neg__(self):
-        return Quantity.with_dimensions(-np.asarray(self), self.dim)
+        return Quantity(-np.asarray(self), self.dim)
 
     def __pos__(self):
         return self
 
     def __abs__(self):
-        return Quantity.with_dimensions(abs(np.asarray(self)), self.dim)
+        return Quantity(abs(np.asarray(self)), self.dim)
 
     def tolist(self):
         '''
@@ -1500,7 +1497,7 @@ class Quantity(np.ndarray, object):
             '''
             # No recursion needed for single values
             if not isinstance(seq, list):
-                return Quantity.with_dimensions(seq, dim)
+                return Quantity(seq, dim)
 
             def top_replace(s):
                 '''
@@ -1508,7 +1505,7 @@ class Quantity(np.ndarray, object):
                 '''
                 for i in s:
                     if not isinstance(i, list):
-                        yield Quantity.with_dimensions(i, dim)
+                        yield Quantity(i, dim)
                     else:
                         yield type(i)(top_replace(i))
 
@@ -1639,17 +1636,17 @@ class Quantity(np.ndarray, object):
     def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
         fail_for_dimension_mismatch(self, a_max, 'clip')
-        return Quantity.with_dimensions(np.clip(np.asarray(self),
-                                                np.asarray(a_min),
-                                                np.asarray(a_max),
-                                                *args, **kwds),
-                                        self.dim)
+        return Quantity(np.clip(np.asarray(self),
+                                np.asarray(a_min),
+                                np.asarray(a_max),
+                                *args, **kwds),
+                        self.dim)
     clip.__doc__ = np.ndarray.clip.__doc__
 
     def dot(self, other, **kwds): # pylint: disable=C0111
-        return Quantity.with_dimensions(np.array(self).dot(np.array(other),
-                                                           **kwds),
-                                        self.dim*get_dimensions(other))
+        return Quantity(np.array(self).dot(np.array(other),
+                                           **kwds),
+                        self.dim*get_dimensions(other))
     dot.__doc__ = np.ndarray.dot.__doc__
 
     def searchsorted(self, v, **kwds): # pylint: disable=C0111
@@ -1672,7 +1669,7 @@ class Quantity(np.ndarray, object):
         # identical
         if dim_exponent.size > 1:
             dim_exponent = dim_exponent[0]
-        return Quantity.with_dimensions(np.asarray(prod_result), self.dim ** dim_exponent)
+        return Quantity(np.asarray(prod_result), self.dim ** dim_exponent)
     prod.__doc__ = np.ndarray.prod.__doc__
 
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
