@@ -102,11 +102,7 @@ def test_construction():
     assert_raises(TypeError, lambda: Quantity(['some', 'nonsense']))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms,
                                                             1 * volt]))
-    assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
-                                                           dim=volt.dim))
-    q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
-    assert_raises(DimensionMismatchError, lambda: Quantity(q, dim=volt.dim))
-    
+
 
 @attr('codegen-independent')
 def test_get_dimensions():

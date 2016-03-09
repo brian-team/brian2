@@ -891,8 +891,8 @@ class Quantity(np.ndarray, object):
         subarr = np.array(arr, dtype=dtype, copy=copy).view(cls)
 
         # We only want numerical datatypes
-        if not (np.issubdtype(subarr.dtype, np.number) or
-                np.issubdtype(subarr.dtype, np.bool_)):
+        if not np.issubclass_(np.dtype(subarr.dtype).type,
+                              (np.number, np.bool_)):
             raise TypeError('Quantities can only be created from numerical data.')
 
         # If a dimension is given, force this dimension
