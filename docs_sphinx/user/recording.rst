@@ -135,3 +135,5 @@ time step corresponding to the time in ``t``. For example::
     M = PopulationRateMonitor(G)
     run(...)
     plot(M.t/ms, M.rate/Hz)
+
+To get a smoother version of the rate, use `PopulationRateMonitor.smooth_rate`.
