@@ -49,6 +49,7 @@ class FlatMorphology(object):
         self.end_x = np.zeros(n)
         self.end_y = np.zeros(n)
         self.end_z = np.zeros(n)
+        self.depth = np.zeros(n, dtype=np.int32)
         self.sections = sections = morphology.n_sections
         # Index of the parent for each section (-1 for the root)
         self.morph_parent_i = np.zeros(sections, dtype=np.int32)
@@ -94,11 +95,12 @@ class FlatMorphology(object):
             morph_children[idx, :len(section_children)] = section_children
         self.morph_children = morph_children.reshape(-1)
 
-    def _insert_data(self, section, parent_idx=-1):
+    def _insert_data(self, section, parent_idx=-1, depth=0):
         n = section.n
         start = self._offset
         end = self._offset + n
         # Compartment attributes
+        self.depth[start:end] = depth
         self.length[start:end] = np.asarray(section.length)
         self.distance[start:end] = np.asarray(section.distance)
         self.area[start:end] = np.asarray(section.area)
@@ -144,7 +146,7 @@ class FlatMorphology(object):
         self._offset += n
         self._section_counter += 1
         for child in section.children:
-            self._insert_data(child, parent_idx=idx)
+            self._insert_data(child, parent_idx=idx, depth=depth+1)
 
 
 class SpatialNeuron(NeuronGroup):
