@@ -102,11 +102,7 @@ def test_construction():
     assert_raises(TypeError, lambda: Quantity(['some', 'nonsense']))
     assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms,
                                                             1 * volt]))
-    assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms],
-                                                           dim=volt.dim))
-    q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
-    assert_raises(DimensionMismatchError, lambda: Quantity(q, dim=volt.dim))
-    
+
 
 @attr('codegen-independent')
 def test_get_dimensions():
@@ -134,11 +130,10 @@ def test_get_dimensions():
     assert is_scalar_type(np.float32(5.0))
     assert is_scalar_type(np.float64(5.0))
     assert_raises(TypeError, lambda: get_dimensions('a string'))
-    
     # wrong number of indices
-    assert_raises(ValueError, lambda: get_or_create_dimension([1, 2, 3, 4, 5, 6]))
+    assert_raises(TypeError, lambda: get_or_create_dimension([1, 2, 3, 4, 5, 6]))
     # not a sequence
-    assert_raises(ValueError, lambda: get_or_create_dimension(42))
+    assert_raises(TypeError, lambda: get_or_create_dimension(42))
 
 
 @attr('codegen-independent')
@@ -1009,11 +1004,19 @@ def test_fail_for_dimension_mismatch():
     Test the fail_for_dimension_mismatch function.
     '''
     # examples that should not raise an error
-    fail_for_dimension_mismatch(3)
-    fail_for_dimension_mismatch(3 * volt/volt)
-    fail_for_dimension_mismatch(3 * volt/volt, 7)
-    fail_for_dimension_mismatch(3 * volt, 5 * volt)
-    
+    dim1, dim2 = fail_for_dimension_mismatch(3)
+    assert dim1 is DIMENSIONLESS
+    assert dim2 is DIMENSIONLESS
+    dim1, dim2 = fail_for_dimension_mismatch(3 * volt/volt)
+    assert dim1 is DIMENSIONLESS
+    assert dim2 is DIMENSIONLESS
+    dim1, dim2 = fail_for_dimension_mismatch(3 * volt/volt, 7)
+    assert dim1 is DIMENSIONLESS
+    assert dim2 is DIMENSIONLESS
+    dim1, dim2 = fail_for_dimension_mismatch(3 * volt, 5 * volt)
+    assert dim1 is volt.dim
+    assert dim2 is volt.dim
+
     # examples that should raise an error
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt))
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
@@ -1061,6 +1064,24 @@ def test_inplace_on_scalars():
         # also check that it worked correctly for the vector itself
         assert_allclose(vector, (vector_copy + vector_copy)*1.5/2)
 
+def test_units_vs_quantities():
+    # Unit objects should stay Unit objects under certain operations
+    # (important e.g. in the unit definition of Equations, where only units but
+    # not quantities are allowed)
+    assert type(meter**2) == Unit
+    assert type(meter**-1) == Unit
+    assert type(meter**0.5) == Unit
+    assert type(meter/second) == Unit
+    assert type(amp/meter**2) == Unit
+    assert type(1/meter) == Unit
+    assert type(1.0/meter) == Unit
+
+    assert type(2/meter) == Quantity
+    assert type(2*meter) == Quantity
+    assert type(meter + meter) == Quantity
+    assert type(meter - meter) == Quantity
+
+
 if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
@@ -1092,3 +1113,4 @@ if __name__ == '__main__':
     test_fail_for_dimension_mismatch()
     test_deepcopy()
     test_inplace_on_scalars()
+    test_units_vs_quantities()

@@ -1447,7 +1447,7 @@ class Variables(collections.Mapping):
             See `ArrayVariable`. Defaults to ``False``.
         '''
         if np.asanyarray(size).shape == ():
-            # We don't a basic Python type for the size instead of something
+            # We want a basic Python type for the size instead of something
             # like numpy.int64
             size = int(size)
         var = ArrayVariable(name=name, unit=unit, owner=self.owner,
@@ -1471,6 +1471,45 @@ class Variables(collections.Mapping):
                     raise ValueError(('Size of the provided values does not match '
                                       'size: %d != %d') % (len(values), size))
                 self.device.fill_with_array(var, values)
+
+    def add_arrays(self, names, unit, size, values=None, dtype=None,
+                  constant=False, read_only=False, scalar=False, unique=False,
+                  index=None):
+        '''
+        Adds several arrays (initialized with zeros) with the same attributes
+        (size, units, etc.).
+
+        Parameters
+        ----------
+        names : list of str
+            The names of the variable.
+        unit : `Unit`
+            The unit of the variables
+        size : int
+            The sizes of the arrays.
+        dtype : `dtype`, optional
+            The dtype used for storing the variables. If none is given, defaults
+            to `core.default_float_dtype`.
+        constant : bool, optional
+            Whether the variables' values are constant during a run.
+            Defaults to ``False``.
+        scalar : bool, optional
+            Whether these are scalar variables. Defaults to ``False``, if set to
+            ``True``, also implies that `size` equals 1.
+        read_only : bool, optional
+            Whether these are read-only variables, i.e. variables that are set
+            internally and cannot be changed by the user. Defaults
+            to ``False``.
+        index : str, optional
+            The index to use for these variables. Defaults to
+            `Variables.default_index`.
+        unique : bool, optional
+            See `ArrayVariable`. Defaults to ``False``.
+        '''
+        for name in names:
+            self.add_array(name, unit=unit, size=size, dtype=dtype,
+                           constant=constant, read_only=read_only,
+                           scalar=scalar, unique=unique, index=index)
 
     def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
                           constant=False, needs_reference_update=False,

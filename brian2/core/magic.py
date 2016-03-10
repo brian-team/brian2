@@ -3,7 +3,6 @@ import inspect
 import itertools
 import gc
 
-from brian2.core.clocks import Clock
 from brian2.units.fundamentalunits import check_units
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -13,7 +12,7 @@ from .base import BrianObject, device_override
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
-           'run', 'reinit', 'stop', 'collect', 'store', 'restore',
+           'run', 'stop', 'collect', 'store', 'restore',
            'start_scope',
            ]
 
@@ -372,26 +371,6 @@ def run(duration, report=None, report_period=10*second, namespace=None,
                              namespace=namespace, profile=profile, level=2+level)
 run.__module__ = __name__
 
-def reinit():
-    '''
-    Reinitialises all Brian objects.
-    
-    This function works similarly to `run`, see the documentation for that
-    function for more details.
-    
-    See Also
-    --------
-    
-    Network.reinit, run, stop, clear
-    
-    Raises
-    ------
-    
-    MagicError
-        Error raised when it was not possible for Brian to safely guess the
-        intended use. See `MagicNetwork` for more details.
-    '''
-    magic_network.reinit()
 
 def store(name='default', filename=None):
     '''

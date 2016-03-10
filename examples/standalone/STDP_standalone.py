@@ -47,7 +47,6 @@ S = Synapses(input, neurons,
 S.w = 'rand() * gmax'
 mon = StateMonitor(S, 'w', record=[0, 1])
 s_mon = SpikeMonitor(input)
-r_mon = PopulationRateMonitor(input)
 
 run(100*second, report='text')
 
