@@ -40,9 +40,15 @@ class FlatMorphology(object):
         self.volume = np.zeros(n)
         self.r_length_1 = np.zeros(n)
         self.r_length_2 = np.zeros(n)
+        self.start_x = np.zeros(n)
+        self.start_y = np.zeros(n)
+        self.start_z = np.zeros(n)
         self.x = np.zeros(n)
         self.y = np.zeros(n)
         self.z = np.zeros(n)
+        self.end_x = np.zeros(n)
+        self.end_y = np.zeros(n)
+        self.end_z = np.zeros(n)
         self.sections = sections = morphology.n_sections
         # Index of the parent for each section (-1 for the root)
         self.morph_parent_i = np.zeros(sections, dtype=np.int32)
@@ -71,9 +77,9 @@ class FlatMorphology(object):
                         'in the missing coordinates.')
         # Do not store coordinates for morphologies that don't define them
         if not self.has_coordinates:
-            self.x = None
-            self.y = None
-            self.z = None
+            self.start_x = self.start_y = self.start_z = None
+            self.x = self.y = self.z = None
+            self.end_x = self.end_y = self.end_z = None
 
         # Transform the list of list of children into a 2D array (stored as
         # 1D) -- note that this wastes space if the number of children per
@@ -102,14 +108,26 @@ class FlatMorphology(object):
         self.r_length_2[start:end] = np.asarray(section.r_length_2)
         if section.x is None:
             self._sections_without_coordinates = True
+            self.start_x[start:end] = np.ones(n)*np.nan
+            self.start_y[start:end] = np.ones(n)*np.nan
+            self.start_z[start:end] = np.ones(n)*np.nan
             self.x[start:end] = np.ones(n)*np.nan
             self.y[start:end] = np.ones(n)*np.nan
             self.z[start:end] = np.ones(n)*np.nan
+            self.end_x[start:end] = np.ones(n)*np.nan
+            self.end_y[start:end] = np.ones(n)*np.nan
+            self.end_z[start:end] = np.ones(n)*np.nan
         else:
             self.has_coordinates = True
+            self.start_x[start:end] = np.asarray(section.start_x)
+            self.start_y[start:end] = np.asarray(section.start_y)
+            self.start_z[start:end] = np.asarray(section.start_z)
             self.x[start:end] = np.asarray(section.x)
             self.y[start:end] = np.asarray(section.y)
             self.z[start:end] = np.asarray(section.z)
+            self.end_x[start:end] = np.asarray(section.end_x)
+            self.end_y[start:end] = np.asarray(section.end_y)
+            self.end_z[start:end] = np.asarray(section.end_z)
 
         # Section attributes
         idx = self._section_counter
