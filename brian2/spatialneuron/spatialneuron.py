@@ -51,6 +51,7 @@ class FlatMorphology(object):
         self.end_z = np.zeros(n)
         self.depth = np.zeros(n, dtype=np.int32)
         self.sections = sections = morphology.n_sections
+        self.end_distance = np.zeros(sections)
         # Index of the parent for each section (-1 for the root)
         self.morph_parent_i = np.zeros(sections, dtype=np.int32)
         # The children indices for each section (list of lists, will be later
@@ -142,6 +143,7 @@ class FlatMorphology(object):
         # Append ourselves to the children list of our parent
         self.morph_idxchild[idx] = len(self.morph_children[parent_idx+1])
         self.morph_children[parent_idx + 1].append(idx + 1)
+        self.end_distance[idx] = section.end_distance
         # Recurse down the tree
         self._offset += n
         self._section_counter += 1
