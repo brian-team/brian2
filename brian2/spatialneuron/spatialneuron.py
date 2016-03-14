@@ -28,7 +28,9 @@ logger = get_logger(__name__)
 
 class FlatMorphology(object):
     '''
-    Container object to store the flattened representation of a morphology
+    Container object to store the flattened representation of a morphology.
+    Note that all values are stored as numpy arrays without unit information
+    (i.e. in base units).
     '''
     def __init__(self, morphology):
         self.n = n = len(morphology)  # Total number of compartments
