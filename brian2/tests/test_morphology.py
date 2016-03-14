@@ -495,7 +495,9 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
     assert morphology['1'].n_sections == 1
     assert morphology['2'].n_sections == 1
 
-    # Check that distances (= distance to root at electrical midpoint)
+    assert_allclose(morphology.diameter, [30]*um)
+
+    # Check that distances (= distance to root at midpoint)
     # correctly follow the tree structure
     # Note that the soma does add nothing to the distance
     assert_equal(morphology.distance, 0 * um)
@@ -587,6 +589,31 @@ def test_tree_soma_from_points():
     cable = Morphology.from_points(points)
     _check_tree_soma(cable, coordinates=True, use_cylinders=False)
 
+@attr('codegen-independent')
+def test_tree_soma_from_points_3_point_soma():
+    # The coordinates should be identical to the previous test
+    points = [ # soma
+              (1,  'soma', 100,                0,                0,              30, -1),
+              (2,  'soma', 100,               15,                0,              30,  1),
+              (3,  'soma', 100,              -15,                0,              30,  1),
+              # soma.L
+              (4,  'L'   , 100+20/np.sqrt(2),  20/np.sqrt(2),    0,              8 ,  1),
+              (5,  'L'   , 100+40/np.sqrt(2),  40/np.sqrt(2),    0,              6 ,  4),
+              (6,  'L'   , 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  5),
+              (7,  'L'   , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  6),
+              (8,  'L'   , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  7),
+              # soma.R
+              (9,  'R'   , 100+10/np.sqrt(2),  -10/np.sqrt(2),   0,              5 ,  1),
+              (10, 'R'   , 100+20/np.sqrt(2),  -20/np.sqrt(2),   0,              5 ,  9),
+              (11, 'R'   , 100+30/np.sqrt(2),  -30/np.sqrt(2),   0,              5 ,  10),
+              (12, 'R'   , 100+40/np.sqrt(2),  -40/np.sqrt(2),   0,              5 ,  11),
+              (13, 'R'   , 100+50/np.sqrt(2),  -50/np.sqrt(2),   0,              5 ,  12),
+              ]
+    cable = Morphology.from_points(points)
+    _check_tree_soma(cable, coordinates=True, use_cylinders=False)
+    # The first compartment should be a spherical soma!
+    assert isinstance(cable, Soma)
+
 def test_tree_soma_from_swc():
     swc_content = '''
 # Test file
@@ -608,6 +635,32 @@ def test_tree_soma_from_swc():
     soma = Morphology.from_file(tmp_filename)
     os.remove(tmp_filename)
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
+
+
+def test_tree_soma_from_swc_3_point_soma():
+    swc_content = '''
+# Test file
+1    1  100  0  0  15  -1
+2    1  100  15  0  15  1
+3    1  100  -15  0  15  1
+4   2  114.14213562373095  14.142135623730949  0  4  1
+5   2  128.2842712474619  28.284271247461898  0  3  4
+6   2  142.42640687119285  42.426406871192846  0  2  5
+7   2  156.5685424949238  56.568542494923797  0  1  6
+8   2  170.71067811865476  70.710678118654741  0  0  7
+9   2  107.07106781186548  -7.0710678118654746  0  2.5  1
+10   2  114.14213562373095  -14.142135623730949  0  2.5  9
+11   2  121.21320343559643  -21.213203435596423  0  2.5  10
+12   2  128.2842712474619  -28.284271247461898  0  2.5  11
+13   2  135.35533905932738  -35.35533905932737  0  2.5  12
+'''
+    tmp_filename = tempfile.mktemp('cable_morphology.swc')
+    with open(tmp_filename, 'w') as f:
+        f.write(swc_content)
+    soma = Morphology.from_file(tmp_filename)
+    os.remove(tmp_filename)
+    _check_tree_soma(soma, coordinates=True, use_cylinders=False)
+
 
 @attr('codegen-independent')
 def test_construction_incorrect_arguments():
@@ -1204,7 +1257,9 @@ if __name__ == '__main__':
     test_tree_soma_schematic()
     test_tree_soma_coordinates()
     test_tree_soma_from_points()
+    test_tree_soma_from_points_3_point_soma()
     test_tree_soma_from_swc()
+    test_tree_soma_from_swc_3_point_soma()
     test_construction_incorrect_arguments()
     test_from_points_minimal()
     test_from_points_incorrect()

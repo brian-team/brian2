@@ -20,6 +20,10 @@ logger = get_logger(__name__)
 __all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
 
 
+_Point = namedtuple('Point',
+                   field_names='index,comp_name,x,y,z,diameter,parent,children')
+
+
 class MorphologyIndexWrapper(object):
     '''
     A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
@@ -890,13 +894,11 @@ class Morphology(object):
         '''
         # First pass through all points to get the dependency structure
         compartments = OrderedDict()
-        Point = namedtuple('Point',
-                           field_names='index,comp_name,x,y,z,diameter,parent,children')
         for counter, point in enumerate(points):
             if len(point) != 7:
                 raise ValueError('Each point needs to be described by 7 '
                                  'values, got %d instead.' % len(point))
-            point = Point(*(point + ([], ))) # empty list for the children
+            point = _Point(*(point + ([], ))) # empty list for the children
             if point.index in compartments:
                 raise ValueError('Two compartments with index %d' % point.index)
             if point.parent == point.index:
@@ -912,52 +914,35 @@ class Morphology(object):
                                   'their children.') % (point.parent, point.index))
             compartments[point.parent].children.append(point.index)
 
+        if spherical_soma:
+            Morphology._replace_three_point_soma(compartments)
+
         # Merge all unbranched compartments of the same type into a single
         # section
         sections = OrderedDict()
-        previous_name = None
         current_compartments = []
-        previous_index = None
-        for index, compartment in compartments.iteritems():
-            if (len(current_compartments) > 0 and
-                    (compartment.comp_name != previous_name or
-                             len(compartment.children) != 1)):
+        for absolute_index, (index, compartment) in enumerate(compartments.iteritems()):
+            if absolute_index == len(compartments) - 1:
+                next_compartment = None
+            else:
+                next_compartment = compartments.values()[absolute_index + 1]
+            current_compartments.append(compartment)
+            if (next_compartment is None or
+                        next_compartment.comp_name != compartment.comp_name or
+                        len(compartment.children) != 1):
                 parent_idx = current_compartments[0].parent
-                if spherical_soma and previous_name == 'soma':
-                    section = Morphology._create_soma(current_compartments)
-                    sections[previous_index] = section, parent_idx
-                    # We did not yet deal with the current compartment
-                    current_compartments = [compartment]
+                if spherical_soma and compartment.comp_name == 'soma':
+                   section = Morphology._create_soma(current_compartments)
+                   sections[index] = section, parent_idx
                 else:
-                    current_compartments.append(compartment)
                     section = Morphology._create_section(current_compartments,
-                                                         previous_name,
+                                                         compartment.comp_name,
                                                          compartments,
                                                          parent_idx)
                     sections[index] = section, parent_idx
-                    current_compartments = []
-            else:
-                current_compartments.append(compartment)
+                current_compartments = []
 
-            previous_name = compartment.comp_name
-            previous_index = index
-
-        if len(current_compartments):
-            parent_idx = current_compartments[0].parent
-            # Deal with the final remaining compartment(s)
-            if spherical_soma and previous_name == 'soma':
-                section = Morphology._create_soma(current_compartments)
-                sections[previous_index] = section, parent_idx
-            else:
-                if parent_idx == -1:
-                    section_parent = None
-                else:
-                    section_parent = sections[parent_idx].parent
-                section = Morphology._create_section(current_compartments,
-                                                     previous_name,
-                                                     compartments,
-                                                     section_parent)
-                sections[index] = section, parent_idx
+        assert len(current_compartments) == 0
 
         # Connect the sections
         for section, parent in sections.itervalues():
@@ -997,6 +982,59 @@ class Morphology(object):
         root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
         assert len(root) == 1
         return root[0]
+
+    @staticmethod
+    def _replace_three_point_soma(compartments):
+        # Replace a three-point/two-cylinder soma by a single spherical soma
+        # if possible (see http://neuromorpho.org/SomaFormat.html for some
+        # details)
+        if (len(compartments) >= 3 and
+                all(c.comp_name == 'soma' for c in compartments.values()[:3]) and
+                all(c.comp_name != 'soma' for c in compartments.values()[3:])):
+            soma_c = compartments.values()[:3]
+            # Only the first of the three points should have children
+            if len(soma_c[1].children) or len(soma_c[1].children):
+                logger.debug('Cannot replace 3-point-soma by a single '
+                             'point, not only the first point has children.')
+                return
+            # The diameter of all three points should be identical
+            if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15
+                       for c in soma_c):
+                logger.debug('Cannot replace 3-point-soma by a single point, '
+                             'diameters are not identical.')
+                return
+            diameter = soma_c[0].diameter
+            if (soma_c[0].parent != -1 or
+                        soma_c[1].parent != 1 or
+                        soma_c[2].parent != 1):
+                logger.debug('Cannot replace 3-point-soma by a single point, '
+                             'the second and third points should be children '
+                             'of the first point.')
+                return
+            point_0 = np.array([soma_c[0].x, soma_c[0].y, soma_c[0].z])
+            point_1 = np.array([soma_c[1].x, soma_c[1].y, soma_c[1].z])
+            point_2 = np.array([soma_c[2].x, soma_c[2].y, soma_c[2].z])
+            length_1 = np.sqrt(np.sum((point_1 - point_0)**2))
+            length_2 = np.sqrt(np.sum((point_2 - point_0)**2))
+            if (np.abs(length_1 - diameter/2) > 0.01 or
+                        np.abs(length_2 - diameter/2) > 0.01):
+                logger.debug(('Cannot replace 3-point-soma by a single point, '
+                              'the second and third points should be positioned '
+                              'one radius away from the first point. Distances '
+                              'are %.3fum and %.3fum, respectively, while the '
+                              'radius is %.3fum.') % (length_1, length_2,
+                                                      diameter/2))
+                return
+            new_point = _Point(index=1, comp_name='soma',
+                               x=point_0[0], y=point_0[1], z=point_0[2],
+                               diameter=diameter, parent=-1,
+                               children=soma_c[0].children
+                               )
+            # Remove the unnecessary points
+            del compartments[2]
+            del compartments[3]
+            # Replace the first point by the spherical soma point
+            compartments[1] = new_point
 
     @staticmethod
     def from_swc_file(filename, spherical_soma=True):
