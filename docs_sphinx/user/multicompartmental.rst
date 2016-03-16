@@ -31,7 +31,9 @@ values) in a `Section` object::
     section = Section(diameter=[6, 5, 4, 3, 2, 1]*um, length=[10, 10, 10, 5, 5]*um, n=5)
 
 The individual compartments are modeled as truncated cones, changing the diameter linearly between the given diameters
-over the length of the compartment.
+over the length of the compartment. Note that the ``diameter`` argument specifies the values at the nodes *between* the
+compartments, but accessing the ``diameter`` attribute of a `Morphology` object will return the diameter at the *center*
+of the compartment (see the note below).
 
 The following table summarizes the different options to create schematic morphologies (the black compartment before the
 start of the section represents the parent compartment with diameter 15 μm, not specified in the code below):
@@ -177,7 +179,12 @@ manually for individual sections, following the same syntax as the "schematic" m
                       z=[0, 10, 10, 10, 10, 10]*um,
                       diameter=[6, 5, 4, 3, 2, 1])*um
 
-A few notes:
+Note that the ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` will return the coordinates at the
+midpoint of each compartment (as for all other attributes that vary over the length of a compartment, e.g. ``diameter``
+or ``distance``), but during construction the coordinates refer to the start and end of the section (`Cylinder`),
+respectively to the coordinates of the nodes between the compartments (`Section`).
+
+A few additional remarks:
 
 1. In the majority of simulations, coordinates are not used in the neuronal equations, therefore the coordinates are
    purely for visualization purposes and do not affect the simulation results in any way.
@@ -190,9 +197,6 @@ A few notes:
    therefore 0 μm, to continue a section where the previous one ended. However, it can be convenient to use a value
    different from 0 μm for sections connecting to the `Soma` to make them (visually) connect to a point on the sphere
    surface instead of the center of the sphere.
-5. The ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` return the coordinates at the midpoint of each
-   compartment (as for all other attributes that vary over the length of a compartment, e.g. ``diameter`` or
-   ``distance``).
 
 A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
 
