@@ -88,7 +88,7 @@ be created as follows::
     morpho.output_process = Cylinder(length=100*um, diameter=1*um, n=10)
     morpho.input_process = Cylinder(length=50*um, diameter=2*um, n=5)
 
-The syntax is recursive, for example two branches can be added at the end of the dendrite as follows::
+The syntax is recursive, for example two sections can be added at the end of the dendrite as follows::
 
     morpho.dendrite.branch1 = Cylinder(length=50*um, diameter=1*um, n=3)
     morpho.dendrite.branch2 = Cylinder(length=50*um, diameter=1*um, n=3)
@@ -109,14 +109,14 @@ Finally there is a special shorter syntax for quickly creating trees, using ``L`
     morpho.RL = Cylinder(length=5*um, diameter=1*um, n=3)
     morpho.RR = Cylinder(length=5*um, diameter=1*um, n=3)
 
-These instructions create a dendritic tree with two main branches, 3 subbranches on the first branch and
-2 on the second branch. After these instructions are executed, ``morpho.L`` contains the entire subtree. However,
+These instructions create a dendritic tree with two main sections, three sections attached to the first section and
+two to the second . After these instructions are executed, ``morpho.L`` contains the entire subtree. However,
 accessing the attributes (e.g. ``diameter``) will only return the values for the given section.
 
 .. note::
 
     To avoid ambiguities, do not use names for sections that can be interpreted in the abbreviated way detailed above.
-    For example, do not name a child branch ``L1`` (which will be interpreted as the first child of the child ``L``)
+    For example, do not name a child section ``L1`` (which will be interpreted as the first child of the child ``L``)
 
 
 The number of compartments in a section can be accessed with ``morpho.n`` (or ``morpho.L.n``, etc.), the number of
@@ -265,7 +265,7 @@ an electrode current at the soma is done as follows::
 
     neuron.main.I = 1*nA
 
-A part of a branch can be accessed as follows::
+A part of a section can be accessed as follows::
 
     initial_segment = neuron.axon[10*um:50*um]
 
