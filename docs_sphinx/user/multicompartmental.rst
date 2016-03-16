@@ -28,7 +28,7 @@ For more precise control over the geometry, you can specify the length and diame
 including the diameter at the start of the section (i.e. for ``n`` compartments: ``n`` length and ``n+1`` diameter
 values) in a `Section` object::
 
-    section = Section(diameter=[6, 5, 4, 3, 2, 1], length=[10, 10, 10, 5, 5]*um, n=5)
+    section = Section(diameter=[6, 5, 4, 3, 2, 1]*um, length=[10, 10, 10, 5, 5]*um, n=5)
 
 The individual compartments are modeled as truncated cones, changing the diameter linearly between the given diameters
 over the length of the compartment.
@@ -84,7 +84,7 @@ These statements create a morphology consisting of a cylindrical axon and a dend
 Note that the names ``axon`` and ``dendrite`` are arbitrary and chosen by the user. For example, the same morphology can
 be created as follows::
 
-    morpho = Soma(diameter = 30*um)
+    morpho = Soma(diameter=30*um)
     morpho.output_process = Cylinder(length=100*um, diameter=1*um, n=10)
     morpho.input_process = Cylinder(length=50*um, diameter=2*um, n=5)
 
@@ -201,14 +201,14 @@ A `SpatialNeuron` is a spatially extended neuron. It is created by specifying th
 `Morphology` object, the equations for transmembrane currents, and optionally the specific membrane capacitance
 ``Cm`` and intracellular resistivity ``Ri``::
 
-    gL=1e-4*siemens/cm**2
-    EL=-70*mV
-    eqs='''
-    Im=gL*(EL-v) : amp/meter**2
+    gL = 1e-4*siemens/cm**2
+    EL = -70*mV
+    eqs = '''
+    Im=gL * (EL - v) : amp/meter**2
     I : amp (point current)
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm)
-    neuron.v = EL+10*mV
+    neuron.v = EL + 10*mV
 
 Several state variables are created automatically: the `SpatialNeuron` inherits all the geometrical variables of the
 compartments (``length``, ``diameter``, ``area``, ``volume``), as well as the ``distance`` variable that gives the
@@ -245,10 +245,10 @@ the flag ``point current`` is specified, as in the example above. This flag can 
 parameters with amp units. Internally, the expression of the transmembrane current ``Im`` is simply augmented with
 ``+I/area``. A current can then be injected in the first compartment of the neuron (generally the soma) as follows::
 
-    neuron.I[0]=1*nA
+    neuron.I[0] = 1*nA
 
 State variables of the `SpatialNeuron` include all the compartments of that neuron (including subtrees).
-Therefore, the statement ``neuron.v=EL+10*mV`` sets the membrane potential of the entire neuron at -60 mV.
+Therefore, the statement ``neuron.v = EL + 10*mV`` sets the membrane potential of the entire neuron at -60 mV.
 
 Subtrees can be accessed by attribute (in the same way as in `Morphology` objects)::
 
@@ -275,8 +275,8 @@ There are two methods to have synapses on `SpatialNeuron`.
 The first one to insert synaptic equations directly in the neuron equations::
 
     eqs='''
-    Im = gL*(EL-v) : amp/meter**2
-    Is = gs*(Es-v) : amp (point current)
+    Im = gL * (EL - v) : amp/meter**2
+    Is = gs * (Es - v) : amp (point current)
     dgs/dt = -gs/taus : siemens
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm)
@@ -284,15 +284,15 @@ The first one to insert synaptic equations directly in the neuron equations::
 Note that, as for electrode stimulation, the synaptic current must be defined as a point current.
 Then we use a `Synapses` object to connect a spike source to the neuron::
 
-    S = Synapses(stimulation,neuron,pre = 'gs += w')
-    S.connect(0,50)
-    S.connect(1,100)
+    S = Synapses(stimulation, neuron, pre='gs += w')
+    S.connect(0, 50)
+    S.connect(1, 100)
 
 This creates two synapses, on compartments 50 and 100. One can specify the compartment number
 with its spatial position by indexing the morphology::
 
-    S.connect(0,morpho[25*um])
-    S.connect(1,morpho.axon[30*um])
+    S.connect(0, morpho[25*um])
+    S.connect(1, morpho.axon[30*um])
 
 In this method for creating synapses,
 there is a single value for the synaptic conductance in any compartment.
@@ -302,13 +302,13 @@ The second method, which works in such cases, is to have synaptic equations in t
 `Synapses` object::
 
     eqs='''
-    Im = gL*(EL-v) : amp/meter**2
-    Is = gs*(Es-v) : amp (point current)
+    Im = gL * (EL - v) : amp/meter**2
+    Is = gs * (Es - v) : amp (point current)
     gs : siemens
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
-    S = Synapses(stimulation,neuron,model='''dg/dt = -g/taus : siemens
-                                             gs_post = g : siemens (summed)''',pre = 'g += w')
+    S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens
+                                               gs_post = g : siemens (summed)''', pre='g += w')
 
 Here each synapse (instead of each compartment) has an associated value ``g``, and all values of
 ``g`` for each compartment (i.e., all synapses targeting that compartment) are collected
