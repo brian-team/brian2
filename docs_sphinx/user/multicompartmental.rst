@@ -127,7 +127,7 @@ respectively.
 
 For plotting purposes, it can be useful to add coordinates to a `Morphology` that was created using the "schematic"
 approach described above. This can be done by calling the `~Morphology.generate_coordinates` method on a morphology,
-which will return an identical morphology but with additional 3D coordinates. By default, this method creates a
+which will return an identical morphology but with additional 2D or 3D coordinates. By default, this method creates a
 morphology according to a deterministic algorithm in 2D::
 
      new_morpho = morpho.generate_coordinates()
@@ -135,8 +135,8 @@ morphology according to a deterministic algorithm in 2D::
 .. image:: images/morphology_deterministic_coords.*
 
 
-To get more "realistic" morphologies, this function can also be used to create morphologies where the orientation of
-each section differs from the orientation of the parent section by a random amount::
+To get more "realistic" morphologies, this function can also be used to create morphologies in 3D where the orientation
+of each section differs from the orientation of the parent section by a random amount::
 
       new_morpho = morpho.generate_coordinates(section_randomness=25)
 
