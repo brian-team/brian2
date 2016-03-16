@@ -142,6 +142,14 @@ each section differs from the orientation of the parent section by a random amou
 .. image:: images/morphology_random_section_1.*  .. image:: images/morphology_random_section_2.*  .. image:: images/morphology_random_section_3.*
 ===============================================  ===============================================  ===============================================
 
+This algorithm will base the orientation of each section on the orientation of the parent section and then randomly
+perturb this orientation. More precisely, the algorithm first chooses a random vector orthogonal to the orientation
+of the parent section. Then, the section will be rotated around this orthogonal vector by a random angle, drawn from an
+exponential distribution with the :math:`\beta` parameter (in degrees) given by ``section_randomness``. This
+:math:`\beta` parameter specifies both the mean and the standard deviation of the rotation angle. Note that no maximum
+rotation angle is enforced, values for ``section_randomness`` should therefore be reasonably small (e.g. using a
+``section_randomness`` of ``45`` would already lead to a probability of ~14% that the section will be rotated by more
+than 90 degrees, therefore making the section go "backwards").
 
 In addition, also the orientation of each compartment within a section can be randomly varied::
 
@@ -152,6 +160,8 @@ In addition, also the orientation of each compartment within a section can be ra
 .. image:: images/morphology_random_section_compartment_1.*  .. image:: images/morphology_random_section_compartment_2.*  .. image:: images/morphology_random_section_compartment_3.*
 ===========================================================  ===========================================================  ===========================================================
 
+The algorithm is the same as the one presented above, but applied individually to each compartment within a section
+(still based on the orientation on the parent *section*, not on the orientation of the previous *compartment*).
 
 Complex morphologies
 ~~~~~~~~~~~~~~~~~~~~
