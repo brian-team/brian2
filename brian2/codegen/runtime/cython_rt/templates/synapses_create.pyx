@@ -38,12 +38,24 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     cdef int oldsize = len({{_dynamic__synaptic_pre}})
     cdef int newsize
 
+    cdef int32_t[:] _all_j
+    cdef int _num_targets
+    cdef int _target
+
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
 
     for _i in range(_num{{_all_pre}}):
-        for _j in range(_num{{_all_post}}):
+        {% if p != 1.0 and p != '1' and p != '1.0' %}
+        _all_j = _sample_without_replacement(_num{{_all_post}}, {{p}})
+        _num_targets = _all_j.shape[0]
+        {% else %}
+        _num_targets = _num{{_all_post}}
+        _all_j = <int32_t[:_num_targets]>{{_all_post}}
+        {% endif %}
+        for _target in range(_all_j.shape[0]):
+            _j = _all_j[_target]
             _vectorisation_idx = _j
 
             {# The abstract code consists of the following lines (the first two lines
@@ -60,9 +72,6 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             
             # add to buffer
             if _cond:
-                if _p!=1.0:
-                    if _rand(_vectorisation_idx)>=_p:
-                        continue
                 for _repetition in range(_n):
                     _prebuf_ptr[_curbuf] = _pre_idx
                     _postbuf_ptr[_curbuf] = _post_idx
