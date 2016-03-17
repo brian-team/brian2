@@ -14,7 +14,7 @@ from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.devices.device import get_device
+from brian2.devices.device import get_device, RuntimeDevice
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, INTEGER)
@@ -1303,6 +1303,32 @@ class Synapses(Group):
                           "using condition '%s'") % (self.source.name,
                                                      self.target.name,
                                                      condition))
+            # The runtime targets will make use of this function to efficiently
+            # sample random connections
+            if isinstance(get_device(), RuntimeDevice):
+                try:
+                    from sklearn.utils.random import sample_without_replacement
+                    def _sample_without_replacement(n, k):
+                        samples = sample_without_replacement(n, k)
+                        samples.sort()
+                        return samples
+                except ImportError:
+                    from random import sample
+                    def _sample_without_replacement(n, k):
+                        samples = np.array(sample(range(n), k))
+                        samples.sort()
+                        return samples
+                    if p != 1.0 and p != '1' and p != '1.0':
+                        # Warn the user about the inefficient algorithm
+                        logger.info('Creating synapses probabilistically '
+                                    'using runtime code generation benefits '
+                                    'from fast sampling implemented in the '
+                                    'scikits-learn (sklearn) package -- '
+                                    'consider installing it for faster synapse '
+                                    'creation.', 'missing_scikit', once=True)
+                variables.add_object('_sample_without_replacement',
+                                     _sample_without_replacement)
+                needed_variables += ['_sample_without_replacement']
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             'synapses_create',
