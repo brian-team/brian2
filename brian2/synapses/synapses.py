@@ -1306,16 +1306,19 @@ class Synapses(Group):
             # The runtime targets will make use of this function to efficiently
             # sample random connections
             if isinstance(get_device(), RuntimeDevice):
+                from numpy.random import binomial
                 try:
                     from sklearn.utils.random import sample_without_replacement
-                    def _sample_without_replacement(n, k):
+                    def _sample_without_replacement(n, p):
+                        k = binomial(n, p)
                         samples = sample_without_replacement(n, k)
                         samples.sort()
                         return samples
                 except ImportError:
                     from random import sample
-                    def _sample_without_replacement(n, k):
-                        samples = np.array(sample(range(n), k))
+                    def _sample_without_replacement(n, p):
+                        k = binomial(n, p)
+                        samples = np.array(sample(range(n), k), dtype=np.int32)
                         samples.sort()
                         return samples
                     if p != 1.0 and p != '1' and p != '1.0':

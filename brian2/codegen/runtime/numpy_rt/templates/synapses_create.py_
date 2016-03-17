@@ -9,7 +9,6 @@ import sys as _sys
 import numpy as _numpy
 if _sys.version_info[0]==2:
     range = xrange
-from numpy.random import binomial as _binomial
 
 numpy_False = _numpy.bool_(False)
 numpy_True = _numpy.bool_(True)
@@ -23,15 +22,11 @@ _cur_num_synapses = _old_num_synapses
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
-_len_all_post = len({{_all_post}})
-_all_post_indices = _numpy.arange(_len_all_post)
-
 for _i in range(len({{_all_pre}})):
     {% if p != 1.0 and p != '1' and p != '1.0' %}
-    _num_targets = _binomial(_len_all_post, {{p}})
-    _j = _sample_without_replacement(_len_all_post, _num_targets)
+    _j = _sample_without_replacement(len({{_all_post}}), {{p}})
     {% else %}
-    _j = _all_post_indices
+    _j = {{_all_post}}
     {% endif %}
     _vectorisation_idx = _j
     {# The abstract code consists of the following lines (the first two lines
