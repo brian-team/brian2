@@ -28,13 +28,13 @@
         Py_DECREF(_arglist);
         const int _num_targets = _samples->dimensions[0];
         const int *_all_j = (int32_t*)_samples->data;
-        {% else %}
-        const int _num_targets = _num_all_post;
-        const int *_all_j = {{_all_post}};
-        {% endif %}
         for(int _target=0; _target<_num_targets; _target++)
         {
             const int _j = _all_j[_target];
+        {% else %}
+        for(int _j=0; _j<_num_all_post; _j++)
+        {
+        {% endif %}
             const int _vectorisation_idx = _j;
             {# The abstract code consists of the following lines (the first two lines
             are there to properly support subgroups as sources/targets):

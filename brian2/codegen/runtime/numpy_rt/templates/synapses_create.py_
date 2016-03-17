@@ -22,11 +22,13 @@ _cur_num_synapses = _old_num_synapses
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
+_len_all_post = len({{_all_post}})
+
 for _i in range(len({{_all_pre}})):
     {% if p != 1.0 and p != '1' and p != '1.0' %}
-    _j = _sample_without_replacement(len({{_all_post}}), {{p}})
+    _j = _sample_without_replacement(_len_all_post, {{p}})
     {% else %}
-    _j = {{_all_post}}
+    _j = _numpy.arange(_len_all_post)
     {% endif %}
     _vectorisation_idx = _j
     {# The abstract code consists of the following lines (the first two lines
