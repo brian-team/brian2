@@ -2,7 +2,7 @@
 
 {% block maincode %}
     {#
-    USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
+    USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
@@ -20,11 +20,21 @@
     // scalar code
 	const int _vectorisation_idx = 1;
 	{{scalar_code|autoindent}}
-
     for(int _i=0; _i<_num_all_pre; _i++)
     {
-        for(int _j=0; _j<_num_all_post; _j++)
+        {% if p != 1.0 and p != '1' and p != '1.0' %}
+        PyObject* _arglist = Py_BuildValue("(id)", _num_all_post, {{p}});
+        PyArrayObject *_samples = (PyArrayObject*)PyObject_CallObject(_sample_without_replacement, _arglist);
+        Py_DECREF(_arglist);
+        const int _num_targets = _samples->dimensions[0];
+        const int *_all_j = (int32_t*)_samples->data;
+        {% else %}
+        const int _num_targets = _num_all_post;
+        const int *_all_j = {{_all_post}};
+        {% endif %}
+        for(int _target=0; _target<_num_targets; _target++)
         {
+            const int _j = _all_j[_target];
             const int _vectorisation_idx = _j;
             {# The abstract code consists of the following lines (the first two lines
             are there to properly support subgroups as sources/targets):
@@ -39,13 +49,6 @@
             // Add to buffer
             if(_cond)
             {
-                if (_p != 1.0) {
-                    // We have to use _rand instead of rand to use our rand
-                    // function, not the one from the C standard library
-                    if (_rand(_vectorisation_idx) >= _p)
-                        continue;
-                }
-
                 for (int _repetition=0; _repetition<_n; _repetition++) {
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
@@ -60,6 +63,9 @@
                 }
             }
         }
+        {% if p != 1.0 and p != '1' and p != '1.0' %}
+        Py_DECREF(_samples);
+        {% endif %}
     }
     // Final buffer flush
     _flush_buffer(_prebuf, {{_dynamic__synaptic_pre}}, _curbuf);

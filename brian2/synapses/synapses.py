@@ -1311,7 +1311,7 @@ class Synapses(Group):
                     from sklearn.utils.random import sample_without_replacement
                     def _sample_without_replacement(n, p):
                         k = binomial(n, p)
-                        samples = sample_without_replacement(n, k)
+                        samples = sample_without_replacement(n, k).astype(dtype=np.int32)
                         samples.sort()
                         return samples
                 except ImportError:
