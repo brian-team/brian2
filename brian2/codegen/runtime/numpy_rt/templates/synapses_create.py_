@@ -11,6 +11,7 @@ if _sys.version_info[0]==2:
     range = xrange
 from numpy.random import binomial as _binomial
 try:
+    raise ImportError()
     from sklearn.utils.random import sample_without_replacement as _sample_without_replacement
 except ImportError:
     from random import sample as _sample
@@ -34,7 +35,7 @@ _all_post_indices = _numpy.arange(_len_all_post)
 
 for _i in range(len({{_all_pre}})):
     {% set _handled_p = p is defined %}
-    {% if _handled_p %}
+    {% if _handled_p and p != 1.0 and p != '1' and p != '1.0' %}
     _num_targets = _binomial(_len_all_post, {{p}})
     _j = _sample_without_replacement(_len_all_post, _num_targets)
     {% else %}
