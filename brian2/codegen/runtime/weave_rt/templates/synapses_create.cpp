@@ -49,13 +49,14 @@
             // Add to buffer
             if(_cond)
             {
+            {% if sampling_algorithm == None %}
                 if (_p != 1.0) {
                     // We have to use _rand instead of rand to use our rand
                     // function, not the one from the C standard library
                     if (_rand(_vectorisation_idx) >= _p)
                         continue;
                 }
-
+            {% endif %}
                 for (int _repetition=0; _repetition<_n; _repetition++) {
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;

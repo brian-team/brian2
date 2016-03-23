@@ -72,9 +72,11 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             
             # add to buffer
             if _cond:
+                {% if sampling_algorithm == None %}
                 if _p!=1.0:
                     if _rand(_vectorisation_idx)>=_p:
                         continue
+                {% endif %}
                 for _repetition in range(_n):
                     _prebuf_ptr[_curbuf] = _pre_idx
                     _postbuf_ptr[_curbuf] = _post_idx

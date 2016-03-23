@@ -44,6 +44,7 @@ for _i in range(len({{_all_pre}})):
     if _cond is False or _cond is numpy_False:
         continue
 
+    {% if sampling_algorithm == None %}
     if not _numpy.isscalar(_p) or _p != 1:
         _cond_nonzero, = _numpy.logical_and(_cond,
                                             _numpy.random.rand(len(_vectorisation_idx)) < _p).nonzero()
@@ -51,7 +52,12 @@ for _i in range(len({{_all_pre}})):
         _cond_nonzero = _j
     else:
         _cond_nonzero, = _cond.nonzero()
-
+    {% else %}
+    if _cond is True or _cond is numpy_True:
+        _cond_nonzero = _j
+    else:
+        _cond_nonzero, = _cond.nonzero()
+    {% endif %}
     if not _numpy.isscalar(_n):
         # The "n" expression involved j
         _cond_nonzero = _cond_nonzero.repeat(_n[_cond_nonzero])
