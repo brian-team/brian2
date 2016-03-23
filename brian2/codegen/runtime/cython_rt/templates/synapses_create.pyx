@@ -48,7 +48,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {{scalar_code|autoindent}}
 
     for _i in range(_num{{_all_pre}}):
-        {% if p != 1.0 and p != '1' and p != '1.0' %}
+        {% if sampling_algorithm != None %}
         _all_j = _sample_without_replacement(_num{{_all_post}}, {{p}})
         _num_targets = _all_j.shape[0]
         for _target in range(_all_j.shape[0]):
@@ -72,6 +72,9 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             
             # add to buffer
             if _cond:
+                if _p!=1.0:
+                    if _rand(_vectorisation_idx)>=_p:
+                        continue
                 for _repetition in range(_n):
                     _prebuf_ptr[_curbuf] = _pre_idx
                     _postbuf_ptr[_curbuf] = _post_idx

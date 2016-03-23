@@ -25,7 +25,7 @@ _vectorisation_idx = 1
 _len_all_post = len({{_all_post}})
 
 for _i in range(len({{_all_pre}})):
-    {% if p != 1.0 and p != '1' and p != '1.0' %}
+    {% if sampling_algorithm != None %}
     _j = _sample_without_replacement(_len_all_post, {{p}})
     {% else %}
     _j = _numpy.arange(_len_all_post)
@@ -44,8 +44,11 @@ for _i in range(len({{_all_pre}})):
     if _cond is False or _cond is numpy_False:
         continue
 
-    if _cond is True or _cond is numpy_True:
-        _cond_nonzero = _numpy.arange(len(_j))
+    if not _numpy.isscalar(_p) or _p != 1:
+        _cond_nonzero, = _numpy.logical_and(_cond,
+                                            _numpy.random.rand(len(_vectorisation_idx)) < _p).nonzero()
+    elif _cond is True or _cond is numpy_True:
+        _cond_nonzero = _j
     else:
         _cond_nonzero, = _cond.nonzero()
 

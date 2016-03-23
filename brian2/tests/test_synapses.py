@@ -272,8 +272,12 @@ def test_connection_random():
     '''
     Test random connections.
     '''
-    G = NeuronGroup(4, 'v: 1', threshold='False')
-    G2 = NeuronGroup(7, 'v: 1', threshold='False')
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
     # We can only test probabilities 0 and 1 for strict correctness
     S = Synapses(G, G2, 'w:1', 'v+=w')
     S.connect('rand() < 0.')
@@ -324,6 +328,30 @@ def test_connection_random():
 
     S = Synapses(G, G, 'w:1', 'v+=w')
     S.connect([0, 1], [0, 2], p=0.3)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p='i*0.1')
+    assert not any(S.i == 0)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p='j*0.1')
+    assert not any(S.j == 0)
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S = Synapses(G, G2, 'w:1', pre='v+=w')
+    S.connect(True, p='int(x_pre==2)*1.0')
+    assert len(S) == 7
+    assert_equal(S.i, np.ones(7)*2)
+    assert_equal(S.j, np.arange(7))
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S = Synapses(G, G2, 'w:1', pre='v+=w')
+    S.connect(True, p='int(x_pre==2 and y_post > 0.5)*1.0')
+    assert len(S) == 3
+    assert_equal(S.i, np.ones(3)*2)
+    assert_equal(S.j, np.arange(3) + 4)
 
 
 def test_connection_multiple_synapses():

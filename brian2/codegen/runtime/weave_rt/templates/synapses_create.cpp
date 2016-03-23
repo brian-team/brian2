@@ -2,7 +2,7 @@
 
 {% block maincode %}
     {#
-    USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post,
+    USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
@@ -22,7 +22,7 @@
 	{{scalar_code|autoindent}}
     for(int _i=0; _i<_num_all_pre; _i++)
     {
-        {% if p != 1.0 and p != '1' and p != '1.0' %}
+        {% if sampling_algorithm != None %}
         PyObject* _arglist = Py_BuildValue("(id)", _num_all_post, {{p}});
         PyArrayObject *_samples = (PyArrayObject*)PyObject_CallObject(_sample_without_replacement, _arglist);
         Py_DECREF(_arglist);
@@ -49,6 +49,13 @@
             // Add to buffer
             if(_cond)
             {
+                if (_p != 1.0) {
+                    // We have to use _rand instead of rand to use our rand
+                    // function, not the one from the C standard library
+                    if (_rand(_vectorisation_idx) >= _p)
+                        continue;
+                }
+
                 for (int _repetition=0; _repetition<_n; _repetition++) {
                     _prebuf[_curbuf] = _pre_idx;
                     _postbuf[_curbuf] = _post_idx;
@@ -63,7 +70,7 @@
                 }
             }
         }
-        {% if p != 1.0 and p != '1' and p != '1.0' %}
+        {% if sampling_algorithm != None %}
         Py_DECREF(_samples);
         {% endif %}
     }

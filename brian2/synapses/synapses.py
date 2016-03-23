@@ -1261,6 +1261,15 @@ class Synapses(Group):
             codeobj()
         else:
             template_kwds['p'] = p
+            if isinstance(p, basestring) or p == 1:
+                sampling_algorithm = None
+            elif p < 0.01:
+                sampling_algorithm = 'tracking_selection'
+            elif p < 0.04:
+                sampling_algorithm = 'pool'
+            else:
+                sampling_algorithm = None
+
             abstract_code = '_pre_idx = _all_pre \n'
             abstract_code += '_post_idx = _all_post \n'
             abstract_code += '_cond = ' + condition + '\n'
@@ -1303,35 +1312,32 @@ class Synapses(Group):
                           "using condition '%s'") % (self.source.name,
                                                      self.target.name,
                                                      condition))
-            # The runtime targets will make use of this function to efficiently
-            # sample random connections
-            if isinstance(get_device(), RuntimeDevice):
+            if (isinstance(get_device(), RuntimeDevice) and
+                        sampling_algorithm is not None):
+                # The runtime targets will make use of this function to
+                # efficiently sample random connections with low probabilities
                 from numpy.random import binomial
                 try:
                     from sklearn.utils.random import sample_without_replacement
                     def _sample_without_replacement(n, p):
                         k = binomial(n, p)
-                        samples = sample_without_replacement(n, k).astype(dtype=np.int32)
+                        samples = sample_without_replacement(n, k,
+                                                             method=sampling_algorithm).astype(dtype=np.int32)
                         samples.sort()
                         return samples
+                    variables.add_object('_sample_without_replacement',
+                                         _sample_without_replacement)
+                    needed_variables += ['_sample_without_replacement']
                 except ImportError:
-                    from random import sample
-                    def _sample_without_replacement(n, p):
-                        k = binomial(n, p)
-                        samples = np.array(sample(range(n), k), dtype=np.int32)
-                        samples.sort()
-                        return samples
-                    if p != 1.0 and p != '1' and p != '1.0':
-                        # Warn the user about the inefficient algorithm
-                        logger.info('Creating synapses probabilistically '
-                                    'using runtime code generation benefits '
-                                    'from fast sampling implemented in the '
-                                    'scikits-learn (sklearn) package -- '
-                                    'consider installing it for faster synapse '
-                                    'creation.', 'missing_scikit', once=True)
-                variables.add_object('_sample_without_replacement',
-                                     _sample_without_replacement)
-                needed_variables += ['_sample_without_replacement']
+                    sampling_algorithm = None
+                    # Warn the user about the inefficient algorithm
+                    logger.info('Creating synapses probabilistically '
+                                'using runtime code generation benefits '
+                                'from fast sampling implemented in the '
+                                'scikits-learn (sklearn) package -- '
+                                'consider installing it for faster synapse '
+                                'creation.', 'missing_scikit', once=True)
+            template_kwds['sampling_algorithm'] = sampling_algorithm
             codeobj = create_runner_codeobj(self,
                                             abstract_code,
                                             'synapses_create',
