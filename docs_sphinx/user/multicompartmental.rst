@@ -168,8 +168,16 @@ The algorithm is the same as the one presented above, but applied individually t
 Complex morphologies
 ~~~~~~~~~~~~~~~~~~~~
 
-Morphologies can also be created from information about the compartment coordinates in 3D space. This can be done
-manually for individual sections, following the same syntax as the "schematic" morphologies::
+Morphologies can also be created from information about the compartment coordinates in 3D space. Such morphologies can
+be loaded from a ``.swc`` file (a standard format for neuronal morphologies; for a large database of morphologies in
+this format see http://neuromorpho.org)::
+
+    morpho = Morphology.from_file('corticalcell.swc')
+
+To manually create a morphology from a list of points in a similar format to SWC files, see `Morphology.from_points`.
+
+Morphologies with coordinates can also be created section by section, following the same syntax as for "schematic"
+morphologies::
 
     soma = Soma(diameter=30*um, x=50*um, y=20*um)
     cylinder = Cylinder(10, x=[0, 100]*um, diameter=1*um)
@@ -197,14 +205,6 @@ A few additional remarks:
    therefore 0 μm, to continue a section where the previous one ended. However, it can be convenient to use a value
    different from 0 μm for sections connecting to the `Soma` to make them (visually) connect to a point on the sphere
    surface instead of the center of the sphere.
-
-A neuronal morphology can be directly load from a ``.swc`` file (a standard format for neuronal morphologies)::
-
-    morpho = Morphology.from_file('corticalcell.swc')
-
-There is a large database of morphologies in the swc format at http://neuromorpho.org.
-
-To manually create a morphology from a list of points in a similar format to SWC files, see `Morphology.from_points`
 
 .. _creating_spatialneuron:
 
