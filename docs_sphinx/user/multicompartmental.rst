@@ -103,6 +103,7 @@ Equivalently, one can use an indexing syntax::
 Finally there is a special shorter syntax for quickly creating trees, using ``L`` (for left),
 ``R`` (for right), and digits from 1 to 9. These can be simply concatenated (without using the dot)::
 
+    morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=3)
     morpho.L1 = Cylinder(length=5*um, diameter=1*um, n=3)
     morpho.L2 = Cylinder(length=5*um, diameter=1*um, n=3)
@@ -112,8 +113,20 @@ Finally there is a special shorter syntax for quickly creating trees, using ``L`
     morpho.RR = Cylinder(length=5*um, diameter=1*um, n=3)
 
 These instructions create a dendritic tree with two main sections, three sections attached to the first section and
-two to the second . After these instructions are executed, ``morpho.L`` contains the entire subtree. However,
-accessing the attributes (e.g. ``diameter``) will only return the values for the given section.
+two to the second::
+
+    >>> morpho.topology()
+    ( )  [root]
+       `---|  .L
+            `---|  .L.1
+            `---|  .L.2
+            `---|  .L.3
+       `---|  .R
+            `---|  .R.L
+            `---|  .R.R
+
+Note that an expression such as ``morpho.L`` will always refer to the entire subtree. However, accessing the attributes
+(e.g. ``diameter``) will only return the values for the given section.
 
 .. note::
 
