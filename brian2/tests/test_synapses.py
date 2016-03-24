@@ -257,33 +257,90 @@ def test_connection_string_deterministic():
     _compare(S, expected)
 
 
-def test_connection_random_basic():
-    G = NeuronGroup(4, 'v: 1', threshold='False')
-    G2 = NeuronGroup(7, 'v: 1', threshold='False')
-
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True, p=0.0)
-    assert len(S) == 0
-    S.connect(True, p=1.0)
-    _compare(S, np.ones((len(G), len(G2))))
-
-
-def test_connection_random():
+def test_connection_random_with_condition():
     '''
     Test random connections.
     '''
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
-    G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
-    # We can only test probabilities 0 and 1 for strict correctness
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('rand() < 0.')
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G2 = NeuronGroup(7, 'v: 1', threshold='False')
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p=0.0)
     assert len(S) == 0
-    S.connect('rand() < 1.', p=1.0)
-    _compare(S, np.ones((len(G), len(G2))))
+    S.connect('i!=j', p=1.0)
+    expected = np.ones((len(G), len(G))) - np.eye(len(G))
+    _compare(S, expected)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i>=2', p=0.0)
+    assert len(S) == 0
+    S.connect('i>=2', p=1.0)
+    expected = np.zeros((len(G), len(G)))
+    expected[2, :] = 1
+    expected[3, :] = 1
+    _compare(S, expected)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('j<2', p=0.0)
+    assert len(S) == 0
+    S.connect('j<2', p=1.0)
+    expected = np.zeros((len(G), len(G)))
+    expected[:, 0] = 1
+    expected[:, 1] = 1
+    _compare(S, expected)
+
+    # Just checking that everything works in principle (we can't check the
+    # actual connections)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p=0.01)
+    assert not any(S.i == S.j)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p=0.03)
+    assert not any(S.i == S.j)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p=0.3)
+    assert not any(S.i == S.j)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i>=2', p=0.01)
+    assert all(S.i >= 2)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i>=2', p=0.03)
+    assert all(S.i >= 2)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i>=2', p=0.3)
+    assert all(S.i >= 2)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('j>=2', p=0.01)
+    assert all(S.j >= 2)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('j>=2', p=0.03)
+    assert all(S.j >= 2)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('j>=2', p=0.3)
+    assert all(S.j >= 2)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p='i*0.1')
+    assert not any(S.i == 0)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect('i!=j', p='j*0.1')
+    assert not any(S.j == 0)
+
+
+def test_connection_random_with_indices():
+    '''
+    Test random connections.
+    '''
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G2 = NeuronGroup(7, 'v: 1', threshold='False')
 
     S = Synapses(G, G2, 'w:1', 'v+=w')
     S.connect(0, 0, p=0.)
@@ -303,25 +360,17 @@ def test_connection_random():
     expected[1, 2] = 1
     _compare(S, expected)
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('rand() < 1.', p=1.0)
-    _compare(S, np.ones((len(G), len(G2))))
-
-    # Just make sure using values between 0 and 1 work in principle
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True, p=0.3)
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('rand() < 0.3')
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(0, 0, p=0.01)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i!=j', p=0.0)
-    assert len(S) == 0
-    S.connect('i!=j', p=1.0)
-    expected = np.ones((len(G), len(G))) - np.eye(len(G))
-    _compare(S, expected)
+    S.connect([0, 1], [0, 2], p=0.01)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i!=j', p=0.3)
+    S.connect(0, 0, p=0.03)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect([0, 1], [0, 2], p=0.03)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
     S.connect(0, 0, p=0.3)
@@ -329,13 +378,29 @@ def test_connection_random():
     S = Synapses(G, G, 'w:1', 'v+=w')
     S.connect([0, 1], [0, 2], p=0.3)
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i!=j', p='i*0.1')
-    assert not any(S.i == 0)
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i!=j', p='j*0.1')
-    assert not any(S.j == 0)
+def test_connection_random_without_condition():
+    '''
+    Test random connections.
+    '''
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(True, p=0.0)
+    _compare(S, np.zeros((len(G), len(G2))))
+
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(True, p=1.0)
+    _compare(S, np.ones((len(G), len(G2))))
+
+    # Just make sure using values between 0 and 1 work in principle
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(True, p=0.3)
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
@@ -1434,7 +1499,9 @@ if __name__ == '__main__':
     test_name_clashes()
     test_incoming_outgoing()
     test_connection_string_deterministic()
-    test_connection_random()
+    test_connection_random_with_condition()
+    test_connection_random_without_condition()
+    test_connection_random_with_indices()
     test_connection_multiple_synapses()
     test_connection_arrays()
     test_connection_array_standalone()

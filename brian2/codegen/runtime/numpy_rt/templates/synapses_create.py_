@@ -54,7 +54,7 @@ for _i in range(len({{_all_pre}})):
         _cond_nonzero, = _cond.nonzero()
     {% else %}
     if _cond is True or _cond is numpy_True:
-        _cond_nonzero = _j
+        _cond_nonzero = _numpy.arange(len(_j))
     else:
         _cond_nonzero, = _cond.nonzero()
     {% endif %}
