@@ -127,7 +127,8 @@ def parse_synapse_generator(expr):
     if iterator_funcname not in iterator_function_handlers:
         raise SyntaxError(parse_error+" Iterator expression must be one of the supported functions: "+
                           str(iterator_function_handlers.keys()))
-    if iterator.starargs is not None or iterator.kwargs is not None:
+    if (getattr(iterator, 'starargs', None) is not None or
+                getattr(iterator, 'kwargs', None) is not None):
         raise SyntaxError(parse_error+" Star arguments not supported.")
     args = []
     for argnode in iterator.args:
