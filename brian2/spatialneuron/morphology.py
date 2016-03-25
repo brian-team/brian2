@@ -975,7 +975,7 @@ class Morphology(object):
                     if len(children) <= 2:
                         name = 'L' if nth_child == 1 else 'R'
                     else:
-                        name = 'child_%d' % nth_child
+                        name = '%d' % nth_child
                     children.add(name, section)
 
         # There should only be one section without parents
