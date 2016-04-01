@@ -668,6 +668,8 @@ def test_construction_incorrect_arguments():
     dummy_self = Soma(10*um)  # To allow testing of Morphology.__init__
     assert_raises(TypeError, lambda: Morphology.__init__(dummy_self, n=1.5))
     assert_raises(ValueError, lambda: Morphology.__init__(dummy_self, n=0))
+    assert_raises(TypeError, lambda: Morphology.__init__(dummy_self,
+                                                         'filename.swc'))
 
     ### Soma
     assert_raises(DimensionMismatchError, lambda: Soma(10))
@@ -783,20 +785,28 @@ def test_subtree_deletion():
     soma.dend1 = first_dendrite
     soma.dend2 = second_dendrite
     soma.dend3 = Cylinder(n=5, diameter=5*um, length=50*um)
+    soma.dend3.L = Cylinder(n=5, diameter=5*um, length=50*um)
+    soma.dend3.L.L = Cylinder(n=5, diameter=5 * um, length=50 * um)
 
-    assert len(soma) == 26
+    assert len(soma) == 36
 
     del soma.dend1
-    assert len(soma) == 21
+    assert len(soma) == 31
     assert_raises(AttributeError, lambda: soma.dend1)
     assert_raises(AttributeError, lambda: delattr(soma, 'dend1'))
     assert_raises(AttributeError, lambda: soma.__delitem__('dend1'))
     assert first_dendrite not in soma.children
 
     del soma['dend2']
-    assert len(soma) == 6
+    assert len(soma) == 16
     assert_raises(AttributeError, lambda: soma.dend2)
     assert second_dendrite not in soma.children
+
+    del soma.dend3.LL
+    assert len(soma) == 11
+    assert_raises(AttributeError, lambda: soma.dend3.LL)
+    assert_raises(AttributeError, lambda: soma.dend3.L.L)
+
 
 @attr('codegen-independent')
 def test_subgroup_indices():

@@ -487,7 +487,8 @@ class Morphology(object):
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
             del self._children[item[0]][item[1:]]
-        self._children.remove(item)
+        else:
+            self._children.remove(item)
 
     def __getattr__(self, item):
         '''
@@ -858,10 +859,9 @@ class Morphology(object):
 
     @staticmethod
     def _create_soma(compartments):
-        if len(compartments) > 1:
-            raise NotImplementedError('Only spherical somas '
-                                      'described by a single point '
-                                      'and diameter are supported.')
+        assert len(compartments) == 1, ('Only spherical somas '
+                                        'described by a single point '
+                                        'and diameter are supported.')
         soma = compartments[0]
         section = Soma(diameter=soma.diameter*um, x=soma.x*um, y=soma.y*um,
                        z=soma.z*um)
