@@ -216,7 +216,7 @@ interpreted in the following way:
     | For every pair i, j:
     |    if condition(i, j) is fulfilled:
     |        Evaluate p(i, j)
-    |        If p(i, j) < uniform random number between 0 and 1:
+    |        If uniform random number between 0 and 1 < p(i, j):
     |            Create n(i, j) synapses for (i, j)
 
 
