@@ -3,7 +3,7 @@ Devices
 
 This document describes how to implement a new `Device` for Brian. This is a
 somewhat complicated process, and you should first be familiar with devices
-from the user point of view (:doc:`/user/devices`) as well as the code
+from the user point of view (:doc:`/user/computation`) as well as the code
 generation system (:doc:`codegen`).
 
 We wrote Brian's devices system to allow for two major use cases, although

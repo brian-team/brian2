@@ -320,6 +320,6 @@ possibility to index the `Synapses` object::
 	plot(M.t / ms, M['w>0'].w / nS)  # all synapses with non-zero weights (at this time)
 
 Note that the use of the `Synapses` object for indexing and ``record=True`` only
-work in the default runtime modes. In standalone mode (see :doc:`devices`),
+work in the default runtime modes. In standalone mode (see :ref:`cpp_standalone`),
 the synapses have not yet been created at this point, so Brian cannot calculate
 the indices.
