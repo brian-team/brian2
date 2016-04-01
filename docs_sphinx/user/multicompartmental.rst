@@ -100,8 +100,11 @@ Equivalently, one can use an indexing syntax::
     morpho['dendrite']['branch1'] = Cylinder(length=50*um, diameter=1*um, n=3)
     morpho['dendrite']['branch2'] = Cylinder(length=50*um, diameter=1*um, n=3)
 
-Finally there is a special shorter syntax for quickly creating trees, using ``L`` (for left),
-``R`` (for right), and digits from 1 to 9. These can be simply concatenated (without using the dot)::
+The names given to sections are completely up to the user. However, names that consist of a single digit (``1`` to
+``9``) or the letters ``L`` (for left) and ``R`` (for right) allow for a special short syntax: they can be joined
+together directly, without the needs for dots (or dictionary syntax) and therefore allow to quickly navigate through
+the morphology tree (e.g. ``morpho.LRLLR`` is equivalent to ``morpho.L.R.L.L.R``). This short syntax can also be used to
+create trees::
 
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=3)
@@ -112,8 +115,8 @@ Finally there is a special shorter syntax for quickly creating trees, using ``L`
     morpho.RL = Cylinder(length=5*um, diameter=1*um, n=3)
     morpho.RR = Cylinder(length=5*um, diameter=1*um, n=3)
 
-These instructions create a dendritic tree with two main sections, three sections attached to the first section and
-two to the second::
+The above instructions create a dendritic tree with two main sections, three sections attached to the first section and
+two to the second. This can be verified with the `Morphology.topology` method::
 
     >>> morpho.topology()
     ( )  [root]
@@ -133,10 +136,12 @@ Note that an expression such as ``morpho.L`` will always refer to the entire sub
     To avoid ambiguities, do not use names for sections that can be interpreted in the abbreviated way detailed above.
     For example, do not name a child section ``L1`` (which will be interpreted as the first child of the child ``L``)
 
-
 The number of compartments in a section can be accessed with ``morpho.n`` (or ``morpho.L.n``, etc.), the number of
 total sections and compartments in a subtree can be accessed with ``morpho.n_sections`` and ``len(morpho)``
 respectively.
+
+Adding coordinates
+++++++++++++++++++
 
 For plotting purposes, it can be useful to add coordinates to a `Morphology` that was created using the "schematic"
 approach described above. This can be done by calling the `~Morphology.generate_coordinates` method on a morphology,
@@ -188,6 +193,10 @@ this format see http://neuromorpho.org)::
     morpho = Morphology.from_file('corticalcell.swc')
 
 To manually create a morphology from a list of points in a similar format to SWC files, see `Morphology.from_points`.
+
+Morphologies that are created in such a way will use standard names for the sections that allow for the short syntax
+shown in the previous sections: if a section has one or two child sections, then they will be called ``L`` and ``R``,
+otherwise they will be numbered starting at ``1``.
 
 Morphologies with coordinates can also be created section by section, following the same syntax as for "schematic"
 morphologies::
