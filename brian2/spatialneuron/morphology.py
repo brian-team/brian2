@@ -116,6 +116,7 @@ class Topology(object):
 
     __repr__ = __str__
 
+
 def _rotate(vec, axis, angle):
     '''
     Rotate a vector around an arbitrary axis.
@@ -258,6 +259,7 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
                          overwrite_existing=overwrite_existing)
     return section
 
+
 class Children(object):
     '''
     Helper class to represent the children (sub trees) of a section. Can be
@@ -313,15 +315,15 @@ class Children(object):
         subtree : `Morphology`
             The subtree to link as a child.
         '''
-        if name in self._named_children:
+        if name in self._named_children and self._named_children[name] is not subtree:
             raise AttributeError('The name %s is already used for a subtree' % name)
 
         if subtree not in self._children:
             self._counter += 1
             self._children.append(subtree)
             self._named_children[str(self._counter)] = subtree
+            self._given_name[subtree] = name
 
-        self._given_name[subtree] = name
         if name is not None:
             self._named_children[name] = subtree
 
@@ -963,20 +965,19 @@ class Morphology(object):
                                       subtree=section)
 
         # Go through all the sections again and add standard names for all
-        # sections that don't have a name: "L" + "R" for 1 or two children,
-        # "child_1", "child_2", etc. otherwise
+        # sections (potentially in addition to the name they already have):
+        # "L" + "R" for 1 or two children, "child_1", "child_2", etc. otherwise
         children_counter = defaultdict(int)
         for section, parent in sections.itervalues():
             if parent != -1:
                 children_counter[parent] += 1
                 children = sections[parent][0].children
                 nth_child = children_counter[parent]
-                if children.name(section) is None:
-                    if len(children) <= 2:
-                        name = 'L' if nth_child == 1 else 'R'
-                    else:
-                        name = '%d' % nth_child
-                    children.add(name, section)
+                if len(children) <= 2:
+                    name = 'L' if nth_child == 1 else 'R'
+                else:
+                    name = '%d' % nth_child
+                children.add(name, section)
 
         # There should only be one section without parents
         root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
