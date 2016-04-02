@@ -1,0 +1,86 @@
+{#
+USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, N,
+                 N_pre, N_post, _source_offset, _target_offset }
+#}
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
+#}
+{# ITERATE_ALL { _idx } #}
+import sys as _sys
+import numpy as _numpy
+from numpy.random import rand as _np_rand
+if _sys.version_info[0]==2:
+    range = xrange
+
+{% if iterator_func=='sample' %}
+    {% if iterator_kwds.p<0.01 %}
+        {% set _sampling_algorithm='tracking_selection' %}
+    {% elif iterator_kwds.p<0.04 %}
+        {% set _sampling_algorithm='pool' %}
+    {% else %}
+        {% set _sampling_algorithm='rand' %}
+    {% endif %}
+{% else %}
+    {% set _sampling_algorithm='rand' %}
+{% endif %}
+{% if _sampling_algorithm!='rand' %}
+from numpy.random import binomial as _binomial
+try:
+    from sklearn.utils.random import sample_without_replacement as _swr
+    def _sample_without_replacement(n, p):
+        k = _binomial(n, p)
+        samples = _swr(n, k, method='{{_sampling_algorithm}}').astype(dtype=np.int32)
+        samples.sort()
+        return samples
+except ImportError:
+    _sample_without_replacement = None
+{% else %}
+_sample_without_replacement = None
+{% endif %}
+if _sample_without_replacement is None:
+    def _sample_without_replacement(n, p):
+        samples, = (_np_rand(n)<p).nonzero()
+        return samples
+
+# number of synapses in the beginning
+_old_num_synapses = {{N}}
+# number of synapses during the creation process
+_cur_num_synapses = _old_num_synapses
+
+# scalar code
+_vectorisation_idx = 1
+{{scalar_code|autoindent}}
+
+_len_all_post = len({{_all_post}})
+
+for _i in range(len({{_all_pre}})):
+    i = _i
+    {% if iterator_func=='range' %}
+    {{iteration_variable}} = _numpy.arange({{iterator_kwds.low}}, {{iterator_kwds.high}}, {{iterator_kwds.step}})
+    {% elif iterator_func=='sample' %}
+    {{iteration_variable}} = _numpy.arange({{iterator_kwds.low}}, {{iterator_kwds.high}}, {{iterator_kwds.step}})
+    {{iteration_variable}} = {{iteration_variable}}[_sample_without_replacement(len({{iteration_variable}}), {{iterator_kwds.p}})]
+    {% endif %}
+
+    {{vector_code|autoindent}}
+
+    {% if if_expression!='True' %}
+    _j, _cond = _numpy.broadcast_arrays(_j, _cond)
+    _j = _j[_cond]
+    {% else %}
+    _j, {{iteration_variable}} = _numpy.broadcast_arrays(_j, {{iteration_variable}})
+    {% endif %}
+
+    _numnew = len(_j)
+    _new_num_synapses = _cur_num_synapses + _numnew
+    {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
+    {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _i#_pre_idx
+    {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _j#_post_idx[_cond_nonzero]
+    _cur_num_synapses += _numnew
+
+# Resize all dependent dynamic arrays (synaptic weights, delays, etc.) and set
+# the total number of synapses
+_owner._resize(_cur_num_synapses)
+
+# And update N_incoming, N_outgoing and synapse_number
+_owner._update_synapse_numbers(_old_num_synapses)
