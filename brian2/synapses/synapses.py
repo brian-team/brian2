@@ -1280,31 +1280,18 @@ class Synapses(Group):
 
     def _add_synapses_generator(self, j, n, namespace=None, level=0):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
-
         parsed = parse_synapse_generator(j)
-
-        # template_kwds['parsed'] = parsed
         template_kwds.update(parsed)
 
-        # template_kwds['p'] = p
-        # if isinstance(p, basestring) or p == 1:
-        #     sampling_algorithm = None
-        # elif p < 0.01:
-        #     sampling_algorithm = 'tracking_selection'
-        # elif p < 0.04:
-        #     sampling_algorithm = 'pool'
-        # else:
-        #     sampling_algorithm = None
+        abstract_code = {'create_j': '', 'create_cond': '', 'update_post': ''}
 
-        abstract_code = '_j = '+parsed['element']+'\n'
+        abstract_code['create_j'] += '_pre_idx = _all_pre \n'
+        abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
+        abstract_code['create_cond'] += '_post_idx = _all_post \n'
         if parsed['if_expression'] is not None:
-            abstract_code += '_cond = '+parsed['if_expression']+'\n'
-
-        # abstract_code = '_pre_idx = _all_pre \n'
-        # abstract_code += '_post_idx = _all_post \n'
-        # abstract_code += '_cond = ' + condition + '\n'
-        # abstract_code += '_n = ' + str(n) + '\n'
-        # abstract_code += '_p = ' + str(p)
+            abstract_code['create_cond'] += '_cond = '+parsed['if_expression']+'\n'
+            abstract_code['update_post'] += '_post_idx = _all_post \n'
+        abstract_code['create_j'] += '_n = ' + str(n) + '\n'
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary
         # This is necessary because in the context of synapse creation, i
@@ -1318,9 +1305,9 @@ class Synapses(Group):
         # Make sure that variables have the correct type in the code
         variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)
         variables.add_auxiliary_variable('_post_idx', unit=Unit(1), dtype=np.int32)
-        # variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
+        if parsed['if_expression'] is not None:
+            variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
         variables.add_auxiliary_variable('_n', unit=Unit(1), dtype=np.int32)
-        # variables.add_auxiliary_variable('_p', unit=Unit(1))
 
         if '_sub_idx' in self.source.variables:
             variables.add_reference('_all_pre', self.source, '_sub_idx')
@@ -1340,36 +1327,10 @@ class Synapses(Group):
                 variable_indices[varname] = '_all_post'
         variable_indices['_all_pre'] = '_i'
         variable_indices['_all_post'] = '_j'
-        # logger.debug(("Creating synapses from group '%s' to group '%s', "
-        #               "using condition '%s'") % (self.source.name,
-        #                                          self.target.name,
-        #                                          condition))
-        # if (isinstance(get_device(), RuntimeDevice) and
-        #             sampling_algorithm is not None):
-        #     # The runtime targets will make use of this function to
-        #     # efficiently sample random connections with low probabilities
-        #     from numpy.random import binomial
-        #     try:
-        #         from sklearn.utils.random import sample_without_replacement
-        #         def _sample_without_replacement(n, p):
-        #             k = binomial(n, p)
-        #             samples = sample_without_replacement(n, k,
-        #                                                  method=sampling_algorithm).astype(dtype=np.int32)
-        #             samples.sort()
-        #             return samples
-        #         variables.add_object('_sample_without_replacement',
-        #                              _sample_without_replacement)
-        #         needed_variables += ['_sample_without_replacement']
-        #     except ImportError:
-        #         sampling_algorithm = None
-        #         # Warn the user about the inefficient algorithm
-        #         logger.info('Creating synapses probabilistically '
-        #                     'using runtime code generation benefits '
-        #                     'from fast sampling implemented in the '
-        #                     'scikits-learn (sklearn) package -- '
-        #                     'consider installing it for faster synapse '
-        #                     'creation.', 'missing_scikit', once=True)
-        # template_kwds['sampling_algorithm'] = sampling_algorithm
+        logger.debug(("Creating synapses from group '%s' to group '%s', "
+                      "using generator '%s'") % (self.source.name,
+                                                 self.target.name,
+                                                 parsed['original_expression']))
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',

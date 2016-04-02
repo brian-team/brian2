@@ -48,12 +48,12 @@ _cur_num_synapses = _old_num_synapses
 
 # scalar code
 _vectorisation_idx = 1
-{{scalar_code|autoindent}}
+{{scalar_code['create_j']|autoindent}}
+{{scalar_code['create_cond']|autoindent}}
 
 _len_all_post = len({{_all_post}})
 
 for _i in range(len({{_all_pre}})):
-    i = _i
     {% if iterator_func=='range' %}
     {{iteration_variable}} = _numpy.arange({{iterator_kwds.low}}, {{iterator_kwds.high}}, {{iterator_kwds.step}})
     {% elif iterator_func=='sample' %}
@@ -61,7 +61,8 @@ for _i in range(len({{_all_pre}})):
     {{iteration_variable}} = {{iteration_variable}}[_sample_without_replacement(len({{iteration_variable}}), {{iterator_kwds.p}})]
     {% endif %}
 
-    {{vector_code|autoindent}}
+    {{vector_code['create_j']|autoindent}}
+    {{vector_code['create_cond']|autoindent}}
 
     {% if if_expression!='True' %}
     _j, _cond = _numpy.broadcast_arrays(_j, _cond)
@@ -70,12 +71,14 @@ for _i in range(len({{_all_pre}})):
     _j, {{iteration_variable}} = _numpy.broadcast_arrays(_j, {{iteration_variable}})
     {% endif %}
 
+    {{vector_code['update_post']|autoindent}}
+
     _numnew = len(_j)
     _new_num_synapses = _cur_num_synapses + _numnew
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
     {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
-    {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _i#_pre_idx
-    {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _j#_post_idx[_cond_nonzero]
+    {{_dynamic__synaptic_pre}}[_cur_num_synapses:] = _pre_idx
+    {{_dynamic__synaptic_post}}[_cur_num_synapses:] = _post_idx
     _cur_num_synapses += _numnew
 
 # Resize all dependent dynamic arrays (synaptic weights, delays, etc.) and set
