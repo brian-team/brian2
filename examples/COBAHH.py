@@ -65,8 +65,10 @@ P = NeuronGroup(4000, model=eqs, threshold='v>-20*mV', refractory=3*ms,
                 method='exponential_euler')
 Pe = P[:3200]
 Pi = P[3200:]
-Ce = Synapses(Pe, P, pre='ge+=we', connect='rand()<0.02')
-Ci = Synapses(Pi, P, pre='gi+=wi', connect='rand()<0.02')
+Ce = Synapses(Pe, P, pre='ge+=we')
+Ci = Synapses(Pi, P, pre='gi+=wi')
+Ce.connect(p=0.02)
+Ci.connect(p=0.02)
 
 # Initialization
 P.v = 'El + (randn() * 5 - 5)*mV'

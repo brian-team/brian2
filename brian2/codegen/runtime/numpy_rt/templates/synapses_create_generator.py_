@@ -61,7 +61,9 @@ for _i in range(len({{_all_pre}})):
     {{iteration_variable}} = {{iteration_variable}}[_sample_without_replacement(len({{iteration_variable}}), {{iterator_kwds.p}})]
     {% endif %}
 
+    _vectorisation_idx = {{iteration_variable}} # TODO: not sure if any of these _vectorisation_idx are correct
     {{vector_code['create_j']|autoindent}}
+    _vectorisation_idx = _j
     {{vector_code['create_cond']|autoindent}}
 
     {% if if_expression!='True' %}
@@ -71,6 +73,7 @@ for _i in range(len({{_all_pre}})):
     _j, {{iteration_variable}} = _numpy.broadcast_arrays(_j, {{iteration_variable}})
     {% endif %}
 
+    _vectorisation_idx = _j
     {{vector_code['update_post']|autoindent}}
 
     if not _numpy.isscalar(_n):

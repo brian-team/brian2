@@ -1105,6 +1105,8 @@ class Synapses(Group):
         if not isinstance(n, int):
             raise TypeError("n must be int")
         # which connection case are we in?
+        if condition is None and i is None and j is None:
+            condition = True
         if condition is not None:
             if i is not None or j is not None:
                 raise ValueError("Cannot combine condition with i or j arguments")
