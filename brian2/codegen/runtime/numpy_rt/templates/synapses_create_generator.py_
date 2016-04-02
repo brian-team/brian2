@@ -73,7 +73,14 @@ for _i in range(len({{_all_pre}})):
 
     {{vector_code['update_post']|autoindent}}
 
-    _numnew = len(_j)
+    if not _numpy.isscalar(_n):
+        # The "n" expression involved j # TODO: is this correct? not sure about the index
+        _post_idx = _post_idx.repeat(_n[_j])
+    elif _n != 1:
+        # We have a j-independent number
+        _post_idx = _post_idx.repeat(_n)
+
+    _numnew = len(_post_idx)
     _new_num_synapses = _cur_num_synapses + _numnew
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
     {{_dynamic__synaptic_post}}.resize(_new_num_synapses)

@@ -155,7 +155,7 @@ def test_synapse_creation():
     SG1 = G1[:5]
     SG2 = G2[10:]
     S = Synapses(SG1, SG2, 'w:1', pre='v+=w')
-    S.connect(2, 2)  # Should correspond to (2, 12)
+    S.connect(i=2, j=2)  # Should correspond to (2, 12)
     S.connect('i==2 and j==5') # Should correspond to (2, 15)
 
     # Internally, the "real" neuron indices should be used

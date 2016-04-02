@@ -81,8 +81,8 @@ def test_incoming_outgoing():
     G1 = NeuronGroup(5, 'v: 1', threshold='False')
     G2 = NeuronGroup(5, 'v: 1', threshold='False')
     S = Synapses(G1, G2, 'w:1', pre='v+=w')
-    S.connect([0, 0, 0, 1, 1, 2],
-              [0, 1, 2, 1, 2, 3])
+    S.connect(i=[0, 0, 0, 1, 1, 2],
+              j=[0, 1, 2, 1, 2, 3])
     # First source neuron has 3 outgoing synapses, the second 2, the third 1
     assert all(S.N_outgoing['i==0'] == 3)
     assert all(S.N_outgoing['i==1'] == 2)
@@ -106,38 +106,38 @@ def test_connection_arrays():
     # one-to-one
     expected = np.eye(len(G2))
     S = Synapses(G2)
-    S.connect(np.arange(len(G2)), np.arange(len(G2)))
+    S.connect(i=np.arange(len(G2)), j=np.arange(len(G2)))
     _compare(S, expected)
 
     # full
     expected = np.ones((len(G), len(G2)))
     S = Synapses(G, G2)
     X, Y = np.meshgrid(np.arange(len(G)), np.arange(len(G2)))
-    S.connect(X.flatten(), Y.flatten())
+    S.connect(i=X.flatten(), j=Y.flatten())
     _compare(S, expected)
 
     # Multiple synapses
     expected = np.zeros((len(G), len(G2)))
     expected[3, 3] = 2
     S = Synapses(G, G2)
-    S.connect([3, 3], [3, 3])
+    S.connect(i=[3, 3], j=[3, 3])
     _compare(S, expected)
 
     # Incorrect usage
     S = Synapses(G, G2)
-    assert_raises(TypeError, lambda: S.connect([1.1, 2.2], [1.1, 2.2]))
-    assert_raises(TypeError, lambda: S.connect([1, 2], 'string'))
-    assert_raises(TypeError, lambda: S.connect([1, 2], [1, 2], n='i'))
+    assert_raises(TypeError, lambda: S.connect(i=[1.1, 2.2], j=[1.1, 2.2]))
+    assert_raises(TypeError, lambda: S.connect(i=[1, 2], j='string'))
+    assert_raises(TypeError, lambda: S.connect(i=[1, 2], j=[1, 2], n='i'))
     assert_raises(TypeError, lambda: S.connect([1, 2]))
-    assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
-    assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
-                                                np.ones((3, 1), dtype=np.int32)))
-    assert_raises(IndexError, lambda: S.connect([41, 42], [0, 1]))  # source index > max
-    assert_raises(IndexError, lambda: S.connect([0, 1], [16, 17]))  # target index > max
-    assert_raises(IndexError, lambda: S.connect([0, -1], [0, 1]))  # source index < 0
-    assert_raises(IndexError, lambda: S.connect([0, 1], [0, -1]))  # target index < 0
+    assert_raises(ValueError, lambda: S.connect(i=[1, 2, 3], j=[1, 2]))
+    assert_raises(ValueError, lambda: S.connect(i=np.ones((3, 3), dtype=np.int32),
+                                                j=np.ones((3, 1), dtype=np.int32)))
+    assert_raises(IndexError, lambda: S.connect(i=[41, 42], j=[0, 1]))  # source index > max
+    assert_raises(IndexError, lambda: S.connect(i=[0, 1], j=[16, 17]))  # target index > max
+    assert_raises(IndexError, lambda: S.connect(i=[0, -1], j=[0, 1]))  # source index < 0
+    assert_raises(IndexError, lambda: S.connect(i=[0, 1], j=[0, -1]))  # target index < 0
     assert_raises(ValueError, lambda: S.connect('i==j',
-                                                post=np.arange(10)))
+                                                j=np.arange(10)))
     assert_raises(TypeError, lambda: S.connect('i==j',
                                                n=object()))
     assert_raises(TypeError, lambda: S.connect('i==j',
@@ -343,40 +343,40 @@ def test_connection_random_with_indices():
     G2 = NeuronGroup(7, 'v: 1', threshold='False')
 
     S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(0, 0, p=0.)
+    S.connect(i=0, j=0, p=0.)
     expected = np.zeros((len(G), len(G2)))
     _compare(S, expected)
 
     S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(0, 0, p=1.)
+    S.connect(i=0, j=0, p=1.)
     expected = np.zeros((len(G), len(G2)))
     expected[0, 0] = 1
     _compare(S, expected)
 
     S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect([0, 1], [0, 2], p=1.)
+    S.connect(i=[0, 1], j=[0, 2], p=1.)
     expected = np.zeros((len(G), len(G2)))
     expected[0, 0] = 1
     expected[1, 2] = 1
     _compare(S, expected)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect(0, 0, p=0.01)
+    S.connect(i=0, j=0, p=0.01)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect([0, 1], [0, 2], p=0.01)
+    S.connect(i=[0, 1], j=[0, 2], p=0.01)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect(0, 0, p=0.03)
+    S.connect(i=0, j=0, p=0.03)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect([0, 1], [0, 2], p=0.03)
+    S.connect(i=[0, 1], j=[0, 2], p=0.03)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect(0, 0, p=0.3)
+    S.connect(i=0, j=0, p=0.3)
 
     S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect([0, 1], [0, 2], p=0.3)
+    S.connect(i=[0, 1], j=[0, 2], p=0.3)
 
 
 def test_connection_random_without_condition():

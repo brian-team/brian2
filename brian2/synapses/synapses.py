@@ -1084,11 +1084,11 @@ class Synapses(Group):
         >>> G = NeuronGroup(10, 'dv/dt = -v / tau : 1', threshold='v>1', reset='v=0')
         >>> S = Synapses(G, G, 'w:1', pre='v+=w')
         >>> S.connect('i != j') # all-to-all but no self-connections
-        >>> S.connect(0, 0) # connect neuron 0 to itself
+        >>> S.connect(i=0, j=0) # connect neuron 0 to itself
         >>> S.connect(i=np.array([1, 2]), j=np.array([2, 1])) # connect 1->2 and 2->1
         >>> S.connect(True) # connect all-to-all
         >>> S.connect('i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
-        >>> S.connect('i == j', n=2)  # Connect all neurons to themselves with 2 synapses
+        >>> S.connect(j='i', n=2)  # Connect all neurons to themselves with 2 synapses
 
         TODO: more examples using generator syntax
         '''
@@ -1099,6 +1099,11 @@ class Synapses(Group):
             raise TypeError("i argument must be int or array")
         if j is not None and not isinstance(j, (int, np.ndarray, list, tuple, basestring)):
             raise TypeError("j argument must be int, array or string")
+        # TODO: eliminate these restrictions
+        if not isinstance(p, (int, float)):
+            raise TypeError("p must be float")
+        if not isinstance(n, int):
+            raise TypeError("n must be int")
         # which connection case are we in?
         if condition is not None:
             if i is not None or j is not None:
@@ -1291,7 +1296,7 @@ class Synapses(Group):
         if parsed['if_expression'] is not None:
             abstract_code['create_cond'] += '_cond = '+parsed['if_expression']+'\n'
             abstract_code['update_post'] += '_post_idx = _all_post \n'
-        abstract_code['create_j'] += '_n = ' + str(n) + '\n'
+        abstract_code['update_post'] += '_n = ' + str(n) + '\n'
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary
         # This is necessary because in the context of synapse creation, i
