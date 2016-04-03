@@ -1063,10 +1063,10 @@ class Synapses(Group):
             The postsynaptic neuron indices. It can be an index or array of
             indices if combined with the `i` argument, or it can be a string
             generator expression.
-        p : float, optional
+        p : {float, str}, optional
             The probability to create `n` synapses wherever the `condition`
             evaluates to true. Cannot be used with generator syntax for `j`.
-        n : int, optional
+        n : {int, str}, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
         namespace : dict-like, optional
@@ -1100,10 +1100,10 @@ class Synapses(Group):
         if j is not None and not isinstance(j, (int, np.ndarray, list, tuple, basestring)):
             raise TypeError("j argument must be int, array or string")
         # TODO: eliminate these restrictions
-        if not isinstance(p, (int, float)):
-            raise TypeError("p must be float")
-        if not isinstance(n, int):
-            raise TypeError("n must be int")
+        if not isinstance(p, (int, float, basestring)):
+            raise TypeError("p must be float or string")
+        if not isinstance(n, (int, basestring)):
+            raise TypeError("n must be int or string")
         # which connection case are we in?
         if condition is None and i is None and j is None:
             condition = True
@@ -1290,8 +1290,16 @@ class Synapses(Group):
         parsed = parse_synapse_generator(j)
         template_kwds.update(parsed)
 
-        abstract_code = {'create_j': '', 'create_cond': '', 'update_post': ''}
+        abstract_code = {'setup_iterator': '',
+                         'create_j': '',
+                         'create_cond': '',
+                         'update_post': ''}
 
+        setupiter = ''
+        for k, v in parsed['iterator_kwds'].iteritems():
+            if v is not None and k!='sample_size':
+                setupiter += '_iter_'+k+' = '+v+'\n'
+        abstract_code['setup_iterator'] += setupiter
         abstract_code['create_j'] += '_pre_idx = _all_pre \n'
         abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
         abstract_code['create_cond'] += '_post_idx = _all_post \n'
@@ -1308,6 +1316,11 @@ class Synapses(Group):
         # Will be set in the template
         variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
         variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_low', unit=Unit(1), dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_high', unit=Unit(1), dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_step', unit=Unit(1), dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_p', unit=Unit(1))
+        variables.add_auxiliary_variable('_iter_size', unit=Unit(1), dtype=np.int32)
         variables.add_auxiliary_variable(parsed['iteration_variable'], unit=Unit(1), dtype=np.int32)
         # Make sure that variables have the correct type in the code
         variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)

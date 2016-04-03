@@ -11,32 +11,21 @@ from numpy.random import rand as _np_rand
 if _sys.version_info[0]==2:
     range = xrange
 
-{% if iterator_func=='sample' %}
-    {% if iterator_kwds.p<0.01 %}
-        {% set _sampling_algorithm='tracking_selection' %}
-    {% elif iterator_kwds.p<0.04 %}
-        {% set _sampling_algorithm='pool' %}
-    {% else %}
-        {% set _sampling_algorithm='rand' %}
-    {% endif %}
-{% else %}
-    {% set _sampling_algorithm='rand' %}
-{% endif %}
-{% if _sampling_algorithm!='rand' %}
 from numpy.random import binomial as _binomial
 try:
     from sklearn.utils.random import sample_without_replacement as _swr
     def _sample_without_replacement(n, p):
         k = _binomial(n, p)
-        samples = _swr(n, k, method='{{_sampling_algorithm}}').astype(dtype=np.int32)
-        samples.sort()
+        if p<0.01:
+            samples = _swr(n, k, method='tracking_selection').astype(dtype=_numpy.int32)
+            samples.sort()
+        elif p<0.04:
+            samples = _swr(n, k, method='pool').astype(dtype=_numpy.int32)
+            samples.sort()
+        else:
+            samples, = (_np_rand(n)<p).nonzero()
         return samples
 except ImportError:
-    _sample_without_replacement = None
-{% else %}
-_sample_without_replacement = None
-{% endif %}
-if _sample_without_replacement is None:
     def _sample_without_replacement(n, p):
         samples, = (_np_rand(n)<p).nonzero()
         return samples
@@ -48,17 +37,20 @@ _cur_num_synapses = _old_num_synapses
 
 # scalar code
 _vectorisation_idx = 1
+{{scalar_code['setup_iterator']|autoindent}}
 {{scalar_code['create_j']|autoindent}}
 {{scalar_code['create_cond']|autoindent}}
+{{scalar_code['update_post']|autoindent}}
 
 _len_all_post = len({{_all_post}})
 
 for _i in range(len({{_all_pre}})):
+    {{vector_code['setup_iterator']|autoindent}}
     {% if iterator_func=='range' %}
-    {{iteration_variable}} = _numpy.arange({{iterator_kwds.low}}, {{iterator_kwds.high}}, {{iterator_kwds.step}})
+    {{iteration_variable}} = _numpy.arange(_iter_low, _iter_high, _iter_step)
     {% elif iterator_func=='sample' %}
-    {{iteration_variable}} = _numpy.arange({{iterator_kwds.low}}, {{iterator_kwds.high}}, {{iterator_kwds.step}})
-    {{iteration_variable}} = {{iteration_variable}}[_sample_without_replacement(len({{iteration_variable}}), {{iterator_kwds.p}})]
+    {{iteration_variable}} = _numpy.arange(_iter_low, _iter_high, _iter_step)
+    {{iteration_variable}} = {{iteration_variable}}[_sample_without_replacement(len({{iteration_variable}}), _iter_p)]
     {% endif %}
 
     _vectorisation_idx = {{iteration_variable}} # TODO: not sure if any of these _vectorisation_idx are correct
