@@ -58,7 +58,8 @@
         for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
-        const bool _jump_algo = (_uiter_p<0.25)&&(_uiter_p!=0.0);
+        if(_uiter_p==0) continue;
+        const bool _jump_algo = _uiter_p<0.25;
         double _log1p;
         if(_jump_algo)
             _log1p = log(1-_uiter_p);
