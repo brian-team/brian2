@@ -1310,6 +1310,9 @@ class Synapses(Group):
         parsed = parse_synapse_generator(j)
         template_kwds.update(parsed)
 
+        if parsed['iterator_func']=='sample' and parsed['iterator_kwds']['sample_size']=='fixed':
+            raise ValueError("Fixed sample size not implemented yet.")
+
         abstract_code = {'setup_iterator': '',
                          'create_j': '',
                          'create_cond': '',

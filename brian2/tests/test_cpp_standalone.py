@@ -76,8 +76,8 @@ def test_multiple_connects(with_output=False):
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
     S = Synapses(G, G, 'w:1')
-    S.connect([0], [0])
-    S.connect([1], [1])
+    S.connect(i=[0], j=[0])
+    S.connect(i=[1], j=[1])
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
