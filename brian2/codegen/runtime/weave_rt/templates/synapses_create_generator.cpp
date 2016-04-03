@@ -58,9 +58,22 @@
         for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
-        for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
+        const bool _jump_algo = (_uiter_p<0.25)&&(_uiter_p!=0.0);
+        double _log1p;
+        if(_jump_algo)
+            _log1p = log(1-_uiter_p);
+        else
+            _log1p = 1.0; // will be ignored
+        const double _pconst = 1.0/log(1-_uiter_p);
+        for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
         {
-            if(_rand(_vectorisation_idx)>_uiter_p) continue;
+            if(_jump_algo) {
+                const int _jump = floor(log(_rand(_vectorisation_idx))*_pconst)*_uiter_step;
+                {{iteration_variable}} += _jump;
+                if({{iteration_variable}}>=_uiter_high) continue;
+            } else {
+                if(_rand(_vectorisation_idx)>=_uiter_p) continue;
+            }
         {% endif %}
             long __j, _j, _pre_idx, __pre_idx;
             {
