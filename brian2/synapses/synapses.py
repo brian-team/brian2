@@ -25,7 +25,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import word_substitute
+from brian2.utils.stringtools import word_substitute, get_identifiers
 from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
@@ -1116,10 +1116,17 @@ class Synapses(Group):
             if condition is True:
                 condition = 'True'
             condition = word_substitute(condition, {'j': '_k'})
-            if p==1:
+            if not isinstance(p, basestring) and p==1:
                 j = '_k for _k in range(N_post) if {expr}'.format(expr=condition)
             else:
-                j = '_k for _k in sample(N_post, p={p}) if {expr}'.format(expr=condition, p=p)
+                j = None
+                if isinstance(p, basestring):
+                    p_dep = self._expression_index_dependence(p)
+                    if '_postsynaptic_idx' in p_dep:
+                        j = '_k for _k in range(N_post) if ({expr}) and rand()<{p}'.format(
+                                                                              expr=condition, p=p)
+                if j is None:
+                    j = '_k for _k in sample(N_post, p={p}) if {expr}'.format(expr=condition, p=p)
             # will now call standard generator syntax (see below)
         elif i is not None:
             if j is None:
@@ -1148,6 +1155,8 @@ class Synapses(Group):
             self._add_synapses_from_arrays(i, j, n, p, namespace=namespace, level=level+1)
             return
         elif j is not None:
+            if isinstance(p, basestring) or p!=1:
+                raise ValueError("Generator syntax cannot be combined with p argument")
             if not re.search(r'\bfor\b', j):
                 j = '{j} for _ in range(1)'.format(j=j)
             # will now call standard generator syntax (see below)
@@ -1285,6 +1294,17 @@ class Synapses(Group):
                                         level=level+1)
         codeobj()
 
+    def _expression_index_dependence(self, expr):
+        '''
+        Returns the set of synaptic indices that expr depends on
+        '''
+        deps = set()
+        for varname in get_identifiers(expr):
+            deps.add(self.variables.indices[varname])
+        if '0' in deps:
+            deps.remove('0')
+        return deps
+
     def _add_synapses_generator(self, j, n, namespace=None, level=0):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
         parsed = parse_synapse_generator(j)
@@ -1298,7 +1318,11 @@ class Synapses(Group):
         setupiter = ''
         for k, v in parsed['iterator_kwds'].iteritems():
             if v is not None and k!='sample_size':
+                deps = self._expression_index_dependence(v)
+                if '_postsynaptic_idx' in deps:
+                    raise ValueError('Expression "{}" depends on postsynaptic index'.format(v))
                 setupiter += '_iter_'+k+' = '+v+'\n'
+
         abstract_code['setup_iterator'] += setupiter
         abstract_code['create_j'] += '_pre_idx = _all_pre \n'
         abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
@@ -1314,6 +1338,8 @@ class Synapses(Group):
         # synapses but to all the possible sources/targets
         variables = Variables(None)
         # Will be set in the template
+        # TODO: Not sure why it's necessary to add _vectorisation_idx: it wasn't there before adding generator syntax
+        variables.add_auxiliary_variable('_vectorisation_idx', unit=Unit(1), dtype=np.int32)
         variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
         variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
         variables.add_auxiliary_variable('_iter_low', unit=Unit(1), dtype=np.int32)
