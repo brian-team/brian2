@@ -3,7 +3,7 @@ sudo: false  # Make sure we are using the container-based infrastructure
 
 env:
   global:
-    secure: "Vtb4Q/obhCgQwNp6OgkE4vAYmjW/MvXJljNcQ39EfN96jicsGpSCfeNqAIcbK+YDboS8lrnqin+bAt5aQpJgnQQtK86miDsiM5leurKxu4he6WBfJ3A1MQmYRFUAN4uM6Mq8mU0x5IvPoF6GKtIZkUG4TrZPUbLVW6UXOo0ioHM="
+    secure: "MBEVL3D5KGdtlse2zSZAJR08l4VkfSYde8Veb8wWUmbBXTY7QJClmxsPUzWDrbeMxuw/QSzBYO+Wh9PIoNGihO5Jns29UOgMMdSqWOKiEH+BCwmK8OS9Yca/vcZG2PWKceZ05DgTTv72P5lgXDh0OKaH4kl9n7hMy/1IOJnXABk="
 
 # Install packages for cross-compilation to 32 Bit
 addons:
