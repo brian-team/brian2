@@ -102,7 +102,7 @@ def parse_synapse_generator(expr):
         Dictionary of key/value pairs representing the keywords. See `handle_range` and
         `handle_sample`.
     '''
-    nr = NodeRenderer()
+    nr = NodeRenderer(use_vectorisation_idx=False)
     parse_error = ("Error parsing expression '%s'. Expression must have generator syntax, "
                    "for example 'k for k in range(i-10, i+10)'." % expr)
     try:

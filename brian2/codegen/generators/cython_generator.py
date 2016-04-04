@@ -224,8 +224,6 @@ class CythonCodeGenerator(CodeGenerator):
         handled_pointers = set()
         user_functions = []
         for varname, var in self.variables.items():
-            if varname=='_vectorisation_idx': # TODO: this is a hack, why does _vectorisation_idx appear here?
-                continue
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
