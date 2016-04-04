@@ -13,6 +13,7 @@ environment:
     - PYTHON: "C:\\Python34-conda32"
       PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "32"
+      platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "34"
       CONDA_NPY: "19"
@@ -22,6 +23,7 @@ environment:
     - PYTHON: "C:\\Python34-conda64"
       PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "64"
+      platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "34"
       CONDA_NPY: "19"
@@ -31,6 +33,7 @@ environment:
     - PYTHON: "C:\\Python35-conda32"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "32"
+      platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "35"
       CONDA_NPY: "110"
@@ -40,6 +43,7 @@ environment:
     - PYTHON: "C:\\Python35-conda64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
+      platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "35"
       CONDA_NPY: "110"
@@ -49,6 +53,7 @@ environment:
     - PYTHON: "C:\\Python27-conda32"
       PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "32"
+      platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "27"
       CONDA_NPY: "110"
@@ -58,6 +63,7 @@ environment:
     - PYTHON: "C:\\Python27-conda32"
       PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "32"
+      platform: x86
       STANDALONE: "FALSE"
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
@@ -65,6 +71,7 @@ environment:
     - PYTHON: "C:\\Python27-conda64"
       PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "64"
+      platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "27"
       CONDA_NPY: "110"
@@ -74,6 +81,7 @@ environment:
     - PYTHON: "C:\\Python27-conda64"
       PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "64"
+      platform: x64
       STANDALONE: "FALSE"
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
@@ -81,11 +89,13 @@ environment:
     - PYTHON: "C:\\Python27-conda32"
       PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "32"
+      platform: x86
       STANDALONE: "TRUE"
 
     - PYTHON: "C:\\Python27-conda64"
       PYTHON_VERSION: "2.7.10"
       PYTHON_ARCH: "64"
+      platform: x64
       STANDALONE: "TRUE"
 
 install:
