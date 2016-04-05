@@ -36,7 +36,7 @@ except ImportError:
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
-        reset_preferences=True, fail_for_not_implemented=False):
+        reset_preferences=True, fail_for_not_implemented=True):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -65,6 +65,16 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     test_openmp : bool, optional
         Whether to test standalone test with multiple threads and OpenMP. Will
         be ignored if ``cpp_standalone`` is not tested. Defaults to ``False``.
+    reset_preferences : bool, optional
+        Whether to reset all preferences to the default preferences before
+        running the test suite. Defaults to ``True`` to get test results
+        independent of the user's preference settings but can be switched off
+        when the preferences are actually necessary to pass the tests (e.g. for
+        device-specific settings).
+    fail_for_not_implemented : bool, optional
+        Whether to fail for tests raising a `NotImplementedError`. Defaults to
+        ``True``, but can be switched off for devices known to not implement
+        all of Brian's features.
     '''
     if nose is None:
         raise ImportError('Running the test suite requires the "nose" package.')
