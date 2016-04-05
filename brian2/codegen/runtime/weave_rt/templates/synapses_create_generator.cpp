@@ -78,7 +78,9 @@
         for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
         {
             if(_jump_algo) {
-                const int _jump = floor(log(_rand(_vectorisation_idx))*_pconst)*_uiter_step;
+                const double _r = _rand(_vectorisation_idx);
+                if(_r==0.0) break;
+                const int _jump = floor(log(_r)*_pconst)*_uiter_step;
                 {{iteration_variable}} += _jump;
                 if({{iteration_variable}}>=_uiter_high) continue;
             } else {
