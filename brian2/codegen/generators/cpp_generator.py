@@ -108,6 +108,14 @@ for ix, xtype in enumerate(typestrs):
         }}
         '''.format(hightype=hightype, xtype=xtype, ytype=ytype, expr=expr)
 
+_universal_support_code = deindent(mod_support_code)+'''
+#ifdef _MSC_VER
+#define _brian_pow(x, y) (pow((double)(x), (y)))
+#else
+#define _brian_pow(x, y) (pow((x), (y)))
+#endif
+'''
+
 
 class CPPCodeGenerator(CodeGenerator):
     '''
@@ -133,7 +141,7 @@ class CPPCodeGenerator(CodeGenerator):
 
     class_name = 'cpp'
 
-    universal_support_code = deindent(mod_support_code)
+    universal_support_code = _universal_support_code
 
     def __init__(self, *args, **kwds):
         super(CPPCodeGenerator, self).__init__(*args, **kwds)
@@ -421,6 +429,17 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None,
                                                                name=func_cpp)
+
+# pow_code = '''
+# #ifdef _MSC_VER
+# #define _brian_pow(x, y) (pow((double)(x), (y)))
+# #else
+# #define _brian_pow(x, y) (pow((x), (y)))
+# #endif
+# '''
+# DEFAULT_FUNCTIONS['pow'].implementations.add_implementation(CPPCodeGenerator,
+#                                                             code=pow_code,
+#                                                             name='_brian_pow')
 
 
 abs_code = '''
