@@ -205,6 +205,9 @@ def test_connection_string_deterministic():
     S12.connect('(i >= explicit_number) or (j >= explicit_number)',
                 namespace={'explicit_number': number})
 
+    # check that this mistaken syntax raises an error
+    assert_raises(ValueError, lambda: S12.connect('k for k in range(1)'))
+
     run(0*ms)  # for standalone
 
     _compare(S1, expected_full)
@@ -1763,14 +1766,14 @@ def test_synapse_generator_random_with_condition():
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
-    # prefs.codegen.target = 'numpy'
-    # prefs._backup()
+    prefs.codegen.target = 'weave'
+    prefs._backup()
     import time
     start = time.time()
 
     test_creation()
     test_name_clashes()
-    test_incoming_outgoing()
+    # test_incoming_outgoing()
     test_connection_string_deterministic()
     test_connection_random_with_condition()
     test_connection_random_without_condition()

@@ -1104,6 +1104,11 @@ class Synapses(Group):
             raise TypeError("p must be float or string")
         if not isinstance(n, (int, basestring)):
             raise TypeError("n must be int or string")
+        if isinstance(condition, basestring) and re.search(r'\bfor\b', condition):
+            raise ValueError("Generator expression given for condition, write "
+                             "connect(j='{condition}'...) instead of "
+                             "connect('{condition}'...).".format(condition=condition))
+        # TODO: check if string expressions have the right types and return useful error messages
         # which connection case are we in?
         if condition is None and i is None and j is None:
             condition = True
