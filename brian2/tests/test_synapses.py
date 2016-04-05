@@ -1766,14 +1766,14 @@ def test_synapse_generator_random_with_condition():
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
-    prefs.codegen.target = 'weave'
-    prefs._backup()
+    # prefs.codegen.target = 'weave'
+    # prefs._backup()
     import time
     start = time.time()
 
     test_creation()
     test_name_clashes()
-    # test_incoming_outgoing()
+    test_incoming_outgoing()
     test_connection_string_deterministic()
     test_connection_random_with_condition()
     test_connection_random_without_condition()
