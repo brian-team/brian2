@@ -19,7 +19,8 @@ from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_genera
 
 
 def _compare(synapses, expected):
-    conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
+    conn_matrix = np.zeros((len(synapses.source), len(synapses.target)),
+                           dtype=np.int32)
     for _i, _j in zip(synapses.i[:], synapses.j[:]):
         conn_matrix[_i, _j] += 1
 
@@ -258,11 +259,7 @@ def test_connection_string_deterministic():
 
 
 def test_connection_random_with_condition():
-    '''
-    Test random connections.
-    '''
     G = NeuronGroup(4, 'v: 1', threshold='False')
-    G2 = NeuronGroup(7, 'v: 1', threshold='False')
 
     S = Synapses(G, G, 'w:1', 'v+=w')
     S.connect('i!=j', p=0.0)
@@ -380,9 +377,6 @@ def test_connection_random_with_indices():
 
 
 def test_connection_random_without_condition():
-    '''
-    Test random connections.
-    '''
     G = NeuronGroup(4, '''v: 1
                           x : integer''', threshold='False')
     G.x = 'i'
@@ -1487,6 +1481,239 @@ def test_synapse_generator_syntax():
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
 
 
+def test_synapse_generator_deterministic():
+    # Same as "test_connection_string_deterministic" but using the generator
+    # syntax
+    G = NeuronGroup(16, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '16 + i'
+
+    # Full connection
+    expected = np.ones((len(G), len(G2)))
+
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(j='k for k in range(N_post)')
+    _compare(S, expected)
+
+    # Full connection without self-connections
+    expected = np.ones((len(G), len(G))) - np.eye(len(G))
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in range(N_post) if k != i')
+    _compare(S, expected)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    # slightly confusing with j on the RHS, but it should work...
+    S.connect(j='k for k in range(N_post) if j != i')
+    _compare(S, expected)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in range(N_post) if v_post != v_pre')
+    _compare(S, expected)
+
+    # One-to-one connectivity
+    expected = np.eye(len(G))
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in range(N_post) if k == i')  # inefficient
+    _compare(S, expected)
+
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    # slightly confusing with j on the RHS, but it should work...
+    S.connect(j='k for k in range(N_post) if j == i')  # inefficient
+    _compare(S, expected)
+
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in range(N_post) if v_pre == v_post')  # inefficient
+    _compare(S, expected)
+
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='i for _ in range(1)')  # efficient
+    _compare(S, expected)
+
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='i')  # short form of the above
+    _compare(S, expected)
+
+    # A few more tests of deterministic connections where the generator syntax
+    # is particularly useful
+
+    # Ring structure
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='(i + (-1)**k) % N_post for k in range(2)')
+    expected = np.zeros((len(G), len(G)), dtype=np.int32)
+    expected[np.arange(15), np.arange(15)+1] = 1  # Next cell
+    expected[np.arange(1, 16), np.arange(15)] = 1  # Previous cell
+    expected[[0, 15], [15, 0]] = 1  # wrap around the ring
+    _compare(S, expected)
+
+    # Diverging connection pattern
+    S = Synapses(G2, G, 'w:1', 'v+=w')
+    S.connect(j='i*4 + k for k in range(4)')
+    expected = np.zeros((len(G2), len(G)), dtype=np.int32)
+    for source in xrange(4):
+        expected[source, np.arange(4) + source*4] = 1
+    _compare(S, expected)
+
+    # Converging connection pattern
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(j='int(i/4)')
+    expected = np.zeros((len(G), len(G2)), dtype=np.int32)
+    for target in xrange(4):
+        expected[np.arange(4) + target*4, target] = 1
+    _compare(S, expected)
+
+
+def test_synapse_generator_random():
+    # The same tests as test_connection_random_without_condition, but using
+    # the generator syntax
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0)')
+    _compare(S, np.zeros((len(G), len(G2))))
+
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=1)')
+    _compare(S, np.ones((len(G), len(G2))))
+
+    # Just make sure using values between 0 and 1 work in principle
+    S = Synapses(G, G2, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S = Synapses(G, G2, 'w:1', pre='v+=w')
+    S.connect(j='k for k in sample(N_post, p=int(x_pre==2)*1.0)')
+    assert len(S) == 7
+    assert_equal(S.i, np.ones(7)*2)
+    assert_equal(S.j, np.arange(7))
+
+def test_synapse_generator_random_with_condition():
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0) if i != k')
+    assert len(S) == 0
+    S.connect(j='k for k in sample(N_post, p=1) if i != k')
+    expected = np.ones((len(G), len(G))) - np.eye(len(G))
+    _compare(S, expected)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0) if i >= 2')
+    assert len(S) == 0
+    S.connect(j='k for k in sample(N_post, p=1.0) if i >= 2')
+    expected = np.zeros((len(G), len(G)))
+    expected[2, :] = 1
+    expected[3, :] = 1
+    _compare(S, expected)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0) if j < 2')  # inefficient
+    assert len(S) == 0
+    S.connect(j='k for k in sample(2, p=0)')  # better
+    assert len(S) == 0
+
+    expected = np.zeros((len(G), len(G)))
+    expected[:, 0] = 1
+    expected[:, 1] = 1
+    S.connect(j='k for k in sample(N_post, p=1.0) if j < 2')  # inefficient
+    _compare(S, expected)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(2, p=1.0)')  # better
+
+    # Just checking that everything works in principle (we can't check the
+    # actual connections)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.001) if i != k')
+    assert not any(S.i == S.j)
+    assert 0 <= len(S) <= len(G)*(len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.03) if i != k')
+    assert not any(S.i == S.j)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.1) if i != k')
+    assert not any(S.i == S.j)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.9) if i != k')
+    assert not any(S.i == S.j)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.001) if i >= 2')
+    assert all(S.i[:] >= 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.03) if i >= 2')
+    assert all(S.i[:] >= 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.1) if i >= 2')
+    assert all(S.i[:] >= 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.9) if i >= 2')
+    assert all(S.i[:] >= 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.001) if j < 2')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.03) if j < 2')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.1) if j < 2')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(N_post, p=0.9) if j < 2')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(2, p=0.001)')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(2, p=0.03)')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(2, p=0.1)')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    S.connect(j='k for k in sample(2, p=0.9)')
+    assert all(S.j[:] < 2)
+    assert 0 <= len(S) <= len(G) * (len(G) - 1)
+
+    # Some more tests specific to the generator syntax
+    S = Synapses(G, G, 'w:1', pre='v+=w')
+    S.connect(j='i+1 for _ in sample(1, p=0.5) if i < N_post-1')
+    assert 0 <= len(S) <= len(G)
+    assert_equal(S.j[:], S.i[:] + 1)
+
+    S = Synapses(G, G, 'w:1', pre='v+=w')
+    S.connect(j='i+k for k in sample(N_post-i, p=0.5)')
+    assert 0 <= len(S) <= (1 + len(G))*(len(G)/2)
+    assert all(S.j[:] >= S.i[:])
+
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
@@ -1539,5 +1766,8 @@ if __name__ == '__main__':
     test_synapses_to_synapses_summed_variable()
     test_ufunc_at_vectorisation()
     test_synapse_generator_syntax()
+    test_synapse_generator_deterministic()
+    test_synapse_generator_random()
+    test_synapse_generator_random_with_condition()
 
     print 'Tests took', time.time()-start
