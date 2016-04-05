@@ -522,9 +522,9 @@ class Synapses(Group):
     target : `Group`, optional
         The target of the spikes, typically a `NeuronGroup`. If none is given,
         the same as `source`
-    model : {`str`, `Equations`}, optional
+    model : `str`, `Equations`, optional
         The model equations for the synapses.
-    pre : {str, dict}, optional
+    pre : str, dict, optional
         The code that will be executed after every pre-synaptic spike. Can be
         either a single (possibly multi-line) string, or a dictionary mapping
         pathway names to code strings. In the first case, the pathway will be
@@ -532,17 +532,17 @@ class Synapses(Group):
         In the latter case, the given names will be used as the
         pathway/attribute names. Each pathway has its own code and its own
         delays.
-    post : {str, dict}, optional
+    post : str, dict, optional
         The code that will be executed after every post-synaptic spike. Same
         conventions as for `pre`, the default name for the pathway is ``post``.
-    connect : {str, bool}. optional
+    connect : str, bool, optional
         Determines whether any actual synapses are created. ``False`` (the
         default) means not to create any synapses, ``True`` means to create
         synapses between all source/target pairs. Also accepts a string
         expression that evaluates to ``True`` for every synapse that should
         be created, e.g. ``'i == j'`` for a one-to-one connectivity. See
         `Synapses.connect` for more details.
-    delay : {`Quantity`, dict}, optional
+    delay : `Quantity`, dict, optional
         The delay for the "pre" pathway (same for all synapses) or a dictionary
         mapping pathway names to delays. If a delay is specified in this way
         for a pathway, it is stored as a single scalar value. It can still
@@ -569,7 +569,7 @@ class Synapses(Group):
         with either the values from the ``network`` argument of the
         `Network.run` method or from the local context, if no such argument is
         given.
-    dtype : (`dtype`, `dict`), optional
+    dtype : `dtype`, dict, optional
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
@@ -585,7 +585,7 @@ class Synapses(Group):
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
-    method : {str, `StateUpdateMethod`}, optional
+    method : str, `StateUpdateMethod`, optional
         The numerical integration method to use. If none is given, an
         appropriate one is automatically determined.
     name : str, optional
@@ -1051,22 +1051,22 @@ class Synapses(Group):
 
         Parameters
         ----------
-        condition : {str, bool}, optional
+        condition : str, bool, optional
             A boolean or string expression that evaluates to a boolean.
             The expression can depend on indices ``i`` and ``j`` and on
             pre- and post-synaptic variables. Can be combined with
             arguments `n`, and `p` but not `i` or `j`.
-        i : {int, ndarray of int}, optional
+        i : int, ndarray of int, optional
             The presynaptic neuron indices (in the form of an index or an array of
             indices). Must be combined with `j` argument.
-        j : {int, ndarray of int, str), optional
+        j : int, ndarray of int, str, optional
             The postsynaptic neuron indices. It can be an index or array of
             indices if combined with the `i` argument, or it can be a string
             generator expression.
-        p : {float, str}, optional
+        p : float, str, optional
             The probability to create `n` synapses wherever the `condition`
             evaluates to true. Cannot be used with generator syntax for `j`.
-        n : {int, str}, optional
+        n : int, str, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
         namespace : dict-like, optional
@@ -1391,4 +1391,3 @@ class Synapses(Group):
                                         run_namespace=namespace,
                                         level=level+1)
         codeobj()
-
