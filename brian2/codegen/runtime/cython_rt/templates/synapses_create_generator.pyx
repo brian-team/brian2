@@ -51,6 +51,11 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {{scalar_code['update_post']|autoindent}}
 
     for _i in range(_num{{_all_pre}}):
+        {% if not postsynaptic_condition %}
+        {{vector_code['create_cond']|autoindent}}
+        if not _cond:
+            continue
+        {% endif %}
         {{vector_code['setup_iterator']|autoindent}}
         {% if iterator_func=='range' %}
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
@@ -77,8 +82,10 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
 
             {{vector_code['create_j']|autoindent}}
+            {% if postsynaptic_condition %}
             {{vector_code['create_cond']|autoindent}}
-            {% if if_expression!='True' %}
+            {% endif %}
+            {% if if_expression!='True' and postsynaptic_condition %}
             if not _cond:
                 continue
             {% endif %}

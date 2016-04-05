@@ -25,6 +25,15 @@
     {{scalar_code['update_post']|autoindent}}
     for(int _i=0; _i<_num_all_pre; _i++)
     {
+        bool __cond, _cond;
+        {% if not postsynaptic_condition %}
+        {
+            {{vector_code['create_cond']|autoindent}}
+            __cond = _cond;
+        }
+        _cond = __cond;
+        if(!_cond) continue;
+        {% endif %}
         // Some explanation of this hackery. The problem is that we have multiple code blocks.
         // Each code block is generated independently of the others, and they declare variables
         // at the beginning if necessary (including declaring them as const if their values don't
@@ -84,14 +93,15 @@
             }
             _j = __j; // make the previously locally scoped _j available
             _pre_idx = __pre_idx;
-            bool __cond, _cond;
+            {% if postsynaptic_condition %}
             {
                 {{vector_code['create_cond']|autoindent}}
                 __cond = _cond;
             }
             _cond = __cond;
+            {% endif %}
 
-            {% if if_expression!='True' %}
+            {% if if_expression!='True' and postsynaptic_condition %}
             if(!_cond) continue;
             {% endif %}
 

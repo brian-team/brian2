@@ -1299,13 +1299,18 @@ class Synapses(Group):
                                         level=level+1)
         codeobj()
 
-    def _expression_index_dependence(self, expr):
+    def _expression_index_dependence(self, expr, additional_indices=None):
         '''
         Returns the set of synaptic indices that expr depends on
         '''
         deps = set()
+        if additional_indices is None:
+            additional_indices = {}
         for varname in get_identifiers(expr):
-            deps.add(self.variables.indices[varname])
+            if varname in additional_indices:
+                deps.add(additional_indices[varname])
+            else:
+                deps.add(self.variables.indices[varname])
         if '0' in deps:
             deps.remove('0')
         return deps
@@ -1316,25 +1321,38 @@ class Synapses(Group):
         template_kwds.update(parsed)
 
         if parsed['iterator_func']=='sample' and parsed['iterator_kwds']['sample_size']=='fixed':
-            raise ValueError("Fixed sample size not implemented yet.")
+            raise NotImplementedError("Fixed sample size not implemented yet.")
 
         abstract_code = {'setup_iterator': '',
                          'create_j': '',
                          'create_cond': '',
                          'update_post': ''}
 
+        additional_indices = {parsed['iteration_variable']: '_iterator_idx'}
+
         setupiter = ''
         for k, v in parsed['iterator_kwds'].iteritems():
             if v is not None and k!='sample_size':
-                deps = self._expression_index_dependence(v)
-                if '_postsynaptic_idx' in deps:
-                    raise ValueError('Expression "{}" depends on postsynaptic index'.format(v))
+                deps = self._expression_index_dependence(v, additional_indices)
+                if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
+                    print j, deps
+                    #print self.indices['u_pre']
+                    print self.variables.indices['u_pre'], self.variables.indices['int']
+                    raise ValueError('Expression "{}" depends on postsynaptic index or iterator'.format(v))
                 setupiter += '_iter_'+k+' = '+v+'\n'
+
+        postsynaptic_condition = False
+        if parsed['if_expression'] is not None:
+            deps = self._expression_index_dependence(parsed['if_expression'], additional_indices)
+            if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
+                postsynaptic_condition = True
+        template_kwds['postsynaptic_condition'] = postsynaptic_condition
 
         abstract_code['setup_iterator'] += setupiter
         abstract_code['create_j'] += '_pre_idx = _all_pre \n'
         abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
-        abstract_code['create_cond'] += '_post_idx = _all_post \n'
+        if postsynaptic_condition:
+            abstract_code['create_cond'] += '_post_idx = _all_post \n'
         if parsed['if_expression'] is not None:
             abstract_code['create_cond'] += '_cond = '+parsed['if_expression']+'\n'
             abstract_code['update_post'] += '_post_idx = _all_post \n'
