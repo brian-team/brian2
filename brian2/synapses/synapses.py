@@ -1049,6 +1049,8 @@ class Synapses(Group):
         '''
         Add synapses.
 
+        See :doc:`/user/synapses` for details.
+
         Parameters
         ----------
         condition : str, bool, optional
@@ -1083,14 +1085,15 @@ class Synapses(Group):
         >>> import numpy as np
         >>> G = NeuronGroup(10, 'dv/dt = -v / tau : 1', threshold='v>1', reset='v=0')
         >>> S = Synapses(G, G, 'w:1', pre='v+=w')
-        >>> S.connect('i != j') # all-to-all but no self-connections
+        >>> S.connect(condition='i != j') # all-to-all but no self-connections
         >>> S.connect(i=0, j=0) # connect neuron 0 to itself
         >>> S.connect(i=np.array([1, 2]), j=np.array([2, 1])) # connect 1->2 and 2->1
-        >>> S.connect(True) # connect all-to-all
-        >>> S.connect('i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
+        >>> S.connect() # connect all-to-all
+        >>> S.connect(condition='i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
         >>> S.connect(j='i', n=2)  # Connect all neurons to themselves with 2 synapses
-
-        TODO: more examples using generator syntax
+        >>> S.connect(j='k for k in range(i+1)') # Connect neuron i to all j with 0<=j<=i
+        >>> S.connect(j='i+(-1)**k for k in range(2) if i>0 and i<N_pre-1') # connect neuron i to its neighbours if it has both neighbours
+        >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
         '''
         # check types
         if condition is not None and not isinstance(condition, (bool, basestring)):

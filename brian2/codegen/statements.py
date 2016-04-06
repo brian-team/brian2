@@ -38,8 +38,7 @@ class Statement(object):
     ``inplace``
         True or False depending if the operation is in-place or not.
 
-    Boolean simplification notes
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Boolean simplification notes:
 
     Will initially set the attribute ``used_boolean_variables`` to ``None``.
     This is set by `~brian2.codegen.optimisation.optimise_statements` when it

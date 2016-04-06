@@ -18,7 +18,7 @@ S = Synapses(input, neurons,'''
                 w : 1 # synaptic weight
              ''', pre='x += w') # NMDA synapses
 
-S.connect(True)
+S.connect()
 S.w = [1., 10.]
 input.v = [0., 0.5]
 
