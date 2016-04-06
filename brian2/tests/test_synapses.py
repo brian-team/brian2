@@ -72,6 +72,7 @@ def test_name_clashes():
     Synapses(G1, G2, 'b_syn : 1')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_incoming_outgoing():
     '''
     Test the count of outgoing/incoming synapses per neuron.
@@ -98,6 +99,7 @@ def test_incoming_outgoing():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_arrays():
     '''
     Test connecting synapses with explictly given arrays
@@ -150,6 +152,7 @@ def test_connection_arrays():
     assert_raises(TypeError, lambda: S.connect(object()))
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_string_deterministic():
     '''
     Test connecting synapses with a deterministic string expression.
@@ -225,6 +228,7 @@ def test_connection_string_deterministic():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_random_with_condition():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -310,6 +314,7 @@ def test_connection_random_with_condition():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_random_with_indices():
     '''
     Test random connections.
@@ -364,6 +369,7 @@ def test_connection_random_with_indices():
     assert 0 <= len(S9) <= 2
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_random_without_condition():
     G = NeuronGroup(4, '''v: 1
                           x : integer''', threshold='False')
@@ -407,6 +413,7 @@ def test_connection_random_without_condition():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_multiple_synapses():
     '''
     Test multiple synapses per connection.
@@ -1496,6 +1503,7 @@ def test_synapse_generator_syntax():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_synapse_generator_deterministic():
     # Same as "test_connection_string_deterministic" but using the generator
     # syntax
@@ -1585,6 +1593,7 @@ def test_synapse_generator_deterministic():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_synapse_generator_random():
     # The same tests as test_connection_random_without_condition, but using
     # the generator syntax
@@ -1622,6 +1631,7 @@ def test_synapse_generator_random():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_synapse_generator_random_with_condition():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -1812,7 +1822,10 @@ if __name__ == '__main__':
     test_synaptic_equations()
     test_synapses_to_synapses()
     test_synapses_to_synapses_summed_variable()
-    test_ufunc_at_vectorisation()
+    try:
+        test_ufunc_at_vectorisation()
+    except SkipTest:
+        print('Skipping numpy-only test')
     test_synapse_generator_syntax()
     test_synapse_generator_deterministic()
     test_synapse_generator_random()
