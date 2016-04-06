@@ -50,9 +50,9 @@ S = Synapses(input, neurons,
                     w=clip(w+Apost,0,gmax)''',
              post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''',
-             connect=True,
              clock=clock,
              )
+S.connect()
 
 S.w = 'rand()*gmax'
     

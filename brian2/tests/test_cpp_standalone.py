@@ -106,7 +106,8 @@ def test_storing_loading(with_output=False):
     S = Synapses(G, G, '''v_syn : volt
                           x_syn : 1
                           n_syn : integer
-                          b_syn : boolean''', connect='i==j')
+                          b_syn : boolean''')
+    S.connect(j='i')
     S.v_syn = v
     S.x_syn = x
     S.n_syn = n
@@ -185,12 +186,13 @@ def test_openmp_consistency(with_output=False):
                                      Apre  += dApre
                                      w      = w + Apost''',
                             post = '''Apost += dApost
-                                      w      = w + Apre''',
-                            connect=True)
+                                      w      = w + Apre''')
+        S.connect()
         
         S.w       = fac*connectivity.flatten()
 
-        T         = Synapses(Q, P, model = "w : 1", pre="g += w*mV", connect='i==j')
+        T         = Synapses(Q, P, model = "w : 1", pre="g += w*mV")
+        T.connect(j='i')
         T.w       = 10*fac
 
         spike_mon = SpikeMonitor(P)
@@ -338,7 +340,8 @@ def test_array_cache(with_output=False):
                            y : 1
                            z : 1 (shared)''',
                     threshold='v>1')
-    S = Synapses(G, G, 'weight: 1', pre='w += weight', connect='rand()<0.2')
+    S = Synapses(G, G, 'weight: 1', pre='w += weight')
+    S.connect(p=0.2)
     S.weight = 7
     # All neurongroup values should be known
     assert_allclose(G.v, 0)

@@ -219,7 +219,8 @@ def test_synapses_access_subgroups():
     G2 = NeuronGroup(10, 'y:1')
     SG1 = G1[2:5]
     SG2 = G2[4:9]
-    S = Synapses(G1, G2, 'w:1', connect=True)
+    S = Synapses(G1, G2, 'w:1')
+    S.connect()
     S.w[SG1, SG2] = 1
     assert_equal(S.w['(i>=2 and i<5) and (j>=4 and j<9)'], 1)
     assert_equal(S.w['not ((i>=2 and i<5) and (j>=4 and j<9))'], 0)
@@ -239,7 +240,8 @@ def test_synapses_access_subgroups_problematic():
     G2 = NeuronGroup(10, 'y:1')
     SG1 = G1[2:5]
     SG2 = G2[4:9]
-    S = Synapses(G1, G2, 'w:1', connect=True)
+    S = Synapses(G1, G2, 'w:1')
+    S.connect()
 
     tests = [
         ((SG1, slice(None)), 'i', 1),
@@ -367,7 +369,8 @@ def test_synaptic_propagation_2():
     source = NeuronGroup(100, '', threshold='True')
     sub_source = source[99:]
     target = NeuronGroup(1, 'v:1')
-    syn = Synapses(sub_source, target, pre='v+=1', connect=True)
+    syn = Synapses(sub_source, target, pre='v+=1')
+    syn.connect()
     run(defaultclock.dt)
     assert target.v[0] == 1.0
 
@@ -443,7 +446,8 @@ def test_no_reference_3():
     '''
     G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
     G.v = [1.1, 0]
-    S = Synapses(G[:1], G[1:], pre='v+=1', connect=True)
+    S = Synapses(G[:1], G[1:], pre='v+=1')
+    S.connect()
     run(defaultclock.dt)
     assert_equal(G.v[:], np.array([0, 1]))
 
