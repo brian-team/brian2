@@ -35,7 +35,8 @@ Pinput = SpikeGeneratorGroup(85, np.arange(85),
 S = Synapses(P, P, pre='y+=weight')
 S.connect(j='k for k in range((int(i/group_size)+1)*group_size, (int(i/group_size)+2)*group_size) '
             'if i<N_pre-group_size')
-Sinput = Synapses(Pinput, P[:group_size], pre='y+=weight', connect=True)
+Sinput = Synapses(Pinput, P[:group_size], pre='y+=weight')
+Sinput.connect()
 
 # Record the spikes
 Mgp = SpikeMonitor(P)

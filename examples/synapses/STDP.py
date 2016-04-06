@@ -37,8 +37,8 @@ S = Synapses(input, neurons,
                     w = clip(w + Apost, 0, gmax)''',
              post='''Apost += dApost
                      w = clip(w + Apre, 0, gmax)''',
-             connect=True,
              )
+S.connect()
 S.w = 'rand() * gmax'
 mon = StateMonitor(S, 'w', record=[0, 1])
 s_mon = SpikeMonitor(input)

@@ -68,8 +68,13 @@ spikes = SpikeMonitor(neurons)
 run(duration, report='text')
 
 nspikes = spikes.count
-x = sum(nspikes * exp(gamma * 1j))
-print("Angle (deg): %.2f" % (arctan(imag(x) / real(x)) / degree))
+phi_est = imag(log(sum(nspikes * exp(gamma * 1j))))
+print("True angle (deg): %.2f" % (phi/degree))
+print("Estimated angle (deg): %.2f" % (phi_est/degree))
+rmax = amax(nspikes)/duration/Hz
 polar(concatenate((gamma, [gamma[0] + 2 * pi])),
-      concatenate((nspikes, [nspikes[0]])) / duration / Hz)
+      concatenate((nspikes, [nspikes[0]])) / duration / Hz,
+      c='k')
+axvline(phi, ls='-', c='g')
+axvline(phi_est, ls='-', c='b')
 show()

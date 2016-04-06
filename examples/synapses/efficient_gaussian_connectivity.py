@@ -44,7 +44,7 @@ rewrite this as :math:`p(i-j)/p(w)\cdot p(w)`. If :math:`|i-j|>w`
 then this is a product of two probabilities :math:`p(i-j)/p(w)`
 and :math:`p(w)`. So in the region :math:`|i-j|>w` a synapse
 will be created if two random events both occur, with these
-two probabilities. This might seem a little perverse until you
+two probabilities. This might seem a little strange until you
 notice that one of the two probabilities :math:`p(w)` doesn't
 depend on i or j. This lets us use the much more efficient
 ``sample`` algorithm to generate a set of candidate ``j`` values,

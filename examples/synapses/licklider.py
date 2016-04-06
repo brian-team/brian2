@@ -30,7 +30,8 @@ dv/dt = -v/tau+sigma*(2./tau)**.5*xi : 1
 
 neurons = NeuronGroup(num_neurons, eqs_neurons, threshold='v>1', reset='v=0')
 
-synapses = Synapses(receptors, neurons, pre='v += 0.5', connect=True)
+synapses = Synapses(receptors, neurons, pre='v += 0.5')
+synapses.connect()
 synapses.delay = 'i*1.0/exp(log(min_freq/Hz)+(j*1.0/(num_neurons-1))*log(max_freq/min_freq))*second'
 
 spikes = SpikeMonitor(neurons)

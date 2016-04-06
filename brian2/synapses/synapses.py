@@ -29,6 +29,7 @@ from brian2.utils.stringtools import word_substitute, get_identifiers
 from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
+from brian2.parsing.rendering import NodeRenderer
 
 MAX_SYNAPSES = 2147483647
 
@@ -510,9 +511,10 @@ class SynapticIndexing(object):
 
 class Synapses(Group):
     '''
-    Class representing synaptic connections. Creating a new `Synapses` object
-    does by default not create any synapses -- you either have to provide
-    the `connect` argument or call the `Synapses.connect` method for that.
+    Class representing synaptic connections.
+
+    Creating a new `Synapses` object does by default not create any synapses,
+    you have to call the `Synapses.connect` method for that.
 
     Parameters
     ----------
@@ -535,13 +537,6 @@ class Synapses(Group):
     post : str, dict, optional
         The code that will be executed after every post-synaptic spike. Same
         conventions as for `pre`, the default name for the pathway is ``post``.
-    connect : str, bool, optional
-        Determines whether any actual synapses are created. ``False`` (the
-        default) means not to create any synapses, ``True`` means to create
-        synapses between all source/target pairs. Also accepts a string
-        expression that evaluates to ``True`` for every synapse that should
-        be created, e.g. ``'i == j'`` for a one-to-one connectivity. See
-        `Synapses.connect` for more details.
     delay : `Quantity`, dict, optional
         The delay for the "pre" pathway (same for all synapses) or a dictionary
         mapping pathway names to delays. If a delay is specified in this way
@@ -595,7 +590,7 @@ class Synapses(Group):
     add_to_magic_network = True
 
     def __init__(self, source, target=None, model=None, pre=None, post=None,
-                 connect=False, delay=None, on_event='spike',
+                 delay=None, on_event='spike',
                  multisynaptic_index=None,
                  namespace=None, dtype=None,
                  codeobj_class=None,
@@ -806,21 +801,11 @@ class Synapses(Group):
             self.summed_updaters[varname] = updater
             self.contained_objects.append(updater)
 
-        # Do an initial connect, if requested
-        if not isinstance(connect, (bool, basestring)):
-            raise TypeError(('"connect" keyword has to be a boolean value or a '
-                             'string, is type %s instead.' % type(connect)))
-
         # Support 2d indexing
         self._indices = SynapticIndexing(self)
 
-        self._initial_connect = connect
-
         # Activate name attribute access
         self._enable_group_attributes()
-
-        if not connect is False:
-            self.connect(connect, level=1)
 
     def __getitem__(self, item):
         indices = self.indices[item]
@@ -1306,6 +1291,9 @@ class Synapses(Group):
         '''
         Returns the set of synaptic indices that expr depends on
         '''
+        # TODO: This handles making sure that rand() depends on vectorisation_idx but what about other stateful functions?
+        nr = NodeRenderer(use_vectorisation_idx=True)
+        expr = nr.render_expr(expr)
         deps = set()
         if additional_indices is None:
             additional_indices = {}
@@ -1338,11 +1326,12 @@ class Synapses(Group):
             if v is not None and k!='sample_size':
                 deps = self._expression_index_dependence(v, additional_indices)
                 if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
-                    print j, deps
-                    #print self.indices['u_pre']
-                    print self.variables.indices['u_pre'], self.variables.indices['int']
                     raise ValueError('Expression "{}" depends on postsynaptic index or iterator'.format(v))
                 setupiter += '_iter_'+k+' = '+v+'\n'
+
+        # rand() in the if condition depends on _vectorisation_idx, but not if its
+        # in the range expression (handled above)
+        additional_indices['_vectorisation_idx'] = '_iterator_idx'
 
         postsynaptic_condition = False
         if parsed['if_expression'] is not None:
