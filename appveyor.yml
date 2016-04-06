@@ -100,7 +100,7 @@ environment:
 
 install:
   # Add the paths
-  - 'setx "PATH=%PYTHON%;%PYTHON%\Scripts;%PYTHON%\Library\bin;%PATH%"'
+  - 'setx PATH "%PYTHON%;%PYTHON%\Scripts;%PYTHON%\Library\bin;%PATH%"'
   - 'echo The path is: %PATH%'
   - 'echo Content of the scripts folder: '
   - 'dir %PYTHON%\Scripts'
