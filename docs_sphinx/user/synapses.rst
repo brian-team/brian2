@@ -278,7 +278,7 @@ is the most efficient. However, if you are connecting a number of neurons, it
 will usually be more efficient to construct an array of ``i`` and ``j`` values
 and have a single ``connect(i=i, j=j)`` call.
 
-For large connections, and if you want to use Brian in standalone mode, you
+For large connections, you
 should use one of the string based syntaxes where possible as this will
 generate compiled low-level code that will be typically much faster than
 equivalent Python code.
