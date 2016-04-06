@@ -225,7 +225,8 @@ class CodeGenerator(object):
             statements = make_statements(ac_code,
                                          self.variables,
                                          dtype,
-                                         optimise=True)
+                                         optimise=True,
+                                         blockname=ac_name)
             scalar_statements[ac_name], vector_statements[ac_name] = statements
         for vs in vector_statements.itervalues():
             # Check that the statements are meaningful independent on the order of
