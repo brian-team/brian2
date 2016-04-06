@@ -100,8 +100,10 @@ environment:
 
 install:
   # Add the paths
-  - 'set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%'
+  - 'setx PATH=%PYTHON%;%PYTHON%\Scripts;%PYTHON%\Library\bin;%PATH%'
   - 'echo The path is: %PATH%'
+  - 'echo Content of the scripts folder: '
+  - 'dir %PYTHON%\Scripts'
   # Create a new environment with the exact Python version and activate it
   - 'conda create --yes --quiet -n appveyor_test python=%PYTHON_VERSION%'
   - 'activate appveyor_test'
