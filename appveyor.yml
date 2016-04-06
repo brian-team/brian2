@@ -10,7 +10,7 @@ environment:
     secure: mP9XvwSNUqxq7cFK4V0wM2rNmvlGUYecSlZvkYjRtdGotr9ueS2IycSDvvNGlSdK
 
   matrix:
-    - PYTHON: "C:\\Python34"
+    - PYTHON: "C:\\Miniconda3"
       PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "32"
       platform: x86
@@ -20,7 +20,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python34-x64"
+    - PYTHON: "C:\\Miniconda3-x64"
       PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "64"
       platform: x64
@@ -30,7 +30,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Miniconda35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "32"
       platform: x86
@@ -40,7 +40,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Miniconda35-x64"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       platform: x64
@@ -50,7 +50,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Miniconda"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
       platform: x86
@@ -60,7 +60,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Miniconda"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
       platform: x86
@@ -68,7 +68,7 @@ environment:
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
 
-    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Miniconda-x64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
@@ -78,7 +78,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Miniconda-x64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
@@ -86,13 +86,13 @@ environment:
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
 
-    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Miniconda"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "TRUE"
 
-    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Miniconda-x64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
@@ -100,10 +100,7 @@ environment:
 
 install:
   # Add the paths
-  - 'setx PATH "%PYTHON%;%PYTHON%\Scripts;%PYTHON%\Library\bin;%PATH%"'
-  - 'echo The path is: %PATH%'
-  - 'echo Content of the scripts folder: '
-  - 'dir %PYTHON%\Scripts'
+  - 'set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%'
   # Create a new environment with the exact Python version and activate it
   - 'conda create --yes --quiet -n appveyor_test python=%PYTHON_VERSION%'
   - 'activate appveyor_test'
