@@ -23,7 +23,7 @@ Installing Anaconda
 for your Operating System. For Windows users that want to use Python 3.x, we
 strongly recommend installing the 32 Bit version even on 64 Bit systems, since
 setting the compilation environment (see :ref:`installation_cpp` below) is less
-complicated in that case. Note that the choice between Python 2.7 and Python 3.4
+complicated in that case. Note that the choice between Python 2.7 and Python 3.x
 is not very important at this stage, Anaconda allows you to create a Python 3
 environment from Python 2 Anaconda and vice versa.
 
