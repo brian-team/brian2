@@ -67,7 +67,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             _log1p = log(1-_iter_p)
         else:
             _log1p = 1.0 # will be ignored
-        _pconst = 1.0/log(1-_iter_p)
+        _pconst = 1.0/_log1p
         {{iteration_variable}} = _iter_low-1
         while {{iteration_variable}}+1<_iter_high:
             {{iteration_variable}} += 1

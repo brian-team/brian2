@@ -5,30 +5,64 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, N,
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
 #}
 {# ITERATE_ALL { _idx } #}
-import sys as _sys
-import numpy as _numpy
-from numpy.random import rand as _np_rand
-if _sys.version_info[0]==2:
-    range = xrange
-
-from numpy.random import binomial as _binomial
+# Only need to do the initial import once, and trying is not expensive
+# only catching exceptions is expensive (which we just do the first time)
 try:
-    from sklearn.utils.random import sample_without_replacement as _swr
-    def _sample_without_replacement(n, p):
-        k = _binomial(n, p)
-        if p<0.01:
-            samples = _swr(n, k, method='tracking_selection').astype(dtype=_numpy.int32)
-            samples.sort()
-        elif p<0.04:
-            samples = _swr(n, k, method='pool').astype(dtype=_numpy.int32)
-            samples.sort()
+    _done_initial_import
+except:
+    _done_initial_import = True
+    import sys as _sys
+    import numpy as _numpy
+    from numpy.random import rand as _np_rand
+    if _sys.version_info[0]==2:
+        range = xrange
+
+    from numpy.random import binomial as _binomial
+    import bisect as _bisect
+    def _sample_without_replacement(low, high, step, p):
+        if p==0:
+            return _numpy.array([], dtype=_numpy.int32)
+        if p==1:
+            return _numpy.arange(low, high, step)
+        if step>0:
+            n = (high-low-1)//step+1
         else:
+            n = (low-high-1)//-step+1
+        if n<=0:
+            return array([], dtype=_numpy.int32)
+        if n<=1000 or p>0.25: # based on rough profiling
             samples, = (_np_rand(n)<p).nonzero()
-        return samples
-except ImportError:
-    def _sample_without_replacement(n, p):
-        samples, = (_np_rand(n)<p).nonzero()
-        return samples
+        else:
+            # use jump method
+            pconst = 1.0/_numpy.log(1-p) # this will be fine as 0<p<0.25
+            start = 0 # start will be the smallest number we can produce (with a jump of 0)
+            all_samples = [] # if we have to draw multiple times, we'll use this
+            while 1: # we potentially have to redraw random numbers multiple times
+                # this constant was determined by fairly rough and ready profiling, and can
+                # probably be improved. The idea is that the expected number of items we'll
+                # need is n*p (or (n-start)*p if we've already done up to start). We add
+                # a small proportion (this constant can probably be tweaked to be better)
+                # to reduce the number of times we need to redraw samples. Finally, we add
+                # 10 which is basically because once you get down to doing as few as this,
+                # the main factor that determines how long it takes is the Python overheads,
+                # so we should never do less than some small constant (again, another constant
+                # that can probably be tweaked).
+                m = int(_numpy.ceil((n-start)*p*1.05))+10
+                # this formula gives the jump sizes, i.e. the space between hits (where rand()<p).
+                # however it can't therefore give a jump size of 0, but we could have rand()<p for
+                # for the first array. Therefore we set start to the actual first place we'd like
+                # to see a hit minus one, allowing us to have start as the first hit.
+                jump = _numpy.array(_numpy.ceil(_numpy.log(_np_rand(m))*pconst), dtype=int)
+                jump[0] += start-1
+                samples = _numpy.cumsum(jump)
+                all_samples.append(samples)
+                start = samples[-1]+1 # this is the starting point for the next round
+                if start>=n:
+                    break
+            if len(all_samples)>1:
+                samples = _numpy.hstack(all_samples)
+            samples = samples[:_bisect.bisect_left(samples, n)] # only keep the ones in the range we want
+        return samples*step+low
 
 # number of synapses in the beginning
 _old_num_synapses = {{N}}
@@ -54,8 +88,7 @@ for _i in range(len({{_all_pre}})):
     {% if iterator_func=='range' %}
     {{iteration_variable}} = _numpy.arange(_iter_low, _iter_high, _iter_step)
     {% elif iterator_func=='sample' %}
-    {{iteration_variable}} = _numpy.arange(_iter_low, _iter_high, _iter_step)
-    {{iteration_variable}} = {{iteration_variable}}[_sample_without_replacement(len({{iteration_variable}}), _iter_p)]
+    {{iteration_variable}} = _sample_without_replacement(_iter_low, _iter_high, _iter_step, _iter_p)
     {% endif %}
 
     _vectorisation_idx = {{iteration_variable}} # TODO: not sure if any of these _vectorisation_idx are correct

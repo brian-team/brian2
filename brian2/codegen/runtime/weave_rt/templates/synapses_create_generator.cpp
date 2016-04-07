@@ -74,7 +74,7 @@
             _log1p = log(1-_uiter_p);
         else
             _log1p = 1.0; // will be ignored
-        const double _pconst = 1.0/log(1-_uiter_p);
+        const double _pconst = 1.0/_log1p;
         for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
         {
             if(_jump_algo) {
