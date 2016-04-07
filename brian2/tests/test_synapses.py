@@ -209,6 +209,9 @@ def test_connection_string_deterministic():
     # check that this mistaken syntax raises an error
     assert_raises(ValueError, lambda: S12.connect('k for k in range(1)'))
 
+    # check that trying to connect to a neuron outside the range raises an error
+    assert_raises(IndexError, lambda: S12.connect(j='20'))
+
     run(0*ms)  # for standalone
 
     _compare(S1, expected_full)

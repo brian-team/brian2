@@ -14,6 +14,8 @@
     int *const _prebuf = new int[_buffer_size];
     int *const _postbuf = new int[_buffer_size];
     int _curbuf = 0;
+    const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
+    const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
 
     const int oldsize = {{_dynamic__synaptic_pre}}.size();
 
@@ -95,6 +97,11 @@
             }
             _j = __j; // make the previously locally scoped _j available
             _pre_idx = __pre_idx;
+            if(_j<0 || _j>=_N_post)
+            {
+                PyErr_SetString(PyExc_IndexError, "index j outside allowed range");
+                throw 1;
+            }
             {% if postsynaptic_condition %}
             {
                 {{vector_code['create_cond']|autoindent}}

@@ -86,6 +86,10 @@
             }
             _j = __j; // make the previously locally scoped _j available
             _pre_idx = __pre_idx;
+            if(_j<0 or _j>=_N_post)
+            {
+                throw "Error: tried to create synapse to neuron outside range";
+            }
             bool __cond, _cond;
             {
                 {{vector_code['create_cond']|autoindent}}

@@ -1100,64 +1100,67 @@ class Synapses(Group):
         # which connection case are we in?
         if condition is None and i is None and j is None:
             condition = True
-        if condition is not None:
-            if i is not None or j is not None:
-                raise ValueError("Cannot combine condition with i or j arguments")
-            # convert to generator syntax
-            if condition is False:
-                return
-            if condition is True:
-                condition = 'True'
-            condition = word_substitute(condition, {'j': '_k'})
-            if not isinstance(p, basestring) and p==1:
-                j = '_k for _k in range(N_post) if {expr}'.format(expr=condition)
-            else:
-                j = None
-                if isinstance(p, basestring):
-                    p_dep = self._expression_index_dependence(p)
-                    if '_postsynaptic_idx' in p_dep:
-                        j = '_k for _k in range(N_post) if ({expr}) and rand()<{p}'.format(
-                                                                              expr=condition, p=p)
+        try:
+            if condition is not None:
+                if i is not None or j is not None:
+                    raise ValueError("Cannot combine condition with i or j arguments")
+                # convert to generator syntax
+                if condition is False:
+                    return
+                if condition is True:
+                    condition = 'True'
+                condition = word_substitute(condition, {'j': '_k'})
+                if not isinstance(p, basestring) and p==1:
+                    j = '_k for _k in range(N_post) if {expr}'.format(expr=condition)
+                else:
+                    j = None
+                    if isinstance(p, basestring):
+                        p_dep = self._expression_index_dependence(p)
+                        if '_postsynaptic_idx' in p_dep:
+                            j = '_k for _k in range(N_post) if ({expr}) and rand()<{p}'.format(
+                                                                                  expr=condition, p=p)
+                    if j is None:
+                        j = '_k for _k in sample(N_post, p={p}) if {expr}'.format(expr=condition, p=p)
+                # will now call standard generator syntax (see below)
+            elif i is not None:
                 if j is None:
-                    j = '_k for _k in sample(N_post, p={p}) if {expr}'.format(expr=condition, p=p)
-            # will now call standard generator syntax (see below)
-        elif i is not None:
-            if j is None:
-                raise ValueError("i argument must be combined with j argument")
-            if hasattr(i, '_indices'):
-                i = i._indices()
-            i = np.asarray(i)
-            if not np.issubdtype(i.dtype, np.int):
-                raise TypeError(('Presynaptic indices have to be given as '
-                                 'integers, are type %s instead.') % i.dtype)
+                    raise ValueError("i argument must be combined with j argument")
+                if hasattr(i, '_indices'):
+                    i = i._indices()
+                i = np.asarray(i)
+                if not np.issubdtype(i.dtype, np.int):
+                    raise TypeError(('Presynaptic indices have to be given as '
+                                     'integers, are type %s instead.') % i.dtype)
 
-            if hasattr(j, '_indices'):
-                j = j._indices()
-            j = np.asarray(j)
-            if not np.issubdtype(j.dtype, np.int):
-                raise TypeError(('Presynaptic indices can only be combined '
-                                 'with postsynaptic integer indices))'))
-            if isinstance(n, basestring):
-                raise TypeError(('Indices cannot be combined with a string'
-                                 'expression for n. Either use an array/scalar '
-                                 'for n, or a string expression for the '
-                                 'connections'))
-            i, j, n = np.broadcast_arrays(i, j, n)
-            if i.ndim > 1:
-                raise ValueError('Can only use 1-dimensional indices')
-            self._add_synapses_from_arrays(i, j, n, p, namespace=namespace, level=level+1)
-            return
-        elif j is not None:
-            if isinstance(p, basestring) or p!=1:
-                raise ValueError("Generator syntax cannot be combined with p argument")
-            if not re.search(r'\bfor\b', j):
-                j = '{j} for _ in range(1)'.format(j=j)
-            # will now call standard generator syntax (see below)
-        else:
-            raise ValueError("Must specify at least one of condition, i or j arguments")
+                if hasattr(j, '_indices'):
+                    j = j._indices()
+                j = np.asarray(j)
+                if not np.issubdtype(j.dtype, np.int):
+                    raise TypeError(('Presynaptic indices can only be combined '
+                                     'with postsynaptic integer indices))'))
+                if isinstance(n, basestring):
+                    raise TypeError(('Indices cannot be combined with a string'
+                                     'expression for n. Either use an array/scalar '
+                                     'for n, or a string expression for the '
+                                     'connections'))
+                i, j, n = np.broadcast_arrays(i, j, n)
+                if i.ndim > 1:
+                    raise ValueError('Can only use 1-dimensional indices')
+                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace, level=level+1)
+                return
+            elif j is not None:
+                if isinstance(p, basestring) or p!=1:
+                    raise ValueError("Generator syntax cannot be combined with p argument")
+                if not re.search(r'\bfor\b', j):
+                    j = '{j} for _ in range(1)'.format(j=j)
+                # will now call standard generator syntax (see below)
+            else:
+                raise ValueError("Must specify at least one of condition, i or j arguments")
 
-        # standard generator syntax
-        self._add_synapses_generator(j, n, namespace=namespace, level=level+1)
+            # standard generator syntax
+            self._add_synapses_generator(j, n, namespace=namespace, level=level+1)
+        except IndexError as e:
+            raise IndexError("Tried to create synapse indices outside valid range. Original error message: "+e.message)
 
     def _resize(self, number):
         if not isinstance(number, numbers.Integral):
