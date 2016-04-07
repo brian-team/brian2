@@ -14,8 +14,9 @@ def test_attributes_soma():
     assert isinstance(soma, Morphology)
     # Single compartment
     assert soma.n == 1
-    assert soma.n_sections == 1
-    assert len(soma) == 1
+    assert soma.total_sections == 1
+    assert soma.total_compartments == 1
+    assert_raises(TypeError, lambda: len(soma))  # ambiguous
     # Compartment attributes
     assert_equal(soma.diameter, [10]*um)
     assert_equal(soma.length, [10]*um)
@@ -84,8 +85,9 @@ def test_attributes_cylinder():
     assert isinstance(cylinder, Morphology)
     # Single section with 10 compartments
     assert cylinder.n == n
-    assert cylinder.n_sections == 1
-    assert len(cylinder) == n
+    assert cylinder.total_sections == 1
+    assert cylinder.total_compartments == n
+    assert_raises(TypeError, lambda: len(cylinder))  # ambiguous
 
     # Compartment attributes
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
@@ -158,8 +160,9 @@ def test_attributes_section():
     assert isinstance(sec, Morphology)
     # Single section with 10 compartments
     assert sec.n == n
-    assert sec.n_sections == 1
-    assert len(sec) == n
+    assert sec.total_sections == 1
+    assert sec.total_compartments == n
+    assert_raises(TypeError, lambda: len(sec))  # ambiguous
 
     # Compartment attributes
     assert_allclose(sec.diameter, np.ones(n)*10*um)
@@ -271,17 +274,17 @@ def _check_tree_cables(morphology, coordinates=False):
     assert morphology['21'].n == 5
     assert morphology['22'].n == 5
     # number of compartments per subtree
-    assert len(morphology) == 30
-    assert len(morphology['1']) == 5
-    assert len(morphology['2']) == 15
-    assert len(morphology['21']) == 5
-    assert len(morphology['22']) == 5
+    assert morphology.total_compartments == 30
+    assert morphology['1'].total_compartments == 5
+    assert morphology['2'].total_compartments == 15
+    assert morphology['21'].total_compartments == 5
+    assert morphology['22'].total_compartments == 5
     # number of sections per subtree
-    assert morphology.n_sections == 5
-    assert morphology['1'].n_sections == 1
-    assert morphology['2'].n_sections == 3
-    assert morphology['21'].n_sections == 1
-    assert morphology['22'].n_sections == 1
+    assert morphology.total_sections == 5
+    assert morphology['1'].total_sections == 1
+    assert morphology['2'].total_sections == 3
+    assert morphology['21'].total_sections == 1
+    assert morphology['22'].total_sections == 1
     # Check that distances (= distance to root at electrical midpoint)
     # correctly follow the tree structure
     assert_allclose(morphology.distance, np.arange(10) * 10 * um + 5 * um)
@@ -486,14 +489,14 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
     assert morphology['2'].n == 5
 
     # number of compartments per subtree
-    assert len(morphology) == 11
-    assert len(morphology['1']) == 5
-    assert len(morphology['2']) == 5
+    assert morphology.total_compartments == 11
+    assert morphology['1'].total_compartments == 5
+    assert morphology['2'].total_compartments == 5
 
     # number of sections per subtree
-    assert morphology.n_sections == 3
-    assert morphology['1'].n_sections == 1
-    assert morphology['2'].n_sections == 1
+    assert morphology.total_sections == 3
+    assert morphology['1'].total_sections == 1
+    assert morphology['2'].total_sections == 1
 
     assert_allclose(morphology.diameter, [30]*um)
 
@@ -740,11 +743,12 @@ def test_construction_incorrect_arguments():
 def test_from_points_minimal():
     points = [(1, 'soma', 10, 20, 30,  30,  -1)]
     morph = Morphology.from_points(points)
-    assert len(morph) == 1
+    assert morph.total_compartments == 1
     assert_allclose(morph.diameter, 30*um)
     assert_allclose(morph.x, 10*um)
     assert_allclose(morph.y, 20*um)
     assert_allclose(morph.z, 30*um)
+
 
 @attr('codegen-independent')
 def test_from_points_incorrect():
@@ -788,22 +792,22 @@ def test_subtree_deletion():
     soma.dend3.L = Cylinder(n=5, diameter=5*um, length=50*um)
     soma.dend3.L.L = Cylinder(n=5, diameter=5 * um, length=50 * um)
 
-    assert len(soma) == 36
+    assert soma.total_compartments == 36
 
     del soma.dend1
-    assert len(soma) == 31
+    assert soma.total_compartments == 31
     assert_raises(AttributeError, lambda: soma.dend1)
     assert_raises(AttributeError, lambda: delattr(soma, 'dend1'))
     assert_raises(AttributeError, lambda: soma.__delitem__('dend1'))
     assert first_dendrite not in soma.children
 
     del soma['dend2']
-    assert len(soma) == 16
+    assert soma.total_compartments == 16
     assert_raises(AttributeError, lambda: soma.dend2)
     assert second_dendrite not in soma.children
 
     del soma.dend3.LL
-    assert len(soma) == 11
+    assert soma.total_compartments == 11
     assert_raises(AttributeError, lambda: soma.dend3.LL)
     assert_raises(AttributeError, lambda: soma.dend3.L.L)
 
@@ -1038,8 +1042,8 @@ def test_generate_coordinates_deterministic():
                             length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates()
-    assert len(morph_with_coords) == len(morph)
-    assert morph_with_coords.n_sections == morph.n_sections
+    assert morph_with_coords.total_compartments == morph.total_compartments
+    assert morph_with_coords.total_sections == morph.total_sections
 
     for new, old in [(morph_with_coords, morph),
                      (morph_with_coords.L, morph.L),
@@ -1066,8 +1070,8 @@ def test_generate_coordinates_random_sections():
                             length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(section_randomness=25)
-    assert len(morph_with_coords) == len(morph)
-    assert morph_with_coords.n_sections == morph.n_sections
+    assert morph_with_coords.total_compartments == morph.total_compartments
+    assert morph_with_coords.total_sections == morph.total_sections
 
     for new, old in [(morph_with_coords, morph),
                      (morph_with_coords.L, morph.L),
@@ -1092,8 +1096,8 @@ def test_generate_coordinates_random_compartments():
                             length=np.ones(5)*10*um)
 
     morph_with_coords = morph.generate_coordinates(compartment_randomness=15)
-    assert len(morph_with_coords) == len(morph)
-    assert morph_with_coords.n_sections == morph.n_sections
+    assert morph_with_coords.total_compartments == morph.total_compartments
+    assert morph_with_coords.total_sections == morph.total_sections
 
     for new, old in [(morph_with_coords, morph),
                      (morph_with_coords.L, morph.L),
@@ -1119,8 +1123,8 @@ def test_generate_coordinates_random_all():
 
     morph_with_coords = morph.generate_coordinates(section_randomness=25,
                                                    compartment_randomness=15)
-    assert len(morph_with_coords) == len(morph)
-    assert morph_with_coords.n_sections == morph.n_sections
+    assert morph_with_coords.total_compartments == morph.total_compartments
+    assert morph_with_coords.total_sections == morph.total_sections
 
     for new, old in [(morph_with_coords, morph),
                      (morph_with_coords.L, morph.L),

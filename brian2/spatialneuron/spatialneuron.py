@@ -33,7 +33,7 @@ class FlatMorphology(object):
     (i.e. in base units).
     '''
     def __init__(self, morphology):
-        self.n = n = len(morphology)  # Total number of compartments
+        self.n = n = morphology.total_compartments  # Total number of compartments
         # Per-compartment attributes
         self.length = np.zeros(n)
         self.distance = np.zeros(n)
@@ -52,7 +52,7 @@ class FlatMorphology(object):
         self.end_y = np.zeros(n)
         self.end_z = np.zeros(n)
         self.depth = np.zeros(n, dtype=np.int32)
-        self.sections = sections = morphology.n_sections
+        self.sections = sections = morphology.total_sections
         self.end_distance = np.zeros(sections)
         # Index of the parent for each section (-1 for the root)
         self.morph_parent_i = np.zeros(sections, dtype=np.int32)
@@ -337,7 +337,8 @@ class SpatialNeuron(NeuronGroup):
             z : meter (constant)
             ''')
 
-        NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
+        NeuronGroup.__init__(self, morphology.total_compartments,
+                             model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
                              reset=reset, events=events,
                              method=method, dt=dt, clock=clock, order=order,

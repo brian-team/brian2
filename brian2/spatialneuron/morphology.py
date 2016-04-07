@@ -624,18 +624,29 @@ class Morphology(object):
 
     def __len__(self):
         '''
+        This is not well-defined, use `Morphology.n` or
+        `Morphology.total_compartments` instead.
+        '''
+        raise TypeError('The "length" of a Morphology is ambiguous, use its '
+                        '"n" attribute for the number of compartments in this '
+                        'section or the "total_compartments" attribute for the '
+                        'total number of compartments in the whole sub-tree.')
+
+    @property
+    def total_compartments(self):
+        '''
         The total number of compartments in this subtree (i.e. the number of
         compartments in this section plus all the compartments in the sections
         deeper in the tree).
         '''
-        return self.n + sum(len(c) for c in self.children)
+        return self.n + sum(c.total_compartments for c in self.children)
 
     @property
-    def n_sections(self):
+    def total_sections(self):
         '''
         The total number of sections in this subtree.
         '''
-        return 1 + sum(c.n_sections for c in self.children)
+        return 1 + sum(c.total_sections for c in self.children)
 
     @property
     def parent(self):

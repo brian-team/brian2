@@ -137,8 +137,8 @@ Note that an expression such as ``morpho.L`` will always refer to the entire sub
     For example, do not name a child section ``L1`` (which will be interpreted as the first child of the child ``L``)
 
 The number of compartments in a section can be accessed with ``morpho.n`` (or ``morpho.L.n``, etc.), the number of
-total sections and compartments in a subtree can be accessed with ``morpho.n_sections`` and ``len(morpho)``
-respectively.
+total sections and compartments in a subtree can be accessed with ``morpho.total_sections`` and
+``morpho.total_compartments`` respectively.
 
 Adding coordinates
 ++++++++++++++++++
