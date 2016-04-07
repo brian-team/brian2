@@ -2,7 +2,6 @@
 Hodgkin-Huxley equations (1952)
 
 We calculate the extracellular field potential at various places.
-Shape looks approximately ok!
 '''
 from brian2 import *
 
@@ -73,7 +72,7 @@ run(100*ms, report='text')
 subplot(211)
 for i in range(10):
     plot(M.t/ms,M.v[i*100]/mV)
-ylabel('LFP (mV)')
+ylabel('Vm (mV)')
 subplot(212)
 for i in range(5):
     plot(M.t/ms,Mlfp.v[i]/mV)
