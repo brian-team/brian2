@@ -56,6 +56,9 @@ def test_creation():
     S = Synapses(G, model='w:1', pre='v+=w')
     assert S.source.name == S.target.name == G.name
 
+    # Check that the old Synapses(..., connect=...) syntax raises an error
+    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
+                                              connect=True))
 
 @attr('codegen-independent')
 def test_name_clashes():

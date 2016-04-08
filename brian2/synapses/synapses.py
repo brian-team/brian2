@@ -590,13 +590,16 @@ class Synapses(Group):
     add_to_magic_network = True
 
     def __init__(self, source, target=None, model=None, pre=None, post=None,
-                 delay=None, on_event='spike',
+                 connect=None, delay=None, on_event='spike',
                  multisynaptic_index=None,
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
                  method=('linear', 'euler', 'heun'),
                  name='synapses*'):
+        if connect is not None:
+            raise TypeError('The connect keyword argument is no longer '
+                            'supported, call the connect method instead.')
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
         
