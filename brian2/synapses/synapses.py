@@ -1096,14 +1096,16 @@ class Synapses(Group):
             raise TypeError("condition argument must be bool or string. If you "
                             "want to connect based on indices, use "
                             "connect(i=..., j=...).")
-        if i is not None and (not isinstance(i, (numbers.Integral,
+        if i is not None and (not (isinstance(i, (numbers.Integral,
                                                  np.ndarray,
                                                  collections.Sequence)) or
+                                   hasattr(i, '_indices')) or
                               isinstance(i, basestring)):
             raise TypeError("i argument must be int or array")
-        if j is not None and not isinstance(j, (numbers.Integral,
+        if j is not None and not (isinstance(j, (numbers.Integral,
                                                 np.ndarray,
-                                                collections.Sequence)):
+                                                collections.Sequence)) or
+                                  hasattr(j, '_indices')):
             raise TypeError("j argument must be int, array or string")
         # TODO: eliminate these restrictions
         if not isinstance(p, (int, float, basestring)):
