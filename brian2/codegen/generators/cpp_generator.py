@@ -430,18 +430,6 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
-# pow_code = '''
-# #ifdef _MSC_VER
-# #define _brian_pow(x, y) (pow((double)(x), (y)))
-# #else
-# #define _brian_pow(x, y) (pow((x), (y)))
-# #endif
-# '''
-# DEFAULT_FUNCTIONS['pow'].implementations.add_implementation(CPPCodeGenerator,
-#                                                             code=pow_code,
-#                                                             name='_brian_pow')
-
-
 abs_code = '''
 #define _brian_abs std::abs
 '''
