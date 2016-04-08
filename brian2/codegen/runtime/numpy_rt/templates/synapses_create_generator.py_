@@ -20,17 +20,17 @@ except:
     from numpy.random import binomial as _binomial
     import bisect as _bisect
     def _sample_without_replacement(low, high, step, p):
-        if p==0:
+        if p == 0:
             return _numpy.array([], dtype=_numpy.int32)
-        if p==1:
+        if p == 1:
             return _numpy.arange(low, high, step)
-        if step>0:
+        if step > 0:
             n = (high-low-1)//step+1
         else:
             n = (low-high-1)//-step+1
-        if n<=0:
-            return array([], dtype=_numpy.int32)
-        if n<=1000 or p>0.25: # based on rough profiling
+        if n <= 0:
+            return _numpy.array([], dtype=_numpy.int32)
+        if n <= 1000 or p > 0.25: # based on rough profiling
             samples, = (_np_rand(n)<p).nonzero()
         else:
             # use jump method
@@ -57,9 +57,9 @@ except:
                 samples = _numpy.cumsum(jump)
                 all_samples.append(samples)
                 start = samples[-1]+1 # this is the starting point for the next round
-                if start>=n:
+                if start >= n:
                     break
-            if len(all_samples)>1:
+            if len(all_samples) > 1:
                 samples = _numpy.hstack(all_samples)
             samples = samples[:_bisect.bisect_left(samples, n)] # only keep the ones in the range we want
         return samples*step+low
