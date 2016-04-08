@@ -421,7 +421,9 @@ def test_connection_multiple_synapses():
     Test multiple synapses per connection.
     '''
     G = NeuronGroup(42, 'v: 1', threshold='False')
+    G.v = 'i'
     G2 = NeuronGroup(17, 'v: 1', threshold='False')
+    G2.v = 'i'
 
     S1 = Synapses(G, G2, 'w:1', 'v+=w')
     S1.connect(True, n=0)
@@ -438,6 +440,9 @@ def test_connection_multiple_synapses():
     S5 = Synapses(G, G2, 'w:1', 'v+=w')
     S5.connect(True, n='int(i>j)*2')
 
+    S6 = Synapses(G, G2, 'w:1', 'v+=w')
+    S6.connect(True, n='int(v_pre>v_post)*2')
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -452,6 +457,7 @@ def test_connection_multiple_synapses():
     for source in xrange(len(G)):
         expected[source, :source] = 2
     _compare(S5, expected)
+    _compare(S6, expected)
 
 
 def test_state_variable_assignment():
@@ -1820,7 +1826,7 @@ def test_synapse_generator_random_with_condition():
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
-    # prefs.codegen.target = 'weave'
+    # prefs.codegen.target = 'numpy'
     # prefs._backup()
     import time
     start = time.time()

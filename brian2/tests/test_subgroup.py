@@ -248,6 +248,65 @@ def test_synapse_creation_generator():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_synapse_creation_generator_multiple_synapses():
+    G1 = NeuronGroup(10, 'v:1', threshold='False')
+    G2 = NeuronGroup(20, 'v:1', threshold='False')
+    G1.v = 'i'
+    G2.v = '10 + i'
+    SG1 = G1[:5]
+    SG2 = G2[10:]
+    S1 = Synapses(SG1, SG2, 'w:1', pre='v+=w')
+    S1.connect(j='k for k in range(N_post)', n='i')
+
+    S2 = Synapses(SG1, SG2, 'w:1', pre='v+=w')
+    S2.connect(j='k for k in range(N_post)', n='j')
+
+    S3 = Synapses(SG2, SG1, 'w:1', pre='v+=w')
+    S3.connect(j='k for k in range(N_post)', n='i')
+
+    S4 = Synapses(SG2, SG1, 'w:1', pre='v+=w')
+    S4.connect(j='k for k in range(N_post)', n='j')
+
+    S5 = Synapses(SG1, SG2, 'w:1', pre='v+=w')
+    S5.connect(j='k for k in range(N_post)', n='i+j')
+
+    S6 = Synapses(SG2, SG1, 'w:1', pre='v+=w')
+    S6.connect(j='k for k in range(N_post)', n='i+j')
+
+    S7 = Synapses(SG1, SG2, 'w:1', pre='v+=w')
+    S7.connect(j='k for k in range(N_post)', n='int(v_pre>2)*2')
+
+    S8 = Synapses(SG2, SG1, 'w:1', pre='v+=w')
+    S8.connect(j='k for k in range(N_post)', n='int(v_post>2)*2')
+
+    S9 = Synapses(SG1, SG2, 'w:1', pre='v+=w')
+    S9.connect(j='k for k in range(N_post)', n='int(v_post>22)*2')
+
+    S10 = Synapses(SG2, SG1, 'w:1', pre='v+=w')
+    S10.connect(j='k for k in range(N_post)', n='int(v_pre>22)*2')
+
+    run(0*ms)  # for standalone
+
+    # straightforward loop instead of doing something clever...
+    for source in xrange(len(SG1)):
+        assert_equal(S1.j[source, :], np.arange(len(SG2)).repeat(source))
+        assert_equal(S2.j[source, :], np.arange(len(SG2)).repeat(np.arange(len(SG2))))
+        assert_equal(S3.i[:, source], np.arange(len(SG2)).repeat(np.arange(len(SG2))))
+        assert_equal(S4.i[:, source], np.arange(len(SG2)).repeat(source))
+        assert_equal(S5.j[source, :], np.arange(len(SG2)).repeat(np.arange(len(SG2))+source))
+        assert_equal(S6.i[:, source], np.arange(len(SG2)).repeat(np.arange(len(SG2)) + source))
+        if source > 2:
+            assert_equal(S7.j[source, :], np.arange(len(SG2)).repeat(2))
+            assert_equal(S8.i[:, source], np.arange(len(SG2)).repeat(2))
+        else:
+            assert len(S7.j[source, :]) == 0
+            assert len(S8.i[:, source]) == 0
+        assert_equal(S9.j[source, :], np.arange(3, len(SG2)).repeat(2))
+        assert_equal(S10.i[:, source], np.arange(3, len(SG2)).repeat(2))
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_synapse_creation_generator_complex_ranges():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -627,6 +686,7 @@ if __name__ == '__main__':
     test_synapse_creation_generator()
     test_synapse_creation_generator_complex_ranges()
     test_synapse_creation_generator_random()
+    test_synapse_creation_generator_multiple_synapses()
     test_synapse_access()
     test_synapses_access_subgroups()
     test_synapses_access_subgroups_problematic()
