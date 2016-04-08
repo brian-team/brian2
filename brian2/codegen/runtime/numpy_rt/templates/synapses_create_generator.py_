@@ -98,7 +98,9 @@ for _i in range(len({{_all_pre}})):
         if _j<0 or _j>=_len_all_post:
             continue
     else:
-        _j = _j[_numpy.logical_and(_j>=0, _j<_len_all_post)]
+        _in_range = _numpy.logical_and(_j>=0, _j<_len_all_post)
+        _j = _j[_in_range]
+        {{iteration_variable}} = {{iteration_variable}}[_in_range]
     {% endif %}
     _vectorisation_idx = _j
     {% if postsynaptic_condition %}
