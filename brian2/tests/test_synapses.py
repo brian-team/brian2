@@ -429,6 +429,12 @@ def test_connection_multiple_synapses():
     S3 = Synapses(G, G2, 'w:1', 'v+=w')
     S3.connect(True, n='j')
 
+    S4 = Synapses(G, G2, 'w:1', 'v+=w')
+    S4.connect(True, n='i')
+
+    S5 = Synapses(G, G2, 'w:1', 'v+=w')
+    S5.connect(True, n='int(i>j)*2')
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -436,6 +442,13 @@ def test_connection_multiple_synapses():
     _compare(S2, 2 * np.ones((len(G), len(G2))))
     _compare(S3, np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G),
                                                                axis=0))
+
+    _compare(S4, np.arange(len(G)).reshape(len(G), 1).repeat(len(G2),
+                                                             axis=1))
+    expected = np.zeros((len(G), len(G2)), dtype=np.int32)
+    for source in xrange(len(G)):
+        expected[source, :source] = 2
+    _compare(S5, expected)
 
 
 def test_state_variable_assignment():
