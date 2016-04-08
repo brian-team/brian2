@@ -1093,7 +1093,9 @@ class Synapses(Group):
         # check types
         if condition is not None and not isinstance(condition, (bool,
                                                                 basestring)):
-            raise TypeError("condition argument must be bool or string")
+            raise TypeError("condition argument must be bool or string. If you "
+                            "want to connect based on indices, use "
+                            "connect(i=..., j=...).")
         if i is not None and (not isinstance(i, (numbers.Integral,
                                                  np.ndarray,
                                                  collections.Sequence)) or
