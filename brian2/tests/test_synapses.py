@@ -1738,7 +1738,7 @@ def test_synapse_generator_random_with_condition():
 
     # Some more tests specific to the generator syntax
     S25 = Synapses(G, G, 'w:1', pre='v+=w')
-    S25.connect(j='i+1 for _ in sample(1*int(i<N_post-1), p=0.5)')
+    S25.connect(j='i+1 for _ in sample(1, p=0.5) if i < N_post-1')
 
     S26 = Synapses(G, G, 'w:1', pre='v+=w')
     S26.connect(j='i+k for k in sample(N_post-i, p=0.5)')
