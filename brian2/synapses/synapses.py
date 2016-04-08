@@ -1160,7 +1160,7 @@ class Synapses(Group):
             # standard generator syntax
             self._add_synapses_generator(j, n, namespace=namespace, level=level+1)
         except IndexError as e:
-            raise IndexError("Tried to create synapse indices outside valid range. Original error message: "+e.message)
+            raise IndexError("Tried to create synapse indices outside valid range. Original error message: " + str(e))
 
     def _resize(self, number):
         if not isinstance(number, numbers.Integral):
