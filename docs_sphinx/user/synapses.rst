@@ -237,6 +237,19 @@ created. Finally, ``RANGE`` can be either:
    will give each integer in ``range(low, high, step)`` with
    probability 10%.
 
+If you try to create an invalid synapse (i.e. connecting
+neurons that are outside the correct range) then you will get
+an error, e.g. you might like to try to do this to connect
+each neuron to its neighbours::
+
+    S.connect(j='i+(-1)**k for k in range(2)')
+
+However this won't work at for ``i=0`` it gives ``j=-1`` which
+is invalid. There is an option to just skip any synapses
+that are outside the valid range::
+
+    S.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
+
 How connection arguments are interpreted
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

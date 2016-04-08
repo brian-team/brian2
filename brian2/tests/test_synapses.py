@@ -1595,6 +1595,13 @@ def test_synapse_generator_deterministic():
     for target in xrange(4):
         expected_converging[np.arange(4) + target*4, target] = 1
 
+    # skip if invalid
+    S13 = Synapses(G2, G2, 'w:1', 'v+=w')
+    S13.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
+    expected_offdiagonal = np.zeros((len(G2), len(G2)), dtype=np.int32)
+    expected_offdiagonal[np.arange(len(G2)-1), np.arange(len(G2)-1)+1] = 1
+    expected_offdiagonal[np.arange(len(G2)-1)+1, np.arange(len(G2)-1)] = 1
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -1610,6 +1617,7 @@ def test_synapse_generator_deterministic():
     _compare(S10, expected_ring)
     _compare(S11, expected_diverging)
     _compare(S12, expected_converging)
+    _compare(S13, expected_offdiagonal)
 
 
 @attr('standalone-compatible')

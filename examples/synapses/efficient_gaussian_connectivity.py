@@ -21,12 +21,12 @@ which j values are compatible with a given value of i by solving
 :math:`e^{-\alpha(i-j)^2}<q` which gives
 :math:`|i-j|<\sqrt{-\log(q)/\alpha)}=w`. Now we implement the rule
 using the generator syntax to only search for values between ``i-w``
-and ``i+w``, except that we also need the values to be between
-``0`` and ``N_post`` (the number of postsynaptic neurons), so we
-use limits of ``clip(i-w, 0, N_post)`` and ``clip(i+w, 0, N_post)``.
+and ``i+w``, except that some of these values will be outside the
+valid range of values for j so we set ``skip_if_invalid=True``.
 The connection code is then::
 
-    S.connect(j='k for k in range(clip(i-w, 0, N_post), clip(i+w, 0, N_post)) if rand()<exp(-alpha*(i-j)**2)')
+    S.connect(j='k for k in range(i-w, i+w) if rand()<exp(-alpha*(i-j)**2)',
+              skip_if_invalid=True)
 
 This is a lot faster (see graph labelled "Limited" for this algorithm).
 
@@ -52,10 +52,13 @@ and then add the additional test ``rand()<p(i-j)/p(w)``. Here's the
 code for that::
 
     w = int(ceil(sqrt(log(q)/-0.1)))
-    S.connect(j='k for k in range(clip(i-w, 0, N_post), clip(i+w, 0, N_post)) if rand()<exp(-alpha*(i-j)**2)')
+    S.connect(j='k for k in range(i-w, i+w) if rand()<exp(-alpha*(i-j)**2)',
+              skip_if_invalid=True)
     pmax = exp(-0.1*w**2)
-    S.connect(j='k for k in sample(0, clip(i-w, 0, N_post), p=pmax) if rand()<exp(-alpha*(i-j)**2)/pmax')
-    S.connect(j='k for k in sample(clip(i+w, 0, N_post), N_post, p=pmax) if rand()<exp(-alpha*(i-j)**2)/pmax')
+    S.connect(j='k for k in sample(0, i-w, p=pmax) if rand()<exp(-alpha*(i-j)**2)/pmax',
+              skip_if_invalid=True)
+    S.connect(j='k for k in sample(i+w, N_post, p=pmax) if rand()<exp(-alpha*(i-j)**2)/pmax',
+              skip_if_invalid=True)
 
 This "Divided" method is also much faster than the naive method,
 and is mathematically correct. Note though that this method is still
@@ -71,24 +74,24 @@ from brian2 import *
 import time
 
 def naive(N):
-    G = NeuronGroup(N, 'v:1', threshold='v>1')
-    S = Synapses(G, G, pre='v += 1')
+    G = NeuronGroup(N, 'v:1', threshold='v>1', name='G')
+    S = Synapses(G, G, pre='v += 1', name='S')
     S.connect(p='exp(-0.1*(i-j)**2)')
 
 def limited(N, q=0.001):
-    G = NeuronGroup(N, 'v:1', threshold='v>1')
-    S = Synapses(G, G, pre='v += 1')
+    G = NeuronGroup(N, 'v:1', threshold='v>1', name='G')
+    S = Synapses(G, G, pre='v += 1', name='S')
     w = int(ceil(sqrt(log(q)/-0.1)))
-    S.connect(j='k for k in range(clip(i-w, 0, N_post), clip(i+w, 0, N_post)) if rand()<exp(-0.1*(i-j)**2)')
+    S.connect(j='k for k in range(i-w, i+w) if rand()<exp(-0.1*(i-j)**2)', skip_if_invalid=True)
 
 def divided(N, q=0.001):
-    G = NeuronGroup(N, 'v:1', threshold='v>1')
-    S = Synapses(G, G, pre='v += 1')
+    G = NeuronGroup(N, 'v:1', threshold='v>1', name='G')
+    S = Synapses(G, G, pre='v += 1', name='S')
     w = int(ceil(sqrt(log(q)/-0.1)))
-    S.connect(j='k for k in range(clip(i-w, 0, N_post), clip(i+w, 0, N_post)) if rand()<exp(-0.1*(i-j)**2)')
+    S.connect(j='k for k in range(i-w, i+w) if rand()<exp(-0.1*(i-j)**2)', skip_if_invalid=True)
     pmax = exp(-0.1*w**2)
-    S.connect(j='k for k in sample(0, clip(i-w, 0, N_post), p=pmax) if rand()<exp(-0.1*(i-j)**2)/pmax')
-    S.connect(j='k for k in sample(clip(i+w, 0, N_post), N_post, p=pmax) if rand()<exp(-0.1*(i-j)**2)/pmax')
+    S.connect(j='k for k in sample(0, i-w, p=pmax) if rand()<exp(-0.1*(i-j)**2)/pmax', skip_if_invalid=True)
+    S.connect(j='k for k in sample(i+w, N_post, p=pmax) if rand()<exp(-0.1*(i-j)**2)/pmax', skip_if_invalid=True)
 
 def repeated_run(f, N, repeats):
     start_time = time.time()
@@ -102,8 +105,11 @@ repeats = array([100, 10, 10, 1, 1, 1])*3
 naive(10)
 limited(10)
 divided(10)
+print 'Starting naive'
 loglog(N, [repeated_run(naive, n, r) for n, r in zip(N, repeats)], label='Naive')
+print 'Starting limit'
 loglog(N, [repeated_run(limited, n, r) for n, r in zip(N, repeats)], label='Limited')
+print 'Starting divided'
 loglog(N, [repeated_run(divided, n, r) for n, r in zip(N, repeats)], label='Divided')
 xlabel('N')
 ylabel('Time (s)')

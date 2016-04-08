@@ -97,9 +97,13 @@
             _pre_idx = __pre_idx;
             if(_j<0 || _j>=_N_post)
             {
+                {% if skip_if_invalid %}
+                continue;
+                {% else %}
                 cout << "Error: tried to create synapse to neuron j=" << _j << " outside range 0 to " <<
                         _N_post-1 << endl;
                 exit(1);
+                {% endif %}
             }
             {% if postsynaptic_condition %}
             {

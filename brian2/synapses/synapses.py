@@ -1030,6 +1030,7 @@ class Synapses(Group):
                                               % (eq.varname, identifier))
 
     def connect(self, condition=None, i=None, j=None, p=1., n=1,
+                skip_if_invalid=False,
                 namespace=None, level=0):
         '''
         Add synapses.
@@ -1056,6 +1057,10 @@ class Synapses(Group):
         n : int, str, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
+        skip_if_invalid : bool, optional
+            If set to True, rather than raising an error if you try to
+            create an invalid/out of range pair (i, j) it will just
+            quietly skip those synapses.
         namespace : dict-like, optional
             A namespace that will be used in addition to the group-specific
             namespaces (if defined). If not specified, the locals
@@ -1125,6 +1130,8 @@ class Synapses(Group):
             elif i is not None:
                 if j is None:
                     raise ValueError("i argument must be combined with j argument")
+                if skip_if_invalid:
+                    raise ValueError("Can only use skip_if_invalid with string syntax")
                 if hasattr(i, '_indices'):
                     i = i._indices()
                 i = np.asarray(i)
@@ -1158,7 +1165,8 @@ class Synapses(Group):
                 raise ValueError("Must specify at least one of condition, i or j arguments")
 
             # standard generator syntax
-            self._add_synapses_generator(j, n, namespace=namespace, level=level+1)
+            self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
+                                         namespace=namespace, level=level+1)
         except IndexError as e:
             raise IndexError("Tried to create synapse indices outside valid range. Original error message: " + str(e))
 
@@ -1309,10 +1317,11 @@ class Synapses(Group):
             deps.remove('0')
         return deps
 
-    def _add_synapses_generator(self, j, n, namespace=None, level=0):
+    def _add_synapses_generator(self, j, n, skip_if_invalid=False, namespace=None, level=0):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
         parsed = parse_synapse_generator(j)
         template_kwds.update(parsed)
+        template_kwds['skip_if_invalid'] = skip_if_invalid
 
         if parsed['iterator_func']=='sample' and parsed['iterator_kwds']['sample_size']=='fixed':
             raise NotImplementedError("Fixed sample size not implemented yet.")

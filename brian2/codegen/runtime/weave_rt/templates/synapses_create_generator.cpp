@@ -99,8 +99,12 @@
             _pre_idx = __pre_idx;
             if(_j<0 || _j>=_N_post)
             {
+                {% if skip_if_invalid %}
+                continue;
+                {% else %}
                 PyErr_SetString(PyExc_IndexError, "index j outside allowed range");
                 throw 1;
+                {% endif %}
             }
             {% if postsynaptic_condition %}
             {
