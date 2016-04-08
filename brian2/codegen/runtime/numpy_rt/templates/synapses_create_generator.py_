@@ -117,7 +117,7 @@ for _i in range(len({{_all_pre}})):
     {{vector_code['update_post']|autoindent}}
 
     if not _numpy.isscalar(_n):
-        # The "n" expression involved j # TODO: is this correct? not sure about the index
+        # The "n" expression involved j
         _post_idx = _post_idx.repeat(_n[_j])
     elif _n != 1:
         # We have a j-independent number
