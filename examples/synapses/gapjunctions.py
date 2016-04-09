@@ -21,7 +21,7 @@ S = Synapses(neurons, neurons, '''
              w : 1 # gap junction conductance
              Igap_post = w * (v_pre - v_post) : 1 (summed)
              ''')
-S.connect(True)
+S.connect()
 S.w = .02
 
 run(500*ms)

@@ -83,8 +83,10 @@ public:
             queue[{{ openmp_pragma('get_thread_num') }}]->openmp_padding = padding;
             if (n_delays > 1)
     		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[padding], length, &sources[padding], length, _dt);
-    		else
+    		else if (n_delays == 1)
     		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[0], 1, &sources[padding], length, _dt);
+    		else  // no synapses
+    		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(NULL, 0, &sources[padding], length, _dt);
     	}
     }
 

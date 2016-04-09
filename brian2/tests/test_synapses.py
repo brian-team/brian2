@@ -1,5 +1,4 @@
 import uuid
-import tempfile
 import logging
 
 from nose import with_setup, SkipTest
@@ -15,10 +14,12 @@ from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import reinit_devices, all_devices, get_device, set_device, reset_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
+from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 
 
 def _compare(synapses, expected):
-    conn_matrix = np.zeros((len(synapses.source), len(synapses.target)))
+    conn_matrix = np.zeros((len(synapses.source), len(synapses.target)),
+                           dtype=np.int32)
     for _i, _j in zip(synapses.i[:], synapses.j[:]):
         conn_matrix[_i, _j] += 1
 
@@ -55,6 +56,9 @@ def test_creation():
     S = Synapses(G, model='w:1', pre='v+=w')
     assert S.source.name == S.target.name == G.name
 
+    # Check that the old Synapses(..., connect=...) syntax raises an error
+    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
+                                              connect=True))
 
 @attr('codegen-independent')
 def test_name_clashes():
@@ -70,7 +74,8 @@ def test_name_clashes():
     Synapses(G1, G2, 'a_syn : 1')
     Synapses(G1, G2, 'b_syn : 1')
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_incoming_outgoing():
     '''
     Test the count of outgoing/incoming synapses per neuron.
@@ -80,21 +85,24 @@ def test_incoming_outgoing():
     G1 = NeuronGroup(5, 'v: 1', threshold='False')
     G2 = NeuronGroup(5, 'v: 1', threshold='False')
     S = Synapses(G1, G2, 'w:1', pre='v+=w')
-    S.connect([0, 0, 0, 1, 1, 2],
-              [0, 1, 2, 1, 2, 3])
+    S.connect(i=[0, 0, 0, 1, 1, 2],
+              j=[0, 1, 2, 1, 2, 3])
+    run(0*ms)  # to make this work for standalone
     # First source neuron has 3 outgoing synapses, the second 2, the third 1
-    assert all(S.N_outgoing['i==0'] == 3)
-    assert all(S.N_outgoing['i==1'] == 2)
-    assert all(S.N_outgoing['i==2'] == 1)
-    assert all(S.N_outgoing['i>2'] == 0)
+    assert all(S.N_outgoing[0, :] == 3)
+    assert all(S.N_outgoing[1, :] == 2)
+    assert all(S.N_outgoing[2, :] == 1)
+    assert all(S.N_outgoing[3:, :] == 0)
     # First target neuron receives 1 input, the second+third each 2, the fourth receives 1
-    assert all(S.N_incoming['j==0'] == 1)
-    assert all(S.N_incoming['j==1'] == 2)
-    assert all(S.N_incoming['j==2'] == 2)
-    assert all(S.N_incoming['j==3'] == 1)
-    assert all(S.N_incoming['j>3'] == 0)
+    assert all(S.N_incoming[:, 0] == 1)
+    assert all(S.N_incoming[:, 1] == 2)
+    assert all(S.N_incoming[:, 2] == 2)
+    assert all(S.N_incoming[:, 3] == 1)
+    assert all(S.N_incoming[:, 4:] == 0)
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_arrays():
     '''
     Test connecting synapses with explictly given arrays
@@ -103,91 +111,51 @@ def test_connection_arrays():
     G2 = NeuronGroup(17, 'v : 1')
 
     # one-to-one
-    expected = np.eye(len(G2))
-    S = Synapses(G2)
-    S.connect(np.arange(len(G2)), np.arange(len(G2)))
-    _compare(S, expected)
+    expected1 = np.eye(len(G2))
+    S1 = Synapses(G2)
+    S1.connect(i=np.arange(len(G2)), j=np.arange(len(G2)))
 
     # full
-    expected = np.ones((len(G), len(G2)))
-    S = Synapses(G, G2)
+    expected2 = np.ones((len(G), len(G2)))
+    S2 = Synapses(G, G2)
     X, Y = np.meshgrid(np.arange(len(G)), np.arange(len(G2)))
-    S.connect(X.flatten(), Y.flatten())
-    _compare(S, expected)
+    S2.connect(i=X.flatten(), j=Y.flatten())
+
 
     # Multiple synapses
-    expected = np.zeros((len(G), len(G2)))
-    expected[3, 3] = 2
-    S = Synapses(G, G2)
-    S.connect([3, 3], [3, 3])
-    _compare(S, expected)
+    expected3 = np.zeros((len(G), len(G2)))
+    expected3[3, 3] = 2
+    S3 = Synapses(G, G2)
+    S3.connect(i=[3, 3], j=[3, 3])
+
+    run(0*ms)  # for standalone
+    _compare(S1, expected1)
+    _compare(S2, expected2)
+    _compare(S3, expected3)
 
     # Incorrect usage
     S = Synapses(G, G2)
-    assert_raises(TypeError, lambda: S.connect([1.1, 2.2], [1.1, 2.2]))
-    assert_raises(TypeError, lambda: S.connect([1, 2], 'string'))
-    assert_raises(TypeError, lambda: S.connect([1, 2], [1, 2], n='i'))
+    assert_raises(TypeError, lambda: S.connect(i=[1.1, 2.2], j=[1.1, 2.2]))
+    assert_raises(TypeError, lambda: S.connect(i=[1, 2], j='string'))
+    assert_raises(TypeError, lambda: S.connect(i=[1, 2], j=[1, 2], n='i'))
     assert_raises(TypeError, lambda: S.connect([1, 2]))
-    assert_raises(ValueError, lambda: S.connect([1, 2, 3], [1, 2]))
-    assert_raises(ValueError, lambda: S.connect(np.ones((3, 3), dtype=np.int32),
-                                                np.ones((3, 1), dtype=np.int32)))
-    assert_raises(IndexError, lambda: S.connect([41, 42], [0, 1]))  # source index > max
-    assert_raises(IndexError, lambda: S.connect([0, 1], [16, 17]))  # target index > max
-    assert_raises(IndexError, lambda: S.connect([0, -1], [0, 1]))  # source index < 0
-    assert_raises(IndexError, lambda: S.connect([0, 1], [0, -1]))  # target index < 0
+    assert_raises(ValueError, lambda: S.connect(i=[1, 2, 3], j=[1, 2]))
+    assert_raises(ValueError, lambda: S.connect(i=np.ones((3, 3), dtype=np.int32),
+                                                j=np.ones((3, 1), dtype=np.int32)))
+    assert_raises(IndexError, lambda: S.connect(i=[41, 42], j=[0, 1]))  # source index > max
+    assert_raises(IndexError, lambda: S.connect(i=[0, 1], j=[16, 17]))  # target index > max
+    assert_raises(IndexError, lambda: S.connect(i=[0, -1], j=[0, 1]))  # source index < 0
+    assert_raises(IndexError, lambda: S.connect(i=[0, 1], j=[0, -1]))  # target index < 0
     assert_raises(ValueError, lambda: S.connect('i==j',
-                                                post=np.arange(10)))
+                                                j=np.arange(10)))
     assert_raises(TypeError, lambda: S.connect('i==j',
                                                n=object()))
     assert_raises(TypeError, lambda: S.connect('i==j',
                                                p=object()))
     assert_raises(TypeError, lambda: S.connect(object()))
 
-
-@attr('cpp_standalone', 'standalone-only')
+@attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
-def test_connection_array_standalone():
-    set_device('cpp_standalone', build_on_run=False)
-    # use a clock with 1s timesteps to avoid rounding issues
-    G1 = SpikeGeneratorGroup(4, np.array([0, 1, 2, 3]),
-                             [0, 1, 2, 3]*second, dt=1*second)
-    G2 = NeuronGroup(8, 'v:1')
-    S = Synapses(G1, G2, '', pre='v+=1', dt=1*second)
-    S.connect([0, 1, 2, 3], [0, 2, 4, 6])
-    mon = StateMonitor(G2, 'v', record=True, name='mon', dt=1*second, when='end')
-    net = Network(G1, G2, S, mon)
-    net.run(5*second)
-    tempdir = tempfile.mkdtemp()
-    device.build(directory=tempdir, compile=True, run=True, with_output=False)
-    expected = np.array([[1, 1, 1, 1, 1],
-                         [0, 0, 0, 0, 0],
-                         [0, 1, 1, 1, 1],
-                         [0, 0, 0, 0, 0],
-                         [0, 0, 1, 1, 1],
-                         [0, 0, 0, 0, 0],
-                         [0, 0, 0, 1, 1],
-                         [0, 0, 0, 0, 0]], dtype=np.float64)
-    assert_equal(mon.v, expected)
-    reset_device()
-
-
-def test_connection_string_deterministic_basic():
-    '''
-    Test connecting synapses with a deterministic string expression.
-    '''
-    G = NeuronGroup(17, 'v : 1', threshold='False')
-    G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
-    G2.v = '17 + i'
-
-    # Full connection
-    expected = np.ones((len(G), len(G2)))
-
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('True')
-    _compare(S, expected)
-
-
 def test_connection_string_deterministic():
     '''
     Test connecting synapses with a deterministic string expression.
@@ -198,151 +166,298 @@ def test_connection_string_deterministic():
     G2.v = '17 + i'
 
     # Full connection
-    expected = np.ones((len(G), len(G2)))
+    expected_full = np.ones((len(G), len(G2)))
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True)
-    _compare(S, expected)
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(True)
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('True')
-    _compare(S, expected)
-
-    S = Synapses(G, G2, 'w:1', 'v+=w', connect=True)
-    _compare(S, expected)
-
-    S = Synapses(G, G2, 'w:1', 'v+=w', connect='True')
-    _compare(S, expected)
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect('True')
 
     # Full connection without self-connections
-    expected = np.ones((len(G), len(G))) - np.eye(len(G))
+    expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i != j')
-    _compare(S, expected)
+    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5.connect('i != j')
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('v_pre != v_post')
-    _compare(S, expected)
+    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6.connect('v_pre != v_post')
 
-    S = Synapses(G, G, 'w:1', 'v+=w', connect='i != j')
-    _compare(S, expected)
+    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7.connect(condition='i != j')
 
     # One-to-one connectivity
-    expected = np.eye(len(G))
+    expected_one_to_one = np.eye(len(G))
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i == j')
-    _compare(S, expected)
+    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8.connect('i == j')
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('v_pre == v_post')
-    _compare(S, expected)
+    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9.connect('v_pre == v_post')
 
-    S = Synapses(G, G, 'w:1', 'v+=w', connect='i == j')
-    _compare(S, expected)
+    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10.connect(j='i')
 
     # Everything except for the upper [2, 2] quadrant
     number = 2
-    expected = np.ones((len(G), len(G)))
-    expected[:number, :number] = 0
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('(i >= number) or (j >= number)')
-    _compare(S, expected)
+    expected_custom = np.ones((len(G), len(G)))
+    expected_custom[:number, :number] = 0
+    S11 = Synapses(G, G, 'w:1', 'v+=w')
+    S11.connect('(i >= number) or (j >= number)')
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('(i >= explicit_number) or (j >= explicit_number)',
-              namespace={'explicit_number': number})
-    _compare(S, expected)
+    S12 = Synapses(G, G, 'w:1', 'v+=w')
+    S12.connect('(i >= explicit_number) or (j >= explicit_number)',
+                namespace={'explicit_number': number})
+
+    # check that this mistaken syntax raises an error
+    assert_raises(ValueError, lambda: S12.connect('k for k in range(1)'))
+
+    # check that trying to connect to a neuron outside the range raises an error
+    if get_device() == all_devices['runtime']:
+        assert_raises(IndexError, lambda: S12.connect(j='20'))
+
+    run(0*ms)  # for standalone
+
+    _compare(S1, expected_full)
+    _compare(S2, expected_full)
+    _compare(S5, expected_no_self)
+    _compare(S6, expected_no_self)
+    _compare(S7, expected_no_self)
+    _compare(S8, expected_one_to_one)
+    _compare(S9, expected_one_to_one)
+    _compare(S11, expected_custom)
+    _compare(S12, expected_custom)
 
 
-def test_connection_random_basic():
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_connection_random_with_condition():
     G = NeuronGroup(4, 'v: 1', threshold='False')
-    G2 = NeuronGroup(7, 'v: 1', threshold='False')
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True, p=0.0)
-    assert len(S) == 0
-    S.connect(True, p=1.0)
-    _compare(S, np.ones((len(G), len(G2))))
+    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1.connect('i!=j', p=0.0)
+
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect('i!=j', p=1.0)
+    expected2 = np.ones((len(G), len(G))) - np.eye(len(G))
+
+    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3.connect('i>=2', p=0.0)
+
+    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4.connect('i>=2', p=1.0)
+    expected4 = np.zeros((len(G), len(G)))
+    expected4[2, :] = 1
+    expected4[3, :] = 1
+
+    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5.connect('j<2', p=0.0)
+    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6.connect('j<2', p=1.0)
+    expected6 = np.zeros((len(G), len(G)))
+    expected6[:, 0] = 1
+    expected6[:, 1] = 1
+
+    # Just checking that everything works in principle (we can't check the
+    # actual connections)
+    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7.connect('i!=j', p=0.01)
+
+    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8.connect('i!=j', p=0.03)
+
+    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9.connect('i!=j', p=0.3)
+
+    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10.connect('i>=2', p=0.01)
+
+    S11 = Synapses(G, G, 'w:1', 'v+=w')
+    S11.connect('i>=2', p=0.03)
+
+    S12 = Synapses(G, G, 'w:1', 'v+=w')
+    S12.connect('i>=2', p=0.3)
+
+    S13 = Synapses(G, G, 'w:1', 'v+=w')
+    S13.connect('j>=2', p=0.01)
+
+    S14 = Synapses(G, G, 'w:1', 'v+=w')
+    S14.connect('j>=2', p=0.03)
+
+    S15 = Synapses(G, G, 'w:1', 'v+=w')
+    S15.connect('j>=2', p=0.3)
+
+    S16 = Synapses(G, G, 'w:1', 'v+=w')
+    S16.connect('i!=j', p='i*0.1')
+
+    S17 = Synapses(G, G, 'w:1', 'v+=w')
+    S17.connect('i!=j', p='j*0.1')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, expected2)
+    assert len(S3) == 0
+    _compare(S4, expected4)
+    assert len(S5) == 0
+    _compare(S6, expected6)
+    assert not any(S7.i == S7.j)
+    assert not any(S8.i == S8.j)
+    assert not any(S9.i == S9.j)
+    assert all(S10.i >= 2)
+    assert all(S11.i >= 2)
+    assert all(S12.i >= 2)
+    assert all(S13.j >= 2)
+    assert all(S14.j >= 2)
+    assert all(S15.j >= 2)
+    assert not any(S16.i == 0)
+    assert not any(S17.j == 0)
 
 
-def test_connection_random():
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_connection_random_with_indices():
     '''
     Test random connections.
     '''
     G = NeuronGroup(4, 'v: 1', threshold='False')
     G2 = NeuronGroup(7, 'v: 1', threshold='False')
-    # We can only test probabilities 0 and 1 for strict correctness
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('rand() < 0.')
-    assert len(S) == 0
-    S.connect('rand() < 1.', p=1.0)
-    _compare(S, np.ones((len(G), len(G2))))
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(0, 0, p=0.)
-    expected = np.zeros((len(G), len(G2)))
-    _compare(S, expected)
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(i=0, j=0, p=0.)
+    expected1 = np.zeros((len(G), len(G2)))
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(0, 0, p=1.)
-    expected = np.zeros((len(G), len(G2)))
-    expected[0, 0] = 1
-    _compare(S, expected)
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(i=0, j=0, p=1.)
+    expected2 = np.zeros((len(G), len(G2)))
+    expected2[0, 0] = 1
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect([0, 1], [0, 2], p=1.)
-    expected = np.zeros((len(G), len(G2)))
-    expected[0, 0] = 1
-    expected[1, 2] = 1
-    _compare(S, expected)
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(i=[0, 1], j=[0, 2], p=1.)
+    expected3 = np.zeros((len(G), len(G2)))
+    expected3[0, 0] = 1
+    expected3[1, 2] = 1
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('rand() < 1.', p=1.0)
-    _compare(S, np.ones((len(G), len(G2))))
+    # Just checking that it works in principle
+    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4.connect(i=0, j=0, p=0.01)
+    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5.connect(i=[0, 1], j=[0, 2], p=0.01)
+
+    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6.connect(i=0, j=0, p=0.03)
+
+    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7.connect(i=[0, 1], j=[0, 2], p=0.03)
+
+    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8.connect(i=0, j=0, p=0.3)
+
+    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9.connect(i=[0, 1], j=[0, 2], p=0.3)
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    _compare(S1, expected1)
+    _compare(S2, expected2)
+    _compare(S3, expected3)
+    assert 0 <= len(S4) <= 1
+    assert 0 <= len(S5) <= 2
+    assert 0 <= len(S6) <= 1
+    assert 0 <= len(S7) <= 2
+    assert 0 <= len(S8) <= 1
+    assert 0 <= len(S9) <= 2
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_connection_random_without_condition():
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(True, p=0.0)
+
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(True, p=1.0)
 
     # Just make sure using values between 0 and 1 work in principle
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True, p=0.3)
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect('rand() < 0.3')
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(True, p=0.3)
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i!=j', p=0.0)
-    assert len(S) == 0
-    S.connect('i!=j', p=1.0)
-    expected = np.ones((len(G), len(G))) - np.eye(len(G))
-    _compare(S, expected)
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2, 'w:1', pre='v+=w')
+    S4.connect(True, p='int(x_pre==2)*1.0')
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect('i!=j', p=0.3)
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S5 = Synapses(G, G2, 'w:1', pre='v+=w')
+    S5.connect(True, p='int(x_pre==2 and y_post > 0.5)*1.0')
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect(0, 0, p=0.3)
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
 
-    S = Synapses(G, G, 'w:1', 'v+=w')
-    S.connect([0, 1], [0, 2], p=0.3)
+    _compare(S1, np.zeros((len(G), len(G2))))
+    _compare(S2, np.ones((len(G), len(G2))))
+    assert 0 <= len(S3) <= len(G) * len(G2)
+    assert len(S4) == 7
+    assert_equal(S4.i, np.ones(7)*2)
+    assert_equal(S4.j, np.arange(7))
+    assert len(S5) == 3
+    assert_equal(S5.i, np.ones(3) * 2)
+    assert_equal(S5.j, np.arange(3) + 4)
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_multiple_synapses():
     '''
     Test multiple synapses per connection.
     '''
     G = NeuronGroup(42, 'v: 1', threshold='False')
+    G.v = 'i'
     G2 = NeuronGroup(17, 'v: 1', threshold='False')
+    G2.v = 'i'
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True, n=0)
-    assert len(S) == 0
-    S.connect(True, n=2)
-    _compare(S, 2*np.ones((len(G), len(G2))))
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(True, n=0)
 
-    S = Synapses(G, G2, 'w:1', 'v+=w')
-    S.connect(True, n='j')
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(True, n=2)
 
-    _compare(S, np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G),
-                                                              axis=0))
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(True, n='j')
+
+    S4 = Synapses(G, G2, 'w:1', 'v+=w')
+    S4.connect(True, n='i')
+
+    S5 = Synapses(G, G2, 'w:1', 'v+=w')
+    S5.connect(True, n='int(i>j)*2')
+
+    S6 = Synapses(G, G2, 'w:1', 'v+=w')
+    S6.connect(True, n='int(v_pre>v_post)*2')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, 2 * np.ones((len(G), len(G2))))
+    _compare(S3, np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G),
+                                                               axis=0))
+
+    _compare(S4, np.arange(len(G)).reshape(len(G), 1).repeat(len(G2),
+                                                             axis=1))
+    expected = np.zeros((len(G), len(G2)), dtype=np.int32)
+    for source in xrange(len(G)):
+        expected[source, :source] = 2
+    _compare(S5, expected)
+    _compare(S6, expected)
 
 
 def test_state_variable_assignment():
@@ -454,7 +569,8 @@ def test_state_variable_indexing():
 
 def test_indices():
     G = NeuronGroup(10, 'v : 1')
-    S = Synapses(G, G, '', connect=True)
+    S = Synapses(G, G, '')
+    S.connect()
     G.v = 'i'
 
     assert_equal(S.indices[:], np.arange(10*10))
@@ -516,7 +632,8 @@ def test_pre_before_post():
     # The pre pathway should be executed before the post pathway
     G = NeuronGroup(1, '''x : 1
                           y : 1''', threshold='True')
-    S = Synapses(G, G, '', pre='x=1; y=1', post='x=2', connect=True)
+    S = Synapses(G, G, '', pre='x=1; y=1', post='x=2')
+    S.connect()
     run(defaultclock.dt)
     # Both pathways should have been executed, but post should have overriden
     # the x value (because it was executed later)
@@ -528,7 +645,8 @@ def test_pre_before_post():
 def test_transmission_simple():
     source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
     target = NeuronGroup(2, 'v : 1')
-    syn = Synapses(source, target, pre='v += 1', connect='i==j')
+    syn = Synapses(source, target, pre='v += 1')
+    syn.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2.5*ms)
     assert_equal(mon[0].v[mon.t<2*ms], 0.)
@@ -542,8 +660,9 @@ def test_transmission_custom_event():
     source = NeuronGroup(2, '',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
     target = NeuronGroup(2, 'v : 1')
-    syn = Synapses(source, target, pre='v += 1', connect='i==j',
+    syn = Synapses(source, target, pre='v += 1',
                    on_event='custom')
+    syn.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2.5*ms)
     assert_equal(mon[0].v[mon.t<2*ms], 0.)
@@ -579,7 +698,8 @@ def test_transmission():
         source_mon = SpikeMonitor(source)
         target_mon = SpikeMonitor(target)
 
-        S = Synapses(source, target, pre='v+=1.1', connect='i==j')
+        S = Synapses(source, target, pre='v+=1.1')
+        S.connect(j='i')
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
         net.run(50*ms+default_dt+max(delay))
@@ -589,6 +709,7 @@ def test_transmission():
             assert_allclose(source_mon.t[source_mon.i==d],
                             target_mon.t[target_mon.i==d] - default_dt - delay[d])
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_transmission_all_to_one_heterogeneous_delays():
@@ -596,7 +717,8 @@ def test_transmission_all_to_one_heterogeneous_delays():
                                  [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
                                  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]*defaultclock.dt)
     target = NeuronGroup(1, 'v:1')
-    synapses = Synapses(source, target, pre='v_post += (i_pre+1)', connect=True)
+    synapses = Synapses(source, target, pre='v_post += (i_pre+1)')
+    synapses.connect()
     synapses.delay = [0, 0, 0, 1, 2, 1] * defaultclock.dt
 
     mon = StateMonitor(target, 'v', record=True, when='end')
@@ -606,12 +728,14 @@ def test_transmission_all_to_one_heterogeneous_delays():
     assert mon[0].v[2] == 33
     assert mon[0].v[3] == 48
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_transmission_one_to_all_heterogeneous_delays():
     source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
     target = NeuronGroup(6, 'v:integer')
-    synapses = Synapses(source, target, pre='v_post += (i_pre+1)', connect=True)
+    synapses = Synapses(source, target, pre='v_post += (i_pre+1)')
+    synapses.connect()
     synapses.delay = [0, 0, 1, 3, 2, 1] * defaultclock.dt
 
     mon = StateMonitor(target, 'v', record=True, when='end')
@@ -623,18 +747,21 @@ def test_transmission_one_to_all_heterogeneous_delays():
     assert_equal(mon[4].v, [0, 0, 1, 1])
     assert_equal(mon[5].v, [0, 1, 1, 2])
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
-    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
+    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms)
+    S.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2*ms)
     assert_equal(mon[0].v[mon.t<0.5*ms], 0)
     assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -645,7 +772,8 @@ def test_transmission_scalar_delay_different_clocks():
                               # get a 'fresh' warning
                               name='sg_%d' % uuid.uuid4())
     target = NeuronGroup(2, 'v:1', dt=0.1*ms)
-    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms, connect='i==j')
+    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms)
+    S.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
 
     if get_device() == all_devices['runtime']:
@@ -673,7 +801,8 @@ def test_clocks():
     source = NeuronGroup(1, 'v:1', dt=source_dt, threshold='False')
     target = NeuronGroup(1, 'v:1', dt=target_dt, threshold='False')
     synapse = Synapses(source, target, 'w:1', pre='v+=1', post='v+=1',
-                       dt=synapse_dt, connect=True)
+                       dt=synapse_dt)
+    synapse.connect()
 
     assert synapse.pre.clock is source.clock
     assert synapse.post.clock is target.clock
@@ -718,6 +847,7 @@ def test_no_synapses():
         net.run(defaultclock.dt)
         assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
         assert l[0][1].endswith('.no_synapses')
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -774,7 +904,8 @@ def test_scalar_parameter_access():
     S = Synapses(G, G, '''w : 1
                           s : Hz (shared)
                           number : 1 (shared)''',
-                 pre = 'v+=w*number', connect=True)
+                 pre = 'v+=w*number')
+    S.connect()
 
     # Try setting a scalar variable
     S.s = 100*Hz
@@ -812,14 +943,16 @@ def test_scalar_subexpression():
                            number : 1 (shared)''', threshold='False')
     S = Synapses(G, G, '''s : 1 (shared)
                           sub = number_post + s : 1 (shared)''',
-                 pre='v+=s', connect=True)
+                 pre='v+=s')
+    S.connect()
     S.s = 100
     G.number = 50
     assert S.sub[:] == 150
 
     assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (shared)
                                                      sub = v_post + s : 1 (shared)''',
-                                                pre='v+=s', connect=True))
+                                                pre='v+=s'))
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -830,7 +963,8 @@ def test_external_variables():
     w_var = 1
     amplitude = 2
     syn = Synapses(source, target, 'w=w_var : 1',
-                   pre='v+=amplitude*w', connect=True)
+                   pre='v+=amplitude*w')
+    syn.connect()
     run(defaultclock.dt)
     assert target.v[0] == 2
 
@@ -863,8 +997,8 @@ def test_event_driven():
                   pre='''Apre += dApre
                          w = clip(w+Apost, 0, gmax)''',
                   post='''Apost += dApost
-                          w = clip(w+Apre, 0, gmax)''',
-                  connect='i==j')
+                          w = clip(w+Apre, 0, gmax)''')
+    S1.connect(j='i')
     # not event-driven
     S2 = Synapses(pre, post,
                   '''w : 1
@@ -875,8 +1009,8 @@ def test_event_driven():
                          w = clip(w+Apost, 0, gmax)''',
                   post='''Apre=Apre*exp((lastupdate-t)/taupre)
                           Apost=Apost*exp((lastupdate-t)/taupost) +dApost
-                          w = clip(w+Apre, 0, gmax)''',
-                  connect='i==j')
+                          w = clip(w+Apre, 0, gmax)''')
+    S2.connect(j='i')
     S1.w = 0.5*gmax
     S2.w = 0.5*gmax
     run(25*ms)
@@ -898,6 +1032,7 @@ def test_repr():
     # Test that string/LaTeX representations do not raise errors
     for func in [str, repr, sympy.latex]:
         assert len(func(S.equations))
+
 
 @attr('codegen-independent')
 def test_variables_by_owner():
@@ -921,6 +1056,7 @@ def test_variables_by_owner():
     # Just test a few examples for synaptic variables
     assert all(varname in variables_by_owner(S.variables, S)
                for varname in ['x', 'N', 'N_incoming', 'N_outgoing'])
+
 
 @attr('codegen-independent')
 def check_permutation_code(code):
@@ -947,6 +1083,7 @@ def check_permutation_code(code):
     variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
     check_for_order_independence(vector_statements, variables, indices)
+
 
 def numerically_check_permutation_code(code):
     # numerically checks that a code block used in the test below is permutation-independent by creating a
@@ -1141,6 +1278,7 @@ permutation_analysis_bad_examples = [
     ''',
     ]
 
+
 @attr('codegen-independent')
 def test_permutation_analysis():
     # Examples that should work
@@ -1170,6 +1308,7 @@ def test_permutation_analysis():
         except AssertionError:
             raise AssertionError("Order dependence not raised for example: "+example)
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_vectorisation():
@@ -1179,7 +1318,8 @@ def test_vectorisation():
     syn = Synapses(source, target, 'w_syn : 1',
                    pre='''v_pre += w_syn
                           x_post = y_post
-                       ''', connect=True)
+                       ''')
+    syn.connect()
     syn.w_syn = 1
     source.v['i<5'] = 2
     target.y = 'i'
@@ -1187,6 +1327,7 @@ def test_vectorisation():
     assert_equal(source.v[:5], 12)
     assert_equal(source.v[5:], 0)
     assert_equal(target.x[:], target.y[:])
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -1212,7 +1353,8 @@ def test_vectorisation_STDP_like():
                        ''',
                    post='''A_post += 1
                            w_fac = clip(w_fac + A_pre, 0, w_max)
-                        ''', connect=True)
+                        ''')
+    syn.connect()
     neurons.rate = 1000*Hz
     neurons.v = 'abs(3-i)*0.1 + 0.7'
     run(2*ms)
@@ -1236,16 +1378,19 @@ def test_vectorisation_STDP_like():
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
                     rtol=1e-6, atol=1e-12)
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_synaptic_equations():
     # Check that integration works for synaptic equations
     G = NeuronGroup(10, '')
     tau = 10*ms
-    S = Synapses(G, G, 'dw/dt = -w / tau : 1 (clock-driven)', connect='i==j')
+    S = Synapses(G, G, 'dw/dt = -w / tau : 1 (clock-driven)')
+    S.connect(j='i')
     S.w = 'i'
     run(10*ms)
     assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -1253,9 +1398,11 @@ def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
     target = NeuronGroup(3, 'v : integer')
-    conn = Synapses(source, target, 'w : integer', pre='v += w', connect='i==j')
+    conn = Synapses(source, target, 'w : integer', pre='v += w')
+    conn.connect(j='i')
     conn.w = 1
-    modulatory_conn = Synapses(modulator, conn, pre='w += 1', connect='i==j')
+    modulatory_conn = Synapses(modulator, conn, pre='w += 1')
+    modulatory_conn.connect(j='i')
     run(5*ms)
     # First group has its weight increased to 2 after the first spike
     # Third group has its weight increased to 2 after the second spike
@@ -1304,7 +1451,8 @@ def test_ufunc_at_vectorisation():
                     tgt = NeuronGroup(3, eqs_tgt, name='tgt')
                     syn = Synapses(src, tgt, eqs_syn,
                                    pre=code.replace('_syn', '').replace('_const', '').replace('_shared', ''),
-                                   connect=True, name='syn', namespace=vars_const)
+                                   name='syn', namespace=vars_const)
+                    syn.connect()
                     for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
                         for var in vars:
                             fullvar = var+G.name
@@ -1340,13 +1488,339 @@ def test_ufunc_at_vectorisation():
 def test_synapses_to_synapses_summed_variable():
     source = NeuronGroup(5, '', threshold='False')
     target = NeuronGroup(5, '')
-    conn = Synapses(source, target, 'w : integer', connect='i==j')
+    conn = Synapses(source, target, 'w : integer')
+    conn.connect(j='i')
     conn.w = 1
     summed_conn = Synapses(source, conn, '''w_post = x : integer (summed)
-                                            x : integer''', connect='i>=j')
+                                            x : integer''')
+    summed_conn.connect('i>=j')
     summed_conn.x = 'i'
     run(defaultclock.dt)
     assert_array_equal(conn.w[:], [10, 10, 9, 7, 4])
+
+
+@attr('codegen-independent')
+def test_synapse_generator_syntax():
+    parsed = parse_synapse_generator('k for k in sample(1, N, p=p) if abs(i-k)<10')
+    assert parsed['element'] == 'k'
+    assert parsed['iteration_variable'] == 'k'
+    assert parsed['iterator_func'] == 'sample'
+    assert parsed['iterator_kwds']['low'] == '1'
+    assert parsed['iterator_kwds']['high'] == 'N'
+    assert parsed['iterator_kwds']['step'] == '1'
+    assert parsed['iterator_kwds']['p'] == 'p'
+    assert parsed['iterator_kwds']['size'] is None
+    assert parsed['iterator_kwds']['sample_size'] == 'random'
+    assert parsed['if_expression'] == 'abs(i - k) < 10'
+    parsed = parse_synapse_generator('k for k in sample(N, size=5) if abs(i-k)<10')
+    assert parsed['element'] == 'k'
+    assert parsed['iteration_variable'] == 'k'
+    assert parsed['iterator_func'] == 'sample'
+    assert parsed['iterator_kwds']['low'] == '0'
+    assert parsed['iterator_kwds']['high'] == 'N'
+    assert parsed['iterator_kwds']['step'] == '1'
+    assert parsed['iterator_kwds']['p'] is None
+    assert parsed['iterator_kwds']['size'] == '5'
+    assert parsed['iterator_kwds']['sample_size'] == 'fixed'
+    assert parsed['if_expression'] == 'abs(i - k) < 10'
+    parsed = parse_synapse_generator('k+1 for k in range(i-100, i+100, 2)')
+    assert parsed['element'] == 'k + 1'
+    assert parsed['iteration_variable'] == 'k'
+    assert parsed['iterator_func'] == 'range'
+    assert parsed['iterator_kwds']['low'] == 'i - 100'
+    assert parsed['iterator_kwds']['high'] == 'i + 100'
+    assert parsed['iterator_kwds']['step'] == '2'
+    assert parsed['if_expression'] == 'True'
+    assert_raises(SyntaxError, parse_synapse_generator, 'mad rubbish')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k+1')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range()')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range(1,2,3,4)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range(1,2,3) if ')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k[1:3] for k in range(1,2,3)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x[1:5]')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample()')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, p=0.1, size=5)')
+    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapse_generator_deterministic():
+    # Same as "test_connection_string_deterministic" but using the generator
+    # syntax
+    G = NeuronGroup(16, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '16 + i'
+
+    # Full connection
+    expected_full = np.ones((len(G), len(G2)))
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(j='k for k in range(N_post)')
+
+    # Full connection without self-connections
+    expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
+
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect(j='k for k in range(N_post) if k != i')
+
+    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    # slightly confusing with j on the RHS, but it should work...
+    S3.connect(j='k for k in range(N_post) if j != i')
+
+    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4.connect(j='k for k in range(N_post) if v_post != v_pre')
+
+    # One-to-one connectivity
+    expected_one_to_one = np.eye(len(G))
+
+    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5.connect(j='k for k in range(N_post) if k == i')  # inefficient
+
+    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    # slightly confusing with j on the RHS, but it should work...
+    S6.connect(j='k for k in range(N_post) if j == i')  # inefficient
+
+    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7.connect(j='k for k in range(N_post) if v_pre == v_post')  # inefficient
+
+    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8.connect(j='i for _ in range(1)')  # efficient
+
+    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9.connect(j='i')  # short form of the above
+
+    # A few more tests of deterministic connections where the generator syntax
+    # is particularly useful
+
+    # Ring structure
+    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10.connect(j='(i + (-1)**k) % N_post for k in range(2)')
+    expected_ring = np.zeros((len(G), len(G)), dtype=np.int32)
+    expected_ring[np.arange(15), np.arange(15)+1] = 1  # Next cell
+    expected_ring[np.arange(1, 16), np.arange(15)] = 1  # Previous cell
+    expected_ring[[0, 15], [15, 0]] = 1  # wrap around the ring
+
+    # Diverging connection pattern
+    S11 = Synapses(G2, G, 'w:1', 'v+=w')
+    S11.connect(j='i*4 + k for k in range(4)')
+    expected_diverging = np.zeros((len(G2), len(G)), dtype=np.int32)
+    for source in xrange(4):
+        expected_diverging[source, np.arange(4) + source*4] = 1
+
+    # Converging connection pattern
+    S12 = Synapses(G, G2, 'w:1', 'v+=w')
+    S12.connect(j='int(i/4)')
+    expected_converging = np.zeros((len(G), len(G2)), dtype=np.int32)
+    for target in xrange(4):
+        expected_converging[np.arange(4) + target*4, target] = 1
+
+    # skip if invalid
+    S13 = Synapses(G2, G2, 'w:1', 'v+=w')
+    S13.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
+    expected_offdiagonal = np.zeros((len(G2), len(G2)), dtype=np.int32)
+    expected_offdiagonal[np.arange(len(G2)-1), np.arange(len(G2)-1)+1] = 1
+    expected_offdiagonal[np.arange(len(G2)-1)+1, np.arange(len(G2)-1)] = 1
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    _compare(S1, expected_full)
+    _compare(S2, expected_no_self)
+    _compare(S3, expected_no_self)
+    _compare(S4, expected_no_self)
+    _compare(S5, expected_one_to_one)
+    _compare(S6, expected_one_to_one)
+    _compare(S7, expected_one_to_one)
+    _compare(S8, expected_one_to_one)
+    _compare(S9, expected_one_to_one)
+    _compare(S10, expected_ring)
+    _compare(S11, expected_diverging)
+    _compare(S12, expected_converging)
+    _compare(S13, expected_offdiagonal)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapse_generator_random():
+    # The same tests as test_connection_random_without_condition, but using
+    # the generator syntax
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(j='k for k in sample(N_post, p=0)')
+
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(j='k for k in sample(N_post, p=1)')
+
+    # Just make sure using values between 0 and 1 work in principle
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(j='k for k in sample(N_post, p=0.3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2, 'w:1', pre='v+=w')
+    S4.connect(j='k for k in sample(N_post, p=int(x_pre==2)*1.0)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, np.ones((len(G), len(G2))))
+    assert 0 <= len(S2) <= len(G) * len(G2)
+    assert len(S4) == 7
+    assert_equal(S4.i, np.ones(7)*2)
+    assert_equal(S4.j, np.arange(7))
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapse_generator_random_with_condition():
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+
+    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1.connect(j='k for k in sample(N_post, p=0) if i != k')
+
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect(j='k for k in sample(N_post, p=1) if i != k')
+    expected2 = np.ones((len(G), len(G))) - np.eye(len(G))
+
+    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3.connect(j='k for k in sample(N_post, p=0) if i >= 2')
+
+    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4.connect(j='k for k in sample(N_post, p=1.0) if i >= 2')
+    expected4 = np.zeros((len(G), len(G)))
+    expected4[2, :] = 1
+    expected4[3, :] = 1
+
+    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5.connect(j='k for k in sample(N_post, p=0) if j < 2')  # inefficient
+
+    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6.connect(j='k for k in sample(2, p=0)')  # better
+
+    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    expected7 = np.zeros((len(G), len(G)))
+    expected7[:, 0] = 1
+    expected7[:, 1] = 1
+    S7.connect(j='k for k in sample(N_post, p=1.0) if j < 2')  # inefficient
+
+    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8.connect(j='k for k in sample(2, p=1.0)')  # better
+
+    # Just checking that everything works in principle (we can't check the
+    # actual connections)
+    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9.connect(j='k for k in sample(N_post, p=0.001) if i != k')
+
+    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10.connect(j='k for k in sample(N_post, p=0.03) if i != k')
+
+    S11 = Synapses(G, G, 'w:1', 'v+=w')
+    S11.connect(j='k for k in sample(N_post, p=0.1) if i != k')
+
+    S12 = Synapses(G, G, 'w:1', 'v+=w')
+    S12.connect(j='k for k in sample(N_post, p=0.9) if i != k')
+
+    S13 = Synapses(G, G, 'w:1', 'v+=w')
+    S13.connect(j='k for k in sample(N_post, p=0.001) if i >= 2')
+
+    S14 = Synapses(G, G, 'w:1', 'v+=w')
+    S14.connect(j='k for k in sample(N_post, p=0.03) if i >= 2')
+
+    S15 = Synapses(G, G, 'w:1', 'v+=w')
+    S15.connect(j='k for k in sample(N_post, p=0.1) if i >= 2')
+
+    S16 = Synapses(G, G, 'w:1', 'v+=w')
+    S16.connect(j='k for k in sample(N_post, p=0.9) if i >= 2')
+
+    S17 = Synapses(G, G, 'w:1', 'v+=w')
+    S17.connect(j='k for k in sample(N_post, p=0.001) if j < 2')
+
+    S18 = Synapses(G, G, 'w:1', 'v+=w')
+    S18.connect(j='k for k in sample(N_post, p=0.03) if j < 2')
+
+    S19 = Synapses(G, G, 'w:1', 'v+=w')
+    S19.connect(j='k for k in sample(N_post, p=0.1) if j < 2')
+
+    S20 = Synapses(G, G, 'w:1', 'v+=w')
+    S20.connect(j='k for k in sample(N_post, p=0.9) if j < 2')
+
+    S21 = Synapses(G, G, 'w:1', 'v+=w')
+    S21.connect(j='k for k in sample(2, p=0.001)')
+
+    S22 = Synapses(G, G, 'w:1', 'v+=w')
+    S22.connect(j='k for k in sample(2, p=0.03)')
+
+    S23 = Synapses(G, G, 'w:1', 'v+=w')
+    S23.connect(j='k for k in sample(2, p=0.1)')
+
+    S24 = Synapses(G, G, 'w:1', 'v+=w')
+    S24.connect(j='k for k in sample(2, p=0.9)')
+
+    # Some more tests specific to the generator syntax
+    S25 = Synapses(G, G, 'w:1', pre='v+=w')
+    S25.connect(j='i+1 for _ in sample(1, p=0.5) if i < N_post-1')
+
+    S26 = Synapses(G, G, 'w:1', pre='v+=w')
+    S26.connect(j='i+k for k in sample(N_post-i, p=0.5)')
+
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0 * ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, expected2)
+    assert len(S3) == 0
+    _compare(S4, expected4)
+    assert len(S5) == 0
+    assert len(S6) == 0
+    _compare(S7, expected7)
+    _compare(S8, expected7)
+    assert not any(S9.i == S9.j)
+    assert 0 <= len(S9) <= len(G) * (len(G) - 1)
+    assert not any(S10.i == S10.j)
+    assert 0 <= len(S10) <= len(G) * (len(G) - 1)
+    assert not any(S11.i == S11.j)
+    assert 0 <= len(S11) <= len(G) * (len(G) - 1)
+    assert not any(S12.i == S12.j)
+    assert 0 <= len(S12) <= len(G) * (len(G) - 1)
+    assert all(S13.i[:] >= 2)
+    assert 0 <= len(S13) <= len(G) * (len(G) - 1)
+    assert all(S14.i[:] >= 2)
+    assert 0 <= len(S14) <= len(G) * (len(G) - 1)
+    assert all(S15.i[:] >= 2)
+    assert 0 <= len(S15) <= len(G) * (len(G) - 1)
+    assert all(S16.i[:] >= 2)
+    assert 0 <= len(S16) <= len(G) * (len(G) - 1)
+    assert all(S17.j[:] < 2)
+    assert 0 <= len(S17) <= len(G) * (len(G) - 1)
+    assert all(S18.j[:] < 2)
+    assert 0 <= len(S18) <= len(G) * (len(G) - 1)
+    assert all(S19.j[:] < 2)
+    assert 0 <= len(S19) <= len(G) * (len(G) - 1)
+    assert all(S20.j[:] < 2)
+    assert 0 <= len(S20) <= len(G) * (len(G) - 1)
+    assert all(S21.j[:] < 2)
+    assert 0 <= len(S21) <= len(G) * (len(G) - 1)
+    assert all(S22.j[:] < 2)
+    assert 0 <= len(S22) <= len(G) * (len(G) - 1)
+    assert all(S23.j[:] < 2)
+    assert 0 <= len(S23) <= len(G) * (len(G) - 1)
+    assert all(S24.j[:] < 2)
+    assert 0 <= len(S24) <= len(G) * (len(G) - 1)
+    assert 0 <= len(S25) <= len(G)
+    assert_equal(S25.j[:], S25.i[:] + 1)
+    assert 0 <= len(S26) <= (1 + len(G)) * (len(G) / 2)
+    assert all(S26.j[:] >= S26.i[:])
 
 
 if __name__ == '__main__':
@@ -1361,10 +1835,11 @@ if __name__ == '__main__':
     test_name_clashes()
     test_incoming_outgoing()
     test_connection_string_deterministic()
-    test_connection_random()
+    test_connection_random_with_condition()
+    test_connection_random_without_condition()
+    test_connection_random_with_indices()
     test_connection_multiple_synapses()
     test_connection_arrays()
-    test_connection_array_standalone()
     reinit_devices()
     test_state_variable_assignment()
     test_state_variable_indexing()
@@ -1397,6 +1872,13 @@ if __name__ == '__main__':
     test_synaptic_equations()
     test_synapses_to_synapses()
     test_synapses_to_synapses_summed_variable()
-    test_ufunc_at_vectorisation()
+    try:
+        test_ufunc_at_vectorisation()
+    except SkipTest:
+        print('Skipping numpy-only test')
+    test_synapse_generator_syntax()
+    test_synapse_generator_deterministic()
+    test_synapse_generator_random()
+    test_synapse_generator_random_with_condition()
 
     print 'Tests took', time.time()-start

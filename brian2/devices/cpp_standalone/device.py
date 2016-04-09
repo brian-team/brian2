@@ -812,7 +812,8 @@ class CPPStandaloneDevice(Device):
                     stdout.close()
                 if os.path.exists('results/stdout.txt'):
                     print open('results/stdout.txt', 'r').read()
-                raise RuntimeError("Project run failed")
+                raise RuntimeError("Project run failed (project directory: "
+                                   "%s)" % os.path.abspath(directory))
             self.has_been_run = True
             if os.path.isfile('results/last_run_info.txt'):
                 last_run_info = open('results/last_run_info.txt', 'r').read()

@@ -11,19 +11,6 @@ N.B.: network construction can be long.
 from brian2 import *
 import time
 
-# Uncomment if you have a C compiler and you are running on Python 2.x
-#prefs.codegen.target = 'weave'
-# Uncomment if you have a C compiler and you are running on Python 3.x
-#prefs.codegen.target = 'cython'
-# Set this to True to run in standalone mode (much faster, but requires a
-# C++ compiler to be installed).
-standalone = False
-# Change this to use multiple OpenMP threads
-#prefs.codegen.cpp_standalone.openmp_threads = 1
-
-if standalone:
-    set_device('cpp_standalone')
-
 t1 = time.time()
 
 # PARAMETERS
@@ -134,22 +121,18 @@ print('excitatory lateral')
 # Excitatory lateral connections
 recurrent_exc = Synapses(layer23exc, layer23, model='w:volt', pre='ge+=w',
                          name='recurrent_exc')
-recurrent_exc.connect('j<Nbarrels*N23exc',  # excitatory->excitatory
-                      p='.15*exp(-.5*(((x_pre-x_post)/.4)**2+((y_pre-y_post)/.4)**2))')
-recurrent_exc.w['j<Nbarrels*N23exc'] = EPSC*.3
-recurrent_exc.connect('j>=Nbarrels*N23exc',  # excitatory->inhibitory
-                      p='.15*exp(-.5*(((x_pre-x_post)/.4)**2+((y_pre-y_post)/.4)**2))')
-recurrent_exc.w['j>=Nbarrels*N23exc'] = EPSC
+recurrent_exc.connect(p='.15*exp(-.5*(((x_pre-x_post)/.4)**2+((y_pre-y_post)/.4)**2))')
+recurrent_exc.w['j<Nbarrels*N23exc'] = EPSC*.3 # excitatory->excitatory
+recurrent_exc.w['j>=Nbarrels*N23exc'] = EPSC # excitatory->inhibitory
 
 
 # Inhibitory lateral connections
 print('inhibitory lateral')
 recurrent_inh = Synapses(layer23inh, layer23exc, pre='gi+=IPSC',
                          name='recurrent_inh')
-recurrent_inh.connect('True',  # excitatory->inhibitory
-                      p='exp(-.5*(((x_pre-x_post)/.2)**2+((y_pre-y_post)/.2)**2))')
+recurrent_inh.connect(p='exp(-.5*(((x_pre-x_post)/.2)**2+((y_pre-y_post)/.2)**2))')
 
-if not standalone:
+if get_device().__class__.__name__=='RuntimeDevice':
     print('Total number of connections')
     print('feedforward: %d' % len(feedforward))
     print('recurrent exc: %d' % len(recurrent_exc))
@@ -159,7 +142,6 @@ if not standalone:
     print("Construction time: %.1fs" % (t2 - t1))
 
 run(5*second, report='text')
-device.build(directory='barrelcortex', compile=True, run=True)
 
 # Calculate the preferred direction of each cell in layer23 by doing a
 # vector average of the selectivity of the projecting layer4 cells, weighted

@@ -83,7 +83,8 @@ different contexts. Let's consider the following example::
 
     G = NeuronGroup(5, 'dv/dt = -v / tau : volt')
     subG = G[2:]
-    S = Synapses(G, G, pre='v+=1*mV', connect=True)
+    S = Synapses(G, G, pre='v+=1*mV')
+    S.connect()
 
 All allow an access to the state variable `v` (note the different shapes, these
 arise from the different indices used, see below)::

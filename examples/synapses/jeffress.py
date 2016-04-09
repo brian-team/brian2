@@ -42,7 +42,7 @@ neurons = NeuronGroup(num_neurons, eqs_neurons, threshold='v>1',
                       reset='v = 0', name='neurons')
 
 synapses = Synapses(ears, neurons, pre='v += .5')
-synapses.connect(True)
+synapses.connect()
 
 synapses.delay['i==0'] = '(1.0*j)/(num_neurons-1)*1.1*max_delay'
 synapses.delay['i==1'] = '(1.0*(num_neurons-j-1))/(num_neurons-1)*1.1*max_delay'
