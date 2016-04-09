@@ -41,7 +41,7 @@ dv/dt = -v / tau + sigma * (2 / tau)**.5 * xi : 1
 neurons = NeuronGroup(num_neurons, eqs_neurons, threshold='v>1',
                       reset='v = 0', name='neurons')
 
-synapses = Synapses(ears, neurons, pre='v += .5')
+synapses = Synapses(ears, neurons, on_pre='v += .5')
 synapses.connect()
 
 synapses.delay['i==0'] = '(1.0*j)/(num_neurons-1)*1.1*max_delay'

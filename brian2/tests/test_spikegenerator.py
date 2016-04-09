@@ -23,7 +23,7 @@ def test_spikegenerator_connected():
     indices = np.array([3, 2, 1, 1, 4, 5])
     times =   np.array([6, 5, 4, 3, 3, 1]) * ms
     SG = SpikeGeneratorGroup(10, indices, times)
-    S = Synapses(SG, G, pre='v+=1')
+    S = Synapses(SG, G, on_pre='v+=1')
     S.connect(j='i')
     run(7*ms)
     # The following neurons should not receive any spikes
@@ -222,7 +222,7 @@ def test_spikegenerator_rounding():
     SG = SpikeGeneratorGroup(1, indices, times, dt=dt)
     target = NeuronGroup(1, 'count : 1',
                          threshold='True', reset='count=0')  # set count to zero at every time step
-    syn = Synapses(SG, target, pre='count+=1')
+    syn = Synapses(SG, target, on_pre='count+=1')
     syn.connect()
     mon = StateMonitor(target, 'count', record=0, when='end')
     net = Network(SG, target, syn, mon)
@@ -241,7 +241,7 @@ def test_spikegenerator_rounding_long():
     times = np.arange(N)*dt
     SG = SpikeGeneratorGroup(1, indices, times, dt=dt)
     target = NeuronGroup(1, 'count : 1')
-    syn = Synapses(SG, target, pre='count+=1')
+    syn = Synapses(SG, target, on_pre='count+=1')
     syn.connect()
     spikes = SpikeMonitor(SG)
     mon = StateMonitor(target, 'count', record=0, when='end')
@@ -260,7 +260,7 @@ def test_spikegenerator_rounding_period():
     times = np.arange(N)*dt
     SG = SpikeGeneratorGroup(1, indices, times, dt=dt, period=N*dt)
     target = NeuronGroup(1, 'count : 1')
-    syn = Synapses(SG, target, pre='count+=1')
+    syn = Synapses(SG, target, on_pre='count+=1')
     syn.connect()
     spikes = SpikeMonitor(SG)
     mon = StateMonitor(target, 'count', record=0, when='end')

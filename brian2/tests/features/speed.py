@@ -114,8 +114,8 @@ class CUBAFixedConnectivity(SpeedTest):
 
         we = (60 * 0.27 / 10) * mV  # excitatory synaptic weight (voltage)
         wi = (-20 * 4.5 / 10) * mV  # inhibitory synaptic weight
-        Ce = Synapses(P, P, pre='ge += we')
-        Ci = Synapses(P, P, pre='gi += wi')
+        Ce = Synapses(P, P, on_pre='ge += we')
+        Ci = Synapses(P, P, on_pre='gi += wi')
         Ce.connect('i<Ne', p=80. / N)
         Ci.connect('i>=Ne', p=80. / N)
 
@@ -141,7 +141,7 @@ class SynapsesOnly(object):
             M = 1
         G = NeuronGroup(M, 'v:1', threshold='True')
         H = NeuronGroup(N, 'w:1')
-        S = Synapses(G, H, pre='w += 1.0')
+        S = Synapses(G, H, on_pre='w += 1.0')
         S.connect(True, p=self.p)
         #M = SpikeMonitor(G)
         self.timed_run(self.duration,

@@ -65,8 +65,8 @@ P = NeuronGroup(4000, model=eqs, threshold='v>-20*mV', refractory=3*ms,
                 method='exponential_euler')
 Pe = P[:3200]
 Pi = P[3200:]
-Ce = Synapses(Pe, P, pre='ge+=we')
-Ci = Synapses(Pi, P, pre='gi+=wi')
+Ce = Synapses(Pe, P, on_pre='ge+=we')
+Ci = Synapses(Pi, P, on_pre='gi+=wi')
 Ce.connect(p=0.02)
 Ci.connect(p=0.02)
 

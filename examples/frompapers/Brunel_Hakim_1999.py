@@ -34,7 +34,7 @@ dV/dt = (-V+muext + sigmaext * sqrt(tau) * xi)/tau : volt
 group = NeuronGroup(N, eqs, threshold='V>theta',
                     reset='V=Vr', refractory=taurefr)
 group.V = Vr
-conn = Synapses(group, group, pre='V += -J', delay=delta)
+conn = Synapses(group, group, on_pre='V += -J', delay=delta)
 conn.connect(p=sparseness)
 M = SpikeMonitor(group)
 LFP = PopulationRateMonitor(group)

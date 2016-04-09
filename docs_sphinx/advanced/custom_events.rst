@@ -38,8 +38,8 @@ providing an ``on_event`` keyword that either specifies which event to use for a
 pathways, or a specific event for each pathway (where non-specified pathways use
 the default ``spike`` event)::
 
-    synapse_1 = Synapses(group, another_group, '...', pre='...', on_event='custom_event')
-    synapse_2 = Synapses(group, another_group, '...', pre='...', post='...',
+    synapse_1 = Synapses(group, another_group, '...', on_pre='...', on_event='custom_event')
+    synapse_2 = Synapses(group, another_group, '...', on_pre='...', on_post='...',
                          on_event={'pre': 'custom_event'})
 
 Scheduling

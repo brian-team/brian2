@@ -21,7 +21,7 @@ class SynapsesPre(FeatureTest):
         G = NeuronGroup(10, eqs, threshold='V>1', reset='V=0')
         G.k = linspace(1, 5, len(G))
         H = NeuronGroup(10, 'V:1')
-        S = Synapses(G, H, pre='V += 1')
+        S = Synapses(G, H, on_pre='V += 1')
         S.connect(j='i')
         self.H = H
         run(101*ms)
@@ -48,7 +48,7 @@ class SynapsesPost(FeatureTest):
         G = NeuronGroup(10, eqs, threshold='V>1', reset='V=0')
         G.k = linspace(1, 5, len(G))
         H = NeuronGroup(10, 'V:1')
-        S = Synapses(H, G, post='V_pre += 1')
+        S = Synapses(H, G, on_post='V_pre += 1')
         S.connect(j='i')
         self.H = H
         run(101*ms)
@@ -118,7 +118,7 @@ class SynapsesSTDP(FeatureTest):
         
         S.w       = fac*connectivity.flatten()
 
-        T         = Synapses(Q, P, model = "w : 1", pre="g += w*mV")
+        T         = Synapses(Q, P, model = "w : 1", on_pre="g += w*mV")
         T.connect(j='i')
         T.w       = 10*fac
 
