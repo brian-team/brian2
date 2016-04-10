@@ -14,7 +14,7 @@ from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.devices.device import get_device
+from brian2.devices.device import get_device, RuntimeDevice
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, INTEGER)
@@ -25,8 +25,11 @@ from brian2.units.fundamentalunits import (Unit, Quantity,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import word_substitute, get_identifiers
 from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
+from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
+from brian2.parsing.rendering import NodeRenderer
 
 MAX_SYNAPSES = 2147483647
 
@@ -508,9 +511,10 @@ class SynapticIndexing(object):
 
 class Synapses(Group):
     '''
-    Class representing synaptic connections. Creating a new `Synapses` object
-    does by default not create any synapses -- you either have to provide
-    the `connect` argument or call the `Synapses.connect` method for that.
+    Class representing synaptic connections.
+
+    Creating a new `Synapses` object does by default not create any synapses,
+    you have to call the `Synapses.connect` method for that.
 
     Parameters
     ----------
@@ -520,9 +524,9 @@ class Synapses(Group):
     target : `Group`, optional
         The target of the spikes, typically a `NeuronGroup`. If none is given,
         the same as `source`
-    model : {`str`, `Equations`}, optional
+    model : `str`, `Equations`, optional
         The model equations for the synapses.
-    pre : {str, dict}, optional
+    pre : str, dict, optional
         The code that will be executed after every pre-synaptic spike. Can be
         either a single (possibly multi-line) string, or a dictionary mapping
         pathway names to code strings. In the first case, the pathway will be
@@ -530,17 +534,10 @@ class Synapses(Group):
         In the latter case, the given names will be used as the
         pathway/attribute names. Each pathway has its own code and its own
         delays.
-    post : {str, dict}, optional
+    post : str, dict, optional
         The code that will be executed after every post-synaptic spike. Same
         conventions as for `pre`, the default name for the pathway is ``post``.
-    connect : {str, bool}. optional
-        Determines whether any actual synapses are created. ``False`` (the
-        default) means not to create any synapses, ``True`` means to create
-        synapses between all source/target pairs. Also accepts a string
-        expression that evaluates to ``True`` for every synapse that should
-        be created, e.g. ``'i == j'`` for a one-to-one connectivity. See
-        `Synapses.connect` for more details.
-    delay : {`Quantity`, dict}, optional
+    delay : `Quantity`, dict, optional
         The delay for the "pre" pathway (same for all synapses) or a dictionary
         mapping pathway names to delays. If a delay is specified in this way
         for a pathway, it is stored as a single scalar value. It can still
@@ -567,7 +564,7 @@ class Synapses(Group):
         with either the values from the ``network`` argument of the
         `Network.run` method or from the local context, if no such argument is
         given.
-    dtype : (`dtype`, `dict`), optional
+    dtype : `dtype`, dict, optional
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not
         provided for a variable (or no value is provided at all), the preference
@@ -583,7 +580,7 @@ class Synapses(Group):
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
-    method : {str, `StateUpdateMethod`}, optional
+    method : str, `StateUpdateMethod`, optional
         The numerical integration method to use. If none is given, an
         appropriate one is automatically determined.
     name : str, optional
@@ -593,13 +590,16 @@ class Synapses(Group):
     add_to_magic_network = True
 
     def __init__(self, source, target=None, model=None, pre=None, post=None,
-                 connect=False, delay=None, on_event='spike',
+                 connect=None, delay=None, on_event='spike',
                  multisynaptic_index=None,
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
                  method=('linear', 'euler', 'heun'),
                  name='synapses*'):
+        if connect is not None:
+            raise TypeError('The connect keyword argument is no longer '
+                            'supported, call the connect method instead.')
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
         
@@ -804,21 +804,11 @@ class Synapses(Group):
             self.summed_updaters[varname] = updater
             self.contained_objects.append(updater)
 
-        # Do an initial connect, if requested
-        if not isinstance(connect, (bool, basestring)):
-            raise TypeError(('"connect" keyword has to be a boolean value or a '
-                             'string, is type %s instead.' % type(connect)))
-
         # Support 2d indexing
         self._indices = SynapticIndexing(self)
 
-        self._initial_connect = connect
-
         # Activate name attribute access
         self._enable_group_attributes()
-
-        if not connect is False:
-            self.connect(connect, level=1)
 
     def __getitem__(self, item):
         indices = self.indices[item]
@@ -903,11 +893,13 @@ class Synapses(Group):
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         if '_offset' in self.target.variables:
-            self.variables.add_reference('_target_offset', self.target, '_offset')
+            self.variables.add_reference('_target_offset', self.target,
+                                         '_offset')
         else:
             self.variables.add_constant('_target_offset', unit=Unit(1), value=0)
         if '_offset' in self.source.variables:
-            self.variables.add_reference('_source_offset', self.source, '_offset')
+            self.variables.add_reference('_source_offset', self.source,
+                                         '_offset')
         else:
             self.variables.add_constant('_source_offset', unit=Unit(1), value=0)
         # To cope with connections to/from other synapses, N_incoming/N_outgoing
@@ -995,8 +987,8 @@ class Synapses(Group):
                                              index=index)
             except TypeError:
                 logger.diagnostic(('Cannot include a reference to {var} in '
-                                   '{synapses}, {var} uses a non-standard indexing '
-                                   'in the pre-synaptic group '
+                                   '{synapses}, {var} uses a non-standard '
+                                   'indexing in the pre-synaptic group '
                                    '{source}.').format(var=name,
                                                        synapses=self.name,
                                                        source=self.source.name))
@@ -1025,8 +1017,8 @@ class Synapses(Group):
                                                  index=index)
             except TypeError:
                 logger.diagnostic(('Cannot include a reference to {var} in '
-                                   '{synapses}, {var} uses a non-standard indexing '
-                                   'in the post-synaptic group '
+                                   '{synapses}, {var} uses a non-standard '
+                                   'indexing in the post-synaptic group '
                                    '{target}.').format(var=name,
                                                        synapses=self.name,
                                                        target=self.target.name))
@@ -1042,40 +1034,45 @@ class Synapses(Group):
                                                'to non-shared variable %s.')
                                               % (eq.varname, identifier))
 
-    def connect(self, pre_or_cond, post=None, p=1., n=1, namespace=None,
-                level=0):
+    def connect(self, condition=None, i=None, j=None, p=1., n=1,
+                skip_if_invalid=False,
+                namespace=None, level=0):
         '''
-        Add synapses. The first argument can be either a presynaptic index
-        (int or array) or a condition for synapse creation in the form of a
-        string that evaluates to a boolean value (or directly a boolean value).
-        If it is given as an index, also `post` has to be present. A string
-        condition will be evaluated for all pre-/postsynaptic indices, which
-        can be referred to as `i` and `j`.
+        Add synapses.
+
+        See :doc:`/user/synapses` for details.
 
         Parameters
         ----------
-        pre_or_cond : {int, ndarray of int, bool, str}
-            The presynaptic neurons (in the form of an index or an array of
-            indices) or a boolean value or a string that evaluates to a
-            boolean value. If it is an index, then also `post` has to be
-            given.
-        post_neurons : {int, ndarray of int), optional
-            GroupIndices of neurons from the target group. Non-optional if one or
-            more presynaptic indices have been given.
-        p : float, optional
-            The probability to create `n` synapses wherever the condition
-            given as `pre_or_cond` evaluates to true or for the given
-            pre/post indices.
-        n : int, optional
+        condition : str, bool, optional
+            A boolean or string expression that evaluates to a boolean.
+            The expression can depend on indices ``i`` and ``j`` and on
+            pre- and post-synaptic variables. Can be combined with
+            arguments ``n``, and ``p`` but not ``i`` or ``j``.
+        i : int, ndarray of int, optional
+            The presynaptic neuron indices (in the form of an index or an array
+            of indices). Must be combined with ``j`` argument.
+        j : int, ndarray of int, str, optional
+            The postsynaptic neuron indices. It can be an index or array of
+            indices if combined with the ``i`` argument, or it can be a string
+            generator expression.
+        p : float, str, optional
+            The probability to create ``n`` synapses wherever the ``condition``
+            evaluates to true. Cannot be used with generator syntax for ``j``.
+        n : int, str, optional
             The number of synapses to create per pre/post connection pair.
             Defaults to 1.
+        skip_if_invalid : bool, optional
+            If set to True, rather than raising an error if you try to
+            create an invalid/out of range pair (i, j) it will just
+            quietly skip those synapses.
         namespace : dict-like, optional
             A namespace that will be used in addition to the group-specific
             namespaces (if defined). If not specified, the locals
             and globals around the run function will be used.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
-            (see `namespace` argument).
+            (see ``namespace`` argument).
 
         Examples
         --------
@@ -1083,56 +1080,124 @@ class Synapses(Group):
         >>> import numpy as np
         >>> G = NeuronGroup(10, 'dv/dt = -v / tau : 1', threshold='v>1', reset='v=0')
         >>> S = Synapses(G, G, 'w:1', pre='v+=w')
-        >>> S.connect('i != j') # all-to-all but no self-connections
-        >>> S.connect(0, 0) # connect neuron 0 to itself
-        >>> S.connect(np.array([1, 2]), np.array([2, 1])) # connect 1->2 and 2->1
-        >>> S.connect(True) # connect all-to-all
-        >>> S.connect('i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
-        >>> S.connect('i == j', n=2)  # Connect all neurons to themselves with 2 synapses
+        >>> S.connect(condition='i != j') # all-to-all but no self-connections
+        >>> S.connect(i=0, j=0) # connect neuron 0 to itself
+        >>> S.connect(i=np.array([1, 2]), j=np.array([2, 1])) # connect 1->2 and 2->1
+        >>> S.connect() # connect all-to-all
+        >>> S.connect(condition='i != j', p=0.1)  # Connect neurons with 10% probability, exclude self-connections
+        >>> S.connect(j='i', n=2)  # Connect all neurons to themselves with 2 synapses
+        >>> S.connect(j='k for k in range(i+1)') # Connect neuron i to all j with 0<=j<=i
+        >>> S.connect(j='i+(-1)**k for k in range(2) if i>0 and i<N_pre-1') # connect neuron i to its neighbours if it has both neighbours
+        >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
         '''
-        if not isinstance(pre_or_cond, (bool, basestring)):
-            if hasattr(pre_or_cond, '_indices'):
-                pre_or_cond = pre_or_cond._indices()
-            pre_or_cond = np.asarray(pre_or_cond)
-            if not np.issubdtype(pre_or_cond.dtype, np.int):
-                raise TypeError(('Presynaptic indices have to be given as '
-                                 'integers, are type %s instead.') % pre_or_cond.dtype)
+        # check types
+        if condition is not None and not isinstance(condition, (bool,
+                                                                basestring)):
+            raise TypeError("condition argument must be bool or string. If you "
+                            "want to connect based on indices, use "
+                            "connect(i=..., j=...).")
+        if i is not None and (not (isinstance(i, (numbers.Integral,
+                                                 np.ndarray,
+                                                 collections.Sequence)) or
+                                   hasattr(i, '_indices')) or
+                              isinstance(i, basestring)):
+            raise TypeError("i argument must be int or array")
+        if j is not None and not (isinstance(j, (numbers.Integral,
+                                                np.ndarray,
+                                                collections.Sequence)) or
+                                  hasattr(j, '_indices')):
+            raise TypeError("j argument must be int, array or string")
+        # TODO: eliminate these restrictions
+        if not isinstance(p, (int, float, basestring)):
+            raise TypeError("p must be float or string")
+        if not isinstance(n, (int, basestring)):
+            raise TypeError("n must be int or string")
+        if isinstance(condition, basestring) and re.search(r'\bfor\b',
+                                                           condition):
+            raise ValueError("Generator expression given for condition, write "
+                             "connect(j='{condition}'...) instead of "
+                             "connect('{condition}'...).".format(condition=condition))
+        # TODO: check if string expressions have the right types and return
+        # useful error messages
 
-            if hasattr(post, '_indices'):
-                post = post._indices()
-            post = np.asarray(post)
-            if not np.issubdtype(post.dtype, np.int):
-                raise TypeError(('Presynaptic indices can only be combined '
-                                 'with postsynaptic integer indices))'))
-            if isinstance(n, basestring):
-                raise TypeError(('Indices cannot be combined with a string'
-                                 'expression for n. Either use an array/scalar '
-                                 'for n, or a string expression for the '
-                                 'connections'))
-            i, j, n = np.broadcast_arrays(pre_or_cond, post, n)
-            if i.ndim > 1:
-                raise ValueError('Can only use 1-dimensional indices')
-            self._add_synapses(i, j, n, p, namespace=namespace, level=level+1)
-        elif isinstance(pre_or_cond, (basestring, bool)):
-            if pre_or_cond is False:
-                return  # nothing to do...
-            elif pre_or_cond is True:
-                # TODO: This should not be handled with the general mechanism
-                pre_or_cond = 'True'
-            if post is not None:
-                raise ValueError('Cannot give a postsynaptic index when '
-                                 'using a string expression')
-            if not isinstance(n, (int, basestring)):
-                raise TypeError('n has to be an integer or a string evaluating '
-                                'to an integer, is type %s instead.' % type(n))
-            if not isinstance(p, (float, basestring)):
-                raise TypeError('p has to be a float or a string evaluating '
-                                'to an float, is type %s instead.' % type(n))
-            self._add_synapses(None, None, n, p, condition=pre_or_cond,
-                               namespace=namespace, level=level+1)
-        else:
-            raise TypeError(('First argument has to be an index or a '
-                             'string, is %s instead.') % type(pre_or_cond))
+        # which connection case are we in?
+        if condition is None and i is None and j is None:
+            condition = True
+        try:
+            if condition is not None:
+                if i is not None or j is not None:
+                    raise ValueError("Cannot combine condition with i or j "
+                                     "arguments")
+                # convert to generator syntax
+                if condition is False:
+                    return
+                if condition is True:
+                    condition = 'True'
+                condition = word_substitute(condition, {'j': '_k'})
+                if not isinstance(p, basestring) and p == 1:
+                    j = ('_k for _k in range(N_post) '
+                         'if {expr}').format(expr=condition)
+                else:
+                    j = None
+                    if isinstance(p, basestring):
+                        p_dep = self._expression_index_dependence(p)
+                        if '_postsynaptic_idx' in p_dep:
+                            j = ('_k for _k in range(N_post) '
+                                 'if ({expr}) and '
+                                 'rand()<{p}').format(expr=condition, p=p)
+                    if j is None:
+                        j = ('_k for _k in sample(N_post, p={p}) '
+                             'if {expr}').format(expr=condition, p=p)
+                # will now call standard generator syntax (see below)
+            elif i is not None:
+                if j is None:
+                    raise ValueError("i argument must be combined with j "
+                                     "argument")
+                if skip_if_invalid:
+                    raise ValueError("Can only use skip_if_invalid with string "
+                                     "syntax")
+                if hasattr(i, '_indices'):
+                    i = i._indices()
+                i = np.asarray(i)
+                if not np.issubdtype(i.dtype, np.int):
+                    raise TypeError(('Presynaptic indices have to be given as '
+                                     'integers, are type %s '
+                                     'instead.') % i.dtype)
+
+                if hasattr(j, '_indices'):
+                    j = j._indices()
+                j = np.asarray(j)
+                if not np.issubdtype(j.dtype, np.int):
+                    raise TypeError(('Presynaptic indices can only be combined '
+                                     'with postsynaptic integer indices))'))
+                if isinstance(n, basestring):
+                    raise TypeError(('Indices cannot be combined with a string'
+                                     'expression for n. Either use an '
+                                     'array/scalar for n, or a string '
+                                     'expression for the connections'))
+                i, j, n = np.broadcast_arrays(i, j, n)
+                if i.ndim > 1:
+                    raise ValueError('Can only use 1-dimensional indices')
+                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace,
+                                               level=level+1)
+                return
+            elif j is not None:
+                if isinstance(p, basestring) or p != 1:
+                    raise ValueError("Generator syntax cannot be combined with "
+                                     "p argument")
+                if not re.search(r'\bfor\b', j):
+                    j = '{j} for _ in range(1)'.format(j=j)
+                # will now call standard generator syntax (see below)
+            else:
+                raise ValueError("Must specify at least one of condition, i or "
+                                 "j arguments")
+
+            # standard generator syntax
+            self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
+                                         namespace=namespace, level=level+1)
+        except IndexError as e:
+            raise IndexError("Tried to create synapse indices outside valid "
+                             "range. Original error message: " + str(e))
 
     def _resize(self, number):
         if not isinstance(number, numbers.Integral):
@@ -1151,24 +1216,32 @@ class Synapses(Group):
         source_offset = self.variables['_source_offset'].get_value()
         target_offset = self.variables['_target_offset'].get_value()
         # This resizing is only necessary if we are connecting to/from synapses
-        self.variables['N_incoming'].resize(int(self.variables['N_post'].get_value()) + target_offset)
-        self.variables['N_outgoing'].resize(int(self.variables['N_pre'].get_value()) + source_offset)
+        post_with_offset = (int(self.variables['N_post'].get_value()) +
+                            target_offset)
+        pre_with_offset = (int(self.variables['N_pre'].get_value()) +
+                           source_offset)
+        self.variables['N_incoming'].resize(post_with_offset)
+        self.variables['N_outgoing'].resize(pre_with_offset)
         N_outgoing = self.variables['N_outgoing'].get_value()
         N_incoming = self.variables['N_incoming'].get_value()
         synaptic_pre = self.variables['_synaptic_pre'].get_value()
         synaptic_post = self.variables['_synaptic_post'].get_value()
 
-        # Update the number of total outgoing/incoming synapses per source/target neuron
+        # Update the number of total outgoing/incoming synapses per
+        # source/target neuron
         N_outgoing[:] += np.bincount(synaptic_pre[old_num_synapses:],
                                      minlength=len(N_outgoing))
         N_incoming[:] += np.bincount(synaptic_post[old_num_synapses:],
                                      minlength=len(N_incoming))
 
         if self.multisynaptic_index is not None:
-            synapse_number = self.variables[self.multisynaptic_index].get_value()
+            synapse_number_var = self.variables[self.multisynaptic_index]
+            synapse_number = synapse_number_var.get_value()
 
-            # Update the "synapse number" (number of synapses for the same source-target pair)
-            # We wrap pairs of source/target indices into a complex number for convenience
+            # Update the "synapse number" (number of synapses for the same
+            # source-target pair)
+            # We wrap pairs of source/target indices into a complex number for
+            # convenience
             _source_target_pairs = synaptic_pre + synaptic_post*1j
             synapse_number[:] = calc_repeats(_source_target_pairs)
 
@@ -1190,127 +1263,207 @@ class Synapses(Group):
         '''
         self._registered_variables.remove(variable)
 
-    def _add_synapses(self, sources, targets, n, p, condition=None,
-                      namespace=None, level=0):
-
+    def _get_multisynaptic_indices(self):
         template_kwds = {'multisynaptic_index': self.multisynaptic_index}
         if self.multisynaptic_index is not None:
             needed_variables = [self.multisynaptic_index]
         else:
             needed_variables=[]
+        return template_kwds, needed_variables
 
-        if condition is None:
-            variables = Variables(self)
+    def _add_synapses_from_arrays(self, sources, targets, n, p,
+                                  namespace=None, level=0):
+        template_kwds, needed_variables = self._get_multisynaptic_indices()
 
-            sources = np.atleast_1d(sources).astype(np.int32)
-            targets = np.atleast_1d(targets).astype(np.int32)
+        variables = Variables(self)
 
-            # Check whether the values in sources/targets make sense
-            error_message = ('The given {source_or_target} indices contain '
-                             'values outside of the range [0, {max_value}] '
-                             'allowed for the {source_or_target} group '
-                             '"{group_name}"')
-            for indices, source_or_target, group in [(sources, 'source', self.source),
-                                                     (targets, 'target', self.target)]:
-                if np.max(indices) >= len(group) or np.min(indices) < 0:
-                    raise IndexError(error_message.format(source_or_target=source_or_target,
-                                                          max_value=len(group)-1,
-                                                          group_name=group.name))
-            n = np.atleast_1d(n)
-            p = np.atleast_1d(p)
+        sources = np.atleast_1d(sources).astype(np.int32)
+        targets = np.atleast_1d(targets).astype(np.int32)
 
-            if not len(p) == 1 or p != 1:
-                use_connections = np.random.rand(len(sources)) < p
-                sources = sources[use_connections]
-                targets = targets[use_connections]
-                n = n[use_connections]
-            sources = sources.repeat(n)
-            targets = targets.repeat(n)
+        # Check whether the values in sources/targets make sense
+        error_message = ('The given {source_or_target} indices contain '
+                         'values outside of the range [0, {max_value}] '
+                         'allowed for the {source_or_target} group '
+                         '"{group_name}"')
+        for indices, source_or_target, group in [(sources, 'source', self.source),
+                                                 (targets, 'target', self.target)]:
+            if np.max(indices) >= len(group) or np.min(indices) < 0:
+                raise IndexError(error_message.format(source_or_target=source_or_target,
+                                                      max_value=len(group)-1,
+                                                      group_name=group.name))
+        n = np.atleast_1d(n)
+        p = np.atleast_1d(p)
 
-            variables.add_array('sources', Unit(1), len(sources), dtype=np.int32,
-                                values=sources)
-            variables.add_array('targets', Unit(1), len(targets), dtype=np.int32,
-                                values=targets)
-            # These definitions are important to get the types right in C++
-            variables.add_auxiliary_variable('_real_sources', Unit(1), dtype=np.int32)
-            variables.add_auxiliary_variable('_real_targets', Unit(1), dtype=np.int32)
-            abstract_code = ''
-            if '_offset' in self.source.variables:
-                variables.add_reference('_source_offset', self.source, '_offset')
-                abstract_code += '_real_sources = sources + _source_offset\n'
-            else:
-                abstract_code += '_real_sources = sources\n'
-            if '_offset' in self.target.variables:
-                variables.add_reference('_target_offset', self.target, '_offset')
-                abstract_code += '_real_targets = targets + _target_offset\n'
-            else:
-                abstract_code += '_real_targets = targets'
-            logger.debug("Creating synapses from group '%s' to group '%s', "
-                         "using pre-defined arrays)" % (self.source.name,
-                                                        self.target.name))
+        if not len(p) == 1 or p != 1:
+            use_connections = np.random.rand(len(sources)) < p
+            sources = sources[use_connections]
+            targets = targets[use_connections]
+            n = n[use_connections]
+        sources = sources.repeat(n)
+        targets = targets.repeat(n)
 
-            codeobj = create_runner_codeobj(self,
-                                            abstract_code,
-                                            'synapses_create_array',
-                                            additional_variables=variables,
-                                            template_kwds=template_kwds,
-                                            needed_variables=needed_variables,
-                                            check_units=False,
-                                            run_namespace=namespace,
-                                            level=level+1)
-            codeobj()
+        variables.add_array('sources', Unit(1), len(sources), dtype=np.int32,
+                            values=sources)
+        variables.add_array('targets', Unit(1), len(targets), dtype=np.int32,
+                            values=targets)
+        # These definitions are important to get the types right in C++
+        variables.add_auxiliary_variable('_real_sources', Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_real_targets', Unit(1),
+                                         dtype=np.int32)
+        abstract_code = ''
+        if '_offset' in self.source.variables:
+            variables.add_reference('_source_offset', self.source, '_offset')
+            abstract_code += '_real_sources = sources + _source_offset\n'
         else:
-            abstract_code = '_pre_idx = _all_pre \n'
-            abstract_code += '_post_idx = _all_post \n'
-            abstract_code += '_cond = ' + condition + '\n'
-            abstract_code += '_n = ' + str(n) + '\n'
-            abstract_code += '_p = ' + str(p)
-            # This overwrites 'i' and 'j' in the synapses' variables dictionary
-            # This is necessary because in the context of synapse creation, i
-            # and j do not correspond to the sources/targets of the existing
-            # synapses but to all the possible sources/targets
-            variables = Variables(None)
-            # Will be set in the template
-            variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
-            variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
-            # Make sure that variables have the correct type in the code
-            variables.add_auxiliary_variable('_pre_idx', unit=Unit(1), dtype=np.int32)
-            variables.add_auxiliary_variable('_post_idx', unit=Unit(1), dtype=np.int32)
-            variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
-            variables.add_auxiliary_variable('_n', unit=Unit(1), dtype=np.int32)
-            variables.add_auxiliary_variable('_p', unit=Unit(1))
+            abstract_code += '_real_sources = sources\n'
+        if '_offset' in self.target.variables:
+            variables.add_reference('_target_offset', self.target, '_offset')
+            abstract_code += '_real_targets = targets + _target_offset\n'
+        else:
+            abstract_code += '_real_targets = targets'
+        logger.debug("Creating synapses from group '%s' to group '%s', "
+                     "using pre-defined arrays)" % (self.source.name,
+                                                    self.target.name))
 
-            if '_sub_idx' in self.source.variables:
-                variables.add_reference('_all_pre', self.source, '_sub_idx')
+        codeobj = create_runner_codeobj(self,
+                                        abstract_code,
+                                        'synapses_create_array',
+                                        additional_variables=variables,
+                                        template_kwds=template_kwds,
+                                        needed_variables=needed_variables,
+                                        check_units=False,
+                                        run_namespace=namespace,
+                                        level=level+1)
+        codeobj()
+
+    def _expression_index_dependence(self, expr, additional_indices=None):
+        '''
+        Returns the set of synaptic indices that expr depends on
+        '''
+        nr = NodeRenderer(use_vectorisation_idx=True)
+        expr = nr.render_expr(expr)
+        deps = set()
+        if additional_indices is None:
+            additional_indices = {}
+        for varname in get_identifiers(expr):
+            if varname in additional_indices:
+                deps.add(additional_indices[varname])
             else:
-                variables.add_reference('_all_pre', self.source, 'i')
+                deps.add(self.variables.indices[varname])
+        if '0' in deps:
+            deps.remove('0')
+        return deps
 
-            if '_sub_idx' in self.target.variables:
-                variables.add_reference('_all_post', self.target, '_sub_idx')
-            else:
-                variables.add_reference('_all_post', self.target, 'i')
+    def _add_synapses_generator(self, j, n, skip_if_invalid=False, namespace=None, level=0):
+        template_kwds, needed_variables = self._get_multisynaptic_indices()
+        parsed = parse_synapse_generator(j)
+        template_kwds.update(parsed)
+        template_kwds['skip_if_invalid'] = skip_if_invalid
 
-            variable_indices = defaultdict(lambda: '_idx')
-            for varname in self.variables:
-                if self.variables.indices[varname] == '_presynaptic_idx':
-                    variable_indices[varname] = '_all_pre'
-                elif self.variables.indices[varname] == '_postsynaptic_idx':
-                    variable_indices[varname] = '_all_post'
-            variable_indices['_all_pre'] = '_i'
-            variable_indices['_all_post'] = '_j'
-            logger.debug(("Creating synapses from group '%s' to group '%s', "
-                          "using condition '%s'") % (self.source.name,
-                                                     self.target.name,
-                                                     condition))
-            codeobj = create_runner_codeobj(self,
-                                            abstract_code,
-                                            'synapses_create',
-                                            variable_indices=variable_indices,
-                                            additional_variables=variables,
-                                            template_kwds=template_kwds,
-                                            needed_variables=needed_variables,
-                                            check_units=False,
-                                            run_namespace=namespace,
-                                            level=level+1)
-            codeobj()
+        if (parsed['iterator_func'] == 'sample' and
+                    parsed['iterator_kwds']['sample_size']=='fixed'):
+            raise NotImplementedError("Fixed sample size not implemented yet.")
 
+        abstract_code = {'setup_iterator': '',
+                         'create_j': '',
+                         'create_cond': '',
+                         'update_post': ''}
+
+        additional_indices = {parsed['iteration_variable']: '_iterator_idx'}
+
+        setupiter = ''
+        for k, v in parsed['iterator_kwds'].iteritems():
+            if v is not None and k!='sample_size':
+                deps = self._expression_index_dependence(v, additional_indices)
+                if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
+                    raise ValueError('Expression "{}" depends on postsynaptic '
+                                     'index or iterator'.format(v))
+                setupiter += '_iter_'+k+' = '+v+'\n'
+
+        # rand() in the if condition depends on _vectorisation_idx, but not if
+        # its in the range expression (handled above)
+        additional_indices['_vectorisation_idx'] = '_iterator_idx'
+
+        postsynaptic_condition = False
+        if parsed['if_expression'] is not None:
+            deps = self._expression_index_dependence(parsed['if_expression'],
+                                                     additional_indices)
+            if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
+                postsynaptic_condition = True
+        template_kwds['postsynaptic_condition'] = postsynaptic_condition
+
+        abstract_code['setup_iterator'] += setupiter
+        abstract_code['create_j'] += '_pre_idx = _all_pre \n'
+        abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
+        if postsynaptic_condition:
+            abstract_code['create_cond'] += '_post_idx = _all_post \n'
+        if parsed['if_expression'] is not None:
+            abstract_code['create_cond'] += ('_cond = ' +
+                                             parsed['if_expression'] + '\n')
+            abstract_code['update_post'] += '_post_idx = _all_post \n'
+        abstract_code['update_post'] += '_n = ' + str(n) + '\n'
+
+        # This overwrites 'i' and 'j' in the synapses' variables dictionary
+        # This is necessary because in the context of synapse creation, i
+        # and j do not correspond to the sources/targets of the existing
+        # synapses but to all the possible sources/targets
+        variables = Variables(None)
+        # Will be set in the template
+        variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
+        variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_low', unit=Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_high', unit=Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_step', unit=Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_p', unit=Unit(1))
+        variables.add_auxiliary_variable('_iter_size', unit=Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable(parsed['iteration_variable'],
+                                         unit=Unit(1), dtype=np.int32)
+        # Make sure that variables have the correct type in the code
+        variables.add_auxiliary_variable('_pre_idx', unit=Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_post_idx', unit=Unit(1),
+                                         dtype=np.int32)
+        if parsed['if_expression'] is not None:
+            variables.add_auxiliary_variable('_cond', unit=Unit(1),
+                                             dtype=np.bool)
+        variables.add_auxiliary_variable('_n', unit=Unit(1),
+                                         dtype=np.int32)
+
+        if '_sub_idx' in self.source.variables:
+            variables.add_reference('_all_pre', self.source, '_sub_idx')
+        else:
+            variables.add_reference('_all_pre', self.source, 'i')
+
+        if '_sub_idx' in self.target.variables:
+            variables.add_reference('_all_post', self.target, '_sub_idx')
+        else:
+            variables.add_reference('_all_post', self.target, 'i')
+
+        variable_indices = defaultdict(lambda: '_idx')
+        for varname in self.variables:
+            if self.variables.indices[varname] == '_presynaptic_idx':
+                variable_indices[varname] = '_all_pre'
+            elif self.variables.indices[varname] == '_postsynaptic_idx':
+                variable_indices[varname] = '_all_post'
+        variable_indices['_all_pre'] = '_i'
+        variable_indices['_all_post'] = '_j'
+        logger.debug(("Creating synapses from group '%s' to group '%s', "
+                      "using generator '%s'") % (self.source.name,
+                                                 self.target.name,
+                                                 parsed['original_expression']))
+        codeobj = create_runner_codeobj(self,
+                                        abstract_code,
+                                        'synapses_create_generator',
+                                        variable_indices=variable_indices,
+                                        additional_variables=variables,
+                                        template_kwds=template_kwds,
+                                        needed_variables=needed_variables,
+                                        check_units=False,
+                                        run_namespace=namespace,
+                                        level=level+1)
+        codeobj()

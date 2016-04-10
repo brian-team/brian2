@@ -59,8 +59,8 @@ S    = Synapses(P, P,
                              Apre  += dApre
                              w      = w + Apost''',
                     post = '''Apost += dApost
-                              w      = w + Apre''',
-                    connect=True)
+                              w      = w + Apre''')
+S.connect()
 S.w  = fac*connectivity.flatten()
 
 

@@ -27,7 +27,8 @@ Example use::
 
     P = PoissonGroup(100, np.arange(100)*Hz + 10*Hz)
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
-    S = Synapses(P, G, pre='v+=0.1', connect='i==j')
+    S = Synapses(P, G, pre='v+=0.1')
+    S.connect(j='i')
 
 For simulations where the `PoissonGroup` is just used as a source of input to a
 neuron (i.e., the individually generated spikes are not important, just their
@@ -72,8 +73,10 @@ when running multiple trials with different input::
 
     inp = SpikeGeneratorGroup(N, indices, times)
     G = NeuronGroup(N, '...')
-    feedforward = Synapses(inp, G, '...', pre='...', connect='i==j')
-    recurrent = Synapses(G, G, '...', pre='...', connect='i!=j')
+    feedforward = Synapses(inp, G, '...', pre='...')
+    feedforward.connect(j='i')
+    recurrent = Synapses(G, G, '...', pre='...')
+    recurrent.connect('i!=j')
     spike_mon = SpikeMonitor(G)
     # ...
     run(runtime)

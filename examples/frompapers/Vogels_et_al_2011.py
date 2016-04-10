@@ -58,8 +58,10 @@ Pi = neurons[NE:]
 # Connecting the network 
 # ###########################################
 
-con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*nS', connect='rand()<epsilon')
-con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS', connect='rand()<epsilon')
+con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*nS')
+con_e.connect(p=epsilon)
+con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS')
+con_ii.connect(p=epsilon)
 
 # ###########################################
 # Inhibitory Plasticity
@@ -79,8 +81,8 @@ con_ie = Synapses(Pi, Pe, model=eqs_stdp_inhib,
                          g_gaba += w*nS''',
                   post='''A_post += 1.
                           w = clip(w+A_pre*eta, 0, gmax)
-                       ''',
-                  connect='rand()<epsilon')
+                       ''')
+con_ie.connect(p=epsilon)
 con_ie.w = 1e-10
 
 # ###########################################

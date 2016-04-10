@@ -488,7 +488,8 @@ def test_linked_synapses():
     Test linking to a synaptic variable (should raise an error).
     '''
     G = NeuronGroup(10, '')
-    S = Synapses(G, G, 'w:1', connect=True)
+    S = Synapses(G, G, 'w:1')
+    S.connect()
     G2 = NeuronGroup(100, 'x : 1 (linked)')
     assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
 

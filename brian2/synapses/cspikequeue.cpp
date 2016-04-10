@@ -81,7 +81,8 @@ public:
         // (homogeneous delays are stored as a single scalar), we therefore
         // use two independent loops to initialize the delays and the synapses
         // array
-        unsigned int min_delay = (unsigned int)(real_delays[0] / _dt + 0.5);
+        scalar first_delay = n_delays > 0 ? real_delays[0] : 0.0;
+        unsigned int min_delay = (unsigned int)(first_delay / _dt + 0.5);
         unsigned int max_delay = min_delay;
         for (int i=0; i<n_delays; i++)
         {

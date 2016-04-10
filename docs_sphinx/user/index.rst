@@ -15,6 +15,5 @@ User's guide
    running
    computation
    functions
-   devices
    brian1hears_bridge
    multicompartmental
