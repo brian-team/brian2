@@ -816,19 +816,6 @@ class Morphology(object):
                                        np.hstack([self.start_z[0], self.end_z[:]])]).T,
                             dim=meter.dim)
 
-    def plot(self):
-        # TODO: Move into brian2tools
-        import matplotlib.pyplot as plt
-        if isinstance(self, Soma):
-            circle = plt.Circle((self.x/um, self.y/um), self.diameter/um/2, color='r')
-            plt.gcf().gca().add_artist(circle)
-        else:
-            coords = self.coordinates
-            plt.plot(coords[:, 0]/um, coords[:, 1]/um, 'k-')
-
-        for child in self.children:
-            child.plot()
-
     @staticmethod
     def _create_section(current_compartments, previous_name,
                         all_compartments,
