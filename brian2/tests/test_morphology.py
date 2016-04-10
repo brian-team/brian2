@@ -592,6 +592,7 @@ def test_tree_soma_from_points():
     cable = Morphology.from_points(points)
     _check_tree_soma(cable, coordinates=True, use_cylinders=False)
 
+
 @attr('codegen-independent')
 def test_tree_soma_from_points_3_point_soma():
     # The coordinates should be identical to the previous test
@@ -617,6 +618,39 @@ def test_tree_soma_from_points_3_point_soma():
     # The first compartment should be a spherical soma!
     assert isinstance(cable, Soma)
 
+
+@attr('codegen-independent')
+def test_tree_soma_from_points_3_point_soma_incorrect():
+    # Inconsistent diameters
+    points = [ # soma
+              (1,  'soma', 100,                0,                0,              30, -1),
+              (2,  'soma', 100,               15,                0,              28,  1),
+              (3,  'soma', 100,              -15,                0,              30,  1),
+              # soma.L
+              (4,  'L'   , 100+20/np.sqrt(2),  20/np.sqrt(2),    0,              8 ,  1),
+              (5,  'L'   , 100+40/np.sqrt(2),  40/np.sqrt(2),    0,              6 ,  4),
+              (6,  'L'   , 100+60/np.sqrt(2),  60/np.sqrt(2),    0,              4 ,  5),
+              (7,  'L'   , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  6),
+              (8,  'L'   , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  7)
+              ]
+    assert_raises(ValueError, lambda: Morphology.from_points(points))
+
+    # Inconsistent coordinates
+    points = [  # soma
+        (1, 'soma', 100, 0, 0, 30, -1),
+        (2, 'soma', 100, 15, 0, 30, 1),
+        (3, 'soma', 100, -16, 0, 30, 1),
+        # soma.L
+        (4, 'L', 100 + 20 / np.sqrt(2), 20 / np.sqrt(2), 0, 8, 1),
+        (5, 'L', 100 + 40 / np.sqrt(2), 40 / np.sqrt(2), 0, 6, 4),
+        (6, 'L', 100 + 60 / np.sqrt(2), 60 / np.sqrt(2), 0, 4, 5),
+        (7, 'L', 100 + 80 / np.sqrt(2), 80 / np.sqrt(2), 0, 2, 6),
+        (8, 'L', 100 + 100 / np.sqrt(2), 100 / np.sqrt(2), 0, 0, 7)
+    ]
+    assert_raises(ValueError, lambda: Morphology.from_points(points))
+
+
+@attr('codegen-independent')
 def test_tree_soma_from_swc():
     swc_content = '''
 # Test file
@@ -640,6 +674,7 @@ def test_tree_soma_from_swc():
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
 
 
+@attr('codegen-independent')
 def test_tree_soma_from_swc_3_point_soma():
     swc_content = '''
 # Test file
@@ -1272,6 +1307,7 @@ if __name__ == '__main__':
     test_tree_soma_coordinates()
     test_tree_soma_from_points()
     test_tree_soma_from_points_3_point_soma()
+    test_tree_soma_from_points_3_point_soma_incorrect()
     test_tree_soma_from_swc()
     test_tree_soma_from_swc_3_point_soma()
     test_construction_incorrect_arguments()

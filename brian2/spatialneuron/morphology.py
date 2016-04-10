@@ -20,8 +20,8 @@ logger = get_logger(__name__)
 __all__ = ['Morphology', 'Section', 'Cylinder', 'Soma']
 
 
-_Point = namedtuple('Point',
-                   field_names='index,comp_name,x,y,z,diameter,parent,children')
+Node = namedtuple('Node',
+                  field_names='index,comp_name,x,y,z,diameter,parent,children')
 
 
 class MorphologyIndexWrapper(object):
@@ -304,19 +304,32 @@ class Children(object):
         else:
             raise TypeError('Index has to be an integer or a string.')
 
-    def add(self, name, subtree):
+    def add(self, name, subtree, automatic_name=False):
         '''
         Add a new child to the morphology.
 
         Parameters
         ----------
         name : str
-            The name (e.g. ``"axon"``, ``"L"``) to use for this sub tree.
+            The name (e.g. ``"axon"``, ``"soma"``) to use for this sub tree.
         subtree : `Morphology`
             The subtree to link as a child.
+        automatic_name : bool, optional
+            Whether to chose a new name automatically, if a subtree of the same
+            name already exists (uses e.g. ``"dend2"`` instead ``"dend"``).
+            Defaults to ``False`` and will raise an error instead.
         '''
-        if name in self._named_children and self._named_children[name] is not subtree:
-            raise AttributeError('The name %s is already used for a subtree' % name)
+        if (name in self._named_children and
+                    self._named_children[name] is not subtree):
+            if automatic_name:
+                basename = name
+                counter = 1
+                while name in self._named_children:
+                    counter += 1
+                    name = basename + str(counter)
+            else:
+                raise AttributeError('The name %s is already used for a '
+                                     'subtree.' % name)
 
         if subtree not in self._children:
             self._counter += 1
@@ -817,53 +830,149 @@ class Morphology(object):
                             dim=meter.dim)
 
     @staticmethod
-    def _create_section(current_compartments, previous_name,
-                        all_compartments,
-                        parent_idx):
-        sec_x, sec_y, sec_z, sec_diameter = zip(*[(c.x, c.y, c.z, c.diameter)
-                                                  for c in current_compartments])
-        # Add a point for the end of the parent_idx compartment
-        if parent_idx != -1:
-            n = len(current_compartments)
-            parent_comp = all_compartments[parent_idx]
-            if parent_comp.comp_name is not None and parent_comp.comp_name.lower() == 'soma':
-                # For a Soma, we don't use its diameter
-                start_diameter = sec_diameter[0]
-            else:
-                start_diameter = parent_comp.diameter
-            # Use relative coordinates
-            sec_x = np.array(sec_x) - parent_comp.x
-            sec_y = np.array(sec_y) - parent_comp.y
-            sec_z = np.array(sec_z) - parent_comp.z
-            start_x = start_y = start_z = 0.
-        else:
-            n = len(current_compartments) - 1
-            start_diameter = sec_diameter[0]
-            sec_diameter = sec_diameter[1:]
-            start_x = sec_x[0]
-            start_y = sec_y[0]
-            start_z = sec_z[0]
-            sec_x = sec_x[1:]
-            sec_y = sec_y[1:]
-            sec_z = sec_z[1:]
+    def _create_section(compartments, name, parent, sections,
+                        spherical_soma):
 
-        diameter = np.hstack([start_diameter, sec_diameter])*um
-        x = np.hstack([start_x, sec_x])*um
-        y = np.hstack([start_y, sec_y])*um
-        z = np.hstack([start_z, sec_z])*um
-        section = Section(n=n, diameter=diameter, x=x, y=y, z=z,
-                          type=previous_name)
+        if (spherical_soma and
+                    len(compartments) == 1 and
+                    compartments[0].comp_name == 'soma'):
+            soma = compartments[0]
+            section = Soma(diameter=soma.diameter * um,
+                           x=soma.x * um, y=soma.y * um, z=soma.z * um)
+        else:
+            sec_x, sec_y, sec_z, sec_diameter = zip(*[(c.x, c.y, c.z,
+                                                       c.diameter)
+                                                      for c in compartments])
+            # Add a point for the end of the parent_idx compartment
+            if parent is not None:
+                n = len(compartments)
+                if (parent.comp_name is not None and
+                            parent.comp_name.lower() == 'soma'):
+                    # For a Soma, we don't use its diameter
+                    start_diameter = sec_diameter[0]
+                else:
+                    start_diameter = parent.diameter
+                # Use relative coordinates
+                sec_x = np.array(sec_x) - parent.x
+                sec_y = np.array(sec_y) - parent.y
+                sec_z = np.array(sec_z) - parent.z
+                start_x = start_y = start_z = 0.
+            else:
+                n = len(compartments) - 1
+                start_diameter = sec_diameter[0]
+                sec_diameter = sec_diameter[1:]
+                start_x = sec_x[0]
+                start_y = sec_y[0]
+                start_z = sec_z[0]
+                sec_x = sec_x[1:]
+                sec_y = sec_y[1:]
+                sec_z = sec_z[1:]
+
+            diameter = np.hstack([start_diameter, sec_diameter])*um
+            x = np.hstack([start_x, sec_x])*um
+            y = np.hstack([start_y, sec_y])*um
+            z = np.hstack([start_z, sec_z])*um
+            section = Section(n=n, diameter=diameter, x=x, y=y, z=z,
+                              type=name)
+
+        # Add the section as a child to its parent
+        if parent is not None:
+            parent_sec = sections[parent.index]
+            parent_sec.children.add(name, section, automatic_name=True)
+
         return section
 
     @staticmethod
-    def _create_soma(compartments):
-        assert len(compartments) == 1, ('Only spherical somas '
-                                        'described by a single point '
-                                        'and diameter are supported.')
-        soma = compartments[0]
-        section = Soma(diameter=soma.diameter*um, x=soma.x*um, y=soma.y*um,
-                       z=soma.z*um)
-        return section
+    def _compartments_to_sections(compartment, spherical_soma,
+                                  current_compartments=None, sections=None):
+        # Merge all unbranched compartments of the same type into a single
+        # section
+        if sections is None:
+            sections = OrderedDict()
+        if current_compartments is None:
+            current_compartments = []
+
+        current_compartments.append(compartment)
+
+        # We have to create a new section, if we are either
+        # 1. at a leaf of the tree or at a branching point, or
+        # 2. if the compartment type changes
+        if (len(compartment.children) != 1 or
+                    compartment.comp_name != compartment.children[0].comp_name):
+            parent = current_compartments[0].parent
+            section = Morphology._create_section(current_compartments,
+                                                 compartment.comp_name,
+                                                 parent=parent,
+                                                 sections=sections,
+                                                 spherical_soma=spherical_soma)
+            sections[current_compartments[-1].index] = section
+            # If we are at a branching point, recurse into all subtrees
+            for child in compartment.children:
+                Morphology._compartments_to_sections(child,
+                                                     spherical_soma=spherical_soma,
+                                                     current_compartments=None,
+                                                     sections=sections)
+        else:
+            # A single child of the same type, continue (recursive call)
+            Morphology._compartments_to_sections(compartment.children[0],
+                                                 spherical_soma=spherical_soma,
+                                                 current_compartments=current_compartments,
+                                                 sections=sections)
+
+        return sections
+
+    @staticmethod
+    def _replace_three_point_soma(compartment, all_compartments):
+        # Replace a three-point/two-cylinder soma by a single spherical soma
+        # if possible (see http://neuromorpho.org/SomaFormat.html for some
+        # details)
+
+        # We are looking for a node with two children of the soma type (and
+        # other childen of other types), where the two children don't have any
+        # children of their own
+        soma_children = [c for c in compartment.children
+                         if c.comp_name == 'soma']
+        if (compartment.comp_name == 'soma' and len(soma_children) == 2 and
+                all(len(c.children) == 0 for c in soma_children)):
+            # We've found a 3-point soma to replace
+            soma_c = [compartment] + soma_children
+            if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15
+                       for c in soma_c):
+                indices = ', '.join(str(c.index) for c in soma_c)
+                raise ValueError('Found a "3-point-soma" (lines: %s), but not '
+                                 'all the diameters are '
+                                 'identical.' % indices)
+            diameter = soma_c[0].diameter
+            point_0 = np.array([soma_c[0].x, soma_c[0].y, soma_c[0].z])
+            point_1 = np.array([soma_c[1].x, soma_c[1].y, soma_c[1].z])
+            point_2 = np.array([soma_c[2].x, soma_c[2].y, soma_c[2].z])
+            length_1 = np.sqrt(np.sum((point_1 - point_0) ** 2))
+            length_2 = np.sqrt(np.sum((point_2 - point_0) ** 2))
+            if (np.abs(length_1 - diameter / 2) > 0.01 or
+                        np.abs(length_2 - diameter / 2) > 0.01):
+                raise ValueError(('Cannot replace "3-point-soma" by a single '
+                                  'point, the second and third points should '
+                                  'be positioned one radius away from the '
+                                  'first point. Distances are %.3fum and '
+                                  '%.3fum, respectively, while the '
+                                  'radius is %.3fum.') % (length_1,
+                                                          length_2,
+                                                          diameter / 2))
+            children = [c for c in compartment.children
+                        if not c in soma_c]
+            compartment = Node(index=compartment.index, comp_name='soma',
+                               x=point_0[0], y=point_0[1], z=point_0[2],
+                               diameter=diameter, parent=compartment.parent,
+                               children=children)
+            all_compartments[compartment.index] = compartment
+            del all_compartments[soma_children[0].index]
+            del all_compartments[soma_children[1].index]
+
+        # Recurse further down the tree
+        all_compartments[compartment.index] = compartment
+        for child in compartment.children:
+            Morphology._replace_three_point_soma(child,
+                                                 all_compartments)
 
     @staticmethod
     def from_points(points, spherical_soma=True):
@@ -898,78 +1007,45 @@ class Morphology(object):
             if len(point) != 7:
                 raise ValueError('Each point needs to be described by 7 '
                                  'values, got %d instead.' % len(point))
-            point = _Point(*(point + ([], ))) # empty list for the children
-            if point.index in compartments:
-                raise ValueError('Two compartments with index %d' % point.index)
-            if point.parent == point.index:
+            index, name, x, y, z, diameter, parent_idx = point
+
+            if index in compartments:
+                raise ValueError('Two compartments with index %d' % index)
+            if parent_idx == index:
                 raise ValueError('Compartment %d lists itself as the parent '
-                                 'compartment.' % point.index)
-            compartments[point.index] = point
-            if counter == 0 and point.parent == -1:
-                continue  # The first compartment does not have a parent
-            if point.parent not in compartments:
+                                 'compartment.' % index)
+
+            if counter == 0 and parent_idx == -1:
+                parent = None  # The first compartment does not have a parent
+            elif parent_idx not in compartments:
                 raise ValueError(('Did not find the compartment %d (parent '
                                   'compartment of compartment %d). Make sure '
                                   'that parent compartments are listed before '
-                                  'their children.') % (point.parent, point.index))
-            compartments[point.parent].children.append(point.index)
+                                  'their children.') % (parent_idx, index))
+            else:
+                parent = compartments[parent_idx]
+            children = []
+            node = Node(index, name, x, y, z, diameter, parent, children)
+            compartments[index] = node
+            if parent is not None:
+                parent.children.append(node)
 
         if spherical_soma:
-            Morphology._replace_three_point_soma(compartments)
+            Morphology._replace_three_point_soma(compartments.values()[0],
+                                                 compartments)
 
-        # Merge all unbranched compartments of the same type into a single
-        # section
-        sections = OrderedDict()
-        current_compartments = []
-        for absolute_index, (index, compartment) in enumerate(compartments.iteritems()):
-            if absolute_index == len(compartments) - 1:
-                next_compartment = None
-            else:
-                next_compartment = compartments.values()[absolute_index + 1]
-            current_compartments.append(compartment)
-            if (next_compartment is None or
-                        next_compartment.comp_name != compartment.comp_name or
-                        len(compartment.children) != 1):
-                parent_idx = current_compartments[0].parent
-                if spherical_soma and compartment.comp_name == 'soma':
-                   section = Morphology._create_soma(current_compartments)
-                   sections[index] = section, parent_idx
-                else:
-                    section = Morphology._create_section(current_compartments,
-                                                         compartment.comp_name,
-                                                         compartments,
-                                                         parent_idx)
-                    sections[index] = section, parent_idx
-                current_compartments = []
-
-        assert len(current_compartments) == 0
-
-        # Connect the sections
-        for section, parent in sections.itervalues():
-            name = section.type
-            # Add section to its parent
-            if parent != -1:
-                children_list = sections[parent][0].children
-                if section.type is None:
-                    children_list.add(name=None,
-                                      subtree=section)
-                else:
-                    counter = 2
-                    basename = name
-                    while name in children_list:
-                        name = basename + str(counter)
-                        counter += 1
-                    children_list.add(name=name,
-                                      subtree=section)
+        sections = Morphology._compartments_to_sections(compartments.values()[0],
+                                                        spherical_soma)
 
         # Go through all the sections again and add standard names for all
         # sections (potentially in addition to the name they already have):
-        # "L" + "R" for 1 or two children, "child_1", "child_2", etc. otherwise
+        # "L" + "R" for one or two children, "1", "2", "3", etc. otherwise
         children_counter = defaultdict(int)
-        for section, parent in sections.itervalues():
-            if parent != -1:
+        for section in sections.itervalues():
+            parent = section.parent
+            if parent is not None:
                 children_counter[parent] += 1
-                children = sections[parent][0].children
+                children = parent.children
                 nth_child = children_counter[parent]
                 if len(children) <= 2:
                     name = 'L' if nth_child == 1 else 'R'
@@ -978,62 +1054,9 @@ class Morphology(object):
                 children.add(name, section)
 
         # There should only be one section without parents
-        root = [sec for sec, _ in sections.itervalues() if sec.parent is None]
+        root = [sec for sec in sections.itervalues() if sec.parent is None]
         assert len(root) == 1
         return root[0]
-
-    @staticmethod
-    def _replace_three_point_soma(compartments):
-        # Replace a three-point/two-cylinder soma by a single spherical soma
-        # if possible (see http://neuromorpho.org/SomaFormat.html for some
-        # details)
-        if (len(compartments) >= 3 and
-                all(c.comp_name == 'soma' for c in compartments.values()[:3]) and
-                all(c.comp_name != 'soma' for c in compartments.values()[3:])):
-            soma_c = compartments.values()[:3]
-            # Only the first of the three points should have children
-            if len(soma_c[1].children) or len(soma_c[1].children):
-                logger.debug('Cannot replace 3-point-soma by a single '
-                             'point, not only the first point has children.')
-                return
-            # The diameter of all three points should be identical
-            if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15
-                       for c in soma_c):
-                logger.debug('Cannot replace 3-point-soma by a single point, '
-                             'diameters are not identical.')
-                return
-            diameter = soma_c[0].diameter
-            if (soma_c[0].parent != -1 or
-                        soma_c[1].parent != 1 or
-                        soma_c[2].parent != 1):
-                logger.debug('Cannot replace 3-point-soma by a single point, '
-                             'the second and third points should be children '
-                             'of the first point.')
-                return
-            point_0 = np.array([soma_c[0].x, soma_c[0].y, soma_c[0].z])
-            point_1 = np.array([soma_c[1].x, soma_c[1].y, soma_c[1].z])
-            point_2 = np.array([soma_c[2].x, soma_c[2].y, soma_c[2].z])
-            length_1 = np.sqrt(np.sum((point_1 - point_0)**2))
-            length_2 = np.sqrt(np.sum((point_2 - point_0)**2))
-            if (np.abs(length_1 - diameter/2) > 0.01 or
-                        np.abs(length_2 - diameter/2) > 0.01):
-                logger.debug(('Cannot replace 3-point-soma by a single point, '
-                              'the second and third points should be positioned '
-                              'one radius away from the first point. Distances '
-                              'are %.3fum and %.3fum, respectively, while the '
-                              'radius is %.3fum.') % (length_1, length_2,
-                                                      diameter/2))
-                return
-            new_point = _Point(index=1, comp_name='soma',
-                               x=point_0[0], y=point_0[1], z=point_0[2],
-                               diameter=diameter, parent=-1,
-                               children=soma_c[0].children
-                               )
-            # Remove the unnecessary points
-            del compartments[2]
-            del compartments[3]
-            # Replace the first point by the spherical soma point
-            compartments[1] = new_point
 
     @staticmethod
     def from_swc_file(filename, spherical_soma=True):
