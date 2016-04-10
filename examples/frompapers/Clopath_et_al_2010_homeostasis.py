@@ -123,7 +123,7 @@ Syn = Synapses(Nrns_input, Nrn_downstream,
                on_post=Post_eq
                )
 
-Syn.connect(numpy.arange(Nr_inputs), 0)
+Syn.connect(i=numpy.arange(Nr_inputs), j=0)
 
 #### Monitors and storage
 W_evolution = StateMonitor(Syn, 'w_ampa', record=True)

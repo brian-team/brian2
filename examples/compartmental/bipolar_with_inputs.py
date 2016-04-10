@@ -34,8 +34,8 @@ S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens (clock-driv
                                            gs_post = g : siemens (summed)''',
              on_pre='g += w')
 
-S.connect(0, morpho.L[-1])
-S.connect(1, morpho.R[-1])
+S.connect(i=0, j=morpho.L[-1])
+S.connect(i=1, j=morpho.R[-1])
 
 # Monitors
 mon_soma = StateMonitor(neuron, 'v', record=[0])
