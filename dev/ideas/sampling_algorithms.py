@@ -51,7 +51,7 @@ def check(N, p):
     global numfails, numchecks, mu, sigma2
     H = NeuronGroup(1, 'v:1', threshold='False', name='H')
     G = NeuronGroup(N, 'v:1', threshold='False', name='G')
-    S = Synapses(H, G, pre='v+=w', name='S')
+    S = Synapses(H, G, on_pre='v+=w', name='S')
     S.connect(p=p)
     m = len(S)
     low, high = binom.interval(alpha, N, p)

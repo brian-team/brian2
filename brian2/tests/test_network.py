@@ -602,7 +602,7 @@ def test_dependency_check():
                              StateMonitor(G, 'v', record=True),
                              SpikeMonitor(G),
                              PopulationRateMonitor(G),
-                             Synapses(G, G, pre='v+=1')
+                             Synapses(G, G, on_pre='v+=1')
                              ]
         return dependent_objects
 
@@ -760,7 +760,7 @@ def test_store_restore():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
     synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
@@ -797,7 +797,7 @@ def test_store_restore_to_file():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
     synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
@@ -847,7 +847,7 @@ def test_store_restore_to_file_new_objects():
                                      [3, 4, 1, 2, 3, 7, 5, 4, 1, 0, 5, 9, 7, 8, 9]*ms,
                                      name='source')
         target = NeuronGroup(10, 'v:1', name='target')
-        synapses = Synapses(source, target, model='w:1', pre='v+=w',
+        synapses = Synapses(source, target, model='w:1', on_pre='v+=w',
                             name='synapses')
         synapses.connect('j>=i')
         synapses.w = 'i*1.0 + j*2.0'
@@ -914,7 +914,7 @@ def test_store_restore_magic():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
     synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
@@ -953,7 +953,7 @@ def test_store_restore_magic_to_file():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
     synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'

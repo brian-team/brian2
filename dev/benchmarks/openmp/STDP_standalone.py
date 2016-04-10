@@ -45,10 +45,10 @@ S = Synapses(input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)    
                 dApost/dt=-Apost/taupost : 1 (event-driven)''',
-             pre='''ge+=w
+             on_pre='''ge+=w
                     Apre+=dApre
                     w=clip(w+Apost,0,gmax)''',
-             post='''Apost+=dApost
+             on_post='''Apost+=dApost
                      w=clip(w+Apre,0,gmax)''')
 S.connect()
 S.w          = 'rand()*gmax'

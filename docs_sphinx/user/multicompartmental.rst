@@ -320,15 +320,15 @@ The first one to insert synaptic equations directly in the neuron equations::
 Note that, as for electrode stimulation, the synaptic current must be defined as a point current.
 Then we use a `Synapses` object to connect a spike source to the neuron::
 
-    S = Synapses(stimulation, neuron, pre='gs += w')
-    S.connect(0, 50)
-    S.connect(1, 100)
+    S = Synapses(stimulation, neuron, on_pre='gs += w')
+    S.connect(i=0, j=50)
+    S.connect(i=1, j=100)
 
 This creates two synapses, on compartments 50 and 100. One can specify the compartment number
 with its spatial position by indexing the morphology::
 
-    S.connect(0, morpho[25*um])
-    S.connect(1, morpho.axon[30*um])
+    S.connect(i=0, j=morpho[25*um])
+    S.connect(i=1, j=morpho.axon[30*um])
 
 In this method for creating synapses,
 there is a single value for the synaptic conductance in any compartment.
@@ -344,7 +344,8 @@ The second method, which works in such cases, is to have synaptic equations in t
     '''
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
     S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens
-                                               gs_post = g : siemens (summed)''', pre='g += w')
+                                               gs_post = g : siemens (summed)''',
+                 on_pre='g += w')
 
 Here each synapse (instead of each compartment) has an associated value ``g``, and all values of
 ``g`` for each compartment (i.e., all synapses targeting that compartment) are collected

@@ -28,7 +28,7 @@ def test_cpp_standalone(with_output=False):
                     name='gp')
     G.V = '-i*mV'
     M = SpikeMonitor(G)
-    S = Synapses(G, G, 'w : volt', pre='V += w')
+    S = Synapses(G, G, 'w : volt', on_pre='V += w')
     S.connect('abs(i-j)<5 and i!=j')
     S.w = 0.5*mV
     S.delay = '0*ms'
@@ -191,7 +191,7 @@ def test_openmp_consistency(with_output=False):
         
         S.w       = fac*connectivity.flatten()
 
-        T         = Synapses(Q, P, model = "w : 1", pre="g += w*mV")
+        T         = Synapses(Q, P, model = "w : 1", on_pre="g += w*mV")
         T.connect(j='i')
         T.w       = 10*fac
 
@@ -340,7 +340,7 @@ def test_array_cache(with_output=False):
                            y : 1
                            z : 1 (shared)''',
                     threshold='v>1')
-    S = Synapses(G, G, 'weight: 1', pre='w += weight')
+    S = Synapses(G, G, 'weight: 1', on_pre='w += weight')
     S.connect(p=0.2)
     S.weight = 7
     # All neurongroup values should be known

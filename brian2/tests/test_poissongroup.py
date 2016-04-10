@@ -37,7 +37,7 @@ def test_propagation():
     # Using a PoissonGroup as a source for Synapses should work as expected
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)
     G = NeuronGroup(2, 'v:1')
-    S = Synapses(P, G, pre='v+=1')
+    S = Synapses(P, G, on_pre='v+=1')
     S.connect(j='i')
     run(2*defaultclock.dt)
 
@@ -53,9 +53,9 @@ def test_poissongroup_subgroup():
     P2 = P[2:]
     P2.rates = 1./defaultclock.dt
     G = NeuronGroup(4, 'v:1')
-    S1 = Synapses(P1, G[:2], pre='v+=1')
+    S1 = Synapses(P1, G[:2], on_pre='v+=1')
     S1.connect(j='i')
-    S2 = Synapses(P2, G[2:], pre='v+=1')
+    S2 = Synapses(P2, G[2:], on_pre='v+=1')
     S2.connect(j='i')
     run(2*defaultclock.dt)
 
