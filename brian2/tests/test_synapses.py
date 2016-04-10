@@ -663,7 +663,7 @@ def test_pre_post_simple():
                      pre='pre_value +=1',
                      post='post_value +=2')
     S.connect()
-    syn_mon = StateMonitor(S, ['pre_value', 'post_value'], record=True,
+    syn_mon = StateMonitor(S, ['pre_value', 'post_value'], record=[0],
                            when='end')
     run(3*ms)
     assert_equal(syn_mon.pre_value[0][syn_mon.t < 1*ms], 0)
