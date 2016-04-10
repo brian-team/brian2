@@ -32,8 +32,8 @@ stimulation.x = [0, 0.5] # Asynchronous
 # Synapses
 w = 20*nS
 S = Synapses(stimulation, neuron, pre = 'gs += w')
-S.connect(0, morpho.L[99.9*um])
-S.connect(1, morpho.R[99.9*um])
+S.connect(i=0, j=morpho.L[99.9*um])
+S.connect(i=1, j=morpho.R[99.9*um])
 
 # Monitors
 mon_soma = StateMonitor(neuron, 'v', record=[0])
