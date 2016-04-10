@@ -75,18 +75,18 @@ import time
 
 def naive(N):
     G = NeuronGroup(N, 'v:1', threshold='v>1', name='G')
-    S = Synapses(G, G, pre='v += 1', name='S')
+    S = Synapses(G, G, on_pre='v += 1', name='S')
     S.connect(p='exp(-0.1*(i-j)**2)')
 
 def limited(N, q=0.001):
     G = NeuronGroup(N, 'v:1', threshold='v>1', name='G')
-    S = Synapses(G, G, pre='v += 1', name='S')
+    S = Synapses(G, G, on_pre='v += 1', name='S')
     w = int(ceil(sqrt(log(q)/-0.1)))
     S.connect(j='k for k in range(i-w, i+w) if rand()<exp(-0.1*(i-j)**2)', skip_if_invalid=True)
 
 def divided(N, q=0.001):
     G = NeuronGroup(N, 'v:1', threshold='v>1', name='G')
-    S = Synapses(G, G, pre='v += 1', name='S')
+    S = Synapses(G, G, on_pre='v += 1', name='S')
     w = int(ceil(sqrt(log(q)/-0.1)))
     S.connect(j='k for k in range(i-w, i+w) if rand()<exp(-0.1*(i-j)**2)', skip_if_invalid=True)
     pmax = exp(-0.1*w**2)

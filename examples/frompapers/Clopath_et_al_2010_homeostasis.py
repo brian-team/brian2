@@ -119,8 +119,8 @@ Nrns_input = NeuronGroup(Nr_inputs, eqs_inputs, threshold='rand()<rates*dt',
 
 Syn = Synapses(Nrns_input, Nrn_downstream,
                model=Syn_model,
-               pre=Pre_eq,
-               post=Post_eq
+               on_pre=Pre_eq,
+               on_post=Post_eq
                )
 
 Syn.connect(i=numpy.arange(Nr_inputs), j=0)

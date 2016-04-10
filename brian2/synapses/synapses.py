@@ -526,7 +526,7 @@ class Synapses(Group):
         the same as `source`
     model : `str`, `Equations`, optional
         The model equations for the synapses.
-    pre : str, dict, optional
+    on_pre : str, dict, optional
         The code that will be executed after every pre-synaptic spike. Can be
         either a single (possibly multi-line) string, or a dictionary mapping
         pathway names to code strings. In the first case, the pathway will be
@@ -534,9 +534,14 @@ class Synapses(Group):
         In the latter case, the given names will be used as the
         pathway/attribute names. Each pathway has its own code and its own
         delays.
-    post : str, dict, optional
+    pre : str, dict, optional
+        Deprecated. Use ``on_pre`` instead.
+    on_post : str, dict, optional
         The code that will be executed after every post-synaptic spike. Same
-        conventions as for `pre`, the default name for the pathway is ``post``.
+        conventions as for `on_pre``, the default name for the pathway is
+        ``post``.
+    post : str, dict, optional
+        Deprecated. Use ``on_post`` instead.
     delay : `Quantity`, dict, optional
         The delay for the "pre" pathway (same for all synapses) or a dictionary
         mapping pathway names to delays. If a delay is specified in this way
@@ -589,7 +594,8 @@ class Synapses(Group):
     '''
     add_to_magic_network = True
 
-    def __init__(self, source, target=None, model=None, pre=None, post=None,
+    def __init__(self, source, target=None, model=None, on_pre=None,
+                 pre=None, on_post=None, post=None,
                  connect=None, delay=None, on_event='spike',
                  multisynaptic_index=None,
                  namespace=None, dtype=None,
@@ -600,6 +606,25 @@ class Synapses(Group):
         if connect is not None:
             raise TypeError('The connect keyword argument is no longer '
                             'supported, call the connect method instead.')
+
+        if pre is not None:
+            if on_pre is not None:
+                raise TypeError("Cannot specify both 'pre' and 'on_pre'. The "
+                                "'pre' keyword is deprecated, use the 'on_pre' "
+                                "keyword instead.")
+            logger.warn("The 'pre' keyword is deprecated, use 'on_pre' "
+                        "instead.", 'deprecated_pre', once=True)
+            on_pre = pre
+
+        if post is not None:
+            if on_post is not None:
+                raise TypeError("Cannot specify both 'post' and 'on_post'. The "
+                                "'post' keyword is deprecated, use the "
+                                "'on_post' keyword instead.")
+            logger.warn("The 'post' keyword is deprecated, use 'on_post' "
+                        "instead.", 'deprecated_post', once=True)
+            on_post = post
+
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
         
@@ -719,7 +744,7 @@ class Synapses(Group):
 
         #: "Events" for all the pathways
         self.events = events_dict
-        for prepost, argument in zip(('pre', 'post'), (pre, post)):
+        for prepost, argument in zip(('pre', 'post'), (on_pre, on_post)):
             if not argument:
                 continue
             if isinstance(argument, basestring):
@@ -729,7 +754,7 @@ class Synapses(Group):
             elif isinstance(argument, collections.Mapping):
                 for key, value in argument.iteritems():
                     if not isinstance(key, basestring):
-                        err_msg = ('Keys for the "{}" argument'
+                        err_msg = ('Keys for the "on_{}" argument'
                                    'have to be strings, got '
                                    '{} instead.').format(prepost, type(key))
                         raise TypeError(err_msg)
@@ -849,8 +874,8 @@ class Synapses(Group):
         elif prepost == 'post':
             spike_group, group_name = self.target, 'Target'
         else:
-            raise ValueError(('"prepost" argument has to be "pre" or "post", '
-                              'is "%s".') % prepost)
+            raise AssertionError(('"prepost" argument has to be "pre" or '
+                                  '"post", is "%s".') % prepost)
         if event not in spike_group.events:
             raise ValueError(("%s group does not define an event "
                               "'%s'.") % (group_name, event))
@@ -1079,7 +1104,7 @@ class Synapses(Group):
         >>> from brian2 import *
         >>> import numpy as np
         >>> G = NeuronGroup(10, 'dv/dt = -v / tau : 1', threshold='v>1', reset='v=0')
-        >>> S = Synapses(G, G, 'w:1', pre='v+=w')
+        >>> S = Synapses(G, G, 'w:1', on_pre='v+=w')
         >>> S.connect(condition='i != j') # all-to-all but no self-connections
         >>> S.connect(i=0, j=0) # connect neuron 0 to itself
         >>> S.connect(i=np.array([1, 2]), j=np.array([2, 1])) # connect 1->2 and 2->1

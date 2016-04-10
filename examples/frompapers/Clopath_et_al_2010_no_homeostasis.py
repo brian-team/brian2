@@ -107,8 +107,8 @@ Nrns = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
 
 Syn = Synapses(Nrns, Nrns,
                model=Syn_model,
-               pre=Pre_eq,
-               post=Post_eq
+               on_pre=Pre_eq,
+               on_post=Post_eq
                )
 
 Syn.connect('i!=j')

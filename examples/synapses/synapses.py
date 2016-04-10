@@ -9,7 +9,7 @@ G1.v = 1.2
 G2 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                  threshold='v > 1', reset='v=0')
  
-syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1 (event-driven)', pre='v += w')
+syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1 (event-driven)', on_pre='v += w')
 
 syn.connect('i == j', p=0.75)
 
