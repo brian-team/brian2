@@ -18,8 +18,8 @@ def test_custom_events():
     '''
     # Create a three compartments morphology
     morpho = Soma(diameter=10*um)
-    morpho.dend1 = Cylinder(diameter=1*um, length=10*um )
-    morpho.dend2 = Cylinder(diameter=1*um, length=10*um )
+    morpho.dend1 = Cylinder(n=1, diameter=1*um, length=10*um )
+    morpho.dend2 = Cylinder(n=1, diameter=1*um, length=10*um )
     G = SpatialNeuron(morphology=morpho,
                       model=ev,
                       events={'event1': 't>=i*ms and t<i*ms+dt'})
@@ -57,36 +57,30 @@ def test_construction():
     neuron.LL.v = EL
     assert_allclose(neuron.L.main.v, 0)
     assert_allclose(neuron.LL.v, EL)
-    neuron.LL[2*um:3.1*um].v = 0*mV
+    neuron.LL[1*um:3*um].v = 0*mV
     assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
     assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
     # Test morphological variables
-    assert_allclose(neuron.main.x_, morpho.x)
-    assert_allclose(neuron.L.main.x_, morpho.L.x)
-    assert_allclose(neuron.LL.main.x_, morpho.LL.x)
-    assert_allclose(neuron.right.main.x_, morpho.right.x)
-    assert_allclose(neuron.L.main.distance_, morpho.L.distance)
-    assert_allclose(neuron.L.main.diameter_, morpho.L.diameter)
-    assert_allclose(neuron.L.main.area_, morpho.L.area)
-    assert_allclose(neuron.L.main.length_, morpho.L.length)
+    assert_allclose(neuron.L.main.distance, morpho.L.distance)
+    assert_allclose(neuron.L.main.area, morpho.L.area)
+    assert_allclose(neuron.L.main.length, morpho.L.length)
 
     # Check basic consistency of the flattened representation
-    assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
     assert all(neuron.diffusion_state_updater._ends[:].flat >=
                neuron.diffusion_state_updater._starts[:].flat)
 
-    # Check that length and distances make sense after compression
-    assert_allclose(sum(morpho.L.length)*metre, 10*um)
-    assert_allclose(morpho.L.distance*metre, (1 + np.arange(10))*um)
-    assert_allclose(sum(morpho.LL.length)*metre, 5*um)
-    assert_allclose(morpho.LL.distance*metre, 10*um + (1 + np.arange(5))*um)
-    assert_allclose(sum(morpho.LR.length)*metre, 5*um)
-    assert_allclose(morpho.LR.distance*metre, 10*um + (1 + np.arange(10))*0.5*um)
-    assert_allclose(sum(morpho.right.length)*metre, 3*um)
-    assert_allclose(morpho.right.distance*metre, (1 + np.arange(7))*3./7.*um)
-    assert_allclose(sum(morpho.right.nextone.length)*metre, 2*um)
-    assert_allclose(morpho.right.nextone.distance*metre, 3*um+(1 + np.arange(3))*2./3.*um)
+    # Check that length and distances make sense
+    assert_allclose(sum(morpho.L.length), 10*um)
+    assert_allclose(morpho.L.distance, (0.5 + np.arange(10))*um)
+    assert_allclose(sum(morpho.LL.length), 5*um)
+    assert_allclose(morpho.LL.distance, (10 + .5 + np.arange(5))*um)
+    assert_allclose(sum(morpho.LR.length), 5*um)
+    assert_allclose(morpho.LR.distance, (10 + 0.25 + np.arange(10)*0.5)*um)
+    assert_allclose(sum(morpho.right.length), 3*um)
+    assert_allclose(morpho.right.distance, (0.5 + np.arange(7))*3./7.*um)
+    assert_allclose(sum(morpho.right.nextone.length), 2*um)
+    assert_allclose(morpho.right.nextone.distance, 3*um + (0.5 + np.arange(3))*2./3.*um)
 
 
 @attr('codegen-independent')
@@ -98,11 +92,13 @@ def test_construction_coordinates():
     # respective cylinder
     BrianLogger.suppress_name('resolution_conflict')
     morpho = Soma(diameter=30*um)
-    morpho.L = Cylinder(x=10*um, y=0*um, z=0*um, diameter=1*um, n=10)
-    morpho.LL = Cylinder(x=0*um, y=5*um, z=0*um, diameter=2*um, n=5)
-    morpho.LR = Cylinder(x=0*um, y=0*um, z=5*um, diameter=2*um, n=10)
-    morpho.right = Cylinder(x=sqrt(2)*1.5*um, y=sqrt(2)*1.5*um, z=0*um, diameter=1*um, n=7)
-    morpho.right.nextone = Cylinder(x=0*um, y=sqrt(2)*um, z=sqrt(2)*um, diameter=1*um, n=3)
+    morpho.L = Cylinder(x=[0, 10]*um, diameter=1*um, n=10)
+    morpho.LL = Cylinder(y=[0, 5]*um, diameter=2*um, n=5)
+    morpho.LR = Cylinder(z=[0, 5]*um, diameter=2*um, n=10)
+    morpho.right = Cylinder(x=[0, sqrt(2)*1.5]*um, y=[0, sqrt(2)*1.5]*um,
+                            diameter=1*um, n=7)
+    morpho.right.nextone = Cylinder(y=[0, sqrt(2)]*um, z=[0, sqrt(2)]*um,
+                                    diameter=1*um, n=3)
     gL=1e-4*siemens/cm**2
     EL=-70*mV
     eqs='''
@@ -123,36 +119,34 @@ def test_construction_coordinates():
     neuron.LL.v = EL
     assert_allclose(neuron.L.main.v, 0)
     assert_allclose(neuron.LL.v, EL)
-    neuron.LL[2*um:3.1*um].v = 0*mV
+    neuron.LL[1*um:3*um].v = 0*mV
     assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
     assert_allclose(neuron.Cm, 1 * uF / cm ** 2)
 
     # Test morphological variables
-    assert_allclose(neuron.main.x_, morpho.x)
-    assert_allclose(neuron.L.main.x_, morpho.L.x)
-    assert_allclose(neuron.LL.main.x_, morpho.LL.x)
-    assert_allclose(neuron.right.main.x_, morpho.right.x)
-    assert_allclose(neuron.L.main.distance_, morpho.L.distance)
-    assert_allclose(neuron.L.main.diameter_, morpho.L.diameter)
-    assert_allclose(neuron.L.main.area_, morpho.L.area)
-    assert_allclose(neuron.L.main.length_, morpho.L.length)
+    assert_allclose(neuron.L.main.x, morpho.L.x)
+    assert_allclose(neuron.LL.main.x, morpho.LL.x)
+    assert_allclose(neuron.right.main.x, morpho.right.x)
+    assert_allclose(neuron.L.main.distance, morpho.L.distance)
+    # assert_allclose(neuron.L.main.diameter, morpho.L.diameter)
+    assert_allclose(neuron.L.main.area, morpho.L.area)
+    assert_allclose(neuron.L.main.length, morpho.L.length)
 
     # Check basic consistency of the flattened representation
-    assert len(np.unique(neuron.diffusion_state_updater._morph_i[:])) == len(neuron.diffusion_state_updater._morph_i)
     assert all(neuron.diffusion_state_updater._ends[:].flat >=
                neuron.diffusion_state_updater._starts[:].flat)
 
-    # Check that length and distances make sense after compression
-    assert_allclose(sum(morpho.L.length)*metre, 10*um)
-    assert_allclose(morpho.L.distance*metre, (1 + np.arange(10))*um)
-    assert_allclose(sum(morpho.LL.length)*metre, 5*um)
-    assert_allclose(morpho.LL.distance*metre, 10*um + (1 + np.arange(5))*um)
-    assert_allclose(sum(morpho.LR.length)*metre, 5*um)
-    assert_allclose(morpho.LR.distance*metre, 10*um + (1 + np.arange(10))*0.5*um)
-    assert_allclose(sum(morpho.right.length)*metre, 3*um)
-    assert_allclose(morpho.right.distance*metre, (1 + np.arange(7))*3./7.*um)
-    assert_allclose(sum(morpho.right.nextone.length)*metre, 2*um)
-    assert_allclose(morpho.right.nextone.distance*metre, 3*um+(1 + np.arange(3))*2./3.*um)
+    # Check that length and distances make sense
+    assert_allclose(sum(morpho.L.length), 10*um)
+    assert_allclose(morpho.L.distance, (0.5 + np.arange(10))*um)
+    assert_allclose(sum(morpho.LL.length), 5*um)
+    assert_allclose(morpho.LL.distance, (10 + .5 + np.arange(5))*um)
+    assert_allclose(sum(morpho.LR.length), 5*um)
+    assert_allclose(morpho.LR.distance, (10 + 0.25 + np.arange(10)*0.5)*um)
+    assert_allclose(sum(morpho.right.length), 3*um)
+    assert_allclose(morpho.right.distance, (0.5 + np.arange(7))*3./7.*um)
+    assert_allclose(sum(morpho.right.nextone.length), 2*um)
+    assert_allclose(morpho.right.nextone.distance, 3*um + (0.5 + np.arange(3))*2./3.*um)
 
 
 @attr('long')
@@ -191,7 +185,7 @@ def test_infinitecable():
     t = mon.t
     v = mon[N//2-20].v
     # Theory (incorrect near cable ends)
-    x = 20*morpho.length[0] * meter
+    x = 20*morpho.length[0]
     la = neuron.space_constant[0]
     taum = Cm/gL # membrane time constant
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
@@ -315,15 +309,15 @@ def test_rallpack2():
     Ri = 100 * ohm * cm
 
     # Construct binary tree according to Rall's formula
-    morpho = Cylinder(diameter=diameter, x=0*umetre, y=length, z=0*umetre)
+    morpho = Cylinder(n=1, diameter=diameter, y=[0, float(length)]*meter)
     endpoints = {morpho}
     for depth in xrange(1, 10):
         diameter /= 2.**(1./3.)
         length /= 2.**(2./3.)
         new_endpoints = set()
         for endpoint in endpoints:
-            new_L = Cylinder(diameter=diameter, length=length)
-            new_R = Cylinder(diameter=diameter, length=length)
+            new_L = Cylinder(n=1, diameter=diameter, length=length)
+            new_R = Cylinder(n=1, diameter=diameter, length=length)
             new_endpoints.add(new_L)
             new_endpoints.add(new_R)
             endpoint.L = new_L
@@ -342,7 +336,7 @@ def test_rallpack2():
 
     neuron.I[0] = 0.1*nA  # injecting at the origin
 
-    endpoint_indices = [endpoint._origin for endpoint in endpoints]
+    endpoint_indices = [endpoint.indices[0] for endpoint in endpoints]
     mon = StateMonitor(neuron, 'v', record=[0] + endpoint_indices,
                        when='start', dt=0.05*ms)
 
@@ -530,6 +524,36 @@ def test_rall():
     v = neuron.R.v
     assert_allclose(v-EL, theory-EL, rtol=0.001)
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_basic_diffusion():
+    # A very basic test that shows that propagation is working in a very basic
+    # sense, testing all morphological classes
+
+    defaultclock.dt = 0.01*ms
+
+    EL = -70*mV
+    gL = 1e-4*siemens/cm**2
+    target = -10*mV
+    eqs = '''
+    Im = gL*(EL-v) + gClamp*(target-v): amp/meter**2
+    gClamp : siemens/meter**2
+    '''
+
+    morph = Soma(diameter=30*um)
+    morph.axon = Cylinder(n=10, diameter=10*um, length=100*um)
+    morph.dend = Section(n=10, diameter=[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.1]*um,
+                         length=np.ones(10)*10*um)
+
+    neuron = SpatialNeuron(morph, eqs)
+    neuron.v = EL
+    neuron.axon.gClamp[0] = 100*siemens/cm**2
+
+    mon = StateMonitor(neuron, 'v', record=True)
+
+    run(0.25*ms)
+    assert all(abs(mon.v[:, -1]/mV + 10) < 0.25), mon.v[:, -1]/mV
+
 if __name__ == '__main__':
     test_custom_events()
     test_construction()
@@ -540,3 +564,4 @@ if __name__ == '__main__':
     test_rallpack2()
     test_rallpack3()
     test_rall()
+    test_basic_diffusion()

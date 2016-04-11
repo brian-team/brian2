@@ -129,7 +129,12 @@ class Variable(object):
     '''
     def __init__(self, name, unit, owner=None, dtype=None, scalar=False,
                  constant=False, read_only=False, dynamic=False, array=False):
-        
+        if not isinstance(unit, Unit):
+            if unit == 1:
+                unit = Unit(1)
+            else:
+                raise TypeError(('unit argument has to be a Unit object, was '
+                                 'type %s instead') % type(unit))
         #: The variable's unit.
         self.unit = unit
 

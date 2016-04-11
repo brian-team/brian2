@@ -9,7 +9,7 @@ requirements:
     - cython >=0.18
     - setuptools >=6.0
     - markupsafe
-    - numpy
+    - numpy x.x
     - sympy >=0.7.6
     - pyparsing
     - jinja2 >=2.7
@@ -17,7 +17,7 @@ requirements:
 
   run:
     - python
-    - numpy
+    - numpy x.x
     - sympy >=0.7.6
     - pyparsing
     - scipy >=0.13.3 # [py2k]

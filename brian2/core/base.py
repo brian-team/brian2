@@ -309,15 +309,15 @@ class BrianObjectException(Exception):
         The original exception that was raised.
     '''
     def __init__(self, message, brianobj, original_exception):
-        self.message = message
-        self.objname = brianobj.name
-        self.origexc = '\n'.join(traceback.format_exception_only(type(original_exception),
-                                                                 original_exception))
-        self.origtb = traceback.format_exc()
-        self.objcreate = brianobj._creation_stack
+        self._brian_message = message
+        self._brian_objname = brianobj.name
+        self._brian_origexc = '\n'.join(traceback.format_exception_only(type(original_exception),
+                                                                        original_exception))
+        self._brian_origtb = traceback.format_exc()
+        self._brian_objcreate = brianobj._creation_stack
         logger.diagnostic('Error was encountered with object "{objname}":\n{fullstack}'.format(
-                objname=self.objname,
-                fullstack=brianobj._full_creation_stack))
+            objname=self._brian_objname,
+            fullstack=brianobj._full_creation_stack))
 
     def __str__(self):
         return ('Original error and traceback:\n{origtb}\n'
@@ -325,10 +325,10 @@ class BrianObjectException(Exception):
                 '{objcreate}\n\n'
                 '{message} {origexc}'
                 '(See above for original error message and traceback.)'
-                ).format(origtb=self.origtb,
-                         origexc=self.origexc,
-                         objname=self.objname, message=self.message,
-                         objcreate=self.objcreate)
+                ).format(origtb=self._brian_origtb,
+                         origexc=self._brian_origexc,
+                         objname=self._brian_objname, message=self._brian_message,
+                         objcreate=self._brian_objcreate)
 
 
 def brian_object_exception(message, brianobj, original_exception):

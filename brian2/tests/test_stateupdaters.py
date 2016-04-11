@@ -412,8 +412,8 @@ def test_determination():
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
-    variables = {'v': Variable(name='v', unit=None),
-                 'w': Variable(name='w', unit=None)}
+    variables = {'v': Variable(name='v', unit=1),
+                 'w': Variable(name='w', unit=1)}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)
