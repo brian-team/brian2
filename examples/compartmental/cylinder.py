@@ -30,7 +30,7 @@ print("Electrotonic length: %s" % la)
 neuron.I[0] = 0.02*nA # injecting at the left end
 run(100*ms, report='text')
 
-plot(neuron.distance/um, neuron.v/mV, 'k')
+plot(neuron.distance/um, neuron.v/mV, 'kx')
 # Theory
 x = neuron.distance
 ra = la * 4 * Ri / (pi * diameter**2)

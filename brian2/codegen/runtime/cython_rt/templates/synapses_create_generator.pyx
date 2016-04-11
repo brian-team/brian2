@@ -83,7 +83,11 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
             {{vector_code['create_j']|autoindent}}
             if _j<0 or _j>=N_post:
+                {% if skip_if_invalid %}
+                continue
+                {% else %}
                 raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                {% endif %}
             {% if postsynaptic_condition %}
             {{vector_code['create_cond']|autoindent}}
             {% endif %}

@@ -122,8 +122,8 @@ def brian2_CUBA(N, duration=1,
     wi = (-20 * 4.5 / 10) * mV # inhibitory synaptic weight
     p = min(80./N, 1.0)
     if do_synapses:
-        Ce = Synapses(P, P, pre='ge += we')
-        Ci = Synapses(P, P, pre='gi += wi')
+        Ce = Synapses(P, P, on_pre='ge += we')
+        Ci = Synapses(P, P, on_pre='gi += wi')
         Ce.connect('i<Ne', p=p)
         Ci.connect('i>=Ne', p=p)
     P.v = Vr + rand(len(P)) * (Vt - Vr)

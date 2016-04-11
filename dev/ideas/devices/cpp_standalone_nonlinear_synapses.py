@@ -26,7 +26,7 @@ S=Synapses(input,neurons,
               g_post = g : 1 (summed)
               dx/dt=-c*x : 1
               w : 1 # synaptic weight
-           ''', pre='x+=w') # NMDA synapses
+           ''', on_pre='x+=w') # NMDA synapses
 
 S.connect(True)
 S.w = '1+9*i'

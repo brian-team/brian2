@@ -49,13 +49,26 @@ def test_creation():
     A basic test that creating a Synapses object works.
     '''
     G = NeuronGroup(42, 'v: 1', threshold='False')
-    S = Synapses(G, G, 'w:1', pre='v+=w')
+    S = Synapses(G, G, 'w:1', on_pre='v+=w')
     # We store weakref proxys, so we can't directly compare the objects
     assert S.source.name == S.target.name == G.name
     assert len(S) == 0
-    S = Synapses(G, model='w:1', pre='v+=w')
+    S = Synapses(G, model='w:1', on_pre='v+=w')
     assert S.source.name == S.target.name == G.name
 
+
+@attr('codegen-independent')
+def test_creation_errors():
+    G = NeuronGroup(42, 'v: 1', threshold='False')
+    # Check that the old Synapses(..., connect=...) syntax raises an error
+    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
+                                              connect=True))
+    # Check that using pre and on_pre (resp. post/on_post) at the same time
+    # raises an error
+    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
+                                              on_pre='v+=w', connect=True))
+    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', post='v+=w',
+                                              on_post='v+=w', connect=True))
 
 @attr('codegen-independent')
 def test_name_clashes():
@@ -81,7 +94,7 @@ def test_incoming_outgoing():
     '''
     G1 = NeuronGroup(5, 'v: 1', threshold='False')
     G2 = NeuronGroup(5, 'v: 1', threshold='False')
-    S = Synapses(G1, G2, 'w:1', pre='v+=w')
+    S = Synapses(G1, G2, 'w:1', on_pre='v+=w')
     S.connect(i=[0, 0, 0, 1, 1, 2],
               j=[0, 1, 2, 1, 2, 3])
     run(0*ms)  # to make this work for standalone
@@ -389,12 +402,12 @@ def test_connection_random_without_condition():
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', pre='v+=w')
+    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
     S4.connect(True, p='int(x_pre==2)*1.0')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S5 = Synapses(G, G2, 'w:1', pre='v+=w')
+    S5 = Synapses(G, G2, 'w:1', on_pre='v+=w')
     S5.connect(True, p='int(x_pre==2 and y_post > 0.5)*1.0')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -418,7 +431,9 @@ def test_connection_multiple_synapses():
     Test multiple synapses per connection.
     '''
     G = NeuronGroup(42, 'v: 1', threshold='False')
+    G.v = 'i'
     G2 = NeuronGroup(17, 'v: 1', threshold='False')
+    G2.v = 'i'
 
     S1 = Synapses(G, G2, 'w:1', 'v+=w')
     S1.connect(True, n=0)
@@ -429,6 +444,15 @@ def test_connection_multiple_synapses():
     S3 = Synapses(G, G2, 'w:1', 'v+=w')
     S3.connect(True, n='j')
 
+    S4 = Synapses(G, G2, 'w:1', 'v+=w')
+    S4.connect(True, n='i')
+
+    S5 = Synapses(G, G2, 'w:1', 'v+=w')
+    S5.connect(True, n='int(i>j)*2')
+
+    S6 = Synapses(G, G2, 'w:1', 'v+=w')
+    S6.connect(True, n='int(v_pre>v_post)*2')
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -436,6 +460,14 @@ def test_connection_multiple_synapses():
     _compare(S2, 2 * np.ones((len(G), len(G2))))
     _compare(S3, np.arange(len(G2)).reshape(1, len(G2)).repeat(len(G),
                                                                axis=0))
+
+    _compare(S4, np.arange(len(G)).reshape(len(G), 1).repeat(len(G2),
+                                                             axis=1))
+    expected = np.zeros((len(G), len(G2)), dtype=np.int32)
+    for source in xrange(len(G)):
+        expected[source, :source] = 2
+    _compare(S5, expected)
+    _compare(S6, expected)
 
 
 def test_state_variable_assignment():
@@ -578,7 +610,7 @@ def test_delay_specification():
     G = NeuronGroup(10, 'v:1', threshold='False')
 
     # Array delay
-    S = Synapses(G, G, 'w:1', pre='v+=w')
+    S = Synapses(G, G, 'w:1', on_pre='v+=w')
     S.connect('i==j')
     assert len(S.delay[:]) == len(G)
     S.delay = 'i*ms'
@@ -587,7 +619,7 @@ def test_delay_specification():
     assert_equal(S.delay[:], np.ones(len(G))*5*ms)
 
     # Scalar delay
-    S = Synapses(G, G, 'w:1', pre='v+=w', delay=5*ms)
+    S = Synapses(G, G, 'w:1', on_pre='v+=w', delay=5*ms)
     assert_equal(S.delay[:], 5*ms)
     S.connect('i==j')
     S.delay = 10*ms
@@ -597,12 +629,12 @@ def test_delay_specification():
 
     # Invalid arguments
     assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',
-                                                           pre='v+=w',
+                                                           on_pre='v+=w',
                                                            delay=5*mV))
-    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
+    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
                                               delay=object()))
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', delay=5*ms))
-    assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
+    assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
                                                delay={'post': 5*ms}))
 
 @attr('codegen-independent')
@@ -610,7 +642,7 @@ def test_pre_before_post():
     # The pre pathway should be executed before the post pathway
     G = NeuronGroup(1, '''x : 1
                           y : 1''', threshold='True')
-    S = Synapses(G, G, '', pre='x=1; y=1', post='x=2')
+    S = Synapses(G, G, '', on_pre='x=1; y=1', on_post='x=2')
     S.connect()
     run(defaultclock.dt)
     # Both pathways should have been executed, but post should have overriden
@@ -618,12 +650,34 @@ def test_pre_before_post():
     assert G.x == 2
     assert G.y == 1
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_pre_post_simple():
+    # Test that pre and post still work correctly
+    G1 = SpikeGeneratorGroup(1, [0], [1]*ms)
+    G2 = SpikeGeneratorGroup(1, [0], [2]*ms)
+    with catch_logs() as l:
+        S = Synapses(G1, G2, '''pre_value : 1
+                                post_value : 1''',
+                     pre='pre_value +=1',
+                     post='post_value +=2')
+    S.connect()
+    syn_mon = StateMonitor(S, ['pre_value', 'post_value'], record=[0],
+                           when='end')
+    run(3*ms)
+    assert_equal(syn_mon.pre_value[0][syn_mon.t < 1*ms], 0)
+    assert_equal(syn_mon.pre_value[0][syn_mon.t >= 1*ms], 1)
+    assert_equal(syn_mon.post_value[0][syn_mon.t < 2*ms], 0)
+    assert_equal(syn_mon.post_value[0][syn_mon.t >= 2*ms], 2)
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_transmission_simple():
     source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
     target = NeuronGroup(2, 'v : 1')
-    syn = Synapses(source, target, pre='v += 1')
+    syn = Synapses(source, target, on_pre='v += 1')
     syn.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2.5*ms)
@@ -638,7 +692,7 @@ def test_transmission_custom_event():
     source = NeuronGroup(2, '',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
     target = NeuronGroup(2, 'v : 1')
-    syn = Synapses(source, target, pre='v += 1',
+    syn = Synapses(source, target, on_pre='v += 1',
                    on_event='custom')
     syn.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
@@ -653,9 +707,9 @@ def test_invalid_custom_event():
     group1 = NeuronGroup(2, 'v : 1',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
     group2 = NeuronGroup(2, 'v : 1', threshold='v>1')
-    assert_raises(ValueError, lambda: Synapses(group1, group1, pre='v+=1',
+    assert_raises(ValueError, lambda: Synapses(group1, group1, on_pre='v+=1',
                                                on_event='spike'))
-    assert_raises(ValueError, lambda: Synapses(group2, group2, pre='v+=1',
+    assert_raises(ValueError, lambda: Synapses(group2, group2, on_pre='v+=1',
                                                on_event='custom'))
 
 @with_setup(teardown=reinit_devices)
@@ -676,7 +730,7 @@ def test_transmission():
         source_mon = SpikeMonitor(source)
         target_mon = SpikeMonitor(target)
 
-        S = Synapses(source, target, pre='v+=1.1')
+        S = Synapses(source, target, on_pre='v+=1.1')
         S.connect(j='i')
         S.delay = delay
         net = Network(S, source, target, source_mon, target_mon)
@@ -695,7 +749,7 @@ def test_transmission_all_to_one_heterogeneous_delays():
                                  [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
                                  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]*defaultclock.dt)
     target = NeuronGroup(1, 'v:1')
-    synapses = Synapses(source, target, pre='v_post += (i_pre+1)')
+    synapses = Synapses(source, target, on_pre='v_post += (i_pre+1)')
     synapses.connect()
     synapses.delay = [0, 0, 0, 1, 2, 1] * defaultclock.dt
 
@@ -712,7 +766,7 @@ def test_transmission_all_to_one_heterogeneous_delays():
 def test_transmission_one_to_all_heterogeneous_delays():
     source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
     target = NeuronGroup(6, 'v:integer')
-    synapses = Synapses(source, target, pre='v_post += (i_pre+1)')
+    synapses = Synapses(source, target, on_pre='v_post += (i_pre+1)')
     synapses.connect()
     synapses.delay = [0, 0, 1, 3, 2, 1] * defaultclock.dt
 
@@ -731,7 +785,7 @@ def test_transmission_one_to_all_heterogeneous_delays():
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
-    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms)
+    S = Synapses(inp, target, on_pre='v+=1', delay=0.5*ms)
     S.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2*ms)
@@ -750,7 +804,7 @@ def test_transmission_scalar_delay_different_clocks():
                               # get a 'fresh' warning
                               name='sg_%d' % uuid.uuid4())
     target = NeuronGroup(2, 'v:1', dt=0.1*ms)
-    S = Synapses(inp, target, pre='v+=1', delay=0.5*ms)
+    S = Synapses(inp, target, on_pre='v+=1', delay=0.5*ms)
     S.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
 
@@ -778,7 +832,7 @@ def test_clocks():
     synapse_dt = 0.2*ms
     source = NeuronGroup(1, 'v:1', dt=source_dt, threshold='False')
     target = NeuronGroup(1, 'v:1', dt=target_dt, threshold='False')
-    synapse = Synapses(source, target, 'w:1', pre='v+=1', post='v+=1',
+    synapse = Synapses(source, target, 'w:1', on_pre='v+=1', on_post='v+=1',
                        dt=synapse_dt)
     synapse.connect()
 
@@ -795,7 +849,7 @@ def test_changed_dt_spikes_in_queue():
     G1 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=0')
     G1.v = 1.1
     G2 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
-    S = Synapses(G1, G2, pre='v+=1.1')
+    S = Synapses(G1, G2, on_pre='v+=1.1')
     S.connect(True)
     S.delay = 'j*ms'
     mon = SpikeMonitor(G2)
@@ -819,7 +873,7 @@ def test_no_synapses():
     # Synaptic pathway but no synapses
     G1 = NeuronGroup(1, '', threshold='True')
     G2 = NeuronGroup(1, 'v:1')
-    S = Synapses(G1, G2, pre='v+=1', name='synapses_'+str(uuid.uuid4()).replace('-', '_'))
+    S = Synapses(G1, G2, on_pre='v+=1', name='synapses_'+str(uuid.uuid4()).replace('-', '_'))
     net = Network(G1, G2, S)
     with catch_logs() as l:
         net.run(defaultclock.dt)
@@ -835,7 +889,7 @@ def test_summed_variable():
     target = NeuronGroup(2, 'v : 1')
     S = Synapses(source, target, '''w : 1
                                     x : 1
-                                    v_post = x : 1 (summed)''', pre='x+=w',
+                                    v_post = x : 1 (summed)''', on_pre='x+=w',
                  multisynaptic_index='k')
     S.connect('i==j', n=2)
     S.w['k == 0'] = 'i'
@@ -882,7 +936,7 @@ def test_scalar_parameter_access():
     S = Synapses(G, G, '''w : 1
                           s : Hz (shared)
                           number : 1 (shared)''',
-                 pre = 'v+=w*number')
+                 on_pre='v+=w*number')
     S.connect()
 
     # Try setting a scalar variable
@@ -921,7 +975,7 @@ def test_scalar_subexpression():
                            number : 1 (shared)''', threshold='False')
     S = Synapses(G, G, '''s : 1 (shared)
                           sub = number_post + s : 1 (shared)''',
-                 pre='v+=s')
+                 on_pre='v+=s')
     S.connect()
     S.s = 100
     G.number = 50
@@ -929,7 +983,7 @@ def test_scalar_subexpression():
 
     assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (shared)
                                                      sub = v_post + s : 1 (shared)''',
-                                                pre='v+=s'))
+                                                on_pre='v+=s'))
 
 
 @attr('standalone-compatible')
@@ -941,7 +995,7 @@ def test_external_variables():
     w_var = 1
     amplitude = 2
     syn = Synapses(source, target, 'w=w_var : 1',
-                   pre='v+=amplitude*w')
+                   on_pre='v+=amplitude*w')
     syn.connect()
     run(defaultclock.dt)
     assert target.v[0] == 2
@@ -972,9 +1026,9 @@ def test_event_driven():
                   '''w : 1
                      dApre/dt = -Apre/taupre : 1 (event-driven)
                      dApost/dt = -Apost/taupost : 1 (event-driven)''',
-                  pre='''Apre += dApre
+                  on_pre='''Apre += dApre
                          w = clip(w+Apost, 0, gmax)''',
-                  post='''Apost += dApost
+                  on_post='''Apost += dApost
                           w = clip(w+Apre, 0, gmax)''')
     S1.connect(j='i')
     # not event-driven
@@ -982,10 +1036,10 @@ def test_event_driven():
                   '''w : 1
                      Apre : 1
                      Apost : 1''',
-                  pre='''Apre=Apre*exp((lastupdate-t)/taupre)+dApre
+                  on_pre='''Apre=Apre*exp((lastupdate-t)/taupre)+dApre
                          Apost=Apost*exp((lastupdate-t)/taupost)
                          w = clip(w+Apost, 0, gmax)''',
-                  post='''Apre=Apre*exp((lastupdate-t)/taupre)
+                  on_post='''Apre=Apre*exp((lastupdate-t)/taupre)
                           Apost=Apost*exp((lastupdate-t)/taupost) +dApost
                           w = clip(w+Apre, 0, gmax)''')
     S2.connect(j='i')
@@ -1003,9 +1057,9 @@ def test_repr():
                  '''w : 1
                     dApre/dt = -Apre/taupre : 1 (event-driven)
                     dApost/dt = -Apost/taupost : 1 (event-driven)''',
-                 pre='''Apre += dApre
+                 on_pre='''Apre += dApre
                         w = clip(w+Apost, 0, gmax)''',
-                 post='''Apost += dApost
+                 on_post='''Apost += dApost
                          w = clip(w+Apre, 0, gmax)''')
     # Test that string/LaTeX representations do not raise errors
     for func in [str, repr, sympy.latex]:
@@ -1294,7 +1348,7 @@ def test_vectorisation():
     target = NeuronGroup(10, '''x : 1
                                 y : 1''')
     syn = Synapses(source, target, 'w_syn : 1',
-                   pre='''v_pre += w_syn
+                   on_pre='''v_pre += w_syn
                           x_post = y_post
                        ''')
     syn.connect()
@@ -1325,11 +1379,11 @@ def test_vectorisation_STDP_like():
     # it simply compares the results to fixed pre-calculated values
     syn = Synapses(neurons[:3], neurons[3:], '''w_dep : 1
                                                 w_fac : 1''',
-                   pre='''ge_post += w_dep - w_fac
+                   on_pre='''ge_post += w_dep - w_fac
                           A_pre += 1
                           w_dep = clip(w_dep + A_post, 0, w_max)
                        ''',
-                   post='''A_post += 1
+                   on_post='''A_post += 1
                            w_fac = clip(w_fac + A_pre, 0, w_max)
                         ''')
     syn.connect()
@@ -1357,6 +1411,8 @@ def test_vectorisation_STDP_like():
                     rtol=1e-6, atol=1e-12)
 
 
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_synaptic_equations():
@@ -1376,10 +1432,10 @@ def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
     target = NeuronGroup(3, 'v : integer')
-    conn = Synapses(source, target, 'w : integer', pre='v += w')
+    conn = Synapses(source, target, 'w : integer', on_pre='v += w')
     conn.connect(j='i')
     conn.w = 1
-    modulatory_conn = Synapses(modulator, conn, pre='w += 1')
+    modulatory_conn = Synapses(modulator, conn, on_pre='w += 1')
     modulatory_conn.connect(j='i')
     run(5*ms)
     # First group has its weight increased to 2 after the first spike
@@ -1428,7 +1484,7 @@ def test_ufunc_at_vectorisation():
                     src = NeuronGroup(3, eqs_src, threshold='True', name='src')
                     tgt = NeuronGroup(3, eqs_tgt, name='tgt')
                     syn = Synapses(src, tgt, eqs_syn,
-                                   pre=code.replace('_syn', '').replace('_const', '').replace('_shared', ''),
+                                   on_pre=code.replace('_syn', '').replace('_const', '').replace('_shared', ''),
                                    name='syn', namespace=vars_const)
                     syn.connect()
                     for G, vars in [(src, vars_src), (tgt, vars_tgt), (syn, vars_syn)]:
@@ -1595,6 +1651,13 @@ def test_synapse_generator_deterministic():
     for target in xrange(4):
         expected_converging[np.arange(4) + target*4, target] = 1
 
+    # skip if invalid
+    S13 = Synapses(G2, G2, 'w:1', 'v+=w')
+    S13.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
+    expected_offdiagonal = np.zeros((len(G2), len(G2)), dtype=np.int32)
+    expected_offdiagonal[np.arange(len(G2)-1), np.arange(len(G2)-1)+1] = 1
+    expected_offdiagonal[np.arange(len(G2)-1)+1, np.arange(len(G2)-1)] = 1
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -1610,6 +1673,7 @@ def test_synapse_generator_deterministic():
     _compare(S10, expected_ring)
     _compare(S11, expected_diverging)
     _compare(S12, expected_converging)
+    _compare(S13, expected_offdiagonal)
 
 
 @attr('standalone-compatible')
@@ -1636,7 +1700,7 @@ def test_synapse_generator_random():
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', pre='v+=w')
+    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
     S4.connect(j='k for k in sample(N_post, p=int(x_pre==2)*1.0)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -1737,10 +1801,10 @@ def test_synapse_generator_random_with_condition():
     S24.connect(j='k for k in sample(2, p=0.9)')
 
     # Some more tests specific to the generator syntax
-    S25 = Synapses(G, G, 'w:1', pre='v+=w')
+    S25 = Synapses(G, G, 'w:1', on_pre='v+=w')
     S25.connect(j='i+1 for _ in sample(1, p=0.5) if i < N_post-1')
 
-    S26 = Synapses(G, G, 'w:1', pre='v+=w')
+    S26 = Synapses(G, G, 'w:1', on_pre='v+=w')
     S26.connect(j='i+k for k in sample(N_post-i, p=0.5)')
 
 
@@ -1796,7 +1860,7 @@ def test_synapse_generator_random_with_condition():
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
-    # prefs.codegen.target = 'weave'
+    # prefs.codegen.target = 'numpy'
     # prefs._backup()
     import time
     start = time.time()
@@ -1817,6 +1881,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_pre_before_post()
+    test_pre_post_simple()
     test_transmission_simple()
     test_transmission_custom_event()
     test_invalid_custom_event()

@@ -162,10 +162,10 @@ def test_conditional_write_behaviour():
     '''
     G = NeuronGroup(1, eqs, threshold='v>1', reset=reset, refractory=1*ms)
 
-    Sx = Synapses(H, G, pre='x += dt*100*Hz')
+    Sx = Synapses(H, G, on_pre='x += dt*100*Hz')
     Sx.connect(True)
 
-    Sy = Synapses(H, G, pre='y += dt*100*Hz')
+    Sy = Synapses(H, G, on_pre='y += dt*100*Hz')
     Sy.connect(True)
 
     M = StateMonitor(G, variables=True, record=True)

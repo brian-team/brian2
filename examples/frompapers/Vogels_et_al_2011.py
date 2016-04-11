@@ -58,9 +58,9 @@ Pi = neurons[NE:]
 # Connecting the network 
 # ###########################################
 
-con_e = Synapses(Pe, neurons, pre='g_ampa += 0.3*nS')
+con_e = Synapses(Pe, neurons, on_pre='g_ampa += 0.3*nS')
 con_e.connect(p=epsilon)
-con_ii = Synapses(Pi, Pi, pre='g_gaba += 3*nS')
+con_ii = Synapses(Pi, Pi, on_pre='g_gaba += 3*nS')
 con_ii.connect(p=epsilon)
 
 # ###########################################
@@ -76,10 +76,10 @@ alpha = 3*Hz*tau_stdp*2  # Target rate parameter
 gmax = 100               # Maximum inhibitory weight
 
 con_ie = Synapses(Pi, Pe, model=eqs_stdp_inhib,
-                  pre='''A_pre += 1.
+                  on_pre='''A_pre += 1.
                          w = clip(w+(A_post-alpha)*eta, 0, gmax)
                          g_gaba += w*nS''',
-                  post='''A_post += 1.
+                  on_post='''A_post += 1.
                           w = clip(w+A_pre*eta, 0, gmax)
                        ''')
 con_ie.connect(p=epsilon)
