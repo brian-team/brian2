@@ -30,6 +30,7 @@ try:
 except ImportError:
     Cython = None
 
+import brian2
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.core.preferences import prefs
@@ -174,11 +175,15 @@ class CythonExtensionManager(object):
                 import numpy
                 c_include_dirs.append(numpy.get_include())
 
-            # TODO: We should probably have a special folder just for header
-            # files that are shared between different codegen targets
             import brian2.synapses as synapses
             synapses_dir = os.path.dirname(synapses.__file__)
             c_include_dirs.append(synapses_dir)
+
+            brian2dir, _ = os.path.split(brian2.__file__)
+            rkdir = os.path.join(brian2dir, 'random', 'randomkit')
+            randomkitc = os.path.join(rkdir, 'randomkit.c')
+            c_include_dirs.append(rkdir)
+
 
             pyx_file = os.path.join(lib_dir, module_name + '.pyx')
             # ignore Python 3 unicode stuff for the moment
@@ -187,9 +192,12 @@ class CythonExtensionManager(object):
             #    f.write(code)
             open(pyx_file, 'w').write(code)
 
+            if sys.platform=='win32':
+                libraries = libraries+['advapi32'] # needed for randomkit
+
             extension = Extension(
                 name=module_name,
-                sources=[pyx_file],
+                sources=[pyx_file, randomkitc],
                 include_dirs=c_include_dirs,
                 library_dirs=library_dirs,
                 runtime_library_dirs=runtime_library_dirs,

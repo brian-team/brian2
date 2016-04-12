@@ -16,7 +16,10 @@ Clock-driven implementation with exact subthreshold integration
 '''
 from brian2 import *
 
-set_device('cpp_standalone', directory='CUBA')
+#BrianLogger.log_level_diagnostic()
+
+prefs.codegen.target = 'cython'
+#set_device('cpp_standalone', directory='CUBA')
 
 taum = 20*ms
 taue = 5*ms
@@ -36,7 +39,8 @@ P = NeuronGroup(4000, eqs, threshold='v>Vt', reset='v = Vr', refractory=5*ms)
 P.v = 'Vr + rand() * (Vt - Vr)'
 P.ge = 0*mV
 P.gi = 0*mV
-P.x = 'randn()'
+#P.x = 'randn()'
+P.run_regularly('x=randn()', dt=100*ms)
 
 we = (60*0.27/10)*mV # excitatory synaptic weight (voltage)
 wi = (-20*4.5/10)*mV # inhibitory synaptic weight
@@ -49,10 +53,9 @@ s_mon = SpikeMonitor(P)
 
 run(1 * second)
 
-# hist(P.x[:])
-# show()
-
-
+subplot(211)
+hist(P.x[:])
+subplot(212)
 plot(s_mon.t/ms, s_mon.i, '.k')
 xlabel('Time (ms)')
 ylabel('Neuron index')

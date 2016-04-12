@@ -18,6 +18,7 @@ except ImportError:
         # No weave for Python 3
         weave = None
 
+import brian2
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.preferences import prefs
@@ -102,11 +103,20 @@ class WeaveCodeObject(CodeObject):
         # files that are shared between different codegen targets
         import brian2.synapses as synapses
         synapses_dir = os.path.dirname(synapses.__file__)
+        brian2dir, _ = os.path.split(brian2.__file__)
+        rkdir = os.path.join(brian2dir, 'random', 'randomkit')
+        randomkitc = os.path.join(rkdir, 'randomkit.c')
+
         self.include_dirs.append(synapses_dir)
+        self.include_dirs.append(rkdir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
-        self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
+        if sys.platform=='win32':
+            self.libraries.append('advapi32') # needed for randomkit
+        self.headers = ['<algorithm>', '<limits>',
+                        '"stdint_compat.h"', '"randomkit.h"'] + prefs['codegen.cpp.headers']
+        self.sources = [randomkitc]
         self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
@@ -249,6 +259,7 @@ libraries: {self.libraries}
                 extra_link_args=self.extra_link_args,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
+                sources=self.sources,
                 verbose=0)
             with std_silent():
                 ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
@@ -262,85 +273,46 @@ if weave is not None:
     codegen_targets.add(WeaveCodeObject)
 
 
-# Use a special implementation for the randn function that makes use of numpy's
-# randn
+# Use RandomKit for random number generation (same algorithm as numpy)
+# Note that we create a new random state for each codeobject, but this
+# is seeded with a few hundred bytes from OS-level entropy generators
+# and so the random numbers produced will be independent. If these
+# RNGs aren't able to produce enough data to seed the RNG it will raise
+# an error.
 randn_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
-        // A randn() function that returns a single random number. Internally
-        // it asks numpy's randn function for BUFFER_SIZE
-        // random numbers at a time and then returns one number from this
-        // buffer.
-        // It needs a reference to the numpy_randn object (the original numpy
-        // function), because this is otherwise only available in
-        // compiled_function (where is is automatically handled by weave).
-        //
+        rk_state *_mtrandstate_randn = NULL;
         double _randn(const int _vectorisation_idx) {
-            // the _vectorisation_idx argument is unused for now, it could in
-            // principle be used to get reproducible random numbers when using
-            // OpenMP etc.
-            static PyArrayObject *randn_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
-            {
-                if(randn_buffer) Py_DECREF(randn_buffer);
-                py::tuple args(1);
-                args[0] = BUFFER_SIZE;
-                randn_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
-                                                                NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
+            if(_mtrandstate_randn==NULL) {
+                _mtrandstate_randn = new rk_state;
+                rk_error errcode = rk_randomseed(_mtrandstate_randn);
+                if(errcode)
+                {
+                    PyErr_SetString(PyExc_RuntimeError, "Cannot initialise random state");
+                    throw 1;
+                }
             }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
-            return number;
+            return rk_gauss(_mtrandstate_randn);
         }
         '''}
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
                                                               code=randn_code,
-                                                              name='_randn',
-                                                              namespace={'_numpy_randn': numpy.random.randn})
+                                                              name='_randn')
 
-# Also use numpy for rand
 rand_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
-        // A rand() function that returns a single random number. Internally
-        // it asks numpy's rand function for BUFFER_SIZE
-        // random numbers at a time and then returns one number from this
-        // buffer.
-        // It needs a reference to the numpy_rand object (the original numpy
-        // function), because this is otherwise only available in
-        // compiled_function (where is is automatically handled by weave).
-        //
+        rk_state *_mtrandstate_rand = NULL;
         double _rand(const int _vectorisation_idx) {
-            // the _vectorisation_idx argument is unused for now, it could in
-            // principle be used to get reproducible random numbers when using
-            // OpenMP etc.
-            static PyArrayObject *rand_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
-            {
-                if(rand_buffer) Py_DECREF(rand_buffer);
-                py::tuple args(1);
-                args[0] = BUFFER_SIZE;
-                rand_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
-                                                               NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(rand_buffer, 0);
+            if(_mtrandstate_rand==NULL) {
+                _mtrandstate_rand = new rk_state;
+                rk_error errcode = rk_randomseed(_mtrandstate_rand);
+                if(errcode)
+                {
+                    PyErr_SetString(PyExc_RuntimeError, "Cannot initialise random state");
+                    throw 1;
+                }
             }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
-            return number;
+            return rk_double(_mtrandstate_rand);
         }
         '''}
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
                                                              code=rand_code,
-                                                             namespace={'_numpy_rand': numpy.random.rand},
                                                              name='_rand')
