@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include "objects.h"
 #include<ctime>
+#include "randomkit.h"
 
 {% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
@@ -23,6 +24,7 @@ void brian_start()
     {% endfor %}
 	srand((unsigned int)time(NULL));
 	rand(); // put this in because the first random number generated on some versions of C++ is always almost the same
+	rk_error errcode = rk_randomseed(&brian::_mersenne_twister_state);
 }
 
 void brian_end()
