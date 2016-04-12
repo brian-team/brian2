@@ -8,6 +8,9 @@ from brian2.codegen.generators.cpp_generator import (CPPCodeGenerator,
                                                      c_data_type)
 from brian2.devices.device import get_device
 from brian2.core.preferences import prefs
+from brian2.core.functions import DEFAULT_FUNCTIONS, Function
+
+import numpy
 
 __all__ = ['CPPStandaloneCodeObject']
 
@@ -93,7 +96,8 @@ class CPPStandaloneCodeObject(CodeObject):
                           env_globals={'c_data_type': c_data_type,
                                        'openmp_pragma': openmp_pragma,
                                        'constant_or_scalar': constant_or_scalar,
-                                       'prefs': prefs})
+                                       'prefs': prefs,
+                                       'zip': zip})
     generator_class = CPPCodeGenerator
 
     def __call__(self, **kwds):
@@ -103,3 +107,21 @@ class CPPStandaloneCodeObject(CodeObject):
         get_device().main_queue.append(('run_code_object', (self,)))
 
 codegen_targets.add(CPPStandaloneCodeObject)
+
+rand_code = {'support_code': '''
+        double _rand(const int _vectorisation_idx) {
+            return rk_double(&brian::_mersenne_twister_state);
+        }
+        '''}
+DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CPPStandaloneCodeObject,
+                                                             code=rand_code,
+                                                             name='_rand')
+
+randn_code = {'support_code': '''
+        double _randn(const int _vectorisation_idx) {
+            return rk_gauss(&brian::_mersenne_twister_state);
+        }
+        '''}
+DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CPPStandaloneCodeObject,
+                                                              code=randn_code,
+                                                              name='_randn')
