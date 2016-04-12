@@ -109,7 +109,7 @@ class CPPStandaloneCodeObject(CodeObject):
 codegen_targets.add(CPPStandaloneCodeObject)
 
 rand_code = {'support_code': '''
-        double _rand(const int _vectorisation_idx) {
+        inline double _rand(const int _vectorisation_idx) {
             return rk_double(&brian::_mersenne_twister_state);
         }
         '''}
@@ -118,7 +118,7 @@ DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CPPStandaloneCodeOb
                                                              name='_rand')
 
 randn_code = {'support_code': '''
-        double _randn(const int _vectorisation_idx) {
+        inline double _randn(const int _vectorisation_idx) {
             return rk_gauss(&brian::_mersenne_twister_state);
         }
         '''}

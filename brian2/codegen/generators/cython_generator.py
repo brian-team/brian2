@@ -333,7 +333,7 @@ cdef extern from "randomkit.h":
 
 cdef rk_state* _mtrandstate_rand = NULL
 
-cdef double _rand(int _idx):
+cdef inline double _rand(int _idx):
     global _mtrandstate_rand
     cdef rk_error errcode
     if _mtrandstate_rand==NULL:

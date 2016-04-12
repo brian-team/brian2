@@ -281,7 +281,7 @@ if weave is not None:
 # an error.
 randn_code = {'support_code': '''
         rk_state *_mtrandstate_randn = NULL;
-        double _randn(const int _vectorisation_idx) {
+        inline double _randn(const int _vectorisation_idx) {
             if(_mtrandstate_randn==NULL) {
                 _mtrandstate_randn = new rk_state;
                 rk_error errcode = rk_randomseed(_mtrandstate_randn);
@@ -300,7 +300,7 @@ DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
 
 rand_code = {'support_code': '''
         rk_state *_mtrandstate_rand = NULL;
-        double _rand(const int _vectorisation_idx) {
+        inline double _rand(const int _vectorisation_idx) {
             if(_mtrandstate_rand==NULL) {
                 _mtrandstate_rand = new rk_state;
                 rk_error errcode = rk_randomseed(_mtrandstate_rand);

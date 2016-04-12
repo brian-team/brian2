@@ -18,8 +18,8 @@ from brian2 import *
 
 #BrianLogger.log_level_diagnostic()
 
-prefs.codegen.target = 'cython'
-#set_device('cpp_standalone', directory='CUBA')
+# prefs.codegen.target = 'cython'
+set_device('cpp_standalone', directory='CUBA')
 
 taum = 20*ms
 taue = 5*ms
