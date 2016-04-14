@@ -12,9 +12,8 @@ import numpy as np
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
-                                           have_same_dimensions)
+                                           have_same_dimensions, get_unit)
 from brian2.utils.logger import get_logger
-from units.fundamentalunits import get_unit
 
 from .base import weakproxy_with_fallback, device_override
 from .preferences import prefs
