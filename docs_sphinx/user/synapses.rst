@@ -150,6 +150,7 @@ result is copied to the variable ``gtot``. Another example is gap junctions::
 Here, ``Igap`` is the total gap junction current received by the postsynaptic neuron.
 
 .. _creating_synapses:
+
 Creating synapses
 -----------------
 Creating a `Synapses` instance does not create synapses, it only specifies their dynamics.
@@ -158,11 +159,6 @@ neuron ``10`` in the target group::
 
     S.connect(i=5, j=10)
 
-It is possible to create several synapses for a given pair of neurons::
-
-    S.connect(i=5, j=10, n=3)
-
-This is useful for example if one wants to have multiple synapses with different delays.
 Multiple synaptic connections can be created in a single statement::
 
     S.connect()
@@ -173,6 +169,20 @@ The first statement connects all neuron pairs.
 The second statement creates synapses between neurons 1 and 3, and between neurons 2 and 4.
 The third statement creates synapses between the first ten neurons in the source group and neuron 1
 in the target group.
+
+It is also possible to create several synapses for a given pair of neurons::
+
+    S.connect(i=numpy.arange(10), j=1, n=3)
+
+This is useful for example if one wants to have multiple synapses with different delays. To
+distinguish multiple variables connecting the same pair of neurons in synaptic expressions and
+statements, you can create a variable storing the synapse index with the ``multisynaptic_index``
+keyword::
+
+    syn = Synapses(source_group, target_group, model='w : 1', on_pre='v += w',
+                   multisynaptic_index='synapse_number')
+    syn.connect(i=numpy.arange(10), j=1, n=3)
+    syn.delay = '1*ms + synapse_number*2*ms'
 
 One can also create synapses by giving (as a string) the condition for a pair
 of neurons i and j to be connected by a synapse, e.g. you could
