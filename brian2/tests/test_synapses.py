@@ -884,21 +884,21 @@ def test_no_synapses():
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_summed_variable():
-    source = NeuronGroup(2, 'v : 1', threshold='v>1', reset='v=0')
-    source.v = 1.1  # will spike immediately
-    target = NeuronGroup(2, 'v : 1')
-    S = Synapses(source, target, '''w : 1
-                                    x : 1
-                                    v_post = x : 1 (summed)''', on_pre='x+=w',
+    source = NeuronGroup(2, 'v : volt', threshold='v>1*volt', reset='v=0*volt')
+    source.v = 1.1*volt  # will spike immediately
+    target = NeuronGroup(2, 'v : volt')
+    S = Synapses(source, target, '''w : volt
+                                    x : volt
+                                    v_post = 2*x : volt (summed)''', on_pre='x+=w',
                  multisynaptic_index='k')
     S.connect('i==j', n=2)
-    S.w['k == 0'] = 'i'
-    S.w['k == 1'] = 'i + 0.5'
+    S.w['k == 0'] = 'i*volt'
+    S.w['k == 1'] = '(i + 0.5)*volt'
     net = Network(source, target, S)
     net.run(1*ms)
 
     # v of the target should be the sum of the two weights
-    assert_equal(target.v, np.array([0.5, 2.5]))
+    assert_equal(target.v, np.array([1.0, 5.0])*volt)
 
 
 def test_summed_variable_errors():

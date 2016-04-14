@@ -3,7 +3,7 @@ Utility functions for handling the units in `Equations`.
 '''
 import re
 
-from brian2.units.fundamentalunits import (Quantity, Unit,
+from brian2.units.fundamentalunits import (get_unit, Unit,
                                            fail_for_dimension_mismatch)
 
 from brian2.parsing.expressions import parse_expression_unit
@@ -105,7 +105,8 @@ def check_units_statements(code, variables):
                                                                expected_unit))
         elif varname in newly_defined:
             # note the unit for later
-            variables[varname] = Variable(name=varname, unit=expr_unit,
+            variables[varname] = Variable(name=varname,
+                                          unit=get_unit(expr_unit),
                                           scalar=False)
         else:
             raise AssertionError(('Variable "%s" is neither in the variables '
