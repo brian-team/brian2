@@ -487,9 +487,8 @@ def test_determination():
     # included in this list
     all_methods = ['linear', 'exponential_euler', 'euler', 'heun', 'milstein']
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    with catch_logs(log_level=logging.INFO) as logs:
+    with catch_logs(log_level=logging.DEBUG) as logs:
         apply_stateupdater(eqs, variables, all_methods)
-        assert len(logs) == 1
         assert 'linear' in logs[0][2]
     
     # This is conditionally linear
