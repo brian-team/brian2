@@ -49,8 +49,12 @@ latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 
 Since Brian 2 is not part of the main Anaconda distribution, you have to install
-it from the `brian-team channel <https://conda.binstar.org/brian-team>`_.
-To add the ``brian-team`` channel, do::
+it from the `brian-team channel <https://conda.binstar.org/brian-team>`_. To do
+so, use::
+
+    conda install -c brian-team brian2
+
+You can also permanently add the channel to your list of channels::
 
     conda config --add channels brian-team
 
@@ -59,11 +63,6 @@ packages as any other Anaconda package::
 
     conda install brian2
 
-If you prefer to not add the ``brian-team`` channel to your list of channels,
-you can also specify it explicitly when installing/updating/etc. To do an
-installation this way, use::
-
-    conda install -c brian-team brian2
 
 Installing other useful packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -167,9 +166,26 @@ Development version
 -------------------
 
 To run the latest development code, you can install from brian-team's "dev"
-channel with Anaconda::
+channel with Anaconda. Note that if you previously added the ``brian-team``
+channel to your list of channels, you have to first remove it::
+
+    conda config --remove channels brian-team -f
+
+Also uninstall any version of Brian 2 that you might have previously installed::
+
+    conda remove brian2
+
+Finally, install the ``brian2`` package from the development channel::
 
     conda install -c brian-team/channel/dev brian2
+
+If this fails with an error message about the ``py-cpuinfo`` package (a
+dependency that we provide in the main brian-team channel), install it
+from the main channel::
+
+    conda install -c brian-team py-cpuinfo
+
+Then repeat the command to install Brian 2 from the development channel.
 
 You can also directly clone the git repository at github
 (https://github.com/brian-team/brian2) and then run ``python setup.py install``
