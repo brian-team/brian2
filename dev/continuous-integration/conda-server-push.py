@@ -10,7 +10,7 @@ token = os.environ['BINSTAR_TOKEN']
 options = ['-t', token, 'upload',
            '-u', 'brian-team']
 filenames = glob.glob('*.tar.bz2')
-release = '+git' not in filename[0]
+release = '+git' not in filenames[0]
 if not release:
     options.extend(['--channel', 'dev', '--force'])
 
