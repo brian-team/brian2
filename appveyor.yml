@@ -16,7 +16,6 @@ environment:
       platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "34"
-      CONDA_NPY: "19"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
@@ -26,7 +25,6 @@ environment:
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "34"
-      CONDA_NPY: "19"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
@@ -36,7 +34,6 @@ environment:
       platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "35"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
@@ -46,7 +43,6 @@ environment:
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "35"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
@@ -56,7 +52,6 @@ environment:
       platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "27"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
@@ -74,7 +69,6 @@ environment:
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "27"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
@@ -133,7 +127,9 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           deactivate &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.9 &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.10 &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.11 &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
           if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'

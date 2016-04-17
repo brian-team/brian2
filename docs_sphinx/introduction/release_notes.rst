@@ -1,6 +1,93 @@
 Release notes
 =============
 
+Brian 2.0rc
+-----------
+This is a release candidate for the final Brian 2.0 release, meaning that from
+now on we will focus on bug fixes and documentation, without introducing new
+major features or changing the syntax for the user. This release candidate itself
+*does* however change a few important syntax elements, see "Backwards-incompatible
+changes" below.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development mailing
+list (brian-development@googlegroups.com).
+
+Major new features
+~~~~~~~~~~~~~~~~~~
+* New "generator syntax" to efficiently generate synapses (e.g. one-to-one connections), see :ref:`creating_synapses`
+  for more details.
+* For synaptic connections with multiple synapses between a pair of neurons, the number of the synapse can now be
+  stored in a variable, allowing its use in expressions and statements (see :ref:`creating_synapses`).
+* `Synapses` can now target other `Synapses` objects, useful for some models of synaptic modulation.
+* The `Morphology` object has been completely re-worked and several issues have been fixed. The new `Section` object
+  allows to model a section as a series of truncated cones (see :ref:`creating_morphology`).
+* Scripts with a single `run` call, no longer need an explicit ``device.build()`` call to run with the C++
+  standalone device. A `set_device` in the beginning is enough and will trigger the ``build`` call after the run
+  (see :ref:`cpp_standalone`).
+* All state variables within a `Network` can now be accessed by `Network.get_states` and `Network.set_states` and the
+  `store`/`restore` mechanism can now store the full state of a simulation to disk.
+* Stochastic differential equations with multiplicative noise can now be integrated using the Euler-Heun method
+  (``heun``). Thanks to Jan-Hendrik Schleimer for this contribution.
+* Error messages have been significantly improved: errors for unit mismatches are now much clearer and error messages
+  triggered during the intialization phase point back to the line of code where the relevant object (e.g. a
+  `NeuronGroup`) was created.
+* `PopulationRateMonitor` now provides a `~brian2.monitors.ratemonitor.PopulationRateMonitor.smooth_rate` method for a filtered version of the
+  stored rates.
+
+Improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* In addition to the new synapse creation syntax, sparse probabilistic connections are now created much faster.
+* The time for the initialization phase at the beginning of a `run` has been significantly reduced.
+* Multicompartmental simulations with a large number of compartments are now simulated more efficiently and are making
+  better use of several processor cores when OpenMP is activated in C++ standalone mode. Thanks to Moritz Augustin for
+  this contribution.
+* Simulations will use compiler settings that optimize performance by default.
+* Objects that have user-specified names are better supported for complex simulation scenarios (names no longer have to
+  be unique at all times, but only across a network or across a standalone device).
+* Various fixes for compatibility with recent versions of numpy and sympy
+
+Important backwards-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* The argument names in `Synapses.connect` have changed and the first argument can no longer be an array of indices. To
+  connect based on indices, use ``Synapses.connect(i=source_indices, j=target_indices)``. See :ref:`creating_synapses`
+  and the documentation of `Synapses.connect` for more details.
+* The actions triggered by pre-synaptic and post-synaptic spikes are now described by the ``on_pre`` and ``on_post``
+  keyword arguments (instead of ``pre`` and ``post``).
+* The `Morphology` object no longer allows to change attributes such as length and diameter after its creation. Complex
+  morphologies should instead be created using the `Section` class, allowing for the specification of all details.
+* `Morphology` objects that are defined with coordinates need to provide the start point (relative to the end point of
+  the parent compartment) as the first coordinate. See :ref:`creating_morphology` for more details.
+* For simulations using the C++ standalone mode, no longer call `Device.build` (if using a single `run` call), or
+  use `set_device` with ``build_on_run=False`` (see :ref:`cpp_standalone`).
+
+Infrastructure improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Our test suite is now also run on Mac OS-X (on the `Travis CI <https://travis-ci.org/>`_ platform).
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Moritz Augustin (`@moritzaugustin <https://github.com/moritzaugustin>`_)
+* Jan-Hendrik Schleimer (`@ttxtea <https://github.com/ttxtea>`_)
+* Romain Cazé (`@rcaze <https://github.com/rcaze>`_)
+* Konrad Wartke (`@Kwartke <https://github.com/Kwartke>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Chaofei Hong
+* Kees de Leeuw
+* Luke Y Prince
+* Myung Seok Shim
+* Owen Mackwood
+* Github users: @epaxon, @flinz, @mariomulansky, @martinosorb, @neuralyzer, @oleskiw, @prcastro, @sudoankit
+
+
 Brian 2.0b4
 -----------
 This is the fourth (and probably last) beta release for Brian 2.0. This release

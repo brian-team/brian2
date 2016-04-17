@@ -936,10 +936,11 @@ class Equations(collections.Mapping):
                                                               sympy.latex(eq.unit),
                                                               flag_str)
             else:
-                eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (sympy.latex(lhs),
-                                                                   sympy.latex(rhs),
-                                                                   sympy.latex(eq.unit),
-                                                                   flag_str)
+                eq_latex = r'%s &= %s && \text{(unit of $%s$: $%s$%s)}' % (sympy.latex(lhs),
+                                                                           sympy.latex(rhs),
+                                                                           sympy.latex(varname),
+                                                                           sympy.latex(eq.unit),
+                                                                           flag_str)
             equations.append(eq_latex)
         return r'\begin{align*}' + (r'\\' + '\n').join(equations) + r'\end{align*}'
 

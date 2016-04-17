@@ -79,6 +79,8 @@ class PopulationRateMonitor(Group, CodeRunner):
     @check_units(width=second)
     def smooth_rate(self, window='gaussian', width=None):
         '''
+        smooth_rate(self, window='gaussian', width=None)
+
         Return a smooth version of the population rate.
 
         Parameters
