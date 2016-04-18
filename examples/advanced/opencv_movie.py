@@ -22,7 +22,7 @@ filename = os.path.abspath('Megamind.avi')
 
 if not os.path.exists(filename):
     print('Downloading the example video file')
-    response = urllib2.urlopen('http://docs.opencv.org/_downloads/Megamind.avi')
+    response = urllib2.urlopen('http://docs.opencv.org/2.4/_downloads/Megamind.avi')
     data = response.read()
     with open(filename, 'wb') as f:
         f.write(data)
