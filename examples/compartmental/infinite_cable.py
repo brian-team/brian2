@@ -20,7 +20,8 @@ Im = gL * (EL-v) : amp/meter**2
 I : amp (point current)
 '''
 
-neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
+                       method = 'exponential_euler')
 neuron.v = EL
 
 taum = Cm  /gL  # membrane time constant

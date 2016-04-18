@@ -13,7 +13,8 @@ dv/dt = (v0 - v + Igap) / tau : 1
 Igap : 1 # gap junction current
 '''
 
-neurons = NeuronGroup(n, eqs, threshold='v > 1', reset='v = 0')
+neurons = NeuronGroup(n, eqs, threshold='v > 1', reset='v = 0',
+                      method='linear')
 neurons.v = 'i * 1.0 / (n-1)'
 trace = StateMonitor(neurons, 'v', record=[0, 5])
 

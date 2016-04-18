@@ -38,8 +38,8 @@ p : 1
 x : 1 (linked)
 '''
 
-input = NeuronGroup(1, eqs_input)
-neurons = NeuronGroup(N, eqs, threshold='v>1', reset='v=0')
+input = NeuronGroup(1, eqs_input, method='euler')
+neurons = NeuronGroup(N, eqs, threshold='v>1', reset='v=0', method='euler')
 neurons.p = '1.0*i/N'
 neurons.v = 'rand()'
 neurons.x = linked_var(input, 'x')

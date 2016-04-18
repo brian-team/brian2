@@ -101,7 +101,7 @@ reps = 15                                           # Number of pairings
 #### Create neuron objects
 
 Nrns = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
-                   reset='v=V_rest;x_trace+=x_reset/(taux/ms)')#
+                   reset='v=V_rest;x_trace+=x_reset/(taux/ms)', method='euler')#
 
 #### create Synapses
 

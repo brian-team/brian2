@@ -14,7 +14,7 @@ Im = gL * (EL-v) : amp/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm)
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
 neuron.v = arange(0, 13)*volt
 
 print(neuron.v)

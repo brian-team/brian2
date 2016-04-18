@@ -18,7 +18,7 @@ dx/dt = (0.9 + .5 * I - x) / tau + sigma * (2 / tau)**.5 * xi : 1
 I : 1 (linked)
 '''
 neurons = NeuronGroup(N, model=eqs_neurons, threshold='x > 1',
-                      reset='x = 0', refractory=5*ms)
+                      reset='x = 0', refractory=5*ms, method='euler')
 neurons.x = 'rand()'
 neurons.I = linked_var(input, 'x') # input.x is continuously fed into neurons.I
 spikes = SpikeMonitor(neurons)

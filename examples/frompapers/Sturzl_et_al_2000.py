@@ -58,7 +58,8 @@ dv/dt = (x - v)/tau : 1
 dx/dt = (y - x)/taus : 1 # alpha currents
 dy/dt = -y/taus : 1
 '''
-neurons = NeuronGroup(8, model=eqs_neuron, threshold='v>1', reset='v=0')
+neurons = NeuronGroup(8, model=eqs_neuron, threshold='v>1', reset='v=0',
+                      method='linear')
 synapses_ex = Synapses(legs, neurons, on_pre='y+=wex')
 synapses_ex.connect(j='i')
 synapses_inh = Synapses(legs, neurons, on_pre='y+=winh', delay=deltaI)

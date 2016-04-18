@@ -13,7 +13,8 @@ v = 0*mV
 vt += 3*mV
 '''
 
-IF = NeuronGroup(1, model=eqs, reset=reset, threshold='v>vt')
+IF = NeuronGroup(1, model=eqs, reset=reset, threshold='v>vt',
+                 method='linear')
 IF.vt = 10*mV
 PG = PoissonGroup(1, 500 * Hz)
 

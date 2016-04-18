@@ -100,7 +100,8 @@ G = NeuronGroup(N, '''dv/dt = (-v + I)/tau : 1
                       row : integer (constant)
                       column : integer (constant)
                       I : 1 # input current''',
-                threshold='v>v_th', reset='v=0; v_th = 3*v_th + 1.0')
+                threshold='v>v_th', reset='v=0; v_th = 3*v_th + 1.0',
+                method='linear')
 G.v_th = 1
 G.row = 'i/width'
 G.column = 'i%width'

@@ -50,7 +50,7 @@ dg_gaba/dt = -g_gaba/tau_gaba : siemens
 # ###########################################
 
 neurons = NeuronGroup(NE+NI, model=eqs_neurons, threshold='v > vt',
-                      reset='v=el', refractory=5*ms)
+                      reset='v=el', refractory=5*ms, method='euler')
 Pe = neurons[:NE]
 Pi = neurons[NE:]
 

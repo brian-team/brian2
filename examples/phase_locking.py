@@ -13,7 +13,8 @@ eqs = '''
 dv/dt = (-v + a * sin(2 * pi * freq * t) + b) / tau : 1
 a : 1
 '''
-neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0')
+neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
+                      method='euler')
 neurons.v = 'rand()'
 neurons.a = '0.05 + 0.7*i/n'
 S = SpikeMonitor(neurons)
