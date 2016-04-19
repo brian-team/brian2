@@ -300,7 +300,7 @@ void
 rk_fill(void *buffer, size_t size, rk_state *state)
 {
     unsigned long r;
-    unsigned char *buf = buffer;
+    unsigned char *buf = (unsigned char *)buffer;
 
     for (; size >= 4; size -= 4) {
         r = rk_random(state);
