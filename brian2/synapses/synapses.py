@@ -1005,6 +1005,8 @@ class Synapses(Group):
                     error_msg += ("(for example to '{name}_syn') ".format(name=name))
                 error_msg += 'to avoid confusion'
                 raise ValueError(error_msg)
+            if name.startswith('_'):
+                continue  # Do not add internal variables
             var = self.source.variables[name]
             index = '0' if var.scalar else '_presynaptic_idx'
             try:
@@ -1029,6 +1031,8 @@ class Synapses(Group):
                     error_msg += ("(for example to '{name}_syn') ".format(name=name))
                 error_msg += 'to avoid confusion'
                 raise ValueError(error_msg)
+            if name.startswith('_'):
+                continue  # Do not add internal variables
             var = self.target.variables[name]
             index = '0' if var.scalar else '_postsynaptic_idx'
             try:

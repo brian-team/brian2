@@ -1067,6 +1067,29 @@ def test_repr():
 
 
 @attr('codegen-independent')
+def test_pre_post_variables():
+    G = NeuronGroup(10, 'v : 1', threshold='False')
+    G2 = NeuronGroup(10, '''v : 1
+                            w : 1''', threshold='False')
+    S = Synapses(G, G2, 'x : 1')
+    # Check for the most important variables
+    for var in ['v_pre', 'v', 'v_post', 'w', 'w_post', 'x',
+                'N_pre', 'N_post', 'N_incoming', 'N_outgoing',
+                'i', 'j',
+                't', 'lastupdate', 'dt']:
+        assert var in S.variables
+    # Check that postsynaptic variables without suffix refer to the correct
+    # variable
+    assert S.variables['v'] is S.variables['v_post']
+    assert S.variables['w'] is S.variables['w_post']
+
+    # Check that internal pre-/post-synaptic variables are not accessible
+    assert '_spikespace_pre' not in S.variables
+    assert '_spikespace' not in S.variables
+    assert '_spikespace_post' not in S.variables
+
+
+@attr('codegen-independent')
 def test_variables_by_owner():
     # Test the `variables_by_owner` convenience function
     G = NeuronGroup(10, 'v : 1')
@@ -1900,6 +1923,7 @@ if __name__ == '__main__':
     test_external_variables()
     test_event_driven()
     test_repr()
+    test_pre_post_variables()
     test_variables_by_owner()
     test_permutation_analysis()
     test_vectorisation()
