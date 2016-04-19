@@ -17,10 +17,14 @@ if not release:
 # Uploading sometimes fails due to server or network errors -- we try it five
 # times before giving up
 attempts = 5
+uploaded = set()
 for attempt in range(attempts):
     try:
         for filename in filenames:
+            if filename in uploaded:  # We already uploaded this file
+                continue
             main(args=options+[filename])
+            uploaded.add(filename)
     except BinstarError as ex:
         print('Something did not work (%s).' % str(ex))
         if attempt < attempts - 1:
