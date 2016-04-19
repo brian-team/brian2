@@ -4,6 +4,7 @@ import numpy as np
 
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable
+from brian2.core.spikesource import SpikeSource
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.groups.group import CodeRunner, Group
 
@@ -22,7 +23,7 @@ class EventMonitor(Group, CodeRunner):
 
     Parameters
     ----------
-    source : `NeuronGroup`
+    source : `NeuronGroup`, `SpikeSource`
         The source of events to record.
     event : str
         The name of the event to record
@@ -55,6 +56,11 @@ class EventMonitor(Group, CodeRunner):
     def __init__(self, source, event, variables=None, record=True,
                  when=None, order=None, name='eventmonitor*',
                  codeobj_class=None):
+        if not isinstance(source, SpikeSource):
+            raise TypeError(('%s can only monitor groups producing spikes '
+                             '(such as NeuronGroup), but the given argument '
+                             'is of type %s.') % (self.__class__.__name__,
+                                                  type(source)))
         #: The source we are recording from
         self.source = source
         #: Whether to record times and indices of events
