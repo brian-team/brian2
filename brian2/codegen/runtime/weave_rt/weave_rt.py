@@ -102,9 +102,9 @@ class WeaveCodeObject(CodeObject):
         # TODO: We should probably have a special folder just for header
         # files that are shared between different codegen targets
         import brian2.synapses as synapses
-        synapses_dir = os.path.dirname(synapses.__file__)
+        synapses_dir = os.path.abspath(os.path.dirname(synapses.__file__))
         brian2dir, _ = os.path.split(brian2.__file__)
-        rkdir = os.path.join(brian2dir, 'random', 'randomkit')
+        rkdir = os.path.abspath(os.path.join(brian2dir, 'random', 'randomkit'))
         randomkitc = os.path.join(rkdir, 'randomkit.c')
 
         self.include_dirs.append(synapses_dir)
@@ -112,10 +112,11 @@ class WeaveCodeObject(CodeObject):
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
-        if sys.platform=='win32':
-            self.libraries.append('advapi32') # needed for randomkit
-        self.headers = ['<algorithm>', '<limits>',
-                        '"stdint_compat.h"', '"randomkit.h"'] + prefs['codegen.cpp.headers']
+        if sys.platform == 'win32':
+            self.libraries.append('advapi32')  # needed for randomkit
+        self.headers = (['<algorithm>', '<limits>',
+                         '"stdint_compat.h"', '"randomkit.h"'] +
+                        prefs['codegen.cpp.headers'])
         self.sources = [randomkitc]
         self.annotated_code = self.code.main+'''
 /*

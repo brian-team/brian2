@@ -176,11 +176,11 @@ class CythonExtensionManager(object):
                 c_include_dirs.append(numpy.get_include())
 
             import brian2.synapses as synapses
-            synapses_dir = os.path.dirname(synapses.__file__)
+            synapses_dir = os.path.abspath(os.path.dirname(synapses.__file__))
             c_include_dirs.append(synapses_dir)
 
             brian2dir, _ = os.path.split(brian2.__file__)
-            rkdir = os.path.join(brian2dir, 'random', 'randomkit')
+            rkdir = os.path.abspath(os.path.join(brian2dir, 'random', 'randomkit'))
             randomkitc = os.path.join(rkdir, 'randomkit.c')
             c_include_dirs.append(rkdir)
 
