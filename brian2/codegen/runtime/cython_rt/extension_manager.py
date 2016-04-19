@@ -180,7 +180,8 @@ class CythonExtensionManager(object):
             c_include_dirs.append(synapses_dir)
 
             brian2dir, _ = os.path.split(brian2.__file__)
-            rkdir = os.path.abspath(os.path.join(brian2dir, 'random', 'randomkit'))
+            rkdir = os.path.abspath(os.path.join(brian2dir, 'utils',
+                                                 'random', 'randomkit'))
             randomkitc = os.path.join(rkdir, 'randomkit.c')
             c_include_dirs.append(rkdir)
 

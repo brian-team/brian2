@@ -716,10 +716,10 @@ class CPPStandaloneDevice(Device):
         if not os.path.exists(os.path.join(directory, 'brianlib', 'randomkit')):
             os.mkdir(os.path.join(directory, 'brianlib', 'randomkit'))
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(brian2))[0],
-                                  'random', 'randomkit', 'randomkit.c'),
+                                  'utils', 'random', 'randomkit', 'randomkit.c'),
                      os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.c'))
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(brian2))[0],
-                                  'random', 'randomkit', 'randomkit.h'),
+                                  'utils', 'random', 'randomkit', 'randomkit.h'),
                      os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.h'))
 
     def write_static_arrays(self, directory):
