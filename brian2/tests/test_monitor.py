@@ -24,6 +24,10 @@ def test_spike_monitor():
     mon = SpikeMonitor(G)
 
     assert_raises(ValueError, lambda: SpikeMonitor(G, order=1))  # need to specify 'when' as well
+    # Creating a SpikeMonitor for a Synapses object should not work
+    S = Synapses(G, G, on_pre='v += 0')
+    S.connect()
+    assert_raises(TypeError, lambda: SpikeMonitor(S))
 
     run(10*ms)
 
