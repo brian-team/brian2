@@ -790,6 +790,12 @@ def test_store_restore():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+    # Go back again (see github issue #681)
+    net.restore('second')
+    assert defaultclock.t == 10 * ms
+    assert net.t == 10 * ms
+
+
 @attr('codegen-independent')
 def test_store_restore_to_file():
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
