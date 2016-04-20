@@ -3,10 +3,10 @@ import shutil
 import glob
 import codecs
 
-from IPython.nbformat.v4 import reads
-from IPython.nbconvert.preprocessors import ExecutePreprocessor
-from IPython.nbconvert.exporters.notebook import NotebookExporter
-from IPython.nbconvert.exporters.rst import RSTExporter
+from nbformat.v4 import reads
+from nbconvert.preprocessors import ExecutePreprocessor
+from nbconvert.exporters.notebook import NotebookExporter
+from nbconvert.exporters.rst import RSTExporter
 
 
 src_dir = os.path.abspath('../../../tutorials')
@@ -33,6 +33,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
 
     # Execute the notebook
     preprocessor = ExecutePreprocessor()
+    preprocessor.allow_errors = True
     notebook, _ = preprocessor.preprocess(notebook, {})
 
     print 'Saving notebook and converting to RST'
@@ -73,17 +74,17 @@ text = '''
 Tutorials
 =========
 
-The tutorial consists of a series of `IPython notebooks`_ [#]_. If you run such
+The tutorial consists of a series of `Jupyter Notebooks`_ [#]_. If you run such
 a notebook on your own computer, you can interactively change the code in the
 tutorial and experiment with it -- this is the recommended way to get started
 with Brian. The first link for each tutorial below leads to a non-interactive
 version of the notebook; use the links under "Notebook files" to get a file that
 you can run on your computer. You can also copy such a link and paste it at
-http://nbviewer.ipython.org -- this will get you a nicer (but still
+http://nbviewer.jupyter.org -- this will get you a nicer (but still
 non-interactive) rendering than the one you see in our documentation.
 
-For more information about how to use IPython notebooks, see the
-`IPython notebook documentation`_.
+For more information about how to use Jupyter Notebooks, see the
+`Jupyter Notebook documentation`_.
 
 .. toctree::
    :maxdepth: 1
@@ -102,10 +103,10 @@ for tutorial, title in tutorials:
                                                                 tutorial=tutorial)
 text += '''
 
-.. _`IPython notebooks`: http://ipython.org/notebook.html
+.. _`Jupyter Notebooks`: http://jupyter-notebook-beginner-guide.readthedocs.org/en/latest/what_is_jupyter.html
 .. _`Jupyter`: http://jupyter.org/
-.. _`IPython notebook documentation`: http://ipython.org/ipython-doc/stable/notebook/index.html
+.. _`Jupyter Notebook documentation`: http://jupyter.readthedocs.org/
 
-.. [#] The project has been partly renamed to `Jupyter`_ recently
+.. [#] Formerly known as "IPython Notebooks".
 '''
 open(os.path.join(target_dir, 'index.rst'), 'w').write(text)

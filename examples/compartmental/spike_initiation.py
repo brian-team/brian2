@@ -34,7 +34,7 @@ gK : siemens/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm)
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
 neuron.v = -65*mV
 neuron.I = 0*amp
 neuron.axon[30*um:60*um].gNa = 700*gL

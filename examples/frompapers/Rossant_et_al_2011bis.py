@@ -43,7 +43,7 @@ wi = (vmean-El-lambdae*ne*we*taue)/(lambdae*ni*taui)
 # NeuronGroup definition
 group = NeuronGroup(N=2, model=eqs, reset='v = El',
                     threshold='v>theta',
-                    refractory=5*ms)
+                    refractory=5*ms, method='linear')
 group.v = El
 group.ge = group.gi = 0
 
@@ -61,7 +61,6 @@ M = SpikeMonitor(group)
 SM = StateMonitor(group, 'v', record=True)
 BrianLogger.log_level_info()
 run(1*second)
-
 # plot trace and spikes
 for i in [0, 1]:
     spikes = (M.t[M.i == i] - defaultclock.dt)/ms

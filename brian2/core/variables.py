@@ -12,7 +12,7 @@ import numpy as np
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
-                                           have_same_dimensions)
+                                           have_same_dimensions, get_unit)
 from brian2.utils.logger import get_logger
 
 from .base import weakproxy_with_fallback, device_override
@@ -130,7 +130,9 @@ class Variable(object):
     def __init__(self, name, unit, owner=None, dtype=None, scalar=False,
                  constant=False, read_only=False, dynamic=False, array=False):
         if not isinstance(unit, Unit):
-            if unit == 1:
+            if isinstance(unit, Quantity):
+                unit = get_unit(unit)
+            elif unit == 1:
                 unit = Unit(1)
             else:
                 raise TypeError(('unit argument has to be a Unit object, was '

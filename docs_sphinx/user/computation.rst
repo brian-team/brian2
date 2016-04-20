@@ -114,6 +114,15 @@ C++ source code and modifying it, or by inserting code directly into the main lo
     cout << "Testing direct insertion of code." << endl;
     ''')
 
+.. warning::
+
+    The generation of random numbers in the C++ standalone mode (e.g. when using probabilistic synaptic connections,
+    the ``xi`` symbol in equations, or explicit calls to ``rand()`` or ``randn()``) is currently based on the ``rand()``
+    function from the C standard library which does not make any guarantees about its quality and is known to produce
+    low-quality random numbers (e.g. random number sequences with a relatively short period) on some platforms. This
+    does not concern runtime mode (which uses the random number generator from numpy) and we are planning to provide an
+    implementation of the same quality also in C++ standalone mode as part of the final 2.0 release.
+
 Variables
 ~~~~~~~~~
 After a simulation has been run (after the `run` call if `set_device` has been called with ``build_on_run`` set to

@@ -601,7 +601,7 @@ class VariableOwner(Nameable):
                                   'scalar.') % (varname, ref_varname))
 
     def __len__(self):
-        return self.variables['N'].get_value()
+        return int(self.variables['N'].get_value())
 
 
 class Group(VariableOwner, BrianObject):

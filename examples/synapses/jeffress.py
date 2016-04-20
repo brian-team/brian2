@@ -28,7 +28,7 @@ distance : second # distance to the centre of the head in time units
 dtheta/dt = angular_speed : radian
 '''
 ears = NeuronGroup(2, eqs_ears, threshold='x>1', reset='x = 0',
-                   refractory=2.5*ms, name='ears')
+                   refractory=2.5*ms, name='ears', method='euler')
 ears.distance = [-.5 * max_delay, .5 * max_delay]
 traces = StateMonitor(ears, 'delay', record=True)
 # Coincidence detectors
@@ -39,7 +39,7 @@ eqs_neurons = '''
 dv/dt = -v / tau + sigma * (2 / tau)**.5 * xi : 1
 '''
 neurons = NeuronGroup(num_neurons, eqs_neurons, threshold='v>1',
-                      reset='v = 0', name='neurons')
+                      reset='v = 0', name='neurons', method='euler')
 
 synapses = Synapses(ears, neurons, on_pre='v += .5')
 synapses.connect()

@@ -18,7 +18,7 @@ I : amp (point current)
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm)
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
 neuron.v = EL
 neuron.I = 0*amp
 

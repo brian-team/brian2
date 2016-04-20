@@ -27,7 +27,8 @@ dy/dt = -y*(1./taupsp)+25.27*mV/ms+
 n_groups = 10
 group_size = 100
 P = NeuronGroup(N=n_groups*group_size, model=eqs,
-                threshold='V>Vt', reset='V=Vr', refractory=1*ms)
+                threshold='V>Vt', reset='V=Vr', refractory=1*ms,
+                method='euler')
 
 Pinput = SpikeGeneratorGroup(85, np.arange(85),
                              np.random.randn(85)*1*ms + 50*ms)

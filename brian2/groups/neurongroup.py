@@ -743,26 +743,31 @@ class NeuronGroup(Group, SpikeSource):
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
 
+        def add_event_to_text(event):
+            if event=='spike':
+                event_header = 'Spiking behaviour'
+                event_condition = 'Threshold condition'
+                event_code = 'Reset statement(s)'
+            else:
+                event_header = 'Event "%s"' % event
+                event_condition = 'Event condition'
+                event_code = 'Executed statement(s)'
+            condition = self.events[event]
+            text.append(r'<b>%s:</b><ul style="list-style-type: none; margin-top: 0px;">' % event_header)
+            text.append(r'<li><i>%s: </i>' % event_condition)
+            text.append('<code>%s</code></li>' % str(condition))
+            statements = self.event_codes.get(event, None)
+            if statements is not None:
+                text.append(r'<li><i>%s:</i>' % event_code)
+                if '\n' in str(statements):
+                    text.append('</br>')
+                text.append(r'<code>%s</code></li>' % str(statements))
+            text.append('</ul>')
+
         if 'spike' in self.events:
-            threshold, reset = self.events['spike']
-        else:
-            threshold = reset = None
-        if threshold is not None:
-            text.append(r'<b>Threshold condition:</b><br>')
-            text.append('<code>%s</code><br>' % str(threshold))
-            text.append('')
-        if reset is not None:
-            text.append(r'<b>Reset statement(s):</b><br>')
-            text.append(r'<code>%s</code><br>' % str(reset))
-            text.append('')
-        for event, (condition, statements) in self.events.iteritems():
-            if event != 'spike':  # we dealt with this already above
-                text.append(r'<b>Condition for event "%s"</b><br>' % event)
-                text.append('<code>%s</code><br>' % str(condition))
-                text.append('')
-                if statements is not None:
-                    text.append(r'<b>Executed statement(s):</b><br>')
-                    text.append(r'<code>%s</code><br>' % str(statements))
-                    text.append('')
+            add_event_to_text('spike')
+        for event in self.events:
+            if event!='spike':
+                add_event_to_text(event)
 
         return '\n'.join(text)

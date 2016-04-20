@@ -111,9 +111,11 @@ input_time = 100.*ms                             # duration of an input
 #### Create neuron objects
 
 Nrn_downstream = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
-                             reset='v=V_rest;x_trace+=x_reset/(taux/ms)')
+                             reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
+                             method='euler')
 Nrns_input = NeuronGroup(Nr_inputs, eqs_inputs, threshold='rand()<rates*dt',
-                         reset='v=V_rest;x_trace+=x_reset/(taux/ms)')
+                         reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
+                         method='linear')
 
 #### create Synapses
 

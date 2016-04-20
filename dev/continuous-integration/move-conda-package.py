@@ -13,6 +13,6 @@ with open(os.path.join(sys.argv[1], 'meta.yaml')) as f:
     name = yaml.load(f)['package']['name']
 
 binary_package_glob = os.path.join(config.bldpkgs_dir, '{0}*.tar.bz2'.format(name))
-binary_package = glob.glob(binary_package_glob)[0]
-
-shutil.move(binary_package, '.')
+binary_packages = glob.glob(binary_package_glob)
+for binary_package in binary_packages:
+    shutil.move(binary_package, '.')
