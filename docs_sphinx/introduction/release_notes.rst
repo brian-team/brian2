@@ -1,6 +1,29 @@
 Release notes
 =============
 
+Changes since previous release (in-development)
+-----------------------------------------------
+
+Major new features
+~~~~~~~~~~~~~~~~~~
+
+Improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see #681).
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+[to be filled in]
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Cian O'Donnell
+* Ibrahim Ozturk
+* Github users:
+
 Brian 2.0rc
 -----------
 This is a release candidate for the final Brian 2.0 release, meaning that from
