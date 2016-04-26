@@ -1,3 +1,4 @@
+import numpy as np
 from nose.plugins.attrib import attr
 
 from brian2.devices.device import (Device, all_devices, set_device, get_device,
@@ -9,6 +10,8 @@ class ATestDevice(Device):
         self.build_on_run = build_on_run
         self._options = kwargs
     # These functions are needed during the setup of the defaultclock
+    def get_value(self, var):
+        return np.array([0.0001])
     def add_array(self, var):
         pass
     def init_with_zeros(self, var, dtype):

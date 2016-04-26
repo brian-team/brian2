@@ -12,6 +12,7 @@ Improvements and bug fixes
 * Fix a regression from 2.0b4: stochastic differential equations without any non-stochastic
   part (e.g. ``dx/dt = xi/sqrt(ms)```) were not integrated correctly (see #686).
 * Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see #681).
+* Fix an issue that made `PoissonInput` refuse to run after a change of dt (see #684).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -23,8 +24,8 @@ Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Cian O'Donnell
+* Daniel Bliss
 * Ibrahim Ozturk
-* Github users:
 
 Brian 2.0rc
 -----------
