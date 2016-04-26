@@ -513,9 +513,8 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         non_stochastic, stochastic = expr.split_stochastic()
 
-        if not (non_stochastic is None or non_stochastic_expr is None):
-            # We do have a non-stochastic part in our equation and in the state
-            # updater description
+        if non_stochastic_expr is not None:
+            # We do have a non-stochastic part in the state updater description
             non_stochastic_results = self._non_stochastic_part(eq_symbols,
                                                                non_stochastic,
                                                                non_stochastic_expr,
@@ -525,7 +524,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             non_stochastic_results = []
 
         if not (stochastic is None or stochastic_expr is None):
-            # We do have a stochastic part in our equation and in the state
+            # We do have a stochastic part in the state
             # updater description
             stochastic_results = self._stochastic_part(eq_symbols,
                                                        stochastic,
@@ -534,7 +533,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                                                        temp_vars, var)
         else:
             stochastic_results = []
-        
+
         RHS = sympy.Number(0)
         # All the parts (one non-stochastic and potentially more than one
         # stochastic part) are combined with addition
