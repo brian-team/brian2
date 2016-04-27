@@ -9,6 +9,8 @@ Major new features
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix a regression from 2.0b4: stochastic differential equations without any non-stochastic
+  part (e.g. ``dx/dt = xi/sqrt(ms)```) were not integrated correctly (see #686).
 * Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see #681).
 
 Contributions

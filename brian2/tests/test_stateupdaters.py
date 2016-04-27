@@ -180,6 +180,19 @@ def test_multiple_noise_variables_deterministic_noise():
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
+@with_setup(setup=store_randn, teardown=restore_randn)
+def test_pure_noise_deterministic():
+    DEFAULT_FUNCTIONS['randn'] = fake_randn
+    sigma = 3
+    eqs = Equations('dx/dt = sigma*xi/sqrt(ms) : 1')
+    dt = 0.1*ms
+    for method in ['euler', 'heun', 'milstein']:
+        G = NeuronGroup(1, eqs, dt=dt, method=method)
+        run(10*dt)
+        assert_allclose(G.x, sqrt(dt)*sigma*0.5/sqrt(1*ms)*10,
+                        err_msg='method %s did not give the expected result' % method)
+
+
 @attr('codegen-independent')
 def test_temporary_variables():
     '''
@@ -680,6 +693,9 @@ if __name__ == '__main__':
     test_multiple_noise_variables_extended()
     store_randn()
     test_multiple_noise_variables_deterministic_noise()
+    restore_randn()
+    store_randn()
+    test_pure_noise_deterministic()
     restore_randn()
     test_temporary_variables()
     test_temporary_variables2()
