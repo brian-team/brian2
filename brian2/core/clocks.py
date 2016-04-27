@@ -42,10 +42,7 @@ class Clock(VariableOwner):
         # We need a name right away because some devices (e.g. cpp_standalone)
         # need a name for the object when creating the variables
         Nameable.__init__(self, name=name)
-        #: Note that right after a change of dt, this
-        #: will not equal the new dt (which is stored in `Clock._new_dt`). Call
-        #: `Clock._set_t_update_t` to update the internal clock representation.
-        self._new_dt = None
+        self._old_dt = None
         self.variables = Variables(self)
         self.variables.add_array('timestep', unit=Unit(1), size=1,
                                  dtype=np.uint64, read_only=True, scalar=True)
@@ -62,11 +59,11 @@ class Clock(VariableOwner):
 
     @check_units(t=second)
     def _set_t_update_dt(self, target_t=0*second):
-        new_dt = self._new_dt if self._new_dt is not None else self.dt_
-        old_dt = self.variables['dt'].get_value().item()
+        new_dt = self.dt_
+        old_dt = self._old_dt
         target_t = float(target_t)
-        if new_dt != old_dt:
-            self._new_dt = None  # i.e.: i is up-to-date for the dt
+        if old_dt is not None and new_dt != old_dt:
+            self._old_dt = None
             # Only allow a new dt which allows to correctly set the new time step
             if target_t != self.t_:
                 old_t = np.uint64(np.round(target_t / old_dt)) * old_dt
@@ -82,11 +79,11 @@ class Clock(VariableOwner):
                                   '{new}').format(old=old_dt*second,
                                                   new=new_dt*second,
                                                   t=error_t*second))
-            self.variables['dt'].set_value(new_dt)
 
         new_i = np.uint64(np.round(target_t/new_dt))
         new_t = new_i*new_dt
-        if new_t==target_t or np.abs(new_t-target_t)<=self.epsilon*np.abs(new_t):
+        if (new_t == target_t or
+                    np.abs(new_t-target_t) <= self.epsilon*np.abs(new_t)):
             new_timestep = new_i
         else:
             new_timestep = np.uint64(np.ceil(target_t/new_dt))
@@ -102,18 +99,16 @@ class Clock(VariableOwner):
         return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
 
     def _get_dt_(self):
-        if self._new_dt is None:
-            return self.variables['dt'].get_value().item()
-        else:
-            return self._new_dt
+        return self.variables['dt'].get_value().item()
 
     @check_units(dt_=1)
     def _set_dt_(self, dt_):
-        self._new_dt = dt_
+        self._old_dt = self._get_dt_()
+        self.variables['dt'].set_value(dt_)
 
     @check_units(dt=second)
     def _set_dt(self, dt):
-        self._new_dt = float(dt)
+        self._set_dt_(float(dt))
 
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,

@@ -212,6 +212,8 @@ def test_schedule_warning():
     # TestDevice1 supports arbitrary schedules, TestDevice2 does not
     class TestDevice1(Device):
         # These functions are needed during the setup of the defaultclock
+        def get_value(self, var):
+            return np.array([0.0001])
         def add_array(self, var):
             pass
         def init_with_zeros(self, var, dtype):
