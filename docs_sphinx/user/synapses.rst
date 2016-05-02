@@ -12,11 +12,11 @@ The most simple synapse (adding a fixed amount to the target membrane potential
 on every spike) is described as follows::
 
   w = 1*mV
-  S = Synapses(P, Q, pre='v += w')
+  S = Synapses(P, Q, on_pre='v += w')
 
 This defines a set of synapses between `NeuronGroup` P and `NeuronGroup` Q.
 If the target group is not specified, it is identical to the source group by default.
-The ``pre`` keyword defines what happens when a presynaptic spike arrives at
+The ``on_pre`` keyword defines what happens when a presynaptic spike arrives at
 a synapse. In this case, the constant ``w`` is added to variable ``v``.
 Because ``v`` is not defined as a synaptic variable, it is assumed by default
 that it is a postsynaptic variable, defined in the target `NeuronGroup` Q.
@@ -26,12 +26,12 @@ synaptic models.
 To define more complex models, models can be described as string equations,
 similar to the models specified in `NeuronGroup`::
 
-  S = Synapses(P, Q, model='w : volt', pre='v += w')
+  S = Synapses(P, Q, model='w : volt', on_pre='v += w')
 
 The above specifies a parameter ``w``, i.e. a synapse-specific weight.
 
 Synapses can also specify code that should be executed whenever a postsynaptic
-spike occurs (keyword ``post``) and a fixed (pre-synaptic) delay for all
+spike occurs (keyword ``on_post``) and a fixed (pre-synaptic) delay for all
 synapses (keyword ``delay``). See the reference documentation for `Synapses`
 for more details.
 
@@ -68,7 +68,7 @@ use the flag ``(event-driven)``. A typical example is pre- and postsynaptic trac
 
 Here, Brian updates the value of ``Apre`` for a given synapse only when this synapse receives a spike,
 whether it is presynaptic or postsynaptic. More precisely, the variables are updated every time either
-the ``pre`` or ``post`` code is called for the synapse, so that the values are always up to date when
+the ``on_pre`` or ``on_post`` code is called for the synapse, so that the values are always up to date when
 these codes are executed.
 
 Automatic event-driven updates are only possible for a subset of equations, in particular for
@@ -79,9 +79,9 @@ In other cases, the user can write event-driven code explicitly in the update co
 
 Pre and post codes
 ^^^^^^^^^^^^^^^^^^
-The ``pre`` code is executed at each synapse receiving a presynaptic spike. For example::
+The ``on_pre`` code is executed at each synapse receiving a presynaptic spike. For example::
 
-	pre='v+=w'
+	on_pre='v+=w'
 
 adds the value of synaptic variable ``w`` to postsynaptic variable ``v``. As for the model equations,
 the ``_post`` (``_pre``) suffix indicates a postsynaptic (presynaptic) variable, and variables not found
@@ -93,7 +93,7 @@ stochastic synapses, with a synaptic weight ``w`` and transmission probability `
 
 	S=Synapses(input,neurons,model="""w : 1
                                       p : 1""",
-        	                 pre="v+=w*(rand()<p)")
+        	                 on_pre="v+=w*(rand()<p)")
 
 The code means that ``w`` is added to ``v`` with probability ``p`` (note that, internally, ``rand()``
 is transformed to a instruction that outputs an array of random numbers).
@@ -101,7 +101,7 @@ The code may also include multiple lines.
 
 As mentioned above, it is possible to write event-driven update code for the synaptic variables.
 For this, two special variables are provided: ``t`` is the current time when the code is executed,
-and ``lastupdate`` is the last time when the synapse was updated (either through ``pre`` or ``post``
+and ``lastupdate`` is the last time when the synapse was updated (either through ``on_pre`` or ``on_post``
 code). An example is short-term plasticity (in fact this could be done automatically with the use
 of the ``(event-driven)`` keyword mentioned above)::
 
@@ -109,7 +109,7 @@ of the ``(event-driven)`` keyword mentioned above)::
 	           model='''x : 1
 	                    u : 1
 	                    w : 1''',
-	           pre='''u=U+(u-U)*exp(-(t-lastupdate)/tauf)
+	           on_pre='''u=U+(u-U)*exp(-(t-lastupdate)/tauf)
 	                  x=1+(x-1)*exp(-(t-lastupdate)/taud)
 	                  i+=w*u*x
 	                  x*=(1-u)
@@ -133,7 +133,7 @@ its synapses. This is called a "summed variable". An example is nonlinear synaps
 	                    dx/dt=-c*x : 1
 	                    w : 1 # synaptic weight
 	                 ''',
-	           pre='x+=w')
+	           on_pre='x+=w')
 
 Here, each synapse has a conductance ``g`` with nonlinear dynamics. The neuron's total conductance
 is ``gtot``. The line stating ``gtot_post = g : 1  (summed)`` specifies the link
@@ -371,12 +371,12 @@ It is possible to have multiple pathways with different update codes from the sa
 This may be interesting in cases when different operations must be applied at different times for the same
 presynaptic spike. To do this, specify a dictionary of pathway names and codes::
 
-    pre={'pre_transmission': 'ge+=w',
-         'pre_plasticity': '''w=clip(w+Apost,0,inf)
-                              Apre+=dApre'''}
+    on_pre={'pre_transmission': 'ge+=w',
+            'pre_plasticity': '''w=clip(w+Apost,0,inf)
+                                 Apre+=dApre'''}
 
-This creates two pathways with the given names (in fact, specifying ``pre=code``
-is just a shorter syntax for ``pre={'pre': code}``) through which the delay
+This creates two pathways with the given names (in fact, specifying ``on_pre=code``
+is just a shorter syntax for ``on_pre={'pre': code}``) through which the delay
 variables can be accessed.
 The following statement, for example, sets the delay of the synapse between the first neurons
 of the source and target groups in the ``pre_plasticity`` pathway::
