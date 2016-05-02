@@ -1220,6 +1220,20 @@ def test_random_vector_values():
     net.run(defaultclock.dt)
     assert np.var(G.v[:]) > 0
 
+@attr('codegen-independent')
+def test_no_code():
+    # Make sure that we are not unncessarily creating code objects for a state
+    # updater that has nothing to do
+    group_1 = NeuronGroup(10, 'v: 1', threshold='False')
+    # The refractory argument will automatically add a statement for each time
+    # step, so we'll need a state updater here
+    group_2 = NeuronGroup(10, 'v: 1', threshold='False', refractory=2*ms)
+    run(0*ms)
+    assert len(group_1.state_updater.code_objects) == 0
+    assert group_1.state_updater.codeobj is None
+    assert len(group_2.state_updater.code_objects) == 1
+    assert group_2.state_updater.codeobj is not None
+
 
 if __name__ == '__main__':
     test_creation()
@@ -1276,3 +1290,4 @@ if __name__ == '__main__':
         test_aliasing_in_statements()
     test_get_states()
     test_random_vector_values()
+    test_no_code()

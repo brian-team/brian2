@@ -91,7 +91,8 @@ class StateUpdater(CodeRunner):
                             when='groups',
                             order=group.order,
                             name=group.name + '_stateupdater*',
-                            check_units=False)
+                            check_units=False,
+                            generate_empty_code=False)
 
     def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory

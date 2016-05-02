@@ -981,6 +981,10 @@ class CodeRunner(BrianObject):
     codeobj_class : class, optional
         The `CodeObject` class to run code with. If not specified, defaults to
         the `group`'s ``codeobj_class`` attribute.
+    generate_empty_code : bool, optional
+        Whether to generate a `CodeObject` if there is no abstract code to
+        execute. Defaults to ``True`` but should be switched off e.g. for a
+        `StateUpdater` when there is nothing to do.
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
@@ -990,6 +994,7 @@ class CodeRunner(BrianObject):
                  template_kwds=None, needed_variables=None,
                  override_conditional_write=None,
                  codeobj_class=None,
+                 generate_empty_code=True
                  ):
         BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
                              name=name)
@@ -1006,6 +1011,7 @@ class CodeRunner(BrianObject):
         if codeobj_class is None:
             codeobj_class = group.codeobj_class
         self.codeobj_class = codeobj_class
+        self.generate_empty_code = generate_empty_code
         self.codeobj = None
 
     def update_abstract_code(self, run_namespace):
@@ -1026,17 +1032,21 @@ class CodeRunner(BrianObject):
         else:
             additional_variables = None
 
-        self.codeobj = create_runner_codeobj(group=self.group,
-                                             code=self.abstract_code,
-                                             user_code=self.user_code,
-                                             template_name=self.template,
-                                             name=self.name+'_codeobject*',
-                                             check_units=self.check_units,
-                                             additional_variables=additional_variables,
-                                             needed_variables=self.needed_variables,
-                                             run_namespace=run_namespace,
-                                             template_kwds=self.template_kwds,
-                                             override_conditional_write=self.override_conditional_write,
-                                             codeobj_class=self.codeobj_class
-                                             )
-        self.code_objects[:] = [weakref.proxy(self.codeobj)]
+        if not self.generate_empty_code and len(self.abstract_code) == 0:
+            self.codeobj = None
+            self.code_objects[:] = []
+        else:
+            self.codeobj = create_runner_codeobj(group=self.group,
+                                                 code=self.abstract_code,
+                                                 user_code=self.user_code,
+                                                 template_name=self.template,
+                                                 name=self.name+'_codeobject*',
+                                                 check_units=self.check_units,
+                                                 additional_variables=additional_variables,
+                                                 needed_variables=self.needed_variables,
+                                                 run_namespace=run_namespace,
+                                                 template_kwds=self.template_kwds,
+                                                 override_conditional_write=self.override_conditional_write,
+                                                 codeobj_class=self.codeobj_class
+                                                 )
+            self.code_objects[:] = [weakref.proxy(self.codeobj)]
