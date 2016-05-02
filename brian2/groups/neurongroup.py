@@ -150,11 +150,11 @@ class StateUpdater(CodeRunner):
                                            # be raised in create_runner_codeobj
                                            set(),
                                            run_namespace=run_namespace)
-
-        self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
-                                                                   variables,
-                                                                   self.method_choice,
-                                                                   group_name=self.group.name)
+        if len(self.group.equations.diff_eq_names) > 0:
+            self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                       variables,
+                                                                       self.method_choice,
+                                                                       group_name=self.group.name)
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
