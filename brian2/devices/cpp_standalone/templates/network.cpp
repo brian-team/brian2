@@ -62,7 +62,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
     double elapsed_realtime;
     bool did_break_early = false;
 
-    while(clock->running())
+    while(clock && clock->running())
     {
         t = clock->t[0];
 
@@ -140,6 +140,9 @@ Clock* Network::next_clocks()
 {
     // find minclock, clock with smallest t value
     Clock *minclock = *clocks.begin();
+    if (not minclock) // empty list of clocks
+        return NULL;
+
     for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
     {
         Clock *clock = *i;
