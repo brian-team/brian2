@@ -1036,9 +1036,22 @@ class CPPStandaloneDevice(Device):
 
         # Generate the updaters
         run_lines = ['{net.name}.clear();'.format(net=net)]
+        all_clocks = set()
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
+            all_clocks.add(clock)
+
+        # Under some rare circumstances (e.g. a NeuronGroup only defining a
+        # subexpression that is used by other groups (via linking, or recorded
+        # by a StateMonitor) *and* not calculating anything itself *and* using a
+        # different clock than all other objects) a clock that is not used by
+        # any code object should nevertheless advance during the run. We include
+        # such clocks without a code function in the network.
+        for clock in net._clocks:
+            if clock not in all_clocks:
+                run_lines.append('{net.name}.add(&{clock.name}, NULL);'.format(clock=clock, net=net))
+
         run_lines.append('{net.name}.run({duration}, {report_call}, {report_period});'.format(net=net,
                                                                                               duration=float(duration),
                                                                                               report_call=report_call,

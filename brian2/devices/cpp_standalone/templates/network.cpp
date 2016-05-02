@@ -87,7 +87,8 @@ void Network::run(const double duration, void (*report_func)(const double, const
             if (curclocks.find(obj_clock) != curclocks.end())
             {
                 codeobj_func func = objects[i].second;
-                func();
+                if (func)  // code objects can be NULL in cases where we store just the clock
+                    func();
             }
         }
         for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
