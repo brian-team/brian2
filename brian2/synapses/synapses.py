@@ -51,13 +51,17 @@ class StateUpdater(CodeRunner):
                             when='groups',
                             order=order,
                             name=group.name + '_stateupdater',
-                            check_units=False)
+                            check_units=False,
+                            generate_empty_code=False)
     
     def update_abstract_code(self, run_namespace=None, level=0):
-        self.abstract_code = StateUpdateMethod.apply_stateupdater(self.group.equations,
-                                                                  self.group.variables,
-                                                                  self.method_choice,
-                                                                  group_name=self.group.name)
+        if len(self.group.equations) > 0:
+            self.abstract_code = StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                      self.group.variables,
+                                                                      self.method_choice,
+                                                                      group_name=self.group.name)
+        else:
+            self.abstract_code = ''
 
 
 class SummedVariableUpdater(CodeRunner):

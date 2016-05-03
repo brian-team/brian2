@@ -62,7 +62,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
     double elapsed_realtime;
     bool did_break_early = false;
 
-    while(clock->running())
+    while(clock && clock->running())
     {
         t = clock->t[0];
 
@@ -87,7 +87,8 @@ void Network::run(const double duration, void (*report_func)(const double, const
             if (curclocks.find(obj_clock) != curclocks.end())
             {
                 codeobj_func func = objects[i].second;
-                func();
+                if (func)  // code objects can be NULL in cases where we store just the clock
+                    func();
             }
         }
         for(std::set<Clock*>::iterator i=curclocks.begin(); i!=curclocks.end(); i++)
@@ -140,6 +141,9 @@ Clock* Network::next_clocks()
 {
     // find minclock, clock with smallest t value
     Clock *minclock = *clocks.begin();
+    if (!minclock) // empty list of clocks
+        return NULL;
+
     for(std::set<Clock*>::iterator i=clocks.begin(); i!=clocks.end(); i++)
     {
         Clock *clock = *i;
