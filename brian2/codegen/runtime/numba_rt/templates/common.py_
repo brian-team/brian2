@@ -1,0 +1,28 @@
+import numpy as _numpy
+import numba
+import sys
+from numpy import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, arcsin, arccos, arctan, fmod, floor, ceil, pi
+
+
+# support code
+{{ support_code | autoindent }}
+
+# template-specific support code
+{% block template_support_code %}
+{% endblock %}
+
+@numba.jit
+def main(_namespace):
+{{ load_namespace | indent(4,True) }}
+	for key in ['_var_tau', 'tau', '_var_dt', '_array_defaultclock_dt', 'dt', '_var_v', '_array_neurongroup_v', '_var_N', "N"]:
+		try:
+			print "namespace[{key}] is {val}".format(key, namespace[key])
+		except KeyError:
+			print "Namespace has no key {key}".format(key)
+		except:
+			print "An unknown exception occurred"
+	if '_owner' in _namespace:
+		_owner = _namespace['_owner']
+    {% block maincode %}
+    {{ vector_code | autoindent }}
+    {% endblock %}

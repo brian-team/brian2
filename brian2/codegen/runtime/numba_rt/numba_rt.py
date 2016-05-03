@@ -1,5 +1,5 @@
 '''
-Module providing `NumpyCodeObject`.
+Module providing `numbaCodeObject`.
 '''
 import numpy as np
 
@@ -10,15 +10,15 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
 from ...codeobject import CodeObject
 
 from ...templates import Templater
-from ...generators.numpy_generator import NumpyCodeGenerator
+from ...generators.numba_generator import NumbaCodeGenerator
 from ...targets import codegen_targets
 
-__all__ = ['NumpyCodeObject']
+__all__ = ['NumbaCodeObject']
 
 # Preferences
 prefs.register_preferences(
-    'codegen.runtime.numpy',
-    'Numpy runtime codegen preferences',
+    'codegen.runtime.numba',
+    'Numba runtime codegen preferences',
     discard_units = BrianPreference(
         default=False,
         docs='''
@@ -29,18 +29,17 @@ prefs.register_preferences(
     )
 
 
-class NumpyCodeObject(CodeObject):
+class NumbaCodeObject(CodeObject):
     '''
-    Execute code using Numpy
+    Execute code using Numba
     
-    Default for Brian because it works on all platforms.
     '''
-    templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_')
-    generator_class = NumpyCodeGenerator
-    class_name = 'numpy'
+    templater = Templater('brian2.codegen.runtime.numba_rt', '.py_')
+    generator_class = NumbaCodeGenerator
+    class_name = 'numba'
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='numpy_code_object*'):
+                 template_name, template_source, name='numba_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
         self.namespace = {'_owner': owner,
@@ -52,7 +51,7 @@ class NumpyCodeObject(CodeObject):
 
     @staticmethod
     def is_available():
-        # no test necessary for numpy
+        # no test necessary for numba
         return True
 
     def variables_to_namespace(self):
@@ -110,15 +109,16 @@ class NumpyCodeObject(CodeObject):
             self.namespace[name] = func()
 
     def compile(self):
-        super(NumpyCodeObject, self).compile()
+        super(NumbaCodeObject, self).compile()
         self.compiled_code = compile(self.code, '(string)', 'exec')
         print self.code
 
-
     def run(self):
-        exec self.compiled_code in self.namespace
+        #print self.compiled_code 
+        #print self.namespace 
+#        exec self.compiled_code in self.namespace
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
 
-codegen_targets.add(NumpyCodeObject)
+codegen_targets.add(NumbaCodeObject)

@@ -11,55 +11,55 @@ from brian2.utils.stringtools import get_identifiers
 
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
-from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
+from ...generators.Numba_generator import (NumbaCodeGenerator, get_cpp_dtype,
                                             get_numpy_dtype)
 from ...targets import codegen_targets
 from ...cpp_prefs import get_compiler_and_args
-from .extension_manager import cython_extension_manager
+from .extension_manager import Numba_extension_manager
 
-__all__ = ['CythonCodeObject']
+__all__ = ['NumbaCodeObject']
 
 
 logger = get_logger(__name__)
 
 # Preferences
 prefs.register_preferences(
-    'codegen.runtime.cython',
-    'Cython runtime codegen preferences',
+    'codegen.runtime.numba',
+    'Numba runtime codegen preferences',
     multiprocess_safe = BrianPreference(
         default=True,
         docs='''
         Whether to use a lock file to prevent simultaneous write access
-        to cython .pyx and .so files.
+        to Numba .pyx and .so files.
         '''
         ),
     cache_dir = BrianPreference(
         default=None,
         validator=lambda x: x is None or isinstance(x, basestring),
         docs='''
-        Location of the cache directory for Cython files. By default,
+        Location of the cache directory for Numba files. By default,
         will be stored in a ``brian_extensions`` subdirectory
-        where Cython inline stores its temporary files
-        (the result of ``get_cython_cache_dir()``).
+        where Numba inline stores its temporary files
+        (the result of ``get_Numba_cache_dir()``).
         '''
         ),
     )
 
 
-class CythonCodeObject(NumpyCodeObject):
+class NumbaCodeObject(NumpyCodeObject):
     '''
-    Execute code using Cython.
+    Execute code using Numba.
     '''
-    templater = Templater('brian2.codegen.runtime.cython_rt', '.pyx',
+    templater = Templater('brian2.codegen.runtime.Numba_rt', '.pyx',
                           env_globals={'cpp_dtype': get_cpp_dtype,
                                        'numpy_dtype': get_numpy_dtype,
                                        'dtype': numpy.dtype})
-    generator_class = CythonCodeGenerator
-    class_name = 'cython'
+    generator_class = NumbaCodeGenerator
+    class_name = 'Numba'
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='cython_code_object*'):
-        super(CythonCodeObject, self).__init__(owner, code, variables,
+                 template_name, template_source, name='Numba_code_object*'):
+        super(NumbaCodeObject, self).__init__(owner, code, variables,
                                                variable_indices,
                                                template_name, template_source,
                                                name=name)
@@ -79,7 +79,7 @@ class CythonCodeObject(NumpyCodeObject):
             def main():
                 cdef int x
                 x = 0'''
-            compiled = cython_extension_manager.create_extension(code,
+            compiled = Numba_extension_manager.create_extension(code,
                                                                  compiler=compiler,
                                                                  extra_compile_args=extra_compile_args,
                                                                  extra_link_args=prefs['codegen.cpp.extra_link_args'],
@@ -88,7 +88,7 @@ class CythonCodeObject(NumpyCodeObject):
             compiled.main()
             return True
         except Exception as ex:
-            logger.warn(('Cannot use Cython, a test compilation '
+            logger.warn(('Cannot use Numba, a test compilation '
                          'failed: %s (%s)' % (str(ex),
                                               ex.__class__.__name__)) ,
                         'failed_compile_test')
@@ -96,7 +96,7 @@ class CythonCodeObject(NumpyCodeObject):
 
 
     def compile(self):
-        self.compiled_code = cython_extension_manager.create_extension(
+        self.compiled_code = Numba_extension_manager.create_extension(
             self.code,
             libraries=self.libraries,
             extra_compile_args=self.extra_compile_args,
@@ -181,4 +181,4 @@ class CythonCodeObject(NumpyCodeObject):
             self.namespace[name] = func()
 
 
-codegen_targets.add(CythonCodeObject)
+codegen_targets.add(NumbaCodeObject)

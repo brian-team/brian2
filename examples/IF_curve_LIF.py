@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 '''
 Input-Frequency curve of a IF model.
-Network: 1000 unconnected integrate-and-fire neurons (leaky IF)
+Network: 1000 uncd ..connected integrate-and-fire neurons (leaky IF)
 with an input parameter v0.
 The input is set differently for each neuron.
 '''
 from brian2 import *
+BrianLogger.log_level_debug()
 
 n = 1000
 duration = 1*second

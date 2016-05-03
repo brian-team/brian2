@@ -10,6 +10,8 @@ from brian2.utils.logger import get_logger
 from .network import Network
 from .base import BrianObject, device_override    
 
+from pudb import set_trace
+
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',
            'run', 'stop', 'collect', 'store', 'restore',
