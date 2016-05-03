@@ -82,6 +82,8 @@ def get_default_codeobject_class(pref='codegen.target'):
     if isinstance(codeobj_class, str):
         if codeobj_class == 'auto':
             return auto_target()
+        print "Here"
+        print codegen_targets
         for target in codegen_targets:
             if target.class_name == codeobj_class:
                 return target
