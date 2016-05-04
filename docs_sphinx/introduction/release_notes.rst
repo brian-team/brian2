@@ -1,11 +1,14 @@
 Release notes
 =============
 
-Changes since previous release (in-development)
------------------------------------------------
-
-Major new features
-~~~~~~~~~~~~~~~~~~
+Brian 2.0rc1
+------------
+This is a bug fix release that we release only about two weeks after the previous
+release because that release introduced a bug that could lead to wrong integration of
+stochastic differential equations. Note that standard neuronal noise models were
+not affected by this bug, it only concerned differential equations implementing a
+"random walk". The release also fixes a few other issues reported by users, see below
+for more information.
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -21,7 +24,7 @@ Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
 
-[to be filled in]
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
 
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
@@ -30,6 +33,7 @@ anyone we forgot...):
 * Daniel Bliss
 * Ibrahim Ozturk
 * Olivia Gozel
+
 
 Brian 2.0rc
 -----------
