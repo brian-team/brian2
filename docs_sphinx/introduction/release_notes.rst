@@ -13,6 +13,9 @@ Improvements and bug fixes
   part (e.g. ``dx/dt = xi/sqrt(ms)```) were not integrated correctly (see #686).
 * Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see #681).
 * Fix an issue that made `PoissonInput` refuse to run after a change of dt (see #684).
+* If the ``rates`` argument of `PoissonGroup` is a string, it will now be evaluated at
+  every time step instead of once at construction time. This makes time-dependent rate
+  expressions work as expected (see #660).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -26,6 +29,7 @@ anyone we forgot...):
 * Cian O'Donnell
 * Daniel Bliss
 * Ibrahim Ozturk
+* Olivia Gozel
 
 Brian 2.0rc
 -----------
