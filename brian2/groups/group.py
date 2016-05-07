@@ -32,6 +32,8 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
 
+from brian2.importexport.importexport import ImportExport
+
 __all__ = ['Group', 'VariableOwner', 'CodeRunner']
 
 logger = get_logger(__name__)
@@ -511,18 +513,14 @@ class VariableOwner(Nameable):
         '''
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
-        if format != 'dict':
+        if format not in ImportExport.methods.keys():
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
             vars = [name for name, var in self.variables.iteritems()
                     if not name.startswith('_') and
                     (subexpressions or not isinstance(var, Subexpression)) and
                     (read_only_variables or not getattr(var, 'read_only', False))]
-        data = {}
-        for var in vars:
-            data[var] = np.array(self.state(var, use_units=units,
-                                            level=level+1),
-                                 copy=True, subok=True)
+        data = ImportExport.methods[format].export_data(self, vars, units=units, level=level)
         return data
 
     def set_states(self, values, units=True, format='dict', level=0):
@@ -543,10 +541,9 @@ class VariableOwner(Nameable):
         '''
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
-        if format != 'dict':
+        if format not in ImportExport.methods.keys():
             raise NotImplementedError("Format '%s' is not supported" % format)
-        for key, value in values.iteritems():
-            self.state(key, use_units=units, level=level+1)[:] = value
+        ImportExport.methods[format].import_data(self, values, units=units, level=level)
 
     def _full_state(self):
         state = {}

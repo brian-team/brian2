@@ -5,7 +5,8 @@ class ImportExport(object):
     __metaclass__ = abc.ABCMeta
 
     methods = dict()
-    
+
+    @staticmethod    
     def register(name, importerexporter):
         name = name.lower()
         if name in ImportExport.methods:
@@ -13,8 +14,8 @@ class ImportExport(object):
                              "has already been registered").format(name))
 
         if not isinstance(importerexporter, ImportExport):
-            raise ValueError(('Given stateupdater of type {} does not seem to ' +\
-                              'be a valid stateupdater.').format(str(type(importerexporter))))
+            raise ValueError(('Given importerexporter of type {} does not seem to ' +\
+                              'be a valid importerexporter.').format(str(type(importerexporter))))
         ImportExport.methods[name] = importerexporter
 
     @staticmethod
