@@ -48,7 +48,7 @@ class ImportExport(object):
         variables : list of str
             The names of the variables to extract.
         '''
-            raise NotImplementedError()
+        raise NotImplementedError()
 
     @staticmethod
     @abstractmethod
