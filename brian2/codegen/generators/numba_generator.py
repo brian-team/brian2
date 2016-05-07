@@ -24,7 +24,7 @@ __all__ = ['NumbaCodeGenerator']
 
 
 data_type_conversion_table = [
-    # canonical         C++            Numba
+    # canonical         C++            Numba/Numpy
     ('float32',        'float',       'float32'),
     ('float64',        'double',      'float64'),
     ('int32',          'int32_t',     'int32'),
@@ -34,7 +34,7 @@ data_type_conversion_table = [
     ('uint64',         'uint64_t',    'uint64'),
     ]
 
-numba_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)
+numba_dtype = dict((canonical, nb) for canonical, cpp, nb in data_type_conversion_table)
 numpy_dtype = dict((canonical, np) for canonical, cpp, np in data_type_conversion_table)
 
 def get_numba_dtype(obj):
@@ -43,16 +43,9 @@ def get_numba_dtype(obj):
 def get_numpy_dtype(obj):
     return numpy_dtype[get_dtype_str(obj)]
 
-
 class NumbaNodeRenderer(NodeRenderer):
-    def render_NameConstant(self, node):
-        return {True: '1',
-                False: '0'}.get(node.value, node.value)
-
-    def render_Name(self, node):
-        return {'True': '1',
-                'False': '0'}.get(node.id, node.id)
-
+    # I don't think this is even necessary when using numba?
+    # Seems like something Cython is more sensitive to
     def render_BinOp(self, node):
         if node.op.__class__.__name__=='Mod':
             return '((({left})%({right}))+({right}))%({right})'.format(left=self.render_node(node.left),
