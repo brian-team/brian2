@@ -20,7 +20,7 @@
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
     _var_{{varname}}.resize((_new_len, _num{{_indices}}))
-    _record_data_{{varname}} = {{get_array_name(var, access_data=True)}}
+    _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}
     for _i in range(_num{{_indices}}):
         # vector code
         _idx = {{_indices}}[_i]

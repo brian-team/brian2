@@ -106,7 +106,7 @@ class CythonCodeObject(NumpyCodeObject):
             compiler=self.compiler,
             owner_name=self.owner.name+'_'+self.template_name,
             )
-        print self.code
+        #print self.code
         
     def run(self):
         return self.compiled_code.main(self.namespace)
