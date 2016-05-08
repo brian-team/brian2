@@ -12,9 +12,6 @@ from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, a
 {% endblock %}
 
 @jit
-def main(_namespace):
-    {{ load_namespace | autoindent }}
-    if '_owner' in _namespace:
-        _owner = _namespace['_owner']
+def main():
     y = log10(10)
     print "log10(10) is {}".format(y)
