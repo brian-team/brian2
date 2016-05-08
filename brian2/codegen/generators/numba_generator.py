@@ -252,11 +252,9 @@ class NumbaCodeGenerator(CodeGenerator):
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 if get_dtype_str(var.dtype) == 'bool':
-                    newlines = ["_buf_{array_name} = _namespace['{array_name}']",
-                                "{array_name} = _buf_{array_name}.data"]
+                    newlines = ["{array_name} = _namespace['{array_name}']"]
                 else:
-                    newlines = ["_buf_{array_name} = _namespace['{array_name}']",
-                                "{array_name} = _buf_{array_name}.data"]
+                    newlines = ["{array_name} = _namespace['{array_name}']"]
 
                 if not var.scalar:
                     newlines += ["_num{array_name} = len(_namespace['{array_name}'])"]
@@ -292,9 +290,15 @@ class NumbaCodeGenerator(CodeGenerator):
             func_namespace = func.implementations[self.codeobj_class].get_namespace(self.owner)
             if func_namespace is not None:
                 self.variables.update(func_namespace)
-        print "NAMESPACE IS"
-        print load_namespace
-        print "END NAMESPACE"
+        # Implement functions
+        for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log', 
+             'log10', 'sqrt', 'asin', 'acos', 'atan', 'fmod', 'floor', 'ceil', 
+             'pi']:
+            line = '{0} = _namespace["{1}"]'.format(func, func)
+            load_namespace.append(line)
+        #print "NAMESPACE IS"
+        #print load_namespace
+        #print "END NAMESPACE"
         #raise Exception
         return {'load_namespace': '\n'.join(load_namespace),
                 'support_code': '\n'.join(support_code)}
@@ -302,6 +306,7 @@ class NumbaCodeGenerator(CodeGenerator):
 ###############################################################################
 # Implement functions
 ################################################################################
+
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor', 'abs']:
@@ -318,15 +323,15 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
 
 
 rand_code = '''
-def int _rand_buffer_size = 1024 
-def double[:] _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
-def int _cur_rand_buf = 0
-def double _rand(int _idx):
+_rand_buffer_size = 1024 
+_rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
+_cur_rand_buf = 0
+_rand(int _idx):
     global _cur_rand_buf
     global _rand_buf
     if _cur_rand_buf==0:
         _rand_buf = _numpy.random.rand(_rand_buffer_size)
-    def double val = _rand_buf[_cur_rand_buf]
+    val = _rand_buf[_cur_rand_buf]
     _cur_rand_buf = (_cur_rand_buf+1)%_rand_buffer_size
     return val
 '''
@@ -357,7 +362,7 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(NumbaCodeGenerator,
                                                              name='_sign')
 
 clip_code = '''
-def double clip(double x, double low, double high):
+def clip(x, low, high):
     if x<low:
         return low
     if x>high:

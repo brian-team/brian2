@@ -16,8 +16,6 @@ def main(_namespace):
     {{load_namespace | autoindent}}
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
-    exp = _namespace["exp"]
-    print type(_array_defaultclock_dt[0])
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}
