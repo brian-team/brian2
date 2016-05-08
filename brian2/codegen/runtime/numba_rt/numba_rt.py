@@ -121,7 +121,7 @@ class NumbaCodeObject(CodeObject):
 #        exec self.compiled_code in self.namespace
         # output variables should land in the variable name _return_values
         #self.namespace["main"](self.namespace)
-        code = 'main(**namespace)'
+        code = 'main(namespace)'
         self.namespace['namespace'] = self.namespace
         print self.namespace
         exec code in self.namespace
