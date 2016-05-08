@@ -14,7 +14,7 @@ from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, a
 {% block template_support_code %}
 {% endblock %}
 
-@jit
+@jit(nopython=True)
 def main(_namespace):
     {{load_namespace | autoindent}}
     if '_owner' in _namespace:
