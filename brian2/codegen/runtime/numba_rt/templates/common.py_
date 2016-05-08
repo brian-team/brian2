@@ -1,6 +1,7 @@
 import numpy as _numpy
 from numba import *
 import sys
+from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, pi
 
 
 # support code
@@ -12,15 +13,7 @@ import sys
 
 @jit
 def main(_namespace):
-    from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, pi
     {{ load_namespace | autoindent }}
-    #for key in ['_var_tau', 'tau', '_var_dt', '_array_defaultclock_dt', 'dt', '_var_v', '_array_neurongroup_v', '_var_N', "N"]:
-     #   try:
-    #        print "namespace[{key}] is {val}".format(key, namespace[key])
-    #    except KeyError:
-    #        print "Namespace has no key {key}".format(key)
-    #    except:
-    #        print "An unknown exception occurred"    
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
     y = log10(10)
