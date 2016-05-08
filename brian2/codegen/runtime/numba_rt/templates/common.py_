@@ -18,5 +18,3 @@ def main(_namespace):
         _owner = _namespace['_owner']
     y = log10(10)
     print "log10(10) is {}".format(y)
-
-main(namespace)

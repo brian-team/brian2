@@ -112,9 +112,6 @@ class NumbaCodeObject(CodeObject):
     def compile(self):
         super(NumbaCodeObject, self).compile()
         self.compiled_code = compile(self.code, '(string)', 'exec')
-        self.namespace['namespace'] = self.namespace
-        print "namespace at compile time is"        
-        print self.namespace
         exec self.compiled_code in self.namespace
         print self.code
 
@@ -124,12 +121,11 @@ class NumbaCodeObject(CodeObject):
 #        exec self.compiled_code in self.namespace
         # output variables should land in the variable name _return_values
         #self.namespace["main"](self.namespace)
-#        code = 'main(namespace)'
-#        self.namespace['namespace'] = self.namespace
-#        print self.namespace
-#        exec code in self.namespace
-#        if '_return_values' in self.namespace:
-#            return self.namespace['_return_values']
-        self.compile()
+        code = 'main(namespace)'
+        self.namespace['namespace'] = self.namespace
+        print self.namespace
+        exec code in self.namespace
+        if '_return_values' in self.namespace:
+            return self.namespace['_return_values']
 
 codegen_targets.add(NumbaCodeObject)
