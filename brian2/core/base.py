@@ -309,6 +309,8 @@ class BrianObjectException(Exception):
         The original exception that was raised.
     '''
     def __init__(self, message, brianobj, original_exception):
+        print "Exception happened here"
+        print message, brianobj, original_exception
         self.message = message
         self.objname = brianobj.name
         self.origexc = '\n'.join(traceback.format_exception_only(type(original_exception),

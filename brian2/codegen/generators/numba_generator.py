@@ -8,7 +8,6 @@ Created on Mon Mar 28 18:55:35 2016
 import itertools
 
 import numpy as np
-import numba
 
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
@@ -228,13 +227,14 @@ class NumbaCodeGenerator(CodeGenerator):
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
-                line = "{varname}".format(
-                                varname=varname)
-                load_namespace.append(line)
-            elif isinstance(var, Subexpression):
-                dtype = get_numba_dtype(var.dtype)
-                line = "{varname}".format(varname=varname)
-                load_namespace.append(line)
+                pass
+#                line = "{varname}".format(
+#                                varname=varname)
+#                load_namespace.append(line)
+#            elif isinstance(var, Subexpression):
+#                dtype = get_numba_dtype(var.dtype)
+#                line = "{varname}".format(varname=varname)
+#                load_namespace.append(line)
             elif isinstance(var, Constant):
                 dtype_name = get_numba_dtype(var.value)
                 line = '{varname} = _namespace["{varname}"]'.format(varname=varname)

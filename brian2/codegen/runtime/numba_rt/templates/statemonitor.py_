@@ -15,18 +15,12 @@
     {{ scalar_code|autoindent }}
 
     {% for varname, var in _recorded_variables.items() %}
-    {% var_type = type(variables[varname].dtype) %}
+    {# var_type = type(variables[varname].dtype) #}
     {# np_type = type(variables[varname].dtype) #}
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
     _var_{{varname}}.resize((_new_len, _num{{_indices}}))
-    {% if var_type == 'bool'%}
-    _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-    _record_data_{{varname}} = _record_buf_{{varname}}.data
-    {% else %}
-    _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-    _record_data_{{varname}} = _record_buf_{{varname}}.data
-    {% endif %}
+    _record_data_{{varname}} = {{get_array_name(var, access_data=True)}}
     for _i in range(_num{{_indices}}):
         # vector code
         _idx = {{_indices}}[_i]
