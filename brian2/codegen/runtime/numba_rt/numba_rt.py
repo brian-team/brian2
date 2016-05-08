@@ -2,7 +2,6 @@
 Module providing `numbaCodeObject`.
 '''
 import numpy as np
-import math
 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
@@ -45,7 +44,7 @@ class NumbaCodeObject(CodeObject):
         self.device = get_device()
         self.namespace = {'_owner': owner,
                           # TODO: This should maybe go somewhere else
-                          'logical_not': np.logical_not, 'log10':math.log10}
+                          'logical_not': np.logical_not}
         CodeObject.__init__(self, owner, code, variables, variable_indices,
                             template_name, template_source, name=name)
         self.variables_to_namespace()
