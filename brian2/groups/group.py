@@ -31,7 +31,6 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
-
 from brian2.importexport.importexport import ImportExport
 
 __all__ = ['Group', 'VariableOwner', 'CodeRunner']
@@ -513,7 +512,7 @@ class VariableOwner(Nameable):
         '''
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
-        if format not in ImportExport.methods.keys():
+        if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
             vars = [name for name, var in self.variables.iteritems()
@@ -541,7 +540,7 @@ class VariableOwner(Nameable):
         '''
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
-        if format not in ImportExport.methods.keys():
+        if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
         ImportExport.methods[format].import_data(self, values, units=units, level=level)
 
