@@ -1,11 +1,14 @@
 Release notes
 =============
 
-Changes since previous release (in-development)
------------------------------------------------
-
-Major new features
-~~~~~~~~~~~~~~~~~~
+Brian 2.0rc1
+------------
+This is a bug fix release that we release only about two weeks after the previous
+release because that release introduced a bug that could lead to wrong integration of
+stochastic differential equations. Note that standard neuronal noise models were
+not affected by this bug, it only concerned differential equations implementing a
+"random walk". The release also fixes a few other issues reported by users, see below
+for more information.
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -13,12 +16,15 @@ Improvements and bug fixes
   part (e.g. ``dx/dt = xi/sqrt(ms)```) were not integrated correctly (see #686).
 * Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see #681).
 * Fix an issue that made `PoissonInput` refuse to run after a change of dt (see #684).
+* If the ``rates`` argument of `PoissonGroup` is a string, it will now be evaluated at
+  every time step instead of once at construction time. This makes time-dependent rate
+  expressions work as expected (see #660).
 
 Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
 
-[to be filled in]
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
 
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
@@ -26,6 +32,8 @@ anyone we forgot...):
 * Cian O'Donnell
 * Daniel Bliss
 * Ibrahim Ozturk
+* Olivia Gozel
+
 
 Brian 2.0rc
 -----------

@@ -25,7 +25,9 @@ class PoissonGroup(Group, SpikeSource):
         Number of neurons
     rates : `Quantity`, str
         Single rate, array of rates of length N, or a string expression
-        evaluating to a rate
+        evaluating to a rate. This string expression will be evaluated at every
+        time step, it can therefore be time-dependent (e.g. refer to a
+        `TimedArray`).
     dt : `Quantity`, optional
         The time step to be used for the simulation. Cannot be combined with
         the `clock` argument.
@@ -39,7 +41,6 @@ class PoissonGroup(Group, SpikeSource):
         step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         Unique name, or use poissongroup, poissongroup_1, etc.
-
     '''
     add_to_magic_network = True
 
@@ -70,7 +71,12 @@ class PoissonGroup(Group, SpikeSource):
         self.variables.create_clock_variables(self._clock)
 
         # The firing rates
-        self.variables.add_array('rates', size=N, unit=Hz)
+        if isinstance(rates, basestring):
+            self.variables.add_subexpression('rates', unit=Hz,
+                                             expr=rates)
+        else:
+            self.variables.add_array('rates', size=N, unit=Hz)
+        self._rates = rates
 
         self.start = 0
         self.stop = N
@@ -86,9 +92,8 @@ class PoissonGroup(Group, SpikeSource):
 
         self._enable_group_attributes()
 
-        # Here we want to use the local namespace, but at the level where the
-        # constructor was called
-        self.rates.set_item(slice(None), rates, level=2)
+        if not isinstance(rates, basestring):
+            self.rates = rates
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
@@ -114,7 +119,7 @@ class PoissonGroup(Group, SpikeSource):
         return spikespace[:spikespace[-1]]
 
     def __repr__(self):
-        description = '{classname}({N}, rates=<...>)'
+        description = '{classname}({N}, rates={rates})'
         return description.format(classname=self.__class__.__name__,
-                                  N=self.N)
+                                  N=self.N, rates=repr(self._rates))
 

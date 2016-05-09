@@ -31,6 +31,27 @@ def test_rate_arrays():
 
     assert_equal(spikes.count, np.array([0, 2]))
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_time_dependent_rate():
+    # The following two groups should show the same behaviour
+    timed_array = TimedArray(np.array([[0, 0],
+                                       [1./defaultclock.dt, 0]])*Hz, dt=1*ms)
+    group_1 = PoissonGroup(2, rates='timed_array(t, i)')
+    group_2 = PoissonGroup(2, rates='int(i==0)*int(t>=1*ms)*(1/dt)')
+    spikes_1 = SpikeMonitor(group_1)
+    spikes_2 = SpikeMonitor(group_2)
+    run(2*ms)
+
+    assert_equal(spikes_1.count,
+                 np.array([int(round(1*ms/defaultclock.dt)), 0]))
+    assert_equal(spikes_2.count,
+                 np.array([int(round(1 * ms / defaultclock.dt)), 0]))
+    assert sum(spikes_1.t < 1*ms) == 0
+    assert sum(spikes_2.t < 1*ms) == 0
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_propagation():
@@ -64,5 +85,6 @@ def test_poissongroup_subgroup():
 if __name__ == '__main__':
     test_single_rates()
     test_rate_arrays()
+    test_time_dependent_rate()
     test_propagation()
     test_poissongroup_subgroup()
