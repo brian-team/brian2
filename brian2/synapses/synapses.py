@@ -156,7 +156,9 @@ class SynapticPathway(CodeRunner, Group):
         self.spikes_stop = self.source.stop
         self.eventspace_name = '_{}space'.format(event)
         self.eventspace = None  # will be set in before_run
-        self.variables = Variables(self)
+        # Setting None instead of "self" as an owner makes indexing conflicts
+        # disappear (e.g. with synapses connecting subgroups)
+        self.variables = Variables(None)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
         if prepost == 'pre':
@@ -217,9 +219,15 @@ class SynapticPathway(CodeRunner, Group):
 
         # Allow the use of string expressions referring to synaptic (including
         # pre-/post-synaptic) variables
-        self.variables.add_references(synapses, synapses.variables.keys(),
-                                      ignore_errors=True)
-        self.variables.indices.update(synapses.variables.indices)
+        # Only include non-private variables (and indices)
+        synaptic_vars = [varname for varname in synapses.variables.keys()
+                         if not varname.startswith('_')]
+        synaptic_idcs = {varname: synapses.variables.indices[varname]
+                         for varname in synaptic_vars}
+        synaptic_vars += [index_name for index_name in synaptic_idcs.values()
+                          if index_name not in ['_idx', '0']]
+        self.variables.add_references(synapses, synaptic_vars)
+        self.variables.indices.update(synaptic_idcs)
         self._enable_group_attributes()
 
     @device_override('synaptic_pathway_update_abstract_code')
