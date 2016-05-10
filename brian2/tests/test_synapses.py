@@ -680,6 +680,31 @@ def test_delays_pathways():
     assert_equal(S.post.delay[:], 3 * ms)
 
 
+def test_delays_pathways_subgroups():
+    G = NeuronGroup(10, 'x: meter', threshold='False')
+    G.x = 'i*mmeter'
+    # Array delay
+    S = Synapses(G[:5], G[5:], 'w:1', on_pre={'pre1': 'v+=w',
+                                      'pre2': 'v+=w'},
+                 on_post='v-=w')
+    S.connect(j='i')
+    assert len(S.pre1.delay[:]) == 5
+    assert len(S.pre2.delay[:]) == 5
+    assert len(S.post.delay[:]) == 5
+    S.pre1.delay = 'i*ms'
+    S.pre2.delay = 'j*ms'
+    velocity = 1*meter/second
+    S.post.delay = 'abs(x_pre - (N_post-j)*mmeter)/velocity'
+    assert_equal(S.pre1.delay[:], np.arange(5) * ms)
+    assert_equal(S.pre2.delay[:], np.arange(5) * ms)
+    assert_equal(S.post.delay[:], abs(G[:5].x - (5 - G[:5].i) * mmeter) / velocity)
+    S.pre1.delay = 5*ms
+    S.pre2.delay = 10*ms
+    S.post.delay = 1*ms
+    assert_equal(S.pre1.delay[:], np.ones(5) * 5*ms)
+    assert_equal(S.pre2.delay[:], np.ones(5) * 10*ms)
+    assert_equal(S.post.delay[:], np.ones(5) * 1*ms)
+
 @attr('codegen-independent')
 def test_pre_before_post():
     # The pre pathway should be executed before the post pathway
@@ -1947,6 +1972,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_delay_specification()
     test_delays_pathways()
+    test_delays_pathways_subgroups()
     test_pre_before_post()
     test_pre_post_simple()
     test_transmission_simple()
