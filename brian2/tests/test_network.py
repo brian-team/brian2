@@ -10,7 +10,7 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_allclose
 
-from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
+from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
@@ -1160,7 +1160,19 @@ def test_magic_scope():
     assert objs2=={'G3', 'G4'}
 
 
-if __name__=='__main__':
+@attr('standalone-compatible')
+@with_setup(teardown=restore_initial_state)
+def test_runtime_rounding():
+    # Test that runtime and standalone round in the same way, see github issue
+    # #695 for details
+    defaultclock.dt = 20.000000000020002 * us
+    G = NeuronGroup(1, 'v:1')
+    mon = StateMonitor(G, 'v', record=True)
+    run(defaultclock.dt * 250)
+    assert len(mon.t) == 250
+
+
+if __name__ == '__main__':
     BrianLogger.log_level_warn()
     for t in [
             test_incorrect_network_use,
@@ -1211,6 +1223,7 @@ if __name__=='__main__':
             test_profile,
             test_profile_ipython_html,
             test_magic_scope,
+            test_runtime_rounding
             ]:
         t()
         restore_initial_state()
