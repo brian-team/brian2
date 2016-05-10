@@ -1682,7 +1682,8 @@ class Variables(collections.Mapping):
         self._add_variable(name, var)
 
 
-    def add_referred_subexpression(self, name, group, subexpr, index):
+    def add_referred_subexpression(self, name, group, subexpr, index,
+                                   ignore_errors=False):
         identifiers = subexpr.identifiers
         substitutions = {}
         for identifier in identifiers:
@@ -1706,6 +1707,8 @@ class Variables(collections.Mapping):
             elif index != self.default_index:
                 index_var = self._variables.get(index, None)
                 if isinstance(index_var, DynamicArrayVariable):
+                    if ignore_errors:
+                        return
                     raise TypeError(('Cannot link to subexpression %s: it refers '
                                      'to the variable %s which is indexed with the '
                                      'dynamic index %s.') % (name,
@@ -1720,12 +1723,14 @@ class Variables(collections.Mapping):
                 self.add_referred_subexpression(new_name,
                                                 group,
                                                 subexpr_var,
-                                                subexpr_var_index)
+                                                subexpr_var_index,
+                                                ignore_errors=ignore_errors)
             else:
                 self.add_reference(new_name,
                                    group,
                                    identifier,
-                                   subexpr_var_index)
+                                   subexpr_var_index,
+                                   ignore_errors=ignore_errors)
 
         new_expr = word_substitute(subexpr.expr, substitutions)
         new_subexpr = Subexpression(name, subexpr.unit, self.owner, new_expr,
@@ -1734,7 +1739,8 @@ class Variables(collections.Mapping):
                                     scalar=subexpr.scalar)
         self._variables[name] = new_subexpr
 
-    def add_reference(self, name, group, varname=None, index=None):
+    def add_reference(self, name, group, varname=None, index=None,
+                      ignore_errors=False):
         '''
         Add a reference to a variable defined somewhere else (possibly under
         a different name). This is for example used in `Subgroup` and
@@ -1752,6 +1758,10 @@ class Variables(collections.Mapping):
         index : str, optional
             The index that should be used for this variable (defaults to
             `Variables.default_index`).
+        ignore_errors : bool, optional
+            Whether to silently ignore errors (e.g. when trying to create
+            references that would require indexing twice) and simply not
+            add the reference. Defaults to ``False``.
         '''
         if varname is None:
             varname = name
@@ -1768,6 +1778,8 @@ class Variables(collections.Mapping):
         if self.owner is not None and index in self.owner.variables:
             if (not self.owner.variables[index].read_only and
                     group.variables.indices[varname] != group.variables.default_index):
+                if ignore_errors:
+                    return
                 raise TypeError(('Cannot link variable %s to %s in group %s -- '
                                  'need to precalculate direct indices but '
                                  'index %s can change') % (name,
@@ -1776,15 +1788,17 @@ class Variables(collections.Mapping):
                                                            index))
 
         # We don't overwrite existing names with references
-        if not name in self._variables:
+        if name not in self._variables:
             var = group.variables[varname]
             if isinstance(var, Subexpression):
-                self.add_referred_subexpression(name, group, var, index)
+                self.add_referred_subexpression(name, group, var, index,
+                                                ignore_errors=ignore_errors)
             else:
                 self._variables[name] = var
             self.indices[name] = index
 
-    def add_references(self, group, varnames, index=None):
+    def add_references(self, group, varnames, index=None,
+                       ignore_errors=False):
         '''
         Add all `Variable` objects from a name to `Variable` mapping with the
         same name as in the original mapping.
@@ -1798,9 +1812,14 @@ class Variables(collections.Mapping):
         index : str, optional
             The index to use for all the variables (defaults to
             `Variables.default_index`)
+        ignore_errors : bool, optional
+            Whether to silently ignore errors (e.g. when trying to create
+            references that would require indexing twice) and simply not
+            add the reference. Defaults to ``False``.
         '''
         for name in varnames:
-            self.add_reference(name, group, name, index)
+            self.add_reference(name, group, name, index,
+                               ignore_errors=ignore_errors)
 
     def add_object(self, name, obj):
         '''

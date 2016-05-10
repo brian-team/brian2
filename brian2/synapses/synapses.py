@@ -214,7 +214,12 @@ class SynapticPathway(CodeRunner, Group):
         self._initialise_queue_codeobj = None
 
         self.namespace = synapses.namespace
-        # Enable access to the delay attribute via the specifier
+
+        # Allow the use of string expressions referring to synaptic (including
+        # pre-/post-synaptic) variables
+        self.variables.add_references(synapses, synapses.variables.keys(),
+                                      ignore_errors=True)
+        self.variables.indices.update(synapses.variables.indices)
         self._enable_group_attributes()
 
     @device_override('synaptic_pathway_update_abstract_code')
