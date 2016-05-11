@@ -169,14 +169,9 @@ class NumbaCodeGenerator(CodeGenerator):
                         newlines = [
                             "global _namespace{var_name}",
                             "global _namespace_num{var_name}",
-                            "def _numpy.ndarray[{numba_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}']",
-                            "_namespace{var_name} = <{numba_dtype} *> _buf_{var_name}.data",
+                            " _namespace{var_name} = _namespace['{var_name}']",
                             "_namespace_num{var_name} = len(_namespace['{var_name}'])"
                         ]
-                        support_code.append(
-                            "def {numba_dtype} *_namespace{var_name}".format(
-                                numba_dtype=get_numba_dtype(ns_value.dtype),
-                                var_name=ns_key))
 
                     else:  # e.g. a function
                         newlines = [
@@ -301,6 +296,7 @@ class NumbaCodeGenerator(CodeGenerator):
         #print "END NAMESPACE"
         #raise Exception
         return {'load_namespace': '\n'.join(load_namespace),
+                'load_arguments': ','.join(self.variables),
                 'support_code': '\n'.join(support_code)}
 
 ###############################################################################
