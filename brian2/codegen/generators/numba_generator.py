@@ -8,6 +8,7 @@ Created on Mon Mar 28 18:55:35 2016
 import itertools
 
 import numpy as np
+import copy
 
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
@@ -277,7 +278,8 @@ class NumbaCodeGenerator(CodeGenerator):
             else:
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
-            
+        arguments_to_pass = copy.copy(load_namespace)    
+        load_arguments = [assignments.split()[0] for assignments in arguments_to_pass]
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
         for funcname, func in user_functions:
@@ -296,7 +298,8 @@ class NumbaCodeGenerator(CodeGenerator):
         #print "END NAMESPACE"
         #raise Exception
         return {'load_namespace': '\n'.join(load_namespace),
-                'load_arguments': ','.join(self.variables),
+                'pass_arguments': ','.join(arguments_to_pass),
+                'load_arguments': ','.join(load_arguments),
                 'support_code': '\n'.join(support_code)}
 
 ###############################################################################

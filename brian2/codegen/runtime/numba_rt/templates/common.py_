@@ -14,11 +14,15 @@ from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, a
 {% block template_support_code %}
 {% endblock %}
 
-@jit
-def main({{load_arguments}}):
+def main(_namespace):
     {{load_namespace | autoindent}}
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
+
+    subroutine({{pass_arguments}})
+
+@jit
+def subroutine({{load_arguments}}):
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}
