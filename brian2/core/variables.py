@@ -1765,7 +1765,8 @@ class Variables(collections.Mapping):
             else:
                 index = self.default_index
 
-        if self.owner is not None and index in self.owner.variables:
+        if (self.owner is not None and self.owner.name != group.name and
+                    index in self.owner.variables):
             if (not self.owner.variables[index].read_only and
                     group.variables.indices[varname] != group.variables.default_index):
                 raise TypeError(('Cannot link variable %s to %s in group %s -- '

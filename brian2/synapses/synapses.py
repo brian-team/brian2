@@ -156,9 +156,9 @@ class SynapticPathway(CodeRunner, Group):
         self.spikes_stop = self.source.stop
         self.eventspace_name = '_{}space'.format(event)
         self.eventspace = None  # will be set in before_run
-        # Setting None instead of "self" as an owner makes indexing conflicts
-        # disappear (e.g. with synapses connecting subgroups)
-        self.variables = Variables(None)
+        # Setting the Synapses object instead of "self" as an owner makes
+        # indexing conflicts disappear (e.g. with synapses connecting subgroups)
+        self.variables = Variables(synapses)
         self.variables.add_reference(self.eventspace_name, self.source)
         self.variables.add_reference('N', synapses)
         if prepost == 'pre':
