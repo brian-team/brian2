@@ -1161,7 +1161,7 @@ def test_magic_scope():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=restore_initial_state)
+@with_setup(teardown=reinit_devices)
 def test_runtime_rounding():
     # Test that runtime and standalone round in the same way, see github issue
     # #695 for details
