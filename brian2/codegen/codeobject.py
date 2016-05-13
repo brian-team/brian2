@@ -103,60 +103,6 @@ class CodeObject(Nameable):
         raise NotImplementedError()
 
 
-def check_code_units(code, group, user_code=None, additional_variables=None,
-                     level=0, run_namespace=None,):
-    '''
-    Check statements for correct units.
-
-    Parameters
-    ----------
-    code : str
-        The series of statements to check
-    group : `Group`
-        The context for the code execution
-    user_code : str, optional
-        The code that was provided by the user. Used to determine whether to
-        emit warnings and for better error messages. If not specified, assumed
-        to be equal to ``code``.
-    additional_variables : dict-like, optional
-        A mapping of names to `Variable` objects, used in addition to the
-        variables saved in `self.group`.
-    level : int, optional
-        How far to go up in the stack to find the calling frame.
-    run_namespace : dict-like, optional
-        An additional namespace, as provided to `Group.before_run`
-
-    Raises
-    ------
-    DimensionMismatchError
-        If `code` has unit mismatches
-    '''
-    all_variables = dict(group.variables)
-    if additional_variables is not None:
-        all_variables.update(additional_variables)
-
-    if user_code is None:
-        user_code = code
-
-    # Resolve the namespace, resulting in a dictionary containing only the
-    # external variables that are needed by the code -- keep the units for
-    # the unit checks
-    # Note that here we do not need to recursively descend into
-    # subexpressions. For unit checking, we only need to know the units of
-    # the subexpressions not what variables they refer to
-    _, _, unknown = analyse_identifiers(code, all_variables)
-    _, _, unknown_user = analyse_identifiers(user_code, all_variables)
-
-    resolved_namespace = group.resolve_all(unknown,
-                                           unknown_user,
-                                           level=level+1,
-                                           run_namespace=run_namespace)
-
-    all_variables.update(resolved_namespace)
-
-    check_units_statements(code, all_variables)
-
-
 def _error_msg(code, name):
     '''
     Little helper function for error messages.
