@@ -857,10 +857,6 @@ class Synapses(Group):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
 
-    def before_run(self, run_namespace):
-        self.state('lastupdate')[:] = 't'
-        super(Synapses, self).before_run(run_namespace)
-
     def _add_updater(self, code, prepost, objname=None, delay=None,
                      event='spike'):
         '''
