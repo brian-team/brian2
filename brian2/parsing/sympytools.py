@@ -14,21 +14,24 @@ from brian2.parsing.rendering import SympyNodeRenderer
 
 
 def check_expression_for_multiple_stateful_functions(expr, variables):
-    identifiers = re.findall('\w+', expr)
+    identifiers = re.findall(r'\w+', expr)
+    # Don't bother counting if we don't have any duplicates in the first place
+    if len(identifiers) == len(set(identifiers)):
+        return
     identifier_count = Counter(identifiers)
     for identifier, count in identifier_count.iteritems():
-        if isinstance(variables.get(identifier, None), Function):
-            if not variables[identifier].stateless and count > 1:
-                raise NotImplementedError(('The expression "{expr}" contains '
-                                           'more than one call of {func}, this '
-                                           'is currently not supported since '
-                                           '{func} is a stateful function and '
-                                           'its multiple calls might be '
-                                           'treated incorrectly (e.g.'
-                                           '"rand() - rand()" could be '
-                                           ' simplified to '
-                                           '"0.0").').format(expr=expr,
-                                                             func=identifier))
+        var = variables.get(identifier, None)
+        if count > 1 and isinstance(var, Function) and not var.stateless:
+            raise NotImplementedError(('The expression "{expr}" contains '
+                                       'more than one call of {func}, this '
+                                       'is currently not supported since '
+                                       '{func} is a stateful function and '
+                                       'its multiple calls might be '
+                                       'treated incorrectly (e.g.'
+                                       '"rand() - rand()" could be '
+                                       ' simplified to '
+                                       '"0.0").').format(expr=expr,
+                                                         func=identifier))
 
 
 SYMPY_NAMESPACE = None
