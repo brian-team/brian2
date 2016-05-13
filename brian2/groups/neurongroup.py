@@ -110,8 +110,8 @@ class StateUpdater(CodeRunner):
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
-                                               identifiers,
-                                               run_namespace=run_namespace)
+                                               run_namespace,
+                                               user_identifiers=identifiers)
             unit = parse_expression_unit(str(ref), variables)
             if have_same_dimensions(unit, second):
                 abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
@@ -146,11 +146,11 @@ class StateUpdater(CodeRunner):
         external_names = self.group.equations.identifiers | {'dt'}
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
+                                           run_namespace,
                                            # we don't need to raise any warnings
                                            # for the user here, warnings will
                                            # be raised in create_runner_codeobj
-                                           set(),
-                                           run_namespace=run_namespace)
+                                           user_identifiers=set())
         if len(self.group.equations.diff_eq_names) > 0:
             self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
                                                                        variables,
@@ -217,8 +217,8 @@ class Thresholder(CodeRunner):
 
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
-                                           identifiers,
-                                           run_namespace=run_namespace)
+                                           run_namespace,
+                                           user_identifiers=identifiers)
         if not is_boolean_expression(code, variables):
             raise TypeError(('Threshold condition "%s" is not a boolean '
                              'expression') % code)

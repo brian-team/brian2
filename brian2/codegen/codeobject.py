@@ -173,13 +173,12 @@ def _error_msg(code, name):
 
 
 def create_runner_codeobj(group, code, template_name,
+                          run_namespace,
                           user_code=None,
                           variable_indices=None,
                           name=None, check_units=True,
                           needed_variables=None,
                           additional_variables=None,
-                          level=0,
-                          run_namespace=None,
                           template_kwds=None,
                           override_conditional_write=None,
                           codeobj_class=None
@@ -195,6 +194,10 @@ def create_runner_codeobj(group, code, template_name,
         The code to be executed.
     template_name : str
         The name of the template to use for the code.
+    run_namespace : dict-like
+        An additional namespace that is used for variable lookup (either
+        an explicitly defined namespace or one taken from the local
+        context).
     user_code : str, optional
         The code that had been specified by the user before other code was
         added automatically. If not specified, will be assumed to be identical
@@ -216,11 +219,6 @@ def create_runner_codeobj(group, code, template_name,
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `group`.
-    level : int, optional
-        How far to go up in the stack to find the call frame.
-    run_namespace : dict-like, optional
-        An additional namespace that is used for variable lookup (if not
-        defined, the implicit namespace of local variables is used).
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
     override_conditional_write: list of str, optional
@@ -286,8 +284,7 @@ def create_runner_codeobj(group, code, template_name,
                                   # template variables are not known to the user:
                                   user_identifiers=user_identifiers,
                                   additional_variables=additional_variables,
-                                  run_namespace=run_namespace,
-                                  level=level+1)
+                                  run_namespace=run_namespace)
     # We raise this error only now, because there is some non-obvious code path
     # where Jinja tries to get a Synapse's "name" attribute via syn['name'],
     # which then triggers the use of the `group_get_indices` template which does

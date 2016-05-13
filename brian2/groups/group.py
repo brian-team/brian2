@@ -284,17 +284,19 @@ class IndexWrapper(object):
                                              dtype=np.bool)
 
             abstract_code = '_cond = ' + item
+            namespace = get_local_namespace(level=1)
             from brian2.devices.device import get_default_codeobject_class
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'group_get_indices',
+                                            run_namespace=namespace,
                                             additional_variables=variables,
-                                            level=1,
                                             codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                             )
             return codeobj()
         else:
             return self.indices(item)
+
 
 class VariableOwner(Nameable):
     '''
@@ -617,6 +619,9 @@ class Group(VariableOwner, BrianObject):
         ----------
         identifiers : str
             The name to look up.
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         user_identifier : bool, optional
             Whether this is an identifier that was used by the user (and not
             something automatically generated that the user might not even
@@ -625,9 +630,6 @@ class Group(VariableOwner, BrianObject):
         additional_variables : dict-like, optional
             An additional mapping of names to `Variable` objects that will be
             checked before `Group.variables`.
-        run_namespace : dict-like, optional
-            An additional namespace, provided as an argument to the
-            `Network.run` method or returned by `get_local_namespace`.
 
         Returns
         -------
@@ -662,8 +664,8 @@ class Group(VariableOwner, BrianObject):
         # namespace
         return self._resolve_external(identifier, run_namespace=run_namespace)
 
-    def resolve_all(self, identifiers, user_identifiers=None,
-                    additional_variables=None, run_namespace=None, level=0):
+    def resolve_all(self, identifiers, run_namespace, user_identifiers=None,
+                    additional_variables=None):
         '''
         Resolve a list of identifiers. Calls `Group._resolve` for each
         identifier.
@@ -672,6 +674,9 @@ class Group(VariableOwner, BrianObject):
         ----------
         identifiers : iterable of str
             The names to look up.
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         user_identifiers : iterable of str, optional
             The names in ``identifiers`` that were provided by the user (i.e.
             are part of user-specified equations, abstract code, etc.). Will
@@ -680,16 +685,6 @@ class Group(VariableOwner, BrianObject):
         additional_variables : dict-like, optional
             An additional mapping of names to `Variable` objects that will be
             checked before `Group.variables`.
-        run_namespace : dict-like, optional
-            An additional namespace, provided as an argument to the
-            `Network.run` method.
-        level : int, optional
-            How far to go up in the stack to find the original call frame.
-        do_warn : bool, optional
-            Whether to warn about names that are defined both as an internal
-            variable (i.e. in `Group.variables`) and in some other namespace.
-            Defaults to ``True`` but can be switched off for internal variables
-            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -704,8 +699,7 @@ class Group(VariableOwner, BrianObject):
         '''
         if user_identifiers is None:
             user_identifiers = identifiers
-        if run_namespace is None:
-            run_namespace = get_local_namespace(level=level+1)
+        assert isinstance(run_namespace, collections.Mapping)
         resolved = {}
         for identifier in identifiers:
             resolved[identifier] = self._resolve(identifier,

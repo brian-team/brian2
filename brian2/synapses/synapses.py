@@ -12,6 +12,7 @@ import numpy as np
 
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override
+from brian2.core.namespace import get_local_namespace
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device, RuntimeDevice
@@ -1224,8 +1225,7 @@ class Synapses(Group):
                 i, j, n = np.broadcast_arrays(i, j, n)
                 if i.ndim > 1:
                     raise ValueError('Can only use 1-dimensional indices')
-                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace,
-                                               level=level+1)
+                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace)
                 return
             elif j is not None:
                 if isinstance(p, basestring) or p != 1:
@@ -1318,7 +1318,7 @@ class Synapses(Group):
         return template_kwds, needed_variables
 
     def _add_synapses_from_arrays(self, sources, targets, n, p,
-                                  namespace=None, level=0):
+                                  namespace=None):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
 
         variables = Variables(self)
@@ -1379,8 +1379,7 @@ class Synapses(Group):
                                         template_kwds=template_kwds,
                                         needed_variables=needed_variables,
                                         check_units=False,
-                                        run_namespace=namespace,
-                                        level=level+1)
+                                        run_namespace={})
         codeobj()
 
     def _expression_index_dependence(self, expr, additional_indices=None):
@@ -1502,6 +1501,9 @@ class Synapses(Group):
                       "using generator '%s'") % (self.source.name,
                                                  self.target.name,
                                                  parsed['original_expression']))
+        # Get the local namespace
+        if namespace is None:
+            namespace = get_local_namespace(level=level+1)
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',
@@ -1510,6 +1512,5 @@ class Synapses(Group):
                                         template_kwds=template_kwds,
                                         needed_variables=needed_variables,
                                         check_units=False,
-                                        run_namespace=namespace,
-                                        level=level+1)
+                                        run_namespace=namespace)
         codeobj()

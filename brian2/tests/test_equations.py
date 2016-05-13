@@ -286,23 +286,23 @@ def test_unit_checking():
     eqs = Equations('dv/dt = -v : volt')
     group = SimpleGroup({'v': S(volt)})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group))
+                  lambda: eqs.check_units(group, {}))
 
     eqs = Equations('dv/dt = -v / tau: volt')
     group = SimpleGroup(namespace={'tau': 5*mV}, variables={'v': S(volt)})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group))
+                  lambda: eqs.check_units(group, {}))
     group = SimpleGroup(namespace={'I': 3*second}, variables={'v': S(volt)})
     eqs = Equations('dv/dt = -(v + I) / (5 * ms): volt')
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group))
+                  lambda: eqs.check_units(group, {}))
 
     eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
                        I : second''')
     group = SimpleGroup(variables={'v': S(volt),
                                    'I': S(second)}, namespace={})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group))
+                  lambda: eqs.check_units(group, {}))
     
     # inconsistent unit for a subexpression
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
@@ -310,7 +310,7 @@ def test_unit_checking():
     group = SimpleGroup(variables={'v': S(volt),
                                    'I': S(second)}, namespace={})
     assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group))
+                  lambda: eqs.check_units(group, {}))
     
 
 @attr('codegen-independent')

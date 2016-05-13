@@ -429,7 +429,7 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
 
     def variableview_get_subexpression_with_index_array(self, variableview,
-                                                        item, level=0,
+                                                        item,
                                                         run_namespace=None):
         if not self.has_been_run:
             raise NotImplementedError('Cannot retrieve the values of state '
@@ -439,12 +439,11 @@ class CPPStandaloneDevice(Device):
         # (based on the values stored on disk)
         set_device('runtime')
         result = VariableView.get_subexpression_with_index_array(variableview, item,
-                                                                 level=level+2,
                                                                  run_namespace=run_namespace)
         reset_device()
         return result
 
-    def variableview_get_with_expression(self, variableview, code, level=0,
+    def variableview_get_with_expression(self, variableview, code,
                                          run_namespace=None):
         raise NotImplementedError('Cannot retrieve the values of state '
                                   'variables with string expressions in '
