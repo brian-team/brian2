@@ -1,6 +1,14 @@
 Release notes
 =============
 
+Current development version
+---------------------------
+
+Improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix a difference of one timestep in the number of simulated timesteps between
+  runtime and standalone that could arise for very specific values of dt and t (see #695).
+
 Brian 2.0rc1
 ------------
 This is a bug fix release that we release only about two weeks after the previous
