@@ -1120,6 +1120,7 @@ def test_indices():
     assert_equal(G.indices[5:], G.indices['i >= ext_var'])
     assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
+
 @attr('codegen-independent')
 def test_get_dtype():
     '''
@@ -1179,6 +1180,7 @@ def test_aliasing_in_statements():
     assert_equal(g.x_0_[:], np.array([-1]))
     assert_equal(g.x_1_[:], np.array([0]))
 
+
 @attr('codegen-independent')
 def test_get_states():
     G = NeuronGroup(10, '''v : volt
@@ -1206,6 +1208,7 @@ def test_get_states():
     assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i',
                                       'subexpr', 'subexpr2'}
 
+
 @attr('codegen-independent')
 def test_set_states():
     G = NeuronGroup(10, '''v : volt
@@ -1214,19 +1217,20 @@ def test_set_states():
                            subexpr2 = x*volt + v : volt''')
     G.v = 'i*volt'
     G.x = '10*i'
-    assert_raises(ValueError, lambda: G.set_states({'v': np.arange(2,11)*volt}, units=True))
+    assert_raises(ValueError, lambda: G.set_states({'v': np.arange(2, 11)*volt}, units=True))
     # we test if function prevents from setting read_only variables
     assert_raises(TypeError, lambda: G.set_states({'N': 1}))
-    assert_raises(DimensionMismatchError, lambda: G.set_states({'x': np.arange(2,12)*volt}, units=True))
-    assert_raises(DimensionMismatchError, lambda: G.set_states({'v': np.arange(2,12)}, units=True))
-    G.set_states({'v':np.arange(2,12)}, units=False)
-    assert_equal(G.v, np.arange(2,12)*volt)
-    G.set_states({'v':np.arange(2,12)*volt}, units=True)
-    assert_equal(G.v, np.arange(2,12)*volt)
-    G.set_states({'x':np.arange(2,12)}, units=False)
-    assert_equal(G.x, np.arange(2,12))
-    G.set_states({'x':np.arange(2,12)}, units=True)
-    assert_equal(G.x, np.arange(2,12))
+    assert_raises(DimensionMismatchError, lambda: G.set_states({'x': np.arange(2, 12)*volt}, units=True))
+    assert_raises(DimensionMismatchError, lambda: G.set_states({'v': np.arange(2, 12)}, units=True))
+    G.set_states({'v': np.arange(2, 12)}, units=False)
+    assert_equal(G.v, np.arange(2, 12)*volt)
+    G.set_states({'v': np.arange(2, 12)*volt}, units=True)
+    assert_equal(G.v, np.arange(2, 12)*volt)
+    G.set_states({'x': np.arange(2, 12)}, units=False)
+    assert_equal(G.x, np.arange(2, 12))
+    G.set_states({'x': np.arange(2, 12)}, units=True)
+    assert_equal(G.x, np.arange(2, 12))
+
 
 @attr('codegen-independent')
 def test_get_states_pandas():
@@ -1240,27 +1244,19 @@ def test_get_states_pandas():
                            subexpr2 = x*volt + v : volt''')
     G.v = 'i*volt'
     G.x = '10*i'
-    states_units = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True, format='pandas')
+    assert_raises(NotImplementedError, lambda: G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True, format='pandas'))
     states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False, format='pandas')
-    assert len(states_units.columns) == len(states.columns) == 4
-    assert_equal(states_units['v'].as_matrix(), np.arange(10))
-    assert states_units.units[list(states_units.columns).index('v')] == volt
-    assert_equal(states_units['x'].as_matrix(), 10*np.arange(10))
-    assert states_units.units[list(states_units.columns).index('x')] is None
-    assert_equal(states_units['subexpr'].as_matrix(), 11*np.arange(10))
-    assert states_units.units[list(states_units.columns).index('subexpr')] is None
-    assert_equal(states_units['subexpr2'].as_matrix(), 11*np.arange(10))
-    assert states_units.units[list(states_units.columns).index('subexpr2')] == volt
-    assert_equal(states['v'].as_matrix(), np.arange(10))
-    assert_equal(states['x'].as_matrix(), 10*np.arange(10))
-    assert_equal(states['subexpr'].as_matrix(), 11*np.arange(10))
-    assert_equal(states['subexpr2'].as_matrix(), 11*np.arange(10))
+    assert_equal(states['v'].values, np.arange(10))
+    assert_equal(states['x'].values, 10*np.arange(10))
+    assert_equal(states['subexpr'].values, 11*np.arange(10))
+    assert_equal(states['subexpr2'].values, 11*np.arange(10))
 
-    all_states = G.get_states(units=True, format='pandas')
+    all_states = G.get_states(units=False, format='pandas')
     assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i'}
-    all_states = G.get_states(units=True, subexpressions=True, format='pandas')
+    all_states = G.get_states(units=False, subexpressions=True, format='pandas')
     assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i',
                                        'subexpr', 'subexpr2'}
+
 
 @attr('codegen-independent')
 def test_set_states_pandas():
@@ -1274,27 +1270,18 @@ def test_set_states_pandas():
                            subexpr2 = x*volt + v : volt''')
     G.v = 'i*volt'
     G.x = '10*i'
-    df = pd.DataFrame(np.arange(2,11), columns=['v'])
-    df.units = [volt]
-    assert_raises(ValueError, lambda: G.set_states(df, units=True, format='pandas'))
+    df = pd.DataFrame(np.arange(2, 11), columns=['v'])
+    assert_raises(NotImplementedError, lambda: G.set_states(df, units=True, format='pandas'))
+    assert_raises(ValueError, lambda: G.set_states(df, units=False, format='pandas'))
     # we test if function prevents from setting read_only variables
     df = pd.DataFrame(np.array([1]), columns=['N'])
-    assert_raises(TypeError, lambda: G.set_states(df, format='pandas'))
-    df = pd.DataFrame(np.arange(2,12), columns=['x'])
-    df.units = [volt]
-    assert_raises(DimensionMismatchError, lambda: G.set_states(df, units=True, format='pandas'))
-    df = pd.DataFrame(np.arange(2,12), columns=['v'])
-    df.units = [None]
-    assert_raises(DimensionMismatchError, lambda: G.set_states(df, units=True, format='pandas'))
-    df = pd.DataFrame(np.vstack((np.arange(2,12), np.arange(2,12))).T)
+    assert_raises(TypeError, lambda: G.set_states(df, units=False, format='pandas'))
+    df = pd.DataFrame(np.vstack((np.arange(2, 12), np.arange(2, 12))).T)
     df.columns = ['v', 'x']
     G.set_states(df, units=False, format='pandas')
-    assert_equal(G.v, np.arange(2,12)*volt)
-    assert_equal(G.x, np.arange(2,12))
-    df.units = [volt, None]
-    G.set_states(df, units=True, format='pandas')
-    assert_equal(G.v, np.arange(2,12)*volt)
-    assert_equal(G.x, np.arange(2,12))
+    assert_equal(G.v, np.arange(2, 12)*volt)
+    assert_equal(G.x, np.arange(2, 12))
+
 
 def test_random_vector_values():
     # Make sure that the new "loop-invariant optimisation" does not pull out
