@@ -106,11 +106,10 @@ class WeaveCodeObject(CodeObject):
         brian2dir, _ = os.path.split(brian2.__file__)
         rkdir = os.path.abspath(os.path.join(brian2dir, 'utils',
                                              'random', 'randomkit'))
-        randomkitc = os.path.join(rkdir, 'randomkit.c')
 
         self.include_dirs.append(synapses_dir)
         self.include_dirs.append(rkdir)
-        self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        self.library_dirs = list(prefs['codegen.cpp.library_dirs']) + [rkdir]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
@@ -118,7 +117,6 @@ class WeaveCodeObject(CodeObject):
         self.headers = (['<algorithm>', '<limits>',
                          '"stdint_compat.h"', '"randomkit.h"'] +
                         prefs['codegen.cpp.headers'])
-        self.sources = [randomkitc]
         self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
@@ -261,7 +259,6 @@ libraries: {self.libraries}
                 extra_link_args=self.extra_link_args,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
-                sources=self.sources,
                 verbose=0)
             with std_silent():
                 ret_val = weave.inline(*self._inline_args, **self._inline_kwds)

@@ -88,6 +88,25 @@ if fname is not None:
 else:
     extensions = []
 
+# Compile randomkit
+if (platform.system() == 'Linux' and
+            platform.architecture()[0] == '32bit' and
+            platform.machine() == 'x86_64'):
+    # We are cross-compiling (most likely to build a 32Bit package for conda
+    # on travis), set paths and flags for 32Bit explicitly
+    print('Configuring compilation for cross-compilation to 32 Bit')
+    fname = os.path.join('brian2', 'utils', 'random', 'randomkit.c')
+    extensions.append(Extension("brian2.utils.random.randomkit",
+                                [fname],
+                                include_dirs=[],
+                                library_dirs=['/lib32', '/usr/lib32'],
+                                extra_compile_args=['-m32'],
+                                extra_link_args=['-m32']))
+else:
+    extensions.append(Extension("brian2.utils.random.randomkit",
+                                [fname],
+                                include_dirs=[]))
+
 
 class optional_build_ext(build_ext):
     '''

@@ -182,9 +182,8 @@ class CythonExtensionManager(object):
             brian2dir, _ = os.path.split(brian2.__file__)
             rkdir = os.path.abspath(os.path.join(brian2dir, 'utils',
                                                  'random', 'randomkit'))
-            randomkitc = os.path.join(rkdir, 'randomkit.c')
             c_include_dirs.append(rkdir)
-
+            library_dirs.append(rkdir)
 
             pyx_file = os.path.join(lib_dir, module_name + '.pyx')
             # ignore Python 3 unicode stuff for the moment
@@ -198,7 +197,7 @@ class CythonExtensionManager(object):
 
             extension = Extension(
                 name=module_name,
-                sources=[pyx_file, randomkitc],
+                sources=[pyx_file],
                 include_dirs=c_include_dirs,
                 library_dirs=library_dirs,
                 runtime_library_dirs=runtime_library_dirs,
