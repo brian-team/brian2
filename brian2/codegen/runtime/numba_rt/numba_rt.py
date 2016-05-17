@@ -122,7 +122,11 @@ class NumbaCodeObject(CodeObject):
         # output variables should land in the variable name _return_values
         #self.namespace["main"](self.namespace)
         code = 'main(namespace)'
+                # Test code
+        self.namespace["_foo"] = 1
+        self.namespace["foo"] = 1
         self.namespace['namespace'] = self.namespace
+
         #print self.namespace
         exec code in self.namespace
         if '_return_values' in self.namespace:

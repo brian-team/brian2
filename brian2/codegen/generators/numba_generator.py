@@ -288,11 +288,11 @@ class NumbaCodeGenerator(CodeGenerator):
             if func_namespace is not None:
                 self.variables.update(func_namespace)
         # Implement functions
-        for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log', 
-             'log10', 'sqrt', 'asin', 'acos', 'atan', 'fmod', 'floor', 'ceil', 
-             'pi']:
-            line = '{0} = _namespace["{1}"]'.format(func, func)
-            load_namespace.append(line)
+        #for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log', 
+        #     'log10', 'sqrt', 'asin', 'acos', 'atan', 'fmod', 'floor', 'ceil', 
+        #     'pi']:
+        #    line = '{0} = _namespace["{1}"]'.format(func, func)
+        #    load_namespace.append(line)
         #print "NAMESPACE IS"
         #print load_namespace
         #print "END NAMESPACE"
