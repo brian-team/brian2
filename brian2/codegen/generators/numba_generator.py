@@ -242,7 +242,7 @@ class NumbaCodeGenerator(CodeGenerator):
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
                                                                            
-                    arguments_to_pass.append('{0} = list(_namespace["{1}"])'.format(self.get_array_name(var, False),
+                    arguments_to_pass.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
 
                 # This is the "true" array name, not the restricted pointer.
