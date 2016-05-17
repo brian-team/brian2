@@ -4,7 +4,7 @@ import sys
 import time
 import numpy as np
 import math
-from numba_subroutines import *
+#from numba_subroutines import *
 from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, pi
 
 
@@ -16,18 +16,10 @@ from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, a
 {% endblock %}
 
 def main(_namespace):
-    print("In main")
-    t0 = time.time()
     {#{{load_namespace | autoindent}}#}
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
-    t = time.time() - t0
-    print("Took {}".format(t))
-    print("In subroutine")
-    t0 = time.time()
     {{load_arguments}} = subroutine({{pass_arguments}})
-    t = time.time() - t0
-    print("Took {}".format(t))
 
 
 @jit(nopython=True)
