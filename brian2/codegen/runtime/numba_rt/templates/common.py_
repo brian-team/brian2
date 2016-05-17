@@ -16,7 +16,7 @@ from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, a
 {% endblock %}
 
 def main(_namespace):
-    {#{{load_namespace | autoindent}}#}
+    {{load_namespace | autoindent}}
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
     {{load_arguments}} = subroutine({{pass_arguments}})
