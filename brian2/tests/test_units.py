@@ -192,7 +192,8 @@ def test_str_repr():
                      array([1, 2, 3]) * kmetre / second,
                      np.ones(3) * nS / cm**2,
                      Unit(1, dim=get_or_create_dimension(length=5, time=2)),
-                     8000*umetre**3, [0.0001, 10000] * umetre**3]
+                     8000*umetre**3, [0.0001, 10000] * umetre**3,
+                     1/metre, 1/(coulomb*metre**2), Unit(1)/second]
     
     unitless = [second/second, 5 * second/second, Unit(1)]
     
