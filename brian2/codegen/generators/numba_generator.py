@@ -216,6 +216,7 @@ class NumbaCodeGenerator(CodeGenerator):
         device = get_device()
         # load variables from namespace
         load_namespace = []
+        arguments_to_pass = []
         support_code = []
         handled_pointers = set()
         user_functions = []
@@ -235,9 +236,13 @@ class NumbaCodeGenerator(CodeGenerator):
                 dtype_name = get_numba_dtype(var.value)
                 line = '{varname} = _namespace["{varname}"]'.format(varname=varname)
                 load_namespace.append(line)
+                arguments_to_pass.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
+                                                                           self.get_array_name(var, False)))
+                                                                           
+                    arguments_to_pass.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
 
                 # This is the "true" array name, not the restricted pointer.
@@ -268,17 +273,19 @@ class NumbaCodeGenerator(CodeGenerator):
                                        varname=varname,
                                        )
                     load_namespace.append(line)
+                    arguments_to_pass.append(line)
                 handled_pointers.add(pointer_name)
 
             elif isinstance(var, Function):
                 sc, ln, uf = self._add_user_function(varname, var)
                 support_code.extend(sc)
                 load_namespace.extend(ln)
+                arguments_to_pass.extend(ln)
                 user_functions.extend(uf)
             else:
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
-        arguments_to_pass = copy.copy(load_namespace)    
+                arguments_to_pass.append('{0} = _namespace["{1}"]'.format(varname, varname))
         load_arguments = [assignments.split()[0] for assignments in arguments_to_pass]
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
