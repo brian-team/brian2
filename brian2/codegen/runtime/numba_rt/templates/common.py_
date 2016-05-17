@@ -3,11 +3,9 @@ from numba import *
 import sys
 import copy
 import numpy as np
-from numpy import exp as exp_usr
-#from numpy import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, pi fmod, floor, ceil, pi
-#from numpy import arcsin as asin
-#from numpy import arccos as acos
-#from numpy import arctan as atan
+import math
+from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, pi
+
 
 # support code
 {{ support_code | autoindent }}
@@ -17,21 +15,18 @@ from numpy import exp as exp_usr
 {% endblock %}
 
 def main(_namespace):
-    from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, pi
-    #print _namespace
     {{load_namespace | autoindent}}
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
-    usrexp(0, 0)
-
-    subroutine({{pass_arguments}})
+    {{load_arguments}} = subroutine({{pass_arguments}})
 
 @jit(nopython=True)
-def usrexp(t,_var_tau):
-    np.exp(0)
+def exp(t):
+    return math.exp(t)
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def subroutine({{load_arguments}}):
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}
+    return {{load_arguments}}
