@@ -24,7 +24,7 @@ def main(_namespace):
 def exp(t):
     return math.exp(t)
 
-#@jit(nopython=True)
+@jit(nopython=True)
 def subroutine({{load_arguments}}):
     {% block maincode %}
     {{ vector_code | autoindent }}
