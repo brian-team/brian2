@@ -2108,6 +2108,10 @@ class Unit(Quantity):
     def __neq__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        return hash((self.dim, self.scalefactor, self.scale,
+                     self.name, self.dispname))
+
 
 class UnitRegistry(object):
     """
@@ -2135,19 +2139,17 @@ class UnitRegistry(object):
 
 
     def __init__(self):
-        self.units = []
-        self.units_for_dimensions = {}
+        self.units = set()
+        self.units_for_dimensions = collections.defaultdict(list)
 
 
     def add(self, u):
         """Add a unit to the registry
         """
-        self.units.append(u)
-        dim = u.dim
-        if not dim in self.units_for_dimensions:
-            self.units_for_dimensions[dim] = [u]
-        else:
-            self.units_for_dimensions[dim].append(u)
+        if u in self.units:
+            return
+        self.units.add(u)
+        self.units_for_dimensions[u.dim].append(u)
 
     def remove(self, u):
         """Remove a unit from the registry
@@ -2269,7 +2271,7 @@ def get_unit(x, *regs):
     for u in all_registered_units(*regs):
         if np.array(u, copy=False) == 1 and have_same_dimensions(u, x):
             return u
-    dim = getattr(x, 'dim', x)  # For units, get dimensions
+    dim = getattr(x, 'dim', DIMENSIONLESS)  # For units, get dimensions
     return Unit(1.0, dim=dim)
 
 

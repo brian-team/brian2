@@ -607,25 +607,28 @@ def test_subexpression_references():
 def test_delay_specification():
     # By default delays are state variables (i.e. arrays), but if they are
     # specified in the initializer, they are scalars.
-    G = NeuronGroup(10, 'v:1', threshold='False')
-
+    G = NeuronGroup(10, 'x : meter', threshold='False')
+    G.x = 'i*mmeter'
     # Array delay
     S = Synapses(G, G, 'w:1', on_pre='v+=w')
-    S.connect('i==j')
+    S.connect(j='i')
     assert len(S.delay[:]) == len(G)
     S.delay = 'i*ms'
     assert_equal(S.delay[:], np.arange(len(G))*ms)
+    velocity = 1 * meter / second
+    S.delay = 'abs(x_pre - (N_post-j)*mmeter)/velocity'
+    assert_equal(S.delay[:], abs(G.x - (10 - G.i)*mmeter)/velocity)
     S.delay = 5*ms
     assert_equal(S.delay[:], np.ones(len(G))*5*ms)
 
     # Scalar delay
     S = Synapses(G, G, 'w:1', on_pre='v+=w', delay=5*ms)
     assert_equal(S.delay[:], 5*ms)
-    S.connect('i==j')
+    S.connect(j='i')
     S.delay = 10*ms
     assert_equal(S.delay[:], 10*ms)
-    # S.delay = '3*ms'
-    # assert_equal(S.delay[:], 3*ms)
+    S.delay = '3*ms'
+    assert_equal(S.delay[:], 3*ms)
 
     # Invalid arguments
     assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',
@@ -636,6 +639,71 @@ def test_delay_specification():
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', delay=5*ms))
     assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
                                                delay={'post': 5*ms}))
+
+
+def test_delays_pathways():
+    G = NeuronGroup(10, 'x: meter', threshold='False')
+    G.x = 'i*mmeter'
+    # Array delay
+    S = Synapses(G, G, 'w:1', on_pre={'pre1': 'v+=w',
+                                      'pre2': 'v+=w'},
+                 on_post='v-=w')
+    S.connect(j='i')
+    assert len(S.pre1.delay[:]) == len(G)
+    assert len(S.pre2.delay[:]) == len(G)
+    assert len(S.post.delay[:]) == len(G)
+    S.pre1.delay = 'i*ms'
+    S.pre2.delay = 'j*ms'
+    velocity = 1*meter/second
+    S.post.delay = 'abs(x_pre - (N_post-j)*mmeter)/velocity'
+    assert_equal(S.pre1.delay[:], np.arange(len(G)) * ms)
+    assert_equal(S.pre2.delay[:], np.arange(len(G)) * ms)
+    assert_equal(S.post.delay[:], abs(G.x - (10 - G.i) * mmeter) / velocity)
+    S.pre1.delay = 5*ms
+    S.pre2.delay = 10*ms
+    S.post.delay = 1*ms
+    assert_equal(S.pre1.delay[:], np.ones(len(G)) * 5*ms)
+    assert_equal(S.pre2.delay[:], np.ones(len(G)) * 10*ms)
+    assert_equal(S.post.delay[:], np.ones(len(G)) * 1*ms)
+
+    # Scalar delay
+    S = Synapses(G, G, 'w:1', on_pre={'pre1':'v+=w',
+                                      'pre2': 'v+=w'}, on_post='v-=w',
+                 delay={'pre1': 5 * ms, 'post': 1*ms})
+    assert_equal(S.pre1.delay[:], 5 * ms)
+    assert_equal(S.post.delay[:], 1 * ms)
+    S.connect(j='i')
+    assert len(S.pre2.delay[:]) == len(G)
+    S.pre1.delay = 10 * ms
+    assert_equal(S.pre1.delay[:], 10 * ms)
+    S.post.delay = '3*ms'
+    assert_equal(S.post.delay[:], 3 * ms)
+
+
+def test_delays_pathways_subgroups():
+    G = NeuronGroup(10, 'x: meter', threshold='False')
+    G.x = 'i*mmeter'
+    # Array delay
+    S = Synapses(G[:5], G[5:], 'w:1', on_pre={'pre1': 'v+=w',
+                                      'pre2': 'v+=w'},
+                 on_post='v-=w')
+    S.connect(j='i')
+    assert len(S.pre1.delay[:]) == 5
+    assert len(S.pre2.delay[:]) == 5
+    assert len(S.post.delay[:]) == 5
+    S.pre1.delay = 'i*ms'
+    S.pre2.delay = 'j*ms'
+    velocity = 1*meter/second
+    S.post.delay = 'abs(x_pre - (N_post-j)*mmeter)/velocity'
+    assert_equal(S.pre1.delay[:], np.arange(5) * ms)
+    assert_equal(S.pre2.delay[:], np.arange(5) * ms)
+    assert_equal(S.post.delay[:], abs(G[:5].x - (5 - G[:5].i) * mmeter) / velocity)
+    S.pre1.delay = 5*ms
+    S.pre2.delay = 10*ms
+    S.post.delay = 1*ms
+    assert_equal(S.pre1.delay[:], np.ones(5) * 5*ms)
+    assert_equal(S.pre2.delay[:], np.ones(5) * 10*ms)
+    assert_equal(S.post.delay[:], np.ones(5) * 1*ms)
 
 @attr('codegen-independent')
 def test_pre_before_post():
@@ -1903,6 +1971,8 @@ if __name__ == '__main__':
     test_indices()
     test_subexpression_references()
     test_delay_specification()
+    test_delays_pathways()
+    test_delays_pathways_subgroups()
     test_pre_before_post()
     test_pre_post_simple()
     test_transmission_simple()
