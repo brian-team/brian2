@@ -3,11 +3,25 @@ Release notes
 
 Current development version
 ---------------------------
+TODO
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix a memory leak in code running with the weave code generation target, and a smaller
+  memory leak related to units stored repetively in the `UnitRegistry`.
 * Fix a difference of one timestep in the number of simulated timesteps between
   runtime and standalone that could arise for very specific values of dt and t (see #695).
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+TODO
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Sami Abdul-Wahid
 
 Brian 2.0rc1
 ------------
