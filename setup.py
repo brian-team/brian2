@@ -115,7 +115,9 @@ if (platform.system() == 'Linux' and
 else:
     libraries, compile_args = [], []
     if platform.system().lower() == 'darwin':
-        compile_args.append('-dynamiclib')
+        from distutils import sysconfig
+        vars = sysconfig.get_config_vars()
+        vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle', '-dynamiclib')
     elif platform.system().lower() == 'windows':
         libraries.append('advapi32')
     extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
