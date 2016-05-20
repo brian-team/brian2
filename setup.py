@@ -112,8 +112,13 @@ if (platform.system() == 'Linux' and
                                 extra_link_args=['-m32']),
                                 define_macros=[(macro_name, None)])
 else:
+    if platform.system().lower() == 'darwin':
+        compile_args = ['-dynamiclib']
+    else:
+        compile_args = []
     extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
                                 [fname],
+                                compile_args=compile_args,
                                 include_dirs=[],
                                 define_macros=[(macro_name, None)]))
 
