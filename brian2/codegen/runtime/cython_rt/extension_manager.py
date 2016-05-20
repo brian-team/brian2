@@ -194,6 +194,10 @@ class CythonExtensionManager(object):
 
             if sys.platform=='win32':
                 libraries = libraries+['advapi32'] # needed for randomkit
+                extension = '.pyd'
+            else:
+                extension = '.so'
+            extra_objects = [os.path.join(rkdir, 'randomkit' + extension)]
 
             extension = Extension(
                 name=module_name,
@@ -203,6 +207,7 @@ class CythonExtensionManager(object):
                 runtime_library_dirs=runtime_library_dirs,
                 extra_compile_args=extra_compile_args,
                 extra_link_args=extra_link_args,
+                extra_objects=extra_objects,
                 libraries=libraries,
                 language='c++',
                 )
