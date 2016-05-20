@@ -112,13 +112,15 @@ if (platform.system() == 'Linux' and
                                 extra_link_args=['-m32']),
                                 define_macros=[(macro_name, None)])
 else:
+    libraries, compile_args = [], []
     if platform.system().lower() == 'darwin':
-        compile_args = ['-dynamiclib']
-    else:
-        compile_args = []
+        compile_args.append('-dynamiclib')
+    elif platform.system().lower() == 'windows':
+        libraries.append('advapi32')
     extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
                                 [fname],
                                 compile_args=compile_args,
+                                libraries=libraries,
                                 include_dirs=[],
                                 define_macros=[(macro_name, None)]))
 
