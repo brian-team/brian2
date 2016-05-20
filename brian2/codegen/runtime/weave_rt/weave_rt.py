@@ -1,6 +1,7 @@
 '''
 Module providing `WeaveCodeObject`.
 '''
+import glob
 import os
 import sys
 import numpy
@@ -118,7 +119,9 @@ class WeaveCodeObject(CodeObject):
             extension = '.pyd'
         else:
             raise AssertionError('Unexpected OS: %s' % os.name)
-        self.extra_objects = [os.path.join(rkdir, 'randomkit' + extension)]
+        rk_lib_name = glob.glob(os.path.join(rkdir, 'randomkit*' + extension))
+        assert len(rk_lib_name) == 1
+        self.extra_objects = [rk_lib_name[0]]
         if sys.platform == 'win32':
             self.libraries.append('advapi32')  # needed for randomkit
         self.headers = (['<algorithm>', '<limits>',

@@ -4,6 +4,7 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
+import glob
 import imp
 import os
 import sys
@@ -197,7 +198,9 @@ class CythonExtensionManager(object):
                 extension = '.pyd'
             else:
                 extension = '.so'
-            extra_objects = [os.path.join(rkdir, 'randomkit' + extension)]
+            rk_lib_name = glob.glob(os.path.join(rkdir, 'randomkit*' + extension))
+            assert len(rk_lib_name) == 1
+            extra_objects = [rk_lib_name[0]]
 
             extension = Extension(
                 name=module_name,
