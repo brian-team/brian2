@@ -68,9 +68,9 @@
 #ifdef BRIAN_BUILD_FOR_PYTHON2
 #include <Python.h>
 
-PyMODINIT_FUNC initrandomkit(void)
+PyMODINIT_FUNC initlibrandomkit(void)
 {
-   (void) Py_InitModule("randomkit", NULL);
+   (void) Py_InitModule("librandomkit", NULL);
 }
 #endif
 #ifdef BRIAN_BUILD_FOR_PYTHON3
@@ -81,7 +81,7 @@ static struct PyModuleDef randomkitmodule = {
    "dummy randomkit module (will only be used from C++/Cython directly)",
    -1,
 };
-PyMODINIT_FUNC PyInit_randomkit(void)
+PyMODINIT_FUNC PyInit_librandomkit(void)
 {
     return PyModule_Create(&randomkitmodule);
 }
