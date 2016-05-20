@@ -64,6 +64,29 @@
 
 /* static char const rcsid[] =
   "@(#) $Jeannot: randomkit.c,v 1.28 2005/07/21 22:14:09 js Exp $"; */
+
+#ifdef BRIAN_BUILD_FOR_PYTHON2
+#include <Python.h>
+
+PyMODINIT_FUNC initrandomkit(void)
+{
+   (void) Py_InitModule("randomkit", NULL);
+}
+#endif
+#ifdef BRIAN_BUILD_FOR_PYTHON3
+#include <Python.h>
+static struct PyModuleDef randomkitmodule = {
+   PyModuleDef_HEAD_INIT,
+   "randomkit",   /* name of module */
+   "dummy randomkit module (will only be used from C++/Cython directly)",
+   -1,
+};
+PyMODINIT_FUNC PyInit_randomkit(void)
+{
+    return PyModule_Create(&randomkitmodule);
+}
+#endif
+
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

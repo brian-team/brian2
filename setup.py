@@ -14,6 +14,13 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
 
+if sys.version_info.major == 2:
+    PYTHON3 = False
+elif sys.version_info.major == 3:
+    PYTHON3 = True
+else:
+    raise AssertionError('Unexpected Python version: %s' % sys.version_info)
+
 REQUIRED_CYTHON_VERSION = '0.18'
 
 try:
@@ -90,6 +97,7 @@ else:
 
 # Compile randomkit
 fname = os.path.join('brian2', 'utils', 'random', 'randomkit', 'randomkit.c')
+macro_name = 'BRIAN_BUILD_FOR_PYTHON' + ('3' if PYTHON3 else '2')
 if (platform.system() == 'Linux' and
             platform.architecture()[0] == '32bit' and
             platform.machine() == 'x86_64'):
@@ -101,11 +109,13 @@ if (platform.system() == 'Linux' and
                                 include_dirs=[],
                                 library_dirs=['/lib32', '/usr/lib32'],
                                 extra_compile_args=['-m32'],
-                                extra_link_args=['-m32']))
+                                extra_link_args=['-m32']),
+                                define_macros=[(macro_name, None)])
 else:
     extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
                                 [fname],
-                                include_dirs=[]))
+                                include_dirs=[],
+                                define_macros=[(macro_name, None)]))
 
 
 class optional_build_ext(build_ext):
