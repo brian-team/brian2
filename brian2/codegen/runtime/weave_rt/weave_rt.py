@@ -269,7 +269,7 @@ libraries: {self.libraries}
                 extra_objects=self.extra_objects,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
-                runtime_library_dirs=self.library_dirs,
+                runtime_library_dirs=self.runtime_library_dirs,
                 verbose=0)
             with std_silent():
                 ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
