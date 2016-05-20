@@ -112,16 +112,9 @@ class WeaveCodeObject(CodeObject):
         self.include_dirs.append(rkdir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs']) + [rkdir]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
-        self.libraries = list(prefs['codegen.cpp.libraries'])
         if os.name == 'posix':
-            extension = '.so'
-        elif os.name == 'nt':
-            extension = '.pyd'
-        else:
-            raise AssertionError('Unexpected OS: %s' % os.name)
-        rk_lib_name = glob.glob(os.path.join(rkdir, 'randomkit*' + extension))
-        assert len(rk_lib_name) == 1
-        self.extra_objects = [rk_lib_name[0]]
+            self.runtime_library_dirs += ['randomkit']
+        self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
             self.libraries.append('advapi32')  # needed for randomkit
         self.headers = (['<algorithm>', '<limits>',
@@ -266,7 +259,6 @@ libraries: {self.libraries}
                 define_macros=self.define_macros,
                 libraries=self.libraries,
                 extra_compile_args=self.extra_compile_args,
-                extra_objects=self.extra_objects,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
                 runtime_library_dirs=self.runtime_library_dirs,

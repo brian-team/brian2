@@ -105,7 +105,7 @@ if (platform.system() == 'Linux' and
     # We are cross-compiling (most likely to build a 32Bit package for conda
     # on travis), set paths and flags for 32Bit explicitly
     print('Configuring compilation for cross-compilation to 32 Bit')
-    extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
+    extensions.append(Extension("brian2.utils.random.randomkit.librandomkit",
                                 [fname],
                                 include_dirs=[],
                                 library_dirs=['/lib32', '/usr/lib32'],
@@ -120,7 +120,7 @@ else:
         vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle', '-dynamiclib')
     elif platform.system().lower() == 'windows':
         libraries.append('advapi32')
-    extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
+    extensions.append(Extension("brian2.utils.random.randomkit.librandomkit",
                                 [fname],
                                 extra_compile_args=compile_args,
                                 libraries=libraries,

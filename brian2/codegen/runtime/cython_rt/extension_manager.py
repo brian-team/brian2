@@ -193,15 +193,6 @@ class CythonExtensionManager(object):
             #    f.write(code)
             open(pyx_file, 'w').write(code)
 
-            if sys.platform=='win32':
-                libraries = libraries+['advapi32'] # needed for randomkit
-                extension = '.pyd'
-            else:
-                extension = '.so'
-            rk_lib_name = glob.glob(os.path.join(rkdir, 'randomkit*' + extension))
-            assert len(rk_lib_name) == 1
-            extra_objects = [rk_lib_name[0]]
-
             extension = Extension(
                 name=module_name,
                 sources=[pyx_file],
@@ -210,7 +201,6 @@ class CythonExtensionManager(object):
                 runtime_library_dirs=runtime_library_dirs,
                 extra_compile_args=extra_compile_args,
                 extra_link_args=extra_link_args,
-                extra_objects=extra_objects,
                 libraries=libraries,
                 language='c++',
                 )

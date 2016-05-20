@@ -69,6 +69,8 @@ class CythonCodeObject(NumpyCodeObject):
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
+        if os.name == 'posix':
+            self.runtime_library_dirs += ['randomkit']
         self.libraries = list(prefs['codegen.cpp.libraries'])
 
     @staticmethod
