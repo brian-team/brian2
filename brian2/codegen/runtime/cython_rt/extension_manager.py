@@ -164,6 +164,8 @@ class CythonExtensionManager(object):
                 include_dirs = []
             if library_dirs is None:
                 library_dirs = []
+            if runtime_library_dirs is None:
+                runtime_library_dirs = []
             if extra_compile_args is None:
                 extra_compile_args = []
             if extra_link_args is None:
@@ -185,7 +187,11 @@ class CythonExtensionManager(object):
                                                  'random', 'randomkit'))
             c_include_dirs.append(rkdir)
             library_dirs.append(rkdir)
-
+            if os.name == 'posix':
+                runtime_library_dirs.append(rkdir)
+                libraries.append('randomkit')
+            else:
+                libraries.append('librandomkit.pyd')
             pyx_file = os.path.join(lib_dir, module_name + '.pyx')
             # ignore Python 3 unicode stuff for the moment
             #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
