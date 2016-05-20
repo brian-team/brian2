@@ -98,6 +98,7 @@ else:
 # Compile randomkit
 fname = os.path.join('brian2', 'utils', 'random', 'randomkit', 'randomkit.c')
 macro_name = 'BRIAN_BUILD_FOR_PYTHON' + ('3' if PYTHON3 else '2')
+
 if (platform.system() == 'Linux' and
             platform.architecture()[0] == '32bit' and
             platform.machine() == 'x86_64'):
@@ -109,8 +110,8 @@ if (platform.system() == 'Linux' and
                                 include_dirs=[],
                                 library_dirs=['/lib32', '/usr/lib32'],
                                 extra_compile_args=['-m32'],
-                                extra_link_args=['-m32']),
-                                define_macros=[(macro_name, None)])
+                                extra_link_args=['-m32'],
+                                define_macros=[(macro_name, None)]))
 else:
     libraries, compile_args = [], []
     if platform.system().lower() == 'darwin':
@@ -119,7 +120,7 @@ else:
         libraries.append('advapi32')
     extensions.append(Extension("brian2.utils.random.randomkit.randomkit",
                                 [fname],
-                                compile_args=compile_args,
+                                extra_compile_args=compile_args,
                                 libraries=libraries,
                                 include_dirs=[],
                                 define_macros=[(macro_name, None)]))
