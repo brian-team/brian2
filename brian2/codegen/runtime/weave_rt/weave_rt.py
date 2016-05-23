@@ -1,7 +1,6 @@
 '''
 Module providing `WeaveCodeObject`.
 '''
-import glob
 import os
 import sys
 import numpy
@@ -112,8 +111,10 @@ class WeaveCodeObject(CodeObject):
         self.include_dirs.append(rkdir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs']) + [rkdir]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
-        if os.name == 'posix':
+        if sys.platform == 'linux2':
             self.runtime_library_dirs += [rkdir]
+        elif sys.platform == 'darwin':
+            self.extra_link_args += ['-rpath ' + os.path.join(rkdir, 'librandom.so')]
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
             self.libraries.append('advapi32')  # needed for randomkit
