@@ -111,10 +111,11 @@ class WeaveCodeObject(CodeObject):
         self.include_dirs.append(rkdir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs']) + [rkdir]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
+        self.extra_objects = []
         if sys.platform == 'linux2':
             self.runtime_library_dirs += [rkdir]
         elif sys.platform == 'darwin':
-            self.extra_link_args += ['-rpath', rkdir]
+            self.extra_objects += [os.path.join(rkdir, 'librandomkit.so')]
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
             self.libraries.append('advapi32')  # needed for randomkit
@@ -264,6 +265,7 @@ libraries: {self.libraries}
                 libraries=self.libraries,
                 extra_compile_args=self.extra_compile_args,
                 extra_link_args=self.extra_link_args,
+                extra_objects=self.extra_objects,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
                 runtime_library_dirs=self.runtime_library_dirs,
