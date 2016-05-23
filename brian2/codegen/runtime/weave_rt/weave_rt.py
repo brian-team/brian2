@@ -112,16 +112,18 @@ class WeaveCodeObject(CodeObject):
         self.library_dirs = list(prefs['codegen.cpp.library_dirs']) + [rkdir]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.extra_objects = []
+        self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'linux2':
             self.runtime_library_dirs += [rkdir]
+            self.libraries.append('randomkit')
         elif sys.platform == 'darwin':
             self.extra_objects += [os.path.join(rkdir, 'librandomkit.so')]
-        self.libraries = list(prefs['codegen.cpp.libraries'])
-        if sys.platform == 'win32':
+        elif sys.platform == 'win32':
             self.libraries.append('advapi32')  # needed for randomkit
             self.libraries.append('librandomkit.pyd')
         else:
-            self.libraries.append('randomkit')
+            raise AssertionError('Unknown platform: %s' % sys.platform)
+
         self.headers = (['<algorithm>', '<limits>',
                          '"stdint_compat.h"', '"randomkit.h"'] +
                         prefs['codegen.cpp.headers'])
