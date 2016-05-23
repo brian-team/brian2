@@ -114,7 +114,7 @@ class WeaveCodeObject(CodeObject):
         if sys.platform == 'linux2':
             self.runtime_library_dirs += [rkdir]
         elif sys.platform == 'darwin':
-            self.extra_link_args += ['-rpath ' + os.path.join(rkdir, 'librandom.so')]
+            self.extra_link_args += ['-rpath', rkdir]
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
             self.libraries.append('advapi32')  # needed for randomkit
@@ -267,7 +267,7 @@ libraries: {self.libraries}
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
                 runtime_library_dirs=self.runtime_library_dirs,
-                verbose=0)
+                verbose=2)
             with std_silent():
                 ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
             self._compiled_func = function_cache[self.annotated_code]
