@@ -25,9 +25,9 @@ void Network::clear()
 void Network::add(Clock* clock, codeobj_func func)
 {
 #if defined(_MSC_VER) && (_MSC_VER>=1700)
-    objects.push_back(std::make_pair<Clock*, codeobj_func>(std::move(clock), std::move(func)));
+    objects.push_back(std::make_pair(std::move(clock), std::move(func)));
 #else
-    objects.push_back(std::make_pair<Clock*, codeobj_func>(clock, func));
+    objects.push_back(std::make_pair(clock, func));
 #endif
 }
 
