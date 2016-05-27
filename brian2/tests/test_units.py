@@ -25,7 +25,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import *
-from brian2.units.stdunits import ms, mV, kHz, nS, cm
+from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz
 
 
 # To work around an issue in matplotlib 1.3.1 (see
@@ -1065,6 +1065,7 @@ def test_inplace_on_scalars():
         # also check that it worked correctly for the vector itself
         assert_allclose(vector, (vector_copy + vector_copy)*1.5/2)
 
+
 def test_units_vs_quantities():
     # Unit objects should stay Unit objects under certain operations
     # (important e.g. in the unit definition of Equations, where only units but
@@ -1081,6 +1082,16 @@ def test_units_vs_quantities():
     assert type(2*meter) == Quantity
     assert type(meter + meter) == Quantity
     assert type(meter - meter) == Quantity
+
+
+@attr('codegen-independent')
+def test_all_units_list():
+    from brian2.units.allunits import all_units
+    assert meter in all_units
+    assert volt in all_units
+    assert cm in all_units
+    assert Hz in all_units
+    assert all(isinstance(u, Unit) for u in all_units)
 
 
 if __name__ == '__main__':
@@ -1115,3 +1126,4 @@ if __name__ == '__main__':
     test_deepcopy()
     test_inplace_on_scalars()
     test_units_vs_quantities()
+    test_all_units_list()
