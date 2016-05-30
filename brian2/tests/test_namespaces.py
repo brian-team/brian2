@@ -6,6 +6,7 @@ from numpy.testing.utils import assert_raises
 from nose.plugins.attrib import attr
 
 from brian2.core.variables import Constant
+from brian2.core.namespace import get_local_namespace
 from brian2.groups.group import Group
 from brian2.units import second, volt
 from brian2.units.fundamentalunits import Unit
@@ -87,7 +88,9 @@ def test_resolution():
     # implicit namespace
     tau = 10*ms
     group = SimpleGroup(namespace=None, variables={})
-    resolved = group.resolve_all(['tau', 'ms'], ['tau', 'ms'])
+    namespace = get_local_namespace(level=0)
+    resolved = group.resolve_all(['tau', 'ms'], namespace,
+                                 user_identifiers=['tau', 'ms'])
     assert len(resolved) == 2
     assert type(resolved) == type(dict())
     assert resolved['tau'].get_value_with_unit() == tau
@@ -96,8 +99,9 @@ def test_resolution():
 
     # explicit namespace
     group = SimpleGroup(namespace={'tau': 20 * ms}, variables={})
-
-    resolved = group.resolve_all(['tau', 'ms'], ['tau', 'ms'])
+    namespace = get_local_namespace(level=0)
+    resolved = group.resolve_all(['tau', 'ms'], namespace,
+                                 ['tau', 'ms'])
     assert len(resolved) == 2
     assert resolved['tau'].get_value_with_unit() == 20 * ms
 
@@ -110,13 +114,14 @@ def test_warning():
     exp = 23
     cm = 42
     group = SimpleGroup(namespace=None, variables={})
+    namespace = get_local_namespace(level=0)
     with catch_logs() as l:
-        resolved = group.resolve_all(['exp'])['exp']
+        resolved = group.resolve_all(['exp'], namespace)['exp']
         assert resolved == DEFAULT_FUNCTIONS['exp']
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
-        resolved = group.resolve_all(['cm'])['cm']
+        resolved = group.resolve_all(['cm'], namespace)['cm']
         assert resolved.get_value_with_unit() == brian_cm
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')

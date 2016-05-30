@@ -785,6 +785,7 @@ class VariableView(object):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
+        from brian2.core.namespace import get_local_namespace  # avoids circular import
         if isinstance(item, basestring):
             # Check whether the group still exists to give a more meaningful
             # error message if it does not
@@ -797,13 +798,15 @@ class VariableView(object):
                                       'Consider holding an explicit reference '
                                       'to it to keep it '
                                       'alive.') % self.group_name)
+            if namespace is None:
+                namespace = get_local_namespace(level=level+1)
             values = self.get_with_expression(item,
-                                              level=level+1,
                                               run_namespace=namespace)
         else:
             if isinstance(self.variable, Subexpression):
+                if namespace is None:
+                    namespace = get_local_namespace(level=level + 1)
                 values = self.get_subexpression_with_index_array(item,
-                                                                 level=level+1,
                                                                  run_namespace=namespace)
             else:
                 values = self.get_with_index_array(item)
@@ -836,6 +839,7 @@ class VariableView(object):
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
         '''
+        from brian2.core.namespace import get_local_namespace  # avoids circular import
         variable = self.variable
         if variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
@@ -850,12 +854,14 @@ class VariableView(object):
 
         check_units = self.unit is not None
 
+        if namespace is None:
+            namespace = get_local_namespace(level=level+1)
+
         # Both index and values are strings, use a single code object do deal
         # with this situation
         if isinstance(value, basestring) and isinstance(item, basestring):
             self.set_with_expression_conditional(item, value,
                                                  check_units=check_units,
-                                                 level=level+1,
                                                  run_namespace=namespace)
         elif isinstance(item, basestring):
             try:
@@ -882,12 +888,10 @@ class VariableView(object):
                 self.set_with_expression_conditional(item,
                                                      repr(value),
                                                      check_units=check_units,
-                                                     level=level+1,
                                                      run_namespace=namespace)
         elif isinstance(value, basestring):
             self.set_with_expression(item, value,
                                      check_units=check_units,
-                                     level=level+1,
                                      run_namespace=namespace)
         else:  # No string expressions involved
             self.set_with_index_array(item, value,
@@ -897,8 +901,7 @@ class VariableView(object):
         self.set_item(item, value, level=1)
 
     @device_override('variableview_set_with_expression')
-    def set_with_expression(self, item, code, check_units=True, level=0,
-                            run_namespace=None):
+    def set_with_expression(self, item, code, run_namespace, check_units=True):
         '''
         Sets a variable using a string expression. Is called by
         `VariableView.set_item` for statements such as
@@ -911,11 +914,11 @@ class VariableView(object):
         code : str
             The code that should be executed to set the variable values.
             Can contain references to indices, such as `i` or `j`
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         check_units : bool, optional
             Whether to check the units of the expression.
-        level : int, optional
-            How much farther to go up in the stack to find the implicit
-            namespace (if used, see `run_namespace`).
         run_namespace : dict-like, optional
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
@@ -932,9 +935,8 @@ class VariableView(object):
             from brian2.codegen.translation import get_identifiers_recursively
             identifiers = get_identifiers_recursively([code],
                                                       self.group.variables)
-            variables = self.group.resolve_all(identifiers, [],
-                                               run_namespace=run_namespace,
-                                               level=level+2)
+            variables = self.group.resolve_all(identifiers, run_namespace,
+                                               user_identifiers=set())
             if not isinstance(item, tuple):
                 index_groups = [item]
             else:
@@ -977,15 +979,13 @@ class VariableView(object):
                                         'group_variable_set',
                                         additional_variables=variables,
                                         check_units=check_units,
-                                        level=level+2,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
         codeobj()
 
     @device_override('variableview_set_with_expression_conditional')
-    def set_with_expression_conditional(self, cond,
-                                        code, check_units=True, level=0,
-                                        run_namespace=None):
+    def set_with_expression_conditional(self, cond, code, run_namespace,
+                                        check_units=True):
         '''
         Sets a variable using a string expression and string condition. Is
         called by `VariableView.set_item` for statements such as
@@ -997,14 +997,11 @@ class VariableView(object):
             The string condition for which the variables should be set.
         code : str
             The code that should be executed to set the variable values.
-        check_units : bool, optional
-            Whether to check the units of the expression.
-        level : int, optional
-            How much farther to go up in the stack to find the implicit
-            namespace (if used, see `run_namespace`).
         run_namespace : dict-like, optional
             An additional namespace that is used for variable lookup (if not
             defined, the implicit namespace of local variables is used).
+        check_units : bool, optional
+            Whether to check the units of the expression.
         '''
         variable = self.variable
         if variable.scalar and cond != 'True':
@@ -1024,13 +1021,12 @@ class VariableView(object):
                                         'group_variable_set_conditional',
                                         additional_variables=variables,
                                         check_units=check_units,
-                                        level=level+2,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
         codeobj()
 
     @device_override('variableview_get_with_expression')
-    def get_with_expression(self, code, level=0, run_namespace=None):
+    def get_with_expression(self, code, run_namespace):
         '''
         Gets a variable using a string expression. Is called by
         `VariableView.get_item` for statements such as
@@ -1042,12 +1038,10 @@ class VariableView(object):
             An expression that states a condition for elements that should be
             selected. Can contain references to indices, such as ``i`` or ``j``
             and to state variables. For example: ``'i>3 and v>0*mV'``.
-        level : int, optional
-            How much farther to go up in the stack to find the implicit
-            namespace (if used, see `run_namespace`).
-        run_namespace : dict-like, optional
-            An additional namespace that is used for variable lookup (if not
-            defined, the implicit namespace of local variables is used).
+        run_namespace : dict-like
+            An additional namespace that is used for variable lookup (either
+            an explicitly defined namespace or one taken from the local
+            context).
         '''
         variable = self.variable
         if variable.scalar:
@@ -1071,7 +1065,6 @@ class VariableView(object):
                                         abstract_code,
                                         'group_variable_get_conditional',
                                         additional_variables=variables,
-                                        level=level+2,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                         )
@@ -1094,7 +1087,7 @@ class VariableView(object):
         return variable.get_value()[indices]
 
     @device_override('variableview_get_subexpression_with_index_array')
-    def get_subexpression_with_index_array(self, item, level=0, run_namespace=None):
+    def get_subexpression_with_index_array(self, item, run_namespace):
         variable = self.variable
         if variable.scalar:
             if not (isinstance(item, slice) and item == slice(None)):
@@ -1141,7 +1134,6 @@ class VariableView(object):
                                         user_code='',
                                         needed_variables=['_group_idx'],
                                         additional_variables=variables,
-                                        level=level+2,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
         )

@@ -103,60 +103,6 @@ class CodeObject(Nameable):
         raise NotImplementedError()
 
 
-def check_code_units(code, group, user_code=None, additional_variables=None,
-                     level=0, run_namespace=None,):
-    '''
-    Check statements for correct units.
-
-    Parameters
-    ----------
-    code : str
-        The series of statements to check
-    group : `Group`
-        The context for the code execution
-    user_code : str, optional
-        The code that was provided by the user. Used to determine whether to
-        emit warnings and for better error messages. If not specified, assumed
-        to be equal to ``code``.
-    additional_variables : dict-like, optional
-        A mapping of names to `Variable` objects, used in addition to the
-        variables saved in `self.group`.
-    level : int, optional
-        How far to go up in the stack to find the calling frame.
-    run_namespace : dict-like, optional
-        An additional namespace, as provided to `Group.before_run`
-
-    Raises
-    ------
-    DimensionMismatchError
-        If `code` has unit mismatches
-    '''
-    all_variables = dict(group.variables)
-    if additional_variables is not None:
-        all_variables.update(additional_variables)
-
-    if user_code is None:
-        user_code = code
-
-    # Resolve the namespace, resulting in a dictionary containing only the
-    # external variables that are needed by the code -- keep the units for
-    # the unit checks
-    # Note that here we do not need to recursively descend into
-    # subexpressions. For unit checking, we only need to know the units of
-    # the subexpressions not what variables they refer to
-    _, _, unknown = analyse_identifiers(code, all_variables)
-    _, _, unknown_user = analyse_identifiers(user_code, all_variables)
-
-    resolved_namespace = group.resolve_all(unknown,
-                                           unknown_user,
-                                           level=level+1,
-                                           run_namespace=run_namespace)
-
-    all_variables.update(resolved_namespace)
-
-    check_units_statements(code, all_variables)
-
-
 def _error_msg(code, name):
     '''
     Little helper function for error messages.
@@ -173,13 +119,12 @@ def _error_msg(code, name):
 
 
 def create_runner_codeobj(group, code, template_name,
+                          run_namespace,
                           user_code=None,
                           variable_indices=None,
                           name=None, check_units=True,
                           needed_variables=None,
                           additional_variables=None,
-                          level=0,
-                          run_namespace=None,
                           template_kwds=None,
                           override_conditional_write=None,
                           codeobj_class=None
@@ -195,6 +140,10 @@ def create_runner_codeobj(group, code, template_name,
         The code to be executed.
     template_name : str
         The name of the template to use for the code.
+    run_namespace : dict-like
+        An additional namespace that is used for variable lookup (either
+        an explicitly defined namespace or one taken from the local
+        context).
     user_code : str, optional
         The code that had been specified by the user before other code was
         added automatically. If not specified, will be assumed to be identical
@@ -216,11 +165,6 @@ def create_runner_codeobj(group, code, template_name,
     additional_variables : dict-like, optional
         A mapping of names to `Variable` objects, used in addition to the
         variables saved in `group`.
-    level : int, optional
-        How far to go up in the stack to find the call frame.
-    run_namespace : dict-like, optional
-        An additional namespace that is used for variable lookup (if not
-        defined, the implicit namespace of local variables is used).
     template_kwds : dict, optional
         A dictionary of additional information that is passed to the template.
     override_conditional_write: list of str, optional
@@ -286,8 +230,7 @@ def create_runner_codeobj(group, code, template_name,
                                   # template variables are not known to the user:
                                   user_identifiers=user_identifiers,
                                   additional_variables=additional_variables,
-                                  run_namespace=run_namespace,
-                                  level=level+1)
+                                  run_namespace=run_namespace)
     # We raise this error only now, because there is some non-obvious code path
     # where Jinja tries to get a Synapse's "name" attribute via syn['name'],
     # which then triggers the use of the `group_get_indices` template which does
