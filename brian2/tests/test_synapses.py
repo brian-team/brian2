@@ -969,6 +969,68 @@ def test_summed_variable():
     assert_equal(target.v, np.array([1.0, 5.0])*volt)
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_summed_variable_pre_and_post():
+    G1 = NeuronGroup(4, '''neuron_var : 1
+                           syn_sum : 1
+                           neuron_sum : 1''')
+    G1.neuron_var = 'i'
+    G2 = NeuronGroup(4, '''neuron_var : 1
+                               syn_sum : 1
+                               neuron_sum : 1''')
+    G2.neuron_var = 'i+4'
+
+    synapses = Synapses(G1, G2, '''syn_var : 1
+                                    neuron_sum_pre = neuron_var_post : 1 (summed)
+                                    syn_sum_pre = syn_var : 1 (summed)
+                                    neuron_sum_post = neuron_var_pre : 1 (summed)
+                                    syn_sum_post = syn_var : 1 (summed)
+                                    ''')
+    # The first three cells in G1 connect to the first cell in G2
+    # The remaining three cells of G2 all connect to the last cell of G1
+    synapses.connect(i=[0, 1, 2, 3, 3, 3], j=[0, 0, 0, 1, 2, 3])
+    synapses.syn_var = [0, 1, 2, 3, 4, 5]
+
+    run(defaultclock.dt)
+    assert_equal(G1.syn_sum[:], [0, 1, 2, 12])
+    assert_equal(G1.neuron_sum[:], [4, 4, 4, 18])
+    assert_equal(G2.syn_sum[:], [3, 3, 4, 5])
+    assert_equal(G2.neuron_sum[:], [3, 3, 3, 3])
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_summed_variable_differing_group_size():
+    G1 = NeuronGroup(2, 'var : 1', name='G1')
+    G2 = NeuronGroup(10, 'var : 1', name='G2')
+    G2.var[:5] = 1
+    G2.var[5:] = 10
+    syn1 = Synapses(G1, G2, '''syn_var : 1
+                              var_pre = syn_var + var_post : 1 (summed)''')
+    syn1.connect(i=0, j=[0, 1, 2, 3, 4])
+    syn1.connect(i=1, j=[5, 6, 7, 8, 9])
+    syn1.syn_var = np.arange(10)
+    # The same in the other direction
+    G3 = NeuronGroup(10, 'var : 1', name='G3')
+    G4 = NeuronGroup(2, 'var : 1', name='G4')
+    G3.var[:5] = 1
+    G3.var[5:] = 10
+    syn2 = Synapses(G3, G4, '''syn_var : 1
+                               var_post = syn_var + var_pre : 1 (summed)''')
+    syn2.connect(i=[0, 1, 2, 3, 4], j=0)
+    syn2.connect(i=[5, 6, 7, 8, 9], j=1)
+    syn2.syn_var = np.arange(10)
+
+    run(defaultclock.dt)
+
+    assert_equal(G1.var[0], 5 * 1 + 0 + 1 + 2 + 3 + 4)
+    assert_equal(G1.var[1], 5 * 10 + 5 + 6 + 7 + 8 + 9)
+
+    assert_equal(G4.var[0], 5 * 1 + 0 + 1 + 2 + 3 + 4)
+    assert_equal(G4.var[1], 5 * 10 + 5 + 6 + 7 + 8 + 9)
+
+
 def test_summed_variable_errors():
     G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : volt
                            sub = 2*v : volt
@@ -1987,6 +2049,8 @@ if __name__ == '__main__':
     test_changed_dt_spikes_in_queue()
     test_no_synapses()
     test_summed_variable()
+    test_summed_variable_pre_and_post()
+    test_summed_variable_differing_group_size()
     test_summed_variable_errors()
     test_scalar_parameter_access()
     test_scalar_subexpression()
