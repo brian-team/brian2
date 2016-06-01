@@ -13,6 +13,8 @@ Improvements and bug fixes
   runtime and standalone that could arise for very specific values of dt and t (see #695).
 * Fix standalone compilation failures with the most recent gcc version which defaults to
   C++14 mode (see #701)
+* Fix incorrect summation in synapses when using the ``(summed)`` flag and writing to
+  *pre*-synaptic variables (see #704)
 
 Contributions
 ~~~~~~~~~~~~~
@@ -23,8 +25,11 @@ TODO
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
+* Gordon Erlebacher
+* Max Gillett
 * Moritz Augustin
 * Sami Abdul-Wahid
+
 
 Brian 2.0rc1
 ------------
