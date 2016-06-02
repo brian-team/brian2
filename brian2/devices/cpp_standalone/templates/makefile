@@ -2,6 +2,7 @@ PROGRAM = main
 SRCS = {{source_files}}
 H_SRCS = {{header_files}}
 OBJS = ${SRCS:.cpp=.o}
+OBJS := ${OBJS:.c=.o}
 CC = @g++
 DEBUG = -g
 OPTIMISATIONS = {{ compiler_flags }}
