@@ -437,55 +437,6 @@ DEFAULT_FUNCTIONS['abs'].implementations.add_implementation(CPPCodeGenerator,
                                                             code=abs_code,
                                                             name='_brian_abs')
 
-
-# Functions that need to be implemented specifically
-randn_code = '''
-
-    inline double _ranf()
-    {
-        return (double)rand()/RAND_MAX;
-    }
-
-    double _randn(const int vectorisation_idx)
-    {
-         double x1, x2, w;
-         static double y1, y2;
-         static bool need_values = true;
-         if (need_values)
-         {
-             do {
-                     x1 = 2.0 * _ranf() - 1.0;
-                     x2 = 2.0 * _ranf() - 1.0;
-                     w = x1 * x1 + x2 * x2;
-             } while ( w >= 1.0 );
-
-             w = sqrt( (-2.0 * log( w ) ) / w );
-             y1 = x1 * w;
-             y2 = x2 * w;
-
-             need_values = false;
-             return y1;
-         } else
-         {
-            need_values = true;
-            return y2;
-         }
-    }
-        '''
-DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CPPCodeGenerator,
-                                                              code=randn_code,
-                                                              name='_randn')
-
-rand_code = '''
-        inline double _rand(int vectorisation_idx)
-        {
-	        return (double)rand()/RAND_MAX;
-        }
-        '''
-DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CPPCodeGenerator,
-                                                             code=rand_code,
-                                                             name='_rand')
-
 clip_code = '''
         inline double _clip(const double value, const double a_min, const double a_max)
         {
