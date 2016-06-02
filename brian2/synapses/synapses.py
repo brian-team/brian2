@@ -70,8 +70,8 @@ class SummedVariableUpdater(CodeRunner):
     The `CodeRunner` that updates a value in the target group with the
     sum over values in the `Synapses` object.
     '''
-    def __init__(self, expression, target_varname, synapses, target):
-
+    def __init__(self, expression, target_varname, synapses, target,
+                 target_size_name, index_var):
         # Handling sumped variables using the standard mechanisms is not
         # possible, we therefore also directly give the names of the arrays
         # to the template.
@@ -81,13 +81,16 @@ class SummedVariableUpdater(CodeRunner):
         '''.format(expression=expression,
                    target_varname=target_varname)
 
-        template_kwds = {'_target_var': synapses.variables[target_varname]}
+        template_kwds = {'_target_var': synapses.variables[target_varname],
+                         '_target_size_name' : target_size_name,
+                         '_index_var': synapses.variables[index_var]}
 
         CodeRunner.__init__(self, group=synapses,
                             template='summed_variable',
                             code=code,
-                            needed_variables=[target_varname],
-                            # We want to update the sumned variable before
+                            needed_variables=[target_varname, target_size_name,
+                                              index_var],
+                            # We want to update the summed variable before
                             # the target group gets updated
                             clock=target.clock,
                             when='groups',
@@ -820,10 +823,14 @@ class Synapses(Group):
                                   'target group.') % varname)
             if varname.endswith('_pre'):
                 summed_target = self.source
+                summed_target_size_name = 'N_pre'
                 orig_varname = varname[:-4]
+                summed_var_index = '_synaptic_pre'
             else:
                 summed_target = self.target
+                summed_target_size_name = 'N_post'
                 orig_varname = varname[:-5]
+                summed_var_index = '_synaptic_post'
 
             target_eq = getattr(summed_target, 'equations', {}).get(orig_varname, None)
             if target_eq is None or target_eq.type != PARAMETER:
@@ -843,7 +850,9 @@ class Synapses(Group):
                                   'variable') % orig_varname)
             summed_targets.add(self.variables[varname])
             updater = SummedVariableUpdater(single_equation.expr,
-                                            varname, self, summed_target)
+                                            varname, self, summed_target,
+                                            summed_target_size_name,
+                                            summed_var_index)
             self.summed_updaters[varname] = updater
             self.contained_objects.append(updater)
 
