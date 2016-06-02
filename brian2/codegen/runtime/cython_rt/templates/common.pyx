@@ -12,6 +12,7 @@ cdef extern from "math.h":
 from libc.stdlib cimport abs  # For integers
 from libc.math cimport abs  # For floating point values
 from libcpp cimport bool
+from libc.string cimport memcpy
 
 cdef extern from "stdint_compat.h":
     # Longness only used for type promotion
