@@ -316,20 +316,35 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
 
 
 rand_code = '''
-cdef int _rand_buffer_size = 1024 
-cdef double[:] _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
-cdef int _cur_rand_buf = 0
-cdef double _rand(int _idx):
-    global _cur_rand_buf
-    global _rand_buf
-    if _cur_rand_buf==0:
-        _rand_buf = _numpy.random.rand(_rand_buffer_size)
-    cdef double val = _rand_buf[_cur_rand_buf]
-    _cur_rand_buf = (_cur_rand_buf+1)%_rand_buffer_size
-    return val
+from libc.stdlib cimport malloc
+
+cdef extern from "randomkit.h":
+    ctypedef struct rk_state:
+        unsigned long key[624]
+        int pos
+        int has_gauss
+        double gauss
+    ctypedef enum rk_error:
+        RK_NOERR = 0
+        RK_ENODEV = 1
+        RK_ERR_MAX = 2
+    rk_error rk_randomseed(rk_state *state)
+    double rk_double(rk_state *state)
+
+cdef rk_state* _mtrandstate_rand = NULL
+
+cdef inline double _rand(int _idx):
+    global _mtrandstate_rand
+    cdef rk_error errcode
+    if _mtrandstate_rand==NULL:
+        _mtrandstate_rand = <rk_state *>malloc(sizeof(rk_state))
+        errcode = rk_randomseed(_mtrandstate_rand)
+        if errcode:
+            raise RuntimeError("Cannot initialise random state.")
+    return rk_double(_mtrandstate_rand)
 '''
 
-randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random')
+randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random').replace('rk_double', 'rk_gauss')
 
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
                                                              code=rand_code,

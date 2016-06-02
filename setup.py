@@ -14,6 +14,13 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
 
+if sys.version_info.major == 2:
+    PYTHON3 = False
+elif sys.version_info.major == 3:
+    PYTHON3 = True
+else:
+    raise AssertionError('Unexpected Python version: %s' % sys.version_info)
+
 REQUIRED_CYTHON_VERSION = '0.18'
 
 try:
@@ -88,6 +95,38 @@ if fname is not None:
 else:
     extensions = []
 
+# Compile randomkit
+fname = os.path.join('brian2', 'utils', 'random', 'randomkit', 'randomkit.c')
+macro_name = 'BRIAN_BUILD_FOR_PYTHON' + ('3' if PYTHON3 else '2')
+
+if (platform.system() == 'Linux' and
+            platform.architecture()[0] == '32bit' and
+            platform.machine() == 'x86_64'):
+    # We are cross-compiling (most likely to build a 32Bit package for conda
+    # on travis), set paths and flags for 32Bit explicitly
+    print('Configuring compilation for cross-compilation to 32 Bit')
+    extensions.append(Extension("brian2.utils.random.randomkit.librandomkit",
+                                [fname],
+                                include_dirs=[],
+                                library_dirs=['/lib32', '/usr/lib32'],
+                                extra_compile_args=['-m32'],
+                                extra_link_args=['-m32'],
+                                define_macros=[(macro_name, None)]))
+else:
+    libraries, compile_args = [], []
+    if platform.system().lower() == 'darwin':
+        from distutils import sysconfig
+        vars = sysconfig.get_config_vars()
+        vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle', '-dynamiclib')
+    elif platform.system().lower() == 'windows':
+        libraries.append('advapi32')
+    extensions.append(Extension("brian2.utils.random.randomkit.librandomkit",
+                                [fname],
+                                extra_compile_args=compile_args,
+                                libraries=libraries,
+                                include_dirs=[],
+                                define_macros=[(macro_name, None)]))
+
 
 class optional_build_ext(build_ext):
     '''
@@ -155,6 +194,9 @@ setup(name='Brian2',
                                      'rallpack_data/ref_*'],
                     # include C++ version of spike queue
                     'brian2.synapses': ['*.cpp', '*.h'],
+                    # include randomkit
+                    'brian2.utils.random': ['randomkit/randomkit.c',
+                                            'randomkit/randomkit.h'],
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },

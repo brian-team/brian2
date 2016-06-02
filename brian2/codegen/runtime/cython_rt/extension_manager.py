@@ -4,6 +4,7 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
+import glob
 import imp
 import os
 import sys
@@ -30,6 +31,7 @@ try:
 except ImportError:
     Cython = None
 
+import brian2
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.core.preferences import prefs
@@ -162,6 +164,8 @@ class CythonExtensionManager(object):
                 include_dirs = []
             if library_dirs is None:
                 library_dirs = []
+            if runtime_library_dirs is None:
+                runtime_library_dirs = []
             if extra_compile_args is None:
                 extra_compile_args = []
             if extra_link_args is None:
@@ -174,12 +178,20 @@ class CythonExtensionManager(object):
                 import numpy
                 c_include_dirs.append(numpy.get_include())
 
-            # TODO: We should probably have a special folder just for header
-            # files that are shared between different codegen targets
             import brian2.synapses as synapses
-            synapses_dir = os.path.dirname(synapses.__file__)
+            synapses_dir = os.path.abspath(os.path.dirname(synapses.__file__))
             c_include_dirs.append(synapses_dir)
 
+            brian2dir, _ = os.path.split(brian2.__file__)
+            rkdir = os.path.abspath(os.path.join(brian2dir, 'utils',
+                                                 'random', 'randomkit'))
+            c_include_dirs.append(rkdir)
+            library_dirs.append(rkdir)
+            if os.name == 'posix':
+                runtime_library_dirs.append(rkdir)
+                libraries.append('randomkit')
+            else:
+                libraries.append('librandomkit.pyd')
             pyx_file = os.path.join(lib_dir, module_name + '.pyx')
             # ignore Python 3 unicode stuff for the moment
             #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())

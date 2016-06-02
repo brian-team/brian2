@@ -6,11 +6,14 @@
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
+#include "randomkit.h"
 #include<vector>
 #include<iostream>
 #include<fstream>
 
 namespace brian {
+
+rk_state _mersenne_twister_state;
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -265,10 +268,13 @@ void _dealloc_arrays()
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
+#include "randomkit.h"
 #include<vector>
 {{ openmp_pragma('include') }}
 
 namespace brian {
+
+extern rk_state _mersenne_twister_state;
 
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
