@@ -22,9 +22,7 @@ void brian_start()
     brian::{{clock.name}}.dt = brian::{{array_specs[clock.variables['dt']]}};
     brian::{{clock.name}}.t = brian::{{array_specs[clock.variables['t']]}};
     {% endfor %}
-	srand((unsigned int)time(NULL));
-	rand(); // put this in because the first random number generated on some versions of C++ is always almost the same
-	rk_error errcode = rk_randomseed(&brian::_mersenne_twister_state);
+	rk_randomseed(&brian::_mersenne_twister_state);  // Not that this seed can be potentially replaced in main.cpp
 }
 
 void brian_end()

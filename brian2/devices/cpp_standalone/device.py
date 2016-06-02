@@ -581,6 +581,12 @@ class CPPStandaloneDevice(Device):
                 name, main_lines = procedures.pop(-1)
                 runfuncs[name] = main_lines
                 name, main_lines = procedures[-1]
+            elif func=='seed':
+                seed = args
+                if seed is None:  # random
+                    main_lines.append('rk_randomseed(& brian::_mersenne_twister_state);')
+                else:
+                    main_lines.append('rk_seed({seed!r}L, & brian::_mersenne_twister_state);'.format(seed=seed))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
         
@@ -809,6 +815,21 @@ class CPPStandaloneDevice(Device):
                         x = os.system('make')
                     if x!=0:
                         raise RuntimeError("Project compilation failed")
+
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        if seed is not None and not isinstance(seed, numbers.Integral):
+            raise TypeError('Seed has to be None or an integer, was '
+                            '%s' % type(seed))
+        self.main_queue.append(('seed', seed))
 
     def run(self, directory, with_output, run_args):
         with in_directory(directory):

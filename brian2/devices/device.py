@@ -3,6 +3,7 @@ Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
 from weakref import WeakKeyDictionary
+import numbers
 
 import numpy as np
 
@@ -232,6 +233,18 @@ class Device(object):
         # Can be overwritten with a better implementation
         return self.resize(var, new_size)
 
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        raise NotImplementedError()
+
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
             codeobj_class = get_default_codeobject_class()
@@ -343,8 +356,8 @@ class Device(object):
         state of the device.
         '''
         pass
-    
-    
+
+
 class RuntimeDevice(Device):
     '''
     The default device used in Brian, state variables are stored as numpy
@@ -425,6 +438,23 @@ class RuntimeDevice(Device):
             logger.diagnostic('Using the Python SpikeQueue', once=True)
 
         return SpikeQueue(source_start=source_start, source_end=source_end)
+
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        if seed is not None and not isinstance(seed, numbers.Integral):
+            raise TypeError('Seed has to be None or an integer, was '
+                            '%s' % type(seed))
+        np.random.seed(seed)
+        self.rand_buffer_index = 0
+        self.randn_buffer_index = 0
 
 
 class Dummy(object):
