@@ -283,7 +283,7 @@ randn_code = {'support_code': '''
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
             npy_double* buffer = (npy_double*)_namespace_randn_buffer;
-            npy_int* buffer_index = (npy_int*)_namespace_randn_buffer_index;
+            npy_int32* buffer_index = (npy_int32*)_namespace_randn_buffer_index;
             if(*buffer_index == 0)
             {
                 py::tuple args(1);
@@ -322,7 +322,7 @@ rand_code = {'support_code': '''
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
             npy_double* buffer = (npy_double*)_namespace_rand_buffer;
-            npy_int* buffer_index = (npy_int*)_namespace_rand_buffer_index;
+            npy_int32* buffer_index = (npy_int32*)_namespace_rand_buffer_index;
             if(*buffer_index == 0)
             {
                 py::tuple args(1);
