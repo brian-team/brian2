@@ -317,11 +317,14 @@ _BUFFER_SIZE = 1024
 
 rand_code = '''
 cdef double _rand(int _idx):
-    if _namespace_rand_buffer_index[0] == 0:
-        memcpy(_namespace_rand_buffer,
-               _numpy.PyArray_DATA(_numpy.random.rand(_BUFFER_SIZE)),
-               _BUFFER_SIZE * sizeof(double))
-    cdef double val = _namespace_rand_buffer[_namespace_rand_buffer_index[0]]
+    cdef double **buffer_pointer = <double **>_namespace_rand_buffer
+    cdef double *buffer = buffer_pointer[0]
+
+    if(_namespace_rand_buffer_index[0] == 0):
+        buffer = <double *>_numpy.PyArray_DATA(_numpy.random.rand(_BUFFER_SIZE))
+        buffer_pointer[0] = buffer
+
+    cdef double val = buffer[_namespace_rand_buffer_index[0]]
     _namespace_rand_buffer_index[0] += 1
     if _namespace_rand_buffer_index[0] == _BUFFER_SIZE:
         _namespace_rand_buffer_index[0] = 0

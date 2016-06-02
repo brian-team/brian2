@@ -282,15 +282,22 @@ randn_code = {'support_code': '''
             // the _vectorisation_idx argument is unused for now, it could in
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
-            npy_double* buffer = (npy_double*)_namespace_randn_buffer;
+            double **buffer_pointer = (double **)_namespace_randn_buffer;
+            double* buffer = *buffer_pointer;
             npy_int32* buffer_index = (npy_int32*)_namespace_randn_buffer_index;
             if(*buffer_index == 0)
             {
+                if (buffer != 0)
+                    free(buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
                 PyArrayObject *new_randn = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
                                                                             NULL, 1, 1, 0, NULL);
-                memcpy(buffer, (npy_double*)PyArray_GETPTR1(new_randn, 0), BUFFER_SIZE*sizeof(npy_double));
+                buffer = *buffer_pointer = (double *)(new_randn->data);
+
+                // This should garbage collect the array object but leave the buffer
+                PyArray_CLEARFLAGS(new_randn, NPY_ARRAY_OWNDATA);
+                Py_DECREF(new_randn);
             }
             double number = buffer[*buffer_index];
             (*buffer_index)++;
@@ -321,15 +328,22 @@ rand_code = {'support_code': '''
             // the _vectorisation_idx argument is unused for now, it could in
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
-            npy_double* buffer = (npy_double*)_namespace_rand_buffer;
+            double **buffer_pointer = (double **)_namespace_rand_buffer;
+            double* buffer = *buffer_pointer;
             npy_int32* buffer_index = (npy_int32*)_namespace_rand_buffer_index;
             if(*buffer_index == 0)
             {
+                if (buffer != 0)
+                    free(buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
                 PyArrayObject *new_rand = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
-                                                                           NULL, 1, 1, 0, NULL);
-                memcpy(buffer, (npy_double*)PyArray_GETPTR1(new_rand, 0), BUFFER_SIZE*sizeof(npy_double));
+                                                                            NULL, 1, 1, 0, NULL);
+                buffer = *buffer_pointer = (double *)(new_rand->data);
+
+                // This should garbage collect the array object but leave the buffer
+                PyArray_CLEARFLAGS(new_rand, NPY_ARRAY_OWNDATA);
+                Py_DECREF(new_rand);
             }
             double number = buffer[*buffer_index];
             (*buffer_index)++;

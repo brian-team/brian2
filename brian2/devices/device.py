@@ -369,9 +369,11 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        self.randn_buffer = np.zeros(1024, dtype=np.double)
+        # Note that the buffers only store a pointer to the actual random
+        # numbers -- the buffer will be filled in weave/Cython code
+        self.randn_buffer = np.zeros(1, dtype=np.intp)
         self.randn_buffer_index = np.zeros(1, dtype=np.int32)
-        self.rand_buffer = np.zeros(1024, dtype=np.double)
+        self.rand_buffer = np.zeros(1, dtype=np.intp)
         self.rand_buffer_index = np.zeros(1, dtype=np.int32)
 
     def get_array_name(self, var, access_data=True):
