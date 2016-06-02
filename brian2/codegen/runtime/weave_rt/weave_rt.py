@@ -22,6 +22,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.preferences import prefs
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
+from brian2.devices.device import all_devices
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import get_identifiers
 
@@ -264,6 +265,9 @@ if weave is not None:
 
 # Use a special implementation for the randn function that makes use of numpy's
 # randn
+# Give those functions access to a common buffer stored in the runtime device
+device = all_devices['runtime']
+
 randn_code = {'support_code': '''
         #define BUFFER_SIZE 1024
         // A randn() function that returns a single random number. Internally
@@ -278,31 +282,29 @@ randn_code = {'support_code': '''
             // the _vectorisation_idx argument is unused for now, it could in
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
-            static PyArrayObject *randn_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
+            npy_double* buffer = (npy_double*)_namespace_randn_buffer;
+            npy_int* buffer_index = (npy_int*)_namespace_randn_buffer_index;
+            if(*buffer_index == 0)
             {
-                if(randn_buffer) Py_DECREF(randn_buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
-                randn_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
-                                                                NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
+                PyArrayObject *new_randn = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
+                                                                            NULL, 1, 1, 0, NULL);
+                memcpy(buffer, (npy_double*)PyArray_GETPTR1(new_randn, 0), BUFFER_SIZE*sizeof(npy_double));
             }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
+            double number = buffer[*buffer_index];
+            (*buffer_index)++;
+            if (*buffer_index == BUFFER_SIZE)
+                *buffer_index = 0;
             return number;
         }
         '''}
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
                                                               code=randn_code,
                                                               name='_randn',
-                                                              namespace={'_numpy_randn': numpy.random.randn})
+                                                              namespace={'_numpy_randn': numpy.random.randn,
+                                                                         '_randn_buffer': device.randn_buffer,
+                                                                         '_randn_buffer_index': device.randn_buffer_index})
 
 # Also use numpy for rand
 rand_code = {'support_code': '''
@@ -319,28 +321,26 @@ rand_code = {'support_code': '''
             // the _vectorisation_idx argument is unused for now, it could in
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
-            static PyArrayObject *rand_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
+            npy_double* buffer = (npy_double*)_namespace_rand_buffer;
+            npy_int* buffer_index = (npy_int*)_namespace_rand_buffer_index;
+            if(*buffer_index == 0)
             {
-                if(rand_buffer) Py_DECREF(rand_buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
-                rand_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
-                                                               NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(rand_buffer, 0);
+                PyArrayObject *new_rand = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
+                                                                           NULL, 1, 1, 0, NULL);
+                memcpy(buffer, (npy_double*)PyArray_GETPTR1(new_rand, 0), BUFFER_SIZE*sizeof(npy_double));
             }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
+            double number = buffer[*buffer_index];
+            (*buffer_index)++;
+            if (*buffer_index == BUFFER_SIZE)
+                *buffer_index = 0;
             return number;
         }
         '''}
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
                                                              code=rand_code,
-                                                             namespace={'_numpy_rand': numpy.random.rand},
+                                                             namespace={'_numpy_rand': numpy.random.rand,
+                                                                        '_rand_buffer': device.rand_buffer,
+                                                                        '_rand_buffer_index': device.rand_buffer_index},
                                                              name='_rand')

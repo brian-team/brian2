@@ -9,8 +9,6 @@ import numpy as np
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
-from brian2.core.clocks import Clock
-import brian2.core.clocks as clocks
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
@@ -314,6 +312,8 @@ class Device(object):
         '''
         Called when this device is set as the current device.
         '''
+        from brian2.core.clocks import Clock  # avoid import issues
+
         if self.defaultclock is None:
             self.defaultclock = Clock(dt=0.1*ms, name='defaultclock')
         self._set_maximum_run_time(None)
@@ -356,7 +356,11 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        
+        self.randn_buffer = np.zeros(1024, dtype=np.double)
+        self.randn_buffer_index = np.zeros(1, dtype=np.int)
+        self.rand_buffer = np.zeros(1024, dtype=np.double)
+        self.rand_buffer_index = np.zeros(1, dtype=np.int)
+
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
         # of indices when doing G.x[indices] = ...). The name is not
@@ -567,4 +571,4 @@ def reinit_devices():
 
 runtime_device = RuntimeDevice()
 all_devices['runtime'] = runtime_device
-set_device(runtime_device)
+
