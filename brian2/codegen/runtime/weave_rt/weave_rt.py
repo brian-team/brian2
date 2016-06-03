@@ -2,6 +2,7 @@
 Module providing `WeaveCodeObject`.
 '''
 import os
+import platform
 import sys
 import numpy
 
@@ -105,6 +106,20 @@ class WeaveCodeObject(CodeObject):
         synapses_dir = os.path.dirname(synapses.__file__)
         self.include_dirs.append(synapses_dir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        if (platform.system() == 'Linux' and
+                    platform.architecture()[0] == '32bit' and
+                    platform.machine() == 'x86_64'):
+            # We are cross-compiling to 32bit on a 64bit platform
+            logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
+                        'of standard compiler options will be appended for '
+                        'this purpose (note that you need to have a 32bit '
+                        'version of the standard library for this to work).',
+                        '64bit_to_32bit',
+                        once=True)
+            self.library_dirs += ['/lib32', '/usr/lib32']
+            self.extra_compile_args += ['-m32']
+            self.extra_link_args += ['-m32']
+
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
