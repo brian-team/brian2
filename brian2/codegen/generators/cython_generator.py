@@ -313,7 +313,7 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
-_BUFFER_SIZE = 1024
+_BUFFER_SIZE = 20000
 
 rand_code = '''
 cdef double _rand(int _idx):

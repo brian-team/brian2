@@ -284,7 +284,7 @@ if weave is not None:
 device = all_devices['runtime']
 
 randn_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
+        #define BUFFER_SIZE 20000
         // A randn() function that returns a single random number. Internally
         // it asks numpy's randn function for BUFFER_SIZE
         // random numbers at a time and then returns one number from this
@@ -330,7 +330,7 @@ DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
 
 # Also use numpy for rand
 rand_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
+        #define BUFFER_SIZE 20000
         // A rand() function that returns a single random number. Internally
         // it asks numpy's rand function for BUFFER_SIZE
         // random numbers at a time and then returns one number from this
