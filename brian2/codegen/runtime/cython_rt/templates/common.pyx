@@ -12,7 +12,11 @@ cdef extern from "math.h":
 from libc.stdlib cimport abs  # For integers
 from libc.math cimport abs  # For floating point values
 from libcpp cimport bool
-from libc.string cimport memcpy
+
+_numpy.import_array()
+cdef extern from "numpy/ndarraytypes.h":
+    void PyArray_CLEARFLAGS(_numpy.PyArrayObject *arr, int flags)
+from libc.stdlib cimport free
 
 cdef extern from "stdint_compat.h":
     # Longness only used for type promotion
