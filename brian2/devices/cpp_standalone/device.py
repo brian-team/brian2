@@ -583,10 +583,14 @@ class CPPStandaloneDevice(Device):
                 name, main_lines = procedures[-1]
             elif func=='seed':
                 seed = args
+                nb_threads = prefs.devices.cpp_standalone.openmp_threads
+                if nb_threads == 0:  # no OpenMP
+                    nb_threads = 1
+                main_lines.append('for (int _i=0; _i<{nb_threads}; _i++)'.format(nb_threads=nb_threads))
                 if seed is None:  # random
-                    main_lines.append('rk_randomseed(& brian::_mersenne_twister_state);')
+                    main_lines.append('    rk_randomseed(brian::_mersenne_twister_states[_i]);')
                 else:
-                    main_lines.append('rk_seed({seed!r}L, & brian::_mersenne_twister_state);'.format(seed=seed))
+                    main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
         

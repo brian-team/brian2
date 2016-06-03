@@ -13,7 +13,7 @@
 
 namespace brian {
 
-rk_state _mersenne_twister_state;
+std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -110,6 +110,10 @@ void _init_arrays()
 	{{name}} = new {{dtype_spec}}[{{N}}];
 	{% endif %}
 	{% endfor %}
+
+	// Random number generator states
+	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+	    _mersenne_twister_states.push_back(new rk_state());
 }
 
 void _load_arrays()
@@ -274,7 +278,8 @@ void _dealloc_arrays()
 
 namespace brian {
 
-extern rk_state _mersenne_twister_state;
+// In OpenMP we need one state per thread
+extern std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// clocks ///////////////////
 {% for clock in clocks %}
