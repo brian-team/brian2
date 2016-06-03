@@ -21,7 +21,7 @@ from brian2.utils.stringtools import code_representation, indent
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices', 'reinit_devices',
-           'reset_device', 'device',
+           'reset_device', 'device', 'seed'
            ]
 
 logger = get_logger(__name__)
@@ -451,12 +451,9 @@ class RuntimeDevice(Device):
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
         '''
-        if seed is not None and not isinstance(seed, numbers.Integral):
-            raise TypeError('Seed has to be None or an integer, was '
-                            '%s' % type(seed))
         np.random.seed(seed)
-        self.rand_buffer_index = 0
-        self.randn_buffer_index = 0
+        self.rand_buffer_index[:] = 0
+        self.randn_buffer_index[:] = 0
 
 
 class Dummy(object):
@@ -475,7 +472,8 @@ class Dummy(object):
         return Dummy()
     def __setitem__(self, i, val):
         pass
-    
+
+
 class CurrentDeviceProxy(object):
     '''
     Method proxy for access to the currently active device
@@ -499,6 +497,7 @@ device = CurrentDeviceProxy()
 #: The currently active device (set with `set_device`)
 active_device = None
 
+
 def get_device():
     '''
     Gets the actve `Device` object
@@ -509,6 +508,7 @@ def get_device():
 #: A stack of previously set devices as a tuple with their options (see
 #: `set_device`): (device, build_on_run, build_options)
 previous_devices = []
+
 
 def set_device(device, build_on_run=True, **kwargs):
     '''
@@ -554,6 +554,7 @@ def _do_set_device(device, build_on_run=True, **kwargs):
         # Copy over the dt information of the defaultclock
         active_device.defaultclock.dt = previous_dt
 
+
 def reset_device(device=None):
     '''
     Reset to a previously used device. Restores also the previously specified
@@ -582,6 +583,7 @@ def reset_device(device=None):
 
     _do_set_device(device, build_on_run, **build_options)
 
+
 def reinit_devices():
     '''
     Reinitialize all devices and call `Device.activate` again on the current
@@ -599,6 +601,26 @@ def reinit_devices():
         reset_device(active_device)
 
     restore_initial_state()
+
+
+def seed(seed=None):
+    '''
+    Set the seed for the random number generator.
+
+    Parameters
+    ----------
+    seed : int, optional
+        The seed value for the random number generator, or ``None`` (the
+        default) to set a random seed.
+
+    Notes
+    -----
+    This function delegates the call to `Device.seed` of the current device.
+    '''
+    if seed is not None and not isinstance(seed, numbers.Integral):
+        raise TypeError('Seed has to be None or an integer, was '
+                        '%s' % type(seed))
+    get_device().seed(seed)
 
 
 runtime_device = RuntimeDevice()

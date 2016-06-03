@@ -826,9 +826,6 @@ class CPPStandaloneDevice(Device):
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
         '''
-        if seed is not None and not isinstance(seed, numbers.Integral):
-            raise TypeError('Seed has to be None or an integer, was '
-                            '%s' % type(seed))
         self.main_queue.append(('seed', seed))
 
     def run(self, directory, with_output, run_args):
