@@ -1678,7 +1678,7 @@ class Variables(collections.Mapping):
         identifiers = subexpr.identifiers
         substitutions = {}
         for identifier in identifiers:
-            if not identifier in subexpr.owner.variables:
+            if identifier not in subexpr.owner.variables:
                 # external variable --> nothing to do
                 continue
             subexpr_var = subexpr.owner.variables[identifier]
@@ -1695,6 +1695,8 @@ class Variables(collections.Mapping):
                 subexpr_var_index = index
             elif subexpr_var_index == '0':
                 pass  # nothing to do for a shared variable
+            elif subexpr_var_index == index:
+                pass  # The same index as the main subexpression
             elif index != self.default_index:
                 index_var = self._variables.get(index, None)
                 if isinstance(index_var, DynamicArrayVariable):
