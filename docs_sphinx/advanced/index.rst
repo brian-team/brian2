@@ -11,6 +11,7 @@ This section has additional information on details not covered in the
    namespaces
    refractoriness
    scheduling
+   random
    custom_events
    state_update
    how_brian_works
