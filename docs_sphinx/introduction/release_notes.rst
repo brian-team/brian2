@@ -5,8 +5,17 @@ Current development version
 ---------------------------
 TODO
 
+New features
+~~~~~~~~~~~~
+* Brian now comes with its own `seed` function, allowing to seed the random number generator
+  and make simulations reproducible. This function works for all code generation targets and
+  in runtime and standalone mode. See :doc:`../advanced/random` for details.
+
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Use a Mersenne-Twister pseudorandom number generator in C++ standalone mode, replacing the
+  previously used low-quality random number generator from the C standard library (see #222,
+  #671 and #706).
 * Fix a memory leak in code running with the weave code generation target, and a smaller
   memory leak related to units stored repetively in the `UnitRegistry`.
 * Fix a difference of one timestep in the number of simulated timesteps between
@@ -25,6 +34,7 @@ TODO
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
+* David Higgins
 * Gordon Erlebacher
 * Max Gillett
 * Moritz Augustin
