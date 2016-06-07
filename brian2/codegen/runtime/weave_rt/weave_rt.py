@@ -151,12 +151,25 @@ libraries: {self.libraries}
         try:
             with std_silent(False):
                 compiler, extra_compile_args = get_compiler_and_args()
+                if (platform.system() == 'Linux' and
+                            platform.architecture()[0] == '32bit' and
+                            platform.machine() == 'x86_64'):
+                    # We are cross-compiling to 32bit on a 64bit platform
+                    logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
+                                'of standard compiler options will be appended for '
+                                'this purpose (note that you need to have a 32bit '
+                                'version of the standard library for this to work).',
+                                '64bit_to_32bit',
+                                once=True)
+                    library_dirs = prefs['codegen.cpp.library_dirs'] + ['/lib32', '/usr/lib32']
+                    extra_compile_args += ['-m32']
+                    extra_link_args = prefs['codegen.cpp.extra_link_args'] + ['-m32']
                 weave.inline('int x=0;', [],
                              compiler=compiler,
                              headers=['<algorithm>', '<limits>'],
                              extra_compile_args=extra_compile_args,
-                             extra_link_args=prefs['codegen.cpp.extra_link_args'],
-                             library_dirs=prefs['codegen.cpp.library_dirs'],
+                             extra_link_args=extra_link_args,
+                             library_dirs=library_dirs,
                              include_dirs=prefs['codegen.cpp.include_dirs'],
                              verbose=0)
                 return True
