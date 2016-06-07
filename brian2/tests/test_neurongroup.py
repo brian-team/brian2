@@ -10,7 +10,7 @@ from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.clocks import defaultclock
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_devices, seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -1296,6 +1296,35 @@ def test_random_vector_values():
     net.run(defaultclock.dt)
     assert np.var(G.v[:]) > 0
 
+
+@attr('standalone-compatible')
+def test_random_values_random_seed():
+    G = NeuronGroup(100, '''v1 : 1
+                            v2 : 1''')
+    seed()
+    G.v1 = 'rand() + randn()'
+    seed()
+    G.v2 = 'rand() + randn()'
+    run(0*ms)  # for standalone
+    assert np.var(G.v1[:]) > 0
+    assert np.var(G.v2[:]) > 0
+    assert np.var(G.v1[:] - G.v2[:]) > 0
+
+
+@attr('standalone-compatible')
+def test_random_values_fixed_seed():
+    G = NeuronGroup(100, '''v1 : 1
+                            v2 : 1''')
+    seed(12345678)
+    G.v1 = 'rand() + randn()'
+    seed(12345678)
+    G.v2 = 'rand() + randn()'
+    run(0*ms)  # for standalone
+    assert np.var(G.v1[:]) > 0
+    assert np.var(G.v2[:]) > 0
+    assert_equal(G.v1[:], G.v2[:])
+
+
 @attr('codegen-independent')
 def test_no_code():
     # Make sure that we are not unncessarily creating code objects for a state
@@ -1370,5 +1399,7 @@ if __name__ == '__main__':
     test_get_states_pandas()
     test_set_states_pandas()
     test_random_vector_values()
+    test_random_values_random_seed()
+    test_random_values_fixed_seed()
     test_no_code()
 
