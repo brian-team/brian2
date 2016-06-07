@@ -109,8 +109,11 @@ class BrianASTRenderer(object):
     '''
     This class is modelled after `NodeRenderer` - see there for details.
     '''
-    def __init__(self, variables):
-        self.variables = variables.copy()
+    def __init__(self, variables, copy_variables=True):
+        if copy_variables:
+            self.variables = variables.copy()
+        else:
+            self.variables = variables
 
     def render_node(self, node):
         nodename = node.__class__.__name__
@@ -204,6 +207,7 @@ class BrianASTRenderer(object):
         node.dtype = 'boolean'
         for subnode in node.values:
             if subnode.dtype!='boolean':
+                print subnode
                 raise TypeError("Boolean operator acting on non-booleans")
         node.scalar = logical_all(subnode.scalar for subnode in node.values)
         node.complexity = 1+sum(subnode.complexity for subnode in node.values)

@@ -170,10 +170,10 @@ class ArithmeticSimplifier(BrianASTRenderer):
         These might be the scalar statements for example.
     '''
     def __init__(self, variables):
-        BrianASTRenderer.__init__(self, variables)
+        BrianASTRenderer.__init__(self, variables, copy_variables=False)
         self.assumptions = []
         self.assumptions_ns = dict(defaults_ns)
-        self.bast_renderer = BrianASTRenderer(variables)
+        self.bast_renderer = BrianASTRenderer(variables, copy_variables=False)
 
     def render_node(self, node):
         '''
@@ -298,7 +298,7 @@ class Simplifier(BrianASTRenderer):
         dtypename will be one of ``'boolean'``, ``'integer'``, ``'float'``.
     '''
     def __init__(self, variables, scalar_statements, extra_lio_prefix=''):
-        BrianASTRenderer.__init__(self, variables)
+        BrianASTRenderer.__init__(self, variables, copy_variables=False)
         self.loop_invariants = OrderedDict()
         self.loop_invariant_dtypes = {}
         self.n = 0
