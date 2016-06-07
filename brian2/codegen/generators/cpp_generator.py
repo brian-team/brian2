@@ -322,7 +322,7 @@ class CPPCodeGenerator(CodeGenerator):
                         raise NotImplementedError((
                         'Directly replace scalar values in the function '
                         'instead of providing them via the namespace'))
-                    type_str = c_data_type(ns_value.dtype) + '*'
+                    type_str = self.c_data_type(ns_value.dtype) + '*'
                 else:  # e.g. a function
                     type_str = 'py::object'
                 support_code.append('static {0} _namespace{1};'.format(type_str,

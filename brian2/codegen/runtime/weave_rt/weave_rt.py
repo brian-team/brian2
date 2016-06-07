@@ -50,13 +50,6 @@ def weave_data_type(dtype):
         dtype = numpy.array([1]).dtype.type
     if dtype is float:
         dtype = numpy.array([1.]).dtype.type
-    # Special handling of fixed-width int types -- this seems to be more robust
-    # than weave's default int/long handling
-    elif dtype is numpy.int32:
-        return 'npy_int32'
-    elif dtype is numpy.int64:
-        return 'npy_int64'
-
     try:
         dtype = numpy.empty(0, dtype=dtype).dtype.char
     except TypeError:
