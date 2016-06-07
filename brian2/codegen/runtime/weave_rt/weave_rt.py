@@ -151,6 +151,8 @@ libraries: {self.libraries}
         try:
             with std_silent(False):
                 compiler, extra_compile_args = get_compiler_and_args()
+                extra_link_args = prefs['codegen.cpp.extra_link_args']
+                library_dirs = prefs['codegen.cpp.library_dirs']
                 if (platform.system() == 'Linux' and
                             platform.architecture()[0] == '32bit' and
                             platform.machine() == 'x86_64'):
@@ -161,9 +163,9 @@ libraries: {self.libraries}
                                 'version of the standard library for this to work).',
                                 '64bit_to_32bit',
                                 once=True)
-                    library_dirs = prefs['codegen.cpp.library_dirs'] + ['/lib32', '/usr/lib32']
+                    library_dirs += ['/lib32', '/usr/lib32']
                     extra_compile_args += ['-m32']
-                    extra_link_args = prefs['codegen.cpp.extra_link_args'] + ['-m32']
+                    extra_link_args += ['-m32']
                 weave.inline('int x=0;', [],
                              compiler=compiler,
                              headers=['<algorithm>', '<limits>'],
