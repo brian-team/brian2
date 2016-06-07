@@ -1298,6 +1298,7 @@ def test_random_vector_values():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_random_values_random_seed():
     G = NeuronGroup(100, '''v1 : 1
                             v2 : 1''')
@@ -1312,6 +1313,7 @@ def test_random_values_random_seed():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_random_values_fixed_seed():
     G = NeuronGroup(100, '''v1 : 1
                             v2 : 1''')
@@ -1323,6 +1325,28 @@ def test_random_values_fixed_seed():
     assert np.var(G.v1[:]) > 0
     assert np.var(G.v2[:]) > 0
     assert_equal(G.v1[:], G.v2[:])
+
+
+def test_random_values_fixed_and_random():
+    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    seed(13579)
+    G.v = 'rand()'
+    seed()
+    mon = StateMonitor(G, 'v', record=True)
+    run(2*defaultclock.dt)
+    first_run_values = np.array(mon.v)
+
+    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    seed(13579)
+    G.v = 'rand()'
+    seed()
+    mon = StateMonitor(G, 'v', record=True)
+    run(2*defaultclock.dt)
+
+    # First time step should be identical
+    assert_equal(first_run_values[:, 0], mon.v[:, 0])
+    # Second should be different
+    assert np.var(first_run_values[:, 1] - mon.v[:, 1]) > 0
 
 
 @attr('codegen-independent')
@@ -1401,5 +1425,6 @@ if __name__ == '__main__':
     test_random_vector_values()
     test_random_values_random_seed()
     test_random_values_fixed_seed()
+    test_random_values_fixed_and_random()
     test_no_code()
 
