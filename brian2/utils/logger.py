@@ -116,7 +116,7 @@ prefs.register_preferences('logging', 'Logging system preferences',
         is saved to a file and if an error occurs the name of this file
         will be printed.
         '''
-        ),                           
+        ),
     )
 
 #===============================================================================
@@ -126,84 +126,6 @@ prefs.register_preferences('logging', 'Logging system preferences',
 def _encode(text):
     ''' Small helper function to encode unicode strings as UTF-8. ''' 
     return text.encode('UTF-8')
-
-# get the main logger
-logger = logging.getLogger('brian2')
-logger.propagate = False
-logger.setLevel(LOG_LEVELS['DIAGNOSTIC'])
-
-# Log to a file
-TMP_LOG = FILE_HANDLER = None
-if prefs['logging.file_log']:
-    try:
-        # Temporary filename used for logging
-        TMP_LOG = tempfile.NamedTemporaryFile(prefix='brian_debug_',
-                                              suffix='.log', delete=False)
-        TMP_LOG = TMP_LOG.name
-        FILE_HANDLER = logging.FileHandler(TMP_LOG, mode='wt')
-        FILE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.file_log_level'].upper()])
-        FILE_HANDLER.setFormatter(logging.Formatter('%(asctime)s %(levelname)-10s %(name)s: %(message)s'))
-        logger.addHandler(FILE_HANDLER)
-    except IOError as ex:
-        warn('Could not create log file: %s' % ex)
-
-# Save a copy of the script
-TMP_SCRIPT = None
-if prefs['logging.save_script']:
-    if len(sys.argv[0]) and not running_from_ipython():
-        try:
-            tmp_file = tempfile.NamedTemporaryFile(prefix='brian_script_',
-                                                   suffix='.py',
-                                                   delete=False)
-            with tmp_file:
-                # Timestamp
-                tmp_file.write(_encode(u'# %s\n' % time.asctime()))
-                # Command line arguments
-                tmp_file.write(_encode(u'# Run as: %s\n\n' % (' '.join(sys.argv))))
-                # The actual script file
-                # TODO: We are copying the script file as it is, this might clash
-                # with the encoding we used for the comments added above
-                with open(os.path.abspath(sys.argv[0]), 'rb') as script_file:
-                    shutil.copyfileobj(script_file, tmp_file)    
-                TMP_SCRIPT = tmp_file.name
-        except IOError as ex:
-            warn('Could not copy script file to temp directory: %s' % ex)
-
-# create console handler with a higher log level
-CONSOLE_HANDLER = logging.StreamHandler()
-CONSOLE_HANDLER.setLevel(LOG_LEVELS[prefs['logging.console_log_level']])
-CONSOLE_HANDLER.setFormatter(logging.Formatter('%(levelname)-10s %(message)s [%(name)s]'))
-
-# add the handler to the logger
-logger.addHandler(CONSOLE_HANDLER)
-
-# We want to log all warnings
-logging.captureWarnings(True)  # pylint: disable=E1101
-# Manually connect to the warnings logger so that the warnings end up in
-# the log file. Note that connecting to the console handler here means
-# duplicated warning messages in the ipython notebook, but not doing so
-# would mean that they are not displayed at all in the standard ipython
-# interface...
-warn_logger = logging.getLogger('py.warnings')
-warn_logger.addHandler(CONSOLE_HANDLER)
-if FILE_HANDLER is not None:
-    warn_logger.addHandler(FILE_HANDLER)
-
-# Put some standard info into the log file
-logger.log(DIAGNOSTIC, 'Logging to file: %s, copy of main script saved as: %s' %
-           (TMP_LOG, TMP_SCRIPT))
-logger.log(DIAGNOSTIC, 'Python interpreter: %s' % sys.executable)
-logger.log(DIAGNOSTIC, 'Platform: %s' % sys.platform)
-version_infos = {'brian': brian2.__version__,
-                 'numpy': numpy.__version__,
-                 'scipy': scipy.__version__ if scipy else 'not installed',
-                 'weave': weave.__version__ if weave else 'not installed',
-                 'sympy': sympy.__version__,
-                 'python': sys.version,
-                 }
-for _name, _version in version_infos.iteritems():
-    logger.log(DIAGNOSTIC, '{name} version is: {version}'.format(name=_name,
-                                                                 version=str(_version)))
 
 
 UNHANDLED_ERROR_MESSAGE = ('Brian 2 encountered an unexpected error. '
@@ -223,13 +145,13 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     BrianLogger.exception_occured = True
 
     message = UNHANDLED_ERROR_MESSAGE
-    if TMP_LOG is not None:
+    if BrianLogger.tmp_log is not None:
         message += (' Please include this file with debug information in your '
-                    'report: {} ').format(TMP_LOG)
-    if TMP_SCRIPT is not None:
+                    'report: {} ').format(BrianLogger.tmp_log)
+    if BrianLogger.tmp_script is not None:
         message += (' Additionally, you can also include a copy '
                     'of the script that was run, available '
-                    'at: {}').format(TMP_SCRIPT)
+                    'at: {}').format(BrianLogger.tmp_script)
     if hasattr(std_silent, 'dest_fname_stdout'):
         message += (' You can also include a copy of the '
                     'redirected std stream outputs, available at '
@@ -238,7 +160,8 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
                         stderr=std_silent.dest_fname_stderr)
     message += ' Thanks!'  # very important :)
 
-    logger.error(message, exc_info=(exc_type, exc_obj, exc_tb))
+    logging.getLogger('brian2').error(message,
+                                      exc_info=(exc_type, exc_obj, exc_tb))
 
 
 def clean_up_logging():
@@ -248,14 +171,14 @@ def clean_up_logging():
     '''
     logging.shutdown()
     if not BrianLogger.exception_occured and prefs['logging.delete_log_on_exit']:
-        if TMP_LOG is not None:
+        if BrianLogger.tmp_log is not None:
             try:
-                os.remove(TMP_LOG)
+                os.remove(BrianLogger.tmp_log)
             except (IOError, OSError) as exc:
                 warn('Could not delete log file: %s' % exc)
-        if TMP_SCRIPT is not None:
+        if BrianLogger.tmp_script is not None:
             try:
-                os.remove(TMP_SCRIPT)
+                os.remove(BrianLogger.tmp_script)
             except (IOError, OSError) as exc:
                 warn('Could not delete copy of script file: %s' % exc)
         std_silent.close()
@@ -321,13 +244,25 @@ class BrianLogger(object):
     name : str
         The name used for logging, normally the name of the module.
     '''
-    
-    # : Class attribute to remember whether any exception occured
+
+    #: Class attribute to remember whether any exception occured
     exception_occured = False
-    
-    # : Class attribute for remembering log messages that should only be
-    # : displayed once
+
+    #: Class attribute for remembering log messages that should only be
+    #: displayed once
     _log_messages = set()
+
+    #: The name of the temporary log file (by default deleted after the run if
+    #: no exception occurred), if any
+    tmp_log = None
+
+    #: The `logging.FileHandler` responsible for logging to the temporary log
+    #: file
+    file_handler = None
+
+    #: The name of the temporary copy of the main script file (by default
+    #: deleted after the run if no exception occurred), if any
+    tmp_script = None
 
     def __init__(self, name):
         self.name = name
@@ -454,10 +389,10 @@ class BrianLogger(object):
         filter_log_file : bool
             Whether the filter also applies to log messages in the log file.
         '''
-        CONSOLE_HANDLER.addFilter(filterobj)
+        BrianLogger.console_handler.addFilter(filterobj)
         
         if filter_log_file:
-            FILE_HANDLER.addFilter(filterobj)
+            BrianLogger.file_handler.addFilter(filterobj)
 
     @staticmethod
     def suppress_hierarchy(name, filter_log_file=False):
@@ -508,35 +443,129 @@ class BrianLogger(object):
         '''
         Set the log level to "diagnostic".
         '''
-        CONSOLE_HANDLER.setLevel(DIAGNOSTIC)
+        BrianLogger.console_handler.setLevel(DIAGNOSTIC)
 
     @staticmethod
     def log_level_debug():
         '''
         Set the log level to "debug".
         '''
-        CONSOLE_HANDLER.setLevel(logging.DEBUG)
+        BrianLogger.console_handler.setLevel(logging.DEBUG)
 
     @staticmethod
     def log_level_info():
         '''
         Set the log level to "info".
         '''        
-        CONSOLE_HANDLER.setLevel(logging.INFO)
+        BrianLogger.console_handler.setLevel(logging.INFO)
 
     @staticmethod
     def log_level_warn():
         '''
         Set the log level to "warn".
         '''        
-        CONSOLE_HANDLER.setLevel(logging.WARN)
+        BrianLogger.console_handler.setLevel(logging.WARN)
 
     @staticmethod
     def log_level_error():
         '''
         Set the log level to "error".
         '''        
-        CONSOLE_HANDLER.setLevel(logging.ERROR)
+        BrianLogger.console_handler.setLevel(logging.ERROR)
+    
+    @staticmethod
+    def initialize():
+        '''
+        Initialize Brian's logging system. This function will be called
+        automatically when Brian is imported.
+        '''
+        # get the main logger
+        logger = logging.getLogger('brian2')
+        logger.propagate = False
+        logger.setLevel(LOG_LEVELS['DIAGNOSTIC'])
+
+        # Log to a file
+        if prefs['logging.file_log']:
+            try:
+                # Temporary filename used for logging
+                BrianLogger.tmp_log = tempfile.NamedTemporaryFile(prefix='brian_debug_',
+                                                      suffix='.log',
+                                                      delete=False)
+                BrianLogger.tmp_log = BrianLogger.tmp_log.name
+                BrianLogger.file_handler = logging.FileHandler(BrianLogger.tmp_log, mode='wt')
+                BrianLogger.file_handler.setLevel(
+                    LOG_LEVELS[prefs['logging.file_log_level'].upper()])
+                BrianLogger.file_handler.setFormatter(logging.Formatter(
+                    '%(asctime)s %(levelname)-10s %(name)s: %(message)s'))
+                logger.addHandler(BrianLogger.file_handler)
+            except IOError as ex:
+                warn('Could not create log file: %s' % ex)
+
+        # Save a copy of the script
+        BrianLogger.tmp_script = None
+        if prefs['logging.save_script']:
+            if len(sys.argv[0]) and not running_from_ipython():
+                try:
+                    tmp_file = tempfile.NamedTemporaryFile(
+                        prefix='brian_script_',
+                        suffix='.py',
+                        delete=False)
+                    with tmp_file:
+                        # Timestamp
+                        tmp_file.write(_encode(u'# %s\n' % time.asctime()))
+                        # Command line arguments
+                        tmp_file.write(
+                            _encode(u'# Run as: %s\n\n' % (' '.join(sys.argv))))
+                        # The actual script file
+                        # TODO: We are copying the script file as it is, this might clash
+                        # with the encoding we used for the comments added above
+                        with open(os.path.abspath(sys.argv[0]),
+                                  'rb') as script_file:
+                            shutil.copyfileobj(script_file, tmp_file)
+                        BrianLogger.tmp_script = tmp_file.name
+                except IOError as ex:
+                    warn(
+                        'Could not copy script file to temp directory: %s' % ex)
+
+        # create console handler with a higher log level
+        BrianLogger.console_handler = logging.StreamHandler()
+        BrianLogger.console_handler.setLevel(LOG_LEVELS[prefs['logging.console_log_level']])
+        BrianLogger.console_handler.setFormatter(
+            logging.Formatter('%(levelname)-10s %(message)s [%(name)s]'))
+
+        # add the handler to the logger
+        logger.addHandler(BrianLogger.console_handler)
+
+        # We want to log all warnings
+        logging.captureWarnings(True)  # pylint: disable=E1101
+        # Manually connect to the warnings logger so that the warnings end up in
+        # the log file. Note that connecting to the console handler here means
+        # duplicated warning messages in the ipython notebook, but not doing so
+        # would mean that they are not displayed at all in the standard ipython
+        # interface...
+        warn_logger = logging.getLogger('py.warnings')
+        warn_logger.addHandler(BrianLogger.console_handler)
+        if BrianLogger.file_handler is not None:
+            warn_logger.addHandler(BrianLogger.file_handler)
+
+        # Put some standard info into the log file
+        logger.log(DIAGNOSTIC,
+                   'Logging to file: %s, copy of main script saved as: %s' %
+                   (BrianLogger.tmp_log, BrianLogger.tmp_script))
+        logger.log(DIAGNOSTIC, 'Python interpreter: %s' % sys.executable)
+        logger.log(DIAGNOSTIC, 'Platform: %s' % sys.platform)
+        version_infos = {'brian': brian2.__version__,
+                         'numpy': numpy.__version__,
+                         'scipy': scipy.__version__ if scipy else 'not installed',
+                         'weave': weave.__version__ if weave else 'not installed',
+                         'sympy': sympy.__version__,
+                         'python': sys.version,
+                         }
+        for _name, _version in version_infos.iteritems():
+            logger.log(DIAGNOSTIC,
+                       '{name} version is: {version}'.format(name=_name,
+                                                             version=str(
+                                                                 _version)))
 
 
 def get_logger(module_name='brian2'):
