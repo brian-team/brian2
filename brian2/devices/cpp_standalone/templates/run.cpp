@@ -23,7 +23,7 @@ void brian_start()
     brian::{{clock.name}}.t = brian::{{array_specs[clock.variables['t']]}};
     {% endfor %}
     for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
-	    rk_randomseed(brian::_mersenne_twister_states[i]);  // Not that this seed can be potentially replaced in main.cpp
+	    rk_randomseed(brian::_mersenne_twister_states[i]);  // Note that this seed can be potentially replaced in main.cpp
 }
 
 void brian_end()
