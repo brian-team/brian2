@@ -489,8 +489,8 @@ class BrianLogger(object):
             try:
                 # Temporary filename used for logging
                 BrianLogger.tmp_log = tempfile.NamedTemporaryFile(prefix='brian_debug_',
-                                                      suffix='.log',
-                                                      delete=False)
+                                                                  suffix='.log',
+                                                                  delete=False)
                 BrianLogger.tmp_log = BrianLogger.tmp_log.name
                 BrianLogger.file_handler = logging.FileHandler(BrianLogger.tmp_log, mode='wt')
                 BrianLogger.file_handler.setLevel(
@@ -684,17 +684,22 @@ class std_silent(object):
     '''
     dest_stdout = None
     dest_stderr = None
+
     def __init__(self, alwaysprint=False):
         self.alwaysprint = alwaysprint
         if not alwaysprint and std_silent.dest_stdout is None:
             if not prefs['logging.std_redirection']:
                 self.alwaysprint = True
                 return
-            std_silent.dest_fname_stdout = tempfile.mktemp()
-            std_silent.dest_fname_stderr = tempfile.mktemp()
+            std_silent.dest_fname_stdout = tempfile.NamedTemporaryFile(prefix='brian_stdout_',
+                                                                       suffix='.log',
+                                                                       delete=False).name
+            std_silent.dest_fname_stderr = tempfile.NamedTemporaryFile(prefix='brian_stderr_',
+                                                                       suffix='.log',
+                                                                       delete=False).name
             std_silent.dest_stdout = open(std_silent.dest_fname_stdout, 'w')
             std_silent.dest_stderr = open(std_silent.dest_fname_stderr, 'w')
-        
+
     def __enter__(self):
         if not self.alwaysprint:
             sys.stdout.flush()
