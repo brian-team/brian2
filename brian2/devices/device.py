@@ -373,10 +373,8 @@ class RuntimeDevice(Device):
         # numbers -- the buffer will be filled in weave/Cython code
         self.randn_buffer = np.zeros(1, dtype=np.intp)
         self.rand_buffer = np.zeros(1, dtype=np.intp)
-        # There are mismatches in type on 32bit platforms if we use np.int32
-        # for the index -- it is possible that this is a bug in weave
-        self.randn_buffer_index = np.zeros(1, dtype=np.int64)
-        self.rand_buffer_index = np.zeros(1, dtype=np.int64)
+        self.randn_buffer_index = np.zeros(1, dtype=np.int32)
+        self.rand_buffer_index = np.zeros(1, dtype=np.int32)
 
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
