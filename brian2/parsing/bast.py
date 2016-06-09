@@ -207,7 +207,6 @@ class BrianASTRenderer(object):
         node.dtype = 'boolean'
         for subnode in node.values:
             if subnode.dtype!='boolean':
-                print subnode
                 raise TypeError("Boolean operator acting on non-booleans")
         node.scalar = logical_all(subnode.scalar for subnode in node.values)
         node.complexity = 1+sum(subnode.complexity for subnode in node.values)
