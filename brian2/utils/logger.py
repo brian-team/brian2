@@ -59,7 +59,7 @@ logging.addLevelName(DIAGNOSTIC, 'DIAGNOSTIC')
 prefs.register_preferences('logging', 'Logging system preferences',
     delete_log_on_exit=BrianPreference(
         default=True,
-        docs=    '''
+        docs='''
         Whether to delete the log and script file on exit.
         
         If set to ``True`` (the default), log files (and the copy of the main
@@ -87,7 +87,7 @@ prefs.register_preferences('logging', 'Logging system preferences',
         validator=log_level_validator),
     file_log=BrianPreference(
         default=True,
-        docs= '''
+        docs='''
         Whether to log to a file or not.
         
         If set to ``True`` (the default), logging information will be written
@@ -96,7 +96,7 @@ prefs.register_preferences('logging', 'Logging system preferences',
         '''),
     save_script=BrianPreference(
         default=True,
-        docs= '''
+        docs='''
         Whether to save a copy of the script that is run.
         
         If set to ``True`` (the default), a copy of the currently run script
@@ -105,16 +105,34 @@ prefs.register_preferences('logging', 'Logging system preferences',
         an uncaught exception occured. This can be helpful for debugging,
         in particular when several simulations are running in parallel.
         '''),
-    std_redirection = BrianPreference(
+    std_redirection=BrianPreference(
         default=True,
         docs='''
         Whether or not to redirect stdout/stderr to null at certain places.
         
         This silences a lot of annoying compiler output, but will also hide
         error messages making it harder to debug problems. You can always
-        temporarily switch it off when debugging. In any case, the output
-        is saved to a file and if an error occurs the name of this file
+        temporarily switch it off when debugging. If
+        `logging.std_redirection_to_file` is set to ``True`` as well, then the
+        output is saved to a file and if an error occurs the name of this file
         will be printed.
+        '''
+        ),
+    std_redirection_to_file=BrianPreference(
+        default=True,
+        docs='''
+        Whether to redirect stdout/stderr to a file.
+
+        If both ``logging.std_redirection`` and this preference are set to
+        ``True``, all standard output/error (most importantly output from
+        the compiler) will be stored in files and if an error occurs the name
+        of this file will be printed. If `logging.std_redirection` is ``True``
+        and this preference is ``False``, then all standard output/error will
+        be completely suppressed, i.e. neither be displayed nor stored in a
+        file.
+
+        The value of this preference is ignore if `logging.std_redirection` is
+        set to ``False``.
         '''
         ),
     )
@@ -686,11 +704,11 @@ class std_silent(object):
     dest_stderr = None
 
     def __init__(self, alwaysprint=False):
-        self.alwaysprint = alwaysprint
-        if not alwaysprint and std_silent.dest_stdout is None:
-            if not prefs['logging.std_redirection']:
-                self.alwaysprint = True
-                return
+        self.alwaysprint = alwaysprint or not prefs['logging.std_redirection']
+        self.redirect_to_file = prefs['logging.std_redirection_to_file']
+        if (not self.alwaysprint and
+                self.redirect_to_file and
+                    std_silent.dest_stdout is None):
             std_silent.dest_fname_stdout = tempfile.NamedTemporaryFile(prefix='brian_stdout_',
                                                                        suffix='.log',
                                                                        delete=False).name
@@ -701,7 +719,7 @@ class std_silent(object):
             std_silent.dest_stderr = open(std_silent.dest_fname_stderr, 'w')
 
     def __enter__(self):
-        if not self.alwaysprint:
+        if not self.alwaysprint and self.redirect_to_file:
             sys.stdout.flush()
             sys.stderr.flush()
             self.orig_out_fd = os.dup(1)
@@ -710,7 +728,7 @@ class std_silent(object):
             os.dup2(std_silent.dest_stderr.fileno(), 2)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if not self.alwaysprint:
+        if not self.alwaysprint and self.redirect_to_file:
             std_silent.dest_stdout.flush()
             std_silent.dest_stderr.flush()
             if exc_type is not None:
@@ -730,16 +748,18 @@ class std_silent(object):
     def close(cls):
         if std_silent.dest_stdout is not None:
             std_silent.dest_stdout.close()
-            try:
-                os.remove(std_silent.dest_fname_stdout)
-            except (IOError, OSError):
-                # TODO: this happens quite frequently - why?
-                # The file objects are closed as far as Python is concerned,
-                # but maybe Windows is still hanging on to them?
-                pass
+            if prefs['logging.delete_log_on_exit']:
+                try:
+                    os.remove(std_silent.dest_fname_stdout)
+                except (IOError, OSError):
+                    # TODO: this happens quite frequently - why?
+                    # The file objects are closed as far as Python is concerned,
+                    # but maybe Windows is still hanging on to them?
+                    pass
         if std_silent.dest_stderr is not None:
             std_silent.dest_stderr.close()
-            try:
-                os.remove(std_silent.dest_fname_stderr)
-            except (IOError, OSError):
-                pass
+            if prefs['logging.delete_log_on_exit']:
+                try:
+                    os.remove(std_silent.dest_fname_stderr)
+                except (IOError, OSError):
+                    pass
