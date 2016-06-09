@@ -6,11 +6,14 @@
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
+#include "randomkit.h"
 #include<vector>
 #include<iostream>
 #include<fstream>
 
 namespace brian {
+
+std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// networks /////////////////
 {% for net in networks | sort(attribute='name') %}
@@ -107,6 +110,10 @@ void _init_arrays()
 	{{name}} = new {{dtype_spec}}[{{N}}];
 	{% endif %}
 	{% endfor %}
+
+	// Random number generator states
+	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+	    _mersenne_twister_states.push_back(new rk_state());
 }
 
 void _load_arrays()
@@ -265,10 +272,14 @@ void _dealloc_arrays()
 #include "brianlib/dynamic_array.h"
 #include "brianlib/stdint_compat.h"
 #include "network.h"
+#include "randomkit.h"
 #include<vector>
 {{ openmp_pragma('include') }}
 
 namespace brian {
+
+// In OpenMP we need one state per thread
+extern std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// clocks ///////////////////
 {% for clock in clocks %}

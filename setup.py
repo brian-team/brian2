@@ -155,6 +155,9 @@ setup(name='Brian2',
                                      'rallpack_data/ref_*'],
                     # include C++ version of spike queue
                     'brian2.synapses': ['*.cpp', '*.h'],
+                    # include randomkit
+                    'brian2.random': ['randomkit/randomkit.c',
+                                      'randomkit/randomkit.h'],
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },

@@ -4,6 +4,7 @@ Module implementing the C++ "standalone" device.
 import os
 import shutil
 import subprocess
+import sys
 import inspect
 import platform
 from collections import defaultdict, Counter
@@ -13,6 +14,8 @@ from distutils import ccompiler
 
 import numpy as np
 from cpuinfo import cpuinfo
+
+import brian2
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
@@ -77,7 +80,7 @@ class CPPWriter(object):
         
     def write(self, filename, contents):
         logger.diagnostic('Writing file %s:\n%s' % (filename, contents))
-        if filename.lower().endswith('.cpp'):
+        if filename.lower().endswith('.cpp') or filename.lower().endswith('.c'):
             self.source_files.append(filename)
         elif filename.lower().endswith('.h'):
             self.header_files.append(filename)
@@ -578,6 +581,16 @@ class CPPStandaloneDevice(Device):
                 name, main_lines = procedures.pop(-1)
                 runfuncs[name] = main_lines
                 name, main_lines = procedures[-1]
+            elif func=='seed':
+                seed = args
+                nb_threads = prefs.devices.cpp_standalone.openmp_threads
+                if nb_threads == 0:  # no OpenMP
+                    nb_threads = 1
+                main_lines.append('for (int _i=0; _i<{nb_threads}; _i++)'.format(nb_threads=nb_threads))
+                if seed is None:  # random
+                    main_lines.append('    rk_randomseed(brian::_mersenne_twister_states[_i]);')
+                else:
+                    main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
         
@@ -667,9 +680,10 @@ class CPPStandaloneDevice(Device):
             else:
                 openmp_flag = ''
             # Generate the visual studio makefile
-            source_bases = [fname.replace('.cpp', '').replace('/', '\\') for fname in writer.source_files]
+            source_bases = [fname.replace('.cpp', '').replace('.c', '').replace('/', '\\') for fname in writer.source_files]
             win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
                 None, None,
+                source_files=writer.source_files,
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
                 linker_flags=linker_flags,
@@ -706,7 +720,17 @@ class CPPStandaloneDevice(Device):
                      os.path.join(directory, 'brianlib', 'spikequeue.h'))
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'stdint_compat.h'),
                      os.path.join(directory, 'brianlib', 'stdint_compat.h'))
-        
+
+        # Copy the RandomKit implementation
+        if not os.path.exists(os.path.join(directory, 'brianlib', 'randomkit')):
+            os.mkdir(os.path.join(directory, 'brianlib', 'randomkit'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(brian2))[0],
+                                  'random', 'randomkit', 'randomkit.c'),
+                     os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.c'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(brian2))[0],
+                                  'random', 'randomkit', 'randomkit.h'),
+                     os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.h'))
+
     def write_static_arrays(self, directory):
         # # Find np arrays in the namespaces and convert them into static
         # # arrays. Hopefully they are correctly used in the code: For example,
@@ -795,6 +819,18 @@ class CPPStandaloneDevice(Device):
                         x = os.system('make')
                     if x!=0:
                         raise RuntimeError("Project compilation failed")
+
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        self.main_queue.append(('seed', seed))
 
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
@@ -890,13 +926,19 @@ class CPPStandaloneDevice(Device):
         compiler, extra_compile_args = get_compiler_and_args()
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
         compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
-                                                           prefs['codegen.cpp.include_dirs']) +
+                                                           prefs['codegen.cpp.include_dirs']+['brianlib/randomkit']) +
                           extra_compile_args)
+        if sys.platform=='win32':
+            wincrypt = ['advapi32']
+        else:
+            wincrypt = []
         linker_flags = (ccompiler.gen_lib_options(compiler_obj,
-                                                  library_dirs=prefs['codegen.cpp.library_dirs'],
+                                                  library_dirs=prefs['codegen.cpp.library_dirs']+['brianlib/randomkit'],
                                                   runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
-                                                  libraries=prefs['codegen.cpp.libraries']) +
+                                                  libraries=prefs['codegen.cpp.libraries']+wincrypt) +
                         prefs['codegen.cpp.extra_link_args'])
+
+        additional_source_files.append('brianlib/randomkit/randomkit.c')
 
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))

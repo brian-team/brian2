@@ -3,14 +3,13 @@ Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
 from weakref import WeakKeyDictionary
+import numbers
 
 import numpy as np
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
-from brian2.core.clocks import Clock
-import brian2.core.clocks as clocks
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
 from brian2.core.variables import ArrayVariable, DynamicArrayVariable
@@ -22,7 +21,7 @@ from brian2.utils.stringtools import code_representation, indent
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
            'all_devices', 'reinit_devices',
-           'reset_device', 'device',
+           'reset_device', 'device', 'seed'
            ]
 
 logger = get_logger(__name__)
@@ -234,6 +233,18 @@ class Device(object):
         # Can be overwritten with a better implementation
         return self.resize(var, new_size)
 
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        raise NotImplementedError()
+
     def code_object_class(self, codeobj_class=None):
         if codeobj_class is None:
             codeobj_class = get_default_codeobject_class()
@@ -314,6 +325,8 @@ class Device(object):
         '''
         Called when this device is set as the current device.
         '''
+        from brian2.core.clocks import Clock  # avoid import issues
+
         if self.defaultclock is None:
             self.defaultclock = Clock(dt=0.1*ms, name='defaultclock')
         self._set_maximum_run_time(None)
@@ -343,8 +356,8 @@ class Device(object):
         state of the device.
         '''
         pass
-    
-    
+
+
 class RuntimeDevice(Device):
     '''
     The default device used in Brian, state variables are stored as numpy
@@ -356,7 +369,13 @@ class RuntimeDevice(Device):
         #: objects). Arrays in this dictionary will disappear as soon as the
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
-        
+        # Note that the buffers only store a pointer to the actual random
+        # numbers -- the buffer will be filled in weave/Cython code
+        self.randn_buffer = np.zeros(1, dtype=np.intp)
+        self.rand_buffer = np.zeros(1, dtype=np.intp)
+        self.randn_buffer_index = np.zeros(1, dtype=np.int32)
+        self.rand_buffer_index = np.zeros(1, dtype=np.int32)
+
     def get_array_name(self, var, access_data=True):
         # if no owner is set, this is a temporary object (e.g. the array
         # of indices when doing G.x[indices] = ...). The name is not
@@ -422,6 +441,20 @@ class RuntimeDevice(Device):
 
         return SpikeQueue(source_start=source_start, source_end=source_end)
 
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        np.random.seed(seed)
+        self.rand_buffer_index[:] = 0
+        self.randn_buffer_index[:] = 0
+
 
 class Dummy(object):
     '''
@@ -439,7 +472,8 @@ class Dummy(object):
         return Dummy()
     def __setitem__(self, i, val):
         pass
-    
+
+
 class CurrentDeviceProxy(object):
     '''
     Method proxy for access to the currently active device
@@ -463,6 +497,7 @@ device = CurrentDeviceProxy()
 #: The currently active device (set with `set_device`)
 active_device = None
 
+
 def get_device():
     '''
     Gets the actve `Device` object
@@ -473,6 +508,7 @@ def get_device():
 #: A stack of previously set devices as a tuple with their options (see
 #: `set_device`): (device, build_on_run, build_options)
 previous_devices = []
+
 
 def set_device(device, build_on_run=True, **kwargs):
     '''
@@ -518,6 +554,7 @@ def _do_set_device(device, build_on_run=True, **kwargs):
         # Copy over the dt information of the defaultclock
         active_device.defaultclock.dt = previous_dt
 
+
 def reset_device(device=None):
     '''
     Reset to a previously used device. Restores also the previously specified
@@ -546,6 +583,7 @@ def reset_device(device=None):
 
     _do_set_device(device, build_on_run, **build_options)
 
+
 def reinit_devices():
     '''
     Reinitialize all devices and call `Device.activate` again on the current
@@ -565,6 +603,26 @@ def reinit_devices():
     restore_initial_state()
 
 
+def seed(seed=None):
+    '''
+    Set the seed for the random number generator.
+
+    Parameters
+    ----------
+    seed : int, optional
+        The seed value for the random number generator, or ``None`` (the
+        default) to set a random seed.
+
+    Notes
+    -----
+    This function delegates the call to `Device.seed` of the current device.
+    '''
+    if seed is not None and not isinstance(seed, numbers.Integral):
+        raise TypeError('Seed has to be None or an integer, was '
+                        '%s' % type(seed))
+    get_device().seed(seed)
+
+
 runtime_device = RuntimeDevice()
 all_devices['runtime'] = runtime_device
-set_device(runtime_device)
+

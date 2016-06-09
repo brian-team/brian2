@@ -1,7 +1,6 @@
 import itertools
 
-import numpy as np
-
+from brian2.devices.device import all_devices
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
 from brian2.parsing.bast import brian_dtype_from_dtype
@@ -314,30 +313,44 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
+_BUFFER_SIZE = 20000
 
 rand_code = '''
-cdef int _rand_buffer_size = 1024 
-cdef double[:] _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
-cdef int _cur_rand_buf = 0
 cdef double _rand(int _idx):
-    global _cur_rand_buf
-    global _rand_buf
-    if _cur_rand_buf==0:
-        _rand_buf = _numpy.random.rand(_rand_buffer_size)
-    cdef double val = _rand_buf[_cur_rand_buf]
-    _cur_rand_buf = (_cur_rand_buf+1)%_rand_buffer_size
+    cdef double **buffer_pointer = <double**>_namespace_rand_buffer
+    cdef double *buffer = buffer_pointer[0]
+    cdef _numpy.ndarray _new_rand
+
+    if(_namespace_rand_buffer_index[0] == 0):
+        if buffer != NULL:
+            free(buffer)
+        _new_rand = _numpy.random.rand(_BUFFER_SIZE)
+        buffer = <double *>_numpy.PyArray_DATA(_new_rand)
+        PyArray_CLEARFLAGS(<_numpy.PyArrayObject*>_new_rand, _numpy.NPY_OWNDATA)
+        buffer_pointer[0] = buffer
+
+    cdef double val = buffer[_namespace_rand_buffer_index[0]]
+    _namespace_rand_buffer_index[0] += 1
+    if _namespace_rand_buffer_index[0] == _BUFFER_SIZE:
+        _namespace_rand_buffer_index[0] = 0
     return val
-'''
+'''.replace('_BUFFER_SIZE', str(_BUFFER_SIZE))
 
 randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random')
 
+device = all_devices['runtime']
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
                                                              code=rand_code,
-                                                             name='_rand')
+                                                             name='_rand',
+                                                             namespace={'_rand_buffer': device.rand_buffer,
+                                                                        '_rand_buffer_index': device.rand_buffer_index})
 
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(CythonCodeGenerator,
                                                               code=randn_code,
-                                                              name='_randn')
+                                                              name='_randn',
+                                                              namespace={
+                                                                  '_randn_buffer': device.randn_buffer,
+                                                                  '_randn_buffer_index': device.randn_buffer_index})
 
 sign_code = '''
 ctypedef fused _to_sign:
