@@ -604,6 +604,25 @@ def test_subexpression_references():
     assert_equal(S.x[:], np.arange(10)*2+1)
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_nested_subexpression_references():
+    '''
+    Assure that subexpressions in targeted groups are handled correctly.
+    '''
+    G = NeuronGroup(10, '''v : 1
+                           v2 = 2*v : 1
+                           v3 = 1.5*v2 : 1''',
+                    threshold='v>=5')
+    G2 = NeuronGroup(10, 'v : 1')
+    G.v = np.arange(10)
+    S = Synapses(G, G2, on_pre='v_post += v3_pre')
+    S.connect(j='i')
+    run(defaultclock.dt)
+    assert_equal(G2.v[:5], 0.)
+    assert_equal(G2.v[5:], (5+np.arange(5))*3)
+
+
 def test_delay_specification():
     # By default delays are state variables (i.e. arrays), but if they are
     # specified in the initializer, they are scalars.
@@ -2032,6 +2051,7 @@ if __name__ == '__main__':
     test_state_variable_indexing()
     test_indices()
     test_subexpression_references()
+    test_nested_subexpression_references()
     test_delay_specification()
     test_delays_pathways()
     test_delays_pathways_subgroups()

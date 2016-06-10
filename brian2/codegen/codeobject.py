@@ -250,14 +250,16 @@ def create_runner_codeobj(group, code, template_name,
         cond_write_var = getattr(var, 'conditional_write', None)
         if cond_write_var in override_conditional_write:
             continue
-        if cond_write_var is not None and cond_write_var not in variables.values():
-            if cond_write_var.name in variables:
-                raise AssertionError(('Variable "%s" is needed for the '
-                                      'conditional write mechanism of variable '
-                                      '"%s". Its name is already used for %r.') % (cond_write_var.name,
-                                                                                   var.name,
-                                                                                   variables[cond_write_var.name]))
-            conditional_write_variables[cond_write_var.name] = cond_write_var
+        if cond_write_var is not None:
+            if (cond_write_var.name in variables and
+                    not variables[cond_write_var.name] is cond_write_var):
+                logger.diagnostic(('Variable "%s" is needed for the '
+                                   'conditional write mechanism of variable '
+                                   '"%s". Its name is already used for %r.') % (cond_write_var.name,
+                                                                                var.name,
+                                                                                variables[cond_write_var.name]))
+            else:
+                conditional_write_variables[cond_write_var.name] = cond_write_var
 
     variables.update(conditional_write_variables)
 

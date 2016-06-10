@@ -24,6 +24,8 @@ Improvements and bug fixes
   C++14 mode (see #701)
 * Fix incorrect summation in synapses when using the ``(summed)`` flag and writing to
   *pre*-synaptic variables (see #704)
+* Make synaptic pathways work when connecting groups that define nested subexpressions,
+  instead of failing with a cryptic error message (see #707).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -34,6 +36,8 @@ TODO
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
+* Craig Henriquez
+* Daniel Bliss
 * David Higgins
 * Gordon Erlebacher
 * Max Gillett
