@@ -9,14 +9,13 @@
     {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
                       N_incoming, N_outgoing, N}
     #}
-    srand((unsigned int)time(NULL));
     const int _buffer_size = 1024;
     int *const _prebuf = new int[_buffer_size];
     int *const _postbuf = new int[_buffer_size];
     int _curbuf = 0;
     const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
     const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
-
+    int _all_pre, _all_post;
     const int oldsize = {{_dynamic__synaptic_pre}}.size();
 
     // scalar code
@@ -25,9 +24,10 @@
     {{scalar_code['create_j']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update_post']|autoindent}}
-    for(int _i=0; _i<_num_all_pre; _i++)
+    for(int _i=0; _i<_N_pre; _i++)
     {
         bool __cond, _cond;
+        _all_pre = _i + _source_offset;
         {% if not postsynaptic_condition %}
         {
             {{vector_code['create_cond']|autoindent}}
@@ -106,6 +106,7 @@
                 throw 1;
                 {% endif %}
             }
+            _all_post = _j + _target_offset;
             {% if postsynaptic_condition %}
             {
                 {{vector_code['create_cond']|autoindent}}

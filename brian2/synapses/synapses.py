@@ -1484,15 +1484,20 @@ class Synapses(Group):
         variables.add_auxiliary_variable('_n', unit=Unit(1),
                                          dtype=np.int32)
 
-        if '_sub_idx' in self.source.variables:
-            variables.add_reference('_all_pre', self.source, '_sub_idx')
+        if '_offset' in self.source.variables:
+            variables.add_reference('_source_offset', self.source, '_offset')
         else:
-            variables.add_reference('_all_pre', self.source, 'i')
+            variables.add_constant('_source_offset', unit=Unit(1), value=0)
 
-        if '_sub_idx' in self.target.variables:
-            variables.add_reference('_all_post', self.target, '_sub_idx')
+        if '_offset' in self.target.variables:
+            variables.add_reference('_target_offset', self.target, '_offset')
         else:
-            variables.add_reference('_all_post', self.target, 'i')
+            variables.add_constant('_target_offset', unit=Unit(1), value=0)
+
+        variables.add_auxiliary_variable('_all_pre', unit=Unit(1),
+                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_all_post', unit=Unit(1),
+                                         dtype=np.int32)
 
         variable_indices = defaultdict(lambda: '_idx')
         for varname in self.variables:
@@ -1500,8 +1505,7 @@ class Synapses(Group):
                 variable_indices[varname] = '_all_pre'
             elif self.variables.indices[varname] == '_postsynaptic_idx':
                 variable_indices[varname] = '_all_post'
-        variable_indices['_all_pre'] = '_i'
-        variable_indices['_all_post'] = '_j'
+
         logger.debug(("Creating synapses from group '%s' to group '%s', "
                       "using generator '%s'") % (self.source.name,
                                                  self.target.name,
