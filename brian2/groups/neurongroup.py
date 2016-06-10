@@ -379,6 +379,10 @@ class NeuronGroup(Group, SpikeSource):
                            SUBEXPRESSION: ('shared',)})
 
         # add refractoriness
+        #: The original equations as specified by the user (i.e. without
+        #: the multiplied `int(not_refractory)` term for equations marked as
+        #: `(unless refractory)`)
+        self.user_equations = model
         if refractory is not False:
             model = add_refractoriness(model)
         self.equations = model
