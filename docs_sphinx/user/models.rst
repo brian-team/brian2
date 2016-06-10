@@ -212,6 +212,16 @@ apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
 the methods ``'linear'``, ``'euler'`` and ``'heun'`` while `SpatialNeuron`
 objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
 
+You will get an ``INFO`` message telling you which integration method Brian decided to use,
+together with information about how much time it took to apply the integration method
+to your equations. If other methods have been tried but were not applicable, you will
+also see the time it took to try out those other methods. In some cases, checking
+other methods (in particular the ``'linear'`` method which attempts to solve the
+equations analytically) can take a considerable amount of time -- to avoid wasting
+this time, you can always chose the integration method manually (see below). You
+can also suppress the message by raising the log level or by explicitly suppressing
+``'method_choice'`` log messages -- for details, see :doc:`../advanced/logging`.
+
 If you prefer to chose an integration algorithm yourself, you can do so using
 the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.
 The complete list of available methods is the following:
