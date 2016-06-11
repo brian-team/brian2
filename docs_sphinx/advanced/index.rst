@@ -8,6 +8,7 @@ This section has additional information on details not covered in the
    :maxdepth: 2
    
    preferences
+   logging
    namespaces
    refractoriness
    scheduling
