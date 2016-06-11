@@ -122,10 +122,10 @@ class NumbaCodeObject(CodeObject):
         # output variables should land in the variable name _return_values
         #self.namespace["main"](self.namespace)
         code = 'main(namespace)'
-                # Test code
-        self.namespace["exp"] = math.exp
         self.namespace['namespace'] = self.namespace
-
+#        for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log', 'log10', 'sqrt', 'asin', 'acos', 'atan', 'fmod', 'floor', 'ceil', 'pi']:
+#            self.namespace[func] = eval('math.'+func)
+        self.namespace['exp'] = math.exp             
         exec code in self.namespace
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']

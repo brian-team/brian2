@@ -22,8 +22,10 @@ def main(_namespace):
     {{load_arguments}} = subroutine({{pass_arguments}})
 
 
-@jit(nopython=True)
+@jit
 def subroutine({{load_arguments}}):
+    for arg in [{{load_arguments}}]:
+        print type(arg)
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}
