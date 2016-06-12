@@ -7,8 +7,10 @@
     _new_len = {{N}} + 1
 
     # Resize the recorded times
-    _var_t.resize(_new_len)
+    _var_t = np.resize(_var_t,_new_len)
+    print "here1"
     {{_dynamic_t}}[_new_len-1] = {{_clock_t}}
+    print "here2"
     # scalar code
     _vectorisation_idx = 1
     {{ scalar_code|autoindent }}
@@ -18,7 +20,7 @@
     {# np_type = type(variables[varname].dtype) #}
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
-    _var_{{varname}}.resize((_new_len, _num{{_indices}}))
+    _var_{{varname}} = np.resize(_var_{{varname}},(_new_len, _num{{_indices}}))
     _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}
     for _i in range(_num{{_indices}}):
         # vector code

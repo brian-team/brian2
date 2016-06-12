@@ -1,4 +1,4 @@
-import numpy as _numpy
+#import numpy as _numpy
 from numba import *
 import sys
 import time
@@ -22,10 +22,14 @@ def main(_namespace):
     {{load_arguments}} = subroutine({{pass_arguments}})
 
 
-@jit
+#@jit
 def subroutine({{load_arguments}}):
     for arg in [{{load_arguments}}]:
         print type(arg)
+        try:
+            print arg.shape
+        except:
+            continue
     {% block maincode %}
     {{ vector_code | autoindent }}
     {% endblock %}

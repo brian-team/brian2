@@ -87,6 +87,8 @@ class NumbaCodeObject(CodeObject):
             if isinstance(var, DynamicArrayVariable):
                 dyn_array_name = self.generator_class.get_array_name(var,
                                                                     access_data=False)
+                print 'dyn array'
+                print dyn_array_name
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
 
@@ -100,9 +102,10 @@ class NumbaCodeObject(CodeObject):
             # e.g. the structures used in monitors)
             if (isinstance(var, DynamicArrayVariable) and
                     var.needs_reference_update):
-                self.nonconstant_values.append((self.generator_class.get_array_name(var,
-                                                                                   self.variables),
-                                                var.get_value))
+                dyn_array_name = self.generator_class.get_array_name(var,
+                                                                    access_data=False)
+                self.namespace[dyn_array_name] = self.device.get_value(var,
+                                                                       access_data=False)
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
@@ -123,9 +126,6 @@ class NumbaCodeObject(CodeObject):
         #self.namespace["main"](self.namespace)
         code = 'main(namespace)'
         self.namespace['namespace'] = self.namespace
-#        for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log', 'log10', 'sqrt', 'asin', 'acos', 'atan', 'fmod', 'floor', 'ceil', 'pi']:
-#            self.namespace[func] = eval('math.'+func)
-        self.namespace['exp'] = math.exp             
         exec code in self.namespace
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']

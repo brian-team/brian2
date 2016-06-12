@@ -222,7 +222,7 @@ class NumbaCodeGenerator(CodeGenerator):
         for varname, var in self.variables.items():
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
-                arguments_to_pass.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
+                arguments_to_pass.append('_var_{0} = _namespace["_var_{1}"].get_value()'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
                 pass
 #                line = "{varname}".format(
