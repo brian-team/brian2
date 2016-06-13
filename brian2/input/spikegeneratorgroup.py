@@ -81,10 +81,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                                         len(times)))
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= np.max(times):
+        elif len(times) and period <= max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
-        if len(times) and np.min(times) < 0*second:
+        if len(times) and min(times) < 0*second:
             raise ValueError('Spike times cannot be negative')
         if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
             raise ValueError('Indices have to lie in the interval [0, %d[' % N)
@@ -226,7 +226,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= np.max(times):
+        elif len(times) and period <= max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
 
