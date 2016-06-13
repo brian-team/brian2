@@ -1251,7 +1251,7 @@ class Synapses(Group):
                              "range. Original error message: " + str(e))
 
     def _resize(self, number):
-        if not isinstance(number, numbers.Integral):
+        if not isinstance(number, (numbers.Integral, np.integer)):
             raise TypeError(('Expected an integer number got {} '
                              'instead').format(type(number)))
         if number < self.N:
