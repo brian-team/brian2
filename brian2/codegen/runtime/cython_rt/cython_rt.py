@@ -147,6 +147,8 @@ class CythonCodeObject(NumpyCodeObject):
                                                                     access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
+                print dyn_array_name
+                print self.namespace[dyn_array_name]
 
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
@@ -178,6 +180,9 @@ class CythonCodeObject(NumpyCodeObject):
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
+            print "Doing an update"
+            print name,func
+            print 'Updating {} using {}'.format(name, func)
             self.namespace[name] = func()
 
 

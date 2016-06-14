@@ -242,7 +242,7 @@ class NumbaCodeGenerator(CodeGenerator):
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
                                                                            
-                    arguments_to_pass.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
+                    arguments_to_pass.append('{0} = _namespace["{1}"].data'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
 
                 # This is the "true" array name, not the restricted pointer.
@@ -332,7 +332,7 @@ rand_code = '''
 _rand_buffer_size = 1024 
 _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
 _cur_rand_buf = 0
-_rand(int _idx):
+def _rand(_idx):
     global _cur_rand_buf
     global _rand_buf
     if _cur_rand_buf==0:
@@ -353,14 +353,7 @@ DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumbaCodeGenerator
                                                               name='_randn')
 
 sign_code = '''
-ctypedef fused _to_sign:
-    char
-    short
-    int
-    float
-    double
-
-def int _sign(_to_sign x):
+def _sign(x):
     return (0 < x) - (x < 0)
 '''
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(NumbaCodeGenerator,

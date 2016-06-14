@@ -8,7 +8,10 @@
 
     # Resize the recorded times
     _var_t.resize(_new_len)
+    print 'When main is called {{_dynamic_t}} is'
+    print {{_dynamic_t}}
     {{_dynamic_t}}[_new_len-1] = {{_clock_t}}
+    print {{_dynamic_t}}
 
     # scalar code
     _vectorisation_idx = 1

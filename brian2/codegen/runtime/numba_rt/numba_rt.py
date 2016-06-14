@@ -102,14 +102,16 @@ class NumbaCodeObject(CodeObject):
             # e.g. the structures used in monitors)
             if (isinstance(var, DynamicArrayVariable) and
                     var.needs_reference_update):
-                dyn_array_name = self.generator_class.get_array_name(var,
-                                                                    access_data=False)
-                self.namespace[dyn_array_name] = self.device.get_value(var,
-                                                                       access_data=False)
+                array_name = self.device.get_array_name(var, self.variables)
+                if array_name in self.namespace:
+                    self.nonconstant_values.append((array_name, var.get_value))
+                if '_num'+name in self.namespace:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
+            print 'Updating {} using {}'.format(name, func)
             self.namespace[name] = func()
 
     def compile(self):
