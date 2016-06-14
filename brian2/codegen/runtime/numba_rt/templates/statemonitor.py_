@@ -23,9 +23,8 @@
     print('{{varname}} is being changed')
     _var_{{varname}}.resize((_new_len, _num{{_indices}}), refcheck = False)
     _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-    print "{{get_array_name(var, access_data=False)}}.data is"
-    print {{get_array_name(var, access_data=False)}}.data
-
+    #print "{{get_array_name(var, access_data=False)}}.data is"
+    #print {{get_array_name(var, access_data=False)}}.data
 
     for _i in range(_num{{_indices}}):
         # vector code
@@ -33,7 +32,10 @@
         _vectorisation_idx = _idx
         
         {{ vector_code | autoindent }}
-
+        print "_to_record_{{varname}} is"
+        print _to_record_{{varname}}
+        print "_record_data_{{varname}} is"
+        print _record_data_{{varname}}
         _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
     {% endfor %}
 

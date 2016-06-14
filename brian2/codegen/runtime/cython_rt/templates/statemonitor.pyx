@@ -41,6 +41,8 @@
         {{ vector_code | autoindent }}
 
         _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
+        print "_to_record_{{varname}} is"
+        print _to_record_{{varname}}
     {% endfor %}
 
     # set the N variable explicitly (since we do not call `StateMonitor.resize`)
