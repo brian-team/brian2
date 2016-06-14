@@ -122,10 +122,6 @@ class CodeGenerator(object):
             vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
 
         kwds = self.determine_keywords()
-        print "Scalar code generated:"
-        print scalar_code
-        print "Vector code generated:"
-        print vector_code
         return scalar_code, vector_code, kwds
 
     def array_read_write(self, statements):

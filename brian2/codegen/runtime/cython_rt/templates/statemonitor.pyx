@@ -8,10 +8,7 @@
 
     # Resize the recorded times
     _var_t.resize(_new_len)
-    print 'When main is called {{_dynamic_t}} is'
-    print {{_dynamic_t}}
     {{_dynamic_t}}[_new_len-1] = {{_clock_t}}
-    print {{_dynamic_t}}
 
     # scalar code
     _vectorisation_idx = 1
@@ -24,6 +21,7 @@
     {% set np_type = numpy_dtype(variables[varname].dtype) %}
     # Resize the recorded variable "{{varname}}" and get the (potentially
     # changed) reference to the underlying data
+    print('{{varname}} is being changed')
     _var_{{varname}}.resize((_new_len, _num{{_indices}}))
     {% if c_type == 'bool'%}
     cdef _numpy.ndarray[char, ndim=2, mode='c', cast=True] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
@@ -31,6 +29,9 @@
     {% else %}
     cdef _numpy.ndarray[{{c_type}}, ndim=2, mode='c'] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
     cdef {{c_type}}* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
+    print "{{get_array_name(var, access_data=False)}}.data is"
+    print {{get_array_name(var, access_data=False)}}.data
+
     {% endif %}
     for _i in range(_num{{_indices}}):
         # vector code

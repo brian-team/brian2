@@ -85,8 +85,6 @@ class CodeObject(Nameable):
         pass
 
     def __call__(self, **kwds):
-        print "Called here!!!"
-        print self.nonconstant_values
         self.update_namespace()
         self.namespace.update(**kwds)
 
