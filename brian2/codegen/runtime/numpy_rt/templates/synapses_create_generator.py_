@@ -1,5 +1,5 @@
 {#
-USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, N,
+USES_VARIABLES { _synaptic_pre, _synaptic_post, N,
                  N_pre, N_post, _source_offset, _target_offset }
 #}
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
@@ -76,9 +76,8 @@ _vectorisation_idx = 1
 {{scalar_code['create_cond']|autoindent}}
 {{scalar_code['update_post']|autoindent}}
 
-_len_all_post = len({{_all_post}})
-
-for _i in range(len({{_all_pre}})):
+for _i in range(N_pre):
+    _raw_pre_idx = _i + _source_offset
     {% if not postsynaptic_condition %}
     {{vector_code['create_cond']|autoindent}}
     if not _cond:
@@ -95,14 +94,27 @@ for _i in range(len({{_all_pre}})):
     {{vector_code['create_j']|autoindent}}
     {% if skip_if_invalid %}
     if _numpy.isscalar(_j):
-        if _j<0 or _j>=_len_all_post:
+        if _j<0 or _j>=N_post:
             continue
     else:
-        _in_range = _numpy.logical_and(_j>=0, _j<_len_all_post)
+        _in_range = _numpy.logical_and(_j>=0, _j<N_post)
         _j = _j[_in_range]
         {{iteration_variable}} = {{iteration_variable}}[_in_range]
+    {% else %}
+    if _numpy.isscalar(_j):
+        _min_j = _max_j = _j
+    elif _j.shape == (0, ):
+        continue
+    else:
+        _min_j = _numpy.min(_j)
+        _max_j = _numpy.max(_j)
+    if _min_j < 0:
+        raise IndexError("index j=%d outside allowed range from 0 to %d" % (_min_j, N_post-1))
+    elif _max_j >= N_post:
+        raise IndexError("index j=%d outside allowed range from 0 to %d" % (_max_j, N_post-1))
     {% endif %}
     _vectorisation_idx = _j
+    _raw_post_idx = _j + _target_offset
     {% if postsynaptic_condition %}
     {{vector_code['create_cond']|autoindent}}
     {% endif %}
@@ -114,6 +126,7 @@ for _i in range(len({{_all_pre}})):
     {% endif %}
 
     _vectorisation_idx = _j
+    _raw_post_idx = _j + _target_offset
     {{vector_code['update_post']|autoindent}}
 
     if not _numpy.isscalar(_n):

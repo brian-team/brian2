@@ -1615,6 +1615,24 @@ def test_synapses_to_synapses():
     assert_array_equal(target.v, [5, 3, 4])
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapses_to_synapses_different_sizes():
+    prefs.codegen.target = 'numpy'
+    source = NeuronGroup(100, 'v : 1', threshold='False')
+    source.v = 'i'
+    modulator = NeuronGroup(1, 'v : 1', threshold='False')
+    target = NeuronGroup(100, 'v : 1')
+    target.v = 'i + 100'
+    conn = Synapses(source, target, 'w:1', multisynaptic_index='k')
+    conn.connect(j='i', n=2)
+    conn.w = 'i + j'
+    modulatory_conn = Synapses(modulator, conn)
+    modulatory_conn.connect('k_post == 1')  # only second synapse is targeted
+    run(0*ms)
+    assert_equal(modulatory_conn.w_post, 2*np.arange(100))
+
+
 def test_ufunc_at_vectorisation():
     if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
@@ -2084,6 +2102,7 @@ if __name__ == '__main__':
     test_vectorisation_STDP_like()
     test_synaptic_equations()
     test_synapses_to_synapses()
+    test_synapses_to_synapses_different_sizes()
     test_synapses_to_synapses_summed_variable()
     try:
         test_ufunc_at_vectorisation()

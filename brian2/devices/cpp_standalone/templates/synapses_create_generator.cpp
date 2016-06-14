@@ -16,16 +16,17 @@
     const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
     {{_dynamic_N_incoming}}.resize(_N_post + _target_offset);
     {{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
-
+    int _raw_pre_idx, _raw_post_idx;
     // scalar code
     const int _vectorisation_idx = -1;
     {{scalar_code['setup_iterator']|autoindent}}
     {{scalar_code['create_j']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update_post']|autoindent}}
-    for(int _i=0; _i<_num_all_pre; _i++)
+    for(int _i=0; _i<_N_pre; _i++)
 	{
         bool __cond, _cond;
+        _raw_pre_idx = _i + _source_offset;
         {% if not postsynaptic_condition %}
         {
             {{vector_code['create_cond']|autoindent}}
@@ -95,6 +96,7 @@
             }
             _j = __j; // make the previously locally scoped _j available
             _pre_idx = __pre_idx;
+            _raw_post_idx = _j + _target_offset;
             if(_j<0 || _j>=_N_post)
             {
                 {% if skip_if_invalid %}

@@ -1,6 +1,6 @@
 {% extends 'common.pyx' %}
 {#
-USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand, N,
+USES_VARIABLES { _synaptic_pre, _synaptic_post, rand, N,
                  N_pre, N_post, _source_offset, _target_offset }
 #}
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
@@ -14,6 +14,8 @@ cdef int _buffer_size = 1024
 cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
 cdef int _curbuf = 0
+cdef int _raw_pre_idx
+cdef int _raw_post_idx
 
 cdef void _flush_buffer(buf, dynarr, int buf_len):
     _curlen = dynarr.shape[0]
@@ -50,7 +52,9 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update_post']|autoindent}}
 
-    for _i in range(_num{{_all_pre}}):
+    for _i in range(N_pre):
+        _raw_pre_idx = _i + _source_offset
+
         {% if not postsynaptic_condition %}
         {{vector_code['create_cond']|autoindent}}
         if not _cond:
@@ -88,6 +92,8 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 {% else %}
                 raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
                 {% endif %}
+            _raw_post_idx = _j + _target_offset
+
             {% if postsynaptic_condition %}
             {{vector_code['create_cond']|autoindent}}
             {% endif %}
