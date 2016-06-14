@@ -1,5 +1,5 @@
 {#
-USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, N,
+USES_VARIABLES { _synaptic_pre, _synaptic_post, N,
                  N_pre, N_post, _source_offset, _target_offset }
 #}
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
@@ -77,7 +77,7 @@ _vectorisation_idx = 1
 {{scalar_code['update_post']|autoindent}}
 
 for _i in range(N_pre):
-    _all_pre = _i + _source_offset
+    _raw_pre_idx = _i + _source_offset
     {% if not postsynaptic_condition %}
     {{vector_code['create_cond']|autoindent}}
     if not _cond:
@@ -114,7 +114,7 @@ for _i in range(N_pre):
         raise IndexError("index j=%d outside allowed range from 0 to %d" % (_max_j, N_post-1))
     {% endif %}
     _vectorisation_idx = _j
-    _all_post = _j + _target_offset
+    _raw_post_idx = _j + _target_offset
     {% if postsynaptic_condition %}
     {{vector_code['create_cond']|autoindent}}
     {% endif %}
@@ -126,7 +126,7 @@ for _i in range(N_pre):
     {% endif %}
 
     _vectorisation_idx = _j
-    _all_post = _j + _target_offset
+    _raw_post_idx = _j + _target_offset
     {{vector_code['update_post']|autoindent}}
 
     if not _numpy.isscalar(_n):

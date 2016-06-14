@@ -2,7 +2,7 @@
 
 {% block maincode %}
     {#
-    USES_VARIABLES { _synaptic_pre, _synaptic_post, _all_pre, _all_post, rand,
+    USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
                      N_incoming, N_outgoing, N,
                      N_pre, N_post, _source_offset, _target_offset}
     #}
@@ -15,7 +15,7 @@
     int _curbuf = 0;
     const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
     const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
-    int _all_pre, _all_post;
+    int _raw_pre_idx, _raw_post_idx;
     const int oldsize = {{_dynamic__synaptic_pre}}.size();
 
     // scalar code
@@ -27,7 +27,7 @@
     for(int _i=0; _i<_N_pre; _i++)
     {
         bool __cond, _cond;
-        _all_pre = _i + _source_offset;
+        _raw_pre_idx = _i + _source_offset;
         {% if not postsynaptic_condition %}
         {
             {{vector_code['create_cond']|autoindent}}
@@ -106,7 +106,7 @@
                 throw 1;
                 {% endif %}
             }
-            _all_post = _j + _target_offset;
+            _raw_post_idx = _j + _target_offset;
             {% if postsynaptic_condition %}
             {
                 {{vector_code['create_cond']|autoindent}}

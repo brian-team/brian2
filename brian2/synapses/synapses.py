@@ -1444,14 +1444,14 @@ class Synapses(Group):
         template_kwds['postsynaptic_condition'] = postsynaptic_condition
 
         abstract_code['setup_iterator'] += setupiter
-        abstract_code['create_j'] += '_pre_idx = _all_pre \n'
+        abstract_code['create_j'] += '_pre_idx = _raw_pre_idx \n'
         abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
         if postsynaptic_condition:
-            abstract_code['create_cond'] += '_post_idx = _all_post \n'
+            abstract_code['create_cond'] += '_post_idx = _raw_post_idx \n'
         if parsed['if_expression'] is not None:
             abstract_code['create_cond'] += ('_cond = ' +
                                              parsed['if_expression'] + '\n')
-            abstract_code['update_post'] += '_post_idx = _all_post \n'
+            abstract_code['update_post'] += '_post_idx = _raw_post_idx \n'
         abstract_code['update_post'] += '_n = ' + str(n) + '\n'
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary
@@ -1494,17 +1494,17 @@ class Synapses(Group):
         else:
             variables.add_constant('_target_offset', unit=Unit(1), value=0)
 
-        variables.add_auxiliary_variable('_all_pre', unit=Unit(1),
+        variables.add_auxiliary_variable('_raw_pre_idx', unit=Unit(1),
                                          dtype=np.int32)
-        variables.add_auxiliary_variable('_all_post', unit=Unit(1),
+        variables.add_auxiliary_variable('_raw_post_idx', unit=Unit(1),
                                          dtype=np.int32)
 
         variable_indices = defaultdict(lambda: '_idx')
         for varname in self.variables:
             if self.variables.indices[varname] == '_presynaptic_idx':
-                variable_indices[varname] = '_all_pre'
+                variable_indices[varname] = '_raw_pre_idx'
             elif self.variables.indices[varname] == '_postsynaptic_idx':
-                variable_indices[varname] = '_all_post'
+                variable_indices[varname] = '_raw_post_idx'
 
         logger.debug(("Creating synapses from group '%s' to group '%s', "
                       "using generator '%s'") % (self.source.name,
