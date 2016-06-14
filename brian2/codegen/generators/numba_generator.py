@@ -222,7 +222,7 @@ class NumbaCodeGenerator(CodeGenerator):
         for varname, var in self.variables.items():
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
-                arguments_to_pass.append('_var_{0} = _namespace["_var_{1}"].get_value()'.format(varname, varname))
+                arguments_to_pass.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
                 pass
 #                line = "{varname}".format(
@@ -242,7 +242,7 @@ class NumbaCodeGenerator(CodeGenerator):
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
                                                                            
-                    arguments_to_pass.append('{0} = _namespace["{1}"].data'.format(self.get_array_name(var, False),
+                    arguments_to_pass.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
 
                 # This is the "true" array name, not the restricted pointer.
