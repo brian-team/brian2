@@ -14,7 +14,10 @@ __all__ = ['SpikeGeneratorGroup']
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
-    SpikeGeneratorGroup(N, indices, times, dt=None, clock=None, period=1e100*second, when='thresholds', order=0, sorted=False, name='spikegeneratorgroup*', codeobj_class=None)
+    SpikeGeneratorGroup(N, indices, times, dt=None, clock=None,
+                        period=1e100*second, when='thresholds', order=0,
+                        sorted=False, name='spikegeneratorgroup*',
+                        codeobj_class=None)
 
     A group emitting spikes at given times.
 
@@ -71,6 +74,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         self.codeobj_class = codeobj_class
 
+        times = Quantity(times)
         if N < 1 or int(N) != N:
             raise TypeError('N has to be an integer >=1.')
         N = int(N)  # Make sure that it is an integer, values such as 10.0 would
@@ -81,10 +85,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                                         len(times)))
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= max(times):
+        elif len(times) and period <= np.max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
-        if len(times) and min(times) < 0*second:
+        if len(times) and np.min(times) < 0*second:
             raise ValueError('Spike times cannot be negative')
         if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
             raise ValueError('Indices have to lie in the interval [0, %d[' % N)
@@ -162,8 +166,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  'than its dt of %s.' % (self.name,
                                                          self.period,
                                                          dt))
-            if (abs(int(period/dt)*dt - period)
-                    > period * np.finfo(dt.dtype).eps):
+            if (abs(int(period/dt)*dt - period) >
+                    period * np.finfo(dt.dtype).eps):
                 raise NotImplementedError('The period of %s is %s, which is '
                                           'not an integer multiple of its dt '
                                           'of %s.' % (self.name,
@@ -219,6 +223,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             then by index), this can save significant time at construction if
             your arrays contain large numbers of spikes. Defaults to ``False``.
         '''
+        times = Quantity(times)
         if len(indices) != len(times):
             raise ValueError(('Length of the indices and times array must '
                               'match, but %d != %d') % (len(indices),
@@ -226,7 +231,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= max(times):
+        elif len(times) and period <= np.max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
 
