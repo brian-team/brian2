@@ -10,6 +10,9 @@ New features
 * Brian now comes with its own `seed` function, allowing to seed the random number generator
   and make simulations reproducible. This function works for all code generation targets and
   in runtime and standalone mode. See :doc:`../advanced/random` for details.
+* Brian can now export/import state variables of a group or a full network to/from a pandas
+  ``DataFrame`` and comes with a mechanism to extend this to other formats. Thanks to
+  Dominik Krzemiński for this contribution (see #306).
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

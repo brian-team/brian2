@@ -496,7 +496,7 @@ class Network(Nameable):
 
         See Also
         --------
-        Group.get_states
+        VariableOwner.get_states
         '''
         states = dict()
         for obj in self.objects:

@@ -120,8 +120,8 @@ For shared variables, such string expressions can only refer to shared values:
 
 Sometimes it can be convenient to access multiple state variables at once, e.g.
 to set initial values from a dictionary of values or to store all the values of
-a group on disk. This can be done with the `Group.get_states` and
-`Group.set_states` methods:
+a group on disk. This can be done with the `VariableOwner.get_states` and
+`VariableOwner.set_states` methods:
 
 .. doctest::
 
@@ -140,6 +140,28 @@ a group on disk. This can be done with the `Group.get_states` and
     >>> sorted(states.keys())
     ['N', 'dt', 'i', 't', 'tau', 'v']
 
+The data (without physical units) can also be exported/imported to/from
+`Pandas <http://pandas.pydata.org/>`_ data frames (needs an installation of ``pandas``)::
+
+    >>> df = group.get_states(units=False, format='pandas')
+    >>> df
+       N      dt  i    t   tau    v
+    0  5  0.0001  0  0.0  0.01  0.0
+    1  5  0.0001  1  0.0  0.02  1.0
+    2  5  0.0001  2  0.0  0.01  2.0
+    3  5  0.0001  3  0.0  0.02  3.0
+    4  5  0.0001  4  0.0  0.01  4.0
+    >>> df['tau']
+    0    0.01
+    1    0.02
+    2    0.01
+    3    0.02
+    4    0.01
+    Name: tau, dtype: float64
+    >>> df['tau'] *= 2
+    >>> group.set_states(df[['tau']], units=False, format='pandas')
+    >>> group.tau
+    <neurongroup.tau: array([ 20.,  40.,  20.,  40.,  20.]) * msecond>
 
 Subgroups
 ---------

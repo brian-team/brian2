@@ -37,6 +37,7 @@ from brian2.core.namespace import *
 from brian2.groups import *
 from brian2.synapses import *
 from brian2.monitors import *
+from brian2.importexport import *
 from brian2.input import *
 from brian2.spatialneuron import *
 from brian2.devices import set_device, get_device, device, all_devices, seed

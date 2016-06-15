@@ -512,8 +512,6 @@ class VariableOwner(Nameable):
             The variables specified in ``vars``, in the specified ``format``.
 
         '''
-        # For the moment, 'dict' is the only supported format -- later this will
-        # be made into an extensible system, see github issue #306
         if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
