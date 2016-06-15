@@ -1,18 +1,25 @@
 Release notes
 =============
 
-Current development version
----------------------------
-TODO
+Brian 2.0rc3
+------------
+This is another "release candidate" for Brian 2.0 that fixes a range of bugs and introduces
+better support for random numbers (see below). We are getting close to the final Brian 2.0
+release, the remaining work will focus on bug fixes, and better error messages and
+documentation.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development mailing
+list (brian-development@googlegroups.com).
 
 New features
 ~~~~~~~~~~~~
 * Brian now comes with its own `seed` function, allowing to seed the random number generator
-  and make simulations reproducible. This function works for all code generation targets and
-  in runtime and standalone mode. See :doc:`../advanced/random` for details.
-* Brian can now export/import state variables of a group or a full network to/from a pandas
-  ``DataFrame`` and comes with a mechanism to extend this to other formats. Thanks to
-  Dominik Krzemiński for this contribution (see #306).
+  and thereby to make simulations reproducible. This function works for all code generation
+  targets and in runtime and standalone mode. See :doc:`../advanced/random` for details.
+* Brian can now export/import state variables of a group or a full network to/from a
+  `pandas <http://pandas.pydata.org>`_ ``DataFrame`` and comes with a mechanism to extend
+  this to other formats. Thanks to Dominik Krzemiński for this contribution (see #306).
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -20,7 +27,7 @@ Improvements and bug fixes
   previously used low-quality random number generator from the C standard library (see #222,
   #671 and #706).
 * Fix a memory leak in code running with the weave code generation target, and a smaller
-  memory leak related to units stored repetively in the `UnitRegistry`.
+  memory leak related to units stored repetitively in the `~brian2.units.fundamentalunits.UnitRegistry`.
 * Fix a difference of one timestep in the number of simulated timesteps between
   runtime and standalone that could arise for very specific values of dt and t (see #695).
 * Fix standalone compilation failures with the most recent gcc version which defaults to
@@ -34,7 +41,10 @@ Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
 
-TODO
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dominik Krzemiński (`@dokato <https://github.com/dokato>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Martino Sorbaro (`@martinosorb <https://github.com/martinosorb>`_)
 
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
