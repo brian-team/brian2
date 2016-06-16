@@ -8,8 +8,7 @@ from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import indent, code_representation
-
-from .translation import analyse_identifiers
+from .translation import resolve_identifiers
 
 __all__ = ['CodeObject',
            'CodeObjectUpdater',
@@ -118,6 +117,12 @@ def _error_msg(code, name):
     return error_msg
 
 
+def _as_set(obj):
+    if obj is None:
+        return set()
+    return set(obj)
+
+
 def create_runner_codeobj(group, code, template_name,
                           run_namespace,
                           user_code=None,
@@ -174,6 +179,12 @@ def create_runner_codeobj(group, code, template_name,
         The `CodeObject` class to run code with. If not specified, defaults to
         the `group`'s ``codeobj_class`` attribute.
     '''
+    from brian2.devices import get_device  # to avoid cyclical imports
+    device = get_device()
+    if codeobj_class is None:
+        codeobj_class = device.code_object_class(group.codeobj_class)
+    else:
+        codeobj_class = device.code_object_class(codeobj_class)
 
     if name is None:
         if group is not None:
@@ -181,56 +192,28 @@ def create_runner_codeobj(group, code, template_name,
         else:
             name = '%s_codeobject*' % template_name
 
-    if user_code is None:
-        user_code = code
+    code, user_code = normalize_code(code, user_code)
 
-    if isinstance(code, str):
-        code = {None: code}
-        user_code = {None: user_code}
-
-    msg = 'Creating code object (group=%s, template name=%s) for abstract code:\n' % (group.name, template_name)
+    msg = ('Creating code object (group=%s, template name=%s) for abstract '
+           'code:\n') % (group.name, template_name)
     msg += indent(code_representation(code))
     logger.diagnostic(msg)
-    from brian2.devices import get_device
-    device = get_device()
-    
-    if override_conditional_write is None:
-        override_conditional_write = set([])
-    else:
-        override_conditional_write = set(override_conditional_write)
 
-    if codeobj_class is None:
-        codeobj_class = device.code_object_class(group.codeobj_class)
-    else:
-        codeobj_class = device.code_object_class(codeobj_class)
+    override_conditional_write = _as_set(override_conditional_write)
+    # Variables that are explicitly requested, either as an argument to this
+    # function or by the template
+    needed_variables = _as_set(needed_variables)
 
     template = getattr(codeobj_class.templater, template_name)
-    template_variables = getattr(template, 'variables', None)
+    template_variables = getattr(template, 'variables', set())
 
-    all_variables = dict(group.variables)
-    if additional_variables is not None:
-        all_variables.update(additional_variables)
+    needed_variables |= template_variables
 
-    # Determine the identifiers that were used
-    identifiers = set()
-    user_identifiers = set()
-    for v, u_v in zip(code.values(), user_code.values()):
-        _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
-        identifiers |= uk | u
-        _, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
-        user_identifiers |= uk | u
 
-    # Add variables that are not in the abstract code, nor specified in the
-    # template but nevertheless necessary
-    if needed_variables is None:
-        needed_variables = []
-    # Resolve all variables (variables used in the code and variables needed by
-    # the template)
-    variables = group.resolve_all(identifiers | set(needed_variables) | set(template_variables),
-                                  # template variables are not known to the user:
-                                  user_identifiers=user_identifiers,
-                                  additional_variables=additional_variables,
-                                  run_namespace=run_namespace)
+    all_variables, variables = resolve_identifiers(code, group, run_namespace,
+                                                   user_code=user_code,
+                                                   additional_variables=additional_variables,
+                                                   needed_variables=needed_variables)
     # We raise this error only now, because there is some non-obvious code path
     # where Jinja tries to get a Synapse's "name" attribute via syn['name'],
     # which then triggers the use of the `group_get_indices` template which does
@@ -243,25 +226,20 @@ def create_runner_codeobj(group, code, template_name,
                               'template "%s"') % (codeobj_class_name,
                                                   template_name))
 
+    all_variable_indices = copy.copy(group.variables.indices)
+    if additional_variables is not None:
+        all_variable_indices.update(additional_variables.indices)
+    if variable_indices is not None:
+        all_variable_indices.update(variable_indices)
 
-    conditional_write_variables = {}
-    # Add all the "conditional write" variables
-    for var in variables.itervalues():
+    variables.update(_conditional_write_variables(override_conditional_write,
+                                                  variables))
+    # Make "conditional write" variables use the same index as the variable
+    # that depends on them
+    for varname, var in variables.iteritems():
         cond_write_var = getattr(var, 'conditional_write', None)
-        if cond_write_var in override_conditional_write:
-            continue
         if cond_write_var is not None:
-            if (cond_write_var.name in variables and
-                    not variables[cond_write_var.name] is cond_write_var):
-                logger.diagnostic(('Variable "%s" is needed for the '
-                                   'conditional write mechanism of variable '
-                                   '"%s". Its name is already used for %r.') % (cond_write_var.name,
-                                                                                var.name,
-                                                                                variables[cond_write_var.name]))
-            else:
-                conditional_write_variables[cond_write_var.name] = cond_write_var
-
-    variables.update(conditional_write_variables)
+            all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
 
     if check_units:
         for c in code.values():
@@ -272,24 +250,10 @@ def create_runner_codeobj(group, code, template_name,
                 error_msg = _error_msg(c, name)
                 raise ValueError(error_msg + str(ex))
 
-    all_variable_indices = copy.copy(group.variables.indices)
-    if additional_variables is not None:
-        all_variable_indices.update(additional_variables.indices)
-    if variable_indices is not None:
-        all_variable_indices.update(variable_indices)
-
-    # Make "conditional write" variables use the same index as the variable
-    # that depends on them
-    for varname, var in variables.iteritems():
-        cond_write_var = getattr(var, 'conditional_write', None)
-        if cond_write_var is not None:
-            all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
-
     # Add the indices needed by the variables
-    varnames = variables.keys()
-    for varname in varnames:
+    for varname in variables.keys():
         var_index = all_variable_indices[varname]
-        if not var_index in ('_idx', '0'):
+        if var_index not in ('_idx', '0'):
             variables[var_index] = all_variables[var_index]
 
     return device.code_object(owner=group,
@@ -302,3 +266,34 @@ def create_runner_codeobj(group, code, template_name,
                               codeobj_class=codeobj_class,
                               override_conditional_write=override_conditional_write,
                               )
+
+
+def _conditional_write_variables(override_conditional_write, variables):
+    conditional_write_variables = {}
+    # Add all the "conditional write" variables
+    for var in variables.itervalues():
+        cond_write_var = getattr(var, 'conditional_write', None)
+        if cond_write_var in override_conditional_write:
+            continue
+        if cond_write_var is not None:
+            if (cond_write_var.name in variables and
+                    not variables[cond_write_var.name] is cond_write_var):
+                logger.diagnostic(('Variable "%s" is needed for the '
+                                   'conditional write mechanism of variable '
+                                   '"%s". Its name is already used for %r.') % (
+                                  cond_write_var.name,
+                                  var.name,
+                                  variables[cond_write_var.name]))
+            else:
+                conditional_write_variables[
+                    cond_write_var.name] = cond_write_var
+    return conditional_write_variables
+
+
+def normalize_code(code, user_code=None):
+    if user_code is None:
+        user_code = code
+    if isinstance(code, basestring):
+        code = {None: code}
+        user_code = {None: user_code}
+    return code, user_code

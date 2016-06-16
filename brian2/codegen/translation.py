@@ -387,3 +387,30 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                                                                    blockname=blockname)
 
     return scalar_statements, vector_statements
+
+
+def resolve_identifiers(code, group, run_namespace, user_code=None,
+                        additional_variables=None, needed_variables=None):
+    if needed_variables is None:
+        needed_variables = set()
+
+    all_variables = dict(group.variables)
+    if additional_variables is not None:
+        all_variables.update(additional_variables)
+
+    # Determine the identifiers that were used
+    identifiers = set()
+    user_identifiers = set()
+    for v, u_v in zip(code.values(), user_code.values()):
+        _, uk, u = analyse_identifiers(v, all_variables, recursive=True)
+        identifiers |= uk | u
+        _, uk, u = analyse_identifiers(u_v, all_variables, recursive=True)
+        user_identifiers |= uk | u
+
+    # Resolve all variables
+    variables = group.resolve_all(identifiers | set(needed_variables),
+                                  # template variables are not known to the user:
+                                  user_identifiers=user_identifiers,
+                                  additional_variables=additional_variables,
+                                  run_namespace=run_namespace)
+    return all_variables, variables
