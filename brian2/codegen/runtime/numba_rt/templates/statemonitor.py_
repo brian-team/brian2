@@ -6,6 +6,17 @@
 
     _new_len = {{N}} + 1
 
+    @jit(nopython=True)
+    def _statemonitor(_record_data_generic):
+        for _i in range(_num{{_indices}}):
+        # vector code
+        _idx = {{_indices}}[_i]
+        _vectorisation_idx = _idx
+        
+        {{ vector_code | autoindent }}
+        _record_data_generic[(_new_len-1)*_num{{_indices}} + _i] = _to_record_generic
+        return _record_data_generic
+
     # Resize the recorded times
     _var_t.resize(_new_len)
     {{_dynamic_t}}[_new_len-1] = {{_clock_t}}
@@ -19,14 +30,8 @@
     # changed) reference to the underlying data
     _var_{{varname}}.resize((_new_len, _num{{_indices}}))
     _record_data_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-
-    for _i in range(_num{{_indices}}):
-        # vector code
-        _idx = {{_indices}}[_i]
-        _vectorisation_idx = _idx
-        
-        {{ vector_code | autoindent }}
-        _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
+    _record_data_{{varname}} = _statemonitor(_record_data_{{varname}})
+    
     {% endfor %}
 
     # set the N variable explicitly (since we do not call `StateMonitor.resize`)
