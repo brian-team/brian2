@@ -20,6 +20,10 @@ def main(_namespace):
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
     {{load_arguments}} = subroutine({{pass_arguments}})
+    print "_namespace _array_neurongroup_v is"
+    print _namespace["_array_neurongroup_v"]
+    print "local _array_neurongroup_v (after) is"
+    print _array_neurongroup_v
 
 
 #@jit(nopython=True)

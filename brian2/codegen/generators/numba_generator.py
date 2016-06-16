@@ -139,6 +139,7 @@ class NumbaCodeGenerator(CodeGenerator):
         for varname in write:
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
+            line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname
             lines.append(line)
         return lines
 
