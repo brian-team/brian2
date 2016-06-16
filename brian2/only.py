@@ -42,6 +42,7 @@ from brian2.input import *
 from brian2.spatialneuron import *
 from brian2.devices import set_device, get_device, device, all_devices, seed
 import brian2.devices.cpp_standalone as _cpp_standalone
+import brian2.devices.example as _example
 
 # preferences
 from brian2.core.core_preferences import *

@@ -151,6 +151,9 @@ class Device(object):
         '''
         raise NotImplementedError()
 
+    def get_value(self, var, access_data=True):
+        raise NotImplementedError()
+
     def add_array(self, var):
         '''
         Add an array to this device.

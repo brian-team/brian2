@@ -1,17 +1,31 @@
 '''
 Module implementing the "example" `CodeObject`
 '''
-from brian2.codegen.codeobject import CodeObject, constant_or_scalar
-from brian2.codegen.targets import codegen_targets
-from brian2.codegen.templates import Templater
-from brian2.codegen.generators.cpp_generator import (CPPCodeGenerator,
-                                                     c_data_type)
-from brian2.devices.device import get_device
-from brian2.core.preferences import prefs
-from brian2.core.functions import DEFAULT_FUNCTIONS
-from brian2.utils.stringtools import replace
+from brian2.codegen.codeobject import CodeObject
+from brian2.codegen.generators.base import CodeGenerator
 
 __all__ = ['ExamppleCodeObject']
+
+# dummy do-nothing classes
+
+
+class DummyTemplate():
+
+    def __init__(self, name):
+        self.name = name
+        self.iterate_all = False
+        self.allows_scalar_write = True
+
+    def __call__(self, d):
+        return d
+
+
+class MyClass(object):
+    def __init__(self):
+        pass
+
+    def __getattr__(self, item):
+        return DummyTemplate(item)
 
 
 class ExampleCodeObject(CodeObject):
@@ -22,7 +36,5 @@ class ExampleCodeObject(CodeObject):
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
     '''
-    templater = Templater('brian2.devices.example', '.py_')
-    generator_class = ExampleCodeGenerator
-
-codegen_targets.add(ExampleCodeObject)
+    templater = MyClass()
+    generator_class = CodeGenerator  # not used
