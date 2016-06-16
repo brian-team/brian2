@@ -221,8 +221,6 @@ class CodeGenerator(object):
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.iteritems():
-            print "Abstract code is"
-            print ac_code
             statements = make_statements(ac_code,
                                          self.variables,
                                          dtype,
@@ -248,9 +246,6 @@ class CodeGenerator(object):
                              'order of execution. You can ignore this warning if '
                              'you are sure that the order of operations does not '
                              'matter. ' + error_msg))
-        print "Vector and scalar statements"
-        print self.translate_statement_sequence(scalar_statements,
-                                                 vector_statements)
         return self.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
 
