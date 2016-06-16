@@ -31,6 +31,9 @@
 
 
     {% endif %}
+    print '_numinidice is'
+    print _num{{_indices}}
+        
     for _i in range(_num{{_indices}}):
         # vector code
         _idx = {{_indices}}[_i]

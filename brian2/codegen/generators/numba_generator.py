@@ -115,6 +115,7 @@ class NumbaCodeGenerator(CodeGenerator):
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
+        pass_to_subroutine = []
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
             var = variables[varname]
@@ -122,6 +123,7 @@ class NumbaCodeGenerator(CodeGenerator):
             line = '{varname} = {arrayname}[{index}]'.format(varname=varname, arrayname=self.get_array_name(var),
                                                              index=index)
             lines.append(line)
+            pass_to_subroutine.append('{arrayname} = {arrayname}'.format(arrayname=self.get_array_name(var)))
         # the actual code
         created_vars = set([])
         for stmt in statements:
@@ -141,6 +143,8 @@ class NumbaCodeGenerator(CodeGenerator):
             var = self.variables[varname]
             line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname
             lines.append(line)
+            pass_to_subroutine.append('{varname} = {varname}'.format(varname=varname))
+            pass_to_subroutine.append('{arrayname} = {arrayname}'.format(arrayname=self.get_array_name(var, self.variables)))
         return lines
 
     def _add_user_function(self, varname, var):
@@ -217,6 +221,7 @@ class NumbaCodeGenerator(CodeGenerator):
         # load variables from namespace
         load_namespace = []
         arguments_to_pass = []
+        pass_to_subroutine = []
         support_code = []
         handled_pointers = set()
         user_functions = []
@@ -238,6 +243,7 @@ class NumbaCodeGenerator(CodeGenerator):
                 line = '{varname} = _namespace["{varname}"]'.format(varname=varname)
                 load_namespace.append(line)
                 arguments_to_pass.append(line)
+                pass_to_subroutine.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
@@ -245,6 +251,8 @@ class NumbaCodeGenerator(CodeGenerator):
                                                                            
                     arguments_to_pass.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
+                    #pass_to_subroutine.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
+                   #                                                        self.get_array_name(var, False)))                                                       
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -263,6 +271,7 @@ class NumbaCodeGenerator(CodeGenerator):
 
                 if var.scalar and var.constant:
                     newlines += ['{varname} = _namespace["{varname}"]']
+                    
                 #else:
                 #    newlines += ["def {numba_dtype} {varname}"]
 
@@ -275,6 +284,7 @@ class NumbaCodeGenerator(CodeGenerator):
                                        )
                     load_namespace.append(line)
                     arguments_to_pass.append(line)
+                    pass_to_subroutine.append(line)
                 handled_pointers.add(pointer_name)
 
             elif isinstance(var, Function):
@@ -306,6 +316,7 @@ class NumbaCodeGenerator(CodeGenerator):
         #print "END NAMESPACE"
         #raise Exception
         return {'load_namespace': '\n'.join(load_namespace),
+                'pass_to_subroutine': ','.join(pass_to_subroutine),
                 'pass_arguments': ','.join(arguments_to_pass),
                 'load_arguments': ','.join(load_arguments),
                 'support_code': '\n'.join(support_code)}
