@@ -300,7 +300,7 @@ class NeuronGroup(Group, SpikeSource):
     events : dict, optional
         User-defined events in addition to the "spike" event defined by the
         ``threshold``. Has to be a mapping of strings (the event name) to
-         strings (the condition) that will be checked.
+        strings (the condition) that will be checked.
     namespace: dict, optional
         A dictionary mapping variable/function names to the respective objects.
         If no `namespace` is given, the "implicit" namespace, consisting of

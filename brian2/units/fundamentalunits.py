@@ -1778,23 +1778,6 @@ class Unit(Quantity):
     example the name for ``pfarad/mmetre**2`` is ``"pF/mm^2"``, etc. If you
     don't like the automatically generated name, use the
     `Unit.set_display_name` method.
-
-    Attributes
-    ----------
-    dim
-    scale
-    scalefactor
-    dispname
-    name
-    iscompound
-
-    Methods
-    -------
-    create
-    create_scaled_unit
-    set_name
-    set_display_name
-
     '''
     __slots__ = ["dim", "scale", "scalefactor", "_dispname", "_name",
                  "_latexname", "iscompound"]

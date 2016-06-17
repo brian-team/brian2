@@ -189,7 +189,7 @@ class SpatialNeuron(NeuronGroup):
     events : dict, optional
         User-defined events in addition to the "spike" event defined by the
         ``threshold``. Has to be a mapping of strings (the event name) to
-         strings (the condition) that will be checked.
+        strings (the condition) that will be checked.
     refractory : {str, `Quantity`}, optional
         Either the length of the refractory period (e.g. ``2*ms``), a string
         expression that evaluates to the length of the refractory period

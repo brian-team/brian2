@@ -508,7 +508,7 @@ class VariableOwner(Nameable):
 
         Returns
         -------
-        values
+        values : dict or specified format
             The variables specified in ``vars``, in the specified ``format``.
 
         '''

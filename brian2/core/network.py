@@ -490,7 +490,7 @@ class Network(Nameable):
 
         Returns
         -------
-        values
+        values : dict
             A dictionary mapping object names to the state variables of that
             object, in the specified ``format``.
 
