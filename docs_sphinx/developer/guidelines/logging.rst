@@ -3,7 +3,7 @@
 Logging
 =======
 
-For a description of logging from the users point of view, see :doc:`../advanced/logging`.
+For a description of logging from the users point of view, see :doc:`../../advanced/logging`.
 
 Logging in Brian is based on the :mod:`logging` module in Python's standard
 library.
