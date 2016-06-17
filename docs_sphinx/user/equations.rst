@@ -150,11 +150,11 @@ Equation objects
 	>>> eqs1 = membrane_eqs + Equations('''I = sin(2*pi*freq*t) : volt
 	...                                    freq : Hz''')
 	>>> eqs2 = membrane_eqs + Equations('''I : volt''')
-	>>> print eqs1
+	>>> print(eqs1)
 	I = sin(2*pi*freq*t)  : V
 	dv/dt = -(v + I)/ tau  : V
 	freq : Hz
-	>>> print eqs2
+	>>> print(eqs2)
 	dv/dt = -(v + I)/ tau  : V
 	I : V
 
@@ -165,9 +165,9 @@ Equation objects
 	>>> general_equation = 'dg/dt = -g / tau : siemens'
 	>>> eqs_exc = Equations(general_equation, g='g_e', tau='tau_e')
 	>>> eqs_inh = Equations(general_equation, g='g_i', tau='tau_i')
-	>>> print eqs_exc
+	>>> print(eqs_exc)
 	dg_e/dt = -g_e / tau_e  : S
-	>>> print eqs_inh
+	>>> print(eqs_inh)
 	dg_i/dt = -g_i / tau_i  : S
 
 **Inserting values**
@@ -175,7 +175,7 @@ Equation objects
 .. doctest::
 
 	>>> eqs = Equations('dv/dt = mu/tau + sigma/tau**.5*xi : volt',
-	                    mu = -65*mV, sigma=3*mV, tau=10*ms)
-	>>> print eqs
-	dv/dt = (-0.065 * volt)/(10.0 * msecond) + (3.0 * mvolt)/(10.0 * msecond)**.5*xi  : V
+	...                  mu=-65*mV, sigma=3*mV, tau=10*ms)
+	>>> print(eqs)
+	dv/dt = (-65. * mvolt)/(10. * msecond) + (3. * mvolt)/(10. * msecond)**.5*xi  : V
 

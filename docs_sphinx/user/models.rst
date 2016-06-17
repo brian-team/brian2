@@ -87,16 +87,16 @@ analysing data with external tools), use an underscore after the name:
 .. doctest::
 
     >>> G = NeuronGroup(10, '''dv/dt = (-v + shared_input)/tau : volt
-                               shared_input : volt (shared)
+    ...                        shared_input : volt (shared)
     ...                        tau : second''')
     >>> G.v = -70*mV
-    >>> print G.v
+    >>> G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
-    >>> print G.v_  # values without units
+    >>> G.v_  # values without units
     <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
     >>> G.shared_input = 5*mV
-    >>> print G.shared_input
-    <neurongroup.shared_input: 5.0 * mvolt>
+    >>> G.shared_input
+    <neurongroup.shared_input: 5. * mvolt>
 
 The value of state variables can also be set using string expressions that can
 refer to units and external variables, other state variables, mathematical
@@ -104,19 +104,17 @@ functions, and a special variable ``i``, the index of the neuron:
 
 .. doctest::
 
-    >>> G.tau = '5*ms + 5*ms*rand() + i*5*ms'
-    >>> print G.tau
-    <neurongroup.tau: array([  5.03593449,  10.74914808,  19.01641896,  21.66813281,
-            27.16243388,  31.13571924,  36.28173038,  40.04921519,
-            47.28797921,  50.18913711]) * msecond>
+    >>> G.tau = '5*ms + (1.0*i/N)*5*ms'
+    >>> G.tau
+    <neurongroup.tau: array([ 5. ,  5.5,  6. ,  6.5,  7. ,  7.5,  8. ,  8.5,  9. ,  9.5]) * msecond>
 
 For shared variables, such string expressions can only refer to shared values:
 
 .. doctest::
 
-    >>> G.shared_input = 'rand()*mV + 4*mV'
-    >>> print G.shared_input
-    <neurongroup.shared_input: 4.2579690100000001 * mvolt>
+    >>> G.shared_input = '(4.0/N)*mV'
+    >>> G.shared_input
+    <neurongroup.shared_input: 0.4 * mvolt>
 
 Sometimes it can be convenient to access multiple state variables at once, e.g.
 to set initial values from a dictionary of values or to store all the values of
@@ -137,8 +135,6 @@ a group on disk. This can be done with the `VariableOwner.get_states` and
     >>> states = group.get_states()
     >>> states['v']
     array([ 0.,  1.,  2.,  3.,  4.])
-    >>> sorted(states.keys())
-    ['N', 'dt', 'i', 't', 'tau', 'v']
 
 The data (without physical units) can also be exported/imported to/from
 `Pandas <http://pandas.pydata.org/>`_ data frames (needs an installation of ``pandas``)::
