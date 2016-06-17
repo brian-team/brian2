@@ -311,6 +311,9 @@ intersphinx_mapping = {
 
 autodoc_default_flags = ['show-inheritance']
 
+doctest_global_setup = 'from brian2 import *'
+highlight_language = 'python'  # instead of python3 (default for sphinx>=1.4)
+
 # Configure linking to github
 issuetracker = 'github'
 issuetracker_project = 'brian-team/brian2'
