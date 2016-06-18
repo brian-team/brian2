@@ -1029,8 +1029,9 @@ class CPPStandaloneDevice(Device):
         # running order, assuming that there is only one clock
         code_objects = []
         for obj in net.objects:
-            for codeobj in obj._code_objects:
-                code_objects.append((obj.clock, codeobj))
+            if obj.active:
+                for codeobj in obj._code_objects:
+                    code_objects.append((obj.clock, codeobj))
 
         # Code for a progress reporting function
         standard_code = '''

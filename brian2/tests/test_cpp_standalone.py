@@ -401,6 +401,28 @@ def test_array_cache(with_output=False):
     reset_device()
 
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_active_flag_standalone(with_output=True):
+    set_device('cpp_standalone', build_on_run=False)
+
+    G = NeuronGroup(1, 'dv/dt = 1/ms : 1')
+    mon = StateMonitor(G, 'v', record=0)
+    mon.active = False
+    run(1*ms)
+    mon.active = True
+    G.active = False
+    run(1*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir)
+    # Monitor should start recording at 1ms
+    # Neurongroup should not integrate after 1ms (but should have integrated before)
+    assert_allclose(mon[0].t[0], 1*ms)
+    assert_allclose(mon[0].v, 1.0)
+
+
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
     # via nose test
@@ -414,7 +436,8 @@ if __name__=='__main__':
              test_duplicate_names_across_nets,
              test_openmp_scalar_writes,
              test_time_after_run,
-             test_array_cache
+             test_array_cache,
+             test_active_flag_standalone
              ]:
         t(with_output=True)
         reinit_devices()
