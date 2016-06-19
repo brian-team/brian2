@@ -8,9 +8,11 @@
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
+    print "Not ref is starting to be"
+    print "{{not_refractory}}"
 
     #@jit
-    def _threshold({{subroutine_parameters}}, not_refractory=None, lastspike=None, t=None):
+    def _threshold({{subroutine_parameters}}):
         _cpp_numevents = 0
 
         for _idx in range(N):
@@ -23,26 +25,18 @@
                 {{_eventspace}}[_cpp_numevents] = _idx
                 _cpp_numevents += 1
                 {% if _uses_refractory %}
-                not_refractory[_idx] = False
-                lastspike[_idx] = t
+                {{not_refractory}}[_idx] = False
+                {{lastspike}}[_idx] = {{t}}
                 {% endif %}
                 
         {{_eventspace}}[N] = _cpp_numevents
 
-        {% if _uses_refractory %}
-        return {{subroutine_parameters}}, not_refractory, lastspike, t
-        {% else %}
         return {{subroutine_parameters}}
-        {% endif %}
 
     # scalar code
     _vectorisation_idx = 1;
     {{ scalar_code | autoindent }}
 
-    {% if _uses_refractory %}
-    {{subroutine_parameters}}, {{not_refractory}}, {{lastspike}}, {{t}} = _threshold({{subroutine_arguments}},not_refractory={{not_refractory}}, lastspike={{lastspike}}, t={{t}})
-    {% else %}
     {{subroutine_parameters}} = _threshold({{subroutine_arguments}})
-    {% endif %}
     
 {% endblock %}
