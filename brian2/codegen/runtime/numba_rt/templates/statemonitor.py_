@@ -22,12 +22,7 @@
     def _statemonitor_{{varname}}(_record_data_{{varname}}, {{subroutine_parameters}}):
         for _i in range(_num{{_indices}}):
             # vector code
-            print "Indices is"
-            print {{_indices}}
             _idx = {{_indices}}[_i]
-            print "_array_neurongroup_v is"
-            print _array_neurongroup_v
-            print _record_data_v
             _vectorisation_idx = _idx
             {{ vector_code | autoindent }}
             _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
