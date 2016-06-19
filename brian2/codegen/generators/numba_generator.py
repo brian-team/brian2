@@ -222,6 +222,8 @@ class NumbaCodeGenerator(CodeGenerator):
         load_namespace = []
         arguments_to_pass = []
         pass_to_subroutine = []
+        subroutine_arguments = []
+        subroutine_parameters = []
         support_code = []
         handled_pointers = set()
         user_functions = []
@@ -243,7 +245,7 @@ class NumbaCodeGenerator(CodeGenerator):
                 line = '{varname} = _namespace["{varname}"]'.format(varname=varname)
                 load_namespace.append(line)
                 arguments_to_pass.append(line)
-                pass_to_subroutine.append(line)
+                #pass_to_subroutine.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
@@ -263,14 +265,20 @@ class NumbaCodeGenerator(CodeGenerator):
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 if get_dtype_str(var.dtype) == 'bool':
                     newlines = ["{array_name} = _namespace['{array_name}']"]
+                    pass_to_subroutine = ["{array_name} = {array_name}"]
                 else:
                     newlines = ["{array_name} = _namespace['{array_name}']"]
+                    pass_to_subroutine = ["{array_name} = {array_name}"]
 
                 if not var.scalar:
                     newlines += ["_num{array_name} = len(_namespace['{array_name}'])"]
+                    pass_to_subroutine += ["_num{array_name} = len({array_name})"]
+
 
                 if var.scalar and var.constant:
                     newlines += ['{varname} = _namespace["{varname}"]']
+                    pass_to_subroutine = ["{varname} = {varname}"]
+
                     
                 #else:
                 #    newlines += ["def {numba_dtype} {varname}"]
@@ -284,7 +292,19 @@ class NumbaCodeGenerator(CodeGenerator):
                                        )
                     load_namespace.append(line)
                     arguments_to_pass.append(line)
-                    pass_to_subroutine.append(line)
+                    #pass_to_subroutine.append(line)
+                    
+                for argument in pass_to_subroutine:
+                    argument = argument.format(numba_dtype=get_numba_dtype(var.dtype),
+                                               numpy_dtype=get_numpy_dtype(var.dtype),
+                                               pointer_name=pointer_name,
+                                               array_name=array_name,
+                                               varname=varname,
+                                               )
+                    subroutine_parameters.append(argument.split()[0])
+                    subroutine_arguments.append(argument)
+                    
+                                       
                 handled_pointers.add(pointer_name)
 
             elif isinstance(var, Function):
@@ -316,7 +336,9 @@ class NumbaCodeGenerator(CodeGenerator):
         #print "END NAMESPACE"
         #raise Exception
         return {'load_namespace': '\n'.join(load_namespace),
-                'pass_to_subroutine': ','.join(pass_to_subroutine),
+                #'pass_to_subroutine': ','.join(pass_to_subroutine),
+                'subroutine_parameters': ','.join(subroutine_parameters),
+                'subroutine_arguments': ','.join(subroutine_arguments),
                 'pass_arguments': ','.join(arguments_to_pass),
                 'load_arguments': ','.join(load_arguments),
                 'support_code': '\n'.join(support_code)}
