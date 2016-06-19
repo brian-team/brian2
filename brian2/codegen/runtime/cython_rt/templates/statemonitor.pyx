@@ -27,14 +27,10 @@
     cdef bool* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
     {% else %}
     cdef _numpy.ndarray[{{c_type}}, ndim=2, mode='c'] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
-    print "{{get_array_name(var, access_data=False)}}.data is"
-    print {{get_array_name(var, access_data=False)}}.data 
     cdef {{c_type}}* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
 
 
     {% endif %}
-    print '_numinidice is'
-    print _num{{_indices}}
         
     for _i in range(_num{{_indices}}):
         # vector code
@@ -42,6 +38,11 @@
         _vectorisation_idx = _idx
         
         {{ vector_code | autoindent }}
+
+        print"new len"
+        print _new_len-1
+        print "numindicies"
+        print _num{{_indices}}
 
         _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
     {% endfor %}
