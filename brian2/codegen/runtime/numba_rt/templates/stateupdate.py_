@@ -5,7 +5,7 @@
     {# USES_VARIABLES { N } #}
     {# ALLOWS_SCALAR_WRITE #}
 
-    @jit(nopython=True)
+    @jit
     def _stateupdate({{subroutine_parameters}}):
         for _idx in range(N):
             _vectorisation_idx = _idx
