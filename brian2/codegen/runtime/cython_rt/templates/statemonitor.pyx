@@ -27,6 +27,8 @@
     cdef bool* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
     {% else %}
     cdef _numpy.ndarray[{{c_type}}, ndim=2, mode='c'] _record_buf_{{varname}} = {{get_array_name(var, access_data=False)}}.data
+    print "{{get_array_name(var, access_data=False)}}.data is"
+    print {{get_array_name(var, access_data=False)}}.data 
     cdef {{c_type}}* _record_data_{{varname}} = <{{c_type}}*> _record_buf_{{varname}}.data
 
 
