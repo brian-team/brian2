@@ -5,13 +5,17 @@
     {# USES_VARIABLES { N } #}
     {# ALLOWS_SCALAR_WRITE #}
 
+    @jit(nopython=True)
+    def _stateupdate({{pass_to_subroutine}}):
+        for _idx in range(N):
+            _vectorisation_idx = _idx
+            {{vector_code|autoindent}}
+
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
     
     # vector code
-    for _idx in range(N):
-        _vectorisation_idx = _idx
-        {{vector_code|autoindent}}
+    _stateupdate({{pass_to_subroutine}})    
 
 {% endblock %}
