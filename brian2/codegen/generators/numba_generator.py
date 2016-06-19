@@ -220,8 +220,8 @@ class NumbaCodeGenerator(CodeGenerator):
         device = get_device()
         # load variables from namespace
         load_namespace = []
-        arguments_to_pass = []
         pass_to_subroutine = []
+        subroutine_types = []
         subroutine_arguments = []
         subroutine_parameters = []
         support_code = []
@@ -230,7 +230,7 @@ class NumbaCodeGenerator(CodeGenerator):
         for varname, var in self.variables.items():
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
-                arguments_to_pass.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
+
             if isinstance(var, AuxiliaryVariable):
                 pass
 #                line = "{varname}".format(
@@ -244,17 +244,12 @@ class NumbaCodeGenerator(CodeGenerator):
                 dtype_name = get_numba_dtype(var.value)
                 line = '{varname} = _namespace["{varname}"]'.format(varname=varname)
                 load_namespace.append(line)
-                arguments_to_pass.append(line)
                 #pass_to_subroutine.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
                                                                            
-                    arguments_to_pass.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
-                                                                           self.get_array_name(var, False)))
-                    #pass_to_subroutine.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
-                   #                                                        self.get_array_name(var, False)))                                                       
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -291,7 +286,6 @@ class NumbaCodeGenerator(CodeGenerator):
                                        varname=varname,
                                        )
                     load_namespace.append(line)
-                    arguments_to_pass.append(line)
                     #pass_to_subroutine.append(line)
                     
                 for argument in pass_to_subroutine:
@@ -301,6 +295,7 @@ class NumbaCodeGenerator(CodeGenerator):
                                                array_name=array_name,
                                                varname=varname,
                                                )
+                    subroutine_types.append(get_numba_dtype(var.dtype))
                     subroutine_parameters.append(argument.split()[0])
                     subroutine_arguments.append(argument)
                     
@@ -311,13 +306,11 @@ class NumbaCodeGenerator(CodeGenerator):
                 sc, ln, uf = self._add_user_function(varname, var)
                 support_code.extend(sc)
                 load_namespace.extend(ln)
-                arguments_to_pass.extend(ln)
                 user_functions.extend(uf)
             else:
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
-                arguments_to_pass.append('{0} = _namespace["{1}"]'.format(varname, varname))
-        load_arguments = [assignments.split()[0] for assignments in arguments_to_pass]
+
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
         for funcname, func in user_functions:
@@ -336,11 +329,9 @@ class NumbaCodeGenerator(CodeGenerator):
         #print "END NAMESPACE"
         #raise Exception
         return {'load_namespace': '\n'.join(load_namespace),
-                #'pass_to_subroutine': ','.join(pass_to_subroutine),
+                'subroutine_types': ','.join(subroutine_types),
                 'subroutine_parameters': ','.join(subroutine_parameters),
                 'subroutine_arguments': ','.join(subroutine_arguments),
-                'pass_arguments': ','.join(arguments_to_pass),
-                'load_arguments': ','.join(load_arguments),
                 'support_code': '\n'.join(support_code)}
 
 ###############################################################################
