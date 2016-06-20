@@ -9,7 +9,9 @@ Running the test suite
 ----------------------
 The nosetests tool automatically finds tests in the code. When brian2 is in your
 Python path or when you are in the main brian2 directory, you can start the test
-suite with::
+suite with:
+
+.. code-block:: bash
 
 	$ nosetests brian2 --with-doctest
 
@@ -50,10 +52,12 @@ Checking the code coverage
 To check the code coverage under Linux (with coverage and nosetests in your
 path) and generate a report, use the following commands (this assumes the
 source code of Brian with the file ``.coveragerc`` in the directory
-/path/to/brian)::
+/path/to/brian):
 
-	$ coverage run --rcfile=/path/to/brian/.coveragerc $(which nosetests) --with-doctest brian2
-	$ coverage report
+.. code-block:: bash
+
+    $ coverage run --rcfile=/path/to/brian/.coveragerc $(which nosetests) --with-doctest brian2
+    $ coverage report
 
 Using ``coverage html`` you can also generate a HTML report which will end up
 in the directory ``htmlcov``.
