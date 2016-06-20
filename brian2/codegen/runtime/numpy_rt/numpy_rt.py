@@ -1,8 +1,11 @@
 '''
 Module providing `NumpyCodeObject`.
 '''
+import sys
+
 import numpy as np
 
+from brian2.core.base import brian_object_exception
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
@@ -114,7 +117,17 @@ class NumpyCodeObject(CodeObject):
         self.compiled_code = compile(self.code, '(string)', 'exec')
 
     def run(self):
-        exec self.compiled_code in self.namespace
+        try:
+            exec self.compiled_code in self.namespace
+        except Exception as exc:
+            message = ('An exception occured during the execution of code '
+                       'object {}.\n').format(self.name)
+            lines = self.code.split('\n')
+            message += 'The error was raised in the following line:\n'
+            _, _, tb = sys.exc_info()
+            tb = tb.tb_next  # Line in the code object's code
+            message += lines[tb.tb_lineno - 1] + '\n'
+            raise brian_object_exception(message, self.owner, exc)
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
