@@ -295,7 +295,10 @@ def test_parse_expression_unit():
         (volt, 'sqrt(randn()*b**2)'),
         (1, 'sin(b/b)'),
         (DimensionMismatchError, 'sin(b)'),
-        (DimensionMismatchError, 'sqrt(b) + b')
+        (DimensionMismatchError, 'sqrt(b) + b'),
+        (SyntaxError, 'sqrt(b, b)'),
+        (SyntaxError, 'sqrt()'),
+        (SyntaxError, 'int(1, 2)'),
         ]
     for expect, expr in EE:
         all_variables = {}
@@ -305,8 +308,8 @@ def test_parse_expression_unit():
             else:
                 all_variables[name] = group._resolve(name, {})
 
-        if expect is DimensionMismatchError:
-            assert_raises(DimensionMismatchError, parse_expression_unit, expr,
+        if isinstance(expect, type) and issubclass(expect, Exception):
+            assert_raises(expect, parse_expression_unit, expr,
                           all_variables)
         else:
             u = parse_expression_unit(expr, all_variables)

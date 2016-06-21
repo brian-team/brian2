@@ -261,6 +261,11 @@ def parse_expression_unit(expr, variables):
             raise ValueError(('Function %s does not specify how it '
                               'deals with units.') % expr.func.id)
 
+        if len(func._arg_units) != len(arg_units):
+            raise SyntaxError('Function %s was called with %d parameters, '
+                              'needs %d.' % (expr.func.id,
+                                             len(arg_units),
+                                             len(func._arg_units)))
         for idx, arg_unit in enumerate(arg_units):
             # A "None" in func._arg_units means: No matter what unit
             if (func._arg_units[idx] is not None and
