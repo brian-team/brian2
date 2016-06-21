@@ -4,6 +4,7 @@ AST parsing based analysis of expressions
 
 import ast
 
+from brian2.core.functions import Function
 from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            DimensionMismatchError,
                                            have_same_dimensions,
@@ -217,6 +218,11 @@ def parse_expression_unit(expr, variables):
             raise ValueError('Do not know how to handle value %s' % value)
     if expr.__class__ is ast.Name:
         name = expr.id
+        # Raise an error if a function is called as if it were a variable
+        # (most of the time this happens for a TimedArray)
+        if name in variables and isinstance(variables[name], Function):
+            raise SyntaxError('%s was used like a variable/constant, but it is '
+                              'a function.' % name)
         if name in variables:
             return variables[name].unit
         elif name in ['True', 'False']:
