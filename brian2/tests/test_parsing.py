@@ -295,7 +295,10 @@ def test_parse_expression_unit():
         (volt, 'sqrt(randn()*b**2)'),
         (1, 'sin(b/b)'),
         (DimensionMismatchError, 'sin(b)'),
-        (DimensionMismatchError, 'sqrt(b) + b')
+        (DimensionMismatchError, 'sqrt(b) + b'),
+        (SyntaxError, 'sqrt(b, b)'),
+        (SyntaxError, 'sqrt()'),
+        (SyntaxError, 'int(1, 2)'),
         ]
     for expect, expr in EE:
         all_variables = {}
@@ -305,8 +308,8 @@ def test_parse_expression_unit():
             else:
                 all_variables[name] = group._resolve(name, {})
 
-        if expect is DimensionMismatchError:
-            assert_raises(DimensionMismatchError, parse_expression_unit, expr,
+        if isinstance(expect, type) and issubclass(expect, Exception):
+            assert_raises(expect, parse_expression_unit, expr,
                           all_variables)
         else:
             u = parse_expression_unit(expr, all_variables)
@@ -441,11 +444,30 @@ def test_sympytools():
         expr2 = sympy_to_str(str_to_sympy(expr))
         assert expr.replace(' ', '') == expr2.replace(' ', ''), '%s != %s' % (expr, expr2)
 
+@attr('codegen-independent')
+def test_error_messages():
+    nr = NodeRenderer()
+    expr_expected = [('3^2', '^', '**'),
+                     ('int(not_refractory | (v > 30))', '|', 'or'),
+                     ('int((v > 30) & (w < 20))', '&', 'and')]
+    for expr, expected_1, expected_2 in expr_expected:
+        try:
+            nr.render_expr(expr)
+            raise AssertionError('Excepted {} to raise a '
+                                 'SyntaxError.'.format(expr))
+        except SyntaxError as exc:
+            message = str(exc)
+            assert expected_1 in message
+            assert expected_2 in message
+
 
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
-    test_parse_expressions_cpp()
+    try:
+        test_parse_expressions_cpp()
+    except SkipTest:
+        pass
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
     test_is_boolean_expression()
@@ -455,3 +477,4 @@ if __name__=='__main__':
     test_extract_abstract_code_functions()
     test_substitute_abstract_code_functions()
     test_sympytools()
+    test_error_messages()
