@@ -200,7 +200,7 @@ class Indexing(object):
         self.N = group.variables['N']
         self.default_index = default_index
 
-    def __call__(self, item=None, index_var=None):
+    def __call__(self, item=slice(None), index_var=None):
         '''
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -230,7 +230,7 @@ class Indexing(object):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
-            if item is None or (isinstance(item, basestring) and item == 'True'):
+            if isinstance(item, basestring) and item == 'True':
                 item = slice(None)
             if isinstance(item, slice):
                 if index_var == '0':
