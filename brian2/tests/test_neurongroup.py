@@ -1120,6 +1120,14 @@ def test_indices():
     assert_equal(G.indices[5:], G.indices['i >= ext_var'])
     assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
+    # We should not accept "None" as an index, because in numpy this stands for
+    # "new axis". In fact, x[0, None] is used in matplotlib to check whether
+    # something behaves as a numpy array -- if NeuronGroup accepts None as an
+    # index, then synaptic variables will allow indexing in such a way. This
+    # makes plotting in matplotlib 1.5.1 fail with a non-obivous error
+    # See https://groups.google.com/d/msg/briansupport/yRA4PHKAvN8/cClOEUlOAQAJ
+    assert_raises(TypeError, G.indices.__getitem__, None)
+
 
 @attr('codegen-independent')
 def test_get_dtype():
@@ -1427,4 +1435,3 @@ if __name__ == '__main__':
     test_random_values_fixed_seed()
     test_random_values_fixed_and_random()
     test_no_code()
-

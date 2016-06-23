@@ -115,7 +115,7 @@ for _i in _backward:
 {% endif %}
 
 # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
-children_rowlength = len({{_morph_children}})/len({{_morph_children_num}})
+children_rowlength = len({{_morph_children}})//len({{_morph_children_num}})
 
 # Construct the coupling system with matrix _P in sparse form. s.t.
 # _P_diag contains the diagonal elements
