@@ -41,6 +41,28 @@ function when creating the `Network` object in that case::
     net = Network(collect())  # automatically include G and S
     net.add(monitors)  # manually add the monitors
 
+.. _time_steps:
+
+Setting the simulation time step
+--------------------------------
+
+To set the simulation time step for every simulated object, set the ``dt`` attribute of the `defaultclock` which is used
+by all objects that do not explicitly specify a ``clock`` or ``dt`` value during construction::
+
+    defaultclock.dt = 0.05*ms
+
+If some objects should use a different clock (e.g. to record values with a `StateMonitor` not at every time step in a
+long running simulation), you can provide a ``dt`` argument to the respective object::
+
+    s_mon = StateMonitor(group, 'v', record=True, dt=1*ms)
+
+To sum up:
+
+* Set ``defaultclock.dt`` to the time step that should be used by most (or all) of your objects.
+* Set ``dt`` explicitly when creating objects that should use a different time step.
+
+Behind the scenes, a new `Clock` object will be created for each object that defines its own ``dt`` value.
+
 .. _progress_reporting:
 
 Progress reporting
@@ -152,6 +174,24 @@ added to a network at a later stage), use an explicit `Network` object.
 In these checks, "non-invalidating" objects (i.e. objects that have
 `BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
 creating new monitors is always possible.
+
+Changing the simulation time step
+---------------------------------
+You can change the simulation time step after objects have been created or even after a simulation has been run::
+
+    defaultclock.dt = 0.1*ms
+    # Set the network
+    # ...
+    run(initial_time)
+    defaultclock.dt = 0.01*ms
+    run(full_time - initial_time)
+
+To change the time step between runs for objects that do not use the `defaultclock`, you cannot directly change their
+``dt`` attribute (which is read-only) but instead you have to change the ``dt`` of the ``clock`` attribute. If you want
+to change the ``dt`` value of several objects at the same time (but not for all of them, i.e. when you cannot use
+``defaultclock.dt``) then you might consider creating a `Clock` object explicitly and then passing this clock to each
+object with the ``clock`` keyword argument (instead of ``dt``). This way, you can later change the ``dt`` for several
+objects at once by assigning a new value to `Clock.dt`.
 
 .. _profiling:
 
