@@ -106,6 +106,8 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'conda install --yes --quiet -c brian-team py-cpuinfo'
+  # For faster tests, only build conda packages for the master branch or pull requests
+  - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set CONDA_BUILD=FALSE'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
