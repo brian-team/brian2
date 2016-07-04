@@ -166,3 +166,47 @@ class Expression(CodeString):
             raise AssertionError('Cyclical call of CodeString._repr_pretty')
         # Make use of sympy's pretty printing
         p.pretty(str_to_sympy(self.code))
+
+
+def is_constant_over_dt(expression, variables, dt_value):
+    '''
+    Check whether an expression can be considered as constant over a time step.
+    This is *not* the case when the expression either:
+
+    1. contains the variable ``t`` (except as the argument of a function that
+    can be considered as constant over a time step, e.g. a `TimedArray` with a
+    dt equal to or greater than the dt used to evaluate this expression)
+    2. refers to a stateful function such as ``rand()``.
+
+    Parameters
+    ----------
+    expression : `sympy.Expr`
+        The (sympy) expression to analyze
+    variables : dict
+        The variables dictionary.
+    dt_value : float or None
+        The length of a timestep (without units), can be ``None`` if the
+        time step is not yet known.
+
+    Returns
+    -------
+    is_constant : bool
+        Whether the expression can be considered to be constant over a time
+        step.
+    '''
+    t_symbol = sympy.Symbol('t', real=True, positive=True)
+    func_name = str(expression.func)
+    func_variable = variables.get(func_name, None)
+    if func_variable is not None and not func_variable.stateless:
+        return False
+    for arg in expression.args:
+        if arg is t_symbol and dt_value is not None:
+            # We found "t" -- if it is not the only argument of a locally
+            # constant function we bail out
+            if not (func_variable is not None and
+                        func_variable.is_locally_constant(dt_value)):
+                return False
+        else:
+            if not is_constant_over_dt(arg, variables, dt_value):
+                return False
+    return True

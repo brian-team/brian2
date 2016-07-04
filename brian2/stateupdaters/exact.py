@@ -3,13 +3,14 @@ Exact integration for linear equations.
 '''
 import itertools
 
-from sympy import Wild, Symbol
 import sympy as sp
+from sympy import Wild, Symbol
 
+from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.utils.logger import get_logger
 from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
+from brian2.utils.logger import get_logger
 
 __all__ = ['linear', 'independent']
 
@@ -142,25 +143,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         return '\n'.join(code)
 
 
-def _check_for_locally_constant(expression, variables, dt_value, t_symbol):
-
-    for arg in expression.args:
-        if arg is t_symbol:
-            # We found "t" -- if it is not the only argument of a locally
-            # constant function we bail out
-            func_name = str(expression.func)
-            if not (func_name in variables and
-                        variables[func_name].is_locally_constant(dt_value)):
-                raise UnsupportedEquationsException(('t is used in a context '
-                                                     'where we cannot '
-                                                     'guarantee that it can be '
-                                                     'considered locally '
-                                                     'constant.'))
-        else:
-            _check_for_locally_constant(arg, variables, dt_value, t_symbol)
-
-
-class LinearStateUpdater(StateUpdateMethod):    
+class LinearStateUpdater(StateUpdateMethod):
     '''
     A state updater for linear equations. Derives a state updater step from the
     analytical solution given by sympy. Uses the matrix exponential (which is
@@ -189,14 +172,15 @@ class LinearStateUpdater(StateUpdateMethod):
         t = Symbol('t', real=True, positive=True)
 
         # Check for time dependence
-        if 'dt' in variables:
-            dt_value = variables['dt'].get_value()[0]
+        dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None
 
-            # This will raise an error if we meet the symbol "t" anywhere
-            # except as an argument of a locally constant function
-            t = Symbol('t', real=True, positive=True)
-            for entry in itertools.chain(matrix, constants):
-                _check_for_locally_constant(entry, variables, dt_value, t)
+        # This will raise an error if we meet the symbol "t" anywhere
+        # except as an argument of a locally constant function
+        for entry in itertools.chain(matrix, constants):
+            if not is_constant_over_dt(entry, variables, dt_value):
+                raise UnsupportedEquationsException(
+                    ('Expression "{}" is not guaranteed to be constant over a '
+                     'time step').format(sympy_to_str(entry)))
 
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)

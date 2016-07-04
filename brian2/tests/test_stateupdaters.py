@@ -631,6 +631,12 @@ def test_locally_constant_check():
     net = Network(G)
     assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
+    # Stateful functions aren't either
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
+                    method='linear')
+    net = Network(G)
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='linear')
     net = Network(G)
