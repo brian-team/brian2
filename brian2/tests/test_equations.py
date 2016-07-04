@@ -28,7 +28,8 @@ from brian2.equations.equations import (check_identifier_basic,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, FLOAT, BOOLEAN, INTEGER,
-                                        EquationError)
+                                        EquationError,
+                                        extract_constant_subexpressions)
 from brian2.equations.refractory import check_identifier_refractory
 from brian2.groups.group import Group
 
@@ -412,6 +413,21 @@ def test_concatenation():
 
 
 @attr('codegen-independent')
+def test_extract_subexpressions():
+    eqs = Equations('''dv/dt = -v / (10*ms) : 1
+                       s1 = 2*v : 1
+                       s2 = v**2 : 1 (variable over dt)
+                       s3 = -v : 1 (constant over dt)
+                    ''')
+    variable, constant = extract_constant_subexpressions(eqs)
+    assert [var in variable for var in ['v', 's1', 's2', 's3']]
+    assert variable['s1'].type == SUBEXPRESSION
+    assert variable['s2'].type == SUBEXPRESSION
+    assert variable['s3'].type == PARAMETER
+    assert constant['s3'].type == SUBEXPRESSION
+
+
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
@@ -455,4 +471,5 @@ if __name__ == '__main__':
     test_concatenation()
     test_unit_checking()
     test_properties()
+    test_extract_subexpressions()
     test_str_repr()

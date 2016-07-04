@@ -13,7 +13,8 @@ from brian2.core.variables import (Variables, LinkedVariable,
                                    DynamicArrayVariable, Subexpression)
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         SUBEXPRESSION, PARAMETER,
-                                        SingleEquation, check_subexpressions)
+                                        check_subexpressions,
+                                        extract_constant_subexpressions)
 from brian2.equations.refractory import add_refractoriness
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
@@ -73,28 +74,6 @@ def _guess_membrane_potential(equations):
 
     # nothing found
     return None
-
-
-def extract_constant_subexpressions(eqs):
-    without_const_subexpressions = []
-    const_subexpressions = []
-    for eq in eqs.itervalues():
-        if eq.type == SUBEXPRESSION and 'constant over dt' in eq.flags:
-            if 'shared' in eq.flags:
-                flags = ['shared']
-            else:
-                flags = None
-            without_const_subexpressions.append(SingleEquation(PARAMETER,
-                                                               eq.varname,
-                                                               eq.unit,
-                                                               var_type=eq.var_type,
-                                                               flags=flags))
-            const_subexpressions.append(eq)
-        else:
-            without_const_subexpressions.append(eq)
-
-    return (Equations(without_const_subexpressions),
-            Equations(const_subexpressions))
 
 
 class StateUpdater(CodeRunner):

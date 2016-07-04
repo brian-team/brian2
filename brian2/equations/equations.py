@@ -1001,3 +1001,25 @@ def check_subexpressions(group, equations, run_namespace):
                                   "this expression by adding the 'constant "
                                   "over dt' or 'variable over dt' "
                                   "flag.".format(eq.varname))
+
+
+def extract_constant_subexpressions(eqs):
+    without_const_subexpressions = []
+    const_subexpressions = []
+    for eq in eqs.itervalues():
+        if eq.type == SUBEXPRESSION and 'constant over dt' in eq.flags:
+            if 'shared' in eq.flags:
+                flags = ['shared']
+            else:
+                flags = None
+            without_const_subexpressions.append(SingleEquation(PARAMETER,
+                                                               eq.varname,
+                                                               eq.unit,
+                                                               var_type=eq.var_type,
+                                                               flags=flags))
+            const_subexpressions.append(eq)
+        else:
+            without_const_subexpressions.append(eq)
+
+    return (Equations(without_const_subexpressions),
+            Equations(const_subexpressions))

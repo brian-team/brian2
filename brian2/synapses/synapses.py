@@ -19,7 +19,8 @@ from brian2.devices.device import get_device, RuntimeDevice
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, INTEGER,
-                                        check_subexpressions)
+                                        check_subexpressions,
+                                        extract_constant_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater)
