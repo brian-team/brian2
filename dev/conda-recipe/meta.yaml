@@ -61,6 +61,12 @@ test:
   requires:
     - nose
 
+source:
+  path: ../..
+
+build:
+  script: python setup.py install --with-cython --fail-on-error --single-version-externally-managed --record=record.txt
+
 about:
   home: http://www.briansimulator.org/
   license: CeCILL-2.1
