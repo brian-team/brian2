@@ -1087,6 +1087,32 @@ def test_scalar_subexpression():
     # A scalar subexpresion cannot refer to implicitly vectorized functions
     assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (shared)'))
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_constant_variable_subexpression():
+    G = NeuronGroup(10, '''dv1/dt = -v1**2 / (10*ms) : 1
+                           dv2/dt = -v_const**2 / (10*ms) : 1
+                           dv3/dt = -v_var**2 / (10*ms) : 1
+                           dv4/dt = -v_noflag**2 / (10*ms) : 1
+                           v_const = v2 : 1 (constant over dt)
+                           v_var = v3 : 1 (variable over dt)
+                           v_noflag = v4 : 1''',
+                    method='rk2')
+    G.v1 = '1.0*i/N'
+    G.v2 = '1.0*i/N'
+    G.v3 = '1.0*i/N'
+    G.v4 = '1.0*i/N'
+
+    run(10*ms)
+    # "variable over dt" subexpressions are directly inserted into the equation
+    assert_allclose(G.v3[:], G.v1[:])
+    assert_allclose(G.v4[:], G.v1[:])
+    # "constant over dt" subexpressions will keep a fixed value over the time
+    # step and therefore give a slightly different result for multi-step
+    # methods
+    assert np.sum((G.v2 - G.v1)**2) > 1e-10
+
+
 @attr('codegen-independent')
 def test_repr():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
@@ -1420,6 +1446,7 @@ if __name__ == '__main__':
     test_subexpression_with_constant()
     test_scalar_parameter_access()
     test_scalar_subexpression()
+    test_constant_variable_subexpression()
     test_indices()
     test_repr()
     test_ipython_html()

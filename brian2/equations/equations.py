@@ -76,7 +76,7 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
 UNIT = Word(string.ascii_letters + string.digits + '*/.- ').setResultsName('unit')
 
 # a single Flag (e.g. "const" or "event-driven")
-FLAG = Word(string.ascii_letters + '_- ')
+FLAG = Word(string.ascii_letters, string.ascii_letters + '_- ' + string.digits)
 
 # Flags are comma-separated and enclosed in parantheses: "(flag1, flag2)"
 FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +

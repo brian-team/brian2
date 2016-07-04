@@ -20,6 +20,8 @@ from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, INTEGER)
 from brian2.groups.group import Group, CodeRunner, get_dtype
+from brian2.groups.neurongroup import (extract_constant_subexpressions,
+                                       SubexpressionUpdater)
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
 from brian2.units.fundamentalunits import (Unit, Quantity,
@@ -671,8 +673,15 @@ class Synapses(Group):
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'clock-driven'],
-                           SUBEXPRESSION: ['summed', 'shared'],
-                           PARAMETER: ['constant', 'shared']})
+                           SUBEXPRESSION: ['summed', 'shared',
+                                           'constant over dt',
+                                           'variable over dt'],
+                           PARAMETER: ['constant', 'shared']},
+                          incompatible_flags=[('event-driven', 'clock-driven'),
+                                              ('constant over dt',
+                                               'variable over dt'),
+                                              ('variable over dt',
+                                               'summed')])
 
         # Add the lastupdate variable, needed for event-driven updates
         if 'lastupdate' in model._equations:
@@ -689,6 +698,10 @@ class Synapses(Group):
                                                                    multisynaptic_index,
                                                                    unit=Unit(1),
                                                                    var_type=INTEGER)
+
+        # Separate subexpressions depending whether they are considered to be
+        # constant over a time step or not
+        model, constant_over_dt = extract_constant_subexpressions(model)
 
         self._create_variables(model, user_dtype=dtype)
 
@@ -803,6 +816,13 @@ class Synapses(Group):
             self.state_updater = StateUpdater(self, method, clock=self.clock,
                                               order=order)
             self.contained_objects.append(self.state_updater)
+
+        #: Update the "constant over a time step" subexpressions
+        self.subexpression_updater = None
+        if len(constant_over_dt) > 0:
+            self.subexpression_updater = SubexpressionUpdater(self,
+                                                              constant_over_dt)
+            self.contained_objects.append(self.subexpression_updater)
 
         #: "Summed variable" mechanism -- sum over all synapses of a
         #: pre-/postsynaptic target
