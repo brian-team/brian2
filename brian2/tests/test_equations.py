@@ -264,6 +264,17 @@ def test_construction_errors():
     assert_raises(ValueError, lambda: eqs.check_flags({}))
     assert_raises(ValueError, lambda: eqs.check_flags({SUBEXPRESSION: ['flag']}))
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
+    eqs = Equations('dv/dt = -v / (5 * ms) : volt (flag1, flag2)')
+    eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']})  # allow both flags
+    # Don't allow the two flags in combination
+    assert_raises(ValueError,
+                  lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
+                                          incompatible_flags=[('flag1', 'flag2')]))
+    eqs = Equations('''dv/dt = -v / (5 * ms) : volt (flag1)
+                       dw/dt = -w / (5 * ms) : volt (flag2)''')
+    # They should be allowed when used independently
+    eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
+                    incompatible_flags=[('flag1', 'flag2')])
 
     # Circular subexpression
     assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1

@@ -871,28 +871,32 @@ class Equations(collections.Mapping):
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 
-
-    def check_flags(self, allowed_flags):
+    def check_flags(self, allowed_flags, incompatible_flags=None):
         '''
         Check the list of flags.
-        
+
         Parameters
         ----------
         allowed_flags : dict
              A dictionary mapping equation types (PARAMETER,
              DIFFERENTIAL_EQUATION, SUBEXPRESSION) to a list of strings (the
              allowed flags for that equation type)
-        
+        incompatible_flags : list of tuple
+            A list of flag combinations that are not allowed for the same
+            equation.
         Notes
         -----
         Not specifying allowed flags for an equation type is the same as
         specifying an empty list for it.
-        
+
         Raises
         ------
         ValueError
             If any flags are used that are not allowed.
         '''
+        if incompatible_flags is None:
+            incompatible_flags = []
+
         for eq in self.itervalues():
             for flag in eq.flags:
                 if not eq.type in allowed_flags or len(allowed_flags[eq.type]) == 0:
@@ -902,6 +906,16 @@ class Equations(collections.Mapping):
                                       'flag "%s", only the following flags '
                                       'are allowed: %s') % (eq.type,
                                                             flag, allowed_flags[eq.type]))
+                # Check for incompatibilities
+                for flag_combinations in incompatible_flags:
+                    if flag in flag_combinations:
+                        remaining_flags = set(flag_combinations) - set([flag])
+                        for remaining_flag in remaining_flags:
+                            if remaining_flag in eq.flags:
+                                raise ValueError("Flag '{}' cannot be "
+                                                 "combined with flag "
+                                                 "'{}'".format(flag,
+                                                               remaining_flag))
 
     ############################################################################
     # Representation
