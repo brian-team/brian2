@@ -69,5 +69,9 @@ build:
 
 about:
   home: http://www.briansimulator.org/
+  dev_url: https://github.com/brian-team/brian2
+  doc_url: http://brian2.readthedocs.io/
   license: CeCILL-2.1
+  license_family: Other
+  license_file: LICENSE
   summary: 'A clock-driven simulator for spiking neural networks'
