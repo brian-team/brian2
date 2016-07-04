@@ -7,26 +7,24 @@ import numpy as np
 import sympy
 from pyparsing import Word
 
-from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER,
-                                        SingleEquation)
-from brian2.equations.refractory import add_refractoriness
-from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
+from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import (Variables, LinkedVariable,
                                    DynamicArrayVariable, Subexpression)
-from brian2.core.spikesource import SpikeSource
+from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
+                                        SUBEXPRESSION, PARAMETER,
+                                        SingleEquation, check_subexpressions)
+from brian2.equations.refractory import add_refractoriness
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
-from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers
+from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            have_same_dimensions,
                                            DimensionMismatchError,
                                            fail_for_dimension_mismatch)
-
-
+from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
@@ -795,6 +793,11 @@ class NeuronGroup(Group, SpikeSource):
     def before_run(self, run_namespace=None):
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace)
+
+        # Check that subexpressions are clearly labeled if there is some
+        # ambiguity about whether they should be evaluated several times over
+        # a single time step
+        check_subexpressions(self, self.equations, run_namespace)
 
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

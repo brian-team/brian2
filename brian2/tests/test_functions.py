@@ -180,11 +180,13 @@ def test_simple_user_defined_function():
     def usersin(x):
         return np.sin(x)
 
+    usersin.stateless = True
+
     default_dt = defaultclock.dt
     test_array = np.array([0, 1, 2, 3])
     G = NeuronGroup(len(test_array),
                     '''func = usersin(variable) : 1
-                              variable : 1''',
+                       variable : 1''',
                     codeobj_class=NumpyCodeObject)
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)

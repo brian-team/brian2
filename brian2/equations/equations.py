@@ -15,6 +15,7 @@ from brian2.core.namespace import (DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS)
 from brian2.core.variables import Constant
 from brian2.core.functions import Function
+from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import (Unit, Quantity, have_same_dimensions,
                                            get_unit, DIMENSIONLESS,
@@ -969,3 +970,34 @@ class Equations(collections.Mapping):
         for eq in self._equations.itervalues():
             p.pretty(eq)
             p.breakable('\n')
+
+
+def check_subexpressions(group, equations, run_namespace):
+    for eq in equations.ordered:
+        if eq.type == SUBEXPRESSION:
+            # if the subexpression is explicit, we don't need to look further
+            # (note that all "constant over timestep" equations should no
+            # longer be in the list of equations given to this function, they
+            # have been pulled out previously -- we allow it here anyway)
+            if 'variable over dt' in eq.flags or 'constant over dt' in eq.flags:
+                continue
+            # Otherwise: let's check whether the expression is time-dependent
+            # or stateful
+            # Get all names used in the equations (and always get "dt")
+            names = eq.identifiers | {'dt'}
+
+            variables = group.resolve_all(names,
+                                          run_namespace,
+                                          # we don't need to raise any warnings
+                                          # for the user here, warnings will
+                                          # be raised in create_runner_codeobj
+                                          user_identifiers=set())
+            dt_value = variables['dt'].get_value()[0]
+            expression = str_to_sympy(eq.expr.code, variables=variables)
+            if not is_constant_over_dt(expression, variables, dt_value):
+                raise SyntaxError("The subexpression '{}' is time-dependent or "
+                                  "refers to a stateful function (e.g. "
+                                  "rand()). Make it explicit how to interpret "
+                                  "this expression by adding the 'constant "
+                                  "over dt' or 'variable over dt' "
+                                  "flag.".format(eq.varname))

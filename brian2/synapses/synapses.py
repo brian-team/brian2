@@ -18,7 +18,8 @@ from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.devices.device import get_device, RuntimeDevice
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER, INTEGER)
+                                        PARAMETER, INTEGER,
+                                        check_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater)
@@ -1105,6 +1106,12 @@ class Synapses(Group):
                             raise SyntaxError(('Shared subexpression %s refers '
                                                'to non-shared variable %s.')
                                               % (eq.varname, identifier))
+
+    def before_run(self, run_namespace):
+        # Check that subexpressions are clearly labeled if there is some
+        # ambiguity about whether they should be evaluated several times over
+        # a single time step
+        check_subexpressions(self, self.equations, run_namespace)
 
     def connect(self, condition=None, i=None, j=None, p=1., n=1,
                 skip_if_invalid=False,
