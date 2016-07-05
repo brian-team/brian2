@@ -133,10 +133,10 @@ using ``pip install cython`` or ``pip install weave``.
 
 On Linux and Mac OS X, you will most likely already have a working C++ compiler
 installed (try calling ``g++ --version`` in a terminal). If not, use your
-distribution's package manager to install a ``g++`` package, or install ``gcc``
-via Anaconda (``conda install gcc``).
+distribution's package manager to install a ``g++`` package.
 
-On Windows, the necessary steps depend on the Python version you are using:
+On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work
+depend on the Python version you are using:
 
 **Python 2.7**
 
@@ -149,7 +149,7 @@ This should be all you need.
 * Download and install the `Microsoft .NET Framework 4 <https://www.microsoft.com/en-us/download/details.aspx?id=17851>`_
 * Download and install the `Microsoft Windows SDK for Windows 7 and .NET Framework 4 <http://www.microsoft.com/en-in/download/details.aspx?id=8279>`_
 
-For 64 Bit Windows (and Python 3.4), you have to additionally set up your
+For 64 Bit Windows with Python 3.4, you have to additionally set up your
 environment correctly every time you run your Brian script (this is why we
 recommend against using this combination on Windows). To do this, run the
 following commands (assuming the default installation path) at the CMD prompt,
@@ -158,6 +158,15 @@ or put them in a batch file::
     setlocal EnableDelayedExpansion
     CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
     set DISTUTILS_USE_SDK=1
+
+**Python 3.5**
+
+* Download and install `Visual Studio Community 2015 <https://www.visualstudio.com/>`_. Do not chose the default
+  install but instead customize it, the only necessary option is "Programming Languages / Visual C++ / Common Tools for
+  Visual C++ 2015"
+
+For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio -- in this
+case, the Python version does not matter.
 
 Try running the test suite (see :ref:`testing_brian` below) after the
 installation to make sure everything is working as expected.

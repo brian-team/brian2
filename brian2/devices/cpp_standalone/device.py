@@ -775,13 +775,8 @@ class CPPStandaloneDevice(Device):
                     for version in xrange(16, 8, -1):
                         fname = msvc9compiler.find_vcvarsall(version)
                         if fname:
-                            if version==14 and num_threads>0:
-                                logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
-                                            "that version it is being ignored. We will use another version if "
-                                            "we find one, or you can switch OpenMP support off.", once=True)
-                            else:
-                                vcvars_loc = fname
-                                break
+                            vcvars_loc = fname
+                            break
                 if vcvars_loc == '':
                     raise IOError("Cannot find vcvarsall.bat on standard "
                                   "search path. Set the "

@@ -94,10 +94,7 @@ environment:
 
 install:
   # Add the paths
-  - 'set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%'
-  # Create a new environment with the exact Python version and activate it
-  - 'conda create --yes --quiet -n appveyor_test python=%PYTHON_VERSION%'
-  - 'activate appveyor_test'
+  - 'set PATH=%PYTHON%;%PYTHON%\Library\bin;%PYTHON%\Scripts;%PATH%'
 
   # Check that we have the expected version and architecture for Python
   - 'python --version'
@@ -106,6 +103,8 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'conda install --yes --quiet -c brian-team py-cpuinfo'
+  # For faster tests, only build conda packages for the master branch or pull requests
+  - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set CONDA_BUILD=FALSE'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
@@ -125,7 +124,6 @@ after_test:
           cd %SRC_DIR% &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst &&
-          deactivate &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
           %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.9 &&
           %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.10 &&

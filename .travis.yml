@@ -120,6 +120,10 @@ before_install:
 # command to install dependencies
 install:
   - conda update --yes conda
+  # For faster tests, only build conda packages for the master branch or pull requests
+  - if [[ $TRAVIS_PULL_REQUEST == 'false' ]] && [[ $TRAVIS_BRANCH != 'master' ]]; then
+       CONDA_BUILD='no';
+    fi
   - if [[ $CONDA_BUILD == 'yes' ]]; then
        conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
