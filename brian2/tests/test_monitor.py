@@ -182,6 +182,23 @@ def test_event_monitor_no_record():
     assert len(event_mon2.rate) == event_mon.num_events
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_spike_trains():
+    # An arbitrary combination of indices that has been shown to sort in an
+    # unstable way with quicksort and therefore lead to out-of-order values
+    # in the dictionary returned by spike_trains() of several neurons (see #725)
+    generator = SpikeGeneratorGroup(10,
+                                    [6, 1, 2, 4, 6, 9, 1, 4, 7, 8, 0, 6, 3, 6, 4, 8, 9, 2, 5, 3],
+                                    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]*ms,
+                                    dt=1*ms)
+    monitor = SpikeMonitor(generator)
+    run(19.1*ms)
+    trains = monitor.spike_trains()
+    for idx, spike_times in trains.iteritems():
+        assert all(np.diff(spike_times) > 0*ms), 'Spike times for neuron %d are not sorted' % idx
+
+
 def test_synapses_state_monitor():
     G = NeuronGroup(2, '')
     S = Synapses(G, G, 'w: siemens')
@@ -496,6 +513,7 @@ if __name__ == '__main__':
     test_spike_monitor_variables()
     test_event_monitor()
     test_event_monitor_no_record()
+    test_spike_trains()
     test_state_monitor()
     test_state_monitor_record_single_timestep()
     test_state_monitor_record_single_timestep_cpp_standalone()
