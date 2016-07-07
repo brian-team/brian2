@@ -3,7 +3,7 @@
 {% block template_support_code %}
 
 @jit(nopython=True)
-def _stateupdate(_lio_1, _lio_2, {{subroutine_parameters}}):
+def _stateupdate({{subroutine_parameters}}, {{scalar_code|join(',')}}):
     for _idx in range(N):
         _vectorisation_idx = _idx
         {{vector_code|autoindent}}
@@ -22,6 +22,6 @@ def _stateupdate(_lio_1, _lio_2, {{subroutine_parameters}}):
     
     # vector code
     # Need to handle {{scalar_code}} more intelligently than this
-    {{subroutine_parameters}} = _stateupdate(_lio_1=_lio_1, _lio_2=_lio_2, {{subroutine_arguments}})    
+    {{subroutine_parameters}} = _stateupdate({{subroutine_arguments}}, {{scalar_code|join(',')}})    
 
 {% endblock %}
