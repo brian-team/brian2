@@ -28,7 +28,7 @@ def test_cpp_standalone(with_output=False):
                     name='gp')
     G.V = '-i*mV'
     M = SpikeMonitor(G)
-    S = Synapses(G, G, 'w : volt', pre='V += w')
+    S = Synapses(G, G, 'w : volt', on_pre='V += w')
     S.connect('abs(i-j)<5 and i!=j')
     S.w = 0.5*mV
     S.delay = '0*ms'
@@ -76,8 +76,8 @@ def test_multiple_connects(with_output=False):
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
     S = Synapses(G, G, 'w:1')
-    S.connect([0], [0])
-    S.connect([1], [1])
+    S.connect(i=[0], j=[0])
+    S.connect(i=[1], j=[1])
     tempdir = tempfile.mkdtemp()
     if with_output:
         print tempdir
@@ -106,7 +106,8 @@ def test_storing_loading(with_output=False):
     S = Synapses(G, G, '''v_syn : volt
                           x_syn : 1
                           n_syn : integer
-                          b_syn : boolean''', connect='i==j')
+                          b_syn : boolean''')
+    S.connect(j='i')
     S.v_syn = v
     S.x_syn = x
     S.n_syn = n
@@ -185,12 +186,13 @@ def test_openmp_consistency(with_output=False):
                                      Apre  += dApre
                                      w      = w + Apost''',
                             post = '''Apost += dApost
-                                      w      = w + Apre''',
-                            connect=True)
+                                      w      = w + Apre''')
+        S.connect()
         
         S.w       = fac*connectivity.flatten()
 
-        T         = Synapses(Q, P, model = "w : 1", pre="g += w*mV", connect='i==j')
+        T         = Synapses(Q, P, model = "w : 1", on_pre="g += w*mV")
+        T.connect(j='i')
         T.w       = 10*fac
 
         spike_mon = SpikeMonitor(P)
@@ -338,7 +340,8 @@ def test_array_cache(with_output=False):
                            y : 1
                            z : 1 (shared)''',
                     threshold='v>1')
-    S = Synapses(G, G, 'weight: 1', pre='w += weight', connect='rand()<0.2')
+    S = Synapses(G, G, 'weight: 1', on_pre='w += weight')
+    S.connect(p=0.2)
     S.weight = 7
     # All neurongroup values should be known
     assert_allclose(G.v, 0)
@@ -398,6 +401,28 @@ def test_array_cache(with_output=False):
     reset_device()
 
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_active_flag_standalone(with_output=True):
+    set_device('cpp_standalone', build_on_run=False)
+
+    G = NeuronGroup(1, 'dv/dt = 1/ms : 1')
+    mon = StateMonitor(G, 'v', record=0)
+    mon.active = False
+    run(1*ms)
+    mon.active = True
+    G.active = False
+    run(1*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir)
+    # Monitor should start recording at 1ms
+    # Neurongroup should not integrate after 1ms (but should have integrated before)
+    assert_allclose(mon[0].t[0], 1*ms)
+    assert_allclose(mon[0].v, 1.0)
+
+
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
     # via nose test
@@ -411,7 +436,8 @@ if __name__=='__main__':
              test_duplicate_names_across_nets,
              test_openmp_scalar_writes,
              test_time_after_run,
-             test_array_cache
+             test_array_cache,
+             test_active_flag_standalone
              ]:
         t(with_output=True)
         reinit_devices()

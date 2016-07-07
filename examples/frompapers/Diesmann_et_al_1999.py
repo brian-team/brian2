@@ -27,14 +27,17 @@ dy/dt = -y*(1./taupsp)+25.27*mV/ms+
 n_groups = 10
 group_size = 100
 P = NeuronGroup(N=n_groups*group_size, model=eqs,
-                threshold='V>Vt', reset='V=Vr', refractory=1*ms)
+                threshold='V>Vt', reset='V=Vr', refractory=1*ms,
+                method='euler')
 
 Pinput = SpikeGeneratorGroup(85, np.arange(85),
                              np.random.randn(85)*1*ms + 50*ms)
 # The network structure
-S = Synapses(P, P, pre='y+=weight')
-S.connect('(i/group_size) == (j-group_size)/group_size')
-Sinput = Synapses(Pinput, P[:group_size], pre='y+=weight', connect=True)
+S = Synapses(P, P, on_pre='y+=weight')
+S.connect(j='k for k in range((int(i/group_size)+1)*group_size, (int(i/group_size)+2)*group_size) '
+            'if i<N_pre-group_size')
+Sinput = Synapses(Pinput, P[:group_size], on_pre='y+=weight')
+Sinput.connect()
 
 # Record the spikes
 Mgp = SpikeMonitor(P)

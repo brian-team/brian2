@@ -1778,26 +1778,9 @@ class Unit(Quantity):
     example the name for ``pfarad/mmetre**2`` is ``"pF/mm^2"``, etc. If you
     don't like the automatically generated name, use the
     `Unit.set_display_name` method.
-
-    Attributes
-    ----------
-    dim
-    scale
-    scalefactor
-    dispname
-    name
-    iscompound
-
-    Methods
-    -------
-    create
-    create_scaled_unit
-    set_name
-    set_display_name
-
     '''
-    __slots__ = ["dim", "scale", "scalefactor", "dispname", "name", "latexname",
-                 "iscompound"]
+    __slots__ = ["dim", "scale", "scalefactor", "_dispname", "_name",
+                 "_latexname", "iscompound"]
 
     __array_priority__ = 100
 
@@ -1817,9 +1800,10 @@ class Unit(Quantity):
         self.dim = getattr(orig, 'dim', DIMENSIONLESS)
         self.scale = getattr(orig, 'scale', ("", "", "", "", "", "", ""))
         self.scalefactor = getattr(orig, 'scalefactor', '')
-        self.name = getattr(orig, 'name', '')
-        self.dispname = getattr(orig, 'dispname', '')
-        self.iscompound = getattr(orig, 'iscompound', False)
+        self._name = getattr(orig, '_name', '')
+        self._dispname = getattr(orig, '_dispname', '')
+        self._latexname = getattr(orig, '_latexname', '')
+        self.iscompound = getattr(orig, '_iscompound', False)
         return self
 
     def __init__(self, value, dim=None, scale=None):
@@ -1836,11 +1820,11 @@ class Unit(Quantity):
         #: The scalefactor for this unit, e.g. 'm' for milli
         self.scalefactor = ""
         #: The full name of this unit.
-        self.name = ""
+        self._name = ""
         #: The display name of this unit.
-        self.dispname = ""
+        self._dispname = ""
         #: A LaTeX expression for the name of this unit.
-        self.latexname = ""
+        self._latexname = ""
         #: Whether this unit is a combination of other units.
         self.iscompound = False
 
@@ -1882,11 +1866,11 @@ class Unit(Quantity):
                 v *= _siprefixes[s] ** i
         u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))
         u.scalefactor = scalefactor + ""
-        u.name = str(name)
-        u.dispname = str(dispname)
+        u._name = str(name)
+        u._dispname = str(dispname)
         if latexname is None:
-            latexname = u.dispname
-        u.latexname = r'\mathrm{' + latexname + '}'
+            latexname = u._dispname
+        u._latexname = r'\mathrm{' + latexname + '}'
         u.iscompound = False
         return u
 
@@ -1911,8 +1895,8 @@ class Unit(Quantity):
         u = Unit(np.array(baseunit, copy=False) * _siprefixes[scalefactor],
                  dim=baseunit.dim, scale=baseunit.scale)
         u.scalefactor = scalefactor
-        u.name = scalefactor + baseunit.name
-        u.dispname = scalefactor + baseunit.dispname
+        u._name = scalefactor + baseunit._name
+        u._dispname = scalefactor + baseunit._dispname
         # As u --> \mu is the only transformation we have, I think it
         # makes sense to just special-case it here instead of coming
         # up with a general system for scale factors
@@ -1920,24 +1904,13 @@ class Unit(Quantity):
         #it should be an upright letter :-/
         if scalefactor == 'u':
             scalefactor = r'\mu'
-        u.latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
+        u._latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
         u.iscompound = False
         return u
 
     #### METHODS ####
-    def set_name(self, name):
-        """Sets the name for the unit
-        """
-        self.name = name
-
-    def set_display_name(self, name):
-        """Sets the display name for the unit
-        """
-        self.dispname = name
-
-    #### REPRESENTATION ####
-    def __repr__(self):
-        if self.name == "":
+    def get_name(self):
+        if self._name == "":
             if self.scalefactor:
                 parts = [repr(_siprefixes[self.scalefactor])]
             else:
@@ -1955,10 +1928,15 @@ class Unit(Quantity):
             else:
                 return s
         else:
-            return self.name
+            return self._name
 
-    def __str__(self):
-        if self.dispname == "":
+    def set_name(self, name):
+        """Sets the name for the unit
+        """
+        self._name = name
+
+    def get_display_name(self):
+        if self._dispname == "":
             s = self.scalefactor + " "
             for i in range(7):
                 if self.dim._dims[i]:
@@ -1972,10 +1950,15 @@ class Unit(Quantity):
             else:
                 return s
         else:
-            return self.dispname
+            return self._dispname
 
-    def _latex(self, *args):
-        if self.latexname == "":
+    def set_display_name(self, name):
+        """Sets the display name for the unit
+        """
+        self._dispname = name
+
+    def get_latex_name(self):
+        if self._latexname == "":
             if len(self.scalefactor):
                 if self.scalefactor == 'u':
                     scalefactor = r'\mu'
@@ -1996,7 +1979,29 @@ class Unit(Quantity):
             else:
                 return s
         else:
-            return self.latexname
+            return self._latexname
+
+    def set_latex_name(self, name):
+        self._latexname = name
+
+    name = property(fget=get_name, fset=set_name,
+                    doc='The name of the unit')
+
+    dispname = property(fget=get_display_name, fset=set_display_name,
+                        doc='The display name of the unit')
+
+    latexname = property(fget=get_latex_name, fset=set_latex_name,
+                         doc='The LaTeX name of the unit')
+
+    #### REPRESENTATION ####
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.dispname
+
+    def _latex(self, *args):
+        return self.latexname
 
     def _repr_latex_(self):
         return '$' + latex(self) + '$'
@@ -2108,6 +2113,10 @@ class Unit(Quantity):
     def __neq__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        return hash((self.dim, self.scalefactor, self.scale,
+                     self.name, self.dispname))
+
 
 class UnitRegistry(object):
     """
@@ -2135,19 +2144,17 @@ class UnitRegistry(object):
 
 
     def __init__(self):
-        self.units = []
-        self.units_for_dimensions = {}
+        self.units = set()
+        self.units_for_dimensions = collections.defaultdict(list)
 
 
     def add(self, u):
         """Add a unit to the registry
         """
-        self.units.append(u)
-        dim = u.dim
-        if not dim in self.units_for_dimensions:
-            self.units_for_dimensions[dim] = [u]
-        else:
-            self.units_for_dimensions[dim].append(u)
+        if u in self.units:
+            return
+        self.units.add(u)
+        self.units_for_dimensions[u.dim].append(u)
 
     def remove(self, u):
         """Remove a unit from the registry
@@ -2269,7 +2276,7 @@ def get_unit(x, *regs):
     for u in all_registered_units(*regs):
         if np.array(u, copy=False) == 1 and have_same_dimensions(u, x):
             return u
-    dim = getattr(x, 'dim', x)  # For units, get dimensions
+    dim = getattr(x, 'dim', DIMENSIONLESS)  # For units, get dimensions
     return Unit(1.0, dim=dim)
 
 

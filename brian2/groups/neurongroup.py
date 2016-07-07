@@ -12,7 +12,6 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
 from brian2.equations.refractory import add_refractoriness
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
-from brian2.codegen.codeobject import check_code_units
 from brian2.core.variables import (Variables, LinkedVariable,
                                    DynamicArrayVariable, Subexpression)
 from brian2.core.spikesource import SpikeSource
@@ -91,7 +90,8 @@ class StateUpdater(CodeRunner):
                             when='groups',
                             order=group.order,
                             name=group.name + '_stateupdater*',
-                            check_units=False)
+                            check_units=False,
+                            generate_empty_code=False)
 
     def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory
@@ -109,8 +109,8 @@ class StateUpdater(CodeRunner):
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
-                                               identifiers,
-                                               run_namespace=run_namespace)
+                                               run_namespace,
+                                               user_identifiers=identifiers)
             unit = parse_expression_unit(str(ref), variables)
             if have_same_dimensions(unit, second):
                 abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
@@ -145,16 +145,16 @@ class StateUpdater(CodeRunner):
         external_names = self.group.equations.identifiers | {'dt'}
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
+                                           run_namespace,
                                            # we don't need to raise any warnings
                                            # for the user here, warnings will
                                            # be raised in create_runner_codeobj
-                                           set(),
-                                           run_namespace=run_namespace)
-
-        self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
-                                                                   variables,
-                                                                   self.method_choice,
-                                                                   group_name=self.group.name)
+                                           user_identifiers=set())
+        if len(self.group.equations.diff_eq_names) > 0:
+            self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                       variables,
+                                                                       self.method_choice,
+                                                                       group_name=self.group.name)
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
@@ -216,8 +216,8 @@ class Thresholder(CodeRunner):
 
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
-                                           identifiers,
-                                           run_namespace=run_namespace)
+                                           run_namespace,
+                                           user_identifiers=identifiers)
         if not is_boolean_expression(code, variables):
             raise TypeError(('Threshold condition "%s" is not a boolean '
                              'expression') % code)
@@ -300,7 +300,7 @@ class NeuronGroup(Group, SpikeSource):
     events : dict, optional
         User-defined events in addition to the "spike" event defined by the
         ``threshold``. Has to be a mapping of strings (the event name) to
-         strings (the condition) that will be checked.
+        strings (the condition) that will be checked.
     namespace: dict, optional
         A dictionary mapping variable/function names to the respective objects.
         If no `namespace` is given, the "implicit" namespace, consisting of
@@ -379,6 +379,10 @@ class NeuronGroup(Group, SpikeSource):
                            SUBEXPRESSION: ('shared',)})
 
         # add refractoriness
+        #: The original equations as specified by the user (i.e. without
+        #: the multiplied `int(not_refractory)` term for equations marked as
+        #: `(unless refractory)`)
+        self.user_equations = model
         if refractory is not False:
             model = add_refractoriness(model)
         self.equations = model
@@ -743,26 +747,31 @@ class NeuronGroup(Group, SpikeSource):
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
 
+        def add_event_to_text(event):
+            if event=='spike':
+                event_header = 'Spiking behaviour'
+                event_condition = 'Threshold condition'
+                event_code = 'Reset statement(s)'
+            else:
+                event_header = 'Event "%s"' % event
+                event_condition = 'Event condition'
+                event_code = 'Executed statement(s)'
+            condition = self.events[event]
+            text.append(r'<b>%s:</b><ul style="list-style-type: none; margin-top: 0px;">' % event_header)
+            text.append(r'<li><i>%s: </i>' % event_condition)
+            text.append('<code>%s</code></li>' % str(condition))
+            statements = self.event_codes.get(event, None)
+            if statements is not None:
+                text.append(r'<li><i>%s:</i>' % event_code)
+                if '\n' in str(statements):
+                    text.append('</br>')
+                text.append(r'<code>%s</code></li>' % str(statements))
+            text.append('</ul>')
+
         if 'spike' in self.events:
-            threshold, reset = self.events['spike']
-        else:
-            threshold = reset = None
-        if threshold is not None:
-            text.append(r'<b>Threshold condition:</b><br>')
-            text.append('<code>%s</code><br>' % str(threshold))
-            text.append('')
-        if reset is not None:
-            text.append(r'<b>Reset statement(s):</b><br>')
-            text.append(r'<code>%s</code><br>' % str(reset))
-            text.append('')
-        for event, (condition, statements) in self.events.iteritems():
-            if event != 'spike':  # we dealt with this already above
-                text.append(r'<b>Condition for event "%s"</b><br>' % event)
-                text.append('<code>%s</code><br>' % str(condition))
-                text.append('')
-                if statements is not None:
-                    text.append(r'<b>Executed statement(s):</b><br>')
-                    text.append(r'<code>%s</code><br>' % str(statements))
-                    text.append('')
+            add_event_to_text('spike')
+        for event in self.events:
+            if event!='spike':
+                add_event_to_text(event)
 
         return '\n'.join(text)

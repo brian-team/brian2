@@ -162,10 +162,10 @@ def test_conditional_write_behaviour():
     '''
     G = NeuronGroup(1, eqs, threshold='v>1', reset=reset, refractory=1*ms)
 
-    Sx = Synapses(H, G, pre='x += dt*100*Hz')
+    Sx = Synapses(H, G, on_pre='x += dt*100*Hz')
     Sx.connect(True)
 
-    Sy = Synapses(H, G, pre='y += dt*100*Hz')
+    Sy = Synapses(H, G, on_pre='y += dt*100*Hz')
     Sy.connect(True)
 
     M = StateMonitor(G, variables=True, record=True)
@@ -177,6 +177,28 @@ def test_conditional_write_behaviour():
     assert G.v[0] < 1.1
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_conditional_write_automatic_and_manual():
+    source = NeuronGroup(1, '', threshold='True')  # spiking all the time
+    target = NeuronGroup(2, '''dv/dt = 0/ms : 1 (unless refractory)
+                               dw/dt = 0/ms : 1''',
+                         threshold='t == 0*ms',
+                         refractory='False')  # only refractory for the first time step
+    # Cell is spiking/refractory only in the first time step
+    syn = Synapses(source, target, on_pre='''v += 1
+                                             w += 1 * int(not_refractory_post)''')
+    syn.connect()
+    mon = StateMonitor(target, ['v', 'w'], record=True, when='end')
+    run(2*defaultclock.dt)
+
+    # Synapse should not have been effective in the first time step
+    assert_equal(mon.v[:, 0], 0)
+    assert_equal(mon.v[:, 1], 1)
+    assert_equal(mon.w[:, 0], 0)
+    assert_equal(mon.w[:, 1], 1)
+
+
 if __name__ == '__main__':
     test_add_refractoriness()
     test_refractoriness_variables()
@@ -184,3 +206,4 @@ if __name__ == '__main__':
     test_refractoriness_types()
     test_conditional_write_set()
     test_conditional_write_behaviour()
+    test_conditional_write_automatic_and_manual()

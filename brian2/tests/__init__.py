@@ -36,7 +36,7 @@ except ImportError:
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
-        reset_preferences=True, fail_for_not_implemented=False):
+        reset_preferences=True, fail_for_not_implemented=True):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -65,6 +65,16 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     test_openmp : bool, optional
         Whether to test standalone test with multiple threads and OpenMP. Will
         be ignored if ``cpp_standalone`` is not tested. Defaults to ``False``.
+    reset_preferences : bool, optional
+        Whether to reset all preferences to the default preferences before
+        running the test suite. Defaults to ``True`` to get test results
+        independent of the user's preference settings but can be switched off
+        when the preferences are actually necessary to pass the tests (e.g. for
+        device-specific settings).
+    fail_for_not_implemented : bool, optional
+        Whether to fail for tests raising a `NotImplementedError`. Defaults to
+        ``True``, but can be switched off for devices known to not implement
+        all of Brian's features.
     '''
     if nose is None:
         raise ImportError('Running the test suite requires the "nose" package.')
@@ -135,9 +145,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
     # Suppress INFO log messages during testing
-    from brian2.utils.logger import CONSOLE_HANDLER, LOG_LEVELS
-    log_level = CONSOLE_HANDLER.level
-    CONSOLE_HANDLER.setLevel(LOG_LEVELS['WARNING'])
+    from brian2.utils.logger import BrianLogger, LOG_LEVELS
+    log_level = BrianLogger.console_handler.level
+    BrianLogger.console_handler.setLevel(LOG_LEVELS['WARNING'])
 
     # Switch off code optimization to get faster compilation times
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
@@ -270,11 +280,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         return all_success
 
     finally:
-        CONSOLE_HANDLER.setLevel(log_level)
+        BrianLogger.console_handler.setLevel(log_level)
         if reset_preferences:
             # Restore the user preferences
             prefs.read_preference_file(StringIO(stored_prefs))
             prefs._backup()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     run()

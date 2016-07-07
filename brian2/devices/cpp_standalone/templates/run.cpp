@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include "objects.h"
 #include<ctime>
+#include "randomkit.h"
 
 {% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
@@ -21,8 +22,8 @@ void brian_start()
     brian::{{clock.name}}.dt = brian::{{array_specs[clock.variables['dt']]}};
     brian::{{clock.name}}.t = brian::{{array_specs[clock.variables['t']]}};
     {% endfor %}
-	srand((unsigned int)time(NULL));
-	rand(); // put this in because the first random number generated on some versions of C++ is always almost the same
+    for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+	    rk_randomseed(brian::_mersenne_twister_states[i]);  // Note that this seed can be potentially replaced in main.cpp
 }
 
 void brian_end()

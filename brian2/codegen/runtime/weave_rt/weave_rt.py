@@ -2,6 +2,7 @@
 Module providing `WeaveCodeObject`.
 '''
 import os
+import platform
 import sys
 import numpy
 
@@ -22,6 +23,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.preferences import prefs
 from brian2.core.functions import DEFAULT_FUNCTIONS, Function
+from brian2.devices.device import all_devices
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import get_identifiers
 
@@ -52,7 +54,7 @@ def weave_data_type(dtype):
         dtype = numpy.empty(0, dtype=dtype).dtype.char
     except TypeError:
         raise TypeError('Illegal dtype %r' % dtype)
-        
+
     return num_to_c_types[dtype]
 
 
@@ -104,6 +106,20 @@ class WeaveCodeObject(CodeObject):
         synapses_dir = os.path.dirname(synapses.__file__)
         self.include_dirs.append(synapses_dir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        if (platform.system() == 'Linux' and
+                    platform.architecture()[0] == '32bit' and
+                    platform.machine() == 'x86_64'):
+            # We are cross-compiling to 32bit on a 64bit platform
+            logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
+                        'of standard compiler options will be appended for '
+                        'this purpose (note that you need to have a 32bit '
+                        'version of the standard library for this to work).',
+                        '64bit_to_32bit',
+                        once=True)
+            self.library_dirs += ['/lib32', '/usr/lib32']
+            self.extra_compile_args += ['-m32']
+            self.extra_link_args += ['-m32']
+
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
@@ -135,12 +151,27 @@ libraries: {self.libraries}
         try:
             with std_silent(False):
                 compiler, extra_compile_args = get_compiler_and_args()
+                extra_link_args = prefs['codegen.cpp.extra_link_args']
+                library_dirs = prefs['codegen.cpp.library_dirs']
+                if (platform.system() == 'Linux' and
+                            platform.architecture()[0] == '32bit' and
+                            platform.machine() == 'x86_64'):
+                    # We are cross-compiling to 32bit on a 64bit platform
+                    logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
+                                'of standard compiler options will be appended for '
+                                'this purpose (note that you need to have a 32bit '
+                                'version of the standard library for this to work).',
+                                '64bit_to_32bit',
+                                once=True)
+                    library_dirs += ['/lib32', '/usr/lib32']
+                    extra_compile_args += ['-m32']
+                    extra_link_args += ['-m32']
                 weave.inline('int x=0;', [],
                              compiler=compiler,
                              headers=['<algorithm>', '<limits>'],
                              extra_compile_args=extra_compile_args,
-                             extra_link_args=prefs['codegen.cpp.extra_link_args'],
-                             library_dirs=prefs['codegen.cpp.library_dirs'],
+                             extra_link_args=extra_link_args,
+                             library_dirs=library_dirs,
                              include_dirs=prefs['codegen.cpp.include_dirs'],
                              verbose=0)
                 return True
@@ -264,8 +295,11 @@ if weave is not None:
 
 # Use a special implementation for the randn function that makes use of numpy's
 # randn
+# Give those functions access to a common buffer stored in the runtime device
+device = all_devices['runtime']
+
 randn_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
+        #define BUFFER_SIZE 20000
         // A randn() function that returns a single random number. Internally
         // it asks numpy's randn function for BUFFER_SIZE
         // random numbers at a time and then returns one number from this
@@ -278,35 +312,40 @@ randn_code = {'support_code': '''
             // the _vectorisation_idx argument is unused for now, it could in
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
-            static PyArrayObject *randn_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
+            double **buffer_pointer = (double **)_namespace_randn_buffer;
+            double* buffer = *buffer_pointer;
+            npy_int32* buffer_index = (npy_int32*)_namespace_randn_buffer_index;
+            if(*buffer_index == 0)
             {
-                if(randn_buffer) Py_DECREF(randn_buffer);
+                if (buffer != 0)
+                    free(buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
-                randn_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
-                                                                NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(randn_buffer, 0);
+                PyArrayObject *new_randn = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_randn.call(args),
+                                                                            NULL, 1, 1, 0, NULL);
+                buffer = *buffer_pointer = (double *)(new_randn->data);
+
+                // This should garbage collect the array object but leave the buffer
+                PyArray_CLEARFLAGS(new_randn, NPY_ARRAY_OWNDATA);
+                Py_DECREF(new_randn);
             }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
+            double number = buffer[*buffer_index];
+            (*buffer_index)++;
+            if (*buffer_index == BUFFER_SIZE)
+                *buffer_index = 0;
             return number;
         }
         '''}
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
                                                               code=randn_code,
                                                               name='_randn',
-                                                              namespace={'_numpy_randn': numpy.random.randn})
+                                                              namespace={'_numpy_randn': numpy.random.randn,
+                                                                         '_randn_buffer': device.randn_buffer,
+                                                                         '_randn_buffer_index': device.randn_buffer_index})
 
 # Also use numpy for rand
 rand_code = {'support_code': '''
-        #define BUFFER_SIZE 1024
+        #define BUFFER_SIZE 20000
         // A rand() function that returns a single random number. Internally
         // it asks numpy's rand function for BUFFER_SIZE
         // random numbers at a time and then returns one number from this
@@ -319,28 +358,33 @@ rand_code = {'support_code': '''
             // the _vectorisation_idx argument is unused for now, it could in
             // principle be used to get reproducible random numbers when using
             // OpenMP etc.
-            static PyArrayObject *rand_buffer = NULL;
-            static double *buf_pointer = NULL;
-            static npy_int curbuffer = 0;
-            if(curbuffer==0)
+            double **buffer_pointer = (double **)_namespace_rand_buffer;
+            double* buffer = *buffer_pointer;
+            npy_int32* buffer_index = (npy_int32*)_namespace_rand_buffer_index;
+            if(*buffer_index == 0)
             {
-                if(rand_buffer) Py_DECREF(rand_buffer);
+                if (buffer != 0)
+                    free(buffer);
                 py::tuple args(1);
                 args[0] = BUFFER_SIZE;
-                rand_buffer = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
-                                                               NULL, 1, 1, 0, NULL);
-                buf_pointer = (double*)PyArray_GETPTR1(rand_buffer, 0);
+                PyArrayObject *new_rand = (PyArrayObject *)PyArray_FromAny(_namespace_numpy_rand.call(args),
+                                                                            NULL, 1, 1, 0, NULL);
+                buffer = *buffer_pointer = (double *)(new_rand->data);
+
+                // This should garbage collect the array object but leave the buffer
+                PyArray_CLEARFLAGS(new_rand, NPY_ARRAY_OWNDATA);
+                Py_DECREF(new_rand);
             }
-            double number = buf_pointer[curbuffer];
-            curbuffer = curbuffer+1;
-            if (curbuffer == BUFFER_SIZE)
-                // This seems to be safer then using (curbuffer + 1) % BUFFER_SIZE, we might run into
-                // an integer overflow for big networks, otherwise.
-                curbuffer = 0;
+            double number = buffer[*buffer_index];
+            (*buffer_index)++;
+            if (*buffer_index == BUFFER_SIZE)
+                *buffer_index = 0;
             return number;
         }
         '''}
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
                                                              code=rand_code,
-                                                             namespace={'_numpy_rand': numpy.random.rand},
+                                                             namespace={'_numpy_rand': numpy.random.rand,
+                                                                        '_rand_buffer': device.rand_buffer,
+                                                                        '_rand_buffer_index': device.rand_buffer_index},
                                                              name='_rand')

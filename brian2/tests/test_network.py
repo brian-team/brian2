@@ -10,7 +10,7 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_allclose
 
-from brian2 import (Clock, Network, ms, second, BrianObject, defaultclock,
+from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
                     restore_initial_state, MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
@@ -212,6 +212,8 @@ def test_schedule_warning():
     # TestDevice1 supports arbitrary schedules, TestDevice2 does not
     class TestDevice1(Device):
         # These functions are needed during the setup of the defaultclock
+        def get_value(self, var):
+            return np.array([0.0001])
         def add_array(self, var):
             pass
         def init_with_zeros(self, var, dtype):
@@ -602,7 +604,7 @@ def test_dependency_check():
                              StateMonitor(G, 'v', record=True),
                              SpikeMonitor(G),
                              PopulationRateMonitor(G),
-                             Synapses(G, G, pre='v+=1', connect=True)
+                             Synapses(G, G, on_pre='v+=1')
                              ]
         return dependent_objects
 
@@ -760,7 +762,8 @@ def test_store_restore():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
+    synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
     state_mon = StateMonitor(target, 'v', record=True)
@@ -789,6 +792,12 @@ def test_store_restore():
     assert_equal(spike_indices, spike_mon.i[:])
     assert_equal(spike_times, spike_mon.t_[:])
 
+    # Go back again (see github issue #681)
+    net.restore('second')
+    assert defaultclock.t == 10 * ms
+    assert net.t == 10 * ms
+
+
 @attr('codegen-independent')
 def test_store_restore_to_file():
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
@@ -796,7 +805,8 @@ def test_store_restore_to_file():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
+    synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
     state_mon = StateMonitor(target, 'v', record=True)
@@ -845,8 +855,9 @@ def test_store_restore_to_file_new_objects():
                                      [3, 4, 1, 2, 3, 7, 5, 4, 1, 0, 5, 9, 7, 8, 9]*ms,
                                      name='source')
         target = NeuronGroup(10, 'v:1', name='target')
-        synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='j>=i',
+        synapses = Synapses(source, target, model='w:1', on_pre='v+=w',
                             name='synapses')
+        synapses.connect('j>=i')
         synapses.w = 'i*1.0 + j*2.0'
         synapses.delay = '(5-i)*ms'
         state_mon = StateMonitor(target, 'v', record=True, name='statemonitor')
@@ -911,7 +922,8 @@ def test_store_restore_magic():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
+    synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
     state_mon = StateMonitor(target, 'v', record=True)
@@ -949,7 +961,8 @@ def test_store_restore_magic_to_file():
                                 rates : Hz''', threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
-    synapses = Synapses(source, target, model='w:1', pre='v+=w', connect='i==j')
+    synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
+    synapses.connect(j='i')
     synapses.w = 'i*1.0'
     synapses.delay = 'i*ms'
     state_mon = StateMonitor(target, 'v', record=True)
@@ -1147,7 +1160,19 @@ def test_magic_scope():
     assert objs2=={'G3', 'G4'}
 
 
-if __name__=='__main__':
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_runtime_rounding():
+    # Test that runtime and standalone round in the same way, see github issue
+    # #695 for details
+    defaultclock.dt = 20.000000000020002 * us
+    G = NeuronGroup(1, 'v:1')
+    mon = StateMonitor(G, 'v', record=True)
+    run(defaultclock.dt * 250)
+    assert len(mon.t) == 250
+
+
+if __name__ == '__main__':
     BrianLogger.log_level_warn()
     for t in [
             test_incorrect_network_use,
@@ -1198,6 +1223,7 @@ if __name__=='__main__':
             test_profile,
             test_profile_ipython_html,
             test_magic_scope,
+            test_runtime_rounding
             ]:
         t()
         restore_initial_state()

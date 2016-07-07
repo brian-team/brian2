@@ -22,7 +22,7 @@ filename = os.path.abspath('Megamind.avi')
 
 if not os.path.exists(filename):
     print('Downloading the example video file')
-    response = urllib2.urlopen('http://docs.opencv.org/_downloads/Megamind.avi')
+    response = urllib2.urlopen('http://docs.opencv.org/2.4/_downloads/Megamind.avi')
     data = response.read()
     with open(filename, 'wb') as f:
         f.write(data)
@@ -100,7 +100,8 @@ G = NeuronGroup(N, '''dv/dt = (-v + I)/tau : 1
                       row : integer (constant)
                       column : integer (constant)
                       I : 1 # input current''',
-                threshold='v>v_th', reset='v=0; v_th = 3*v_th + 1.0')
+                threshold='v>v_th', reset='v=0; v_th = 3*v_th + 1.0',
+                method='linear')
 G.v_th = 1
 G.row = 'i/width'
 G.column = 'i%width'

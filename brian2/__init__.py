@@ -5,14 +5,6 @@ Brian 2.0
 # working weave/Cython on Windows with the Python for C++ compiler
 import setuptools as _setuptools
 
-# Hack to fix a problem with weave on Windows, introduced in numpy 1.10
-try:
-    import numpy.distutils.msvccompiler as _msvccompiler
-    if not hasattr(_msvccompiler.MSVCCompiler, 'compiler_cxx'):
-        _msvccompiler.MSVCCompiler.compiler_cxx = 'cl.exe'
-except ImportError:
-    pass
-
 # Check basic dependencies
 import sys
 from distutils.version import LooseVersion
@@ -74,8 +66,8 @@ if 'rate' in globals():
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.0b4+git'
-__release_date__ = '2015-07-17'
+__version__ = '2.0rc3+git'
+__release_date__ = '2016-06-15'
 
 from brian2.only import *
 
@@ -102,3 +94,6 @@ for name, version in [('numpy',  '1.8.2'),
                       ('sympy',  '0.7.6'),
                       ('jinja2', '2.7')]:
     _check_dependency_version(name, version)
+
+# Initialize the logging system
+BrianLogger.initialize()

@@ -20,11 +20,12 @@ gs : siemens
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm)
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
 neuron.v = EL
 
 # Regular inputs
-stimulation = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0')
+stimulation = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
+                          method='euler')
 stimulation.x = [0, 0.5]  # Asynchronous
 
 # Synapses
@@ -32,10 +33,10 @@ taus = 1*ms
 w = 20*nS
 S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens (clock-driven)
                                            gs_post = g : siemens (summed)''',
-             pre='g += w')
+             on_pre='g += w', method='linear')
 
-S.connect(0, morpho.L[-1])
-S.connect(1, morpho.R[-1])
+S.connect(i=0, j=morpho.L[-1])
+S.connect(i=1, j=morpho.R[-1])
 
 # Monitors
 mon_soma = StateMonitor(neuron, 'v', record=[0])

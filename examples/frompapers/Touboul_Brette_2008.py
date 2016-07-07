@@ -33,7 +33,7 @@ Vr:volt
 """
 
 neuron = NeuronGroup(N, model=eqs, threshold='vm > Vcut',
-                     reset="vm = Vr; w += b")
+                     reset="vm = Vr; w += b", method='euler')
 neuron.vm = EL
 neuron.w = a * (neuron.vm - EL)
 neuron.Vr = linspace(-48.3 * mV, -47.7 * mV, N)  # bifurcation parameter

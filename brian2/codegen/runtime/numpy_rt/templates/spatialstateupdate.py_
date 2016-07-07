@@ -115,7 +115,7 @@ for _i in _backward:
 {% endif %}
 
 # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
-children_rowlength = len({{_morph_children}})/len({{_morph_children_num}})
+children_rowlength = len({{_morph_children}})//len({{_morph_children_num}})
 
 # Construct the coupling system with matrix _P in sparse form. s.t.
 # _P_diag contains the diagonal elements
@@ -131,8 +131,9 @@ for _i, (_i_parent, _i_childind, _first, _last, _invr0, _invrn) in enumerate(zip
                                                                                  {{_ends}},
                                                                                  {{_invr0}},
                                                                                  {{_invrn}})):
+    _last = _last - 1 # the compartment indices are in the interval [starts, ends[
     # Towards parent
-    if _i == 0: # first branch, sealed end
+    if _i == 0: # first section, sealed end
         {{_P_diag}}[0] = {{_u_minus}}[_first] - 1
         _P_children_2d[0, 0] = {{_u_plus}}[_first]
 
@@ -171,12 +172,12 @@ for _i in range(len({{_B}})-1, -1, -1):
         {{_B}}[_i] = {{_B}}[_i] - _subfac * {{_B}}[_j]
 
 # part 2: forwards substitution
-{{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]  # the first branch does not have a parent
+{{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]  # the first section does not have a parent
 for _i, j in enumerate({{_morph_parent_i}}):
     {{_B}}[_i+1] -= {{_P_parent}}[_i] * {{_B}}[j]
     {{_B}}[_i+1] /= {{_P_diag}}[_i+1]
 
-# For each branch compute the final solution by linear combination of the general solution
+# For each section compute the final solution by linear combination of the general solution
 for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}}],
                                                        {{_starts}},
                                                        {{_ends}})):
@@ -185,6 +186,6 @@ for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}
         {{v}}[_j_start] = ({{_v_star}}[_j_start] + _B_parent * {{_u_minus}}[_j_start]
                      + _B_current * {{_u_plus}}[_j_start])
     else:
-        {{v}}[_j_start:_j_end+1] = ({{_v_star}}[_j_start:_j_end+1] + _B_parent * {{_u_minus}}[_j_start:_j_end+1]
-                     + _B_current * {{_u_plus}}[_j_start:_j_end+1])
+        {{v}}[_j_start:_j_end] = ({{_v_star}}[_j_start:_j_end] + _B_parent * {{_u_minus}}[_j_start:_j_end]
+                     + _B_current * {{_u_plus}}[_j_start:_j_end])
 

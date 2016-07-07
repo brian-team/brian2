@@ -21,7 +21,8 @@ in the current context. It will include all the objects that are "visible", i.e.
 that you could refer to with an explicit name::
 
   G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
-  S = Synapses(G, G, model='w:1', pre='v+=w', connect='i!=j')
+  S = Synapses(G, G, model='w:1', on_pre='v+=w')
+  S.connect('i!=j')
   mon = SpikeMonitor(G)
 
   run(10*ms)  # will include G, S, mon
@@ -32,7 +33,8 @@ containers, e.g. if you store several monitors in a list. Use an explicit
 function when creating the `Network` object in that case::
 
     G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
-    S = Synapses(G, G, model='w:1', pre='v+=w', connect='i!=j')
+    S = Synapses(G, G, model='w:1', on_pre='v+=w')
+    S.connect('i!=j')
     monitors = [SpikeMonitor(G), StateMonitor(G, 'v', record=True)]
 
     # a simple run would not include the monitors

@@ -1,6 +1,6 @@
 package:
   name: brian2
-  version: "2.0b4+git"
+  version: "2.0rc3+git"
 
 # Note: specifying a minimal version for numyp leads to incorrect build strings
 requirements:
@@ -9,7 +9,7 @@ requirements:
     - cython >=0.18
     - setuptools >=6.0
     - markupsafe
-    - numpy
+    - numpy x.x
     - sympy >=0.7.6
     - pyparsing
     - jinja2 >=2.7
@@ -17,7 +17,7 @@ requirements:
 
   run:
     - python
-    - numpy
+    - numpy x.x
     - sympy >=0.7.6
     - pyparsing
     - scipy >=0.13.3 # [py2k]
@@ -61,7 +61,17 @@ test:
   requires:
     - nose
 
+source:
+  path: ../..
+
+build:
+  script: python setup.py install --with-cython --fail-on-error --single-version-externally-managed --record=record.txt
+
 about:
   home: http://www.briansimulator.org/
+  dev_url: https://github.com/brian-team/brian2
+  doc_url: http://brian2.readthedocs.io/
   license: CeCILL-2.1
+  license_family: Other
+  license_file: LICENSE
   summary: 'A clock-driven simulator for spiking neural networks'

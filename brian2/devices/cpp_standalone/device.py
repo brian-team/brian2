@@ -4,6 +4,7 @@ Module implementing the C++ "standalone" device.
 import os
 import shutil
 import subprocess
+import sys
 import inspect
 import platform
 from collections import defaultdict, Counter
@@ -13,6 +14,8 @@ from distutils import ccompiler
 
 import numpy as np
 from cpuinfo import cpuinfo
+
+import brian2
 
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
@@ -77,7 +80,7 @@ class CPPWriter(object):
         
     def write(self, filename, contents):
         logger.diagnostic('Writing file %s:\n%s' % (filename, contents))
-        if filename.lower().endswith('.cpp'):
+        if filename.lower().endswith('.cpp') or filename.lower().endswith('.c'):
             self.source_files.append(filename)
         elif filename.lower().endswith('.h'):
             self.header_files.append(filename)
@@ -429,7 +432,7 @@ class CPPStandaloneDevice(Device):
                                       'simulation has been run.')
 
     def variableview_get_subexpression_with_index_array(self, variableview,
-                                                        item, level=0,
+                                                        item,
                                                         run_namespace=None):
         if not self.has_been_run:
             raise NotImplementedError('Cannot retrieve the values of state '
@@ -439,12 +442,11 @@ class CPPStandaloneDevice(Device):
         # (based on the values stored on disk)
         set_device('runtime')
         result = VariableView.get_subexpression_with_index_array(variableview, item,
-                                                                 level=level+2,
                                                                  run_namespace=run_namespace)
         reset_device()
         return result
 
-    def variableview_get_with_expression(self, variableview, code, level=0,
+    def variableview_get_with_expression(self, variableview, code,
                                          run_namespace=None):
         raise NotImplementedError('Cannot retrieve the values of state '
                                   'variables with string expressions in '
@@ -579,6 +581,16 @@ class CPPStandaloneDevice(Device):
                 name, main_lines = procedures.pop(-1)
                 runfuncs[name] = main_lines
                 name, main_lines = procedures[-1]
+            elif func=='seed':
+                seed = args
+                nb_threads = prefs.devices.cpp_standalone.openmp_threads
+                if nb_threads == 0:  # no OpenMP
+                    nb_threads = 1
+                main_lines.append('for (int _i=0; _i<{nb_threads}; _i++)'.format(nb_threads=nb_threads))
+                if seed is None:  # random
+                    main_lines.append('    rk_randomseed(brian::_mersenne_twister_states[_i]);')
+                else:
+                    main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
         
@@ -668,9 +680,10 @@ class CPPStandaloneDevice(Device):
             else:
                 openmp_flag = ''
             # Generate the visual studio makefile
-            source_bases = [fname.replace('.cpp', '').replace('/', '\\') for fname in writer.source_files]
+            source_bases = [fname.replace('.cpp', '').replace('.c', '').replace('/', '\\') for fname in writer.source_files]
             win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
                 None, None,
+                source_files=writer.source_files,
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
                 linker_flags=linker_flags,
@@ -707,7 +720,17 @@ class CPPStandaloneDevice(Device):
                      os.path.join(directory, 'brianlib', 'spikequeue.h'))
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'stdint_compat.h'),
                      os.path.join(directory, 'brianlib', 'stdint_compat.h'))
-        
+
+        # Copy the RandomKit implementation
+        if not os.path.exists(os.path.join(directory, 'brianlib', 'randomkit')):
+            os.mkdir(os.path.join(directory, 'brianlib', 'randomkit'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(brian2))[0],
+                                  'random', 'randomkit', 'randomkit.c'),
+                     os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.c'))
+        shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(brian2))[0],
+                                  'random', 'randomkit', 'randomkit.h'),
+                     os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.h'))
+
     def write_static_arrays(self, directory):
         # # Find np arrays in the namespaces and convert them into static
         # # arrays. Hopefully they are correctly used in the code: For example,
@@ -752,13 +775,8 @@ class CPPStandaloneDevice(Device):
                     for version in xrange(16, 8, -1):
                         fname = msvc9compiler.find_vcvarsall(version)
                         if fname:
-                            if version==14 and num_threads>0:
-                                logger.warn("Found Visual Studio 2015, but due to a bug in OpenMP support in "
-                                            "that version it is being ignored. We will use another version if "
-                                            "we find one, or you can switch OpenMP support off.", once=True)
-                            else:
-                                vcvars_loc = fname
-                                break
+                            vcvars_loc = fname
+                            break
                 if vcvars_loc == '':
                     raise IOError("Cannot find vcvarsall.bat on standard "
                                   "search path. Set the "
@@ -797,6 +815,18 @@ class CPPStandaloneDevice(Device):
                     if x!=0:
                         raise RuntimeError("Project compilation failed")
 
+    def seed(self, seed=None):
+        '''
+        Set the seed for the random number generator.
+
+        Parameters
+        ----------
+        seed : int, optional
+            The seed value for the random number generator, or ``None`` (the
+            default) to set a random seed.
+        '''
+        self.main_queue.append(('seed', seed))
+
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
             if not with_output:
@@ -812,7 +842,8 @@ class CPPStandaloneDevice(Device):
                     stdout.close()
                 if os.path.exists('results/stdout.txt'):
                     print open('results/stdout.txt', 'r').read()
-                raise RuntimeError("Project run failed")
+                raise RuntimeError("Project run failed (project directory: "
+                                   "%s)" % os.path.abspath(directory))
             self.has_been_run = True
             if os.path.isfile('results/last_run_info.txt'):
                 last_run_info = open('results/last_run_info.txt', 'r').read()
@@ -890,13 +921,19 @@ class CPPStandaloneDevice(Device):
         compiler, extra_compile_args = get_compiler_and_args()
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
         compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
-                                                           prefs['codegen.cpp.include_dirs']) +
+                                                           prefs['codegen.cpp.include_dirs']+['brianlib/randomkit']) +
                           extra_compile_args)
+        if sys.platform=='win32':
+            wincrypt = ['advapi32']
+        else:
+            wincrypt = []
         linker_flags = (ccompiler.gen_lib_options(compiler_obj,
-                                                  library_dirs=prefs['codegen.cpp.library_dirs'],
+                                                  library_dirs=prefs['codegen.cpp.library_dirs']+['brianlib/randomkit'],
                                                   runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
-                                                  libraries=prefs['codegen.cpp.libraries']) +
+                                                  libraries=prefs['codegen.cpp.libraries']+wincrypt) +
                         prefs['codegen.cpp.extra_link_args'])
+
+        additional_source_files.append('brianlib/randomkit/randomkit.c')
 
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
@@ -987,8 +1024,9 @@ class CPPStandaloneDevice(Device):
         # running order, assuming that there is only one clock
         code_objects = []
         for obj in net.objects:
-            for codeobj in obj._code_objects:
-                code_objects.append((obj.clock, codeobj))
+            if obj.active:
+                for codeobj in obj._code_objects:
+                    code_objects.append((obj.clock, codeobj))
 
         # Code for a progress reporting function
         standard_code = '''
@@ -1035,10 +1073,23 @@ class CPPStandaloneDevice(Device):
 
         # Generate the updaters
         run_lines = ['{net.name}.clear();'.format(net=net)]
+        all_clocks = set()
         for clock, codeobj in code_objects:
             run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
                                                                                                codeobj=codeobj))
-        run_lines.append('{net.name}.run({duration}, {report_call}, {report_period});'.format(net=net,
+            all_clocks.add(clock)
+
+        # Under some rare circumstances (e.g. a NeuronGroup only defining a
+        # subexpression that is used by other groups (via linking, or recorded
+        # by a StateMonitor) *and* not calculating anything itself *and* using a
+        # different clock than all other objects) a clock that is not used by
+        # any code object should nevertheless advance during the run. We include
+        # such clocks without a code function in the network.
+        for clock in net._clocks:
+            if clock not in all_clocks:
+                run_lines.append('{net.name}.add(&{clock.name}, NULL);'.format(clock=clock, net=net))
+
+        run_lines.append('{net.name}.run({duration!r}, {report_call}, {report_period!r});'.format(net=net,
                                                                                               duration=float(duration),
                                                                                               report_call=report_call,
                                                                                               report_period=float(report_period)))

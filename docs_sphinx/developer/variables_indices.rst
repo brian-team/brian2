@@ -83,7 +83,8 @@ different contexts. Let's consider the following example::
 
     G = NeuronGroup(5, 'dv/dt = -v / tau : volt')
     subG = G[2:]
-    S = Synapses(G, G, pre='v+=1*mV', connect=True)
+    S = Synapses(G, G, on_pre='v+=1*mV')
+    S.connect()
 
 All allow an access to the state variable `v` (note the different shapes, these
 arise from the different indices used, see below)::
@@ -118,7 +119,7 @@ into executable code is not straightforward because it can involve variables
 from different contexts. Here is a simple example::
 
     G = NeuronGroup(5, 'dv/dt = -v / tau : volt')
-    S = Synapses(G, G, 'w : volt', pre='v+=w')
+    S = Synapses(G, G, 'w : volt', on_pre='v+=w')
 
 The seemingly trivial operation ``v+=w`` involves the variable ``v`` of the
 `NeuronGroup` and the variable ``w`` of the `Synapses` object which have to be

@@ -109,8 +109,11 @@ class BrianASTRenderer(object):
     '''
     This class is modelled after `NodeRenderer` - see there for details.
     '''
-    def __init__(self, variables):
-        self.variables = variables.copy()
+    def __init__(self, variables, copy_variables=True):
+        if copy_variables:
+            self.variables = variables.copy()
+        else:
+            self.variables = variables
 
     def render_node(self, node):
         nodename = node.__class__.__name__

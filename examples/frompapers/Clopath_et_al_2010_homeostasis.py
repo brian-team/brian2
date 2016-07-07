@@ -111,19 +111,21 @@ input_time = 100.*ms                             # duration of an input
 #### Create neuron objects
 
 Nrn_downstream = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
-                             reset='v=V_rest;x_trace+=x_reset/(taux/ms)')
+                             reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
+                             method='euler')
 Nrns_input = NeuronGroup(Nr_inputs, eqs_inputs, threshold='rand()<rates*dt',
-                         reset='v=V_rest;x_trace+=x_reset/(taux/ms)')
+                         reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
+                         method='linear')
 
 #### create Synapses
 
 Syn = Synapses(Nrns_input, Nrn_downstream,
                model=Syn_model,
-               pre=Pre_eq,
-               post=Post_eq
+               on_pre=Pre_eq,
+               on_post=Post_eq
                )
 
-Syn.connect(numpy.arange(Nr_inputs), 0)
+Syn.connect(i=numpy.arange(Nr_inputs), j=0)
 
 #### Monitors and storage
 W_evolution = StateMonitor(Syn, 'w_ampa', record=True)

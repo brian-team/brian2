@@ -89,7 +89,7 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=None, name=k,
+        variables = dict((k, Variable(unit=1, name=k,
                                       dtype=np.float64))
                          for k in known)
 
@@ -168,7 +168,7 @@ def is_scalar_expression(expr, variables):
                for name in identifiers)
 
 
-def make_statements(code, variables, dtype, optimise=True):
+def make_statements(code, variables, dtype, optimise=True, blockname=''):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
@@ -190,6 +190,9 @@ def make_statements(code, variables, dtype, optimise=True):
         used just to in contexts where we are not interested by this kind of
         optimisation. For the main code generation stage, its value is set by
         the `codegen.loop_invariant_optimisations` preference.
+    blockname : str, optional
+        A name for the block (used to name intermediate variables to avoid
+        name clashes when multiple blocks are used together)
     Returns
     -------
     scalar_statements, vector_statements : (list of `Statement`, list of `Statement`)
@@ -380,6 +383,7 @@ def make_statements(code, variables, dtype, optimise=True):
     if optimise and prefs.codegen.loop_invariant_optimisations:
         scalar_statements, vector_statements = optimise_statements(scalar_statements,
                                                                    vector_statements,
-                                                                   variables)
+                                                                   variables,
+                                                                   blockname=blockname)
 
     return scalar_statements, vector_statements

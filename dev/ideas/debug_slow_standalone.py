@@ -10,7 +10,7 @@ if M <= 0:
     M = 1
 G = NeuronGroup(M, 'v:1', threshold='True')
 H = NeuronGroup(N, 'w:1')
-S = Synapses(G, H, pre='w += 1.0')
+S = Synapses(G, H, on_pre='w += 1.0')
 S.connect(True, p=1.0)
 
 start_time = time.time()

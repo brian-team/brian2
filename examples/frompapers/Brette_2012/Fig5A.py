@@ -43,7 +43,7 @@ neuron.gLx[0] = gL
 neuron.gNa[compartment] = gNa_0 / neuron.area[compartment]
 
 # Reset the entire neuron when there is a spike
-reset = Synapses(neuron, neuron, pre='v = EL')
+reset = Synapses(neuron, neuron, on_pre='v = EL')
 reset.connect('i == compartment')  # Connects the spike initiation compartment to all compartments
 
 # Monitors

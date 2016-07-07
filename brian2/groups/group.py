@@ -31,6 +31,7 @@ from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
+from brian2.importexport.importexport import ImportExport
 
 __all__ = ['Group', 'VariableOwner', 'CodeRunner']
 
@@ -199,7 +200,7 @@ class Indexing(object):
         self.N = group.variables['N']
         self.default_index = default_index
 
-    def __call__(self, item=None, index_var=None):
+    def __call__(self, item=slice(None), index_var=None):
         '''
         Return flat indices to index into state variables from arbitrary
         group specific indices. In the default implementation, raises an error
@@ -229,7 +230,7 @@ class Indexing(object):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
-            if item is None or (isinstance(item, basestring) and item == 'True'):
+            if isinstance(item, basestring) and item == 'True':
                 item = slice(None)
             if isinstance(item, slice):
                 if index_var == '0':
@@ -283,17 +284,19 @@ class IndexWrapper(object):
                                              dtype=np.bool)
 
             abstract_code = '_cond = ' + item
+            namespace = get_local_namespace(level=1)
             from brian2.devices.device import get_default_codeobject_class
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'group_get_indices',
+                                            run_namespace=namespace,
                                             additional_variables=variables,
-                                            level=1,
                                             codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                             )
             return codeobj()
         else:
             return self.indices(item)
+
 
 class VariableOwner(Nameable):
     '''
@@ -505,24 +508,18 @@ class VariableOwner(Nameable):
 
         Returns
         -------
-        values
+        values : dict or specified format
             The variables specified in ``vars``, in the specified ``format``.
 
         '''
-        # For the moment, 'dict' is the only supported format -- later this will
-        # be made into an extensible system, see github issue #306
-        if format != 'dict':
+        if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
             vars = [name for name, var in self.variables.iteritems()
                     if not name.startswith('_') and
                     (subexpressions or not isinstance(var, Subexpression)) and
                     (read_only_variables or not getattr(var, 'read_only', False))]
-        data = {}
-        for var in vars:
-            data[var] = np.array(self.state(var, use_units=units,
-                                            level=level+1),
-                                 copy=True, subok=True)
+        data = ImportExport.methods[format].export_data(self, vars, units=units, level=level)
         return data
 
     def set_states(self, values, units=True, format='dict', level=0):
@@ -543,10 +540,9 @@ class VariableOwner(Nameable):
         '''
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
-        if format != 'dict':
+        if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
-        for key, value in values.iteritems():
-            self.state(key, use_units=units, level=level+1)[:] = value
+        ImportExport.methods[format].import_data(self, values, units=units, level=level)
 
     def _full_state(self):
         state = {}
@@ -601,7 +597,7 @@ class VariableOwner(Nameable):
                                   'scalar.') % (varname, ref_varname))
 
     def __len__(self):
-        return self.variables['N'].get_value()
+        return int(self.variables['N'].get_value())
 
 
 class Group(VariableOwner, BrianObject):
@@ -621,6 +617,9 @@ class Group(VariableOwner, BrianObject):
         ----------
         identifiers : str
             The name to look up.
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         user_identifier : bool, optional
             Whether this is an identifier that was used by the user (and not
             something automatically generated that the user might not even
@@ -629,9 +628,6 @@ class Group(VariableOwner, BrianObject):
         additional_variables : dict-like, optional
             An additional mapping of names to `Variable` objects that will be
             checked before `Group.variables`.
-        run_namespace : dict-like, optional
-            An additional namespace, provided as an argument to the
-            `Network.run` method or returned by `get_local_namespace`.
 
         Returns
         -------
@@ -666,8 +662,8 @@ class Group(VariableOwner, BrianObject):
         # namespace
         return self._resolve_external(identifier, run_namespace=run_namespace)
 
-    def resolve_all(self, identifiers, user_identifiers=None,
-                    additional_variables=None, run_namespace=None, level=0):
+    def resolve_all(self, identifiers, run_namespace, user_identifiers=None,
+                    additional_variables=None):
         '''
         Resolve a list of identifiers. Calls `Group._resolve` for each
         identifier.
@@ -676,6 +672,9 @@ class Group(VariableOwner, BrianObject):
         ----------
         identifiers : iterable of str
             The names to look up.
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         user_identifiers : iterable of str, optional
             The names in ``identifiers`` that were provided by the user (i.e.
             are part of user-specified equations, abstract code, etc.). Will
@@ -684,16 +683,6 @@ class Group(VariableOwner, BrianObject):
         additional_variables : dict-like, optional
             An additional mapping of names to `Variable` objects that will be
             checked before `Group.variables`.
-        run_namespace : dict-like, optional
-            An additional namespace, provided as an argument to the
-            `Network.run` method.
-        level : int, optional
-            How far to go up in the stack to find the original call frame.
-        do_warn : bool, optional
-            Whether to warn about names that are defined both as an internal
-            variable (i.e. in `Group.variables`) and in some other namespace.
-            Defaults to ``True`` but can be switched off for internal variables
-            used in templates that the user might not even know about.
 
         Returns
         -------
@@ -708,8 +697,7 @@ class Group(VariableOwner, BrianObject):
         '''
         if user_identifiers is None:
             user_identifiers = identifiers
-        if run_namespace is None:
-            run_namespace = get_local_namespace(level=level+1)
+        assert isinstance(run_namespace, collections.Mapping)
         resolved = {}
         for identifier in identifiers:
             resolved[identifier] = self._resolve(identifier,
@@ -981,6 +969,10 @@ class CodeRunner(BrianObject):
     codeobj_class : class, optional
         The `CodeObject` class to run code with. If not specified, defaults to
         the `group`'s ``codeobj_class`` attribute.
+    generate_empty_code : bool, optional
+        Whether to generate a `CodeObject` if there is no abstract code to
+        execute. Defaults to ``True`` but should be switched off e.g. for a
+        `StateUpdater` when there is nothing to do.
     '''
     add_to_magic_network = True
     invalidates_magic_network = True
@@ -990,6 +982,7 @@ class CodeRunner(BrianObject):
                  template_kwds=None, needed_variables=None,
                  override_conditional_write=None,
                  codeobj_class=None,
+                 generate_empty_code=True
                  ):
         BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
                              name=name)
@@ -1006,6 +999,7 @@ class CodeRunner(BrianObject):
         if codeobj_class is None:
             codeobj_class = group.codeobj_class
         self.codeobj_class = codeobj_class
+        self.generate_empty_code = generate_empty_code
         self.codeobj = None
 
     def update_abstract_code(self, run_namespace):
@@ -1026,17 +1020,21 @@ class CodeRunner(BrianObject):
         else:
             additional_variables = None
 
-        self.codeobj = create_runner_codeobj(group=self.group,
-                                             code=self.abstract_code,
-                                             user_code=self.user_code,
-                                             template_name=self.template,
-                                             name=self.name+'_codeobject*',
-                                             check_units=self.check_units,
-                                             additional_variables=additional_variables,
-                                             needed_variables=self.needed_variables,
-                                             run_namespace=run_namespace,
-                                             template_kwds=self.template_kwds,
-                                             override_conditional_write=self.override_conditional_write,
-                                             codeobj_class=self.codeobj_class
-                                             )
-        self.code_objects[:] = [weakref.proxy(self.codeobj)]
+        if not self.generate_empty_code and len(self.abstract_code) == 0:
+            self.codeobj = None
+            self.code_objects[:] = []
+        else:
+            self.codeobj = create_runner_codeobj(group=self.group,
+                                                 code=self.abstract_code,
+                                                 user_code=self.user_code,
+                                                 template_name=self.template,
+                                                 name=self.name+'_codeobject*',
+                                                 check_units=self.check_units,
+                                                 additional_variables=additional_variables,
+                                                 needed_variables=self.needed_variables,
+                                                 run_namespace=run_namespace,
+                                                 template_kwds=self.template_kwds,
+                                                 override_conditional_write=self.override_conditional_write,
+                                                 codeobj_class=self.codeobj_class
+                                                 )
+            self.code_objects[:] = [weakref.proxy(self.codeobj)]

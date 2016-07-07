@@ -814,7 +814,7 @@ class Equations(collections.Mapping):
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
 
-    def check_units(self, group, run_namespace=None, level=0):
+    def check_units(self, group, run_namespace):
         '''
         Check all the units for consistency.
         
@@ -822,8 +822,9 @@ class Equations(collections.Mapping):
         ----------
         group : `Group`
             The group providing the context
-        run_namespace : dict, optional
-            A namespace provided to the `Network.run` function.
+        run_namespace : dict-like, optional
+            An additional namespace that is used for variable lookup (if not
+            defined, the implicit namespace of local variables is used).
         level : int, optional
             How much further to go up in the stack to find the calling frame
 
@@ -837,10 +838,9 @@ class Equations(collections.Mapping):
                                      for _, expr in self.eq_expressions])
         external -= set(all_variables.keys())
 
-        resolved_namespace = group.resolve_all(external,
-                                               external,  # all variables are user defined
-                                               run_namespace=run_namespace,
-                                               level=level+1)
+        resolved_namespace = group.resolve_all(external, run_namespace,
+                                               user_identifiers=external)  # all variables are user defined
+
         all_variables.update(resolved_namespace)
         for var, eq in self._equations.iteritems():
             if eq.type == PARAMETER:
@@ -936,10 +936,11 @@ class Equations(collections.Mapping):
                                                               sympy.latex(eq.unit),
                                                               flag_str)
             else:
-                eq_latex = r'%s &= %s && \text{(unit: $%s$%s)}' % (sympy.latex(lhs),
-                                                                   sympy.latex(rhs),
-                                                                   sympy.latex(eq.unit),
-                                                                   flag_str)
+                eq_latex = r'%s &= %s && \text{(unit of $%s$: $%s$%s)}' % (sympy.latex(lhs),
+                                                                           sympy.latex(rhs),
+                                                                           sympy.latex(varname),
+                                                                           sympy.latex(eq.unit),
+                                                                           flag_str)
             equations.append(eq_latex)
         return r'\begin{align*}' + (r'\\' + '\n').join(equations) + r'\end{align*}'
 

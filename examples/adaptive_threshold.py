@@ -13,11 +13,13 @@ v = 0*mV
 vt += 3*mV
 '''
 
-IF = NeuronGroup(1, model=eqs, reset=reset, threshold='v>vt')
+IF = NeuronGroup(1, model=eqs, reset=reset, threshold='v>vt',
+                 method='linear')
 IF.vt = 10*mV
 PG = PoissonGroup(1, 500 * Hz)
 
-C = Synapses(PG, IF, pre='v += 3*mV', connect=True)
+C = Synapses(PG, IF, on_pre='v += 3*mV')
+C.connect()
 
 Mv = StateMonitor(IF, 'v', record=True)
 Mvt = StateMonitor(IF, 'vt', record=True)

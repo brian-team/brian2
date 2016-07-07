@@ -30,7 +30,7 @@ I : amp
 """
 
 neuron = NeuronGroup(1, model=eqs, threshold='vm>Vcut',
-                     reset="vm=Vr; w+=b")
+                     reset="vm=Vr; w+=b", method='euler')
 neuron.vm = EL
 trace = StateMonitor(neuron, 'vm', record=0)
 spikes = SpikeMonitor(neuron)

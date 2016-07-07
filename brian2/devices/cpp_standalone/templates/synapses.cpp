@@ -23,7 +23,7 @@
 	const unsigned int _num_spiking_synapses = _spiking_synapses->size();
 
 	{% if _non_synaptic %}
-	{{ openmp_pragma('single') }}
+	{{ openmp_pragma('master') }}
 	{
 		for(unsigned int _spiking_synapse_idx=0;
 			_spiking_synapse_idx<_num_spiking_synapses;

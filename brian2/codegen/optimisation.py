@@ -41,7 +41,7 @@ def expression_complexity(expr, variables):
     return brian_ast(expr, variables).complexity
 
 
-def optimise_statements(scalar_statements, vector_statements, variables):
+def optimise_statements(scalar_statements, vector_statements, variables, blockname=''):
     '''
     Optimise a sequence of scalar and vector statements
 
@@ -62,6 +62,8 @@ def optimise_statements(scalar_statements, vector_statements, variables):
         Statements that involve vector values and should be evaluated in the vector block.
     variables : dict of (str, Variable)
         Definition of the types of the variables.
+    blockname : str, optional
+        Name of the block (used for LIO constant prefixes to avoid name clashes)
 
     Returns
     -------
@@ -74,7 +76,7 @@ def optimise_statements(scalar_statements, vector_statements, variables):
                     if hasattr(v, 'dtype') and brian_dtype_from_dtype(v.dtype)=='boolean')
     # We use the Simplifier class by rendering each expression, which generates new scalar statements
     # stored in the Simplifier object, and these are then added to the scalar statements.
-    simplifier = Simplifier(variables, scalar_statements)
+    simplifier = Simplifier(variables, scalar_statements, extra_lio_prefix=blockname)
     new_vector_statements = []
     for stmt in vector_statements:
         # Carry out constant evaluation, arithmetic simplification and loop invariants
@@ -168,10 +170,10 @@ class ArithmeticSimplifier(BrianASTRenderer):
         These might be the scalar statements for example.
     '''
     def __init__(self, variables):
-        BrianASTRenderer.__init__(self, variables)
+        BrianASTRenderer.__init__(self, variables, copy_variables=False)
         self.assumptions = []
         self.assumptions_ns = dict(defaults_ns)
-        self.bast_renderer = BrianASTRenderer(variables)
+        self.bast_renderer = BrianASTRenderer(variables, copy_variables=False)
 
     def render_node(self, node):
         '''
@@ -295,14 +297,19 @@ class Simplifier(BrianASTRenderer):
     ``loop_invariant_dtypes`` : dict of (varname, dtypename)
         dtypename will be one of ``'boolean'``, ``'integer'``, ``'float'``.
     '''
-    def __init__(self, variables, scalar_statements):
-        BrianASTRenderer.__init__(self, variables)
+    def __init__(self, variables, scalar_statements, extra_lio_prefix=''):
+        BrianASTRenderer.__init__(self, variables, copy_variables=False)
         self.loop_invariants = OrderedDict()
         self.loop_invariant_dtypes = {}
         self.n = 0
         self.node_renderer = NodeRenderer(use_vectorisation_idx=False)
         self.arithmetic_simplifier = ArithmeticSimplifier(variables)
         self.scalar_statements = scalar_statements
+        if extra_lio_prefix is None:
+            extra_lio_prefix = ''
+        if len(extra_lio_prefix):
+            extra_lio_prefix = extra_lio_prefix+'_'
+        self.extra_lio_prefix = extra_lio_prefix
 
     def render_expr(self, expr):
         node = brian_ast(expr, self.variables)
@@ -321,7 +328,7 @@ class Simplifier(BrianASTRenderer):
                 name = self.loop_invariants[expr]
             else:
                 self.n += 1
-                name = '_lio_'+str(self.n)
+                name = '_lio_'+self.extra_lio_prefix+str(self.n)
                 self.loop_invariants[expr] = name
                 self.loop_invariant_dtypes[name] = node.dtype
                 numpy_dtype = {'boolean': bool,

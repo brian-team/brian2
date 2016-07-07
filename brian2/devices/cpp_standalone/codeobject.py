@@ -8,6 +8,8 @@ from brian2.codegen.generators.cpp_generator import (CPPCodeGenerator,
                                                      c_data_type)
 from brian2.devices.device import get_device
 from brian2.core.preferences import prefs
+from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.utils.stringtools import replace
 
 __all__ = ['CPPStandaloneCodeObject']
 
@@ -93,7 +95,8 @@ class CPPStandaloneCodeObject(CodeObject):
                           env_globals={'c_data_type': c_data_type,
                                        'openmp_pragma': openmp_pragma,
                                        'constant_or_scalar': constant_or_scalar,
-                                       'prefs': prefs})
+                                       'prefs': prefs,
+                                       'zip': zip})
     generator_class = CPPCodeGenerator
 
     def __call__(self, **kwds):
@@ -103,3 +106,43 @@ class CPPStandaloneCodeObject(CodeObject):
         get_device().main_queue.append(('run_code_object', (self,)))
 
 codegen_targets.add(CPPStandaloneCodeObject)
+
+
+# At module initialization time, we do not yet know whether the code will be
+# run with OpenMP or not. We therefore use a "dynamic implementation" which
+# generates the rand/randn implementation during code generation.
+def generate_rand_code(rand_func, owner):
+    nb_threads = prefs.devices.cpp_standalone.openmp_threads
+    if nb_threads == 0:  # no OpenMP
+        thread_number = '0'
+    else:
+        thread_number = 'omp_get_thread_num()'
+    if rand_func == 'rand':
+        rk_call = 'rk_double'
+    elif rand_func == 'randn':
+        rk_call = 'rk_gauss'
+    else:
+        raise AssertionError(rand_func)
+    code = '''
+           double _%RAND_FUNC%(const int _vectorisation_idx) {
+               return %RK_CALL%(brian::_mersenne_twister_states[%THREAD_NUMBER%]);
+           }
+           '''
+    code = replace(code, {'%THREAD_NUMBER%': thread_number,
+                          '%RAND_FUNC%': rand_func,
+                          '%RK_CALL%': rk_call})
+    return {'support_code': code}
+
+rand_impls = DEFAULT_FUNCTIONS['rand'].implementations
+rand_impls.add_dynamic_implementation(CPPStandaloneCodeObject,
+                                      code=lambda owner:
+                                           generate_rand_code('rand', owner),
+                                      namespace=lambda owner: {},
+                                      name='_rand')
+
+randn_impls = DEFAULT_FUNCTIONS['randn'].implementations
+randn_impls.add_dynamic_implementation(CPPStandaloneCodeObject,
+                                       code=lambda owner:
+                                             generate_rand_code('randn', owner),
+                                       namespace=lambda owner: {},
+                                       name='_randn')

@@ -10,7 +10,7 @@ from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.clocks import defaultclock
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_devices, seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -488,7 +488,8 @@ def test_linked_synapses():
     Test linking to a synaptic variable (should raise an error).
     '''
     G = NeuronGroup(10, '')
-    S = Synapses(G, G, 'w:1', connect=True)
+    S = Synapses(G, G, 'w:1')
+    S.connect()
     G2 = NeuronGroup(100, 'x : 1 (linked)')
     assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
 
@@ -1119,6 +1120,15 @@ def test_indices():
     assert_equal(G.indices[5:], G.indices['i >= ext_var'])
     assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
+    # We should not accept "None" as an index, because in numpy this stands for
+    # "new axis". In fact, x[0, None] is used in matplotlib to check whether
+    # something behaves as a numpy array -- if NeuronGroup accepts None as an
+    # index, then synaptic variables will allow indexing in such a way. This
+    # makes plotting in matplotlib 1.5.1 fail with a non-obivous error
+    # See https://groups.google.com/d/msg/briansupport/yRA4PHKAvN8/cClOEUlOAQAJ
+    assert_raises(TypeError, G.indices.__getitem__, None)
+
+
 @attr('codegen-independent')
 def test_get_dtype():
     '''
@@ -1178,6 +1188,7 @@ def test_aliasing_in_statements():
     assert_equal(g.x_0_[:], np.array([-1]))
     assert_equal(g.x_1_[:], np.array([0]))
 
+
 @attr('codegen-independent')
 def test_get_states():
     G = NeuronGroup(10, '''v : volt
@@ -1206,6 +1217,80 @@ def test_get_states():
                                       'subexpr', 'subexpr2'}
 
 
+@attr('codegen-independent')
+def test_set_states():
+    G = NeuronGroup(10, '''v : volt
+                           x : 1
+                           subexpr = x + v/volt : 1
+                           subexpr2 = x*volt + v : volt''')
+    G.v = 'i*volt'
+    G.x = '10*i'
+    assert_raises(ValueError, lambda: G.set_states({'v': np.arange(2, 11)*volt}, units=True))
+    # we test if function prevents from setting read_only variables
+    assert_raises(TypeError, lambda: G.set_states({'N': 1}))
+    assert_raises(DimensionMismatchError, lambda: G.set_states({'x': np.arange(2, 12)*volt}, units=True))
+    assert_raises(DimensionMismatchError, lambda: G.set_states({'v': np.arange(2, 12)}, units=True))
+    G.set_states({'v': np.arange(2, 12)}, units=False)
+    assert_equal(G.v, np.arange(2, 12)*volt)
+    G.set_states({'v': np.arange(2, 12)*volt}, units=True)
+    assert_equal(G.v, np.arange(2, 12)*volt)
+    G.set_states({'x': np.arange(2, 12)}, units=False)
+    assert_equal(G.x, np.arange(2, 12))
+    G.set_states({'x': np.arange(2, 12)}, units=True)
+    assert_equal(G.x, np.arange(2, 12))
+
+
+@attr('codegen-independent')
+def test_get_states_pandas():
+    try:
+        import pandas as pd
+    except ImportError:
+        raise SkipTest('Cannot test export to Pandas data frame, Pandas is not installed.')
+    G = NeuronGroup(10, '''v : volt
+                           x : 1
+                           subexpr = x + v/volt : 1
+                           subexpr2 = x*volt + v : volt''')
+    G.v = 'i*volt'
+    G.x = '10*i'
+    assert_raises(NotImplementedError, lambda: G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True, format='pandas'))
+    states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False, format='pandas')
+    assert_equal(states['v'].values, np.arange(10))
+    assert_equal(states['x'].values, 10*np.arange(10))
+    assert_equal(states['subexpr'].values, 11*np.arange(10))
+    assert_equal(states['subexpr2'].values, 11*np.arange(10))
+
+    all_states = G.get_states(units=False, format='pandas')
+    assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i'}
+    all_states = G.get_states(units=False, subexpressions=True, format='pandas')
+    assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i',
+                                       'subexpr', 'subexpr2'}
+
+
+@attr('codegen-independent')
+def test_set_states_pandas():
+    try:
+        import pandas as pd
+    except ImportError:
+        raise SkipTest('Cannot test export to Pandas data frame, Pandas is not installed.')
+    G = NeuronGroup(10, '''v : volt
+                           x : 1
+                           subexpr = x + v/volt : 1
+                           subexpr2 = x*volt + v : volt''')
+    G.v = 'i*volt'
+    G.x = '10*i'
+    df = pd.DataFrame(np.arange(2, 11), columns=['v'])
+    assert_raises(NotImplementedError, lambda: G.set_states(df, units=True, format='pandas'))
+    assert_raises(ValueError, lambda: G.set_states(df, units=False, format='pandas'))
+    # we test if function prevents from setting read_only variables
+    df = pd.DataFrame(np.array([1]), columns=['N'])
+    assert_raises(TypeError, lambda: G.set_states(df, units=False, format='pandas'))
+    df = pd.DataFrame(np.vstack((np.arange(2, 12), np.arange(2, 12))).T)
+    df.columns = ['v', 'x']
+    G.set_states(df, units=False, format='pandas')
+    assert_equal(G.v, np.arange(2, 12)*volt)
+    assert_equal(G.x, np.arange(2, 12))
+
+
 def test_random_vector_values():
     # Make sure that the new "loop-invariant optimisation" does not pull out
     # the random number generation and therefore makes all neurons receiving
@@ -1220,7 +1305,75 @@ def test_random_vector_values():
     assert np.var(G.v[:]) > 0
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_random_values_random_seed():
+    G = NeuronGroup(100, '''v1 : 1
+                            v2 : 1''')
+    seed()
+    G.v1 = 'rand() + randn()'
+    seed()
+    G.v2 = 'rand() + randn()'
+    run(0*ms)  # for standalone
+    assert np.var(G.v1[:]) > 0
+    assert np.var(G.v2[:]) > 0
+    assert np.var(G.v1[:] - G.v2[:]) > 0
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_random_values_fixed_seed():
+    G = NeuronGroup(100, '''v1 : 1
+                            v2 : 1''')
+    seed(12345678)
+    G.v1 = 'rand() + randn()'
+    seed(12345678)
+    G.v2 = 'rand() + randn()'
+    run(0*ms)  # for standalone
+    assert np.var(G.v1[:]) > 0
+    assert np.var(G.v2[:]) > 0
+    assert_equal(G.v1[:], G.v2[:])
+
+
+def test_random_values_fixed_and_random():
+    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    seed(13579)
+    G.v = 'rand()'
+    seed()
+    mon = StateMonitor(G, 'v', record=True)
+    run(2*defaultclock.dt)
+    first_run_values = np.array(mon.v)
+
+    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    seed(13579)
+    G.v = 'rand()'
+    seed()
+    mon = StateMonitor(G, 'v', record=True)
+    run(2*defaultclock.dt)
+
+    # First time step should be identical
+    assert_equal(first_run_values[:, 0], mon.v[:, 0])
+    # Second should be different
+    assert np.var(first_run_values[:, 1] - mon.v[:, 1]) > 0
+
+
+@attr('codegen-independent')
+def test_no_code():
+    # Make sure that we are not unncessarily creating code objects for a state
+    # updater that has nothing to do
+    group_1 = NeuronGroup(10, 'v: 1', threshold='False')
+    # The refractory argument will automatically add a statement for each time
+    # step, so we'll need a state updater here
+    group_2 = NeuronGroup(10, 'v: 1', threshold='False', refractory=2*ms)
+    run(0*ms)
+    assert len(group_1.state_updater.code_objects) == 0
+    assert group_1.state_updater.codeobj is None
+    assert len(group_2.state_updater.code_objects) == 1
+    assert group_2.state_updater.codeobj is not None
+
+
 if __name__ == '__main__':
+    test_set_states()
     test_creation()
     test_integer_variables_and_mod()
     test_variables()
@@ -1274,4 +1427,11 @@ if __name__ == '__main__':
     if prefs.codegen.target == 'numpy':
         test_aliasing_in_statements()
     test_get_states()
+    test_set_states()
+    test_get_states_pandas()
+    test_set_states_pandas()
     test_random_vector_values()
+    test_random_values_random_seed()
+    test_random_values_fixed_seed()
+    test_random_values_fixed_and_random()
+    test_no_code()

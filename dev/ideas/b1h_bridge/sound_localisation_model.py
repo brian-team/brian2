@@ -63,7 +63,7 @@ G = FilterbankGroup(cochlea, 'I', eqs, reset='V=0', threshold='V>1', refractory=
 cd = NeuronGroup(num_indices*cfN, eqs, reset='V=0', threshold='V>1', refractory=0*ms, clock=G.clock)
 # Each CD neuron receives precisely two inputs, one from the left ear and
 # one from the right, for each location and each cochlear frequency
-C = Synapses(G, cd, pre='V += 0.5')
+C = Synapses(G, cd, on_pre='V += 0.5')
 for i in xrange(num_indices*cfN):
     C.connect(i, i)                   # from right ear
     C.connect(i+num_indices*cfN, i)   # from left ear

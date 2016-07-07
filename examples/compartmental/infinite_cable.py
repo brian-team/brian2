@@ -20,7 +20,8 @@ Im = gL * (EL-v) : amp/meter**2
 I : amp (point current)
 '''
 
-neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
+                       method = 'exponential_euler')
 neuron.v = EL
 
 taum = Cm  /gL  # membrane time constant
@@ -40,7 +41,7 @@ t = mon.t
 plot(t/ms, mon.v.T/mV, 'k')
 # Theory (incorrect near cable ends)
 for i in range(0, len(neuron)//2, 20):
-    x = (len(neuron)/2 - i) * morpho.length[0]*meter
+    x = (len(neuron)/2 - i) * morpho.length[0]
     theory = (1/(la*Cm*pi*diameter) * sqrt(taum / (4*pi*(t + defaultclock.dt))) *
               exp(-(t+defaultclock.dt)/taum -
                   taum / (4*(t+defaultclock.dt))*(x/la)**2))

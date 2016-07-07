@@ -114,6 +114,7 @@ C++ source code and modifying it, or by inserting code directly into the main lo
     cout << "Testing direct insertion of code." << endl;
     ''')
 
+
 Variables
 ~~~~~~~~~
 After a simulation has been run (after the `run` call if `set_device` has been called with ``build_on_run`` set to

@@ -4,8 +4,8 @@ Hodgkin-Huxley equations (1952)
 We calculate the extracellular field potential at various places.
 '''
 from brian2 import *
-
-morpho = Cylinder(x=10*cm, y=0*cm, z=0*cm, diameter=2*238*um, n=1000, type='axon')
+defaultclock.dt = 0.01*ms
+morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=1000, type='axon')
 
 El = 10.613* mV
 ENa = 115*mV
@@ -57,7 +57,9 @@ lfp.x = 7*cm # Off center (to be far from stimulating electrode)
 lfp.y = [1*mm, 2*mm, 4*mm, 8*mm, 16*mm]
 # Synapses are normally executed after state update, so v-previous_v = dv
 S = Synapses(neuron,lfp,model='''w : ohm*meter**2 (constant) # Weight in the LFP calculation
-                                 v_post = w*(Cm_pre*(v_pre-previous_v_pre)/dt-Im_pre) : volt (summed)''',connect=True)
+                                 v_post = w*(Cm_pre*(v_pre-previous_v_pre)/dt-Im_pre) : volt (summed)''')
+S.summed_updaters['v_post'].when = 'after_groups'  # otherwise v and previous_v would be identical
+S.connect()
 S.w = 'area_pre/(4*pi*sigma)/((x_pre-x_post)**2+(y_pre-y_post)**2+(z_pre-z_post)**2)**.5'
 
 Mlfp = StateMonitor(lfp,'v',record=True)
@@ -71,7 +73,7 @@ run(100*ms, report='text')
 subplot(211)
 for i in range(10):
     plot(M.t/ms,M.v[i*100]/mV)
-ylabel('Vm (mV)')
+ylabel('$V_m$ (mV)')
 subplot(212)
 for i in range(5):
     plot(M.t/ms,Mlfp.v[i]/mV)

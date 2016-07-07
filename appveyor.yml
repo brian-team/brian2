@@ -10,102 +10,91 @@ environment:
     secure: mP9XvwSNUqxq7cFK4V0wM2rNmvlGUYecSlZvkYjRtdGotr9ueS2IycSDvvNGlSdK
 
   matrix:
-    - PYTHON: "C:\\Python34-conda32"
-      PYTHON_VERSION: "3.4.3"
+    - PYTHON: "C:\\Miniconda3"
+      PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "34"
-      CONDA_NPY: "19"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python34-conda64"
-      PYTHON_VERSION: "3.4.3"
+    - PYTHON: "C:\\Miniconda3-x64"
+      PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "34"
-      CONDA_NPY: "19"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python35-conda32"
-      PYTHON_VERSION: "3.5.0"
+    - PYTHON: "C:\\Miniconda35"
+      PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "35"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python35-conda64"
-      PYTHON_VERSION: "3.5.0"
+    - PYTHON: "C:\\Miniconda35-x64"
+      PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "35"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Miniconda"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "FALSE"
       CONDA_PY: "27"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Miniconda"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "FALSE"
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
 
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Miniconda-x64"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "27"
-      CONDA_NPY: "110"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Miniconda-x64"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
 
-    - PYTHON: "C:\\Python27-conda32"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Miniconda"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "TRUE"
 
-    - PYTHON: "C:\\Python27-conda64"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Miniconda-x64"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "TRUE"
 
 install:
-  # Install Python and miniconda
-  - 'powershell .\dev\continuous-integration\appveyor\install_python.ps1'
   # Add the paths
-  - 'set PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%'
-  # Create a new environment with the exact Python version and activate it
-  - 'conda create --yes --quiet -n appveyor_test python=%PYTHON_VERSION%'
-  - 'activate appveyor_test'
+  - 'set PATH=%PYTHON%;%PYTHON%\Library\bin;%PYTHON%\Scripts;%PATH%'
 
   # Check that we have the expected version and architecture for Python
   - 'python --version'
@@ -114,6 +103,8 @@ install:
   # Install the build dependencies of the project via conda
   - 'conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'conda install --yes --quiet -c brian-team py-cpuinfo'
+  # For faster tests, only build conda packages for the master branch or pull requests
+  - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set CONDA_BUILD=FALSE'
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
@@ -133,9 +124,10 @@ after_test:
           cd %SRC_DIR% &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst &&
-          deactivate &&
           %CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.9 &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.10 &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.11 &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
           if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'

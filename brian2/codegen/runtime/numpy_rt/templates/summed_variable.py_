@@ -1,8 +1,9 @@
-{# USES_VARIABLES { _synaptic_post, N } #}
+{# USES_VARIABLES { N } #}
 {# ITERATE_ALL { _idx } #}
 import numpy as _numpy
 
 {% set _target_var_array = get_array_name(_target_var) %}
+{% set _index_array = get_array_name(_index_var) %}
 
 # scalar code
 _vectorisation_idx = 1
@@ -14,6 +15,7 @@ _vectorisation_idx = N
 
 # We write to the array, using the name provided as a keyword argument to the
 # template
-{{_target_var_array}}[:] = _numpy.bincount({{_synaptic_post}},
+
+{{_target_var_array}}[:] = _numpy.bincount({{_index_array}},
                                  minlength=len({{_target_var_array}}),
                                  weights=_synaptic_var)

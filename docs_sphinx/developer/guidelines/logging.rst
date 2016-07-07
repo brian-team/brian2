@@ -3,12 +3,10 @@
 Logging
 =======
 
+For a description of logging from the users point of view, see :doc:`../../advanced/logging`.
+
 Logging in Brian is based on the :mod:`logging` module in Python's standard
-library. In Brian, all logging output is logged to a file (the file name is
-available in `brian2.utils.logger.TMP_LOG`). This log file will normally be
-deleted on exit, except if an uncaught exception occured or if
-`logging.delete_log_on_exit` is set to ``False``. The default log level for the
-logging on the console is "info".
+library.
 
 Every brian module that needs logging should start with the following line,
 using the `get_logger` function to get an instance of `BrianLogger`::
@@ -84,31 +82,6 @@ messages that the user sees in the default configuration (i.e., ``info`` and
 the renaming of variables, explicitly specifying a state updater instead of
 relying on the automatic system, adding ``(clock-driven)``/``(event-driven)``
 to synaptic equations, etc.
-
-Showing/hiding log messages
----------------------------
-The user can change the level of displayed log messages by using a static
-method of `BrianLogger`::
-
-    BrianLogger.log_level_debug() # now also display debug messages
-
-It is also possible to suppress messages for certain sub-hierarchies by using
-`BrianLogger.suppress_hierarchy`::
-
-    # Suppress code generation messages on the console
-    BrianLogger.suppress_hierarchy('brian2.codegen')
-    # Suppress preference messages even in the log file
-    BrianLogger.suppress_hierarchy('brian2.core.preferences',
-                                   filter_log_file=True)
-
-Similarly, messages ending in a certain name can be suppressed with
-`BrianLogger.suppress_name`::
-
-    # Suppress resolution conflict warnings
-    BrianLogger.suppress_name('resolution_conflict')
-
-These functions should be used with care, as they suppresses messages
-independent of the level, i.e. even warning and error messages.
 
 Testing log messages
 --------------------

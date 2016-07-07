@@ -1,5 +1,4 @@
-import numpy as np
-from numpy.testing.utils import assert_equal
+from numpy.testing.utils import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -25,6 +24,7 @@ def test_timedarray_direct_use():
     assert ta2d(1*ms, 1) == 4*amp
     assert_equal(ta2d(1*ms, [0, 1, 2]), [3, 4, 5]*amp)
     assert_equal(ta2d(15*ms, [0, 1, 2]), [9, 10, 11]*amp)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -68,6 +68,20 @@ def test_timedarray_2d():
     assert_equal(mon[1].value_, np.array([1, 4, 7, 10, 10]) + 1)
     assert_equal(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
 
+
+@attr('codegen-independent')
+def test_timedarray_incorrect_use():
+    ta = TimedArray(np.linspace(0, 10, 11), 1*ms)
+    ta2d = TimedArray((np.linspace(0, 11, 12)*amp).reshape(4, 3), 1*ms)
+    G = NeuronGroup(3, 'I : amp')
+    # The weird formulation with the variable name is to get the variable into
+    # the surrounding namespace of the setattr call
+    assert_raises(ValueError, lambda: (ta2d, setattr(G, 'I', 'ta2d(t)*amp')))
+    assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta(t, i)*amp')))
+    assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta()*amp')))
+    assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta*amp')))
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_timedarray_no_upsampling():
@@ -78,6 +92,7 @@ def test_timedarray_no_upsampling():
     mon = StateMonitor(G, 'value', record=True, dt=1*ms)
     run(2.1*ms)
     assert_equal(mon[0].value, [0, 9, 9])
+
 
 #@attr('standalone-compatible')  # see FIXME comment below
 @with_setup(teardown=reinit_devices)
@@ -104,5 +119,6 @@ if __name__ == '__main__':
     test_timedarray_no_units()
     test_timedarray_with_units()
     test_timedarray_2d()
+    test_timedarray_incorrect_use()
     test_timedarray_no_upsampling()
     test_long_timedarray()

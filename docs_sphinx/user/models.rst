@@ -87,16 +87,16 @@ analysing data with external tools), use an underscore after the name:
 .. doctest::
 
     >>> G = NeuronGroup(10, '''dv/dt = (-v + shared_input)/tau : volt
-                               shared_input : volt (shared)
+    ...                        shared_input : volt (shared)
     ...                        tau : second''')
     >>> G.v = -70*mV
-    >>> print G.v
+    >>> G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
-    >>> print G.v_  # values without units
+    >>> G.v_  # values without units
     <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
     >>> G.shared_input = 5*mV
-    >>> print G.shared_input
-    <neurongroup.shared_input: 5.0 * mvolt>
+    >>> G.shared_input
+    <neurongroup.shared_input: 5. * mvolt>
 
 The value of state variables can also be set using string expressions that can
 refer to units and external variables, other state variables, mathematical
@@ -104,24 +104,22 @@ functions, and a special variable ``i``, the index of the neuron:
 
 .. doctest::
 
-    >>> G.tau = '5*ms + 5*ms*rand() + i*5*ms'
-    >>> print G.tau
-    <neurongroup.tau: array([  5.03593449,  10.74914808,  19.01641896,  21.66813281,
-            27.16243388,  31.13571924,  36.28173038,  40.04921519,
-            47.28797921,  50.18913711]) * msecond>
+    >>> G.tau = '5*ms + (1.0*i/N)*5*ms'
+    >>> G.tau
+    <neurongroup.tau: array([ 5. ,  5.5,  6. ,  6.5,  7. ,  7.5,  8. ,  8.5,  9. ,  9.5]) * msecond>
 
 For shared variables, such string expressions can only refer to shared values:
 
 .. doctest::
 
-    >>> G.shared_input = 'rand()*mV + 4*mV'
-    >>> print G.shared_input
-    <neurongroup.shared_input: 4.2579690100000001 * mvolt>
+    >>> G.shared_input = '(4.0/N)*mV'
+    >>> G.shared_input
+    <neurongroup.shared_input: 0.4 * mvolt>
 
 Sometimes it can be convenient to access multiple state variables at once, e.g.
 to set initial values from a dictionary of values or to store all the values of
-a group on disk. This can be done with the `Group.get_states` and
-`Group.set_states` methods:
+a group on disk. This can be done with the `VariableOwner.get_states` and
+`VariableOwner.set_states` methods:
 
 .. doctest::
 
@@ -137,9 +135,29 @@ a group on disk. This can be done with the `Group.get_states` and
     >>> states = group.get_states()
     >>> states['v']
     array([ 0.,  1.,  2.,  3.,  4.])
-    >>> sorted(states.keys())
-    ['N', 'dt', 'i', 't', 'tau', 'v']
 
+The data (without physical units) can also be exported/imported to/from
+`Pandas <http://pandas.pydata.org/>`_ data frames (needs an installation of ``pandas``)::
+
+    >>> df = group.get_states(units=False, format='pandas')
+    >>> df
+       N      dt  i    t   tau    v
+    0  5  0.0001  0  0.0  0.01  0.0
+    1  5  0.0001  1  0.0  0.02  1.0
+    2  5  0.0001  2  0.0  0.01  2.0
+    3  5  0.0001  3  0.0  0.02  3.0
+    4  5  0.0001  4  0.0  0.01  4.0
+    >>> df['tau']
+    0    0.01
+    1    0.02
+    2    0.01
+    3    0.02
+    4    0.01
+    Name: tau, dtype: float64
+    >>> df['tau'] *= 2
+    >>> group.set_states(df[['tau']], units=False, format='pandas')
+    >>> group.tau
+    <neurongroup.tau: array([ 20.,  40.,  20.,  40.,  20.]) * msecond>
 
 Subgroups
 ---------
@@ -211,6 +229,16 @@ appropriately. Each class defines its own list of algorithms it tries to
 apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
 the methods ``'linear'``, ``'euler'`` and ``'heun'`` while `SpatialNeuron`
 objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
+
+You will get an ``INFO`` message telling you which integration method Brian decided to use,
+together with information about how much time it took to apply the integration method
+to your equations. If other methods have been tried but were not applicable, you will
+also see the time it took to try out those other methods. In some cases, checking
+other methods (in particular the ``'linear'`` method which attempts to solve the
+equations analytically) can take a considerable amount of time -- to avoid wasting
+this time, you can always chose the integration method manually (see below). You
+can also suppress the message by raising the log level or by explicitly suppressing
+``'method_choice'`` log messages -- for details, see :doc:`../advanced/logging`.
 
 If you prefer to chose an integration algorithm yourself, you can do so using
 the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.

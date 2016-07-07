@@ -53,7 +53,7 @@ um3 = umetre3
 
 stdunits = {'mV': mV, 'mA': mA, 'uA': uA, 'nA': nA, 'pA': pA, 'pF': pF,
             'uF': uF, 'nF': nF, 'nS': nS, 'uS': uS, 'ms': ms, 'us': us,
-            'Hz' : Hz, 'kHz': kHz, 'MHz': MHz, 'cm': cm, 'cm2': cm2,
+            'Hz': Hz, 'kHz': kHz, 'MHz': MHz, 'cm': cm, 'cm2': cm2,
             'cm3': cm3, 'mm': mm, 'mm2': mm2, 'mm3': mm3, 'um': um, 'um2': um2,
             'um3': um3}
-all_units.extend(stdunits)
+all_units.extend(stdunits.itervalues())

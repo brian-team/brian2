@@ -359,12 +359,12 @@ def run(duration, report=None, report_period=10*second, namespace=None,
 
     See Also
     --------
-    
-    Network.run, MagicNetwork, collect, reinit, stop, clear
-    
+
+    Network.run, MagicNetwork, collect, start_scope, stop
+
     Raises
     ------
-    
+
     MagicError
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.

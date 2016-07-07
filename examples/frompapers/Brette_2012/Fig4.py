@@ -13,10 +13,8 @@ defaultclock.dt = 0.025*ms
 # Morphology
 morpho = Soma(50*um) # chosen for a target Rm
 # Tapering (change this for the other figure panels)
-axon = Cylinder(diameter=1*um, length=300*um, n=300)
-axon.diameter[0:10] = linspace(4*um, 1*um, 10)
-axon.set_area()
-morpho.axon = axon
+diameters = hstack([linspace(4, 1, 11), ones(290)])*um
+morpho.axon = Section(diameter=diameters, length=ones(300)*um, n=300)
 
 # Na channels
 Na_start = (25 + 10)*um

@@ -484,7 +484,12 @@ class BrianGlobalPreferences(MutableMapping):
         BrianPreference
         '''
         if prefbasename in self.pref_register:
-            raise PreferenceError("Base name " + prefbasename + " already registered.")
+            # During the initial import phase the same base category may be
+            # created twice, ignore that
+            previous = self.pref_register[prefbasename]
+            if not (len(previous[0]) == 0 and previous[1] == prefbasedoc):
+                raise PreferenceError("Base name " + prefbasename +
+                                      " already registered.")
         # Check that the new category does not clash with a preference name of
         # the parent category. For example, if a category "a" with the
         # preference "b" is already registered, do not allow to register a

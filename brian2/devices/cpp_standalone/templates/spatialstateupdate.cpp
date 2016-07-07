@@ -17,7 +17,7 @@
 
     {% set strategy = prefs.devices.cpp_standalone.openmp_spatialneuron_strategy %}
     {% if strategy == None %}
-        {% if prefs.devices.cpp_standalone.openmp_threads <= 3 or number_branches < 3%}
+        {% if prefs.devices.cpp_standalone.openmp_threads <= 3 or number_sections < 3%}
             {% set strategy = 'systems' %}
         {% else %}
             {% set strategy = 'branches' %}
@@ -41,7 +41,7 @@
         {{_I0_all}}[_idx] = _I0;
     }
 
-    // STEP 2: for each branch: solve three tridiagonal systems
+    // STEP 2: for each section: solve three tridiagonal systems
     // (independent: branches and also the three tridiagonal systems)
 
     {% if strategy == 'systems' %}
@@ -58,14 +58,14 @@
         {% endif %}
         for (int _i=0; _i<_num_B - 1; _i++)
         {
-            // first and last index of the i-th branch
+            // first and last index of the i-th section
             const int _j_start = {{_starts}}[_i];
             const int _j_end = {{_ends}}[_i];
             
             double _ai, _bi, _m; // helper variables
 
             // upper triangularization of tridiagonal system for _v_star
-            for(int _j=_j_start; _j<_j_end+1; _j++)
+            for(int _j=_j_start; _j<_j_end; _j++)
             {
                 {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j]; // RHS -> _v_star (solution)
                 _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
@@ -84,7 +84,7 @@
                 }
             }
             // backwards substituation of the upper triangularized system for _v_star
-            for(int _j=_j_end-1; _j>=_j_start; _j--)
+            for(int _j=_j_end-2; _j>=_j_start; _j--)
                 {{_v_star}}[_j]={{_v_star}}[_j] - {{_c1}}[_j]*{{_v_star}}[_j+1];
         }
     }
@@ -96,14 +96,14 @@
         {% endif %}
         for (int _i=0; _i<_num_B - 1; _i++)
         {
-            // first and last index of the i-th branch
+            // first and last index of the i-th section
             const int _j_start = {{_starts}}[_i];
             const int _j_end = {{_ends}}[_i];
             
             double _ai, _bi, _m; // helper variables
 
             // upper triangularization of tridiagonal system for _u_plus
-            for(int _j=_j_start; _j<_j_end+1; _j++)
+            for(int _j=_j_start; _j<_j_end; _j++)
             {
                 {{_u_plus}}[_j]={{_b_plus}}[_j]; // RHS -> _u_plus (solution)
                 _bi={{_a_plus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
@@ -122,7 +122,7 @@
                 }
             }
             // backwards substituation of the upper triangularized system for _u_plus
-            for(int _j=_j_end-1; _j>=_j_start; _j--)
+            for(int _j=_j_end-2; _j>=_j_start; _j--)
                 {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c2}}[_j]*{{_u_plus}}[_j+1];
         }
     }
@@ -134,14 +134,14 @@
         {% endif %}
         for (int _i=0; _i<_num_B - 1; _i++)
         {
-            // first and last index of the i-th branch
+            // first and last index of the i-th section
             const int _j_start = {{_starts}}[_i];
             const int _j_end = {{_ends}}[_i];
 
             double _ai, _bi, _m; // helper variables
             
             // upper triangularization of tridiagonal system for _u_minus
-            for(int _j=_j_start; _j<_j_end+1; _j++)
+            for(int _j=_j_start; _j<_j_end; _j++)
             {
                 {{_u_minus}}[_j]={{_b_minus}}[_j]; // RHS -> _u_minus (solution)
                 _bi={{_a_minus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
@@ -160,7 +160,7 @@
                 }
             }
             // backwards substituation of the upper triangularized system for _u_minus
-            for(int _j=_j_end-1; _j>=_j_start; _j--)
+            for(int _j=_j_end-2; _j>=_j_start; _j--)
                 {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c3}}[_j]*{{_u_minus}}[_j+1];
         }
     } // (OpenMP section)
@@ -186,12 +186,12 @@
         const int _i_parent = {{_morph_parent_i}}[_i];
         const int _i_childind = {{_morph_idxchild}}[_i];
         const int _first = {{_starts}}[_i];
-        const int _last = {{_ends}}[_i];
+        const int _last = {{_ends}}[_i] - 1;  // the compartment indices are in the interval [starts, ends[
         const double _invr0 = {{_invr0}}[_i];
         const double _invrn = {{_invrn}}[_i];
 
         // Towards parent
-        if (_i == 0) // first branch, sealed end
+        if (_i == 0) // first section, sealed end
         {
             // sparse matrix version
             {{_P_diag}}[0] = {{_u_minus}}[_first] - 1;
@@ -246,7 +246,7 @@
     }
 
     // part 2: forwards substitution
-    {{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]; // the first branch does not have a parent
+    {{_B}}[0] = {{_B}}[0] / {{_P_diag}}[0]; // the first section does not have a parent
     for (int _i=1; _i<_num_B; _i++) {
         const int _j = {{_morph_parent_i}}[_i-1]; // parent index
         {{_B}}[_i] = {{_B}}[_i] - {{_P_parent}}[_i-1] * {{_B}}[_j];
@@ -254,14 +254,14 @@
         
     }
 
-    // STEP 4: for each branch compute the final solution by linear 
-    // combination of the general solution (independent: branches & compartments)
+    // STEP 4: for each section compute the final solution by linear
+    // combination of the general solution (independent: sections & compartments)
     for (int _i=0; _i<_num_B - 1; _i++)
     {
         const int _i_parent = {{_morph_parent_i}}[_i];
         const int _j_start = {{_starts}}[_i];
         const int _j_end = {{_ends}}[_i];
-        for (int _j=_j_start; _j<_j_end + 1; _j++)
+        for (int _j=_j_start; _j<_j_end; _j++)
             if (_j < _numv)  // don't go beyond the last element
                 {{v}}[_j] = {{_v_star}}[_j] + {{_B}}[_i_parent] * {{_u_minus}}[_j]
                                            + {{_B}}[_i+1] * {{_u_plus}}[_j];

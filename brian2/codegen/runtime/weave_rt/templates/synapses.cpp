@@ -24,4 +24,5 @@
 
     // Advance the spike queue
     PyObject_CallMethod(_queue, "advance", "");
+    Py_DECREF(_spiking_synapses_obj);
 {% endblock %}

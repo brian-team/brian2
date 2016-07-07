@@ -3,6 +3,7 @@ Compartmental models.
 This module defines the SpatialNeuron class, which defines multicompartmental models.
 '''
 import weakref
+import copy
 
 import sympy as sp
 import numpy as np
@@ -12,7 +13,7 @@ from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         DIFFERENTIAL_EQUATION)
 from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp, meter
-from brian2.units.fundamentalunits import Unit, fail_for_dimension_mismatch
+from brian2.units.fundamentalunits import Quantity, Unit, fail_for_dimension_mismatch, have_same_dimensions, DimensionMismatchError
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
@@ -20,11 +21,136 @@ from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
 
-from .morphology import MorphologyData
-
 __all__ = ['SpatialNeuron']
 
 logger = get_logger(__name__)
+
+
+class FlatMorphology(object):
+    '''
+    Container object to store the flattened representation of a morphology.
+    Note that all values are stored as numpy arrays without unit information
+    (i.e. in base units).
+    '''
+    def __init__(self, morphology):
+        self.n = n = morphology.total_compartments  # Total number of compartments
+        # Per-compartment attributes
+        self.length = np.zeros(n)
+        self.distance = np.zeros(n)
+        self.area = np.zeros(n)
+        self.diameter = np.zeros(n)
+        self.volume = np.zeros(n)
+        self.r_length_1 = np.zeros(n)
+        self.r_length_2 = np.zeros(n)
+        self.start_x = np.zeros(n)
+        self.start_y = np.zeros(n)
+        self.start_z = np.zeros(n)
+        self.x = np.zeros(n)
+        self.y = np.zeros(n)
+        self.z = np.zeros(n)
+        self.end_x = np.zeros(n)
+        self.end_y = np.zeros(n)
+        self.end_z = np.zeros(n)
+        self.depth = np.zeros(n, dtype=np.int32)
+        self.sections = sections = morphology.total_sections
+        self.end_distance = np.zeros(sections)
+        # Index of the parent for each section (-1 for the root)
+        self.morph_parent_i = np.zeros(sections, dtype=np.int32)
+        # The children indices for each section (list of lists, will be later
+        # transformed into an array representation)
+        self.morph_children = []
+        # each section is child of exactly one parent, this stores the index in
+        # the parents list of children
+        self.morph_idxchild = np.zeros(sections, dtype=np.int32)
+        self.starts = np.zeros(sections, dtype=np.int32)
+        self.ends = np.zeros(sections, dtype=np.int32)
+
+        # recursively fill the data structures
+        self._sections_without_coordinates = False
+        self.has_coordinates = False
+        self._offset = 0
+        self._section_counter = 0
+        self._insert_data(morphology)
+        if self.has_coordinates and self._sections_without_coordinates:
+            logger.info('The morphology has a mix of sections with and '
+                        'without coordinates. The SpatialNeuron object '
+                        'will store NaN values for the coordinates of '
+                        'the sections that do not specify coordinates. '
+                        'Call generate_coordinates on the morphology '
+                        'before creating the SpatialNeuron object to fill '
+                        'in the missing coordinates.')
+        # Do not store coordinates for morphologies that don't define them
+        if not self.has_coordinates:
+            self.start_x = self.start_y = self.start_z = None
+            self.x = self.y = self.z = None
+            self.end_x = self.end_y = self.end_z = None
+
+        # Transform the list of list of children into a 2D array (stored as
+        # 1D) -- note that this wastes space if the number of children per
+        # section is very different. In practice, this should not be much of a
+        # problem since most sections have 0, 1, or 2 children (e.g. SWC files
+        # on neuromorpho.org are all binary trees)
+        self.morph_children_num = np.array([len(c)
+                                            for c in self.morph_children] + [0])
+        max_children = max(self.morph_children_num)
+        morph_children = np.zeros((sections+1, max_children), dtype=np.int32)
+        for idx, section_children in enumerate(self.morph_children):
+            morph_children[idx, :len(section_children)] = section_children
+        self.morph_children = morph_children.reshape(-1)
+
+    def _insert_data(self, section, parent_idx=-1, depth=0):
+        n = section.n
+        start = self._offset
+        end = self._offset + n
+        # Compartment attributes
+        self.depth[start:end] = depth
+        self.length[start:end] = np.asarray(section.length)
+        self.distance[start:end] = np.asarray(section.distance)
+        self.area[start:end] = np.asarray(section.area)
+        self.diameter[start:end] = np.asarray(section.diameter)
+        self.volume[start:end] = np.asarray(section.volume)
+        self.r_length_1[start:end] = np.asarray(section.r_length_1)
+        self.r_length_2[start:end] = np.asarray(section.r_length_2)
+        if section.x is None:
+            self._sections_without_coordinates = True
+            self.start_x[start:end] = np.ones(n)*np.nan
+            self.start_y[start:end] = np.ones(n)*np.nan
+            self.start_z[start:end] = np.ones(n)*np.nan
+            self.x[start:end] = np.ones(n)*np.nan
+            self.y[start:end] = np.ones(n)*np.nan
+            self.z[start:end] = np.ones(n)*np.nan
+            self.end_x[start:end] = np.ones(n)*np.nan
+            self.end_y[start:end] = np.ones(n)*np.nan
+            self.end_z[start:end] = np.ones(n)*np.nan
+        else:
+            self.has_coordinates = True
+            self.start_x[start:end] = np.asarray(section.start_x)
+            self.start_y[start:end] = np.asarray(section.start_y)
+            self.start_z[start:end] = np.asarray(section.start_z)
+            self.x[start:end] = np.asarray(section.x)
+            self.y[start:end] = np.asarray(section.y)
+            self.z[start:end] = np.asarray(section.z)
+            self.end_x[start:end] = np.asarray(section.end_x)
+            self.end_y[start:end] = np.asarray(section.end_y)
+            self.end_z[start:end] = np.asarray(section.end_z)
+
+        # Section attributes
+        idx = self._section_counter
+        # We start counting from 1 for the parent indices, since the index 0
+        # is used for the (virtual) root compartment
+        self.morph_parent_i[idx] = parent_idx + 1
+        self.morph_children.append([])
+        self.starts[idx] = start
+        self.ends[idx] = end
+        # Append ourselves to the children list of our parent
+        self.morph_idxchild[idx] = len(self.morph_children[parent_idx+1])
+        self.morph_children[parent_idx + 1].append(idx + 1)
+        self.end_distance[idx] = section.end_distance
+        # Recurse down the tree
+        self._offset += n
+        self._section_counter += 1
+        for child in section.children:
+            self._insert_data(child, parent_idx=idx, depth=depth+1)
 
 
 class SpatialNeuron(NeuronGroup):
@@ -63,7 +189,7 @@ class SpatialNeuron(NeuronGroup):
     events : dict, optional
         User-defined events in addition to the "spike" event defined by the
         ``threshold``. Has to be a mapping of strings (the event name) to
-         strings (the condition) that will be checked.
+        strings (the condition) that will be checked.
     refractory : {str, `Quantity`}, optional
         Either the length of the refractory period (e.g. ``2*ms``), a string
         expression that evaluates to the length of the refractory period
@@ -180,30 +306,39 @@ class SpatialNeuron(NeuronGroup):
         I0_str = "I0__private=" + b_str + ": amp/meter**2"
         model += Equations(gtot_str + "\n" + I0_str)
 
+        # Insert morphology (store a copy)
+        self.morphology = copy.deepcopy(morphology)
+
+        # Flatten the morphology
+        self.flat_morphology = FlatMorphology(morphology)
+
         # Equations for morphology
         # TODO: check whether Cm and Ri are already in the equations
         #       no: should be shared instead of constant
         #       yes: should be constant (check)
         eqs_constants = Equations("""
-        diameter : meter (constant)
         length : meter (constant)
-        x : meter (constant)
-        y : meter (constant)
-        z : meter (constant)
         distance : meter (constant)
         area : meter**2 (constant)
+        volume : meter**3
+        diameter : meter (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
-        space_constant = (diameter/(4*Ri*gtot__private))**.5 : meter
+        r_length_1 : meter (constant)
+        r_length_2 : meter (constant)
+        time_constant = Cm/gtot__private : second
+        space_constant = (2/pi)**(1.0/3.0) * (area/(1/r_length_1 + 1/r_length_2))**(1.0/6.0) /
+                         (2*(Ri*gtot__private)**(1.0/2.0)) : meter
         """)
-        # Insert morphology
-        self.morphology = morphology
+        if self.flat_morphology.has_coordinates:
+            eqs_constants += Equations('''
+            x : meter (constant)
+            y : meter (constant)
+            z : meter (constant)
+            ''')
 
-        # Link morphology variables to neuron's state variables
-        self.morphology_data = MorphologyData(len(morphology))
-        self.morphology.compress(self.morphology_data)
-
-        NeuronGroup.__init__(self, len(morphology), model=model + eqs_constants,
+        NeuronGroup.__init__(self, morphology.total_compartments,
+                             model=model + eqs_constants,
                              threshold=threshold, refractory=refractory,
                              reset=reset, events=events,
                              method=method, dt=dt, clock=clock, order=order,
@@ -229,14 +364,18 @@ class SpatialNeuron(NeuronGroup):
 
         self.Cm = Cm
         self.Ri = Ri
-        # TODO: View instead of copy for runtime?
-        self.diameter_ = self.morphology_data.diameter
-        self.distance_ = self.morphology_data.distance
-        self.length_ = self.morphology_data.length
-        self.area_ = self.morphology_data.area
-        self.x_ = self.morphology_data.x
-        self.y_ = self.morphology_data.y
-        self.z_ = self.morphology_data.z
+        # These explict assignments will load the morphology values from disk
+        # in standalone mode
+        self.distance_ = self.flat_morphology.distance
+        self.length_ = self.flat_morphology.length
+        self.area_ = self.flat_morphology.area
+        self.diameter_ = self.flat_morphology.diameter
+        self.r_length_1_ = self.flat_morphology.r_length_1
+        self.r_length_2_ = self.flat_morphology.r_length_2
+        if self.flat_morphology.has_coordinates:
+            self.x_ = self.flat_morphology.x
+            self.y_ = self.flat_morphology.y
+            self.z_ = self.flat_morphology.z
 
         # Performs numerical integration step
         self.add_attribute('diffusion_state_updater')
@@ -247,59 +386,63 @@ class SpatialNeuron(NeuronGroup):
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
 
-    def __getattr__(self, x):
+    def __getattr__(self, name):
         '''
         Subtrees are accessed by attribute, e.g. neuron.axon.
         '''
-        return self.spatialneuron_attribute(self, x)
+        return self.spatialneuron_attribute(self, name)
 
-    def __getitem__(self, x):
+    def __getitem__(self, item):
         '''
         Selects a segment, where x is a slice of either compartment
         indexes or distances.
         Note a: segment is not a SpatialNeuron, only a Group.
         '''
-        return self.spatialneuron_segment(self, x)
+        return self.spatialneuron_segment(self, item)
 
     @staticmethod
-    def spatialneuron_attribute(neuron, x):
+    def spatialneuron_attribute(neuron, name):
         '''
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
         '''
-        if x == 'main':  # Main segment, without the subtrees
-            origin = neuron.morphology._origin
-            return Subgroup(neuron, origin, origin + len(neuron.morphology.x))
-        elif (x != 'morphology') and ((x in neuron.morphology._namedkid) or
-                                      all([c in 'LR123456789' for c in x])):  # subtree
-            morpho = neuron.morphology[x]
-            return SpatialSubgroup(neuron, morpho._origin,
-                                   morpho._origin + len(morpho),
+        if name == 'main':  # Main section, without the subtrees
+            indices = neuron.morphology.indices[:]
+            start, stop = indices[0], indices[-1]
+            return SpatialSubgroup(neuron, start, stop + 1,
+                                   morphology=neuron.morphology)
+        elif (name != 'morphology') and ((name in getattr(neuron.morphology, 'children', [])) or
+                                      all([c in 'LR123456789' for c in name])):  # subtree
+            morpho = neuron.morphology[name]
+            indices = morpho.indices[:]
+            start, stop = indices[0], indices[-1]
+            return SpatialSubgroup(neuron, start, stop + 1,
                                    morphology=morpho)
         else:
-            return Group.__getattr__(neuron, x)
+            return Group.__getattr__(neuron, name)
 
     @staticmethod
-    def spatialneuron_segment(neuron, x):
+    def spatialneuron_segment(neuron, item):
         '''
-        Selects a segment from `SpatialNeuron` neuron, where x is a slice of
+        Selects a segment from `SpatialNeuron` neuron, where item is a slice of
         either compartment indexes or distances.
         Note a: segment is not a `SpatialNeuron`, only a `Group`.
         '''
-        if not isinstance(x, slice):
+        if not isinstance(item, slice):
             raise TypeError(
                 'Subgroups can only be constructed using slicing syntax')
-        start, stop, step = x.start, x.stop, x.step
+        start, stop, step = item.start, item.stop, item.step
         if step is None:
             step = 1
         if step != 1:
             raise IndexError('Subgroups have to be contiguous')
 
-        if type(start) == type(1 * cm):  # e.g. 10*um:20*um
+        if isinstance(start, Quantity):
+            if not have_same_dimensions(start, meter) or not have_same_dimensions(stop, meter):
+                raise DimensionMismatchError('Start and stop should have units of meter', start, stop)
             # Convert to integers (compartment numbers)
-            morpho = neuron.morphology[x]
-            start = morpho._origin
-            stop = morpho._origin + len(morpho)
+            indices = neuron.morphology.indices[item]
+            start, stop = indices[0], indices[-1] + 1
 
         if start >= stop:
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
@@ -329,11 +472,11 @@ class SpatialSubgroup(Subgroup):
         self.morphology = morphology
         Subgroup.__init__(self, source, start, stop, name)
 
-    def __getattr__(self, x):
-        return SpatialNeuron.spatialneuron_attribute(self, x)
+    def __getattr__(self, name):
+        return SpatialNeuron.spatialneuron_attribute(self, name)
 
-    def __getitem__(self, x):
-        return SpatialNeuron.spatialneuron_segment(self, x)
+    def __getitem__(self, item):
+        return SpatialNeuron.spatialneuron_segment(self, item)
 
 
 class SpatialStateUpdater(CodeRunner, Group):
@@ -347,8 +490,8 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.method_choice = method
         self.group = weakref.proxy(group)
 
-        compartments = len(group) # total number of compartments
-        branches = self.number_branches(group.morphology)
+        compartments = group.flat_morphology.n
+        sections = group.flat_morphology.sections
 
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
@@ -359,77 +502,51 @@ class SpatialStateUpdater(CodeRunner, Group):
                             order=order,
                             name=group.name + '_spatialstateupdater*',
                             check_units=False,
-                            template_kwds={'number_branches': branches})
+                            template_kwds={'number_sections': sections})
 
-        # The morphology is considered fixed (length etc. can still be changed,
-        # though)
-        # Traverse it once to get a flattened representation
-        self._temp_morph_i = np.zeros(branches, dtype=np.int32)
-        self._temp_morph_parent_i = np.zeros(branches, dtype=np.int32)
-        # for the following: a smaller array of size no_segments x max_no_children would suffice...
-        self._temp_morph_children = np.zeros((branches+1, branches), dtype=np.int32)
-        # children count per branch: determines the no of actually used elements of the array above
-        self._temp_morph_children_num = np.zeros(branches+1, dtype=np.int32)
-        # each branch is child of exactly one parent (and we say the first branch i=1 is child of branch i=0)
-        # here we store the indices j-1->k of morph_children_i[i,k] = j 
-        self._temp_morph_idxchild = np.zeros(branches, dtype=np.int32)
-        self._temp_starts = np.zeros(branches, dtype=np.int32)
-        self._temp_ends = np.zeros(branches, dtype=np.int32)
-        self._pre_calc_iteration(self.group.morphology)
-        # flattened and reduce children indices
-        max_children = max(self._temp_morph_children_num)
-        self._temp_morph_children = self._temp_morph_children[:,:max_children].reshape(-1)
-        
-        self.variables = Variables(self, default_index='_branch_idx')
+        self.variables = Variables(self, default_index='_section_idx')
         self.variables.add_reference('N', group)
         # One value per compartment
         self.variables.add_arange('_compartment_idx', size=compartments)
         self.variables.add_array('_invr', unit=siemens, size=compartments,
                                  constant=True, index='_compartment_idx')
-        # one value per branch
-        self.variables.add_arange('_branch_idx', size=branches)
-        self.variables.add_array('_P_parent', unit=Unit(1), size=branches,
-                                 constant=True) # elements below diagonal
-        self.variables.add_array('_morph_idxchild', unit=Unit(1), size=branches,
-                                 dtype=np.int32, constant=True)
-        self.variables.add_arrays(['_morph_i', '_morph_parent_i',
+        # one value per section
+        self.variables.add_arange('_section_idx', size=sections)
+        self.variables.add_array('_P_parent', unit=Unit(1), size=sections,
+                                 constant=True)  # elements below diagonal
+        self.variables.add_arrays(['_morph_idxchild', '_morph_parent_i',
                                    '_starts', '_ends'], unit=Unit(1),
-                                  size=branches, dtype=np.int32, constant=True)
+                                  size=sections, dtype=np.int32, constant=True)
         self.variables.add_arrays(['_invr0', '_invrn'], unit=siemens,
-                                  size=branches, constant=True)
-        # one value per branch + 1 value for the root
-        self.variables.add_arange('_branch_root_idx', size=branches+1)
-        self.variables.add_array('_P_diag', unit=Unit(1), size=branches+1,
-                                 constant=True, index='_branch_root_idx')
-        self.variables.add_array('_B', unit=Unit(1), size=branches+1,
-                                 constant=True, index='_branch_root_idx')
-        self.variables.add_arange('_morph_children_num_idx', size=branches+1)
+                                  size=sections, constant=True)
+        # one value per section + 1 value for the root
+        self.variables.add_arange('_section_root_idx', size=sections+1)
+        self.variables.add_array('_P_diag', unit=Unit(1), size=sections+1,
+                                 constant=True, index='_section_root_idx')
+        self.variables.add_array('_B', unit=Unit(1), size=sections+1,
+                                 constant=True, index='_section_root_idx')
         self.variables.add_array('_morph_children_num', unit=Unit(1),
-                                 size=branches+1, dtype=np.int32, constant=True,
-                                 index='_morph_children_num_idx')
-        # 2D matrices of size (branches + 1) x max children per branch
-        # Note that this data structure wastes space if the number of children
-        # per branch is very different. In practice, however, this should not
-        # matter much, since branches will normally have 0, 1, or 2 children
-        # (e.g. SWC files on neuromporh are strictly binary trees)
-        self.variables.add_array('_P_children', unit=Unit(1),
-                                 size=(branches+1)*max_children,
-                                 constant=True)  # elements above diagonal
+                                 size=sections+1, dtype=np.int32,
+                                 constant=True, index='_section_root_idx')
+        # 2D matrices of size (sections + 1) x max children per section
         self.variables.add_arange('_morph_children_idx',
-                                  size=(branches+1)*max_children)
+                                  size=len(group.flat_morphology.morph_children))
+        self.variables.add_array('_P_children', unit=Unit(1),
+                                 size=len(group.flat_morphology.morph_children),
+                                 index='_morph_children_idx',
+                                 constant=True)  # elements above diagonal
         self.variables.add_array('_morph_children', unit=Unit(1),
-                                 size=(branches+1)*max_children,
+                                 size=len(group.flat_morphology.morph_children),
                                  dtype=np.int32, constant=True,
                                  index='_morph_children_idx')
         self._enable_group_attributes()
-        
-        self._morph_i = self._temp_morph_i
-        self._morph_parent_i = self._temp_morph_parent_i
-        self._morph_children_num = self._temp_morph_children_num
-        self._morph_children = self._temp_morph_children
-        self._morph_idxchild = self._temp_morph_idxchild
-        self._starts = self._temp_starts
-        self._ends = self._temp_ends
+
+        self._morph_parent_i = group.flat_morphology.morph_parent_i
+        self._morph_children_num = group.flat_morphology.morph_children_num
+        self._morph_children = group.flat_morphology.morph_children
+        self._morph_idxchild = group.flat_morphology.morph_idxchild
+        self._starts = group.flat_morphology.starts
+        self._ends = group.flat_morphology.ends
         self._prepare_codeobj = None
 
     def before_run(self, run_namespace):
@@ -458,39 +575,3 @@ class SpatialStateUpdater(CodeRunner, Group):
                              '(e.g. weave or cython) or install scipy.'),
                             once=True)
         CodeRunner.before_run(self, run_namespace)
-
-    def _pre_calc_iteration(self, morphology, counter=0):
-        self._temp_morph_i[counter] = morphology.index + 1
-        self._temp_morph_parent_i[counter] = morphology.parent + 1
-        
-        # add to parent's children list
-        if counter>0:
-            parent_i = self._temp_morph_parent_i[counter]
-            child_num = self._temp_morph_children_num[parent_i]
-            self._temp_morph_children[parent_i, child_num] = counter+1
-            self._temp_morph_children_num[parent_i] += 1 # increase parent's children count
-            self._temp_morph_idxchild[counter] = child_num
-        else:
-            self._temp_morph_children_num[0] = 1
-            self._temp_morph_children[0, 0] = 1
-            self._temp_morph_idxchild[0] = 0
-        
-        self._temp_starts[counter] = morphology._origin
-        self._temp_ends[counter] = morphology._origin + len(morphology.x) - 1
-        total_count = 1
-        for child in morphology.children:
-            total_count += self._pre_calc_iteration(child, counter+total_count)
-        return total_count
-
-    def number_branches(self, morphology, n=0, parent=-1):
-        '''
-        Recursively number the branches and return their total number.
-        n is the index number of the current branch.
-        parent is the index number of the parent branch.
-        '''
-        morphology.index = n
-        morphology.parent = parent
-        nbranches = 1
-        for kid in (morphology.children):
-            nbranches += self.number_branches(kid, n + nbranches, n)
-        return nbranches

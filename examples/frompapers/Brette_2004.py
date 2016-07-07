@@ -22,7 +22,7 @@ dv/dt = (-v + a + 2*sin(2*pi*t/tau))/tau : 1
 a : 1
 '''
 
-neurons = NeuronGroup(N, eqs, threshold='v>1', reset='v=0')
+neurons = NeuronGroup(N, eqs, threshold='v>1', reset='v=0', method='euler')
 neurons.a = linspace(2, 4, N)
 
 run(5*second, report='text')  # discard the first spikes (wait for convergence)

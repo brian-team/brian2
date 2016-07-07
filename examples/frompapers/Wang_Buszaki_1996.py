@@ -36,7 +36,7 @@ alpha_n = -0.01/mV*(v+34*mV)/(exp(-0.1/mV*(v+34*mV))-1)/ms : Hz
 beta_n = 0.125*exp(-(v+44*mV)/(80*mV))/ms : Hz
 '''
 
-neuron = NeuronGroup(1, eqs)
+neuron = NeuronGroup(1, eqs, method='exponential_euler')
 neuron.v = -70*mV
 neuron.h = 1
 M = StateMonitor(neuron, 'v', record=0)

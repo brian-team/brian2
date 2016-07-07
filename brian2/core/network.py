@@ -432,7 +432,7 @@ class Network(Nameable):
         else:
             with open(filename, 'rb') as f:
                 state = pickle.load(f)[name]
-        self.t_ = state.pop('0_t')
+        self.t_ = state['0_t']
         clocks = set([obj.clock for obj in self.objects])
         restored_objects = set()
         for obj in self.objects:
@@ -448,7 +448,7 @@ class Network(Nameable):
             clock._restore_from_full_state(state[clock.name])
         clock_names = {c.name for c in clocks}
 
-        unnused = set(state.keys()) - restored_objects - clock_names
+        unnused = set(state.keys()) - restored_objects - clock_names - {'0_t'}
         if len(unnused):
             raise KeyError('The stored state contains the state of the '
                            'following objects which were not present in the '
@@ -492,13 +492,13 @@ class Network(Nameable):
 
         Returns
         -------
-        values
+        values : dict
             A dictionary mapping object names to the state variables of that
             object, in the specified ``format``.
 
         See Also
         --------
-        Group.get_states
+        VariableOwner.get_states
         '''
         states = dict()
         for obj in self.objects:

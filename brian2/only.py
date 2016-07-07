@@ -37,9 +37,10 @@ from brian2.core.namespace import *
 from brian2.groups import *
 from brian2.synapses import *
 from brian2.monitors import *
+from brian2.importexport import *
 from brian2.input import *
 from brian2.spatialneuron import *
-from brian2.devices import set_device, get_device, device
+from brian2.devices import set_device, get_device, device, all_devices, seed
 import brian2.devices.cpp_standalone as _cpp_standalone
 
 # preferences
@@ -48,6 +49,8 @@ prefs.load_preferences()
 prefs.do_validation()
 
 prefs._backup()
+
+set_device(all_devices['runtime'])
 
 def restore_initial_state():
     '''

@@ -32,18 +32,19 @@ dge/dt = -ge / taue : 1
 '''
 
 input = PoissonGroup(N, rates=F)
-neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr')
+neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
+                      method='linear')
 S = Synapses(input, neurons,
              '''w : 1
                 dApre/dt = -Apre / taupre : 1 (event-driven)
                 dApost/dt = -Apost / taupost : 1 (event-driven)''',
-             pre='''ge += w
+             on_pre='''ge += w
                     Apre += dApre
                     w = clip(w + Apost, 0, gmax)''',
-             post='''Apost += dApost
+             on_post='''Apost += dApost
                      w = clip(w + Apre, 0, gmax)''',
-             connect=True,
              )
+S.connect()
 S.w = 'rand() * gmax'
 mon = StateMonitor(S, 'w', record=[0, 1])
 s_mon = SpikeMonitor(input)

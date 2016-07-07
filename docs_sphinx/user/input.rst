@@ -8,26 +8,27 @@ a range of options, detailed below.
 Poisson input
 -------------
 For generating spikes according to a Poisson point process, `PoissonGroup` can
-be used. It takes a rate or an array of rates (one rate per neuron) as an
-argument and can be connected to a `NeuronGroup` via the usual `Synapses`
-mechanism. At the moment, using ``PoissonGroup(N, rates)`` is equivalent to
+be used. It takes a rate, an array of rates (one rate per neuron), or a string
+expression evaluating to a rate as an argument and can be connected to a
+`NeuronGroup` via the usual `Synapses` mechanism.
+If the given value for ``rates`` is a constant, then using
+``PoissonGroup(N, rates)`` is equivalent to
 ``NeuronGroup(N, 'rates : Hz', threshold='rand()<rates*dt')`` and setting the
-group's ``rates`` attribute. The explicit creation of such a `NeuronGroup` might
-be useful if the rates for the neurons are not constant in time, since it allows
-using the techniques mentioned below (formulating rates as equations or
-referring to a timed array). In the future, the implementation of `PoissonGroup`
-will change to a more efficient spike generation mechanism, based on the
-calculation of inter-spike intervals. Note that, as can be seen in its equivalent
-`NeuronGroup` formulation, a `PoissonGroup` does not work for high rates where
-more than one spike might fall into a single timestep. Use several units with
-lower rates in this case (e.g. use ``PoissonGroup(10, 1000*Hz)`` instead of
-``PoissonGroup(1, 10000*Hz)``).
+group's ``rates`` attribute. If ``rates`` is a string, then it is equivalent
+to ``NeuronGroup(N, 'rates = ... Hz', threshold='rand()<rates*dt')`` with the
+respective expression for the rates (which will be evaluated at every time step
+and therefore allows time-dependent rates). Note that, as can be seen in its
+equivalent `NeuronGroup` formulation, a `PoissonGroup` does not work for high
+rates where more than one spike might fall into a single timestep. Use several
+units with lower rates in this case (e.g. use ``PoissonGroup(10, 1000*Hz)``
+instead of ``PoissonGroup(1, 10000*Hz)``).
 
 Example use::
 
     P = PoissonGroup(100, np.arange(100)*Hz + 10*Hz)
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
-    S = Synapses(P, G, pre='v+=0.1', connect='i==j')
+    S = Synapses(P, G, on_pre='v+=0.1')
+    S.connect(j='i')
 
 For simulations where the `PoissonGroup` is just used as a source of input to a
 neuron (i.e., the individually generated spikes are not important, just their
@@ -72,8 +73,10 @@ when running multiple trials with different input::
 
     inp = SpikeGeneratorGroup(N, indices, times)
     G = NeuronGroup(N, '...')
-    feedforward = Synapses(inp, G, '...', pre='...', connect='i==j')
-    recurrent = Synapses(G, G, '...', pre='...', connect='i!=j')
+    feedforward = Synapses(inp, G, '...', on_pre='...')
+    feedforward.connect(j='i')
+    recurrent = Synapses(G, G, '...', on_pre='...')
+    recurrent.connect('i!=j')
     spike_mon = SpikeMonitor(G)
     # ...
     run(runtime)

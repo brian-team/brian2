@@ -101,14 +101,14 @@ reps = 15                                           # Number of pairings
 #### Create neuron objects
 
 Nrns = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
-                   reset='v=V_rest;x_trace+=x_reset/(taux/ms)')#
+                   reset='v=V_rest;x_trace+=x_reset/(taux/ms)', method='euler')#
 
 #### create Synapses
 
 Syn = Synapses(Nrns, Nrns,
                model=Syn_model,
-               pre=Pre_eq,
-               post=Post_eq
+               on_pre=Pre_eq,
+               on_post=Post_eq
                )
 
 Syn.connect('i!=j')

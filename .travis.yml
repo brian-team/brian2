@@ -23,22 +23,22 @@ matrix:
       os: linux
     # Standard tests
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: osx
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: osx
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='no' SPLIT_RUN=1 ARCHITECTURE="x86"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_BUILD='no' SPLIT_RUN=1 ARCHITECTURE="x86"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_NPY="110" CONDA_BUILD='yes' SPLIT_RUN=2 ARCHITECTURE="x86"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_BUILD='yes' SPLIT_RUN=2 ARCHITECTURE="x86"
       os: linux
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=1 ARCHITECTURE="x86_64"
@@ -47,22 +47,22 @@ matrix:
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: linux
     - python: "3.4"
-      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: linux
     - python: "3.4"
-      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: osx
     - python: "3.4"
-      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86"
+      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86"
       os: linux
     - python: "3.5"
-      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: linux
     - python: "3.5"
-      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: osx
     - python: "3.5"
-      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_NPY="110" CONDA_BUILD='yes' ARCHITECTURE="x86"
+      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86"
       os: linux
     # test standalone
     - python: "2.7"
@@ -120,6 +120,10 @@ before_install:
 # command to install dependencies
 install:
   - conda update --yes conda
+  # For faster tests, only build conda packages for the master branch or pull requests
+  - if [[ $TRAVIS_PULL_REQUEST == 'false' ]] && [[ $TRAVIS_BRANCH != 'master' ]]; then
+       CONDA_BUILD='no';
+    fi
   - if [[ $CONDA_BUILD == 'yes' ]]; then
        conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
@@ -142,7 +146,9 @@ install:
 script:
 - if [[ $CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    conda build --quiet -c brian-team dev/conda-recipe;
+    for NUMPY_VERSION in 1.9 1.10 1.11; do
+      conda build --quiet -c brian-team dev/conda-recipe --numpy $NUMPY_VERSION;
+    done;
     source activate travis_conda;
   fi
 # Don't run tests in parallel when reporting coverage

@@ -153,7 +153,10 @@ class Expression(CodeString):
                                   'stochastic and non-stochastic '
                                   'term') % self.code)
 
-        return (f_expr, stochastic_expressions)
+        if f_expr is None:
+            f_expr = Expression('0.0')
+
+        return f_expr, stochastic_expressions
 
     def _repr_pretty_(self, p, cycle):
         '''

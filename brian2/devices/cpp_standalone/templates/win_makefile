@@ -4,9 +4,9 @@ clean:
     del *.obj /s
     del *.exe /s
 
-{% for base in source_bases %}
+{% for fname, base in zip(source_files, source_bases) %}
 {{base}}.obj:
-    cl /c /EHsc /I. {{compiler_flags}} {{openmp_flag}} {{base}}.cpp /Fo{{base}}.obj
+    cl /c /EHsc /I. {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj
     
 {% endfor %}
 

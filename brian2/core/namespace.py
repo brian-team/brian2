@@ -4,17 +4,11 @@ model equations of `NeuronGroup` and `Synapses`
 '''
 import inspect
 import itertools
-import numbers
-import weakref
-
-import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import standard_unit_register
 from brian2.units.stdunits import stdunits
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
-
-from .functions import Function
 
 __all__ = ['get_local_namespace',
            'DEFAULT_FUNCTIONS',
@@ -41,7 +35,9 @@ def get_local_namespace(level):
         The locals and globals at the given depth of the stack frame.
     '''
     # Get the locals and globals from the stack frame
-    frame = inspect.stack()[level + 1][0]
+    frame = inspect.currentframe()
+    for _ in xrange(level + 1):
+        frame = frame.f_back
     # We return the full stack here, even if it contains a lot of stuff we are
     # not interested in -- it is cheaper to later raise an error when we find
     # a specific object with an incorrect type instead of going through this big
@@ -60,7 +56,7 @@ def _get_default_unit_namespace():
     -------
     namespace : dict
         The unit namespace
-    '''    
+    '''
     namespace = dict([(u.name, u) for u in standard_unit_register.units])
     namespace.update(stdunits)
     return namespace

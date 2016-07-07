@@ -114,8 +114,16 @@ class NodeRenderer(object):
         # This means we still put needless parentheses because we ignore
         # precedence rules, e.g. we write "3 + (4 * 5)" but at least we do
         # not do "(3) + ((4) + (5))"
+        op_class = op.__class__.__name__
+        # Give a more useful error message when using bit-wise operators
+        if op_class in ['BitXor', 'BitAnd', 'BitOr']:
+            correction = {'BitXor': ('^', '**'),
+                          'BitAnd': ('&', 'and'),
+                          'BitOr': ('|', 'or')}.get(op_class)
+            raise SyntaxError('The operator "{}" is not supported, use "{}" '
+                              'instead.'.format(correction[0], correction[1]))
         return '%s %s %s' % (self.render_element_parentheses(left),
-                             self.expression_ops[op.__class__.__name__],
+                             self.expression_ops[op_class],
                              self.render_element_parentheses(right))
 
     def render_BinOp(self, node):
@@ -232,7 +240,7 @@ class CPPNodeRenderer(NodeRenderer):
     
     def render_BinOp(self, node):
         if node.op.__class__.__name__=='Pow':
-            return 'pow(%s, %s)' % (self.render_node(node.left),
+            return '_brian_pow(%s, %s)' % (self.render_node(node.left),
                                     self.render_node(node.right))
         elif node.op.__class__.__name__=='Mod':
             return '_brian_mod(%s, %s)' % (self.render_node(node.left),
