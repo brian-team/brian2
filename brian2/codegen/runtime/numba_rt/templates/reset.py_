@@ -2,6 +2,9 @@
 
 {% block template_support_code %}
 
+{#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+{% set _eventspace = get_array_name(eventspace_variable) %}
+
 @jit
 def _reset({{subroutine_parameters}}):
     _num_events = {{_eventspace}}[_num{{_eventspace}}-1]
@@ -15,9 +18,6 @@ def _reset({{subroutine_parameters}}):
 {% endblock %}
 
 {% block maincode %}
-
-    {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
-    {% set _eventspace = get_array_name(eventspace_variable) %}
 
     # scalar code
     _vectorisation_idx = 1
