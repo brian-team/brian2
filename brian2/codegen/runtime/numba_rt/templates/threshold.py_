@@ -3,11 +3,8 @@
 
 {% block template_support_code %}
 
-{#  Get the name of the array that stores these events (e.g. the spikespace array) #}
-{% set _eventspace = get_array_name(eventspace_variable) %}
-
 @jit
-def _threshold({{subroutine_parameters}}):
+def _threshold({{subroutine_parameters}}, _eventspace):
     _cpp_numevents = 0
 
     for _idx in range(N):
@@ -17,16 +14,16 @@ def _threshold({{subroutine_parameters}}):
         {{ vector_code | autoindent }}
 
         if _cond:
-            {{_eventspace}}[_cpp_numevents] = _idx
+            _eventspace[_cpp_numevents] = _idx
             _cpp_numevents += 1
             {% if _uses_refractory %}
             {{not_refractory}}[_idx] = False
             {{lastspike}}[_idx] = {{t}}
             {% endif %}
             
-    {{_eventspace}}[N] = _cpp_numevents
+    _eventspace[N] = _cpp_numevents
 
-    return {{subroutine_parameters}}
+    return {{subroutine_parameters}}, _eventspace
 
 {% endblock %}
 
@@ -35,10 +32,14 @@ def _threshold({{subroutine_parameters}}):
        Thresholder class, we cannot use the USES_VARIABLE mechanism
        conditionally #}
 
+    {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
+    {% set _eventspace = get_array_name(eventspace_variable) %}
+
     # scalar code
     _vectorisation_idx = 1;
     {{ scalar_code | autoindent }}
 
-    {{subroutine_parameters}} = _threshold({{subroutine_arguments}})
+    {{subroutine_parameters}}, _eventspace = _threshold({{subroutine_arguments}}, _eventspace = {{_eventspace}})
+    {{_eventspace}} = _eventspace
     
 {% endblock %}
