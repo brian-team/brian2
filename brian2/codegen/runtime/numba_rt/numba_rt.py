@@ -94,9 +94,6 @@ class NumbaCodeObject(CodeObject):
                                                                     access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
-                print dyn_array_name
-                print self.namespace[dyn_array_name]
-
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
@@ -127,15 +124,14 @@ class NumbaCodeObject(CodeObject):
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
-            print 'Updating {} using {}'.format(name, func)
             self.namespace[name] = func()
 
     def compile(self):
         super(NumbaCodeObject, self).compile()
         #self.code += "if __name__ == '__main__':\n    main(namespace)"
        # self.compiled_code = compile(self.code, '/home/zhenrui/Research/Goodman\ Lab/outfile.py', 'exec')
-        #with open('/home/zhenrui/Research/Goodman Lab/outfile.py', "w") as f:
-           # f.write(self.code)
+        with open('/home/zhenrui/Research/Goodman Lab/outfile.py', "w") as f:
+            f.write(self.code)
         execfile('/home/zhenrui/Research/Goodman Lab/outfile.py', self.namespace)
         #print self.code
 

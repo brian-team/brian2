@@ -4,9 +4,7 @@ import sys
 import time
 import numpy as np
 import math
-#from numba_subroutines import *
 from math import sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, pi
-
 
 # support code
 {{ support_code | autoindent }}
