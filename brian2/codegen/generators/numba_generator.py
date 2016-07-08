@@ -148,6 +148,44 @@ class NumbaCodeGenerator(CodeGenerator):
         print "pass_to_subroutine is"
         print pass_to_subroutine
         return lines
+        
+    # SLIGHTLY DIFFERENT FROM BASE!
+    def translate_statement_sequence(self, scalar_statements, vector_statements):
+        '''
+        Translate a sequence of `Statement` into the target language, taking
+        care to declare variables, etc. if necessary.
+   
+        Returns a tuple ``(scalar_code, vector_code, kwds)`` where
+        ``scalar_code`` is a list of the lines of code executed before the inner
+        loop, ``vector_code`` is a list of the lines of code in the inner
+        loop, and ``kwds`` is a dictionary of values that is made available to
+        the template.
+        '''
+        scalar_code = {}
+        vector_code = {}
+        for name, block in scalar_statements.iteritems():
+            scalar_code[name] = self.translate_one_statement_sequence(block, scalar=True)
+        for name, block in vector_statements.iteritems():
+            vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
+
+        kwds = self.determine_keywords()
+        scalar_arguments = reduce(lambda x,y: x+y, scalar_code.values())
+        scalar_parameters = map(lambda x: x.split()[0], scalar_arguments)
+        subroutine_parameters = kwds['subroutine_parameters'].split(',')
+        subroutine_arguments =  kwds['subroutine_arguments'].split(',')
+        for i, param in enumerate(subroutine_parameters):
+            if param in scalar_parameters:
+                subroutine_parameters.pop(i)
+                subroutine_arguments.pop(i)
+        subroutine_parameters += scalar_parameters
+        subroutine_arguments += scalar_arguments
+        print "srparams"
+        print subroutine_parameters
+        
+        kwds['subroutine_parameters'] = ','.join(subroutine_parameters)
+        kwds['subroutine_arguments'] = ','.join(subroutine_arguments)
+            
+        return scalar_code, vector_code, kwds
 
     def _add_user_function(self, varname, var):
         user_functions = []
