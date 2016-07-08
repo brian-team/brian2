@@ -115,7 +115,6 @@ class NumpyCodeObject(CodeObject):
     def compile(self):
         super(NumpyCodeObject, self).compile()
         self.compiled_code = compile(self.code, '(string)', 'exec')
-        print self.code
 
 
     def run(self):

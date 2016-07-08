@@ -7,8 +7,6 @@ Preferences
 .. document_brian_prefs:: core.network
 
 '''
-from pudb import set_trace
-
 import os
 import sys
 import time

@@ -11,8 +11,6 @@ from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            )
 __all__ = ['is_boolean_expression',
            'parse_expression_unit',]
-def panda():
-    print "import successful"
 
 def is_boolean_expression(expr, variables):
     '''
