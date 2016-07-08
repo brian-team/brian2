@@ -39,11 +39,6 @@
         
         {{ vector_code | autoindent }}
 
-        print"new len"
-        print _new_len-1
-        print "numindicies"
-        print _num{{_indices}}
-
         _record_data_{{varname}}[(_new_len-1)*_num{{_indices}} + _i] = _to_record_{{varname}}
     {% endfor %}
 

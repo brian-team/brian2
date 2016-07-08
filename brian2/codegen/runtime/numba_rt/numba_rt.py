@@ -131,7 +131,7 @@ class NumbaCodeObject(CodeObject):
         with open('/home/zhenrui/Research/Goodman Lab/outfile.py', "w") as f:
             f.write(self.code)
         execfile('/home/zhenrui/Research/Goodman Lab/outfile.py', self.namespace)
-        #print self.code
+        print self.code
 
     def run(self):
         code = 'main(namespace)'

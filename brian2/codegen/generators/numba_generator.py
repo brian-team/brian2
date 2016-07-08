@@ -10,6 +10,7 @@ import itertools
 import numpy as np
 import copy
 
+from brian2.devices.device import all_devices
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
 from brian2.parsing.bast import brian_dtype_from_dtype
@@ -139,8 +140,6 @@ class NumbaCodeGenerator(CodeGenerator):
             var = self.variables[varname]
             line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname
             lines.append(line)
-            pass_to_subroutine.append('{varname} = {varname}'.format(varname=varname))
-            pass_to_subroutine.append('{arrayname} = {arrayname}'.format(arrayname=self.get_array_name(var, self.variables)))
         return lines
         
     # SLIGHTLY DIFFERENT FROM BASE!
@@ -205,7 +204,7 @@ class NumbaCodeGenerator(CodeGenerator):
                         newlines = [
                             "global _namespace{var_name}",
                             "global _namespace_num{var_name}",
-                            " _namespace{var_name} = _namespace['{var_name}']",
+                            "_namespace{var_name} = _namespace['{var_name}']",
                             "_namespace_num{var_name} = len(_namespace['{var_name}'])"
                         ]
 
@@ -394,13 +393,20 @@ def _rand(_idx):
 
 randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random')
 
+device = all_devices['runtime']
+
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(NumbaCodeGenerator,
                                                              code=rand_code,
-                                                             name='_rand')
+                                                             name='_rand',
+                                                             namespace={'_rand_buffer': device.rand_buffer,
+                                                                        '_rand_buffer_index': device.rand_buffer_index})
 
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumbaCodeGenerator,
                                                               code=randn_code,
-                                                              name='_randn')
+                                                              name='_randn',
+                                                              namespace={
+                                                                  '_randn_buffer': device.randn_buffer,
+                                                                  '_randn_buffer_index': device.randn_buffer_index})
 
 sign_code = '''
 def _sign(x):
