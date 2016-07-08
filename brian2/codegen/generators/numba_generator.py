@@ -69,11 +69,9 @@ class NumbaCodeGenerator(CodeGenerator):
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
         
-        if op == ':=': # make no distinction in Cython (declaration are done elsewhere)
+        if op == ':=': 
             op = '='
-        # For Cython we replace complex expressions involving boolean variables into a sequence of
-        # if/then expressions with simpler expressions. This is provided by the optimise_statements
-        # function.
+        
         if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)
                 # todo: improve dtype analysis so that this isn't necessary
                 and brian_dtype_from_dtype(statement.dtype)=='float'):
@@ -150,13 +148,11 @@ class NumbaCodeGenerator(CodeGenerator):
         impl = var.implementations[self.codeobj_class]
         func_code= impl.get_code(self.owner)
         # Implementation can be None if the function is already
-        # available in Cython (possibly under a different name)
+        # available in Python (possibly under a different name)
         if func_code is not None:
             if isinstance(func_code, basestring):
-                # Function is provided as Cython code
-                # To make namespace variables available to functions, we
-                # create global variables and assign to them in the main
-                # code
+                # Function is provided as Python code
+
                 user_functions.append((varname, var))
                 func_namespace = impl.get_namespace(self.owner) or {}
                 for ns_key, ns_value in func_namespace.iteritems():
@@ -263,9 +259,7 @@ class NumbaCodeGenerator(CodeGenerator):
 
                 if var.scalar and var.constant:
                     newlines += ['{varname} = _namespace["{varname}"]']
-                #else:
-                #    newlines += ["def {numba_dtype} {varname}"]
-
+                    
                 for line in newlines:
                     line = line.format(numba_dtype=get_numba_dtype(var.dtype),
                                        numpy_dtype=get_numpy_dtype(var.dtype),
