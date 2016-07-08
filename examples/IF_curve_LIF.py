@@ -6,7 +6,6 @@ with an input parameter v0.
 The input is set differently for each neuron.
 '''
 from brian2 import *
-BrianLogger.log_level_debug()
 
 n = 1000
 duration = 1*second

@@ -9,8 +9,6 @@ from brian2.utils.logger import get_logger
 from brian2.units.fundamentalunits import Unit, Quantity
 from brian2.units.allunits import second
 
-from pudb import set_trace
-
 __all__ = ['StateMonitor']
 
 logger = get_logger(__name__)
@@ -261,8 +259,6 @@ class StateMonitor(Group, CodeRunner):
                                              read_only=True)
 
         for varname in variables:
-            print "variables"
-            print varname
             var = self.source.variables[varname]
             self.variables.add_auxiliary_variable('_to_record_' + varname,
                                                   unit=var.unit,
@@ -271,8 +267,6 @@ class StateMonitor(Group, CodeRunner):
 
         self.recorded_variables = dict([(varname, self.variables[varname])
                                         for varname in variables])
-        print self.recorded_variables
-        #set_trace()
         recorded_names = [varname for varname in variables]
 
         self.needed_variables = recorded_names

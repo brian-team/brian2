@@ -25,8 +25,6 @@
             {{_eventspace}}[_cpp_numevents] = _idx
             _cpp_numevents += 1
             {% if _uses_refractory %}
-            print "Not refractory is"
-            print("{{not_refractory}}")
             {{not_refractory}}[_idx] = False
             {{lastspike}}[_idx] = {{t}}
             {% endif %}
