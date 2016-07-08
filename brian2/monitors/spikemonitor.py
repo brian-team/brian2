@@ -248,7 +248,9 @@ class EventMonitor(Group, CodeRunner):
                                  'Set the record argument to True to record '
                                  'them.')
         indices = self.i[:]
-        sort_indices = np.argsort(indices)
+        # We have to make sure that the sort is stable, otherwise our spike
+        # times do not necessarily remain sorted.
+        sort_indices = np.argsort(indices, kind='mergesort')
         used_indices, first_pos = np.unique(self.i[:][sort_indices],
                                             return_index=True)
         return self._values_dict(first_pos, sort_indices, used_indices, var)

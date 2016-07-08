@@ -128,24 +128,15 @@ class NumbaCodeObject(CodeObject):
 
     def compile(self):
         super(NumbaCodeObject, self).compile()
-        #self.code += "if __name__ == '__main__':\n    main(namespace)"
-       # self.compiled_code = compile(self.code, '/home/zhenrui/Research/Goodman\ Lab/outfile.py', 'exec')
         with open('/home/zhenrui/Research/Goodman Lab/outfile.py', "w") as f:
             f.write(self.code)
         execfile('/home/zhenrui/Research/Goodman Lab/outfile.py', self.namespace)
         #print self.code
 
     def run(self):
-        #print self.compiled_code 
-        #print self.namespace 
-#        exec self.compiled_code in self.namespace
-        # output variables should land in the variable name _return_values
-        #self.namespace["main"](self.namespace)
         code = 'main(namespace)'
         self.namespace['namespace'] = self.namespace
         exec code in self.namespace
-       # efile = open("/home/zhenrui/Research/Goodman\ Lab/outfile.py")
-        #exec efile in self.namespace 
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
 

@@ -21,7 +21,6 @@ def _stateupdate({{subroutine_parameters}}):
     {{scalar_code|autoindent}}
     
     # vector code
-    # Need to handle {{scalar_code}} more intelligently than this
     {{subroutine_parameters}} = _stateupdate({{subroutine_arguments}})    
 
 {% endblock %}
