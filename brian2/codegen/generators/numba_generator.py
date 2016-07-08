@@ -8,11 +8,7 @@ Created on Mon Mar 28 18:55:35 2016
 import itertools
 
 import numpy as np
-<<<<<<< HEAD
 import copy
-=======
-import numba
->>>>>>> master
 
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
@@ -73,17 +69,9 @@ class NumbaCodeGenerator(CodeGenerator):
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
         
-<<<<<<< HEAD
-        if op == ':=': # make no distinction in Cython (declaration are done elsewhere)
-            op = '='
-        # For Cython we replace complex expressions involving boolean variables into a sequence of
-        # if/then expressions with simpler expressions. This is provided by the optimise_statements
-        # function.
-=======
         if op == ':=': 
             op = '='
         
->>>>>>> master
         if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)
                 # todo: improve dtype analysis so that this isn't necessary
                 and brian_dtype_from_dtype(statement.dtype)=='float'):
@@ -125,10 +113,6 @@ class NumbaCodeGenerator(CodeGenerator):
         variable_indices = self.variable_indices
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
-<<<<<<< HEAD
-        pass_to_subroutine = []
-=======
->>>>>>> master
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
             var = variables[varname]
@@ -136,10 +120,6 @@ class NumbaCodeGenerator(CodeGenerator):
             line = '{varname} = {arrayname}[{index}]'.format(varname=varname, arrayname=self.get_array_name(var),
                                                              index=index)
             lines.append(line)
-<<<<<<< HEAD
-            pass_to_subroutine.append('{arrayname} = {arrayname}'.format(arrayname=self.get_array_name(var)))
-=======
->>>>>>> master
         # the actual code
         created_vars = set([])
         for stmt in statements:
@@ -159,7 +139,6 @@ class NumbaCodeGenerator(CodeGenerator):
             var = self.variables[varname]
             line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname
             lines.append(line)
-<<<<<<< HEAD
             pass_to_subroutine.append('{varname} = {varname}'.format(varname=varname))
             pass_to_subroutine.append('{arrayname} = {arrayname}'.format(arrayname=self.get_array_name(var, self.variables)))
         print "pass_to_subroutine is"
@@ -203,9 +182,6 @@ class NumbaCodeGenerator(CodeGenerator):
         kwds['subroutine_arguments'] = ','.join(subroutine_arguments)
             
         return scalar_code, vector_code, kwds
-=======
-        return lines
->>>>>>> master
 
     def _add_user_function(self, varname, var):
         user_functions = []
@@ -214,21 +190,10 @@ class NumbaCodeGenerator(CodeGenerator):
         impl = var.implementations[self.codeobj_class]
         func_code= impl.get_code(self.owner)
         # Implementation can be None if the function is already
-<<<<<<< HEAD
-        # available in Cython (possibly under a different name)
-        if func_code is not None:
-            if isinstance(func_code, basestring):
-                # Function is provided as Cython code
-                # To make namespace variables available to functions, we
-                # create global variables and assign to them in the main
-                # code
-=======
         # available in Python (possibly under a different name)
         if func_code is not None:
             if isinstance(func_code, basestring):
                 # Function is provided as Python code
-
->>>>>>> master
                 user_functions.append((varname, var))
                 func_namespace = impl.get_namespace(self.owner) or {}
                 for ns_key, ns_value in func_namespace.iteritems():
@@ -242,20 +207,9 @@ class NumbaCodeGenerator(CodeGenerator):
                         newlines = [
                             "global _namespace{var_name}",
                             "global _namespace_num{var_name}",
-<<<<<<< HEAD
                             " _namespace{var_name} = _namespace['{var_name}']",
                             "_namespace_num{var_name} = len(_namespace['{var_name}'])"
                         ]
-=======
-                            "def _numpy.ndarray[{numba_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}']",
-                            "_namespace{var_name} = <{numba_dtype} *> _buf_{var_name}.data",
-                            "_namespace_num{var_name} = len(_namespace['{var_name}'])"
-                        ]
-                        support_code.append(
-                            "def {numba_dtype} *_namespace{var_name}".format(
-                                numba_dtype=get_numba_dtype(ns_value.dtype),
-                                var_name=ns_key))
->>>>>>> master
 
                     else:  # e.g. a function
                         newlines = [
@@ -299,20 +253,16 @@ class NumbaCodeGenerator(CodeGenerator):
         device = get_device()
         # load variables from namespace
         load_namespace = []
-<<<<<<< HEAD
         pass_to_subroutine = []
         subroutine_types = []
         subroutine_arguments = []
         subroutine_parameters = []
-=======
->>>>>>> master
         support_code = []
         handled_pointers = set()
         user_functions = []
         for varname, var in self.variables.items():
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
-<<<<<<< HEAD
 
             if isinstance(var, AuxiliaryVariable):
                 pass
@@ -323,32 +273,14 @@ class NumbaCodeGenerator(CodeGenerator):
 #                dtype = get_numba_dtype(var.dtype)
 #                line = "{varname}".format(varname=varname)
 #                load_namespace.append(line)
-=======
-            if isinstance(var, AuxiliaryVariable):
-                line = "{varname}".format(
-                                varname=varname)
-                load_namespace.append(line)
-            elif isinstance(var, Subexpression):
-                dtype = get_numba_dtype(var.dtype)
-                line = "{varname}".format(varname=varname)
-                load_namespace.append(line)
->>>>>>> master
             elif isinstance(var, Constant):
                 dtype_name = get_numba_dtype(var.value)
                 line = '{varname} = _namespace["{varname}"]'.format(varname=varname)
                 load_namespace.append(line)
-<<<<<<< HEAD
-                #pass_to_subroutine.append(line)
-=======
->>>>>>> master
             elif isinstance(var, Variable):
                 if var.dynamic:
                     load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
                                                                            self.get_array_name(var, False)))
-<<<<<<< HEAD
-                                                                           
-=======
->>>>>>> master
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -358,7 +290,6 @@ class NumbaCodeGenerator(CodeGenerator):
                 if getattr(var, 'dimensions', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 if get_dtype_str(var.dtype) == 'bool':
-<<<<<<< HEAD
                     newlines = ["{array_name} = _namespace['{array_name}']"]
                     pass_to_subroutine = ["{array_name} = {array_name}"]
                 else:
@@ -378,20 +309,6 @@ class NumbaCodeGenerator(CodeGenerator):
                 #else:
                 #    newlines += ["def {numba_dtype} {varname}"]
 
-=======
-                    newlines = ["_buf_{array_name} = _namespace['{array_name}']",
-                                "{array_name} = _buf_{array_name}.data"]
-                else:
-                    newlines = ["_buf_{array_name} = _namespace['{array_name}']",
-                                "{array_name} = _buf_{array_name}.data"]
-
-                if not var.scalar:
-                    newlines += ["_num{array_name} = len(_namespace['{array_name}'])"]
-
-                if var.scalar and var.constant:
-                    newlines += ['{varname} = _namespace["{varname}"]']
-                    
->>>>>>> master
                 for line in newlines:
                     line = line.format(numba_dtype=get_numba_dtype(var.dtype),
                                        numpy_dtype=get_numpy_dtype(var.dtype),
@@ -400,8 +317,6 @@ class NumbaCodeGenerator(CodeGenerator):
                                        varname=varname,
                                        )
                     load_namespace.append(line)
-<<<<<<< HEAD
-                    #pass_to_subroutine.append(line)
                     
                 for argument in pass_to_subroutine:
                     argument = argument.format(numba_dtype=get_numba_dtype(var.dtype),
@@ -414,9 +329,6 @@ class NumbaCodeGenerator(CodeGenerator):
                     subroutine_parameters.append(argument.split()[0])
                     subroutine_arguments.append(argument)
                     
-                                       
-=======
->>>>>>> master
                 handled_pointers.add(pointer_name)
 
             elif isinstance(var, Function):
@@ -427,11 +339,6 @@ class NumbaCodeGenerator(CodeGenerator):
             else:
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
-<<<<<<< HEAD
-
-=======
-            
->>>>>>> master
         # delete the user-defined functions from the namespace and add the
         # function namespaces (if any)
         for funcname, func in user_functions:
@@ -439,7 +346,6 @@ class NumbaCodeGenerator(CodeGenerator):
             func_namespace = func.implementations[self.codeobj_class].get_namespace(self.owner)
             if func_namespace is not None:
                 self.variables.update(func_namespace)
-<<<<<<< HEAD
         # Implement functions
 #        for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log', 
 #             'log10', 'sqrt', 'asin', 'acos', 'atan', 'fmod', 'floor', 'ceil', 
@@ -454,22 +360,11 @@ class NumbaCodeGenerator(CodeGenerator):
                 'subroutine_types': ','.join(subroutine_types),
                 'subroutine_parameters': ','.join(subroutine_parameters),
                 'subroutine_arguments': ','.join(subroutine_arguments),
-=======
-        print "NAMESPACE IS"
-        print load_namespace
-        print "END NAMESPACE"
-        #raise Exception
-        return {'load_namespace': '\n'.join(load_namespace),
->>>>>>> master
                 'support_code': '\n'.join(support_code)}
 
 ###############################################################################
 # Implement functions
 ################################################################################
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor', 'abs']:
@@ -486,26 +381,15 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
 
 
 rand_code = '''
-<<<<<<< HEAD
 _rand_buffer_size = 1024 
 _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
 _cur_rand_buf = 0
 def _rand(_idx):
-=======
-def int _rand_buffer_size = 1024 
-def double[:] _rand_buf = _numpy.zeros(_rand_buffer_size, dtype=_numpy.float64)
-def int _cur_rand_buf = 0
-def double _rand(int _idx):
->>>>>>> master
     global _cur_rand_buf
     global _rand_buf
     if _cur_rand_buf==0:
         _rand_buf = _numpy.random.rand(_rand_buffer_size)
-<<<<<<< HEAD
     val = _rand_buf[_cur_rand_buf]
-=======
-    def double val = _rand_buf[_cur_rand_buf]
->>>>>>> master
     _cur_rand_buf = (_cur_rand_buf+1)%_rand_buffer_size
     return val
 '''
@@ -521,18 +405,7 @@ DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumbaCodeGenerator
                                                               name='_randn')
 
 sign_code = '''
-<<<<<<< HEAD
 def _sign(x):
-=======
-ctypedef fused _to_sign:
-    char
-    short
-    int
-    float
-    double
-
-def int _sign(_to_sign x):
->>>>>>> master
     return (0 < x) - (x < 0)
 '''
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(NumbaCodeGenerator,
@@ -540,11 +413,7 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(NumbaCodeGenerator,
                                                              name='_sign')
 
 clip_code = '''
-<<<<<<< HEAD
 def clip(x, low, high):
-=======
-def double clip(double x, double low, double high):
->>>>>>> master
     if x<low:
         return low
     if x>high:
