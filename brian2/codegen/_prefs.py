@@ -14,7 +14,7 @@ prefs.register_preferences(
     'codegen',
     'Code generation preferences',
     target=BrianPreference(
-        default='numba',
+        default='auto',
         docs='''
         Default target for code generation.
         
