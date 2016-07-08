@@ -141,8 +141,6 @@ class NumbaCodeGenerator(CodeGenerator):
             lines.append(line)
             pass_to_subroutine.append('{varname} = {varname}'.format(varname=varname))
             pass_to_subroutine.append('{arrayname} = {arrayname}'.format(arrayname=self.get_array_name(var, self.variables)))
-        print "pass_to_subroutine is"
-        print pass_to_subroutine
         return lines
         
     # SLIGHTLY DIFFERENT FROM BASE!
