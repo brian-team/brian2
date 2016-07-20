@@ -53,8 +53,8 @@ Brian 1                         Brian 2                           More details
 ``biexpr_current``	            [`Equations`]	                  :doc:`specifics/library`
 ``biexpr_synapse``	            [`Equations`]	                  :doc:`specifics/library`
 ``Brette_Gerstner``	            [`Equations`]	                  :doc:`specifics/library`
-``CoincidenceCounter``          no direct equivalent              :doc:`specifics/monitors`
-``CoincidenceMatrixCounter``    no direct equivalent              :doc:`specifics/monitors`
+``CoincidenceCounter``          [`SpikeMonitor`]                  :doc:`specifics/monitors`
+``CoincidenceMatrixCounter``    [`SpikeMonitor`]                  :doc:`specifics/monitors`
 ``Compartments``	            #443	                          :doc:`specifics/multicompartmental`
 ``Connection``	                `Synapses`	                      :doc:`specifics/synapses`
 ``Current``	                    #443	                          :doc:`specifics/multicompartmental`
