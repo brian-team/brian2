@@ -31,9 +31,13 @@ and the second column gives either:
    means that the class can be used as a replacement but needs some additional
    code (e.g. explicitly specified STDP equations). The "More details" document should
    help you in making the necessary changes;
-3. a link to the relevant github issue if no equivalent class/function does exist so far
+3. "string expression", if the functionality of a previously existing class can
+   be expressed using the general string expression framework (e.g.
+   `threshold=VariableThreshold('Vt', 'V')` can be replaced by
+   `threshold='V > Vt'`);
+4. a link to the relevant github issue if no equivalent class/function does exist so far
    in Brian 2;
-4. a remark such as "obsolete" if the particular class/function is no longer needed.
+5. a remark such as "obsolete" if the particular class/function is no longer needed.
 
 =============================== ================================= ===========================
 Brian 1                         Brian 2                           More details
