@@ -170,7 +170,7 @@ def test_referred_scalar_variable():
     '''
     Test the correct handling of referred scalar variables in subexpressions
     '''
-    G = NeuronGroup(10, '''out = sin(2*pi*t*freq) + x: 1 (variable over dt)
+    G = NeuronGroup(10, '''out = sin(2*pi*t*freq) + x: 1
                            x : 1
                            freq : Hz (shared)''')
     G.freq = 1*Hz
@@ -1095,7 +1095,7 @@ def test_constant_variable_subexpression():
                            dv3/dt = -v_var**2 / (10*ms) : 1
                            dv4/dt = -v_noflag**2 / (10*ms) : 1
                            v_const = v2 : 1 (constant over dt)
-                           v_var = v3 : 1 (variable over dt)
+                           v_var = v3 : 1
                            v_noflag = v4 : 1''',
                     method='rk2')
     G.v1 = '1.0*i/N'
@@ -1116,7 +1116,6 @@ def test_constant_variable_subexpression():
 @attr('codegen-independent')
 def test_subexpression_checks():
     group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
-                              x = t : second (variable over dt)
                               y = rand() : 1 (constant over dt)
                               z = 17*v**2 : volt**2''')
     # This should all be fine
@@ -1125,9 +1124,8 @@ def test_subexpression_checks():
 
     # The following should raise an error
     group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
-                          x = t : second (variable over dt)
-                          y = rand() : 1
-                          z = 17*v**2 : volt**2''')
+                              y = rand() : 1
+                              z = 17*v**2 : volt**2''')
     net = Network(group)
     assert_raises(SyntaxError, net.run, 0 * ms)
 

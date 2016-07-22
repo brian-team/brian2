@@ -613,7 +613,7 @@ def test_constant_variable_subexpression_in_synapses():
                            dv3/dt = -v_var**2 / (10*ms) : 1 (clock-driven)
                            dv4/dt = -v_noflag**2 / (10*ms) : 1 (clock-driven)
                            v_const = v2 : 1 (constant over dt)
-                           v_var = v3 : 1 (variable over dt)
+                           v_var = v3 : 1
                            v_noflag = v4 : 1''',
                  method='rk2')
     S.connect(j='i')

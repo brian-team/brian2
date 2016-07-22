@@ -416,15 +416,13 @@ def test_concatenation():
 def test_extract_subexpressions():
     eqs = Equations('''dv/dt = -v / (10*ms) : 1
                        s1 = 2*v : 1
-                       s2 = v**2 : 1 (variable over dt)
-                       s3 = -v : 1 (constant over dt)
+                       s2 = -v : 1 (constant over dt)
                     ''')
     variable, constant = extract_constant_subexpressions(eqs)
-    assert [var in variable for var in ['v', 's1', 's2', 's3']]
+    assert [var in variable for var in ['v', 's1', 's2']]
     assert variable['s1'].type == SUBEXPRESSION
-    assert variable['s2'].type == SUBEXPRESSION
-    assert variable['s3'].type == PARAMETER
-    assert constant['s3'].type == SUBEXPRESSION
+    assert variable['s2'].type == PARAMETER
+    assert constant['s2'].type == SUBEXPRESSION
 
 
 @attr('codegen-independent')

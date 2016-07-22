@@ -676,14 +676,9 @@ class Synapses(Group):
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ['event-driven', 'clock-driven'],
                            SUBEXPRESSION: ['summed', 'shared',
-                                           'constant over dt',
-                                           'variable over dt'],
+                                           'constant over dt'],
                            PARAMETER: ['constant', 'shared']},
-                          incompatible_flags=[('event-driven', 'clock-driven'),
-                                              ('constant over dt',
-                                               'variable over dt'),
-                                              ('variable over dt',
-                                               'summed')])
+                          incompatible_flags=[('event-driven', 'clock-driven')])
 
         # Add the lastupdate variable, needed for event-driven updates
         if 'lastupdate' in model._equations:

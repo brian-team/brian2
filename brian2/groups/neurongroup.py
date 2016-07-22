@@ -393,10 +393,7 @@ class NeuronGroup(Group, SpikeSource):
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
                            PARAMETER: ('constant', 'shared', 'linked'),
                            SUBEXPRESSION: ('shared',
-                                           'variable over dt',
-                                           'constant over dt')},
-                          incompatible_flags=[('variable over dt',
-                                               'constant over dt')])
+                                           'constant over dt')})
 
         # add refractoriness
         #: The original equations as specified by the user (i.e. without

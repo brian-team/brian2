@@ -546,7 +546,7 @@ def test_subexpressions_basic():
     eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
     # same with subexpression
     eqs2 = '''dv/dt = I / (10*ms) : 1
-              I = -v + sin(2*pi*100*Hz*t): 1 (variable over dt)'''
+              I = -v + sin(2*pi*100*Hz*t): 1'''
     method = 'euler'
     G1 = NeuronGroup(1, eqs1, method=method)
     G1.v = 1
@@ -567,7 +567,7 @@ def test_subexpressions():
     eqs1 = 'dv/dt = (-v + sin(2*pi*100*Hz*t)) / (10*ms) : 1'
     # same with subexpression
     eqs2 = '''dv/dt = I / (10*ms) : 1
-              I = -v + sin(2*pi*100*Hz*t): 1 (variable over dt)'''
+              I = -v + sin(2*pi*100*Hz*t): 1'''
     
     methods = ['exponential_euler', 'rk2', 'rk4']  # euler is tested in test_subexpressions_basic
     for method in methods:
