@@ -1125,13 +1125,6 @@ def test_subexpression_checks():
 
     # The following should raise an error
     group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
-                              x = t : second
-                              y = rand() : 1 (constant over dt)
-                              z = 17*v**2 : volt**2''')
-    net = Network(group)
-    assert_raises(SyntaxError, net.run, 0*ms)
-
-    group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
                           x = t : second (variable over dt)
                           y = rand() : 1
                           z = 17*v**2 : volt**2''')

@@ -972,34 +972,36 @@ class Equations(collections.Mapping):
             p.breakable('\n')
 
 
+def is_stateful(expression, variables):
+    func_name = str(expression.func)
+    func_variable = variables.get(func_name, None)
+    if func_variable is not None and not func_variable.stateless:
+        return True
+    for arg in expression.args:
+        if is_stateful(arg, variables):
+            return True
+    return False
+
+
 def check_subexpressions(group, equations, run_namespace):
     for eq in equations.ordered:
         if eq.type == SUBEXPRESSION:
-            # if the subexpression is explicit, we don't need to look further
-            # (note that all "constant over timestep" equations should no
-            # longer be in the list of equations given to this function, they
-            # have been pulled out previously -- we allow it here anyway)
-            if 'variable over dt' in eq.flags or 'constant over dt' in eq.flags:
-                continue
-            # Otherwise: let's check whether the expression is time-dependent
-            # or stateful
-            # Get all names used in the equations (and always get "dt")
-            names = eq.identifiers | {'dt'}
-
-            variables = group.resolve_all(names,
+            # Check whether the expression is stateful (most commonly by
+            # referring to rand() or randn()
+            variables = group.resolve_all(eq.identifiers,
                                           run_namespace,
                                           # we don't need to raise any warnings
                                           # for the user here, warnings will
                                           # be raised in create_runner_codeobj
                                           user_identifiers=set())
-            dt_value = variables['dt'].get_value()[0]
             expression = str_to_sympy(eq.expr.code, variables=variables)
-            if not is_constant_over_dt(expression, variables, dt_value):
-                raise SyntaxError("The subexpression '{}' is time-dependent or "
-                                  "refers to a stateful function (e.g. "
-                                  "rand()). Make it explicit how to interpret "
-                                  "this expression by adding the 'constant "
-                                  "over dt' or 'variable over dt' "
+
+            # Check whether the expression refers to stateful functions
+            if is_stateful(expression, variables):
+                raise SyntaxError("The subexpression '{}' refers to a stateful "
+                                  "function (e.g. rand()). Such expressions "
+                                  "should only be evaluated once per timestep, "
+                                  "add the 'constant over dt'"
                                   "flag.".format(eq.varname))
 
 
