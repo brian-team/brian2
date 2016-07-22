@@ -162,7 +162,7 @@ class StateUpdater(CodeRunner):
 
 
 class SubexpressionUpdater(CodeRunner):
-    def __init__(self, group, subexpressions, when='before_groups'):
+    def __init__(self, group, subexpressions, when='before_start'):
         code_lines = []
         for subexpr in subexpressions.itervalues():
             code_lines.append('{} = {}'.format(subexpr.varname,
