@@ -1114,6 +1114,19 @@ def test_constant_variable_subexpression():
 
 
 @attr('codegen-independent')
+def test_constant_subexpression_order():
+    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
+                           s1 = v : 1 (constant over dt)
+                           s2 = 2*s3 : 1 (constant over dt)
+                           s3 = 1 + s1 : 1 (constant over dt)''')
+    run(0*ms)
+    code_lines = G.subexpression_updater.abstract_code.split('\n')
+    assert code_lines[0].startswith('s1')
+    assert code_lines[1].startswith('s3')
+    assert code_lines[2].startswith('s2')
+
+
+@attr('codegen-independent')
 def test_subexpression_checks():
     group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
                               y = rand() : 1 (constant over dt)
@@ -1464,6 +1477,7 @@ if __name__ == '__main__':
     test_scalar_parameter_access()
     test_scalar_subexpression()
     test_constant_variable_subexpression()
+    test_constant_subexpression_order()
     test_subexpression_checks()
     test_indices()
     test_repr()

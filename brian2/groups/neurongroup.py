@@ -162,9 +162,13 @@ class StateUpdater(CodeRunner):
 
 
 class SubexpressionUpdater(CodeRunner):
+    '''
+    The `CodeRunner` that updates the state variables storing the values of
+    subexpressions that have been marked as "constant over dt".
+    '''
     def __init__(self, group, subexpressions, when='before_start'):
         code_lines = []
-        for subexpr in subexpressions.itervalues():
+        for subexpr in subexpressions.ordered:
             code_lines.append('{} = {}'.format(subexpr.varname,
                                                subexpr.expr))
         code = '\n'.join(code_lines)

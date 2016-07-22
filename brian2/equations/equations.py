@@ -973,6 +973,24 @@ class Equations(collections.Mapping):
 
 
 def is_stateful(expression, variables):
+    '''
+    Whether the given expression refers to stateful functions (and is therefore
+    not guaranteed to give the same result if called repetively).
+
+    Parameters
+    ----------
+    expression : `sympy.Expression`
+        The sympy expression to check.
+    variables : dict
+        The dictionary mapping variable names to `Variable` or `Function`
+        objects.
+
+    Returns
+    -------
+    stateful : bool
+        ``True``, if the given expression refers to a stateful function like
+        ``rand()`` and ``False`` otherwise.
+    '''
     func_name = str(expression.func)
     func_variable = variables.get(func_name, None)
     if func_variable is not None and not func_variable.stateless:
@@ -984,6 +1002,26 @@ def is_stateful(expression, variables):
 
 
 def check_subexpressions(group, equations, run_namespace):
+    '''
+    Checks the subexpressions in the equations and raises an error if a
+    subexpression refers to stateful functions without being marked as
+    "constant over dt".
+
+    Parameters
+    ----------
+    group : `Group`
+        The group providing the context.
+    equations : `Equations`
+        The equations to check.
+    run_namespace : dict
+        The run namespace for resolving variables.
+
+    Raises
+    ------
+    SyntaxError
+        For subexpressions not marked as "constant over dt" that refer to
+        stateful functions.
+    '''
     for eq in equations.ordered:
         if eq.type == SUBEXPRESSION:
             # Check whether the expression is stateful (most commonly by
@@ -1008,7 +1046,7 @@ def check_subexpressions(group, equations, run_namespace):
 def extract_constant_subexpressions(eqs):
     without_const_subexpressions = []
     const_subexpressions = []
-    for eq in eqs.itervalues():
+    for eq in eqs.ordered:
         if eq.type == SUBEXPRESSION and 'constant over dt' in eq.flags:
             if 'shared' in eq.flags:
                 flags = ['shared']
