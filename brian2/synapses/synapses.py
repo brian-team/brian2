@@ -1109,6 +1109,7 @@ class Synapses(Group):
         # a single time step
         check_subexpressions(self, self.equations, run_namespace)
 
+    @device_override('synapses_connect')
     def connect(self, condition=None, i=None, j=None, p=1., n=1,
                 skip_if_invalid=False,
                 namespace=None, level=0):
@@ -1268,7 +1269,7 @@ class Synapses(Group):
 
             # standard generator syntax
             self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
-                                         namespace=namespace, level=level+1)
+                                         namespace=namespace, level=level+2)
         except IndexError as e:
             raise IndexError("Tried to create synapse indices outside valid "
                              "range. Original error message: " + str(e))
