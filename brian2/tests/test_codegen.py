@@ -89,8 +89,12 @@ def test_nested_subexpressions():
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
     evalorder = ''.join(stmt.var for stmt in vector_stmts)
-    # This is the order that variables ought to be evaluated in
-    assert evalorder=='baxcbaxdax'
+    # This is the order that variables ought to be evaluated in (note that
+    # previously this test did not expect the last "b" evaluation, because its
+    # value did not change (c was not changed). We have since removed this
+    # subexpression caching, because it did not seem to apply in practical
+    # use cases)
+    assert evalorder == 'baxcbaxdbax'
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation():
