@@ -53,6 +53,10 @@ Internally, these are stored as arrays. There are a few things worth noting:
 For the integration of differential equations, one can use the same keywords as
 for `NeuronGroup`.
 
+.. note:: Declaring a subexpression as ``(constant over dt)`` means that it will
+   be evaluated each timestep for all synapses, potentially a very costly
+   operation.
+
 Event-driven updates
 ^^^^^^^^^^^^^^^^^^^^
 By default, differential equations are integrated in a clock-driven fashion, as for a

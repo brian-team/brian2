@@ -53,6 +53,15 @@ qualifies the equations. There are several keywords:
 *constant*
   this means the parameter will not be changed during a run. This allows
   optimizations in state updaters. This can only qualify parameters.
+*constant over dt*
+  this means that the subexpression will be only evaluated once at the beginning
+  of the time step. This can be useful to e.g. approximate a non-linear term as
+  constant over a time step in order to use the ``linear`` numerical integration
+  algorithm. It is also mandatory for subexpressions that refer to stateful
+  functions like ``rand()`` to make sure that they are only evaluated once
+  (otherwise e.g. recording the value with a `StateMonitor` would re-evaluate it
+  and therefore not record the same values that are used in other places). This
+  can only qualify subexpressions.
 *shared*
   this means that a parameter or subexpression is not neuron-/synapse-specific
   but rather a single value for the whole `NeuronGroup` or `Synapses`. A shared
