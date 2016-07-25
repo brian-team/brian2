@@ -677,7 +677,11 @@ class Synapses(Group):
                            SUBEXPRESSION: ['summed', 'shared',
                                            'constant over dt'],
                            PARAMETER: ['constant', 'shared']},
-                          incompatible_flags=[('event-driven', 'clock-driven')])
+                          incompatible_flags=[('event-driven', 'clock-driven'),
+                                              # 'summed' cannot be combined with
+                                              # any other flag
+                                              ('summed', 'shared',
+                                               'constant over dt')])
 
         # Add the lastupdate variable, needed for event-driven updates
         if 'lastupdate' in model._equations:
