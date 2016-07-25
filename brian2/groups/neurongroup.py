@@ -773,10 +773,8 @@ class NeuronGroup(Group, SpikeSource):
     def before_run(self, run_namespace=None):
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace)
-
-        # Check that subexpressions are clearly labeled if there is some
-        # ambiguity about whether they should be evaluated several times over
-        # a single time step
+        # Check that subexpressions that refer to stateful functions are labeled
+        # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
 
     def _repr_html_(self):

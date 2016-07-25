@@ -15,12 +15,11 @@ from brian2.core.base import device_override
 from brian2.core.namespace import get_local_namespace
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.devices.device import get_device, RuntimeDevice
+from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, INTEGER,
-                                        check_subexpressions,
-                                        extract_constant_subexpressions)
+                                        check_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater)
@@ -1104,9 +1103,8 @@ class Synapses(Group):
                                               % (eq.varname, identifier))
 
     def before_run(self, run_namespace):
-        # Check that subexpressions are clearly labeled if there is some
-        # ambiguity about whether they should be evaluated several times over
-        # a single time step
+        # Check that subexpressions that refer to stateful functions are labeled
+        # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
 
     @device_override('synapses_connect')

@@ -174,8 +174,8 @@ def is_constant_over_dt(expression, variables, dt_value):
     This is *not* the case when the expression either:
 
     1. contains the variable ``t`` (except as the argument of a function that
-    can be considered as constant over a time step, e.g. a `TimedArray` with a
-    dt equal to or greater than the dt used to evaluate this expression)
+       can be considered as constant over a time step, e.g. a `TimedArray` with
+       a dt equal to or greater than the dt used to evaluate this expression)
     2. refers to a stateful function such as ``rand()``.
 
     Parameters
