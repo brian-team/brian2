@@ -59,8 +59,8 @@ def test_refractoriness_variables():
                         dw/dt = 100*Hz : 1
                         ref : second
                         ref_no_unit : 1
-                        time_since_spike = t - lastspike : second (constant over dt)
-                        ref_subexpression = (t - lastspike) <= ref : boolean (constant over dt)
+                        time_since_spike = t - lastspike : second
+                        ref_subexpression = (t - lastspike) <= ref : boolean
                         ''',
                         threshold='v>1', reset='v=0;w=0',
                         refractory=ref_time)
