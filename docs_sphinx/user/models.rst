@@ -47,6 +47,15 @@ of neurons (e.g. reset statements, see below). If a code block mixes statements
 writing to shared and vector variables, then the shared statements have to
 come first.
 
+By default, subexpressions are re-evaluated whenever they are used, i.e. using
+a subexpression is completely equivalent to substituting it. Sometimes it is
+useful to instead only evaluate a subexpression once and then use this value
+for the rest of the time step. This can be achieved by using the
+``(constant over dt)`` flag. This flag is mandatory for subexpressions that
+refer to stateful functions like ``rand()`` which notably allows them to be
+recorded with a `StateMonitor` -- otherwise the monitor would record a different
+instance of the random number than the one that was used in the equations.
+
 Threshold and reset
 -------------------
 To emit spikes, neurons need a *threshold*. Threshold and reset are given

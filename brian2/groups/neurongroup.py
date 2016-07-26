@@ -7,25 +7,25 @@ import numpy as np
 import sympy
 from pyparsing import Word
 
-from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
-                                        SUBEXPRESSION, PARAMETER)
-from brian2.equations.refractory import add_refractoriness
-from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.codegen.translation import analyse_identifiers
+from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import (Variables, LinkedVariable,
                                    DynamicArrayVariable, Subexpression)
-from brian2.core.spikesource import SpikeSource
+from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
+                                        SUBEXPRESSION, PARAMETER,
+                                        check_subexpressions,
+                                        extract_constant_subexpressions)
+from brian2.equations.refractory import add_refractoriness
 from brian2.parsing.expressions import (parse_expression_unit,
                                         is_boolean_expression)
-from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import get_identifiers
+from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit,
                                            have_same_dimensions,
                                            DimensionMismatchError,
                                            fail_for_dimension_mismatch)
-
-
+from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
@@ -159,6 +159,26 @@ class StateUpdater(CodeRunner):
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
         self.user_code = user_code
+
+
+class SubexpressionUpdater(CodeRunner):
+    '''
+    The `CodeRunner` that updates the state variables storing the values of
+    subexpressions that have been marked as "constant over dt".
+    '''
+    def __init__(self, group, subexpressions, when='before_start'):
+        code_lines = []
+        for subexpr in subexpressions.ordered:
+            code_lines.append('{} = {}'.format(subexpr.varname,
+                                               subexpr.expr))
+        code = '\n'.join(code_lines)
+        CodeRunner.__init__(self, group,
+                            'stateupdate',
+                            code=code,  # will be set in update_abstract_code
+                            clock=group.clock,
+                            when=when,
+                            order=group.order,
+                            name=group.name + '_subexpression_update*')
 
 
 class Thresholder(CodeRunner):
@@ -376,7 +396,8 @@ class NeuronGroup(Group, SpikeSource):
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
                            PARAMETER: ('constant', 'shared', 'linked'),
-                           SUBEXPRESSION: ('shared',)})
+                           SUBEXPRESSION: ('shared',
+                                           'constant over dt')})
 
         # add refractoriness
         #: The original equations as specified by the user (i.e. without
@@ -385,10 +406,16 @@ class NeuronGroup(Group, SpikeSource):
         self.user_equations = model
         if refractory is not False:
             model = add_refractoriness(model)
+        uses_refractoriness = len(model) and any(
+            ['unless refractory' in eq.flags
+             for eq in model.itervalues()
+             if eq.type == DIFFERENTIAL_EQUATION])
+
+        # Separate subexpressions depending whether they are considered to be
+        # constant over a time step or not
+        model, constant_over_dt = extract_constant_subexpressions(model)
         self.equations = model
-        uses_refractoriness = len(model) and any(['unless refractory' in eq.flags
-                                                  for eq in model.itervalues()
-                                                  if eq.type == DIFFERENTIAL_EQUATION])
+
         self._linked_variables = set()
         logger.diagnostic("Creating NeuronGroup of size {self._N}, "
                           "equations {self.equations}.".format(self=self))
@@ -456,9 +483,14 @@ class NeuronGroup(Group, SpikeSource):
 
         #: Performs numerical integration step
         self.state_updater = StateUpdater(self, method)
-
-        # Creation of contained_objects that do the work
         self.contained_objects.append(self.state_updater)
+
+        #: Update the "constant over a time step" subexpressions
+        self.subexpression_updater = None
+        if len(constant_over_dt):
+            self.subexpression_updater = SubexpressionUpdater(self,
+                                                              constant_over_dt)
+            self.contained_objects.append(self.subexpression_updater)
 
         if refractory is not False:
             # Set the refractoriness information
@@ -741,6 +773,9 @@ class NeuronGroup(Group, SpikeSource):
     def before_run(self, run_namespace=None):
         # Check units
         self.equations.check_units(self, run_namespace=run_namespace)
+        # Check that subexpressions that refer to stateful functions are labeled
+        # as "constant over dt"
+        check_subexpressions(self, self.equations, run_namespace)
 
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

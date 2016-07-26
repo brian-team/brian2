@@ -299,13 +299,6 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         line.will_write = will_write.copy()
         will_write.add(line.write)
 
-    # generate cacheing statements for common subexpressions
-    # cached subexpressions need to be recomputed whenever they are to be used
-    # on the next line, and currently invalid (meaning that the current value
-    # stored in the subexpression variable is no longer accurate because one
-    # of the variables appearing in it has changed). All subexpressions start
-    # as invalid, and are invalidated whenever one of the variables appearing
-    # in the RHS changes value.
     subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
     # sort subexpressions into an order so that subexpressions that don't depend
     # on other subexpressions are first
@@ -314,8 +307,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     sorted_subexpr_vars = topsort(subexpr_deps)
 
     statements = []
-    # all start as invalid
-    valid = dict((name, False) for name in subexpressions.keys())
+
     # none are yet defined (or declared)
     subdefined = dict((name, False) for name in subexpressions.keys())
     for line in lines:
@@ -324,53 +316,38 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         write = line.write
         will_read = line.will_read
         will_write = line.will_write
-        # check that all subexpressions in expr are valid, and if not
-        # add a definition/set its value, and set it to be valid
-        # scan through in sorted order so that recursive subexpression dependencies
-        # are handled in the right order
+        # update/define all subexpressions needed by this statement
         for var in sorted_subexpr_vars:
             if var not in read:
                 continue
-            # if subexpression, and invalid
-            if not valid.get(var, True): # all non-subexpressions are valid
-                subexpression = subexpressions[var]
-                # if already defined/declared
-                if subdefined[var]:
-                    op = '='
-                    constant = False
-                else:
-                    op = ':='
-                    subdefined[var] = True
-                    # set to constant only if we will not write to it again
-                    constant = var not in will_write
-                    # check all subvariables are not written to again as well
-                    if constant:
-                        ids = subexpression.identifiers
-                        constant = all(v not in will_write for v in ids)
-                valid[var] = True
-                statement = Statement(var, op, subexpression.expr, comment='',
-                                      dtype=variables[var].dtype,
-                                      constant=constant,
-                                      subexpression=True,
-                                      scalar=variables[var].scalar)
-                statements.append(statement)
+
+            subexpression = subexpressions[var]
+            # if already defined/declared
+            if subdefined[var]:
+                op = '='
+                constant = False
+            else:
+                op = ':='
+                subdefined[var] = True
+                # set to constant only if we will not write to it again
+                constant = var not in will_write
+                # check all subvariables are not written to again as well
+                if constant:
+                    ids = subexpression.identifiers
+                    constant = all(v not in will_write for v in ids)
+
+            statement = Statement(var, op, subexpression.expr, comment='',
+                                  dtype=variables[var].dtype,
+                                  constant=constant,
+                                  subexpression=True,
+                                  scalar=variables[var].scalar)
+            statements.append(statement)
+
         var, op, expr, comment = stmt.var, stmt.op, stmt.expr, stmt.comment
-        # invalidate any subexpressions including var, recursively
-        # we do this by having a set of variables that are invalid that we
-        # start with the changed var and increase by any subexpressions we
-        # find that have a dependency on something in the invalid set. We
-        # go through in sorted subexpression order so that the invalid set
-        # is increased in the right order
-        invalid = {var}
-        for subvar in sorted_subexpr_vars:
-            spec = subexpressions[subvar]
-            spec_ids = set(spec.identifiers)
-            if spec_ids.intersection(invalid):
-                valid[subvar] = False
-                invalid.add(subvar)
+
         # constant only if we are declaring a new variable and we will not
         # write to it again
-        constant = op==':=' and var not in will_write
+        constant = op == ':=' and var not in will_write
         statement = Statement(var, op, expr, comment,
                               dtype=variables[var].dtype,
                               constant=constant,

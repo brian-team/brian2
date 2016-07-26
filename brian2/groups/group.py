@@ -842,7 +842,9 @@ class Group(VariableOwner, BrianObject):
 
         # Replace pure Python functions by a Functions object
         if callable(resolved) and not isinstance(resolved, Function):
-            resolved = Function(resolved, stateless=False)
+            resolved = Function(resolved, stateless=getattr(resolved,
+                                                            'stateless',
+                                                            False))
 
         if not isinstance(resolved, (Function, Variable)):
             # Wrap the value in a Constant object

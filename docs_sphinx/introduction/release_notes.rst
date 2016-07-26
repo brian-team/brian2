@@ -1,6 +1,33 @@
 Release notes
 =============
 
+Changes since last release
+--------------------------
+
+New features
+~~~~~~~~~~~~
+* A new flag ``constant over dt`` can be applied to subexpressions to have them
+  only evaluated once per timestep (see :doc:`../user/models`). This flag is
+  mandatory for stateful subexpressions, e.g. expressions using ``rand()`` or
+  ``randn()``. (#720, #721)
+
+Improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix `EventMonitor.values` and `SpikeMonitor.spike_trains` to always return
+  sorted spike/event times (#725).
+* Respect the ``active`` attribute in C++ standalone mode (#718).
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+TODO
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Daniel Bliss
+
 Brian 2.0rc3
 ------------
 This is another "release candidate" for Brian 2.0 that fixes a range of bugs and introduces

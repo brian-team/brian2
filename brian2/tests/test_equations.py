@@ -28,7 +28,8 @@ from brian2.equations.equations import (check_identifier_basic,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, FLOAT, BOOLEAN, INTEGER,
-                                        EquationError)
+                                        EquationError,
+                                        extract_constant_subexpressions)
 from brian2.equations.refractory import check_identifier_refractory
 from brian2.groups.group import Group
 
@@ -264,6 +265,17 @@ def test_construction_errors():
     assert_raises(ValueError, lambda: eqs.check_flags({}))
     assert_raises(ValueError, lambda: eqs.check_flags({SUBEXPRESSION: ['flag']}))
     assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
+    eqs = Equations('dv/dt = -v / (5 * ms) : volt (flag1, flag2)')
+    eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']})  # allow both flags
+    # Don't allow the two flags in combination
+    assert_raises(ValueError,
+                  lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
+                                          incompatible_flags=[('flag1', 'flag2')]))
+    eqs = Equations('''dv/dt = -v / (5 * ms) : volt (flag1)
+                       dw/dt = -w / (5 * ms) : volt (flag2)''')
+    # They should be allowed when used independently
+    eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
+                    incompatible_flags=[('flag1', 'flag2')])
 
     # Circular subexpression
     assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1
@@ -401,6 +413,19 @@ def test_concatenation():
 
 
 @attr('codegen-independent')
+def test_extract_subexpressions():
+    eqs = Equations('''dv/dt = -v / (10*ms) : 1
+                       s1 = 2*v : 1
+                       s2 = -v : 1 (constant over dt)
+                    ''')
+    variable, constant = extract_constant_subexpressions(eqs)
+    assert [var in variable for var in ['v', 's1', 's2']]
+    assert variable['s1'].type == SUBEXPRESSION
+    assert variable['s2'].type == PARAMETER
+    assert constant['s2'].type == SUBEXPRESSION
+
+
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
@@ -444,4 +469,5 @@ if __name__ == '__main__':
     test_concatenation()
     test_unit_checking()
     test_properties()
+    test_extract_subexpressions()
     test_str_repr()

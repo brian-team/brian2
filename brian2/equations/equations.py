@@ -15,6 +15,7 @@ from brian2.core.namespace import (DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS)
 from brian2.core.variables import Constant
 from brian2.core.functions import Function
+from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import (Unit, Quantity, have_same_dimensions,
                                            get_unit, DIMENSIONLESS,
@@ -76,7 +77,7 @@ EXPRESSION = Combine(OneOrMore((CharsNotIn(':#\n') +
 UNIT = Word(string.ascii_letters + string.digits + '*/.- ').setResultsName('unit')
 
 # a single Flag (e.g. "const" or "event-driven")
-FLAG = Word(string.ascii_letters + '_- ')
+FLAG = Word(string.ascii_letters, string.ascii_letters + '_- ' + string.digits)
 
 # Flags are comma-separated and enclosed in parantheses: "(flag1, flag2)"
 FLAGS = (Suppress('(') + FLAG + ZeroOrMore(Suppress(',') + FLAG) +
@@ -871,28 +872,32 @@ class Equations(collections.Mapping):
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 
-
-    def check_flags(self, allowed_flags):
+    def check_flags(self, allowed_flags, incompatible_flags=None):
         '''
         Check the list of flags.
-        
+
         Parameters
         ----------
         allowed_flags : dict
              A dictionary mapping equation types (PARAMETER,
              DIFFERENTIAL_EQUATION, SUBEXPRESSION) to a list of strings (the
              allowed flags for that equation type)
-        
+        incompatible_flags : list of tuple
+            A list of flag combinations that are not allowed for the same
+            equation.
         Notes
         -----
         Not specifying allowed flags for an equation type is the same as
         specifying an empty list for it.
-        
+
         Raises
         ------
         ValueError
             If any flags are used that are not allowed.
         '''
+        if incompatible_flags is None:
+            incompatible_flags = []
+
         for eq in self.itervalues():
             for flag in eq.flags:
                 if not eq.type in allowed_flags or len(allowed_flags[eq.type]) == 0:
@@ -902,6 +907,16 @@ class Equations(collections.Mapping):
                                       'flag "%s", only the following flags '
                                       'are allowed: %s') % (eq.type,
                                                             flag, allowed_flags[eq.type]))
+                # Check for incompatibilities
+                for flag_combinations in incompatible_flags:
+                    if flag in flag_combinations:
+                        remaining_flags = set(flag_combinations) - set([flag])
+                        for remaining_flag in remaining_flags:
+                            if remaining_flag in eq.flags:
+                                raise ValueError("Flag '{}' cannot be "
+                                                 "combined with flag "
+                                                 "'{}'".format(flag,
+                                                               remaining_flag))
 
     ############################################################################
     # Representation
@@ -955,3 +970,96 @@ class Equations(collections.Mapping):
         for eq in self._equations.itervalues():
             p.pretty(eq)
             p.breakable('\n')
+
+
+def is_stateful(expression, variables):
+    '''
+    Whether the given expression refers to stateful functions (and is therefore
+    not guaranteed to give the same result if called repetively).
+
+    Parameters
+    ----------
+    expression : `sympy.Expression`
+        The sympy expression to check.
+    variables : dict
+        The dictionary mapping variable names to `Variable` or `Function`
+        objects.
+
+    Returns
+    -------
+    stateful : bool
+        ``True``, if the given expression refers to a stateful function like
+        ``rand()`` and ``False`` otherwise.
+    '''
+    func_name = str(expression.func)
+    func_variable = variables.get(func_name, None)
+    if func_variable is not None and not func_variable.stateless:
+        return True
+    for arg in expression.args:
+        if is_stateful(arg, variables):
+            return True
+    return False
+
+
+def check_subexpressions(group, equations, run_namespace):
+    '''
+    Checks the subexpressions in the equations and raises an error if a
+    subexpression refers to stateful functions without being marked as
+    "constant over dt".
+
+    Parameters
+    ----------
+    group : `Group`
+        The group providing the context.
+    equations : `Equations`
+        The equations to check.
+    run_namespace : dict
+        The run namespace for resolving variables.
+
+    Raises
+    ------
+    SyntaxError
+        For subexpressions not marked as "constant over dt" that refer to
+        stateful functions.
+    '''
+    for eq in equations.ordered:
+        if eq.type == SUBEXPRESSION:
+            # Check whether the expression is stateful (most commonly by
+            # referring to rand() or randn()
+            variables = group.resolve_all(eq.identifiers,
+                                          run_namespace,
+                                          # we don't need to raise any warnings
+                                          # for the user here, warnings will
+                                          # be raised in create_runner_codeobj
+                                          user_identifiers=set())
+            expression = str_to_sympy(eq.expr.code, variables=variables)
+
+            # Check whether the expression refers to stateful functions
+            if is_stateful(expression, variables):
+                raise SyntaxError("The subexpression '{}' refers to a stateful "
+                                  "function (e.g. rand()). Such expressions "
+                                  "should only be evaluated once per timestep, "
+                                  "add the 'constant over dt'"
+                                  "flag.".format(eq.varname))
+
+
+def extract_constant_subexpressions(eqs):
+    without_const_subexpressions = []
+    const_subexpressions = []
+    for eq in eqs.ordered:
+        if eq.type == SUBEXPRESSION and 'constant over dt' in eq.flags:
+            if 'shared' in eq.flags:
+                flags = ['shared']
+            else:
+                flags = None
+            without_const_subexpressions.append(SingleEquation(PARAMETER,
+                                                               eq.varname,
+                                                               eq.unit,
+                                                               var_type=eq.var_type,
+                                                               flags=flags))
+            const_subexpressions.append(eq)
+        else:
+            without_const_subexpressions.append(eq)
+
+    return (Equations(without_const_subexpressions),
+            Equations(const_subexpressions))

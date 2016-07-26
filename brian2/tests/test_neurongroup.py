@@ -1087,6 +1087,62 @@ def test_scalar_subexpression():
     # A scalar subexpresion cannot refer to implicitly vectorized functions
     assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (shared)'))
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_constant_variable_subexpression():
+    G = NeuronGroup(10, '''dv1/dt = -v1**2 / (10*ms) : 1
+                           dv2/dt = -v_const**2 / (10*ms) : 1
+                           dv3/dt = -v_var**2 / (10*ms) : 1
+                           dv4/dt = -v_noflag**2 / (10*ms) : 1
+                           v_const = v2 : 1 (constant over dt)
+                           v_var = v3 : 1
+                           v_noflag = v4 : 1''',
+                    method='rk2')
+    G.v1 = '1.0*i/N'
+    G.v2 = '1.0*i/N'
+    G.v3 = '1.0*i/N'
+    G.v4 = '1.0*i/N'
+
+    run(10*ms)
+    # "variable over dt" subexpressions are directly inserted into the equation
+    assert_allclose(G.v3[:], G.v1[:])
+    assert_allclose(G.v4[:], G.v1[:])
+    # "constant over dt" subexpressions will keep a fixed value over the time
+    # step and therefore give a slightly different result for multi-step
+    # methods
+    assert np.sum((G.v2 - G.v1)**2) > 1e-10
+
+
+@attr('codegen-independent')
+def test_constant_subexpression_order():
+    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
+                           s1 = v : 1 (constant over dt)
+                           s2 = 2*s3 : 1 (constant over dt)
+                           s3 = 1 + s1 : 1 (constant over dt)''')
+    run(0*ms)
+    code_lines = G.subexpression_updater.abstract_code.split('\n')
+    assert code_lines[0].startswith('s1')
+    assert code_lines[1].startswith('s3')
+    assert code_lines[2].startswith('s2')
+
+
+@attr('codegen-independent')
+def test_subexpression_checks():
+    group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
+                              y = rand() : 1 (constant over dt)
+                              z = 17*v**2 : volt**2''')
+    # This should all be fine
+    net = Network(group)
+    net.run(0*ms)
+
+    # The following should raise an error
+    group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
+                              y = rand() : 1
+                              z = 17*v**2 : volt**2''')
+    net = Network(group)
+    assert_raises(SyntaxError, net.run, 0 * ms)
+
+
 @attr('codegen-independent')
 def test_repr():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
@@ -1420,6 +1476,9 @@ if __name__ == '__main__':
     test_subexpression_with_constant()
     test_scalar_parameter_access()
     test_scalar_subexpression()
+    test_constant_variable_subexpression()
+    test_constant_subexpression_order()
+    test_subexpression_checks()
     test_indices()
     test_repr()
     test_ipython_html()

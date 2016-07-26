@@ -606,6 +606,33 @@ def test_subexpression_references():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_constant_variable_subexpression_in_synapses():
+    G = NeuronGroup(10, '')
+    S = Synapses(G, G, ''' dv1/dt = -v1**2 / (10*ms) : 1 (clock-driven)
+                           dv2/dt = -v_const**2 / (10*ms) : 1 (clock-driven)
+                           dv3/dt = -v_var**2 / (10*ms) : 1 (clock-driven)
+                           dv4/dt = -v_noflag**2 / (10*ms) : 1 (clock-driven)
+                           v_const = v2 : 1 (constant over dt)
+                           v_var = v3 : 1
+                           v_noflag = v4 : 1''',
+                 method='rk2')
+    S.connect(j='i')
+    S.v1 = '1.0*i/N'
+    S.v2 = '1.0*i/N'
+    S.v3 = '1.0*i/N'
+    S.v4 = '1.0*i/N'
+
+    run(10*ms)
+    # "variable over dt" subexpressions are directly inserted into the equation
+    assert_allclose(S.v3[:], S.v1[:])
+    assert_allclose(S.v4[:], S.v1[:])
+    # "constant over dt" subexpressions will keep a fixed value over the time
+    # step and therefore give a slightly different result for multi-step
+    # methods
+    assert np.sum((S.v2 - S.v1)**2) > 1e-10
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_nested_subexpression_references():
     '''
     Assure that subexpressions in targeted groups are handled correctly.
@@ -2070,6 +2097,7 @@ if __name__ == '__main__':
     test_indices()
     test_subexpression_references()
     test_nested_subexpression_references()
+    test_constant_variable_subexpression_in_synapses()
     test_delay_specification()
     test_delays_pathways()
     test_delays_pathways_subgroups()
