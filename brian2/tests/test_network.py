@@ -1196,6 +1196,17 @@ def test_small_runs():
     assert_equal(mon_1.v_[:], mon_2.v_[:])
 
 
+@attr('codegen-independent')
+@with_setup(teardown=reinit_devices)
+def test_long_run_dt_change():
+    # Check that the dt check is not too restrictive, see issue #730 for details
+    group = NeuronGroup(1, '')  # does nothing...
+    defaultclock.dt = 0.1*ms
+    run(100*second)
+    defaultclock.dt = 0.01*ms
+    run(1*second)
+
+
 if __name__ == '__main__':
     BrianLogger.log_level_warn()
     for t in [
@@ -1249,6 +1260,7 @@ if __name__ == '__main__':
             test_magic_scope,
             test_runtime_rounding,
             test_small_runs,
+            test_long_run_dt_change,
             ]:
         t()
         restore_initial_state()

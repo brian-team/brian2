@@ -720,7 +720,7 @@ class Network(Nameable):
         minclock, min_time = min(clocks_times, key=lambda k: k[1])
         curclocks = set(clock for clock, time in clocks_times if
                         (time == min_time or
-                         abs(time - min_time) < Clock.epsilon))
+                         abs(time - min_time) < 1e-14))
         return minclock, curclocks
 
     @device_override('network_run')

@@ -18,6 +18,48 @@ __all__ = ['Clock', 'defaultclock']
 logger = get_logger(__name__)
 
 
+def check_dt(new_dt, old_dt, target_t):
+    '''
+    Check that the target time can be represented equally well with the new
+    dt.
+
+    Parameters
+    ----------
+    new_dt : float
+        The new dt value
+    old_dt : float
+        The old dt value
+    target_t : float
+        The target time
+
+    Raises
+    ------
+    ValueError
+        If using the new dt value would lead to a difference in the target
+        time of more than `Clock.epsilon_dt` times ``new_dt`` (by default,
+        0.01% of the new dt).
+
+    Examples
+    --------
+    >>> from brian2 import *
+    >>> check_dt(float(17*ms), float(0.1*ms), float(0*ms))  # For t=0s, every dt is fine
+    >>> check_dt(float(0.05*ms), float(0.1*ms), float(10*ms))  # t=10*ms can be represented with the new dt
+    >>> check_dt(float(0.2*ms), float(0.1*ms), float(10.1*ms))  # t=10.1ms cannot be represented with dt=0.2ms # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: Cannot set dt from 100. us to 200. us, the time 10.1 ms is not a multiple of 200. us
+    '''
+    old_t = np.uint64(np.round(target_t / old_dt)) * old_dt
+    new_t = np.uint64(np.round(target_t / new_dt)) * new_dt
+    error_t = target_t
+    if abs(new_t - old_t)/new_dt > Clock.epsilon_dt:
+        raise ValueError(('Cannot set dt from {old} to {new}, the '
+                          'time {t} is not a multiple of '
+                          '{new}').format(old=old_dt * second,
+                                          new=new_dt * second,
+                                          t=error_t * second))
+
+
 class Clock(VariableOwner):
     '''
     An object that holds the simulation time and the time step.
@@ -65,28 +107,9 @@ class Clock(VariableOwner):
         if old_dt is not None and new_dt != old_dt:
             self._old_dt = None
             # Only allow a new dt which allows to correctly set the new time step
-            if target_t != self.t_:
-                old_t = np.uint64(np.round(target_t / old_dt)) * old_dt
-                new_t = np.uint64(np.round(target_t / new_dt)) * new_dt
-                error_t = target_t
-            else:
-                old_t = np.uint64(np.round(self.t_ / old_dt)) * old_dt
-                new_t = np.uint64(np.round(self.t_ / new_dt)) * new_dt
-                error_t = self.t_
-            if abs(new_t - old_t) > self.epsilon:
-                raise ValueError(('Cannot set dt from {old} to {new}, the '
-                                  'time {t} is not a multiple of '
-                                  '{new}').format(old=old_dt*second,
-                                                  new=new_dt*second,
-                                                  t=error_t*second))
+            check_dt(new_dt, old_dt, target_t)
 
-        new_i = np.uint64(np.round(target_t/new_dt))
-        new_t = new_i*new_dt
-        if (new_t == target_t or
-                    np.abs(new_t-target_t) <= self.epsilon*np.abs(new_t)):
-            new_timestep = new_i
-        else:
-            new_timestep = np.uint64(np.ceil(target_t/new_dt))
+        new_timestep = self._calc_timestep(target_t)
         # Since these attributes are read-only for normal users, we have to
         # update them via the variables object directly
         self.variables['timestep'].set_value(new_timestep)
@@ -94,6 +117,30 @@ class Clock(VariableOwner):
         logger.diagnostic("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
                                                                           t=self.t,
                                                                           dt=self.dt))
+
+    def _calc_timestep(self, target_t):
+        '''
+        Calculate the integer time step for the target time. If it cannot be
+        exactly represented (up to 0.01% of dt), round up.
+
+        Parameters
+        ----------
+        target_t : float
+            The target time in seconds
+
+        Returns
+        -------
+        timestep : int
+            The target time in integers (based on dt)
+        '''
+        new_i = np.uint64(np.round(target_t / self.dt_))
+        new_t = new_i * self.dt_
+        if (new_t == target_t or
+                        np.abs(new_t - target_t)/self.dt_ <= Clock.epsilon_dt):
+            new_timestep = new_i
+        else:
+            new_timestep = np.uint64(np.ceil(target_t / self.dt_))
+        return new_timestep
 
     def __repr__(self):
         return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
@@ -121,23 +168,20 @@ class Clock(VariableOwner):
     def set_interval(self, start, end):
         '''
         set_interval(self, start, end)
-        
+
         Set the start and end time of the simulation.
-        
+
         Sets the start and end value of the clock precisely if
         possible (using epsilon) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.      
         '''
         self._set_t_update_dt(target_t=start)
         end = float(end)
-        i_end = np.uint64(np.round(end/self.dt_))
-        t_end = i_end*self.dt_
-        if t_end==end or np.abs(t_end-end)<=self.epsilon*np.abs(t_end):
-            self._i_end = i_end
-        else:
-            self._i_end = np.uint64(np.ceil(end/self.dt_))
+        self._i_end = self._calc_timestep(end)
 
-    epsilon = 1e-14
+    #: The relative difference for times (in terms of dt) so that they are
+    #: considered identical.
+    epsilon_dt = 1e-4
 
 
 class DefaultClockProxy(object):
