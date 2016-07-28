@@ -122,11 +122,12 @@ class NameLister(BrianObject):
 def test_network_different_clocks():
     NameLister.updates[:] = []
     # Check that a network with two different clocks functions correctly
-    x = NameLister(name='x', dt=1*ms, order=0)
-    y = NameLister(name='y', dt=3*ms, order=1)
+    x = NameLister(name='x', dt=.1*ms, order=0)
+    y = NameLister(name='y', dt=1*ms, order=1)
     net = Network(x, y)
-    net.run(10*ms)
-    assert_equal(''.join(NameLister.updates), 'xyxxxyxxxyxxxy')
+    net.run(100*second+defaultclock.dt, report='text')
+    updates = ''.join(NameLister.updates)[2:]  # ignore the first time step
+    assert updates == ('xxxxxxxxxxy'*100000)
 
 
 @attr('codegen-independent')

@@ -715,12 +715,14 @@ class Network(Nameable):
                 obj.after_run()
         
     def _nextclocks(self):
-        clocks_times = [(c, self._clock_variables[c][1][0])
+        clocks_times_dt = [(c,
+                            self._clock_variables[c][1][0],
+                            self._clock_variables[c][2][0])
                         for c in self._clocks]
-        minclock, min_time = min(clocks_times, key=lambda k: k[1])
-        curclocks = set(clock for clock, time in clocks_times if
+        minclock, min_time, minclock_dt = min(clocks_times_dt, key=lambda k: k[1])
+        curclocks = set(clock for clock, time, dt in clocks_times_dt if
                         (time == min_time or
-                         abs(time - min_time) < 1e-14))
+                         abs(time - min_time)/min([minclock_dt, dt]) < Clock.epsilon_dt))
         return minclock, curclocks
 
     @device_override('network_run')
