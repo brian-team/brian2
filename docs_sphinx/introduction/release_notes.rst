@@ -16,6 +16,7 @@ Improvements and bug fixes
 * Fix `EventMonitor.values` and `SpikeMonitor.spike_trains` to always return
   sorted spike/event times (#725).
 * Respect the ``active`` attribute in C++ standalone mode (#718).
+* More consistent check of compatible time and dt values (#730).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -26,6 +27,7 @@ TODO
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
+* Chaofei Hong
 * Daniel Bliss
 
 Brian 2.0rc3
