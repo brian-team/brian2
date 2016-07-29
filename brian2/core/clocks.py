@@ -178,6 +178,16 @@ class Clock(VariableOwner):
         self._set_t_update_dt(target_t=start)
         end = float(end)
         self._i_end = self._calc_timestep(end)
+        if self._i_end > 2**40:
+            logger.warn('The end time of the simulation has been set to {}, '
+                        'which based on the dt value of {} means that {} '
+                        'time steps will be simulated. This can lead to '
+                        'numerical problems, e.g. the times t will not '
+                        'correspond to exact multiples of '
+                        'dt.'.format(str(end*second),
+                                     str(self.dt),
+                                     self._i_end),
+                        'many_timesteps')
 
     #: The relative difference for times (in terms of dt) so that they are
     #: considered identical.
