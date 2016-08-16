@@ -122,11 +122,12 @@ class NameLister(BrianObject):
 def test_network_different_clocks():
     NameLister.updates[:] = []
     # Check that a network with two different clocks functions correctly
-    x = NameLister(name='x', dt=1*ms, order=0)
-    y = NameLister(name='y', dt=3*ms, order=1)
+    x = NameLister(name='x', dt=.1*ms, order=0)
+    y = NameLister(name='y', dt=1*ms, order=1)
     net = Network(x, y)
-    net.run(10*ms)
-    assert_equal(''.join(NameLister.updates), 'xyxxxyxxxyxxxy')
+    net.run(100*second+defaultclock.dt, report='text')
+    updates = ''.join(NameLister.updates)[2:]  # ignore the first time step
+    assert updates == ('xxxxxxxxxxy'*100000)
 
 
 @attr('codegen-independent')
@@ -1171,6 +1172,41 @@ def test_runtime_rounding():
     run(defaultclock.dt * 250)
     assert len(mon.t) == 250
 
+@attr('codegen-independent')
+def test_small_runs():
+    # One long run and multiple small runs should give the same results
+    group_1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1')
+    group_1.v = '(i + 1) / N'
+    mon_1 = StateMonitor(group_1, 'v', record=True)
+    net_1 = Network(group_1, mon_1)
+    net_1.run(1*second)
+
+    group_2 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1')
+    group_2.v = '(i + 1) / N'
+    mon_2 = StateMonitor(group_2, 'v', record=True)
+    net_2 = Network(group_2, mon_2)
+    runtime = 1*ms
+    while True:
+        runtime *= 3
+        runtime = min([runtime, 1*second - net_2.t])
+        net_2.run(runtime)
+        if net_2.t >= 1*second:
+            break
+
+    assert_equal(mon_1.t_[:], mon_2.t_[:])
+    assert_equal(mon_1.v_[:], mon_2.v_[:])
+
+
+@attr('codegen-independent')
+@with_setup(teardown=reinit_devices)
+def test_long_run_dt_change():
+    # Check that the dt check is not too restrictive, see issue #730 for details
+    group = NeuronGroup(1, '')  # does nothing...
+    defaultclock.dt = 0.1*ms
+    run(100*second)
+    defaultclock.dt = 0.01*ms
+    run(1*second)
+
 
 if __name__ == '__main__':
     BrianLogger.log_level_warn()
@@ -1223,7 +1259,9 @@ if __name__ == '__main__':
             test_profile,
             test_profile_ipython_html,
             test_magic_scope,
-            test_runtime_rounding
+            test_runtime_rounding,
+            test_small_runs,
+            test_long_run_dt_change,
             ]:
         t()
         restore_initial_state()
