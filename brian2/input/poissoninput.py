@@ -70,8 +70,8 @@ class PoissonInput(CodeRunner):
                                               'target variable "%s"') % target_var,
                                              weight_unit.dim,
                                              target_unit.dim)
-
-
+        self._N = N
+        self._rate = rate
         binomial_sampling = BinomialFunction(N, rate*target.clock.dt,
                                              name='poissoninput_binomial*')
 
@@ -94,6 +94,11 @@ class PoissonInput(CodeRunner):
                             )
         self.variables = Variables(self)
         self.variables._add_variable(binomial_sampling.name, binomial_sampling)
+
+    rate = property(fget=lambda self: self._rate,
+                    doc='The rate of each input')
+    N = property(fget=lambda self: self._N,
+                 doc='The number of inputs')
 
     def before_run(self, run_namespace):
         if self._group.dt_ != self._stored_dt:
