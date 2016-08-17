@@ -292,10 +292,12 @@ class SynapticPathway(CodeRunner, Group):
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
-        if self.synapse_sources.get_len() == 0:
-            logger.warn(("Synapses object '%s' does not have any synapses. Did "
-                         "you forget a 'connect'?") % self.synapses.name,
-                        'no_synapses', once=True)
+        if not self.synapses._connect_called:
+            raise TypeError(("Synapses object '%s' does not do anything, since "
+                             "it has not created synapses with 'connect'. "
+                             "Set its active attribute to False if you "
+                             "intend to do only do this for a subsequent"
+                             " run.") % self.synapses.name)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
 

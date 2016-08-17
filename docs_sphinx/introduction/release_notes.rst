@@ -17,8 +17,8 @@ Improvements and bug fixes
   sorted spike/event times (#725).
 * Respect the ``active`` attribute in C++ standalone mode (#718).
 * More consistent check of compatible time and dt values (#730).
-* Setting a synaptic variable without any preceding connect call now raises
-  an error (#737).
+* Attempting to set a synaptic variable or to start a simulation with synapses
+  without any preceding connect call now raises an error (#737).
 
 Contributions
 ~~~~~~~~~~~~~

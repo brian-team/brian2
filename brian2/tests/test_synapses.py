@@ -987,12 +987,9 @@ def test_no_synapses():
     # Synaptic pathway but no synapses
     G1 = NeuronGroup(1, '', threshold='True')
     G2 = NeuronGroup(1, 'v:1')
-    S = Synapses(G1, G2, on_pre='v+=1', name='synapses_'+str(uuid.uuid4()).replace('-', '_'))
+    S = Synapses(G1, G2, on_pre='v+=1')
     net = Network(G1, G2, S)
-    with catch_logs() as l:
-        net.run(defaultclock.dt)
-        assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
-        assert l[0][1].endswith('.no_synapses')
+    assert_raises(TypeError, lambda: net.run(1*ms))
 
 
 @attr('codegen-independent')
