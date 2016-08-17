@@ -43,12 +43,18 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
 
     # Insert a note about ipython notebooks with a download link
     note = u'''
-    .. note::
-       This tutorial is written as an interactive notebook that should be run
-       on your own computer. See the :doc:`tutorial overview page <index>` for
-       more details.
+    .. |launchbinder| image:: http://mybinder.org/badge.svg
+    .. _launchbinder: http://mybinder.org:/repo/bdevans/brian-binder/notebooks/tutorials/{tutorial}.ipynb
 
-       Download link for this tutorial: :download:`{tutorial}.ipynb`.
+    .. note::
+       This tutorial is a static non-editable version. You can launch an
+       interactive, editable version without installing any local files
+       using the Binder service: |launchbinder|_
+
+       Alternatively, you can download a copy of the notebook file
+       to use locally: :download:`{tutorial}.ipynb`
+
+       See the :doc:`tutorial overview page <index>` for more details.
     '''.format(tutorial=basename)
     notebook.cells.insert(1, {
         u'cell_type': u'raw',

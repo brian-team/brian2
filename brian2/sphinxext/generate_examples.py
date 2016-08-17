@@ -113,6 +113,16 @@ def main(rootpath, destdir):
         output = '.. currentmodule:: brian2\n\n'
         output += '.. ' + basename + ':\n\n'
         output += title + '\n' + '=' * len(title) + '\n\n'
+        note = '''
+        .. |launchbinder| image:: http://mybinder.org/badge.svg
+        .. _launchbinder: http://mybinder.org:/repo/bdevans/brian-binder/notebooks/examples/{exname}.ipynb
+
+        .. note::
+           You can launch an interactive, editable version of this
+           example without installing any local files
+           using the Binder service: |launchbinder|_
+        '''.format(exname=exname.replace('.', '/'))
+        output += note + '\n\n'
         output += docs + '\n\n::\n\n'
         output += '\n'.join(['    ' + line for line in afterdoccode.split('\n')])
         output += '\n\n'
