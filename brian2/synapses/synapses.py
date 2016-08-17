@@ -533,6 +533,7 @@ class SynapticIndexing(object):
         else:
             return final_indices.astype(np.int32)
 
+
 class Synapses(Group):
     '''
     Class representing synaptic connections.
@@ -651,7 +652,11 @@ class Synapses(Group):
 
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
-        
+
+        #: remember whether connect was called to raise an error if an
+        #: assignment to a synaptic variable is attempted without a preceding
+        #: connect.
+        self._connect_called = False
         self.codeobj_class = codeobj_class
 
         self.source = source
@@ -1198,6 +1203,8 @@ class Synapses(Group):
         # TODO: check if string expressions have the right types and return
         # useful error messages
 
+        self._connect_called = True
+
         # which connection case are we in?
         if condition is None and i is None and j is None:
             condition = True
@@ -1275,6 +1282,25 @@ class Synapses(Group):
         except IndexError as e:
             raise IndexError("Tried to create synapse indices outside valid "
                              "range. Original error message: " + str(e))
+
+    def check_variable_write(self, variable):
+        '''
+        Checks that `Synapses.connect` has been called before setting a
+        synaptic variable.
+
+        Parameters
+        ----------
+        variable : `Variable`
+            The variable that the user attempts to set.
+
+        Raises
+        ------
+        TypeError
+            If `Synapses.connect` has not been called yet.
+        '''
+        if not self._connect_called:
+            raise TypeError(("Cannot write to synaptic variable '%s', you need "
+                             "to call connect(...) first") % variable.name)
 
     def _resize(self, number):
         if not isinstance(number, (numbers.Integral, np.integer)):

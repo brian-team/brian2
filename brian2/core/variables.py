@@ -844,6 +844,15 @@ class VariableView(object):
         if variable.read_only:
             raise TypeError('Variable %s is read-only.' % self.name)
 
+        # Check whether the group allows writing to the variable (e.g. for
+        # synaptic variables, writing is only allowed after a connect)
+        try:
+            self.group.check_variable_write(variable)
+        except ReferenceError:
+            # Ignore problems with weakly referenced groups that don't exist
+            # anymore at this time (e.g. when doing neuron.axon.var = ...)
+            pass
+
         # The second part is equivalent to item == slice(None) but formulating
         # it this way prevents a FutureWarning if one of the elements is a
         # numpy array

@@ -995,6 +995,17 @@ def test_no_synapses():
         assert l[0][1].endswith('.no_synapses')
 
 
+@attr('codegen-independent')
+def test_no_synapses_variable_write():
+    # Synaptic pathway but no synapses
+    G1 = NeuronGroup(1, '', threshold='True')
+    G2 = NeuronGroup(1, 'v:1')
+    S = Synapses(G1, G2, 'w : 1', on_pre='v+=w')
+    # Setting synaptic variables before calling connect is not allowed
+    assert_raises(TypeError, lambda: setattr(S, 'w', 1))
+    assert_raises(TypeError, lambda: setattr(S, 'delay', 1*ms))
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_summed_variable():
@@ -2114,6 +2125,7 @@ if __name__ == '__main__':
     test_clocks()
     test_changed_dt_spikes_in_queue()
     test_no_synapses()
+    test_no_synapses_variable_write()
     test_summed_variable()
     test_summed_variable_pre_and_post()
     test_summed_variable_differing_group_size()
