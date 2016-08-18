@@ -328,6 +328,9 @@ Accessing synaptic variables
 Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
 with two indexes, corresponding to the indexes of pre and postsynaptic neurons, or with string expressions (referring
 to ``i`` and ``j`` as the pre-/post-synaptic indices, or to other state variables of the synapse or the connected neurons).
+Note that setting a synaptic variable always refers to the synapses that *currently exist*, i.e. you have to set them
+*after* the relevant `Synapses.connect` call.
+
 Here are a few examples::
 
     S.w[2, 5] = 1*nS
@@ -367,7 +370,18 @@ pathway: ``pre.delay``. When there is a  postsynaptic code (keyword ``post``),
 the delay of the postsynaptic pathway can be accessed as ``post.delay``.
 
 The delay variable(s) can be set and accessed in the same way as other synaptic
-variables.
+variables. The same semantics as for other synaptic variables apply, which means
+in particular that the delay is only set for the synapses that have been already
+created with `Synapses.connect`. If you want to set a global delay for all
+synapses of a `Synapses` object, you can directly specify that delay as part
+of the `Synapses` initializer::
+
+    synapses = Synapses(sources, targets, '...', on_pre='...', delay=1*ms)
+
+When you use this syntax, you can still change the delay afterwards by setting
+``synapses.delay``, but you can only set it to another scalar value. If you need
+different delays across synapses, do not use this syntax but instead set the
+delay variable as any other synaptic variable (see above).
 
 Multiple pathways
 -----------------

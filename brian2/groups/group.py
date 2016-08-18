@@ -544,6 +544,25 @@ class VariableOwner(Nameable):
             raise NotImplementedError("Format '%s' is not supported" % format)
         ImportExport.methods[format].import_data(self, values, units=units, level=level)
 
+    def check_variable_write(self, variable):
+        '''
+        Function that can be overwritten to raise an error if writing to a
+        variable should not be allowed. Note that this does *not* deal with
+        incorrect writes that are general to all kind of variables (incorrect
+        units, writing to a read-only variable, etc.). This function is only
+        used for type-specific rules, e.g. for raising an error in `Synapses`
+        when writing to a synaptic variable before any `~Synapses.connect`
+        call.
+
+        By default this function does nothing.
+
+        Parameters
+        ----------
+        variable : `Variable`
+            The variable that the user attempts to set.
+        '''
+        pass
+
     def _full_state(self):
         state = {}
         for var in self.variables.itervalues():

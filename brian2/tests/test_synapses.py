@@ -987,12 +987,20 @@ def test_no_synapses():
     # Synaptic pathway but no synapses
     G1 = NeuronGroup(1, '', threshold='True')
     G2 = NeuronGroup(1, 'v:1')
-    S = Synapses(G1, G2, on_pre='v+=1', name='synapses_'+str(uuid.uuid4()).replace('-', '_'))
+    S = Synapses(G1, G2, on_pre='v+=1')
     net = Network(G1, G2, S)
-    with catch_logs() as l:
-        net.run(defaultclock.dt)
-        assert len(l) == 1, 'expected 1 warning, got %d' % len(l)
-        assert l[0][1].endswith('.no_synapses')
+    assert_raises(TypeError, lambda: net.run(1*ms))
+
+
+@attr('codegen-independent')
+def test_no_synapses_variable_write():
+    # Synaptic pathway but no synapses
+    G1 = NeuronGroup(1, '', threshold='True')
+    G2 = NeuronGroup(1, 'v:1')
+    S = Synapses(G1, G2, 'w : 1', on_pre='v+=w')
+    # Setting synaptic variables before calling connect is not allowed
+    assert_raises(TypeError, lambda: setattr(S, 'w', 1))
+    assert_raises(TypeError, lambda: setattr(S, 'delay', 1*ms))
 
 
 @attr('standalone-compatible')
@@ -2114,6 +2122,7 @@ if __name__ == '__main__':
     test_clocks()
     test_changed_dt_spikes_in_queue()
     test_no_synapses()
+    test_no_synapses_variable_write()
     test_summed_variable()
     test_summed_variable_pre_and_post()
     test_summed_variable_differing_group_size()
