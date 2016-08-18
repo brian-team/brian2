@@ -120,7 +120,8 @@ def main(rootpath, destdir):
         .. note::
            You can launch an interactive, editable version of this
            example without installing any local files
-           using the Binder service: |launchbinder|_
+           using the Binder service (although note that at some times this
+           may be slow or fail to open): |launchbinder|_
         '''.format(exname=exname.replace('.', '/'))
         output += note + '\n\n'
         output += docs + '\n\n::\n\n'
