@@ -115,7 +115,7 @@ def main(rootpath, destdir):
         output += title + '\n' + '=' * len(title) + '\n\n'
         note = '''
         .. |launchbinder| image:: http://mybinder.org/badge.svg
-        .. _launchbinder: http://mybinder.org:/repo/bdevans/brian-binder/notebooks/examples/{exname}.ipynb
+        .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/examples/{exname}.ipynb
 
         .. note::
            You can launch an interactive, editable version of this

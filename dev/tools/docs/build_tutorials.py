@@ -44,7 +44,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     # Insert a note about ipython notebooks with a download link
     note = u'''
     .. |launchbinder| image:: http://mybinder.org/badge.svg
-    .. _launchbinder: http://mybinder.org:/repo/bdevans/brian-binder/notebooks/tutorials/{tutorial}.ipynb
+    .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
 
     .. note::
        This tutorial is a static non-editable version. You can launch an
