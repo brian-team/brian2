@@ -99,3 +99,37 @@ Adaptive exponential integrate-and-fire neuron ("Brette-Gerstner model")
 +                        reset=AdaptiveReset(Vr=-70*mV, b=0.08*nA))|                       reset='vm=-70*mV; w += 0.08*nA')                                   |
 +                                                                  |                                                                                          |
 +------------------------------------------------------------------+------------------------------------------------------------------------------------------+
+
+Ionic currents
+--------------
+Brian 1's functions for ionic currents, provided in
+``brian.library.ionic_currents`` correspond to the following equations (note
+that the currents follow the convention to use a shifted membrane potential,
+i.e. the membrane potential at rest is 0mV):
+
++-------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| Brian 1                                                                 | Brian 2                                                                          |
++=========================================================================+==================================================================================+
++ .. code::                                                               | .. code::                                                                        |
++                                                                         |                                                                                  |
++    from brian.library.ionic_currents import *                           |    defaultclock.dt = 0.01*ms                                                     |
++    defaultclock.dt = 0.01*ms                                            |    gl = 60*nS; El = 10.6*mV                                                      |
++    eqs_leak = leak_current(gl=60*nS, El=10.6*mV, current_name='I_leak') |    eqs_leak = Equations('I_leak = gl*(El - vm) : amp')                           |
++                                                                         |    g_K = 7.2*uS; EK = -12*mV                                                     |
++    eqs_K = K_current_HH(gmax=7.2*uS, EK=-12*mV, current_name='I_K')     |    eqs_K = Equations('''I_K = g_K*n**4*(EK-vm) : amp                             |
++                                                                         |                         dn/dt = alphan*(1-n)-betan*n : 1                         |
++    eqs_Na = Na_current_HH(gmax=24*uS, ENa=115*mV, current_name='I_Na')  |                         alphan = .01*(10*mV-vm)/(exp(1-.1*vm/mV)-1)/mV/ms : Hz   |
++                                                                         |                         betan = .125*exp(-.0125*vm/mV)/ms : Hz''')               |
++    eqs = (MembraneEquation(C=200*pF) +                                  |    g_Na = 24*uS; ENa = 115*mV                                                    |
++           eqs_leak + eqs_K + eqs+Na +                                   |    eqs_Na = Equations('''I_Na = g_Na*m**3*h*(ENa-vm) : amp                       |
++           Current('I_inj : amp'))                                       |                          dm/dt=alpham*(1-m)-betam*m : 1                          |
++                                                                         |                          dh/dt=alphah*(1-h)-betah*h : 1                          |
++                                                                         |                          alpham=.1*(25*mV-vm)/(exp(2.5-.1*vm/mV)-1)/mV/ms : Hz   |
++                                                                         |                          betam=4*exp(-.0556*vm/mV)/ms : Hz                       |
++                                                                         |                          alphah=.07*exp(-.05*vm/mV)/ms : Hz                      |
++                                                                         |                          betah=1./(1+exp(3.-.1*vm/mV))/ms : Hz''')               |
++                                                                         |    C = 200*pF                                                                    |
++                                                                         |    eqs = Equations('''dvm/dt = (I_leak + I_K + I_Na + I_inj)/C : volt            |
++                                                                         |                       I_inj : amp''') + eqs_leak + eqs_K + eqs_Na                |
++                                                                         |                                                                                  |
++-------------------------------------------------------------------------+----------------------------------------------------------------------------------+
