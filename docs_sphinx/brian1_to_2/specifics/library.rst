@@ -133,3 +133,79 @@ i.e. the membrane potential at rest is 0mV):
 +                                                                         |                       I_inj : amp''') + eqs_leak + eqs_K + eqs_Na                |
 +                                                                         |                                                                                  |
 +-------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+
+Synapses
+--------
+Brian 1's synaptic models, provided in ``brian.library.synpases`` can be
+converted to the equivalent Brian 2 equations as follows:
+
+Current-based synapses
+~~~~~~~~~~~~~~~~~~~~~~
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| Brian 1                                                                          | Brian 2                                                                          |
++==================================================================================+==================================================================================+
++ .. code::                                                                        | .. code::                                                                        |
++                                                                                  |                                                                                  |
++    syn_eqs = exp_current('s', tau=5*ms, current_name='I_syn')                    |    tau = 5*ms                                                                    |
++    eqs = (MembraneEquation(C=1*nF) + Current('Im = gl*(El-vm) : amp') +          |    syn_eqs = Equations('dI_syn/dt = -I_syn/tau : amp')                           |
++           syn_eqs)                                                               |    eqs = (Equations('dvm/dt = (gl*(El - vm) + I_syn)/C : volt') +                |
++    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |           syn_eqs)                                                               |
++    syn = Synapses(source, group, pre='s += 1*nA')                                |    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |
++    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, pre='I_syn += 1*nA')                            |
++                                                                                  |    # ... connect synapses, etc.                                                  |
++                                                                                  |                                                                                  |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
++ .. code::                                                                        | .. code::                                                                        |
++                                                                                  |                                                                                  |
++    syn_eqs = alpha_current('s', tau=2.5*ms, current_name='I_syn')                |   tau = 2.5*ms                                                                   |
++    eqs = ... # remaining code as above                                           |   syn_eqs = Equations('''dI_syn/dt = (s - I_syn)/tau : amp                       |
++                                                                                  |                          ds/dt = -s/tau : amp''')                                |
++                                                                                  |   group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')          |
++                                                                                  |   syn = Synapses(source, group, pre='s += 1*nA')                                 |
++                                                                                  |   # ... connect synapses, etc.                                                   |
++                                                                                  |                                                                                  |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
++ .. code::                                                                        | .. code::                                                                        |
++                                                                                  |                                                                                  |
++    syn_eqs = biexp_current('s', tau1=2.5*ms, tau2=10*ms, current_name='I_syn')   |    tau1 = 2.5*ms; tau2 = 10*ms; invpeak = (tau2 / tau1) ** (tau1 / (tau2 - tau1))|
++    eqs = ... # remaining code as above                                           |    syn_eqs = Equations('''dI_syn/dt = (invpeak*s - I_syn)/tau1 : amp             |
++                                                                                  |                           ds/dt = -s/tau2 : amp''')                              |
++                                                                                  |    eqs = ... # remaining code as above                                           |
++                                                                                  |                                                                                  |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+
+Conductance-based synapses
+~~~~~~~~~~~~~~~~~~~~~~~~~~
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
+| Brian 1                                                                          | Brian 2                                                                          |
++==================================================================================+==================================================================================+
++ .. code::                                                                        | .. code::                                                                        |
++                                                                                  |                                                                                  |
++    syn_eqs = exp_conductance('s', tau=5*ms, E=0*mV, conductance_name='g_syn')    |    tau = 5*ms; E = 0*mV                                                          |
++    eqs = (MembraneEquation(C=1*nF) + Current('Im = gl*(El-vm) : amp') +          |    syn_eqs = Equations('dg_syn/dt = -g_syn/tau : siemens')                       |
++           syn_eqs)                                                               |    eqs = (Equations('dvm/dt = (gl*(El - vm) + g_syn*(E - vm))/C : volt') +       |
++    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |           syn_eqs)                                                               |
++    syn = Synapses(source, group, pre='s += 10*nS')                               |    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |
++    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, pre='g_syn += 10*nS')                           |
++                                                                                  |    # ... connect synapses, etc.                                                  |
++                                                                                  |                                                                                  |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
++ .. code::                                                                        | .. code::                                                                        |
++                                                                                  |                                                                                  |
++    syn_eqs = alpha_conductance('s', tau=2.5*ms, E=0*mV, conductance_name='g_syn')|   tau = 2.5*ms; E = 0*mV                                                         |
++    eqs = ... # remaining code as above                                           |   syn_eqs = Equations('''dg_syn/dt = (s - g_syn)/tau : siemens                   |
++                                                                                  |                          ds/dt = -s/tau : siemens''')                            |
++                                                                                  |   group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')          |
++                                                                                  |   syn = Synapses(source, group, pre='s += 10*nS')                                |
++                                                                                  |   # ... connect synapses, etc.                                                   |
++                                                                                  |                                                                                  |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
++ .. code::                                                                        | .. code::                                                                        |
++                                                                                  |                                                                                  |
++    syn_eqs = biexp_conductance('s', tau1=2.5*ms, tau2=10*ms, E=0*mV,             |    tau1 = 2.5*ms; tau2 = 10*ms; E = 0*mV                                         |
++                                conductance_name='g_syn')                         |    invpeak = (tau2 / tau1) ** (tau1 / (tau2 - tau1))                             |
++    eqs = ... # remaining code as above                                           |    syn_eqs = Equations('''dg_syn/dt = (invpeak*s - g_syn)/tau1 : siemens         |
++                                                                                  |                           ds/dt = -s/tau2 : siemens''')                          |
++                                                                                  |    eqs = ... # remaining code as above                                           |
++                                                                                  |                                                                                  |
++----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
