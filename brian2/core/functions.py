@@ -282,7 +282,8 @@ class FunctionImplementationContainer(collections.Mapping):
             for impl_key, impl in self._implementations.iteritems():
                 impl_key_name = getattr(impl_key, 'class_name',
                                         'no class name for implementation')
-                if impl_key_name in [K, name] or impl_key in [K, name]:
+                if ((impl_key_name is not None and impl_key_name in [K, name]) or
+                            (impl_key is not None and impl_key in [K, name])):
                     return impl
             if hasattr(K, '__bases__'):
                 for cls in inspect.getmro(K):
