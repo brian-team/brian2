@@ -49,10 +49,8 @@ def test_spikegenerator_basic():
     SG = SpikeGeneratorGroup(5, indices, times)
     s_mon = SpikeMonitor(SG)
     run(5*ms)
-    for idx in xrange(5):
-        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
-        assert generator_spikes == recorded_spikes
+    _compare_spikes(5, indices, times, s_mon)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -65,10 +63,8 @@ def test_spikegenerator_basic_sorted():
     SG = SpikeGeneratorGroup(5, indices, times)
     s_mon = SpikeMonitor(SG)
     run(5*ms)
-    for idx in xrange(5):
-        generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
-        assert generator_spikes == recorded_spikes
+    _compare_spikes(5, indices, times, s_mon)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -82,10 +78,7 @@ def test_spikegenerator_period():
 
     s_mon = SpikeMonitor(SG)
     run(10*ms)
-    for idx in xrange(5):
-        generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
-        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
-        assert generator_spikes == recorded_spikes
+    _compare_spikes(5, indices, times, s_mon)
 
 
 @with_setup(teardown=reinit_devices)
