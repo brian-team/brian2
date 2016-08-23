@@ -78,7 +78,10 @@ def test_spikegenerator_period():
 
     s_mon = SpikeMonitor(SG)
     run(10*ms)
-    _compare_spikes(5, indices, times, s_mon)
+    for idx in xrange(5):
+        generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
+        recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
+        assert_allclose(generator_spikes, recorded_spikes)
 
 
 @with_setup(teardown=reinit_devices)
