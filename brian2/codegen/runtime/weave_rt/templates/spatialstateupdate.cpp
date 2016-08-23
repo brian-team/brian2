@@ -20,9 +20,9 @@
     {{scalar_code|autoindent}}
 
     // STEP 1: compute g_total and I_0
-    for(int i=0; i<N; i++)
+    for(int _i=0; _i<N; _i++)
     {
-        const int _idx = i;
+        const int _idx = _i;
         _vectorisation_idx = _idx;
 
         {{vector_code|autoindent}}
