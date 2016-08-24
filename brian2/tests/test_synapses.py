@@ -862,9 +862,10 @@ def test_transmission_all_to_one_heterogeneous_delays():
     source = SpikeGeneratorGroup(6,
                                  [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
                                  [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]*defaultclock.dt)
-    target = NeuronGroup(1, 'v:1')
-    synapses = Synapses(source, target, on_pre='v_post += (i_pre+1)')
+    target = NeuronGroup(1, 'v : 1')
+    synapses = Synapses(source, target, 'w : 1', on_pre='v_post += w')
     synapses.connect()
+    synapses.w     = [1, 2, 3, 4, 5, 6]
     synapses.delay = [0, 0, 0, 1, 2, 1] * defaultclock.dt
 
     mon = StateMonitor(target, 'v', record=True, when='end')
@@ -880,7 +881,7 @@ def test_transmission_all_to_one_heterogeneous_delays():
 def test_transmission_one_to_all_heterogeneous_delays():
     source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
     target = NeuronGroup(6, 'v:integer')
-    synapses = Synapses(source, target, on_pre='v_post += (i_pre+1)')
+    synapses = Synapses(source, target, on_pre='v_post += 1')
     synapses.connect()
     synapses.delay = [0, 0, 1, 3, 2, 1] * defaultclock.dt
 
