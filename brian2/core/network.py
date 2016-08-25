@@ -16,10 +16,10 @@ import cPickle as pickle
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
-from brian2.core.clocks import Clock
+from brian2.core.clocks import Clock, defaultclock
 from brian2.devices.device import device
 from brian2.units.fundamentalunits import check_units, Quantity
-from brian2.units.allunits import second, msecond 
+from brian2.units.allunits import second, msecond
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.namespace import get_local_namespace
 from .base import device_override
@@ -980,7 +980,7 @@ def profiling_summary(net=None, show=None):
     can be transformed to a string explicitly but on an interactive console
     simply calling `profiling_summary` is enough since it will
     automatically convert the `ProfilingSummary` object.
-    
+
     Parameters
     ----------
 
@@ -994,3 +994,44 @@ def profiling_summary(net=None, show=None):
         from .magic import magic_network
         net = magic_network
     return ProfilingSummary(net, show)
+
+
+def schedule_propagation_offset(net=None):
+    '''
+    Returns the minimal time difference for a post-synaptic effect after a
+    spike. With the default schedule, this time difference is 0, since the
+    ``thresholds`` slot precedes the ``synapses`` slot. For the GeNN device,
+    however, a post-synaptic effect will occur in the following time step, this
+    function therefore returns one ``dt``.
+
+    Parameters
+    ----------
+    net : `Network`
+        The network to check (uses the magic network if not specified).
+
+    Returns
+    -------
+    offset : `Quantity`
+        The minimum spike propagation delay: ``0*ms`` for the standard schedule
+        but ``dt`` for schedules where ``synapses`` precedes ``thresholds``.
+
+    Note
+    ----
+    This function always returns ``0*ms`` or ``defaultclock.dt`` -- no attempt
+    is made to deal with other clocks.
+    '''
+    from brian2.devices.device import get_device
+    from brian2.core.magic import magic_network
+
+    device = get_device()
+    if device.network_schedule is not None:
+        schedule = device.network_schedule
+    else:
+        if net is None:
+            net = magic_network
+        schedule = net.schedule
+
+    if schedule.index('thresholds') < schedule.index('synapses'):
+        return 0*second
+    else:
+        return defaultclock.dt

@@ -18,6 +18,7 @@ from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs, profiling_summary, Quantity)
+from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_devices, Device, all_devices, set_device, get_device, reset_device
 from brian2.utils.logger import catch_logs
 
@@ -235,19 +236,27 @@ def test_schedule_warning():
     all_devices[name2] = TestDevice2()
 
     set_device(name1)
+    assert schedule_propagation_offset() == 0*ms
     net = Network()
+    assert schedule_propagation_offset(net) == 0*ms
+
     # Any schedule should work
     net.schedule = list(reversed(net.schedule))
     with catch_logs() as l:
         net.run(0*ms)
         assert len(l) == 0, 'did not expect a warning'
 
+    assert schedule_propagation_offset(net) == defaultclock.dt
+
     set_device(name2)
+    assert schedule_propagation_offset() == defaultclock.dt
+
     # Using the correct schedule should work
     net.schedule = ['start', 'groups', 'synapses', 'thresholds', 'resets', 'end']
     with catch_logs() as l:
         net.run(0*ms)
         assert len(l) == 0, 'did not expect a warning'
+    assert schedule_propagation_offset(net) == defaultclock.dt
 
     # Using another (e.g. the default) schedule should raise a warning
     net.schedule = None
