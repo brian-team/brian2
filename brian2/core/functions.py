@@ -293,8 +293,11 @@ class FunctionImplementationContainer(collections.Mapping):
                     if name in self._implementations:
                         return self._implementations[name]
 
-        if hasattr(key, 'class_name'):  # Give a nicer error message if possible
+        # Give a nicer error message if possible
+        if getattr(key, 'class_name', None) is not None:
             key = key.class_name
+        elif getattr(fallback, 'class_name', None) is not None:
+            key = fallback.class_name
         keys = ', '.join([getattr(k, 'class_name', str(k))
                           for k in self._implementations.iterkeys()])
         raise KeyError(('No implementation available for target {key}. '
