@@ -912,10 +912,10 @@ def test_transmission_scalar_delay():
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2*ms)
     offset = schedule_propagation_offset()
-    assert_equal(mon[0].v[mon.t<0.5*ms+offset], 0)
-    assert_equal(mon[0].v[mon.t>=0.5*ms+offset], 1)
-    assert_equal(mon[1].v[mon.t<1.5*ms+offset], 0)
-    assert_equal(mon[1].v[mon.t>=1.5*ms+offset], 1)
+    assert_equal(mon[0].v[mon.t<0.5*ms+offset-defaultclock.dt/2], 0)
+    assert_equal(mon[0].v[mon.t>=0.5*ms+offset-defaultclock.dt/2], 1)
+    assert_equal(mon[1].v[mon.t<1.5*ms+offset-defaultclock.dt/2], 0)
+    assert_equal(mon[1].v[mon.t>=1.5*ms+offset-defaultclock.dt/2], 1)
 
 
 @attr('standalone-compatible')
