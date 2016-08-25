@@ -150,6 +150,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         # Store the currently set preferences and reset to default preferences
         stored_prefs = prefs.as_file
         prefs.read_preference_file(StringIO(prefs.defaults_as_file))
+        prefs._backup()
+    else:
+        prefs._backup()
 
     # Suppress INFO log messages during testing
     from brian2.utils.logger import BrianLogger, LOG_LEVELS
