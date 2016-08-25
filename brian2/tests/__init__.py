@@ -36,7 +36,8 @@ except ImportError:
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
-        reset_preferences=True, fail_for_not_implemented=True):
+        reset_preferences=True, fail_for_not_implemented=True,
+        build_options=None):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -75,10 +76,16 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         Whether to fail for tests raising a `NotImplementedError`. Defaults to
         ``True``, but can be switched off for devices known to not implement
         all of Brian's features.
+    build_options : dict, optional
+        Non-default build options that will be passed as arguments to the
+        `set_device` call for the device specified in ``test_standalone``.
     '''
     if nose is None:
         raise ImportError('Running the test suite requires the "nose" package.')
-    
+
+    if build_options is None:
+        build_options = {}
+
     if os.name == 'nt':
         test_in_parallel = []
 
@@ -214,7 +221,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         if test_standalone:
             from brian2.devices.device import get_device, set_device
             set_device(test_standalone, directory=None,  # use temp directory
-                       with_output=False)
+                       with_output=False, **build_options)
             sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
             sys.stderr.write('Running standalone-compatible standard tests\n')
             exclude_str = ',!long' if not long_tests else ''
