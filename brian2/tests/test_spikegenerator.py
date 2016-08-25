@@ -9,6 +9,7 @@ from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
+from brian2.core.network import schedule_propagation_offset
 from brian2.devices.cpp_standalone import cpp_standalone_device
 from brian2.devices.device import reinit_devices, set_device, reset_device
 
@@ -29,14 +30,15 @@ def test_spikegenerator_connected():
     # The following neurons should not receive any spikes
     for idx in [0, 6, 7, 8, 9]:
         assert all(mon[idx].v == 0)
+    offset = schedule_propagation_offset()
     # The following neurons should receive a single spike
     for idx, time in zip([2, 3, 4, 5], [5, 6, 3, 1]*ms):
-        assert all(mon[idx].v[mon.t<time] == 0)
-        assert all(mon[idx].v[mon.t>=time] == 1)
+        assert all(mon[idx].v[mon.t<time+offset] == 0)
+        assert all(mon[idx].v[mon.t>=time+offset] == 1)
     # This neuron receives two spikes
-    assert all(mon[1].v[mon.t<3*ms] == 0)
-    assert all(mon[1].v[(mon.t>=3*ms) & (mon.t<4*ms)] == 1)
-    assert all(mon[1].v[(mon.t>=4*ms)] == 2)
+    assert all(mon[1].v[mon.t<3*ms+offset] == 0)
+    assert all(mon[1].v[(mon.t>=3*ms+offset) & (mon.t<4*ms+offset)] == 1)
+    assert all(mon[1].v[(mon.t>=4*ms+offset)] == 2)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)

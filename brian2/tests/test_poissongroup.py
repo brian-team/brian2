@@ -3,6 +3,7 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
+from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_devices
 
 
@@ -60,7 +61,7 @@ def test_propagation():
     G = NeuronGroup(2, 'v:1')
     S = Synapses(P, G, on_pre='v+=1')
     S.connect(j='i')
-    run(2*defaultclock.dt)
+    run(2*defaultclock.dt + schedule_propagation_offset())
 
     assert_equal(G.v[:], np.array([0., 2.]))
 
@@ -78,7 +79,7 @@ def test_poissongroup_subgroup():
     S1.connect(j='i')
     S2 = Synapses(P2, G[2:], on_pre='v+=1')
     S2.connect(j='i')
-    run(2*defaultclock.dt)
+    run(2*defaultclock.dt + schedule_propagation_offset())
 
     assert_equal(G.v[:], np.array([0., 0., 2., 2.]))
 

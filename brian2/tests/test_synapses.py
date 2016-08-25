@@ -8,6 +8,7 @@ from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
+from brian2.core.network import schedule_propagation_offset
 from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
@@ -795,10 +796,11 @@ def test_transmission_simple():
     syn.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2.5*ms)
-    assert_equal(mon[0].v[mon.t<2*ms], 0.)
-    assert_equal(mon[0].v[mon.t>=2*ms], 1.)
-    assert_equal(mon[1].v[mon.t<1*ms], 0.)
-    assert_equal(mon[1].v[mon.t>=1*ms], 1.)
+    offset = schedule_propagation_offset()
+    assert_equal(mon[0].v[mon.t<2*ms+offset], 0.)
+    assert_equal(mon[0].v[mon.t>=2*ms+offset], 1.)
+    assert_equal(mon[1].v[mon.t<1*ms+offset], 0.)
+    assert_equal(mon[1].v[mon.t>=1*ms+offset], 1.)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -869,11 +871,16 @@ def test_transmission_all_to_one_heterogeneous_delays():
     synapses.delay = [0, 0, 0, 1, 2, 1] * defaultclock.dt
 
     mon = StateMonitor(target, 'v', record=True, when='end')
-    run(4*defaultclock.dt)
-    assert mon[0].v[0] == 3
-    assert mon[0].v[1] == 12
-    assert mon[0].v[2] == 33
-    assert mon[0].v[3] == 48
+    if schedule_propagation_offset() == 0*second:
+        offset = 0
+    else:
+        offset = 1
+    run((4 + offset)*defaultclock.dt)
+    print mon[0].v
+    assert mon[0].v[0+offset] == 3
+    assert mon[0].v[1+offset] == 12
+    assert mon[0].v[2+offset] == 33
+    assert mon[0].v[3+offset] == 48
 
 
 @attr('standalone-compatible')
@@ -883,16 +890,16 @@ def test_transmission_one_to_all_heterogeneous_delays():
     target = NeuronGroup(6, 'v:integer')
     synapses = Synapses(source, target, on_pre='v_post += 1')
     synapses.connect()
-    synapses.delay = [0, 0, 1, 3, 2, 1] * defaultclock.dt
+    synapses.delay = [1, 1, 2, 4, 3, 2] * defaultclock.dt - schedule_propagation_offset()
 
     mon = StateMonitor(target, 'v', record=True, when='end')
-    run(4*defaultclock.dt)
-    assert_equal(mon[0].v, [1, 1, 2, 2])
-    assert_equal(mon[1].v, [1, 1, 2, 2])
-    assert_equal(mon[2].v, [0, 1, 1, 2])
-    assert_equal(mon[3].v, [0, 0, 0, 1])
-    assert_equal(mon[4].v, [0, 0, 1, 1])
-    assert_equal(mon[5].v, [0, 1, 1, 2])
+    run(5*defaultclock.dt)
+    assert_equal(mon[0].v, [0, 1, 1, 2, 2])
+    assert_equal(mon[1].v, [0, 1, 1, 2, 2])
+    assert_equal(mon[2].v, [0, 0, 1, 1, 2])
+    assert_equal(mon[3].v, [0, 0, 0, 0, 1])
+    assert_equal(mon[4].v, [0, 0, 0, 1, 1])
+    assert_equal(mon[5].v, [0, 0, 1, 1, 2])
 
 
 @attr('standalone-compatible')
@@ -904,10 +911,11 @@ def test_transmission_scalar_delay():
     S.connect(j='i')
     mon = StateMonitor(target, 'v', record=True, when='end')
     run(2*ms)
-    assert_equal(mon[0].v[mon.t<0.5*ms], 0)
-    assert_equal(mon[0].v[mon.t>=0.5*ms], 1)
-    assert_equal(mon[1].v[mon.t<1.5*ms], 0)
-    assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
+    offset = schedule_propagation_offset()
+    assert_equal(mon[0].v[mon.t<0.5*ms+offset], 0)
+    assert_equal(mon[0].v[mon.t>=0.5*ms+offset], 1)
+    assert_equal(mon[1].v[mon.t<1.5*ms+offset], 0)
+    assert_equal(mon[1].v[mon.t>=1.5*ms+offset], 1)
 
 
 @attr('standalone-compatible')

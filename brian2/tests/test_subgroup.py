@@ -1,3 +1,4 @@
+from brian2.core.network import schedule_propagation_offset
 from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
@@ -542,7 +543,7 @@ def test_synaptic_propagation():
     SG2 = G2[10:]
     S = Synapses(SG1, SG2, on_pre='v+=1')
     S.connect('i==j')
-    run(defaultclock.dt)
+    run(defaultclock.dt + schedule_propagation_offset())
     expected = np.zeros(len(G2))
     # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
     expected[[10, 12, 14]] = 1
@@ -558,7 +559,7 @@ def test_synaptic_propagation_2():
     target = NeuronGroup(1, 'v:1')
     syn = Synapses(sub_source, target, on_pre='v+=1')
     syn.connect()
-    run(defaultclock.dt)
+    run(defaultclock.dt + schedule_propagation_offset())
     assert target.v[0] == 1.0
 
 
@@ -639,7 +640,7 @@ def test_no_reference_3():
     G.v = [1.1, 0]
     S = Synapses(G[:1], G[1:], on_pre='v+=1')
     S.connect()
-    run(defaultclock.dt)
+    run(defaultclock.dt + schedule_propagation_offset())
     assert_equal(G.v[:], np.array([0, 1]))
 
 
@@ -654,7 +655,7 @@ def test_no_reference_4():
     G2 = NeuronGroup(20, 'v:1')
     S = Synapses(G1[1:6], G2[10:], on_pre='v+=1')
     S.connect('i==j')
-    run(defaultclock.dt)
+    run(defaultclock.dt + schedule_propagation_offset())
     expected = np.zeros(len(G2))
     # Neurons 1, 3, 5 spiked and are connected to 10, 12, 14
     expected[[10, 12, 14]] = 1
