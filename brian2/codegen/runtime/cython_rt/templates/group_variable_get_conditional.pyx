@@ -10,13 +10,15 @@
 
     _vectorisation_idx = 1
 
+    cdef int _N = {{constant_or_scalar('N', variables['N'])}}
     cdef int _num_elements = 0
-    cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(N, dtype=_numpy.{{np_type}})
+    cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(_N, dtype=_numpy.{{np_type}})
     cdef {{c_type}}[:] _elements_view = _elements
-    
+
+
     {{scalar_code|autoindent}}
 
-    for _idx in range(N):
+    for _idx in range(_N):
         _vectorisation_idx = _idx
         
         {{vector_code|autoindent}}

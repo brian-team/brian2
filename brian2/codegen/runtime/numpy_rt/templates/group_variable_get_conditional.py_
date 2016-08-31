@@ -7,7 +7,7 @@ _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
 # vector code
-_vectorisation_idx = N
+_vectorisation_idx = {{constant_or_scalar('N', variables['N'])}}
 {{vector_code|autoindent}}
 
 if _cond is True:

@@ -9,6 +9,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
+from ...codeobject import constant_or_scalar
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
 from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
@@ -53,7 +54,8 @@ class CythonCodeObject(NumpyCodeObject):
     templater = Templater('brian2.codegen.runtime.cython_rt', '.pyx',
                           env_globals={'cpp_dtype': get_cpp_dtype,
                                        'numpy_dtype': get_numpy_dtype,
-                                       'dtype': numpy.dtype})
+                                       'dtype': numpy.dtype,
+                                       'constant_or_scalar': constant_or_scalar})
     generator_class = CythonCodeGenerator
     class_name = 'cython'
 

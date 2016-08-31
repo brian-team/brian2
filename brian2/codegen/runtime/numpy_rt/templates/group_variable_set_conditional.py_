@@ -15,7 +15,7 @@ _vectorisation_idx = 1
 
 # vector code
 _idx = slice(None)
-_vectorisation_idx = N
+_vectorisation_idx = {{constant_or_scalar('N', variables['N'])}}
 {{vector_code['condition']|autoindent}}
 
 # Phase 2: having computed _cond, the boolean array of points where

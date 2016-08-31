@@ -56,6 +56,17 @@ def test_spike_monitor():
     assert_raises(KeyError, lambda: spike_trains['string'])
 
 
+def test_spike_monitor_indexing():
+    generator = SpikeGeneratorGroup(3, [0, 0, 0, 1], [0, 1, 2, 1]*ms)
+    mon = SpikeMonitor(generator)
+    run(3*ms)
+
+    assert_array_equal(mon.t['i == 1'], [1]*ms)
+    assert_array_equal(mon.t[mon.i == 1], [1]*ms)
+    assert_array_equal(mon.i[mon.t > 1.5*ms], [0]*ms)
+    assert_array_equal(mon.i['t > 1.5 * ms'], [0]*ms)
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_spike_monitor_variables():
@@ -509,6 +520,7 @@ def test_rate_monitor_subgroups():
 
 if __name__ == '__main__':
     test_spike_monitor()
+    test_spike_monitor_indexing()
     test_spike_monitor_get_states()
     test_spike_monitor_variables()
     test_event_monitor()

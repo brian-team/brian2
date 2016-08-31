@@ -4,13 +4,13 @@
 {# ALLOWS_SCALAR_WRITE #}
 
 {% block maincode %}
-
+    cdef int _N = {{constant_or_scalar('N', variables['N'])}}
     _vectorisation_idx = 1
     
     {{scalar_code['condition']|autoindent}}
     {{scalar_code['statement']|autoindent}}
 
-    for _idx in range(N):
+    for _idx in range(_N):
         _vectorisation_idx = _idx
         
         {{vector_code['condition']|autoindent}}

@@ -10,7 +10,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 
-from ...codeobject import CodeObject
+from ...codeobject import CodeObject, constant_or_scalar
 
 from ...templates import Templater
 from ...generators.numpy_generator import NumpyCodeGenerator
@@ -38,7 +38,8 @@ class NumpyCodeObject(CodeObject):
     
     Default for Brian because it works on all platforms.
     '''
-    templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_')
+    templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_',
+                          env_globals={'constant_or_scalar': constant_or_scalar})
     generator_class = NumpyCodeGenerator
     class_name = 'numpy'
 
