@@ -7,7 +7,7 @@
        conditionally #}
 
     # scalar code
-    _vectorisation_idx = 1;
+    _vectorisation_idx = 1
     {{ scalar_code | autoindent }}
 
     cdef long _cpp_numevents = 0

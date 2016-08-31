@@ -273,7 +273,7 @@ class TimedArray(Function, Nameable):
             code = '''
             cdef double %NAME%(const double t, const int i):
                 global _namespace%NAME%_values
-                cdef double epsilon = %DT% / %K%;
+                cdef double epsilon = %DT% / %K%
                 if i < 0 or i >= %COLS%:
                     return _numpy.nan
                 cdef int timestep = (int)((t/epsilon + 0.5)/%K%)
