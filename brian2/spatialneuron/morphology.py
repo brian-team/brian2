@@ -24,6 +24,27 @@ Node = namedtuple('Node',
                   field_names='index,comp_name,x,y,z,diameter,parent,children')
 
 
+def _to_meters(value):
+    '''
+    Helper function to convert a floating point value (or array) to a `Quantity`
+    in units of "meter", but also allow for ``None`` and return it as it is.
+    '''
+    if value is None:
+        return None
+    else:
+        return Quantity(value, dim=meter.dim)
+
+
+def _from_morphology(variable, i, j):
+    '''
+    Helper function to return coordinates from a main morphology (used by
+    `SubMorphology`), dealing with ``None``.
+    '''
+    if variable is None:
+        return None
+    return variable[i:j]
+
+
 class MorphologyIndexWrapper(object):
     '''
     A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
@@ -744,11 +765,7 @@ class Morphology(object):
         The x coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        start_x = self.start_x_
-        if start_x is None:
-            return None
-        else:
-            return Quantity(start_x, dim=meter.dim)
+        return _to_meters(self.start_x_)
 
     @property
     def start_y(self):
@@ -756,11 +773,7 @@ class Morphology(object):
         The y coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        start_y = self.start_y_
-        if start_y is None:
-            return None
-        else:
-            return Quantity(start_y, dim=meter.dim)
+        return _to_meters(self.start_y_)
 
     @property
     def start_z(self):
@@ -768,11 +781,7 @@ class Morphology(object):
         The z coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        start_z = self.start_z_
-        if start_z is None:
-            return None
-        else:
-            return Quantity(start_z, dim=meter.dim)
+        return _to_meters(self.start_z_)
 
     @abc.abstractproperty
     def start_x_(self):
@@ -807,11 +816,7 @@ class Morphology(object):
         The x coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        x = self.x_
-        if x is None:
-            return None
-        else:
-            return Quantity(x, dim=meter.dim)
+        return _to_meters(self.x_)
 
     @property
     def y(self):
@@ -819,11 +824,7 @@ class Morphology(object):
         The y coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        y = self.y_
-        if y is None:
-            return None
-        else:
-            return Quantity(y, dim=meter.dim)
+        return _to_meters(self.y_)
 
     @property
     def z(self):
@@ -831,11 +832,7 @@ class Morphology(object):
         The y coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        z = self.z_
-        if z is None:
-            return None
-        else:
-            return Quantity(z, dim=meter.dim)
+        return _to_meters(self.z_)
 
     @abc.abstractproperty
     def x_(self):
@@ -870,11 +867,7 @@ class Morphology(object):
         The x coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        end_x = self.end_x_
-        if end_x is None:
-            return None
-        else:
-            return Quantity(end_x, dim=meter.dim)
+        return _to_meters(self.end_x_)
 
     @property
     def end_y(self):
@@ -882,11 +875,7 @@ class Morphology(object):
         The y coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        end_y = self.end_y_
-        if end_y is None:
-            return None
-        else:
-            return Quantity(end_y, dim=meter.dim)
+        return _to_meters(self.end_y_)
 
     @property
     def end_z(self):
@@ -894,11 +883,7 @@ class Morphology(object):
         The z coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        end_z = self.end_z_
-        if end_z is None:
-            return None
-        else:
-            return Quantity(end_z, dim=meter.dim)
+        return _to_meters(self.end_z_)
 
     @abc.abstractproperty
     def end_x_(self):
@@ -1378,11 +1363,7 @@ class SubMorphology(object):
         The x coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        start_x = self.start_x_
-        if start_x is None:
-            return None
-        else:
-            return Quantity(start_x, dim=meter.dim)
+        return _to_meters(self.start_x_)
 
     @property
     def start_y(self):
@@ -1390,11 +1371,7 @@ class SubMorphology(object):
         The y coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        start_y = self.start_y_
-        if start_y is None:
-            return None
-        else:
-            return Quantity(start_y, dim=meter.dim)
+        return _to_meters(self.start_y_)
 
     @property
     def start_z(self):
@@ -1402,11 +1379,7 @@ class SubMorphology(object):
         The x coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        start_z = self.start_z_
-        if start_z is None:
-            return None
-        else:
-            return Quantity(start_z, dim=meter.dim)
+        return _to_meters(self.start_z_)
 
     @property
     def start_x_(self):
@@ -1415,9 +1388,7 @@ class SubMorphology(object):
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
         '''
-        if self._morphology.start_x_ is None:
-            return None
-        return self._morphology.start_x_[self._i:self._j]
+        return _from_morphology(self._morphology.start_x_, self._i, self._j)
 
     @property
     def start_y_(self):
@@ -1426,9 +1397,7 @@ class SubMorphology(object):
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
         '''
-        if self._morphology.start_y_ is None:
-            return None
-        return self._morphology.start_y_[self._i:self._j]
+        return _from_morphology(self._morphology.start_y_, self._i, self._j)
 
     @property
     def start_z_(self):
@@ -1437,9 +1406,7 @@ class SubMorphology(object):
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
         '''
-        if self._morphology.start_z_ is None:
-            return None
-        return self._morphology.start_z_[self._i:self._j]
+        return _from_morphology(self._morphology.start_z_, self._i, self._j)
 
     @property
     def x(self):
@@ -1447,11 +1414,7 @@ class SubMorphology(object):
         The x coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        x = self.x_
-        if x is None:
-            return x
-        else:
-            return Quantity(x, dim=meter.dim)
+        return _to_meters(self.x_)
 
     @property
     def y(self):
@@ -1459,11 +1422,7 @@ class SubMorphology(object):
         The y coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        y = self.y_
-        if y is None:
-            return y
-        else:
-            return Quantity(y, dim=meter.dim)
+        return _to_meters(self.y_)
 
     @property
     def z(self):
@@ -1471,11 +1430,7 @@ class SubMorphology(object):
         The z coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        z = self.z_
-        if z is None:
-            return z
-        else:
-            return Quantity(z, dim=meter.dim)
+        return _to_meters(self.z_)
 
     @property
     def x_(self):
@@ -1484,9 +1439,7 @@ class SubMorphology(object):
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
         '''
-        if self._morphology.x_ is None:
-            return None
-        return self._morphology.x_[self._i:self._j]
+        return _from_morphology(self._morphology.x_, self._i, self._j)
 
     @property
     def y_(self):
@@ -1495,9 +1448,7 @@ class SubMorphology(object):
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
         '''
-        if self._morphology.y_ is None:
-            return None
-        return self._morphology.y_[self._i:self._j]
+        return _from_morphology(self._morphology.y_, self._i, self._j)
 
     @property
     def z_(self):
@@ -1506,9 +1457,7 @@ class SubMorphology(object):
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
         '''
-        if self._morphology.z_ is None:
-            return None
-        return self._morphology.z_[self._i:self._j]
+        return _from_morphology(self._morphology.z_, self._i, self._j)
 
     @property
     def end_x(self):
@@ -1516,11 +1465,7 @@ class SubMorphology(object):
         The x coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
         '''
-        x = self.end_x_
-        if x is None:
-            return None
-        else:
-            return Quantity(x, dim=meter.dim)
+        return _to_meters(self.end_x_)
 
     @property
     def end_y(self):
@@ -1528,11 +1473,7 @@ class SubMorphology(object):
         The y coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
         '''
-        y = self.end_y_
-        if y is None:
-            return None
-        else:
-            return Quantity(y, dim=meter.dim)
+        return _to_meters(self.end_y_)
 
     @property
     def end_z(self):
@@ -1540,11 +1481,7 @@ class SubMorphology(object):
         The z coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
         '''
-        z = self.end_z_
-        if z is None:
-            return None
-        else:
-            return Quantity(z, dim=meter.dim)
+        return _to_meters(self.end_z_)
 
     @property
     def end_x_(self):
@@ -1553,9 +1490,7 @@ class SubMorphology(object):
         each compartment in this sub-section. Returns ``None`` for morphologies
         without coordinates.
         '''
-        if self._morphology.end_x is None:
-            return None
-        return self._morphology.end_x[self._i:self._j]
+        return _from_morphology(self._morphology.end_x_, self._i, self._j)
 
     @property
     def end_y_(self):
@@ -1564,9 +1499,7 @@ class SubMorphology(object):
         each compartment in this sub-section. Returns ``None`` for morphologies
         without coordinates.
         '''
-        if self._morphology.end_y is None:
-            return None
-        return self._morphology.end_y[self._i:self._j]
+        return _from_morphology(self._morphology.end_y_, self._i, self._j)
 
     @property
     def end_z_(self):
@@ -1575,9 +1508,7 @@ class SubMorphology(object):
         each compartment in this sub-section. Returns ``None`` for morphologies
         without coordinates.
         '''
-        if self._morphology.end_z is None:
-            return None
-        return self._morphology.end_z[self._i:self._j]
+        return _from_morphology(self._morphology.end_z_, self._i, self._j)
 
 
 class Soma(Morphology):
