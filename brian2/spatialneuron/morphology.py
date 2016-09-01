@@ -1764,11 +1764,10 @@ class Section(Morphology):
         '''
         if self._x is None:
             return None
-        if self.parent is not None and self.parent.end_x is not None:
-            parent_x = self.parent.end_x[-1]
+        elif self.parent is not None and self.parent.end_x is not None:
+            return self.parent.end_x[-1] + self._x[:-1]
         else:
-            parent_x = 0*um
-        return parent_x + self._x[:-1]
+            return self._x[:-1]
 
     @property
     def start_y(self):
@@ -1778,11 +1777,10 @@ class Section(Morphology):
         '''
         if self._y is None:
             return None
-        if self.parent is not None and self.parent.end_y is not None:
-            parent_y = self.parent.end_y[-1]
+        elif self.parent is not None and self.parent.end_y is not None:
+            return self.parent.end_y[-1] + self._y[:-1]
         else:
-            parent_y = 0*um
-        return parent_y + self._y[:-1]
+            return self._y[:-1]
 
     @property
     def start_z(self):
@@ -1792,11 +1790,10 @@ class Section(Morphology):
         '''
         if self._z is None:
             return None
-        if self.parent is not None and self.parent.end_z is not None:
-            parent_z = self.parent.end_z[-1]
+        elif self.parent is not None and self.parent.end_z is not None:
+            return self.parent.end_z[-1] + self._z[:-1]
         else:
-            parent_z = 0*um
-        return parent_z + self._z[:-1]
+            return self._z[:-1]
 
     @property
     def x(self):
@@ -1839,11 +1836,10 @@ class Section(Morphology):
         '''
         if self._x is None:
             return None
-        if self.parent is not None and self.parent.end_x is not None:
-            parent_x = self.parent.end_x[-1]
+        elif self.parent is not None and self.parent.end_x is not None:
+            return self.parent.end_x[-1] + self._x[1:]
         else:
-            parent_x = 0*um
-        return parent_x + self._x[1:]
+            return self._x[1:]
 
     @property
     def end_y(self):
@@ -1853,11 +1849,10 @@ class Section(Morphology):
         '''
         if self._y is None:
             return None
-        if self.parent is not None and self.parent.end_y is not None:
-            parent_y = self.parent.end_y[-1]
+        elif self.parent is not None and self.parent.end_y is not None:
+            return self.parent.end_y[-1] + self._y[1:]
         else:
-            parent_y = 0*um
-        return parent_y + self._y[1:]
+            return self._y[1:]
 
     @property
     def end_z(self):
@@ -1867,11 +1862,10 @@ class Section(Morphology):
         '''
         if self._z is None:
             return None
-        if self.parent is not None and self.parent.end_z is not None:
-            parent_z = self.parent.end_z[-1]
+        elif self.parent is not None and self.parent.end_z is not None:
+            return self.parent.end_z[-1] + self._z[1:]
         else:
-            parent_z = 0*um
-        return parent_z + self._z[1:]
+            return self._z[1:]
 
 
 class Cylinder(Section):
