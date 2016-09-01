@@ -738,75 +738,189 @@ class Morphology(object):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
     def start_x(self):
         '''
         The x coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        raise NotImplementedError()
+        start_x = self.start_x_
+        if start_x is None:
+            return None
+        else:
+            return Quantity(start_x, dim=meter.dim)
 
-    @abc.abstractproperty
+    @property
     def start_y(self):
         '''
         The y coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        raise NotImplementedError()
+        start_y = self.start_y_
+        if start_y is None:
+            return None
+        else:
+            return Quantity(start_y, dim=meter.dim)
 
-    @abc.abstractproperty
+    @property
     def start_z(self):
         '''
         The z coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
+        start_z = self.start_z_
+        if start_z is None:
+            return None
+        else:
+            return Quantity(start_z, dim=meter.dim)
+
+    @abc.abstractproperty
+    def start_x_(self):
+        '''
+        The x coordinate (as a unitless floating point number) at the beginning
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
+    def start_y_(self):
+        '''
+        The y coordinate (as a unitless floating point number) at the beginning
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def start_z_(self):
+        '''
+        The z coordinate (as a unitless floating point number) at the beginning
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
+        '''
+        raise NotImplementedError()
+
+    @property
     def x(self):
         '''
         The x coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        raise NotImplementedError()
+        x = self.x_
+        if x is None:
+            return None
+        else:
+            return Quantity(x, dim=meter.dim)
 
-    @abc.abstractproperty
+    @property
     def y(self):
         '''
         The y coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        raise NotImplementedError()
+        y = self.y_
+        if y is None:
+            return None
+        else:
+            return Quantity(y, dim=meter.dim)
 
-    @abc.abstractproperty
+    @property
     def z(self):
         '''
         The y coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
+        z = self.z_
+        if z is None:
+            return None
+        else:
+            return Quantity(z, dim=meter.dim)
+
+    @abc.abstractproperty
+    def x_(self):
+        '''
+        The x coordinate (as a unitless floating point number) at the midpoint
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
+        '''
         raise NotImplementedError()
 
     @abc.abstractproperty
+    def y_(self):
+        '''
+        The y coordinate (as a unitless floating point number) at the midpoint
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def z_(self):
+        '''
+        The z coordinate (as a unitless floating point number) at the midpoint
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
+        '''
+        raise NotImplementedError()
+
+    @property
     def end_x(self):
         '''
         The x coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        raise NotImplementedError()
+        end_x = self.end_x_
+        if end_x is None:
+            return None
+        else:
+            return Quantity(end_x, dim=meter.dim)
 
-    @abc.abstractproperty
+    @property
     def end_y(self):
         '''
         The y coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
         '''
-        raise NotImplementedError()
+        end_y = self.end_y_
+        if end_y is None:
+            return None
+        else:
+            return Quantity(end_y, dim=meter.dim)
 
-    @abc.abstractproperty
+    @property
     def end_z(self):
         '''
         The z coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
+        '''
+        end_z = self.end_z_
+        if end_z is None:
+            return None
+        else:
+            return Quantity(end_z, dim=meter.dim)
+
+    @abc.abstractproperty
+    def end_x_(self):
+        '''
+        The x coordinate (as a unitless floating point number) at the end of
+        each compartment. Returns ``None`` for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def end_y_(self):
+        '''
+        The y coordinate (as a unitless floating point number) at the end of
+        each compartment. Returns ``None`` for morphologies without coordinates.
+        '''
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def end_z_(self):
+        '''
+        The z coordinate (as a unitless floating point number) at the end of
+        each compartment. Returns ``None`` for morphologies without coordinates.
         '''
         raise NotImplementedError()
 
@@ -821,13 +935,29 @@ class Morphology(object):
         being the x, y, and z coordinates. Returns ``None`` for morphologies
         without coordinates.
         '''
-        if self.x is None:
+        if self.x_ is None:
             return None
         else:
-            return Quantity(np.vstack([np.hstack([self.start_x[0], self.end_x[:]]),
-                                       np.hstack([self.start_y[0], self.end_y[:]]),
-                                       np.hstack([self.start_z[0], self.end_z[:]])]).T,
-                            dim=meter.dim)
+            return Quantity(self.coordinates_, dim=meter.dim)
+
+    @property
+    def coordinates_(self):
+        r'''
+        Array with all coordinates (as unitless floating point numbers) at the
+        start- and end-points of each compartment in this section. The array has
+        size :math:`(n+1) \times 3`, where :math:`n` is the number of
+        compartments in this section. Each row is one point (start point of
+        first compartment, end point of first compartment, end point of second
+        compartment, ...), with the columns being the x, y, and z coordinates.
+        Returns ``None`` for morphologies without coordinates.
+        '''
+        if self.x_ is None:
+            return None
+        else:
+            return np.vstack([np.hstack([self.start_x_[0], self.end_x_[:]]),
+                              np.hstack([self.start_y_[0], self.end_y_[:]]),
+                              np.hstack([self.start_z_[0], self.end_z_[:]])]).T
+
 
     @staticmethod
     def _create_section(compartments, name, parent, sections,
@@ -1248,9 +1378,11 @@ class SubMorphology(object):
         The x coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.start_x is None:
+        start_x = self.start_x_
+        if start_x is None:
             return None
-        return self._morphology.start_x[self._i:self._j]
+        else:
+            return Quantity(start_x, dim=meter.dim)
 
     @property
     def start_y(self):
@@ -1258,19 +1390,56 @@ class SubMorphology(object):
         The y coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.start_y is None:
+        start_y = self.start_y_
+        if start_y is None:
             return None
-        return self._morphology.start_y[self._i:self._j]
+        else:
+            return Quantity(start_y, dim=meter.dim)
 
     @property
     def start_z(self):
         '''
-        The z coordinate at the beginning of each compartment in this
+        The x coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.start_z is None:
+        start_z = self.start_z_
+        if start_z is None:
             return None
-        return self._morphology.start_z[self._i:self._j]
+        else:
+            return Quantity(start_z, dim=meter.dim)
+
+    @property
+    def start_x_(self):
+        '''
+        The x coordinate (as a unitless floating point number) at the beginning
+        of each compartment in this sub-section. Returns ``None`` for
+        morphologies without coordinates.
+        '''
+        if self._morphology.start_x_ is None:
+            return None
+        return self._morphology.start_x_[self._i:self._j]
+
+    @property
+    def start_y_(self):
+        '''
+        The y coordinate (as a unitless floating point number) at the beginning
+        of each compartment in this sub-section. Returns ``None`` for
+        morphologies without coordinates.
+        '''
+        if self._morphology.start_y_ is None:
+            return None
+        return self._morphology.start_y_[self._i:self._j]
+
+    @property
+    def start_z_(self):
+        '''
+        The z coordinate (as a unitless floating point number) at the beginning
+        of each compartment in this sub-section. Returns ``None`` for
+        morphologies without coordinates.
+        '''
+        if self._morphology.start_z_ is None:
+            return None
+        return self._morphology.start_z_[self._i:self._j]
 
     @property
     def x(self):
@@ -1278,9 +1447,11 @@ class SubMorphology(object):
         The x coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.x is None:
-            return None
-        return self._morphology.x[self._i:self._j]
+        x = self.x_
+        if x is None:
+            return x
+        else:
+            return Quantity(x, dim=meter.dim)
 
     @property
     def y(self):
@@ -1288,9 +1459,11 @@ class SubMorphology(object):
         The y coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.y is None:
-            return None
-        return self._morphology.y[self._i:self._j]
+        y = self.y_
+        if y is None:
+            return y
+        else:
+            return Quantity(y, dim=meter.dim)
 
     @property
     def z(self):
@@ -1298,9 +1471,44 @@ class SubMorphology(object):
         The z coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.z is None:
+        z = self.z_
+        if z is None:
+            return z
+        else:
+            return Quantity(z, dim=meter.dim)
+
+    @property
+    def x_(self):
+        '''
+        The x coordinate (as a unitless floating point number) at the midpoint
+        of each compartment in this sub-section. Returns ``None`` for
+        morphologies without coordinates.
+        '''
+        if self._morphology.x_ is None:
             return None
-        return self._morphology.z[self._i:self._j]
+        return self._morphology.x_[self._i:self._j]
+
+    @property
+    def y_(self):
+        '''
+        The y coordinate (as a unitless floating point number) at the midpoint
+        of each compartment in this sub-section. Returns ``None`` for
+        morphologies without coordinates.
+        '''
+        if self._morphology.y_ is None:
+            return None
+        return self._morphology.y_[self._i:self._j]
+
+    @property
+    def z_(self):
+        '''
+        The z coordinate (as a unitless floating point number) at the midpoint
+        of each compartment in this sub-section. Returns ``None`` for
+        morphologies without coordinates.
+        '''
+        if self._morphology.z_ is None:
+            return None
+        return self._morphology.z_[self._i:self._j]
 
     @property
     def end_x(self):
@@ -1308,9 +1516,11 @@ class SubMorphology(object):
         The x coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.end_x is None:
+        x = self.end_x_
+        if x is None:
             return None
-        return self._morphology.end_x[self._i:self._j]
+        else:
+            return Quantity(x, dim=meter.dim)
 
     @property
     def end_y(self):
@@ -1318,15 +1528,52 @@ class SubMorphology(object):
         The y coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
         '''
-        if self._morphology.end_y is None:
+        y = self.end_y_
+        if y is None:
             return None
-        return self._morphology.end_y[self._i:self._j]
+        else:
+            return Quantity(y, dim=meter.dim)
 
     @property
     def end_z(self):
         '''
         The z coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
+        '''
+        z = self.end_z_
+        if z is None:
+            return None
+        else:
+            return Quantity(z, dim=meter.dim)
+
+    @property
+    def end_x_(self):
+        '''
+        The x coordinate (as a unitless floating point number) at the end of
+        each compartment in this sub-section. Returns ``None`` for morphologies
+        without coordinates.
+        '''
+        if self._morphology.end_x is None:
+            return None
+        return self._morphology.end_x[self._i:self._j]
+
+    @property
+    def end_y_(self):
+        '''
+        The y coordinate (as a unitless floating point number) at the end of
+        each compartment in this sub-section. Returns ``None`` for morphologies
+        without coordinates.
+        '''
+        if self._morphology.end_y is None:
+            return None
+        return self._morphology.end_y[self._i:self._j]
+
+    @property
+    def end_z_(self):
+        '''
+        The z coordinate (as a unitless floating point number) at the end of
+        each compartment in this sub-section. Returns ``None`` for morphologies
+        without coordinates.
         '''
         if self._morphology.end_z is None:
             return None
@@ -1361,12 +1608,12 @@ class Soma(Morphology):
                 raise TypeError('Coordinates have to be scalar values.')
         self._diameter = np.ones(1) * diameter
         if any(coord is not None for coord in (x, y, z)):
-            default_value = [0]*um
+            default_value = np.array([0.0])
         else:
             default_value = None
-        self._x = np.atleast_1d(x) if x is not None else default_value
-        self._y = np.atleast_1d(y) if y is not None else default_value
-        self._z = np.atleast_1d(z) if z is not None else default_value
+        self._x = np.atleast_1d(np.asarray(x)) if x is not None else default_value
+        self._y = np.atleast_1d(np.asarray(y)) if y is not None else default_value
+        self._z = np.atleast_1d(np.asarray(z)) if z is not None else default_value
 
     def __repr__(self):
         s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
@@ -1445,7 +1692,7 @@ class Soma(Morphology):
         return dist
 
     @property
-    def start_x(self):
+    def start_x_(self):
         '''
         The x-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1455,7 +1702,7 @@ class Soma(Morphology):
         return self._x
 
     @property
-    def start_y(self):
+    def start_y_(self):
         '''
         The y-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1465,7 +1712,7 @@ class Soma(Morphology):
         return self._y
 
     @property
-    def start_z(self):
+    def start_z_(self):
         '''
         The z-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1475,7 +1722,7 @@ class Soma(Morphology):
         return self._z
 
     @property
-    def x(self):
+    def x_(self):
         '''
         The x-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1485,7 +1732,7 @@ class Soma(Morphology):
         return self._x
 
     @property
-    def y(self):
+    def y_(self):
         '''
         The y-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1495,7 +1742,7 @@ class Soma(Morphology):
         return self._y
 
     @property
-    def z(self):
+    def z_(self):
         '''
         The z-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1505,7 +1752,7 @@ class Soma(Morphology):
         return self._z
 
     @property
-    def end_x(self):
+    def end_x_(self):
         '''
         The x-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1515,7 +1762,7 @@ class Soma(Morphology):
         return self._x
 
     @property
-    def end_y(self):
+    def end_y_(self):
         '''
         The y-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1525,7 +1772,7 @@ class Soma(Morphology):
         return self._y
 
     @property
-    def end_z(self):
+    def end_z_(self):
         '''
         The z-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
@@ -1618,9 +1865,9 @@ class Section(Morphology):
                 if value is not None and (value.ndim != 1 or len(value) != n + 1):
                     raise TypeError(('%s needs to be a 1-dimensional array '
                                      'of length %d.') % (name, n + 1))
-            self._x = Quantity(x, copy=True).reshape((n+1, )) if x is not None else np.zeros(n + 1)*um
-            self._y = Quantity(y, copy=True).reshape((n+1, )) if y is not None else np.zeros(n + 1)*um
-            self._z = Quantity(z, copy=True).reshape((n+1, )) if z is not None else np.zeros(n + 1)*um
+            self._x = np.asarray(x).reshape((n+1, )) if x is not None else np.zeros(n + 1)
+            self._y = np.asarray(y).reshape((n+1, )) if y is not None else np.zeros(n + 1)
+            self._z = np.asarray(z).reshape((n+1, )) if z is not None else np.zeros(n + 1)
 
             length = np.sqrt((self.end_x - self.start_x) ** 2 +
                              (self.end_y - self.start_y) ** 2 +
@@ -1653,7 +1900,7 @@ class Section(Morphology):
             x, y, z = None, None, None
             length = self.length
         else:
-            x, y, z = self._x, self._y, self._z
+            x, y, z = self._x*meter, self._y*meter, self._z*meter
             length = None
         return Section(diameter=self._diameter, n=self.n, x=x, y=y, z=z,
                        length=length, type=self.type)
@@ -1757,113 +2004,119 @@ class Section(Morphology):
         return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
-    def start_x(self):
+    def start_x_(self):
         '''
-        The x coordinate at the beginning of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The x coordinate (as a unitless floating point number) at the beginning
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
         '''
         if self._x is None:
             return None
         elif self.parent is not None and self.parent.end_x is not None:
-            return self.parent.end_x[-1] + self._x[:-1]
+            return self.parent.end_x_[-1] + self._x[:-1]
         else:
             return self._x[:-1]
 
     @property
-    def start_y(self):
+    def start_y_(self):
         '''
-        The y coordinate at the beginning of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The y coordinate (as a unitless floating point number) at the beginning
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
         '''
         if self._y is None:
             return None
         elif self.parent is not None and self.parent.end_y is not None:
-            return self.parent.end_y[-1] + self._y[:-1]
+            return self.parent.end_y_[-1] + self._y[:-1]
         else:
             return self._y[:-1]
 
     @property
-    def start_z(self):
+    def start_z_(self):
         '''
-        The z coordinate at the beginning of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The z coordinate (as a unitless floating point number) at the beginning
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
         '''
         if self._z is None:
             return None
-        elif self.parent is not None and self.parent.end_z is not None:
-            return self.parent.end_z[-1] + self._z[:-1]
+        elif self.parent is not None and self.parent.end_z_ is not None:
+            return self.parent.end_z_[-1] + self._z[:-1]
         else:
             return self._z[:-1]
 
     @property
-    def x(self):
+    def x_(self):
         '''
-        The x coordinate at the midpoint of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The x coordinate (as a unitless floating point number) at the midpoint
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
         '''
         if self._x is None:
             return None
-        diff_x = (self.end_x - self.start_x)
-        return self.start_x + 0.5*diff_x
+        diff_x = (self.end_x_ - self.start_x_)
+        return self.start_x_ + 0.5*diff_x
 
     @property
-    def y(self):
+    def y_(self):
         '''
-        The y coordinate at the midpoint of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The y coordinate (as a unitless floating point number) at the midpoint
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
         '''
         if self._y is None:
             return None
-        diff_y = (self.end_y - self.start_y)
-        return self.start_y + 0.5*diff_y
+        diff_y = (self.end_y_ - self.start_y_)
+        return self.start_y_ + 0.5*diff_y
 
     @property
-    def z(self):
+    def z_(self):
         '''
-        The z coordinate at the midpoint of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The z coordinate (as a unitless floating point number) at the midpoint
+        of each compartment. Returns ``None`` for morphologies without
+        coordinates.
         '''
         if self._z is None:
             return None
-        diff_z = (self.end_z - self.start_z)
-        return self.start_z + 0.5*diff_z
+        diff_z = (self.end_z_ - self.start_z_)
+        return self.start_z_ + 0.5*diff_z
 
     @property
-    def end_x(self):
+    def end_x_(self):
         '''
-        The x coordinate at the end of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The x coordinate (as a unitless floating point number) at the end of
+        each compartment. Returns ``None`` for morphologies without coordinates.
         '''
         if self._x is None:
             return None
-        elif self.parent is not None and self.parent.end_x is not None:
-            return self.parent.end_x[-1] + self._x[1:]
+        elif self.parent is not None and self.parent.end_x_ is not None:
+            return self.parent.end_x_[-1] + self._x[1:]
         else:
             return self._x[1:]
 
     @property
-    def end_y(self):
+    def end_y_(self):
         '''
-        The y coordinate at the end of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The y coordinate (as a unitless floating point number) at the end of
+        each compartment. Returns ``None`` for morphologies without coordinates.
         '''
         if self._y is None:
             return None
-        elif self.parent is not None and self.parent.end_y is not None:
-            return self.parent.end_y[-1] + self._y[1:]
+        elif self.parent is not None and self.parent.end_y_ is not None:
+            return self.parent.end_y_[-1] + self._y[1:]
         else:
             return self._y[1:]
 
     @property
-    def end_z(self):
+    def end_z_(self):
         '''
-        The z coordinate at the end of each compartment. Returns ``None``
-        for morphologies without coordinates.
+        The z coordinate (as a unitless floating point number) at the end of
+        each compartment. Returns ``None`` for morphologies without coordinates.
         '''
         if self._z is None:
             return None
-        elif self.parent is not None and self.parent.end_z is not None:
-            return self.parent.end_z[-1] + self._z[1:]
+        elif self.parent is not None and self.parent.end_z_ is not None:
+            return self.parent.end_z_[-1] + self._z[1:]
         else:
             return self._z[1:]
 
@@ -1931,9 +2184,9 @@ class Cylinder(Section):
                 if value is not None and (value.ndim != 1 or len(value) != 2):
                     raise TypeError('%s needs to be a 1-dimensional array of '
                                     'length 2 (start and end point)' % name)
-            self._x = np.linspace(x[0], x[1], n+1) if x is not None else np.zeros(n+1)*um
-            self._y = np.linspace(y[0], y[1], n+1) if y is not None else np.zeros(n+1)*um
-            self._z = np.linspace(z[0], z[1], n+1) if z is not None else np.zeros(n+1)*um
+            self._x = np.asarray(np.linspace(x[0], x[1], n+1)) if x is not None else np.zeros(n+1)
+            self._y = np.asarray(np.linspace(y[0], y[1], n+1)) if y is not None else np.zeros(n+1)
+            self._z = np.asarray(np.linspace(z[0], z[1], n+1)) if z is not None else np.zeros(n+1)
             length = np.sqrt((self.end_x - self.start_x) ** 2 +
                              (self.end_y - self.start_y) ** 2 +
                              (self.end_z - self.start_z) ** 2)
