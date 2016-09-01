@@ -2012,8 +2012,9 @@ class Section(Morphology):
         '''
         if self._x is None:
             return None
-        elif self.parent is not None and self.parent.end_x is not None:
-            return self.parent.end_x_[-1] + self._x[:-1]
+        parent_end_x = self.parent.end_x_ if self.parent is not None else None
+        if parent_end_x is not None:
+            return parent_end_x[-1] + self._x[:-1]
         else:
             return self._x[:-1]
 
@@ -2026,8 +2027,9 @@ class Section(Morphology):
         '''
         if self._y is None:
             return None
-        elif self.parent is not None and self.parent.end_y is not None:
-            return self.parent.end_y_[-1] + self._y[:-1]
+        parent_end_y = self.parent.end_y_ if self.parent is not None else None
+        if parent_end_y is not None:
+            return parent_end_y[-1] + self._y[:-1]
         else:
             return self._y[:-1]
 
@@ -2040,8 +2042,9 @@ class Section(Morphology):
         '''
         if self._z is None:
             return None
-        elif self.parent is not None and self.parent.end_z_ is not None:
-            return self.parent.end_z_[-1] + self._z[:-1]
+        parent_end_z = self.parent.end_z_ if self.parent is not None else None
+        if parent_end_z is not None:
+            return parent_end_z[-1] + self._z[:-1]
         else:
             return self._z[:-1]
 
@@ -2054,8 +2057,9 @@ class Section(Morphology):
         '''
         if self._x is None:
             return None
-        diff_x = (self.end_x_ - self.start_x_)
-        return self.start_x_ + 0.5*diff_x
+        start_x = self.start_x_
+        diff_x = (self.end_x_ - start_x)
+        return start_x + 0.5*diff_x
 
     @property
     def y_(self):
@@ -2066,8 +2070,9 @@ class Section(Morphology):
         '''
         if self._y is None:
             return None
-        diff_y = (self.end_y_ - self.start_y_)
-        return self.start_y_ + 0.5*diff_y
+        start_y = self.start_y_
+        diff_y = (self.end_y_ - start_y)
+        return start_y + 0.5*diff_y
 
     @property
     def z_(self):
@@ -2078,8 +2083,9 @@ class Section(Morphology):
         '''
         if self._z is None:
             return None
-        diff_z = (self.end_z_ - self.start_z_)
-        return self.start_z_ + 0.5*diff_z
+        start_z = self.start_z_
+        diff_z = (self.end_z_ - start_z)
+        return start_z + 0.5*diff_z
 
     @property
     def end_x_(self):
@@ -2089,8 +2095,9 @@ class Section(Morphology):
         '''
         if self._x is None:
             return None
-        elif self.parent is not None and self.parent.end_x_ is not None:
-            return self.parent.end_x_[-1] + self._x[1:]
+        parent_end_x = self.parent.end_x_ if self.parent is not None else None
+        if parent_end_x is not None:
+            return parent_end_x[-1] + self._x[1:]
         else:
             return self._x[1:]
 
@@ -2102,8 +2109,9 @@ class Section(Morphology):
         '''
         if self._y is None:
             return None
-        elif self.parent is not None and self.parent.end_y_ is not None:
-            return self.parent.end_y_[-1] + self._y[1:]
+        parent_end_y = self.parent.end_y_ if self.parent is not None else None
+        if parent_end_y is not None:
+            return parent_end_y[-1] + self._y[1:]
         else:
             return self._y[1:]
 
@@ -2115,8 +2123,9 @@ class Section(Morphology):
         '''
         if self._z is None:
             return None
-        elif self.parent is not None and self.parent.end_z_ is not None:
-            return self.parent.end_z_[-1] + self._z[1:]
+        parent_end_z = self.parent.end_z_ if self.parent is not None else None
+        if parent_end_z is not None:
+            return parent_end_z[-1] + self._z[1:]
         else:
             return self._z[1:]
 
