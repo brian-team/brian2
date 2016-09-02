@@ -8,6 +8,8 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.exporters.notebook import NotebookExporter
 from nbconvert.exporters.rst import RSTExporter
 
+from brian2.utils.stringtools import deindent
+
 
 src_dir = os.path.abspath('../../../tutorials')
 target_dir = os.path.abspath('../../../docs_sphinx/resources/tutorials')
@@ -42,14 +44,21 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     codecs.open(output_ipynb_fname, 'w', encoding='utf-8').write(output)
 
     # Insert a note about ipython notebooks with a download link
-    note = u'''
-    .. note::
-       This tutorial is written as an interactive notebook that should be run
-       on your own computer. See the :doc:`tutorial overview page <index>` for
-       more details.
+    note = deindent(u'''
+    .. |launchbinder| image:: http://mybinder.org/badge.svg
+    .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
 
-       Download link for this tutorial: :download:`{tutorial}.ipynb`.
-    '''.format(tutorial=basename)
+    .. note::
+       This tutorial is a static non-editable version. You can launch an
+       interactive, editable version without installing any local files
+       using the Binder service (although note that at some times this
+       may be slow or fail to open): |launchbinder|_
+
+       Alternatively, you can download a copy of the notebook file
+       to use locally: :download:`{tutorial}.ipynb`
+
+       See the :doc:`tutorial overview page <index>` for more details.
+    '''.format(tutorial=basename))
     notebook.cells.insert(1, {
         u'cell_type': u'raw',
         u'metadata': {},
@@ -74,14 +83,15 @@ text = '''
 Tutorials
 =========
 
-The tutorial consists of a series of `Jupyter Notebooks`_ [#]_. If you run such
-a notebook on your own computer, you can interactively change the code in the
-tutorial and experiment with it -- this is the recommended way to get started
-with Brian. The first link for each tutorial below leads to a non-interactive
-version of the notebook; use the links under "Notebook files" to get a file that
-you can run on your computer. You can also copy such a link and paste it at
-http://nbviewer.jupyter.org -- this will get you a nicer (but still
-non-interactive) rendering than the one you see in our documentation.
+The tutorial consists of a series of `Jupyter Notebooks`_ [#]_. You can quickly
+view these using the first links below. To use them interactively - allowing you
+to edit and run the code - there are two options. The easiest option is to click
+on the "Launch Binder" link, which will open up an interactive version in the
+browser without having to install Brian locally. This uses the
+Binder service provided by the
+`Freeman lab <https://www.janelia.org/lab/freeman-lab>`_. Occasionally, this
+service will be down or running slowly. The other option is to download the
+notebook file and run it locally, which requires you to have Brian installed.
 
 For more information about how to use Jupyter Notebooks, see the
 `Jupyter Notebook documentation`_.
@@ -95,12 +105,19 @@ for tutorial, _ in tutorials:
     text += '   ' + tutorial + '\n'
 text += '''
 
-Notebook files
---------------
+Interactive notebooks and files
+-------------------------------
 '''
+for tutorial, _ in tutorials:
+    text += deindent('''
+    .. |launchbinder{tutid}| image:: http://mybinder.org/badge.svg
+    .. _launchbinder{tutid}: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+
+    '''.format(tutorial=tutorial, tutid=tutorial.replace('-', '')))
+
 for tutorial, title in tutorials:
-    text += '* :download:`{title} <{tutorial}.ipynb>`\n'.format(title=title,
-                                                                tutorial=tutorial)
+    text += '* |launchbinder{tutid}|_ :download:`{title} <{tutorial}.ipynb>`\n'.format(title=title,
+                                                tutorial=tutorial, tutid=tutorial.replace('-', ''))
 text += '''
 
 .. _`Jupyter Notebooks`: http://jupyter-notebook-beginner-guide.readthedocs.org/en/latest/what_is_jupyter.html
