@@ -10,17 +10,17 @@ import numpy as np
 
 from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
-                                        DIFFERENTIAL_EQUATION, SingleEquation)
+                                        DIFFERENTIAL_EQUATION, SingleEquation,
+                                        extract_constant_subexpressions)
 from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp, meter, volt
 from brian2.units.fundamentalunits import Quantity, Unit, fail_for_dimension_mismatch, have_same_dimensions, DimensionMismatchError
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
-from brian2.groups.neurongroup import NeuronGroup
+from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
-from lxml.ElementInclude import include
 
 __all__ = ['SpatialNeuron']
 
@@ -250,7 +250,18 @@ class SpatialNeuron(NeuronGroup):
         # Check flags (we have point currents)
         model.check_flags({DIFFERENTIAL_EQUATION: ('point current',),
                            PARAMETER: ('constant', 'shared', 'linked', 'point current'),
-                           SUBEXPRESSION: ('shared', 'point current')})
+                           SUBEXPRESSION: ('shared', 'point current',
+                                           'constant over dt')})
+        #: The original equations as specified by the user (i.e. before
+        #: inserting point-currents into the membrane equation, before adding
+        #: all the internally used variables and constants, etc.).
+        self.user_equations = model
+
+        # Separate subexpressions depending whether they are considered to be
+        # constant over a time step or not (this would also be done by the
+        # NeuronGroup initializer later, but this would give incorrect results
+        # for the linearity check)
+        model, constant_over_dt = extract_constant_subexpressions(model)
 
         # Extract membrane equation
         if 'Im' in model:
@@ -274,11 +285,6 @@ class SpatialNeuron(NeuronGroup):
                 eq = SingleEquation(eq.type, eq.varname, eq.unit, expr=eq.expr,
                                     flags=list(set(eq.flags)-set(['point current'])))
             model_equations.append(eq)
-
-        #: The original equations as specified by the user (i.e. before
-        #: inserting point-currents into the membrane equation and before adding
-        #: all the internally used variables and constants).
-        self.user_equations = model
 
         model_equations.append(SingleEquation(SUBEXPRESSION, 'Im',
                                               unit=amp/meter**2,
@@ -401,6 +407,11 @@ class SpatialNeuron(NeuronGroup):
 
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
+
+        if len(constant_over_dt):
+            self.subexpression_updater = SubexpressionUpdater(self,
+                                                              constant_over_dt)
+            self.contained_objects.append(self.subexpression_updater)
 
     def __getattr__(self, name):
         '''

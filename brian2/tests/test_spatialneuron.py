@@ -574,7 +574,18 @@ def test_allowed_integration():
                       alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
                       betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz''',
                    '''Im = gl * (El-v) : amp/meter**2
-                      I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)''']
+                      I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)''',
+                   '''Im = I_leak + I_spike : amp/meter**2
+                      I_leak = gL*(EL - v) : amp/meter**2
+                      I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2 (constant over dt)
+                                        ''',
+                   '''
+                   Im = gL*(EL-v) : amp/meter**2
+                   I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
+                   gNMDA : siemens
+                   Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1 (constant over dt)
+                   '''
+                   ]
     forbidden_eqs = ['Im = gL*(EL - v) + gL*DeltaT*exp((v - VT)/DeltaT) : amp/meter**2',
                      '''Im = I_leak + I_spike : amp/meter**2
                         I_leak = gL*(EL - v) : amp/meter**2
@@ -585,7 +596,8 @@ def test_allowed_integration():
                      I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
                      gNMDA : siemens
                      Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1
-                     ''']
+                     '''
+                     ]
     for eqs in allowed_eqs:
         # Should not raise an error
         neuron = SpatialNeuron(morph, eqs)
