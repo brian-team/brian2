@@ -10,9 +10,9 @@ import numpy as np
 
 from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
-                                        DIFFERENTIAL_EQUATION)
+                                        DIFFERENTIAL_EQUATION, SingleEquation)
 from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
-from brian2.units.allunits import ohm, siemens, amp, meter
+from brian2.units.allunits import ohm, siemens, amp, meter, volt
 from brian2.units.fundamentalunits import Quantity, Unit, fail_for_dimension_mismatch, have_same_dimensions, DimensionMismatchError
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
@@ -20,6 +20,7 @@ from brian2.utils.logger import get_logger
 from brian2.groups.neurongroup import NeuronGroup
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
+from lxml.ElementInclude import include
 
 __all__ = ['SpatialNeuron']
 
@@ -251,25 +252,39 @@ class SpatialNeuron(NeuronGroup):
                            PARAMETER: ('constant', 'shared', 'linked', 'point current'),
                            SUBEXPRESSION: ('shared', 'point current')})
 
-        # Add the membrane potential
-        model += Equations('''
-        v:volt # membrane potential
-        ''')
-
         # Extract membrane equation
         if 'Im' in model:
-            membrane_eq = model['Im']  # the membrane equation
+            if len(model['Im'].flags):
+                raise TypeError('Cannot specify any flags for the transmembrane '
+                                'current Im.')
+            membrane_expr = model['Im'].expr  # the membrane equation
         else:
             raise TypeError('The transmembrane current Im must be defined')
 
+        model_equations = []
         # Insert point currents in the membrane equation
         for eq in model.itervalues():
+            if eq.varname == 'Im':
+                continue  # ignore -- handled separately
             if 'point current' in eq.flags:
                 fail_for_dimension_mismatch(eq.unit, amp,
                                             "Point current " + eq.varname + " should be in amp")
-                eq.flags.remove('point current')
-                membrane_eq.expr = Expression(
-                    str(membrane_eq.expr.code) + '+' + eq.varname + '/area')
+                membrane_expr = Expression(
+                    str(membrane_expr.code) + '+' + eq.varname + '/area')
+                eq = SingleEquation(eq.type, eq.varname, eq.unit, expr=eq.expr,
+                                    flags=list(set(eq.flags)-set(['point current'])))
+            model_equations.append(eq)
+
+        #: The original equations as specified by the user (i.e. before
+        #: inserting point-currents into the membrane equation and before adding
+        #: all the internally used variables and constants).
+        self.user_equations = model
+
+        model_equations.append(SingleEquation(SUBEXPRESSION, 'Im',
+                                              unit=amp/meter**2,
+                                              expr=membrane_expr))
+        model_equations.append(SingleEquation(PARAMETER, 'v', unit=volt))
+        model = Equations(model_equations)
 
         ###### Process model equations (Im) to extract total conductance and the remaining current
         # Check conditional linearity with respect to v
@@ -280,18 +295,19 @@ class SpatialNeuron(NeuronGroup):
         pattern = wildcard * var + constant_wildcard
 
         # Expand expressions in the membrane equation
-        membrane_eq.type = DIFFERENTIAL_EQUATION
-        for var, expr in model.get_substituted_expressions():
+        for var, expr in model.get_substituted_expressions(include_subexpressions=True):
             if var == 'Im':
                 Im_expr = expr
-        membrane_eq.type = SUBEXPRESSION
+                break
+        else:
+            raise AssertionError('Model equations did not contain Im!')
 
         # Factor out the variable
         s_expr = sp.collect(str_to_sympy(Im_expr.code).expand(), var)
         matches = s_expr.match(pattern)
 
         if matches is None:
-            raise TypeError, "The membrane current must be linear with respect to v"
+            raise TypeError("The membrane current must be linear with respect to v")
         a, b = (matches[wildcard],
                 matches[constant_wildcard])
 
