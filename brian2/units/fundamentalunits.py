@@ -2332,12 +2332,35 @@ def check_units(**au):
     By using the special name ``result``, you can check the return value of the
     function.
 
+    You can also use ``1`` or ``bool`` as a special value to check for a
+    unitless number or a boolean value, respectively:
+    >>> @check_units(value=1, absolute=bool, result=bool)
+    ... def is_high(value, absolute=False):
+    ...     if absolute:
+    ...         return abs(value) >= 5
+    ...     else:
+    ...         return value >= 5
+
+    This will then again raise an error if the argument if not of the expected
+    type:
+    >>> is_high(7)
+    True
+    >>> is_high(-7, True)
+    True
+    >>> is_high(3, 4)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    TypeError: Function "is_high" expected a boolean value for argument "absolute" but got 4.
+
     Raises
     ------
 
     DimensionMismatchError
         In case the input arguments or the return value do not have the
         expected dimensions.
+    TypeError
+        If an input argument or return value was expected to be a boolean but
+        is not.
 
     Notes
     -----
@@ -2347,13 +2370,18 @@ def check_units(**au):
     of the function it is acting on, so it is important that it is the first
     decorator to act on a function. It cannot be used in combination with
     another decorator that also needs to know the signature of the function.
+
+    Note that the ``bool`` type is "strict", i.e. it expects a proper
+    boolean value and does not accept 0 or 1. This is not the case the other
+    way round, declaring an argument or return value as "1" *does* allow for a
+    ``True`` or ``False`` value.
     """
     def do_check_units(f):
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
             arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
             for (n, v) in zip(arg_names, args[0:f.func_code.co_argcount]):
-                if (not isinstance(v, (Quantity, basestring))
+                if (not isinstance(v, (Quantity, basestring, bool))
                         and v is not None
                         and n in au):
                     try:
@@ -2376,7 +2404,15 @@ def check_units(**au):
                 if (k in au.keys() and not isinstance(newkeyset[k], str) and
                                        not newkeyset[k] is None):
 
-                    if not have_same_dimensions(newkeyset[k], au[k]):
+                    if au[k] == bool:
+                        if not isinstance(newkeyset[k], bool):
+                            error_message = ('Function "{f.__name__}" '
+                                             'expected a boolean value '
+                                             'for argument "{k}" but got '
+                                             '{value}').format(f=f, k=k,
+                                                               value=newkeyset[k])
+                            raise TypeError(error_message)
+                    elif not have_same_dimensions(newkeyset[k], au[k]):
                         error_message = ('Function "{f.__name__}" '
                                          'expected a quantitity with unit '
                                          '{unit} for argument "{k}" but got '
@@ -2387,9 +2423,17 @@ def check_units(**au):
                                                      newkeyset[k])
             result = f(*args, **kwds)
             if 'result' in au:
-                if not have_same_dimensions(result, au['result']):
+                if au['result'] == bool:
+                    if not isinstance(result, bool):
+                        error_message = ('The return value of function '
+                                         '"{f.__name__}" was expected to be '
+                                         'a boolean value, but was of type '
+                                         '{type}').format(f=f,
+                                                           type=type(result))
+                        raise TypeError(error_message)
+                elif not have_same_dimensions(result, au['result']):
                     error_message = ('The return value of function '
-                                     '""{f.__name__}" was expected to have '
+                                     '"{f.__name__}" was expected to have '
                                      'unit {unit} but was '
                                      '{value}').format(f=f,
                                                        unit=repr(au['result']),
