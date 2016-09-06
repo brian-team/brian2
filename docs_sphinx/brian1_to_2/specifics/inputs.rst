@@ -82,3 +82,57 @@ pre-calculate the spikes and then use a standard `SpikeGeneratorGroup`. If this
 is not possible (e.g. there are two many spikes to fit in memory), then you can
 workaround the restriction by using custom code (see :ref:`user_functions` and
 :ref:`network_operation`).
+
+Arbitrary time-dependent input (``TimedArray``)
+-----------------------------------------------
+For a detailed description of the `TimedArray` mechanism in Brian 2, see
+:ref:`timed_arrays`.
+
+In Brian 1, timed arrays where special objects that could be assigned to a
+state variable and would then be used to update this state variable at every
+time step. In Brian 2, a timed array is implemented using the standard
+:doc:`../../user/functions` mechanism which has the advantage that more
+complex access patterns can be implemented (e.g. by not using ``t`` as an
+argument, but something like ``t - delay``). This syntax was possible in Brian 1
+as well, but was disadvantageous for performance and had other limits (e.g. no
+unit support, no linear integration). In Brian 2, these disadvantages no longer
+apply and the function syntax is therefore the only available syntax. You can
+convert the old-style Brian 1 syntax to Brian 2 as follows:
+
+.. warning::
+   The example below does not correctly translate the changed semantics of
+   `TimedArray` related to the time. In Brian 1,
+   ``TimedArray([0, 1, 2], dt=10*ms)`` will return ``0`` for ``t<5*ms``, ``1``
+   for ``5*ms<=t<15*ms``, and ``2`` for ``t>=15*ms``. Brian 2 will return ``0``
+   for ``t<10*ms``, ``1`` for ``10*ms<=t<20*ms``, and ``2`` for ``t>=20*ms``.
+
++-----------------------------------------------------------+----------------------------------------------------+
+| Brian 1                                                   | Brian 2                                            |
++===========================================================+====================================================+
+| .. code::                                                 | .. code::                                          |
+|                                                           |                                                    |
+|    # same input for all neurons                           |    # same input for all neurons                    |
+|    eqs = '''                                              |    I = TimedArray(linspace(0*mV, 20*mV, 100),      |
+|          dv/dt = (I - v)/tau : volt                       |                   dt=10*ms)                        |
+|          I : volt                                         |    eqs = '''                                       |
+|          '''                                              |          dv/dt = (I(t) - v)/tau : volt             |
+|    group = NeuronGroup(1, model=eqs,                      |          '''                                       |
+|                        reset=0*mV, threshold=15*mV)       |    group = NeuronGroup(1, model=eqs,               |
+|    group.I = TimedArray(linspace(0*mV, 20*mV, 100),       |                        reset='v = 0*mV',           |
+|                         dt=10*ms)                         |                        threshold='v > 15*mV')      |
+|                                                           |                                                    |
++-----------------------------------------------------------+----------------------------------------------------+
+| .. code::                                                 | .. code::                                          |
+|                                                           |                                                    |
+|    # neuron-specific input                                |    # neuron-specific input                         |
+|    eqs = '''                                              |    values = (linspace(0*mV, 20*mV, 100)[:, None] * |
+|          dv/dt = (I - v)/tau : volt                       |              linspace(0, 1, 5))                    |
+|          I : volt                                         |    I = TimedArray(values, dt=10*ms)                |
+|          '''                                              |    eqs = '''                                       |
+|    group = NeuronGroup(5, model=eqs,                      |          dv/dt = (I(t, i) - v)/tau : volt          |
+|                        reset=0*mV, threshold=15*mV)       |          '''                                       |
+|    values = (linspace(0*mV, 20*mV, 100)[:, None] *        |    group = NeuronGroup(5, model=eqs,               |
+|              linspace(0, 1, 5))                           |                        reset='v = 0*mV',           |
+|    group.I = TimedArray(values, dt=10*ms)                 |                        threshold='v > 15*mV')      |
+|                                                           |                                                    |
++-----------------------------------------------------------+----------------------------------------------------+
