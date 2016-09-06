@@ -2468,7 +2468,10 @@ def check_units(**au):
             new_f._return_unit = None
         else:
             new_f._return_unit = return_unit
-
+        if return_unit == bool:
+            new_f._returns_bool = True
+        else:
+            new_f._returns_bool = False
         new_f._orig_arg_names = arg_names
 
         # copy any annotation attributes
@@ -2477,6 +2480,7 @@ def check_units(**au):
                 setattr(new_f, attrname, getattr(f, attrname))
         new_f._annotation_attributes = getattr(f, '_annotation_attributes', [])+['_arg_units',
                                                                                  '_return_unit',
-                                                                                 '_orig_func']
+                                                                                 '_orig_func',
+                                                                                 '_returns_bool']
         return new_f
     return do_check_units

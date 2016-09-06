@@ -5,6 +5,7 @@ AST parsing based analysis of expressions
 import ast
 
 from brian2.core.functions import Function
+from brian2.parsing.rendering import NodeRenderer
 from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            DimensionMismatchError,
                                            have_same_dimensions,
@@ -257,9 +258,6 @@ def parse_expression_unit(expr, variables):
         elif getattr(expr, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
 
-        arg_units = [parse_expression_unit(arg, variables)
-                     for arg in expr.args]
-
         func = variables.get(expr.func.id, None)
         if func is None:
             raise SyntaxError('Unknown function %s' % expr.func.id)
@@ -267,25 +265,44 @@ def parse_expression_unit(expr, variables):
             raise ValueError(('Function %s does not specify how it '
                               'deals with units.') % expr.func.id)
 
-        if len(func._arg_units) != len(arg_units):
+        if len(func._arg_units) != len(expr.args):
             raise SyntaxError('Function %s was called with %d parameters, '
                               'needs %d.' % (expr.func.id,
-                                             len(arg_units),
+                                             len(expr.args),
                                              len(func._arg_units)))
-        for idx, arg_unit in enumerate(arg_units):
-            # A "None" in func._arg_units means: No matter what unit
-            if (func._arg_units[idx] is not None and
-                    not have_same_dimensions(arg_unit, func._arg_units[idx])):
-                raise DimensionMismatchError(('Argument number %d for function '
-                                              '%s does not have the correct '
-                                              'units' % (idx + 1, expr.func.id)),
-                                             arg_unit, func._arg_units[idx])
 
-        if isinstance(func._return_unit, (Unit, int)):
+        for idx, (arg, expected_unit) in enumerate(zip(expr.args,
+                                                       func._arg_units)):
+            # A "None" in func._arg_units means: No matter what unit
+            if expected_unit is None:
+                continue
+            elif expected_unit == bool:
+                if not is_boolean_expression(arg, variables):
+                    raise TypeError(('Argument number %d for function %s was '
+                                     'expected to be a boolean value, but is '
+                                     '"%s".') % (idx + 1, expr.func.id,
+                                                 NodeRenderer().render_node(arg)))
+            else:
+                arg_unit = parse_expression_unit(arg, variables)
+                if not have_same_dimensions(arg_unit, expected_unit):
+                    raise DimensionMismatchError(('Argument number %d for '
+                                                  'function %s does not have '
+                                                  'the correct '
+                                                  'units' % (idx + 1,
+                                                             expr.func.id)),
+                                                 arg_unit, expected_unit)
+
+        if func._return_unit == bool:
+            return Unit(1)
+        elif isinstance(func._return_unit, (Unit, int)):
             # Function always returns the same unit
             return get_unit_fast(func._return_unit)
         else:
+            print "func is", func
+            print 'func._return_unit is', func._return_unit
             # Function returns a unit that depends on the arguments
+            arg_units = [parse_expression_unit(arg, variables)
+                         for arg in expr.args]
             return func._return_unit(*arg_units)
 
     elif expr.__class__ is ast.BinOp:
