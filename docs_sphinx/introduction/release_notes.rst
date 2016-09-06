@@ -19,6 +19,8 @@ Improvements and bug fixes
 * More consistent check of compatible time and dt values (#730).
 * Attempting to set a synaptic variable or to start a simulation with synapses
   without any preceding connect call now raises an error (#737).
+* Improve the performance of coordinate calculation for `Morphology` objects,
+  which previously made plotting very slow for complex morphologies (#741).
 
 Contributions
 ~~~~~~~~~~~~~
