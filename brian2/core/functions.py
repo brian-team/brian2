@@ -120,6 +120,10 @@ class Function(object):
         self.sympy_func = sympy_func
         self._arg_units = arg_units
         self._return_unit = return_unit
+        if return_unit == bool:
+            self._returns_bool = True
+        else:
+            self._returns_bool = False
         self._arg_types = arg_types
         self._return_type = return_type
         self.stateless = stateless
@@ -348,11 +352,24 @@ class FunctionImplementationContainer(collections.Mapping):
                     raise ValueError(('Function %s got %d arguments, '
                                       'expected %d') % (self._function.pyfunc.__name__, len(args),
                                                         len(self._function._arg_units)))
-                new_args = [Quantity.with_dimensions(arg, get_dimensions(arg_unit))
-                            for arg, arg_unit in zip(args, self._function._arg_units)]
+                new_args = []
+                for arg, arg_unit in zip(args, self._function._arg_units):
+                    if arg_unit == bool:
+                        new_args.append(arg)
+                    else:
+                        new_args.append(Quantity.with_dimensions(arg,
+                                                                 get_dimensions(arg_unit)))
                 result = orig_func(*new_args)
                 return_unit = self._function._return_unit
-                if return_unit is 1 or return_unit.dim is DIMENSIONLESS:
+                if return_unit == bool:
+                    if not (isinstance(result, bool) or
+                                    np.asarray(result).dtype == bool):
+                        raise TypeError('The function %s returned '
+                                        '%s, but it was expected '
+                                        'to return a boolean '
+                                        'value ' % (orig_func.__name__,
+                                                    result))
+                elif return_unit is 1 or return_unit.dim is DIMENSIONLESS:
                     fail_for_dimension_mismatch(result,
                                                 return_unit,
                                                 'The function %s returned '

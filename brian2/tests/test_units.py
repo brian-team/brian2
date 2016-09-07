@@ -958,6 +958,19 @@ def test_check_units():
     # Should fail (returns volt)
     assert_raises(DimensionMismatchError, lambda: b_function(False))
 
+    @check_units(a=bool, b=1, result=bool)
+    def c_function(a, b):
+        if a:
+            return b > 0
+        else:
+            return b
+
+    assert c_function(True, 1)
+    assert not c_function(True, -1)
+    assert_raises(TypeError, c_function, 1, 1)
+    assert_raises(TypeError, c_function, 1*mV, 1)
+    assert_raises(TypeError, c_function, False, 1)
+
 
 @attr('codegen-independent')
 def test_get_unit():
