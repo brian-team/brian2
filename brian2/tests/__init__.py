@@ -160,8 +160,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     BrianLogger.console_handler.setLevel(LOG_LEVELS['WARNING'])
 
     # Switch off code optimization to get faster compilation times
-    prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
-    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
+    # prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
+    # prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
 
     if fail_for_not_implemented:
         not_implemented_plugin = NotImplementedPlugin
