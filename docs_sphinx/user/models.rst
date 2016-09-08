@@ -31,30 +31,6 @@ be used::
     G = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                            I_leak = g_L*(E_L - v) : amp''')
 
-Sometimes it can also be useful to introduce shared variables or subexpressions,
-i.e. variables that have a common value for all neurons. In contrast to
-external variables (such as ``Cm`` above), such variables can change during a
-run, e.g. by using :meth:`~brian2.groups.group.Group.run_regularly`. This can be
-for example used for an external stimulus that changes in the course of a run::
-
-    G = NeuronGroup(10, '''shared_input : volt (shared)
-                           dv/dt = (-v + shared_input)/tau : volt
-                           tau : second''')
-
-Note that there are several restrictions around the use of shared variables:
-they cannot be written to in contexts where statements apply only to a subset
-of neurons (e.g. reset statements, see below). If a code block mixes statements
-writing to shared and vector variables, then the shared statements have to
-come first.
-
-By default, subexpressions are re-evaluated whenever they are used, i.e. using
-a subexpression is completely equivalent to substituting it. Sometimes it is
-useful to instead only evaluate a subexpression once and then use this value
-for the rest of the time step. This can be achieved by using the
-``(constant over dt)`` flag. This flag is mandatory for subexpressions that
-refer to stateful functions like ``rand()`` which notably allows them to be
-recorded with a `StateMonitor` -- otherwise the monitor would record a different
-instance of the random number than the one that was used in the equations.
 
 Threshold and reset
 -------------------
@@ -117,7 +93,64 @@ functions, and a special variable ``i``, the index of the neuron:
     >>> G.tau
     <neurongroup.tau: array([ 5. ,  5.5,  6. ,  6.5,  7. ,  7.5,  8. ,  8.5,  9. ,  9.5]) * msecond>
 
-For shared variables, such string expressions can only refer to shared values:
+Subgroups
+---------
+It is often useful to refer to a subset of neurons, this can be achieved using
+Python's slicing syntax::
+
+    G = NeuronGroup(10, '''dv/dt = -v/tau : volt
+                           tau : second''',
+                    threshold='v > -50*mV',
+                    reset='v = -70*mV')
+    # Create subgroups
+    G1 = G[:5]
+    G2 = G[5:]
+
+    # This will set the values in the main group, subgroups are just "views"
+    G1.tau = 10*ms
+    G2.tau = 20*ms
+
+Here ``G1`` refers to the first 5 neurons in G, and ``G2`` to the second 5
+neurons. In general ``G[i:j]`` refers to the neurons with indices from ``i``
+to ``j-1``, as in general in Python.
+Subgroups can be used in most places where regular groups are used, e.g. their
+state variables or spiking activity can be recorded using monitors, they can be
+connected via `Synapses`, etc. In such situations, indices (e.g. the indices of
+the neurons to record from in a `StateMonitor`) are relative to the subgroup,
+not to the main group
+
+Advanced topics
+---------------
+
+Shared variables
+~~~~~~~~~~~~~~~~
+
+Sometimes it can also be useful to introduce shared variables or subexpressions,
+i.e. variables that have a common value for all neurons. In contrast to
+external variables (such as ``Cm`` above), such variables can change during a
+run, e.g. by using :meth:`~brian2.groups.group.Group.run_regularly`. This can be
+for example used for an external stimulus that changes in the course of a run::
+
+    G = NeuronGroup(10, '''shared_input : volt (shared)
+                           dv/dt = (-v + shared_input)/tau : volt
+                           tau : second''')
+
+Note that there are several restrictions around the use of shared variables:
+they cannot be written to in contexts where statements apply only to a subset
+of neurons (e.g. reset statements, see below). If a code block mixes statements
+writing to shared and vector variables, then the shared statements have to
+come first.
+
+By default, subexpressions are re-evaluated whenever they are used, i.e. using
+a subexpression is completely equivalent to substituting it. Sometimes it is
+useful to instead only evaluate a subexpression once and then use this value
+for the rest of the time step. This can be achieved by using the
+``(constant over dt)`` flag. This flag is mandatory for subexpressions that
+refer to stateful functions like ``rand()`` which notably allows them to be
+recorded with a `StateMonitor` -- otherwise the monitor would record a different
+instance of the random number than the one that was used in the equations.
+
+For shared variables, setting by string expressions can only refer to shared values:
 
 .. doctest::
 
@@ -125,10 +158,14 @@ For shared variables, such string expressions can only refer to shared values:
     >>> G.shared_input
     <neurongroup.shared_input: 0.4 * mvolt>
 
+Storing state variables
+~~~~~~~~~~~~~~~~~~~~~~~
+
 Sometimes it can be convenient to access multiple state variables at once, e.g.
 to set initial values from a dictionary of values or to store all the values of
-a group on disk. This can be done with the `VariableOwner.get_states` and
-`VariableOwner.set_states` methods:
+a group on disk. This can be done with the
+:meth:`~brian2.groups.group.VariableOwner.get_states` and
+:meth:`~brian2.groups.group.VariableOwner.set_states` methods:
 
 .. doctest::
 
@@ -168,34 +205,12 @@ The data (without physical units) can also be exported/imported to/from
     >>> group.tau
     <neurongroup.tau: array([ 20.,  40.,  20.,  40.,  20.]) * msecond>
 
-Subgroups
----------
-It is often useful to refer to a subset of neurons, this can be achieved using
-slicing syntax::
-
-    G = NeuronGroup(10, '''dv/dt = -v/tau : volt
-                           tau : second''',
-                    threshold='v > -50*mV',
-                    reset='v = -70*mV')
-    # Create subgroups
-    G1 = G[:5]
-    G2 = G[5:]
-
-    # This will set the values in the main group, subgroups are just "views"
-    G1.tau = 10*ms
-    G2.tau = 20*ms
-
-Subgroups can be used in most places where regular groups are used, e.g. their
-state variables or spiking activity can be recorded using monitors, they can be
-connected via `Synapses`, etc. In such situations, indices (e.g. the indices of
-the neurons to record from in a `StateMonitor`) are relative to the subgroup,
-not to the main group
-
 
 .. _linked_variables:
 
 Linked variables
-----------------
+~~~~~~~~~~~~~~~~
+
 A `NeuronGroup` can define parameters that are not stored in this group, but are
 instead a reference to a state variable in another group. For this, a group
 defines a parameter as ``linked`` and then uses `linked_var` to
@@ -224,48 +239,3 @@ linking explicitly::
     # Half of the cells get the first input, other half gets the second
     neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
 
-
-.. _numerical_integration:
-
-Numerical integration
----------------------
-Differential equations are converted into a sequence of statements that
-integrate the equations numerically over a single time step. By default, Brian
-chooses an integration method automatically, trying to solve the equations
-exactly first (for linear equations) and then resorting to numerical algorithms.
-It will also take care of integrating stochastic differential equations
-appropriately. Each class defines its own list of algorithms it tries to
-apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
-the methods ``'linear'``, ``'euler'`` and ``'heun'`` while `SpatialNeuron`
-objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
-
-You will get an ``INFO`` message telling you which integration method Brian decided to use,
-together with information about how much time it took to apply the integration method
-to your equations. If other methods have been tried but were not applicable, you will
-also see the time it took to try out those other methods. In some cases, checking
-other methods (in particular the ``'linear'`` method which attempts to solve the
-equations analytically) can take a considerable amount of time -- to avoid wasting
-this time, you can always chose the integration method manually (see below). You
-can also suppress the message by raising the log level or by explicitly suppressing
-``'method_choice'`` log messages -- for details, see :doc:`../advanced/logging`.
-
-If you prefer to chose an integration algorithm yourself, you can do so using
-the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.
-The complete list of available methods is the following:
-
-* ``'linear'``: exact integration for linear equations
-* ``'independent'``: exact integration for a system of independent equations,
-  where all the equations can be analytically solved independently
-* ``'exponential_euler'``: exponential Euler integration for conditionally
-  linear equations
-* ``'euler'``: forward Euler integration (for additive stochastic
-  differential equations using the Euler-Maruyama method)
-* ``'rk2'``: second order Runge-Kutta method (midpoint method)
-* ``'rk4'``: classical Runge-Kutta method (RK4)
-* ``'heun'``: stochastic Heun method for solving Stratonovich stochastic
-  differential equations with non-diagonal multiplicative noise.
-* ``'milstein'``: derivative-free Milstein method for solving stochastic
-  differential equations with diagonal multiplicative noise
-
-You can also define your own numerical integrators, see
-:doc:`../advanced/state_update` for details.

@@ -7,6 +7,7 @@ User's guide
    import
    units
    models
+   numerical_integration
    equations
    refractoriness
    synapses
