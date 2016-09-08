@@ -639,16 +639,20 @@ class Equations(collections.Mapping):
         for name in self.names:
             Equations.check_identifier(name)
 
-    def get_substituted_expressions(self, variables=None):
+    def get_substituted_expressions(self, variables=None,
+                                    include_subexpressions=False):
         '''
         Return a list of ``(varname, expr)`` tuples, containing all
-        differential equations with all the subexpression variables
-        substituted with the respective expressions.
+        differential equations (and optionally subexpressions) with all the
+        subexpression variables substituted with the respective expressions.
 
         Parameters
         ----------
         variables : dict, optional
             A mapping of variable names to `Variable`/`Function` objects.
+        include_subexpressions : bool
+            Whether also to return substituted subexpressions. Defaults to
+            ``False``.
 
         Returns
         -------
@@ -671,6 +675,8 @@ class Equations(collections.Mapping):
 
             if eq.type == SUBEXPRESSION:
                 substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
+                if include_subexpressions:
+                    subst_exprs.append((eq.varname, expr))
             elif eq.type == DIFFERENTIAL_EQUATION:
                 #  a differential equation that we have to check
                 subst_exprs.append((eq.varname, expr))

@@ -554,6 +554,59 @@ def test_basic_diffusion():
     run(0.25*ms)
     assert all(abs(mon.v[:, -1]/mV + 10) < 0.25), mon.v[:, -1]/mV
 
+
+@attr('codegen-independent')
+def test_allowed_integration():
+    morph = Soma(diameter=30 * um)
+    EL = -70 * mV
+    gL = 1e-4 * siemens / cm ** 2
+    ENa = 115 * mV
+    gNa = 120 * msiemens / cm ** 2
+    VT = -50.4 * mV
+    DeltaT = 2 * mV
+    ENMDA = 0. * mV
+    allowed_eqs = ['Im = gL*(EL-v) : amp/meter**2',
+                   '''Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) : amp/meter**2
+                      dm/dt = alpham * (1-m) - betam * m : 1
+                      dh/dt = alphah * (1-h) - betah * h : 1
+                      alpham = (0.1/mV) * (-v+25*mV) / (exp((-v+25*mV) / (10*mV)) - 1)/ms : Hz
+                      betam = 4 * exp(-v/(18*mV))/ms : Hz
+                      alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
+                      betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz''',
+                   '''Im = gl * (El-v) : amp/meter**2
+                      I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)''',
+                   '''Im = I_leak + I_spike : amp/meter**2
+                      I_leak = gL*(EL - v) : amp/meter**2
+                      I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2 (constant over dt)
+                                        ''',
+                   '''
+                   Im = gL*(EL-v) : amp/meter**2
+                   I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
+                   gNMDA : siemens
+                   Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1 (constant over dt)
+                   '''
+                   ]
+    forbidden_eqs = ['Im = gL*(EL - v) + gL*DeltaT*exp((v - VT)/DeltaT) : amp/meter**2',
+                     '''Im = I_leak + I_spike : amp/meter**2
+                        I_leak = gL*(EL - v) : amp/meter**2
+                        I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2
+                     ''',
+                     '''
+                     Im = gL*(EL-v) : amp/meter**2
+                     I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
+                     gNMDA : siemens
+                     Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1
+                     '''
+                     ]
+    for eqs in allowed_eqs:
+        # Should not raise an error
+        neuron = SpatialNeuron(morph, eqs)
+
+    for eqs in forbidden_eqs:
+        # Should raise an error
+        assert_raises(TypeError, SpatialNeuron, morph, eqs)
+
+
 if __name__ == '__main__':
     test_custom_events()
     test_construction()
@@ -565,3 +618,4 @@ if __name__ == '__main__':
     test_rallpack3()
     test_rall()
     test_basic_diffusion()
+    test_allowed_integration()

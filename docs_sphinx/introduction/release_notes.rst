@@ -21,6 +21,8 @@ Improvements and bug fixes
   without any preceding connect call now raises an error (#737).
 * Improve the performance of coordinate calculation for `Morphology` objects,
   which previously made plotting very slow for complex morphologies (#741).
+* Fix a bug in `SpatialNeuron` where it did not detect non-linear dependencies
+  on v, introduced via point currents (#743).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -33,7 +35,9 @@ anyone we forgot...):
 
 * Chaofei Hong
 * Daniel Bliss
+* Jacopo Bono
 * Ruben Tikidji-Hamburyan
+
 
 Brian 2.0rc3
 ------------
