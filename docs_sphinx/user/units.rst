@@ -85,7 +85,7 @@ versions by appending a number. For example, the units "msiemens", "siemens2",
 ``from brian2.units.allunits import *`` will result in everything from
 ``Ylumen3`` (cubed yotta lumen) to ``ymol`` (yocto mole) being imported.
 
-A better choice is normally to do an ``from brian2.units import *`` or import
+A better choice is normally to do ``from brian2.units import *`` or import
 everything ``from brian2 import *``, this imports only the base units amp,
 kilogram, second, metre/meter, mole and the derived units coulomb, farad,
 gram/gramme, hertz, joule, pascal, ohm,  siemens, volt, watt, together with the
@@ -126,7 +126,7 @@ instead return a new value (in the same way as standard Python scalars)::
 Comparison with Brian 1
 -----------------------
 
-Brian 1 did only support scalar quantities, units were not stored for arrays.
+Brian 1 only supported scalar quantities, units were not stored for arrays.
 Some expressions therefore have different values in Brian 1 and Brian 2:
 
 ================================    ================================    =================================
