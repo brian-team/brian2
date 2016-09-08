@@ -6,11 +6,9 @@ Instruction for specific classes
    :titlesonly:
 
    neurongroup
-   subexpressions
    synapses
    inputs
    monitors
-   networks
-   clocks
+   networks_and_clocks
    multicompartmental
    library

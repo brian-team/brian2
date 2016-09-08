@@ -1,6 +1,8 @@
-Clocks and timesteps
-====================
+Networks and clocks
+===================
 
+Clocks and timesteps
+--------------------
 Brian's system of handling clocks has substantially changed. For details about the new system in place see
 :ref:`time_steps`. The main differences to Brian 1 are:
 
@@ -12,3 +14,8 @@ Brian's system of handling clocks has substantially changed. For details about t
   provide a ``dt`` argument during the construction of the object.
 * There's only one `Clock` class, the (deprecated) ``FloatClock``, ``RegularClock``, etc. classes that Brian 1 provided
   no longer exist.
+
+Networks
+--------
+
+TODO
