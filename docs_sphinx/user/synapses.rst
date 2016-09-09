@@ -2,8 +2,8 @@ Synapses
 ========
 
 .. note::
-    `Synapses` is now the only class for defining synaptic interactions, it
-    replaces *Connections*, *STDP*, etc.
+    For Brian 1 users: `Synapses` is now the only class for defining synaptic
+    interactions, it replaces *Connection*, *STDP*, etc.
 
 Defining synaptic models
 ------------------------
@@ -32,33 +32,31 @@ The above specifies a parameter ``w``, i.e. a synapse-specific weight.
 
 Synapses can also specify code that should be executed whenever a postsynaptic
 spike occurs (keyword ``on_post``) and a fixed (pre-synaptic) delay for all
-synapses (keyword ``delay``). See the reference documentation for `Synapses`
-for more details.
+synapses (keyword ``delay``).
+
+When specifying equations or code for `Synapses`, there is a possible
+ambiguity about what a variable name refers to. For example, if both
+the `Synapses` object and the target `NeuronGroup` have a variable
+``w``, what would the code ``w += 1`` do? The answer is that it will
+modify the synapse's variable ``w``. In general, it will
+first check if there is a synaptic variable of that name, then a
+variable of the post-synaptic neurons, and otherwise it will look
+for an external constant. To explicitly specify that a variable
+should be from a pre- or post-synaptic neuron, append the suffix
+``_pre`` or ``_post``, so in the situation above ``w_post += 1``
+would increase the post-synaptic neuron's copy of ``w`` by 1,
+not the synapse's variable ``w``.
 
 Model syntax
-^^^^^^^^^^^^
+~~~~~~~~~~~~
+
 The model follows exactly the same syntax as for `NeuronGroup`. There can be parameters
 (e.g. synaptic variable ``w`` above), but there can also be named
 subexpressions and differential equations, describing the dynamics of synaptic
 variables. In all cases, synaptic variables are created, one value per synapse.
-Internally, these are stored as arrays. There are a few things worth noting:
-
-* A variable with the ``_post`` suffix is looked up in the postsynaptic (target) neuron. That is,
-  ``v_post`` means variable ``v`` in the postsynaptic neuron.
-* A variable with the ``_pre`` suffix is looked up in the presynaptic (source) neuron.
-* A variable not defined as a synaptic variable is considered to be postsynaptic.
-* A variable not defined as a synaptic variable and not defined in the
-  postsynaptic neuron is considered an external constant
-
-For the integration of differential equations, one can use the same keywords as
-for `NeuronGroup`.
-
-.. note:: Declaring a subexpression as ``(constant over dt)`` means that it will
-   be evaluated each timestep for all synapses, potentially a very costly
-   operation.
 
 Event-driven updates
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 By default, differential equations are integrated in a clock-driven fashion, as for a
 `NeuronGroup`. This is potentially very time consuming, because all synapses are updated at every
 timestep and Brian will therefore emit a warning. If you are sure about integrating the equations at
@@ -82,26 +80,180 @@ depend on an event-driven equation (since the values are not continuously update
 In other cases, the user can write event-driven code explicitly in the update codes (see below).
 
 Pre and post codes
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 The ``on_pre`` code is executed at each synapse receiving a presynaptic spike. For example::
 
 	on_pre='v+=w'
 
-adds the value of synaptic variable ``w`` to postsynaptic variable ``v``. As for the model equations,
-the ``_post`` (``_pre``) suffix indicates a postsynaptic (presynaptic) variable, and variables not found
-in the synaptic variables are considered postsynaptic by default.
-Internally, the code is executed for all synapses receiving
-presynaptic spikes during the current timestep. Therefore, the code should be understood as acting on
-arrays rather than single values. Any sort of code can be executed. For example, the following code defines
+adds the value of synaptic variable ``w`` to postsynaptic variable ``v``.
+Any sort of code can be executed. For example, the following code defines
 stochastic synapses, with a synaptic weight ``w`` and transmission probability ``p``::
 
 	S=Synapses(input,neurons,model="""w : 1
                                       p : 1""",
         	                 on_pre="v+=w*(rand()<p)")
 
-The code means that ``w`` is added to ``v`` with probability ``p`` (note that, internally, ``rand()``
-is transformed to a instruction that outputs an array of random numbers).
+The code means that ``w`` is added to ``v`` with probability ``p``.
 The code may also include multiple lines.
+
+Similarly, the ``on_post`` code is executed at each synapse where the postsynaptic neuron
+has fired a spike.
+
+.. _creating_synapses:
+
+Creating synapses
+-----------------
+Creating a `Synapses` instance does not create synapses, it only specifies their dynamics.
+The following command creates a synapse between neuron ``5`` in the source group and
+neuron ``10`` in the target group::
+
+    S.connect(i=5, j=10)
+
+Multiple synaptic connections can be created in a single statement::
+
+    S.connect()
+    S.connect(i=[1, 2], j=[3, 4])
+    S.connect(i=numpy.arange(10), j=1)
+
+The first statement connects all neuron pairs.
+The second statement creates synapses between neurons 1 and 3, and between neurons 2 and 4.
+The third statement creates synapses between the first ten neurons in the source group and neuron 1
+in the target group.
+
+Conditional
+~~~~~~~~~~~
+
+One can also create synapses by giving (as a string) the condition for a pair
+of neurons i and j to be connected by a synapse, e.g. you could
+connect neurons that are not very far apart with::
+
+    S.connect(condition='abs(i-j)<=5')
+
+
+The string expressions can also refer to pre- or postsynaptic variables. This
+can be useful for example for spatial connectivity: assuming that the pre- and
+postsynaptic groups have parameters ``x`` and ``y``, storing their location, the
+following statement connects all cells in a 250 um radius::
+
+    S.connect(condition='sqrt((x_pre-x_post)**2 + (y_pre-y_post)**2) < 250*umeter')
+
+Probabilistic
+~~~~~~~~~~~~~
+
+Synapse creation can also be probabilistic by providing a ``p`` argument,
+providing the connection probability for each pair of synapses::
+
+    S.connect(p=0.1)
+
+This connects all neuron pairs with a probability of 10%. Probabilities can
+also be given as expressions, for example to implement a connection probability
+that depends on distance::
+
+    S.connect(condition='i != j',
+              p='p_max*exp(-(x_pre-x_post)**2+(y_pre-y_post)**2) / (2*(125*umeter)**2)')
+
+If this statement is applied to a `Synapses` object that connects a group to
+itself, it prevents self-connections (``i != j``) and connects cells with a
+probability that is modulated according to a 2-dimensional Gaussian of the
+distance between the cells.
+
+One-to-one
+~~~~~~~~~~
+
+You can specify a mapping from i to any function f(i), e.g. the
+simplest way to give a 1-to-1 connection would be::
+
+    S.connect(j='i')
+
+Accessing synaptic variables
+----------------------------
+Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
+with two indexes, corresponding to the indexes of pre and postsynaptic neurons, or with string expressions (referring
+to ``i`` and ``j`` as the pre-/post-synaptic indices, or to other state variables of the synapse or the connected neurons).
+Note that setting a synaptic variable always refers to the synapses that *currently exist*, i.e. you have to set them
+*after* the relevant `Synapses.connect` call.
+
+Here are a few examples::
+
+    S.w[2, 5] = 1*nS
+    S.w[1, :] = 2*nS
+    S.w = 1*nS # all synapses assigned
+    S.w[2, 3] = (1*nS, 2*nS)
+    S.w[group1, group2] = "(1+cos(i-j))*2*nS"
+    S.w[:, :] = 'rand()*nS'
+    S.w['abs(x_pre-x_post) < 250*umetre'] = 1*nS
+
+Note that it is also possible to index synaptic variables with a single index
+(integer, slice, or array), but in this case synaptic indices have to be
+provided.
+
+Delays
+------
+There is a special synaptic variable that is automatically created: ``delay``. It is the propagation delay
+from the presynaptic neuron to the synapse, i.e., the presynaptic delay. This
+is just a convenience syntax for accessing the delay stored in the presynaptic
+pathway: ``pre.delay``. When there is a  postsynaptic code (keyword ``post``),
+the delay of the postsynaptic pathway can be accessed as ``post.delay``.
+
+The delay variable(s) can be set and accessed in the same way as other synaptic
+variables. The same semantics as for other synaptic variables apply, which means
+in particular that the delay is only set for the synapses that have been already
+created with `Synapses.connect`. If you want to set a global delay for all
+synapses of a `Synapses` object, you can directly specify that delay as part
+of the `Synapses` initializer::
+
+    synapses = Synapses(sources, targets, '...', on_pre='...', delay=1*ms)
+
+When you use this syntax, you can still change the delay afterwards by setting
+``synapses.delay``, but you can only set it to another scalar value. If you need
+different delays across synapses, do not use this syntax but instead set the
+delay variable as any other synaptic variable (see above).
+
+Monitoring synaptic variables
+-----------------------------
+A `StateMonitor` object can be used to monitor synaptic variables. For example, the following statement
+creates a monitor for variable ``w`` for the synapses 0 and 1::
+
+	M = StateMonitor(S,'w',record=[0,1])
+
+Note that these are *synapse* indices, not neuron indices. More convenient is
+to directly index the `Synapses` object, Brian will automatically calculate the
+indices for you in this case::
+
+	M = StateMonitor(S,'w',record=S[0, :])  # all synapses originating from neuron 0
+	M = StateMonitor(S,'w',record=S['i!=j'])  # all synapses excluding autapses
+	M = StateMonitor(S,'w',record=S['w>0'])  # all synapses with non-zero weights (at this time)
+
+You can also record a synaptic variable for all synapses by passing ``record=True``.
+
+The recorded traces can then be accessed in the usual way, again with the
+possibility to index the `Synapses` object::
+
+	plot(M.t / ms, M[0].w / nS)  # first synapse
+	plot(M.t / ms, M[0, :].w / nS)  # all synapses originating from neuron 0
+	plot(M.t / ms, M['w>0'].w / nS)  # all synapses with non-zero weights (at this time)
+
+Note (for users of Brian's advanced standalone mode only):
+the use of the `Synapses` object for indexing and ``record=True`` only
+work in the default runtime modes. In standalone mode (see :ref:`cpp_standalone`),
+the synapses have not yet been created at this point, so Brian cannot calculate
+the indices.
+
+Advanced topics
+---------------
+
+Model syntax
+~~~~~~~~~~~~
+
+For the integration of differential equations, one can use the same keywords as
+for `NeuronGroup`.
+
+.. note:: Declaring a subexpression as ``(constant over dt)`` means that it will
+   be evaluated each timestep for all synapses, potentially a very costly
+   operation.
+
+Explicit event-driven updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned above, it is possible to write event-driven update code for the synaptic variables.
 For this, two special variables are provided: ``t`` is the current time when the code is executed,
@@ -125,7 +277,7 @@ the ``order`` attribute -1, wheras the ``post`` pathway has ``order`` 1. See
 :ref:`scheduling` for more details).
 
 Summed variables
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 In many cases, the postsynaptic neuron has a variable that represents a sum of variables over all
 its synapses. This is called a "summed variable". An example is nonlinear synapses (e.g. NMDA)::
 
@@ -153,26 +305,8 @@ result is copied to the variable ``gtot``. Another example is gap junctions::
 
 Here, ``Igap`` is the total gap junction current received by the postsynaptic neuron.
 
-.. _creating_synapses:
-
-Creating synapses
------------------
-Creating a `Synapses` instance does not create synapses, it only specifies their dynamics.
-The following command creates a synapse between neuron ``5`` in the source group and
-neuron ``10`` in the target group::
-
-    S.connect(i=5, j=10)
-
-Multiple synaptic connections can be created in a single statement::
-
-    S.connect()
-    S.connect(i=[1, 2], j=[3, 4])
-    S.connect(i=numpy.arange(10), j=1)
-
-The first statement connects all neuron pairs.
-The second statement creates synapses between neurons 1 and 3, and between neurons 2 and 4.
-The third statement creates synapses between the first ten neurons in the source group and neuron 1
-in the target group.
+Creating multi-synapses
+~~~~~~~~~~~~~~~~~~~~~~~
 
 It is also possible to create several synapses for a given pair of neurons::
 
@@ -188,43 +322,20 @@ keyword::
     syn.connect(i=numpy.arange(10), j=1, n=3)
     syn.delay = '1*ms + synapse_number*2*ms'
 
-One can also create synapses by giving (as a string) the condition for a pair
-of neurons i and j to be connected by a synapse, e.g. you could
-connect neurons that are not very far apart with::
+This index can then be used to set/get synapse-specific values::
 
-    S.connect(condition='abs(i-j)<=5')
+    S.delay = '(synapse_number + 1)*ms)'  # Set delays between 1 and 10ms
+    S.w['synapse_number<5'] = 0.5
+    S.w['synapse_number>=5'] = 1
 
+It also enables three-dimensional indexing, the following statement has the same effect as the last one above::
 
-The string expressions can also refer to pre- or postsynaptic variables. This
-can be useful for example for spatial connectivity: assuming that the pre- and
-postsynaptic groups have parameters ``x`` and ``y``, storing their location, the
-following statement connects all cells in a 250 um radius::
+    S.w[:, :, 5:] = 1
 
-    S.connect(condition='sqrt((x_pre-x_post)**2 + (y_pre-y_post)**2) < 250*umeter')
+Creating synapses with the generator syntax
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Synapse creation can also be probabilistic by providing a ``p`` argument,
-providing the connection probability for each pair of synapses::
-
-    S.connect(p=0.1)
-
-This connects all neuron pairs with a probability of 10%. Probabilities can
-also be given as expressions, for example to implement a connection probability
-that depends on distance::
-
-    S.connect(condition='i != j',
-              p='p_max*exp(-(x_pre-x_post)**2+(y_pre-y_post)**2) / (2*(125*umeter)**2)')
-
-If this statement is applied to a `Synapses` object that connects a group to
-itself, it prevents self-connections (``i != j``) and connects cells with a
-probability that is modulated according to a 2-dimensional Gaussian of the
-distance between the cells.
-
-You can specify a mapping from i to any function f(i), e.g. the
-simplest way to give a 1-to-1 connection would be::
-
-    S.connect(j='i')
-
-And the most general way of specifying a connection is using the
+The most general way of specifying a connection is using the
 generator syntax, e.g. to connect neuron i to all neurons j with
 0<=j<=i::
 
@@ -265,7 +376,7 @@ that are outside the valid range::
     S.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
 
 How connection arguments are interpreted
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If conditions for connecting neurons are combined with both the ``n`` (number of
 synapses to create) and the ``p`` (probability of a synapse) keywords, they are
@@ -298,7 +409,7 @@ With the 1-to-1 mapping syntax ``j='EXPR'`` the interpretation is:
 
 
 Efficiency considerations
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you are connecting a single pair of neurons, the direct form ``connect(i=5, j=10)``
 is the most efficient. However, if you are connecting a number of neurons, it
@@ -323,68 +434,9 @@ One tricky problem is how to efficiently generate connectivity with a probabilit
 even if the expected number of synapses is proportional to N. Some tricks for getting
 around this are shown in :doc:`../examples/synapses.efficient_gaussian_connectivity`.
 
-Accessing synaptic variables
-----------------------------
-Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
-with two indexes, corresponding to the indexes of pre and postsynaptic neurons, or with string expressions (referring
-to ``i`` and ``j`` as the pre-/post-synaptic indices, or to other state variables of the synapse or the connected neurons).
-Note that setting a synaptic variable always refers to the synapses that *currently exist*, i.e. you have to set them
-*after* the relevant `Synapses.connect` call.
-
-Here are a few examples::
-
-    S.w[2, 5] = 1*nS
-    S.w[1, :] = 2*nS
-    S.w = 1*nS # all synapses assigned
-    S.w[2, 3] = (1*nS, 2*nS)
-    S.w[group1, group2] = "(1+cos(i-j))*2*nS"
-    S.w[:, :] = 'rand()*nS'
-    S.w['abs(x_pre-x_post) < 250*umetre'] = 1*nS
-
-If multiple synapses exist between neurons, the calculation of the "multi-synaptic index" can be switched on during the
-creation of the `Synapses` object::
-
-    S = Synapses(input, neurons, 'w : 1', multisynaptic_index='k')
-    S.connect('i==j', n=10)  # 1-to-1 connectivity with 10 synapses per pair
-
-This index can then be used to set/get synapse-specific values::
-
-    S.delay = '(k + 1)*ms)'  # Set delays between 1 and 10ms
-    S.w['k<5'] = 0.5
-    S.w['k>=5'] = 1
-
-It also enables three-dimensional indexing, the following statement has the same effect as the last one above::
-
-    S.w[:, :, 5:] = 1
-
-Note that it is also possible to index synaptic variables with a single index
-(integer, slice, or array), but in this case synaptic indices have to be
-provided.
-
-Delays
-------
-There is a special synaptic variable that is automatically created: ``delay``. It is the propagation delay
-from the presynaptic neuron to the synapse, i.e., the presynaptic delay. This
-is just a convenience syntax for accessing the delay stored in the presynaptic
-pathway: ``pre.delay``. When there is a  postsynaptic code (keyword ``post``),
-the delay of the postsynaptic pathway can be accessed as ``post.delay``.
-
-The delay variable(s) can be set and accessed in the same way as other synaptic
-variables. The same semantics as for other synaptic variables apply, which means
-in particular that the delay is only set for the synapses that have been already
-created with `Synapses.connect`. If you want to set a global delay for all
-synapses of a `Synapses` object, you can directly specify that delay as part
-of the `Synapses` initializer::
-
-    synapses = Synapses(sources, targets, '...', on_pre='...', delay=1*ms)
-
-When you use this syntax, you can still change the delay afterwards by setting
-``synapses.delay``, but you can only set it to another scalar value. If you need
-different delays across synapses, do not use this syntax but instead set the
-delay variable as any other synaptic variable (see above).
-
 Multiple pathways
------------------
+~~~~~~~~~~~~~~~~~
+
 It is possible to have multiple pathways with different update codes from the same presynaptic neuron group.
 This may be interesting in cases when different operations must be applied at different times for the same
 presynaptic spike. To do this, specify a dictionary of pathway names and codes::
@@ -411,32 +463,3 @@ explicitly specify the order, set the ``order`` attribute of the pathway, e.g.::
 
 will make sure that the ``pre_transmission`` code is executed before the
 ``pre_plasticity`` code in each time step.
-
-Monitoring synaptic variables
------------------------------
-A `StateMonitor` object can be used to monitor synaptic variables. For example, the following statement
-creates a monitor for variable ``w`` for the synapses 0 and 1::
-
-	M = StateMonitor(S,'w',record=[0,1])
-
-Note that these are *synapse* indices, not neuron indices. More convenient is
-to directly index the `Synapses` object, Brian will automatically calculate the
-indices for you in this case::
-
-	M = StateMonitor(S,'w',record=S[0, :])  # all synapses originating from neuron 0
-	M = StateMonitor(S,'w',record=S['i!=j'])  # all synapses excluding autapses
-	M = StateMonitor(S,'w',record=S['w>0'])  # all synapses with non-zero weights (at this time)
-
-You can also record a synaptic variable for all synapses by passing ``record=True``.
-
-The recorded traces can then be accessed in the usual way, again with the
-possibility to index the `Synapses` object::
-
-	plot(M.t / ms, M[0].w / nS)  # first synapse
-	plot(M.t / ms, M[0, :].w / nS)  # all synapses originating from neuron 0
-	plot(M.t / ms, M['w>0'].w / nS)  # all synapses with non-zero weights (at this time)
-
-Note that the use of the `Synapses` object for indexing and ``record=True`` only
-work in the default runtime modes. In standalone mode (see :ref:`cpp_standalone`),
-the synapses have not yet been created at this point, so Brian cannot calculate
-the indices.
