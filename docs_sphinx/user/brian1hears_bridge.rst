@@ -3,8 +3,9 @@ Brian 1 Hears bridge
 
 .. currentmodule:: brian2.hears
 
-The "`Brian Hears`_" library is being rewritten for Brian 2 in a more flexible way to allow it to work on multiple devices.
-Until this work is complete, it is possible to run the version of Brian Hears from Brian 1.x using the "bridge". To
+This module is designed for users of the Brian 1 library "Brian Hears". It allows you to use Brian Hears with Brian 2
+with only a few modifications (although it's not compatible with the "standalone" mode of Brian 2).
+The way it works is by acting as a "bridge" to the version in Brian 1. To
 make this work, you must have a copy of Brian 1 installed (preferably the latest version), and import Brian Hears
 using::
 

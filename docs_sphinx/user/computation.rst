@@ -6,7 +6,7 @@ simulation. The default mode is :ref:`runtime`, which runs the simulation loop
 in Python but compiles and executes the modules doing the actual simulation
 work (numerical integration, synaptic propagation, etc.) in a defined target
 language. This mode has the advantage that you can combine the computations
-performed by Brian with arbitrary Python code specified as `NetworkOperation`\ s.
+performed by Brian with arbitrary Python code specified as `NetworkOperation`.
 
 The fact that the simulation is run in Python means that there is a (potentially
 big) overhead for each simulated time step. An alternative is to run Brian in with
@@ -54,7 +54,8 @@ example, if you wrote something like this it would not be efficient::
     
 The reason is that the function ``f(x)`` is a Python function and so cannot
 be called from C++ directly. To solve this problem, you need to provide an
-implementation of the function in the target language. See :doc:`functions`.
+implementation of the function in the target language. See
+:doc:`../advanced/functions`.
 
 .. _cpp_standalone:
 

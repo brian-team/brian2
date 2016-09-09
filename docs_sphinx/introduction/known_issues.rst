@@ -13,6 +13,12 @@ and modify the line ``msvcr_dbg_success = build_msvcr_library(debug=True)`` to r
 ``msvcr_dbg_success = False`` (you can comment out the existing line and add the new line
 immediately after).
 
+"Missing compiler_cxx fix for MSVCCompiler"
+-------------------------------------------
+
+If you keep seeing this message, do not worry. It's not possible for us to
+hide it, but doesn't indicate any problems.
+
 Problems with numerical integration
 -----------------------------------
 

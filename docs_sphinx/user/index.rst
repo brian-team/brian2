@@ -14,7 +14,6 @@ User's guide
    input
    recording
    running
-   computation
-   functions
-   brian1hears_bridge
    multicompartmental
+   computation
+   brian1hears_bridge
