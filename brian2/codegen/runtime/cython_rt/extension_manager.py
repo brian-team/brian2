@@ -6,9 +6,9 @@ https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
 import imp
 import os
-import platform
 import sys
 import time
+
 try:
     import msvcrt
 except ImportError:
@@ -31,6 +31,7 @@ try:
 except ImportError:
     Cython = None
 
+from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.core.preferences import prefs
@@ -188,19 +189,9 @@ class CythonExtensionManager(object):
             #    f.write(code)
             open(pyx_file, 'w').write(code)
 
-            if (platform.system() == 'Linux' and
-                        platform.architecture()[0] == '32bit' and
-                        platform.machine() == 'x86_64'):
-                # We are cross-compiling to 32bit on a 64bit platform
-                logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
-                            'of standard compiler options will be appended for '
-                            'this purpose (note that you need to have a 32bit '
-                            'version of the standard library for this to work).',
-                            '64bit_to_32bit',
-                            once=True)
-                library_dirs += ['/lib32', '/usr/lib32']
-                extra_compile_args += ['-m32']
-                extra_link_args += ['-m32']
+            update_for_cross_compilation(library_dirs,
+                                         extra_compile_args,
+                                         extra_link_args, logger=logger)
 
             extension = Extension(
                 name=module_name,

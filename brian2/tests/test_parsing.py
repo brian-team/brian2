@@ -2,13 +2,13 @@
 Tests the brian2.parsing package
 '''
 from collections import namedtuple
-import platform
 
 from nose.plugins.attrib import attr
 from nose import SkipTest
 from numpy.testing import assert_allclose, assert_raises
 import numpy as np
 
+from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
 from brian2.core.preferences import prefs
@@ -124,13 +124,9 @@ def cpp_evaluator(expr, ns):
     compiler, extra_compile_args = get_compiler_and_args()
     library_dirs = prefs['codegen.cpp.library_dirs']
     extra_link_args = prefs['codegen.cpp.extra_link_args']
-    if (platform.system() == 'Linux' and
-                platform.architecture()[0] == '32bit' and
-                platform.machine() == 'x86_64'):
-        # TODO: This should be refactored, it is repeated in several places
-        library_dirs += ['/lib32', '/usr/lib32']
-        extra_compile_args += ['-m32']
-        extra_link_args += ['-m32']
+    update_for_cross_compilation(library_dirs,
+                                 extra_compile_args,
+                                 extra_link_args)
     with std_silent():
         return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
                             support_code=CPPCodeGenerator.universal_support_code,

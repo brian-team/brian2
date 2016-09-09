@@ -2,6 +2,7 @@
 Module providing the base `CodeObject` and related functions.
 '''
 import copy
+import platform
 import weakref
 
 from brian2.core.names import Nameable
@@ -16,6 +17,12 @@ __all__ = ['CodeObject',
            'constant_or_scalar']
 
 logger = get_logger(__name__)
+
+
+#: Dictionary with basic information about the current system (OS, etc.)
+sys_info = {'system': platform.system(),
+            'architecture': platform.architecture(),
+            'machine': platform.machine()}
 
 
 def constant_or_scalar(varname, variable):

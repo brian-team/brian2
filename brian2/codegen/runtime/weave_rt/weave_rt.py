@@ -2,7 +2,6 @@
 Module providing `WeaveCodeObject`.
 '''
 import os
-import platform
 import sys
 import numpy
 
@@ -27,11 +26,11 @@ from brian2.devices.device import all_devices
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import get_identifiers
 
-from ...codeobject import CodeObject, constant_or_scalar
+from ...codeobject import CodeObject, constant_or_scalar, sys_info
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
 from ...targets import codegen_targets
-from ...cpp_prefs import get_compiler_and_args
+from ...cpp_prefs import get_compiler_and_args, update_for_cross_compilation
 
 __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
@@ -106,20 +105,9 @@ class WeaveCodeObject(CodeObject):
         synapses_dir = os.path.dirname(synapses.__file__)
         self.include_dirs.append(synapses_dir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
-        if (platform.system() == 'Linux' and
-                    platform.architecture()[0] == '32bit' and
-                    platform.machine() == 'x86_64'):
-            # We are cross-compiling to 32bit on a 64bit platform
-            logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
-                        'of standard compiler options will be appended for '
-                        'this purpose (note that you need to have a 32bit '
-                        'version of the standard library for this to work).',
-                        '64bit_to_32bit',
-                        once=True)
-            self.library_dirs += ['/lib32', '/usr/lib32']
-            self.extra_compile_args += ['-m32']
-            self.extra_link_args += ['-m32']
-
+        update_for_cross_compilation(self.library_dirs,
+                                     self.extra_compile_args,
+                                     self.extra_link_args, logger=logger)
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
@@ -146,26 +134,17 @@ libraries: {self.libraries}
         self.python_code_namespace = {'_owner': owner}
         self.variables_to_namespace()
 
-    @staticmethod
-    def is_available():
+    @classmethod
+    def is_available(cls):
         try:
             with std_silent(False):
                 compiler, extra_compile_args = get_compiler_and_args()
                 extra_link_args = prefs['codegen.cpp.extra_link_args']
                 library_dirs = prefs['codegen.cpp.library_dirs']
-                if (platform.system() == 'Linux' and
-                            platform.architecture()[0] == '32bit' and
-                            platform.machine() == 'x86_64'):
-                    # We are cross-compiling to 32bit on a 64bit platform
-                    logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
-                                'of standard compiler options will be appended for '
-                                'this purpose (note that you need to have a 32bit '
-                                'version of the standard library for this to work).',
-                                '64bit_to_32bit',
-                                once=True)
-                    library_dirs += ['/lib32', '/usr/lib32']
-                    extra_compile_args += ['-m32']
-                    extra_link_args += ['-m32']
+                update_for_cross_compilation(library_dirs,
+                                             extra_compile_args,
+                                             extra_link_args,
+                                             logger=logger)
                 weave.inline('int x=0;', [],
                              compiler=compiler,
                              headers=['<algorithm>', '<limits>'],
