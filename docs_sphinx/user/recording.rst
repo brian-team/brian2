@@ -6,16 +6,12 @@ Specifically, spikes are recorded with `SpikeMonitor`, the time evolution of
 variables with `StateMonitor` and the firing rate of a population of neurons
 with `PopulationRateMonitor`.
 
-Note that all monitors are implement as "groups", so you can get all the stored
-values in a monitor with the `Group.get_states` method, which can be useful to
-dump all recorded data to disk, for example.
-
 Recording spikes
 ----------------
 
 To record spikes from a group ``G`` simply create a `SpikeMonitor` via
 ``SpikeMonitor(G)``. After the simulation, you can access the attributes
-``i``, ``t``, ``it``, ``num_spikes`` and ``count`` of the monitor.
+``i``, ``t``, ``num_spikes`` and ``count`` of the monitor.
 The ``i`` and ``t``
 attributes give the array of neuron indices and times of the spikes. For
 example, if ``M.i==[0, 2, 1]`` and ``M.t==[1*ms, 2*ms, 3*ms]`` it means that
@@ -26,8 +22,7 @@ dictionary mapping neuron indices to arrays of spike times, i.e. in the above
 example, ``spike_trains = M.spike_trains(); spike_trains[1]`` would return
 ``array([  3.]) * msecond``. The ``num_spikes`` attribute gives the total number
 of spikes recorded, and ``count`` is an array of the length of the recorded
-group giving the total number of spikes recorded from each neuron. Finally, the
-``it`` attribute is just the pair ``(i, t)`` for convenience.
+group giving the total number of spikes recorded from each neuron.
 
 Example::
 
@@ -51,7 +46,15 @@ of the neuron that spiked. Sometimes it can be useful to addtionaly record
 other variables, e.g. the membrane potential for models where the threshold is
 not at a fixed value. This can be done by providing an extra ``variables``
 argument, the recorded variable can then be accessed as an attribute of the
-`SpikeMonitor`. To conveniently access the values of a recorded variable for
+`SpikeMonitor`, e.g.::
+
+    G = NeuronGroup(10, 'v : 1', threshold='rand()<100*Hz*dt')
+    G.run_regularly('v = rand()')
+    M = SpikeMonitor(G, variables=['v'])
+    run(100*ms)
+    plot(M.t/ms, M.v, '.')
+
+To conveniently access the values of a recorded variable for
 a single neuron, the `SpikeMonitor.values` method can be used that returns a
 dictionary with the values for each neuron.::
 
@@ -77,7 +80,16 @@ dictionary with the values for each neuron.::
 Recording variables continuously
 --------------------------------
 
-To record how a variable evolves over time, use a `StateMonitor`. To use this,
+To record how a variable evolves over time, use a `StateMonitor`, e.g.
+to record the variable ``v`` at every time step and plot it for
+neuron 0::
+
+    G = NeuronGroup(...)
+    M = StateMonitor(G, 'v', record=True)
+    run(...)
+    plot(M.t/ms, M.v[0]/mV)
+
+In general,
 you specify the group, variables and indices you want to record from. You
 specify the variables with a string or list of strings, and the indices
 either as an array of indices or ``True`` to record all indices (but beware
@@ -117,11 +129,11 @@ variable values::
 
     plot(M.t/ms, M.v.T/mV)
 
-
-In contrast to previous versions of Brian, the values are recorded at the
-beginning of a time step and not at the end (you can set the ``when`` argument
-when creating a `StateMonitor`, details about scheduling can be
-found here: :doc:`../advanced/scheduling`).
+.. note::
+    In contrast to Brian 1, the values are recorded at the
+    beginning of a time step and not at the end (you can set the ``when`` argument
+    when creating a `StateMonitor`, details about scheduling can be
+    found here: :doc:`../advanced/scheduling`).
 
 Recording population rates
 --------------------------
@@ -137,3 +149,10 @@ time step corresponding to the time in ``t``. For example::
     plot(M.t/ms, M.rate/Hz)
 
 To get a smoother version of the rate, use `PopulationRateMonitor.smooth_rate`.
+
+Advanced topics
+---------------
+
+Note that all monitors are implement as "groups", so you can get all the stored
+values in a monitor with the `Group.get_states` method, which can be useful to
+dump all recorded data to disk, for example.
