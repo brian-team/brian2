@@ -59,15 +59,15 @@ Brian 1                         Brian 2                           More details
 ``Connection``	                `Synapses`	                      :doc:`specifics/synapses`
 ``Current``	                    #443	                          :doc:`specifics/multicompartmental`
 ``CustomRefractoriness``	    [string expression]	              :doc:`specifics/neurongroup`
-``DefaultClock``	            `Clock`	                          :doc:`specifics/clocks`
+``DefaultClock``	            `Clock`	                          :doc:`specifics/networks_and_clocks`
 ``EmpiricalThreshold``	        string	expression	              :doc:`specifics/neurongroup`
-``EventClock``	                `Clock`	                          :doc:`specifics/clocks`
+``EventClock``	                `Clock`	                          :doc:`specifics/networks_and_clocks`
 ``exp_conductance``	            [`Equations`]	                  :doc:`specifics/library`
 ``exp_current``	                [`Equations`]	                  :doc:`specifics/library`
 ``exp_IF``	                    [`Equations`]	                  :doc:`specifics/library`
 ``exp_synapse``	                [`Equations`]	                  :doc:`specifics/library`
 ``FileSpikeMonitor``	        #298	                          :doc:`specifics/monitors`
-``FloatClock``	                `Clock`	                          :doc:`specifics/clocks`
+``FloatClock``	                `Clock`	                          :doc:`specifics/networks_and_clocks`
 ``FunReset``	                [string	expression]	              :doc:`specifics/neurongroup`
 ``FunThreshold``	            [string	expression]	              :doc:`specifics/neurongroup`
 ``hist_plot``                   no equivalent
@@ -82,7 +82,7 @@ Brian 1                         Brian 2                           More details
 ``MembraneEquation``	        #443	                          :doc:`specifics/multicompartmental`
 ``MultiStateMonitor``	        `StateMonitor`	                  :doc:`specifics/monitors`
 ``Na_current_HH``	            [`Equations`]	                  :doc:`specifics/library`
-``NaiveClock``	                `Clock`	                          :doc:`specifics/clocks`
+``NaiveClock``	                `Clock`	                          :doc:`specifics/networks_and_clocks`
 ``NoReset``	                    obsolete	                      :doc:`specifics/neurongroup`
 ``NoThreshold``	                obsolete	                      :doc:`specifics/neurongroup`
 ``OfflinePoissonGroup``	        [`SpikeGeneratorGroup`]	          :doc:`specifics/inputs`
@@ -95,7 +95,7 @@ Brian 1                         Brian 2                           More details
 ``raster_plot``	                ``plot_raster`` (``brian2tools``) `brian2tools documentation <http://brian2tools.readthedocs.io>`_
 ``RecentStateMonitor``          no direct equivalent              :doc:`specifics/monitors`
 ``Refractoriness``	            string expression	              :doc:`specifics/neurongroup`
-``RegularClock``	            `Clock`	                          :doc:`specifics/clocks`
+``RegularClock``	            `Clock`	                          :doc:`specifics/networks_and_clocks`
 ``Reset``	                    string expression	              :doc:`specifics/neurongroup`
 ``SimpleCustomRefractoriness``	[string	expression]	              :doc:`specifics/neurongroup`
 ``SimpleFunThreshold``	        [string	expression]	              :doc:`specifics/neurongroup`
