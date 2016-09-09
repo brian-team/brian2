@@ -28,3 +28,11 @@ This can in particular happen for complicated equations where sympy's solvers
 take a long time trying to solve the equations symbolically (typically failing
 in the end). We try to improve this situation (see #351) but until then, chose
 a numerical integration algorithm explicitly (:ref:`numerical_integration`).
+
+Integer division
+----------------
+
+If you are using integer division in your models for negative numbers, the results
+will be different if using the numpy target to any of the other codegen targets.
+This is because in Python, ``-1/2==-1`` whereas in C, ``-1/2==0``. This will be
+fixed in a future release.
