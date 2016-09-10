@@ -1,5 +1,5 @@
-Brian 1 Hears bridge
-====================
+Brian Hears
+===========
 
 .. currentmodule:: brian2.hears
 
