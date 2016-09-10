@@ -18,6 +18,7 @@ from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock, defaultclock
 from brian2.devices.device import device
+from brian2.groups.group import Group
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
 from brian2.core.preferences import prefs, BrianPreference
@@ -888,6 +889,11 @@ class Network(Nameable):
             logger.debug('\n' + str(profiling_summary(self)))
         else:
             self._profiling_info = None
+
+        # check for nans
+        for obj in self.objects:
+            if isinstance(obj, Group):
+                obj._check_for_invalid_states()
 
     @device_override('network_stop')
     def stop(self):
