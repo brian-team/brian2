@@ -22,6 +22,7 @@ from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
+from brian2.groups.group import Group
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.core.preferences import prefs, BrianPreference
@@ -408,7 +409,9 @@ class CPPStandaloneDevice(Device):
                 with open(fname, 'rb') as f:
                     data = np.fromfile(f, dtype=dtype)
                 # check if there are any nan or other invalid values and warn if so
-                var.owner._check_for_invalid_values(var.name, data)
+                if hasattr(var, 'owner') and isinstance(var.owner, Group):
+                    var.owner._check_for_invalid_values(var.name, data,
+                                                        only_if_has_state_updater=True)
                 # This is a bit of an heuristic, but our 2d dynamic arrays are
                 # only expanding in one dimension, we assume here that the
                 # other dimension has size 0 at the beginning

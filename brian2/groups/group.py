@@ -936,18 +936,28 @@ class Group(VariableOwner, BrianObject):
         self.contained_objects.append(runner)
         return runner
 
-    def _check_for_invalid_states(self):
+    def _check_for_invalid_states(self, only_if_has_state_updater=True):
         '''
         Checks if any state variables have invalid values, and logs a warning if so.
         '''
+        if only_if_has_state_updater:
+            if not hasattr(self, 'state_updater'):
+                return
+            if self.state_updater is None:
+                return
         state = self.get_states()
         for k, v in state.iteritems():
             self._check_for_invalid_values(k, v)
 
-    def _check_for_invalid_values(self, k, v):
+    def _check_for_invalid_values(self, k, v, only_if_has_state_updater=False):
         '''
         Checks if variable named k value v has invalid values, and logs a warning if so.
         '''
+        if only_if_has_state_updater:
+            if not hasattr(self, 'state_updater'):
+                return
+            if self.state_updater is None:
+                return
         v = np.asarray(v)
         # Large value check has to be >1e100 because the period of SpikeGeneratorGroup is
         # by default set to 1e100

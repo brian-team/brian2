@@ -686,6 +686,7 @@ def test_refractory_stochastic():
                                  'differ for method %s.') % method)
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_check_for_invalid_values_linear_integrator():
     # Check 1: a differential equation that cannot be solved by the linear
     # integrator should return nan values to warn the user, and not silently
@@ -711,6 +712,7 @@ def test_check_for_invalid_values_linear_integrator():
             assert G.x[0]!=0
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_check_for_invalid_values_function():
     # Check 2: in any case, doing operations like sqrt(-1) should give nans that
     # get caught
