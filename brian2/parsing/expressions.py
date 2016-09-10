@@ -298,8 +298,6 @@ def parse_expression_unit(expr, variables):
             # Function always returns the same unit
             return get_unit_fast(func._return_unit)
         else:
-            print "func is", func
-            print 'func._return_unit is', func._return_unit
             # Function returns a unit that depends on the arguments
             arg_units = [parse_expression_unit(arg, variables)
                          for arg in expr.args]

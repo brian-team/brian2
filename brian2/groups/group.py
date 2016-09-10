@@ -958,6 +958,8 @@ class Group(VariableOwner, BrianObject):
                          "integration method "
                          "was chosen.").format(name=self.name),
                         name_suffix="invalid_values", once=True)
+            # Turn this on to search for errors
+            #raise ValueError("nan for {name}.{k} = {v}".format(name=self.name, k=k, v=v))
 
 
 class CodeRunner(BrianObject):

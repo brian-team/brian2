@@ -874,6 +874,11 @@ class Network(Nameable):
         else:
             device._last_run_completed_fraction = 1.0
 
+        # check for nans
+        for obj in self.objects:
+            if isinstance(obj, Group):
+                obj._check_for_invalid_states()
+
         if report is not None:
             report_callback((end_time-start_time)*second, 1.0, t_start, duration)
         self.after_run()
@@ -889,11 +894,6 @@ class Network(Nameable):
             logger.debug('\n' + str(profiling_summary(self)))
         else:
             self._profiling_info = None
-
-        # check for nans
-        for obj in self.objects:
-            if isinstance(obj, Group):
-                obj._check_for_invalid_states()
 
     @device_override('network_stop')
     def stop(self):

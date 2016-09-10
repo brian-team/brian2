@@ -685,9 +685,49 @@ def test_refractory_stochastic():
                         err_msg=('Results with and without refractoriness '
                                  'differ for method %s.') % method)
 
+@attr('standalone-compatible')
+def test_check_for_invalid_values_linear_integrator():
+    # Check 1: a differential equation that cannot be solved by the linear
+    # integrator should return nan values to warn the user, and not silently
+    # return incorrect values. See discussion on
+    # https://github.com/brian-team/brian2/issues/626
+    a = 0.0 / second
+    b = 1.0 / second
+    c = -0.5 / second
+    d = -0.1 / second
+    eqs = '''
+    dx/dt = a * x + b * y : 1
+    dy/dt = c * x + d * y : 1
+    '''
+    G = NeuronGroup(1, eqs, threshold='x>100', reset='x = 0; y = 0;', method='linear')
+    BrianLogger._log_messages.clear() # because the log message is set to be shown only once
+    with catch_logs() as clog:
+        run(1*ms)
+        # this check allows for the possibility that we improve the linear
+        # integrator in the future so that it can handle this equation
+        if numpy.isnan(G.x[0]):
+            assert 'invalid_values' in repr(clog)
+        else:
+            assert G.x[0]!=0
+
+@attr('standalone-compatible')
+def test_check_for_invalid_values_function():
+    # Check 2: in any case, doing operations like sqrt(-1) should give nans that
+    # get caught
+    G = NeuronGroup(1, 'v:1')
+    G.v = '-1'
+    G.v = 'sqrt(v)'
+    BrianLogger._log_messages.clear() # because the log message is set to be shown only once
+    with catch_logs() as clog:
+        run(1*ms)
+        assert numpy.isnan(G.v[0])
+        assert 'invalid_values' in repr(clog)
+
+
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'cython'
+    # set_device('cpp_standalone')
     import time
     start = time.time()
 
@@ -716,4 +756,6 @@ if __name__ == '__main__':
     store_randn()
     test_refractory_stochastic()
     restore_randn()
+    test_check_for_invalid_values_linear_integrator()
+    test_check_for_invalid_values_function()
     print 'Tests took', time.time()-start
