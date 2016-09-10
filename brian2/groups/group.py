@@ -18,7 +18,7 @@ from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
-                                   Subexpression)
+                                   Subexpression, AuxiliaryVariable)
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
@@ -515,10 +515,14 @@ class VariableOwner(Nameable):
         if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
-            vars = [name for name, var in self.variables.iteritems()
-                    if not name.startswith('_') and
-                    (subexpressions or not isinstance(var, Subexpression)) and
-                    (read_only_variables or not getattr(var, 'read_only', False))]
+            vars = []
+            for name, var in self.variables.iteritems():
+                if name.startswith('_'):
+                    continue
+                if subexpressions or not isinstance(var, Subexpression):
+                    if read_only_variables or not getattr(var, 'read_only', False):
+                        if not isinstance(var, AuxiliaryVariable):
+                            vars.append(name)
         data = ImportExport.methods[format].export_data(self, vars, units=units, level=level)
         return data
 
@@ -936,11 +940,6 @@ class Group(VariableOwner, BrianObject):
         '''
         Checks if any state variables have invalid values, and logs a warning if so.
         '''
-        # This is a nasty hack, would be better to find a real solution
-        # try:
-        #     state = self.get_states()
-        # except TypeError: # this is to avoid the "cannot get values of auxiliary variable" error
-        #     return
         state = self.get_states()
         for k, v in state.iteritems():
             self._check_for_invalid_values(k, v)
@@ -950,8 +949,8 @@ class Group(VariableOwner, BrianObject):
         Checks if variable named k value v has invalid values, and logs a warning if so.
         '''
         v = np.asarray(v)
-        # Large value check has to be >1e100 because the period of SpikeGeneratorGroup is by default
-        # set to 1e100
+        # Large value check has to be >1e100 because the period of SpikeGeneratorGroup is
+        # by default set to 1e100
         if np.isnan(v).any() or (np.logical_and(np.abs(v) > 1e150, np.isfinite(v))).any():
             logger.warn(("{name} has nan, very large values, or encountered "
                          "an error in numerical integration. This is "

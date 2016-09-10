@@ -371,7 +371,7 @@ class AuxiliaryVariable(Variable):
                                                 scalar=scalar)
 
     def get_value(self):
-        raise TypeError('Cannot get the value for an auxiliary variable.')
+        raise TypeError('Cannot get the value for an auxiliary variable (%s).' % self.name)
 
 
 class ArrayVariable(Variable):
