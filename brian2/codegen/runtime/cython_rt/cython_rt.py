@@ -73,8 +73,8 @@ class CythonCodeObject(NumpyCodeObject):
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
 
-    @staticmethod
-    def is_available():
+    @classmethod
+    def is_available(cls):
         try:
             compiler, extra_compile_args = get_compiler_and_args()
             code = '''

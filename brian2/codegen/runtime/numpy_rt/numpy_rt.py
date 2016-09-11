@@ -54,8 +54,8 @@ class NumpyCodeObject(CodeObject):
                             template_name, template_source, name=name)
         self.variables_to_namespace()
 
-    @staticmethod
-    def is_available():
+    @classmethod
+    def is_available(cls):
         # no test necessary for numpy
         return True
 
