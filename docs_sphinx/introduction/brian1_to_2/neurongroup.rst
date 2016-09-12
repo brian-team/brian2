@@ -4,6 +4,9 @@ You can find the documentation for how to define neural models in the document
 :doc:`../../user/models`. This section describes the major differences to
 Brian 1.
 
+.. contents:: Topics
+    :local:
+
 The syntax for specifying neuron models in a `NeuronGroup` changed in several
 details. In general, a string-based syntax (that was already optional in Brian 1)
 consistently replaces the use of classes (e.g. ``VariableThreshold``) or

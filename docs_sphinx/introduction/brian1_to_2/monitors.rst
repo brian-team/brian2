@@ -4,6 +4,9 @@ You can find the documentation for how to record network activity in the
 document :doc:`../../user/recording`. This section describes the major
 differences to Brian 1.
 
+.. contents:: Topics
+    :local:
+
 Monitoring spiking activity
 ---------------------------
 The main class to record spiking activity is `SpikeMonitor` which is created in

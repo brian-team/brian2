@@ -1,6 +1,9 @@
 Library models
 ==============
 
+.. contents:: Topics
+    :local:
+
 Neuron models
 -------------
 The neuron models in Brian 1's ``brian.library.IF`` package are nothing more

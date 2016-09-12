@@ -4,6 +4,9 @@ You can find the documentation for how to add external stimulation to a network
 in the document :doc:`../../user/input`. This section describes the major
 differences to Brian 1.
 
+.. contents:: Topics
+    :local:
+
 Poisson Input
 -------------
 Brian 2 provides the same two groups that Brian 1 provided: `PoissonGroup` and

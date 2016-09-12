@@ -4,6 +4,9 @@ You can find the documentation for how to define synapses in the document
 :doc:`../../user/synapses`. This section describes the major differences to
 Brian 1.
 
+.. contents:: Topics
+    :local:
+
 Converting Brian 1's ``Connection`` class
 -----------------------------------------
 In Brian 2, the `Synapses` class is the only class to model synaptic
