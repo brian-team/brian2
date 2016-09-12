@@ -8,8 +8,47 @@ simulation in order to avoid inadvertent errors. In some cases, you will now
 get a warning in other even an error -- often the error/warning message
 describes a way to resolve the issue.
 
+.. contents:: Topics
+    :local:
+
+Physical units
+--------------
+The unit system now extends to arrays, e.g. ``np.arange(5) * mV`` will retain
+the units of volts and not discard them as Brian 1 did. Brian 2 is therefore
+also more strict in checking the units. For example, if the state variable
+``v`` uses the unit of volt, the statement ``G.v = np.rand(len(G)) / 1000.``
+will now raise an error. For consistency, units are returned everywhere, e.g.
+in monitors. If ``mon`` records a state variable v, ``mon.t`` will return a
+time in seconds and ``mon.v`` the stored values of ``v`` in units of volts.
+
+If you need a pure numpy array without units for further processing, there
+are several options: if it is a state variable or a recorded variable in a
+monitor, appending an underscore will refer to the variable values without
+units, e.g. ``mon.t_`` returns pure floating point values. Alternatively, you
+can remove units by diving by the unit (e.g. ``mon.t / second``) or by
+explicitly converting it (``np.asarray(mon.t)``).
+
+Here's an overview showing a few expressions and their respective values in
+Brian 1 and Brian 2:
+
+================================    ================================    =================================
+Expression                          Brian 1                             Brian 2
+================================    ================================    =================================
+1 * mV                              1.0 * mvolt                         1.0 * mvolt
+np.array(1) * mV                    0.001                               1.0 * mvolt
+np.array([1]) * mV                  array([ 0.001])                     array([1.]) * mvolt
+np.mean(np.arange(5) * mV)          0.002                               2.0 * mvolt
+np.arange(2) * mV                   array([ 0.   ,  0.001])             array([ 0.,  1.]) * mvolt
+(np.arange(2) * mV) >= 1 * mV       array([False, True], dtype=bool)    array([False, True], dtype=bool)
+(np.arange(2) * mV)[0] >= 1 * mV    False                               False
+(np.arange(2) * mV)[1] >= 1 * mV    DimensionMismatchError              True
+================================    ================================    =================================
+
 Unported packages
 -----------------
+The following packages have not (yet) been ported to Brian 1. If your simulation
+critically depends on them, you should consider staying with Brian 1 for now.
+
 * ``brian.tools``
 * ``brian.hears``  (the Brian 1 version can be used via `brian2.hears`, though)
 * ``brian.library.modelfitting``

@@ -130,3 +130,4 @@ instead return a new value (in the same way as standard Python scalars)::
     2. * mvolt
     >>> y
     1. * mvolt
+
