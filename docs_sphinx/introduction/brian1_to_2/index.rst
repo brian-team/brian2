@@ -1,5 +1,5 @@
-Instruction for specific classes
-================================
+Detailed Brian 1 to Brian 2 conversion notes
+============================================
 
 .. toctree::
    :maxdepth: 1

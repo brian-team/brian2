@@ -16,7 +16,6 @@ Contents:
    :titlesonly:
 
    introduction/index
-   brian1_to_2/index
    resources/tutorials/index
    user/index
    advanced/index
