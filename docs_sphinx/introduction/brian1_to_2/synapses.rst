@@ -1,5 +1,5 @@
-Synapses
-========
+Synapses (Brian 1 --> 2 conversion)
+===================================
 You can find the documentation for how to define synapses in the document
 :doc:`../../user/synapses`. This section describes the major differences to
 Brian 1.

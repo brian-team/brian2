@@ -1,5 +1,5 @@
-Inputs
-======
+Inputs (Brian 1 --> 2 conversion)
+=================================
 You can find the documentation for how to add external stimulation to a network
 in the document :doc:`../../user/input`. This section describes the major
 differences to Brian 1.

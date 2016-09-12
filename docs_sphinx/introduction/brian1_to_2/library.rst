@@ -1,5 +1,5 @@
-Library models
-==============
+Library models (Brian 1 --> 2 conversion)
+===============================================
 
 .. contents:: Topics
     :local:

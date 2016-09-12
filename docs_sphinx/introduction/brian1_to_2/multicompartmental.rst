@@ -1,5 +1,5 @@
-Multicompartmental models
-=========================
+Multicompartmental models (Brian 1 --> 2 conversion)
+====================================================
 Support for multicompartmental models is now an integral part of Brian 2 (an
 early version of it was included as an experimental module in Brian 1), you
 can find its documentation in the document :doc:`../../user/multicompartmental`.

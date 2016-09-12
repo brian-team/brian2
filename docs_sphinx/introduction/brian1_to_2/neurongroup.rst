@@ -1,5 +1,5 @@
-Neural models
-=============
+Neural models (Brian 1 --> 2 conversion)
+========================================
 You can find the documentation for how to define neural models in the document
 :doc:`../../user/models`. This section describes the major differences to
 Brian 1.

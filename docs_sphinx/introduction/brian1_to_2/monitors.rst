@@ -1,5 +1,5 @@
-Monitors
-========
+Monitors (Brian 1 --> 2 conversion)
+===================================
 You can find the documentation for how to record network activity in the
 document :doc:`../../user/recording`. This section describes the major
 differences to Brian 1.
