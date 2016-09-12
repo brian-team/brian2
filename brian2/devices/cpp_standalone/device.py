@@ -408,10 +408,6 @@ class CPPStandaloneDevice(Device):
                                      self.get_array_filename(var))
                 with open(fname, 'rb') as f:
                     data = np.fromfile(f, dtype=dtype)
-                # check if there are any nan or other invalid values and warn if so
-                if hasattr(var, 'owner') and isinstance(var.owner, Group):
-                    var.owner._check_for_invalid_values(var.name, data,
-                                                        only_if_has_state_updater=True)
                 # This is a bit of an heuristic, but our 2d dynamic arrays are
                 # only expanding in one dimension, we assume here that the
                 # other dimension has size 0 at the beginning
@@ -853,6 +849,13 @@ class CPPStandaloneDevice(Device):
             if os.path.isfile('results/last_run_info.txt'):
                 last_run_info = open('results/last_run_info.txt', 'r').read()
                 self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
+
+        # Make sure that integration did not create NaN or very large values
+        owners = [var.owner for var in self.arrays
+                  if isinstance(var.owner, Group)]
+        for owner in owners:
+            owner._check_for_invalid_states()
+
 
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,

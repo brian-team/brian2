@@ -26,7 +26,7 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_CONSTANTS)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.generators.numpy_generator import NumpyCodeGenerator
-from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
+from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT, Equations
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
 from brian2.utils.logger import get_logger
@@ -936,41 +936,34 @@ class Group(VariableOwner, BrianObject):
         self.contained_objects.append(runner)
         return runner
 
-    def _check_for_invalid_states(self, only_if_has_state_updater=True):
+    def _check_for_invalid_states(self):
         '''
-        Checks if any state variables have invalid values, and logs a warning if so.
+        Checks if any state variables updated by differential equations have
+        invalid values, and logs a warning if so.
         '''
-        if only_if_has_state_updater:
-            if not hasattr(self, 'state_updater'):
-                return
-            if self.state_updater is None:
-                return
-        state = self.get_states()
-        for k, v in state.iteritems():
-            self._check_for_invalid_values(k, v)
+        equations = getattr(self, 'equations', None)
+        if not isinstance(equations, Equations):
+            return
+        for varname in equations.diff_eq_names:
+            self._check_for_invalid_values(varname, self.state(varname,
+                                                               use_units=False))
 
-    def _check_for_invalid_values(self, k, v, only_if_has_state_updater=False):
+    def _check_for_invalid_values(self, k, v):
         '''
-        Checks if variable named k value v has invalid values, and logs a warning if so.
+        Checks if variable named k value v has invalid values, and logs a
+        warning if so.
         '''
-        if only_if_has_state_updater:
-            if not hasattr(self, 'state_updater'):
-                return
-            if self.state_updater is None:
-                return
         v = np.asarray(v)
         # Large value check has to be >1e100 because the period of SpikeGeneratorGroup is
         # by default set to 1e100
         if np.isnan(v).any() or (np.logical_and(np.abs(v) > 1e150, np.isfinite(v))).any():
-            logger.warn(("{name} has nan, very large values, or encountered "
-                         "an error in numerical integration. This is "
-                         "usually a sign that an unstable or invalid "
-                         "integration method "
-                         "was chosen.").format(name=self.name),
+            logger.warn(("{name}'s variable '{k}' has NaN, very large values, "
+                         "or encountered an error in numerical integration. "
+                         "This is usually a sign that an unstable or invalid "
+                         "integration method was "
+                         "chosen.").format(name=self.name,
+                                           k=k),
                         name_suffix="invalid_values", once=True)
-            # Turn this on to search for errors
-            #raise ValueError("nan for {name}.{k} = {v}".format(name=self.name, k=k, v=v))
-
 
 class CodeRunner(BrianObject):
     '''
