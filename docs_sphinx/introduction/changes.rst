@@ -1,5 +1,5 @@
-Overview
-========
+Changes from Brian 1
+====================
 
 In most cases, Brian 2 works in a very similar way to Brian 1 but there are
 some important differences to be aware of. The major distinction is that
