@@ -1,9 +1,14 @@
 Synapses
 ========
 
-.. note::
-    For Brian 1 users: `Synapses` is now the only class for defining synaptic
+.. sidebar:: For Brian 1 users
+
+    `Synapses` is now the only class for defining synaptic
     interactions, it replaces *Connection*, *STDP*, etc.
+
+.. contents::
+    :local:
+    :depth: 1
 
 Defining synaptic models
 ------------------------
@@ -239,101 +244,12 @@ work in the default runtime modes. In standalone mode (see :ref:`cpp_standalone`
 the synapses have not yet been created at this point, so Brian cannot calculate
 the indices.
 
-Advanced topics
----------------
+.. admonition:: The following topics are not essential for beginners.
 
-Model syntax
-~~~~~~~~~~~~
-
-For the integration of differential equations, one can use the same keywords as
-for `NeuronGroup`.
-
-.. note:: Declaring a subexpression as ``(constant over dt)`` means that it will
-   be evaluated each timestep for all synapses, potentially a very costly
-   operation.
-
-Explicit event-driven updates
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-As mentioned above, it is possible to write event-driven update code for the synaptic variables.
-For this, two special variables are provided: ``t`` is the current time when the code is executed,
-and ``lastupdate`` is the last time when the synapse was updated (either through ``on_pre`` or ``on_post``
-code). An example is short-term plasticity (in fact this could be done automatically with the use
-of the ``(event-driven)`` keyword mentioned above)::
-
-	S=Synapses(input,neuron,
-	           model='''x : 1
-	                    u : 1
-	                    w : 1''',
-	           on_pre='''u=U+(u-U)*exp(-(t-lastupdate)/tauf)
-	                  x=1+(x-1)*exp(-(t-lastupdate)/taud)
-	                  i+=w*u*x
-	                  x*=(1-u)
-	                  u+=U*(1-u)''')
-
-By default, the ``pre`` pathway is executed before the ``post`` pathway (both
-are executed in the ``'synapses'`` scheduling slot, but the ``pre`` pathway has
-the ``order`` attribute -1, wheras the ``post`` pathway has ``order`` 1. See
-:ref:`scheduling` for more details).
-
-Summed variables
-~~~~~~~~~~~~~~~~
-In many cases, the postsynaptic neuron has a variable that represents a sum of variables over all
-its synapses. This is called a "summed variable". An example is nonlinear synapses (e.g. NMDA)::
-
-	neurons = NeuronGroup(1, model="""dv/dt=(gtot-v)/(10*ms) : 1
-	                                  gtot : 1""")
-	S=Synapses(input,neurons,
-	           model='''dg/dt=-a*g+b*x*(1-g) : 1
-	                    gtot_post = g : 1  (summed)
-	                    dx/dt=-c*x : 1
-	                    w : 1 # synaptic weight
-	                 ''',
-	           on_pre='x+=w')
-
-Here, each synapse has a conductance ``g`` with nonlinear dynamics. The neuron's total conductance
-is ``gtot``. The line stating ``gtot_post = g : 1  (summed)`` specifies the link
-between the two: ``gtot`` in the postsynaptic group is the summer over all
-variables ``g`` of the corresponding synapses. What happens during the
-simulation is that at each time step, presynaptic conductances are summed for each neuron and the
-result is copied to the variable ``gtot``. Another example is gap junctions::
-
-    neurons = NeuronGroup(N, model='''dv/dt=(v0-v+Igap)/tau : 1
-                                      Igap : 1''')
-    S=Synapses(neurons,model='''w:1 # gap junction conductance
-                                Igap_post = w*(v_pre-v_post): 1 (summed)''')
-
-Here, ``Igap`` is the total gap junction current received by the postsynaptic neuron.
-
-Creating multi-synapses
-~~~~~~~~~~~~~~~~~~~~~~~
-
-It is also possible to create several synapses for a given pair of neurons::
-
-    S.connect(i=numpy.arange(10), j=1, n=3)
-
-This is useful for example if one wants to have multiple synapses with different delays. To
-distinguish multiple variables connecting the same pair of neurons in synaptic expressions and
-statements, you can create a variable storing the synapse index with the ``multisynaptic_index``
-keyword::
-
-    syn = Synapses(source_group, target_group, model='w : 1', on_pre='v += w',
-                   multisynaptic_index='synapse_number')
-    syn.connect(i=numpy.arange(10), j=1, n=3)
-    syn.delay = '1*ms + synapse_number*2*ms'
-
-This index can then be used to set/get synapse-specific values::
-
-    S.delay = '(synapse_number + 1)*ms)'  # Set delays between 1 and 10ms
-    S.w['synapse_number<5'] = 0.5
-    S.w['synapse_number>=5'] = 1
-
-It also enables three-dimensional indexing, the following statement has the same effect as the last one above::
-
-    S.w[:, :, 5:] = 1
+    |
 
 Creating synapses with the generator syntax
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------
 
 The most general way of specifying a connection is using the
 generator syntax, e.g. to connect neuron i to all neurons j with
@@ -374,6 +290,132 @@ is invalid. There is an option to just skip any synapses
 that are outside the valid range::
 
     S.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
+
+Summed variables
+----------------
+In many cases, the postsynaptic neuron has a variable that represents a sum of variables over all
+its synapses. This is called a "summed variable". An example is nonlinear synapses (e.g. NMDA)::
+
+	neurons = NeuronGroup(1, model="""dv/dt=(gtot-v)/(10*ms) : 1
+	                                  gtot : 1""")
+	S=Synapses(input,neurons,
+	           model='''dg/dt=-a*g+b*x*(1-g) : 1
+	                    gtot_post = g : 1  (summed)
+	                    dx/dt=-c*x : 1
+	                    w : 1 # synaptic weight
+	                 ''',
+	           on_pre='x+=w')
+
+Here, each synapse has a conductance ``g`` with nonlinear dynamics. The neuron's total conductance
+is ``gtot``. The line stating ``gtot_post = g : 1  (summed)`` specifies the link
+between the two: ``gtot`` in the postsynaptic group is the summer over all
+variables ``g`` of the corresponding synapses. What happens during the
+simulation is that at each time step, presynaptic conductances are summed for each neuron and the
+result is copied to the variable ``gtot``. Another example is gap junctions::
+
+    neurons = NeuronGroup(N, model='''dv/dt=(v0-v+Igap)/tau : 1
+                                      Igap : 1''')
+    S=Synapses(neurons,model='''w:1 # gap junction conductance
+                                Igap_post = w*(v_pre-v_post): 1 (summed)''')
+
+Here, ``Igap`` is the total gap junction current received by the postsynaptic neuron.
+
+Creating multi-synapses
+-----------------------
+
+It is also possible to create several synapses for a given pair of neurons::
+
+    S.connect(i=numpy.arange(10), j=1, n=3)
+
+This is useful for example if one wants to have multiple synapses with different delays. To
+distinguish multiple variables connecting the same pair of neurons in synaptic expressions and
+statements, you can create a variable storing the synapse index with the ``multisynaptic_index``
+keyword::
+
+    syn = Synapses(source_group, target_group, model='w : 1', on_pre='v += w',
+                   multisynaptic_index='synapse_number')
+    syn.connect(i=numpy.arange(10), j=1, n=3)
+    syn.delay = '1*ms + synapse_number*2*ms'
+
+This index can then be used to set/get synapse-specific values::
+
+    S.delay = '(synapse_number + 1)*ms)'  # Set delays between 1 and 10ms
+    S.w['synapse_number<5'] = 0.5
+    S.w['synapse_number>=5'] = 1
+
+It also enables three-dimensional indexing, the following statement has the same effect as the last one above::
+
+    S.w[:, :, 5:] = 1
+
+Multiple pathways
+-----------------
+
+It is possible to have multiple pathways with different update codes from the same presynaptic neuron group.
+This may be interesting in cases when different operations must be applied at different times for the same
+presynaptic spike. To do this, specify a dictionary of pathway names and codes::
+
+    on_pre={'pre_transmission': 'ge+=w',
+            'pre_plasticity': '''w=clip(w+Apost,0,inf)
+                                 Apre+=dApre'''}
+
+This creates two pathways with the given names (in fact, specifying ``on_pre=code``
+is just a shorter syntax for ``on_pre={'pre': code}``) through which the delay
+variables can be accessed.
+The following statement, for example, sets the delay of the synapse between the first neurons
+of the source and target groups in the ``pre_plasticity`` pathway::
+
+	S.pre_plasticity.delay[0,0] = 3*ms
+
+As mentioned above, ``pre`` pathways are generally executed before ``post``
+pathways. The order of execution of several ``pre`` (or ``post``) pathways is
+however arbitrary, and simply based on the alphabetical ordering of their names
+(i.e. ``pre_plasticity`` will be executed before ``pre_transmission``). To
+explicitly specify the order, set the ``order`` attribute of the pathway, e.g.::
+
+    S.pre_transmission.order = -2
+
+will make sure that the ``pre_transmission`` code is executed before the
+``pre_plasticity`` code in each time step.
+
+Numerical integration
+---------------------
+
+Differential equation flags
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the integration of differential equations, one can use the same keywords as
+for `NeuronGroup`.
+
+.. note:: Declaring a subexpression as ``(constant over dt)`` means that it will
+   be evaluated each timestep for all synapses, potentially a very costly
+   operation.
+
+Explicit event-driven updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As mentioned above, it is possible to write event-driven update code for the synaptic variables.
+For this, two special variables are provided: ``t`` is the current time when the code is executed,
+and ``lastupdate`` is the last time when the synapse was updated (either through ``on_pre`` or ``on_post``
+code). An example is short-term plasticity (in fact this could be done automatically with the use
+of the ``(event-driven)`` keyword mentioned above)::
+
+	S=Synapses(input,neuron,
+	           model='''x : 1
+	                    u : 1
+	                    w : 1''',
+	           on_pre='''u=U+(u-U)*exp(-(t-lastupdate)/tauf)
+	                  x=1+(x-1)*exp(-(t-lastupdate)/taud)
+	                  i+=w*u*x
+	                  x*=(1-u)
+	                  u+=U*(1-u)''')
+
+By default, the ``pre`` pathway is executed before the ``post`` pathway (both
+are executed in the ``'synapses'`` scheduling slot, but the ``pre`` pathway has
+the ``order`` attribute -1, wheras the ``post`` pathway has ``order`` 1. See
+:ref:`scheduling` for more details).
+
+Technical notes
+---------------
 
 How connection arguments are interpreted
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -433,33 +475,3 @@ One tricky problem is how to efficiently generate connectivity with a probabilit
 ``p(i, j)`` that depends on both i and j, since this requires ``N*N`` computations
 even if the expected number of synapses is proportional to N. Some tricks for getting
 around this are shown in :doc:`../examples/synapses.efficient_gaussian_connectivity`.
-
-Multiple pathways
-~~~~~~~~~~~~~~~~~
-
-It is possible to have multiple pathways with different update codes from the same presynaptic neuron group.
-This may be interesting in cases when different operations must be applied at different times for the same
-presynaptic spike. To do this, specify a dictionary of pathway names and codes::
-
-    on_pre={'pre_transmission': 'ge+=w',
-            'pre_plasticity': '''w=clip(w+Apost,0,inf)
-                                 Apre+=dApre'''}
-
-This creates two pathways with the given names (in fact, specifying ``on_pre=code``
-is just a shorter syntax for ``on_pre={'pre': code}``) through which the delay
-variables can be accessed.
-The following statement, for example, sets the delay of the synapse between the first neurons
-of the source and target groups in the ``pre_plasticity`` pathway::
-
-	S.pre_plasticity.delay[0,0] = 3*ms
-
-As mentioned above, ``pre`` pathways are generally executed before ``post``
-pathways. The order of execution of several ``pre`` (or ``post``) pathways is
-however arbitrary, and simply based on the alphabetical ordering of their names
-(i.e. ``pre_plasticity`` will be executed before ``pre_transmission``). To
-explicitly specify the order, set the ``order`` attribute of the pathway, e.g.::
-
-    S.pre_transmission.order = -2
-
-will make sure that the ``pre_transmission`` code is executed before the
-``pre_plasticity`` code in each time step.
