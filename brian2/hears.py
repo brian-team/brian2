@@ -1,7 +1,5 @@
 '''
-This is only a temporary bridge for using Brian 1 hears with Brian 2.
-
-This will be removed as soon as brian2hears is working.
+This is only a bridge for using Brian 1 hears with Brian 2.
 
 NOTES:
 
@@ -33,6 +31,10 @@ from numpy import asarray, array, ndarray
 from inspect import isclass, ismethod
 
 logger = get_logger(__name__)
+
+logger.warn("You are using the bridge between Brian 2 and Brian Hears from Brian 1. "
+            "This is not guaranteed to work in all cases that brian.hears works. "
+            "See the limitations in the online documentation.")
 
 def convert_unit_b1_to_b2(val):
     return Quantity.with_dimensions(float(val), arg.dim._dims)
