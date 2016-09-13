@@ -8,4 +8,5 @@ Introduction
    release_notes
    changes
    known_issues
+   support
 

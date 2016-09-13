@@ -35,6 +35,9 @@ list of all the example code that uses `PoissonGroup`. This is available
 for each class or method, and can be helpful in understanding how a
 feature works.
 
+Finally, if you're having problems, please do let us know at our
+:doc:`support page </introduction/support>`.
+
 Contents:
 
 .. toctree::
