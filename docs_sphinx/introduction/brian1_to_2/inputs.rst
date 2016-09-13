@@ -94,7 +94,7 @@ For a detailed description of the `TimedArray` mechanism in Brian 2, see
 In Brian 1, timed arrays where special objects that could be assigned to a
 state variable and would then be used to update this state variable at every
 time step. In Brian 2, a timed array is implemented using the standard
-:doc:`../../user/functions` mechanism which has the advantage that more
+:doc:`../../advanced/functions` mechanism which has the advantage that more
 complex access patterns can be implemented (e.g. by not using ``t`` as an
 argument, but something like ``t - delay``). This syntax was possible in Brian 1
 as well, but was disadvantageous for performance and had other limits (e.g. no
