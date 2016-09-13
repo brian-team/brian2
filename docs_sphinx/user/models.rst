@@ -1,5 +1,9 @@
 Models and neuron groups
 ========================
+.. sidebar:: For Brian 1 users
+
+    See the document :doc:`../introduction/brian1_to_2/neurongroup` for details how
+    to convert Brian 1 code.
 
 .. contents::
     :local:

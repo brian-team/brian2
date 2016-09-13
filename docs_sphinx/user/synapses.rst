@@ -3,8 +3,10 @@ Synapses
 
 .. sidebar:: For Brian 1 users
 
-    `Synapses` is now the only class for defining synaptic
-    interactions, it replaces *Connection*, *STDP*, etc.
+    `Synapses` is now the only class for defining synaptic interactions,
+    it replaces *Connection*, *STDP*, etc. See the document
+    :doc:`../introduction/brian1_to_2/synapses` for details how to convert
+    Brian 1 code.
 
 .. contents::
     :local:

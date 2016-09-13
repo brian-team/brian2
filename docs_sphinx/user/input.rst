@@ -1,5 +1,9 @@
 Input stimuli
 =============
+.. sidebar:: For Brian 1 users
+
+    See the document :doc:`../introduction/brian1_to_2/inputs` for details how
+    to convert Brian 1 code.
 
 .. contents::
     :local:

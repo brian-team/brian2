@@ -1,5 +1,9 @@
 Multicompartment models
 =======================
+.. sidebar:: For Brian 1 users
+
+    See the document :doc:`../introduction/brian1_to_2/multicompartmental` for
+    details how to convert Brian 1 code.
 
 It is possible to create neuron models with a spatially extended morphology, using
 the `SpatialNeuron` class. A `SpatialNeuron` is a single neuron with many compartments.

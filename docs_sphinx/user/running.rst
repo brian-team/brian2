@@ -1,5 +1,9 @@
 Running a simulation
 ====================
+.. sidebar:: For Brian 1 users
+
+    See the document :doc:`../introduction/brian1_to_2/networks_and_clocks` for
+    details how to convert Brian 1 code.
 
 To run a simulation, one either constructs a new `Network` object and calls its
 `Network.run` method, or uses the "magic" system and a plain `run` call,
