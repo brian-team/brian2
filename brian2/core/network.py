@@ -1015,8 +1015,8 @@ def schedule_propagation_offset(net=None):
         The minimum spike propagation delay: ``0*ms`` for the standard schedule
         but ``dt`` for schedules where ``synapses`` precedes ``thresholds``.
 
-    Note
-    ----
+    Notes
+    -----
     This function always returns ``0*ms`` or ``defaultclock.dt`` -- no attempt
     is made to deal with other clocks.
     '''

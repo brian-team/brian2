@@ -218,6 +218,7 @@ class EventMonitor(Group, CodeRunner):
         '''
         Return a dictionary mapping neuron indices to arrays of variable values
         at the time of the events (sorted by time).
+
         Parameters
         ----------
         var : str
