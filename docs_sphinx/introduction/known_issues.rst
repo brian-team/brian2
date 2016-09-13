@@ -1,6 +1,9 @@
 Known issues
 ============
 
+In addition to the issues noted below, you can refer to our
+`bug tracker on GitHub <https://github.com/brian-team/brian2/issues?q=is%3Aopen+is%3Aissue+label%3Abug>`__.
+
 .. contents:: List of known issues
     :local:
 
@@ -27,11 +30,3 @@ appropriate, because of a choice of parameters that couldn't be determined in
 advance. In this case, typically you will get nan (not a number) values in the
 results, or large oscillations. In this case, Brian will generate a warning to
 let you know, but will not raise an error.
-
-Integer division
-----------------
-
-If you are using integer division in your models for negative numbers, the results
-will be different if using the numpy target to any of the other codegen targets.
-This is because in Python, ``-1/2==-1`` whereas in C, ``-1/2==0``. This will be
-fixed in a future release.
