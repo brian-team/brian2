@@ -34,6 +34,7 @@ Infrastructure and documentation improvements
   coming from Brian 1: :doc:`changes`
 * A re-organized :doc:`../user/index`, with clearer indications which
   information is important for new Brian users.
+
 Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
@@ -487,7 +488,7 @@ Major new features
 * New classes `Morphology` and `SpatialNeuron` for the simulation of
   :doc:`../user/multicompartmental`
 * A temporary "bridge" for ``brian.hears`` that allows to use its Brian 1
-  version from Brian 2 (:doc:`../user/brian1hears_bridge`)
+  version from Brian 2 (:doc:`brian1_to_2/brian1hears_bridge`)
 * Cython is now a new code generation target, therefore the performance benefits
   of compiled code are now also available to users running simulations under
   Python 3.x (where ``scipy.weave`` is not available)
