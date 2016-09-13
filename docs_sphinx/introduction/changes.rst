@@ -81,9 +81,9 @@ and the second column gives either:
    in Brian 2;
 5. a remark such as "obsolete" if the particular class/function is no longer needed.
 
-=============================== ================================= ===========================
+=============================== ================================= ================================================================
 Brian 1                         Brian 2                           More details
-=============================== ================================= ===========================
+=============================== ================================= ================================================================
 ``AdEx``	                    [`Equations`]	                  :doc:`brian1_to_2/library`
 ``aEIF``	                    [`Equations`]	                  :doc:`brian1_to_2/library`
 ``AERSpikeMonitor``	            #298	                          :doc:`brian1_to_2/monitors`
@@ -112,7 +112,7 @@ Brian 1                         Brian 2                           More details
 ``FloatClock``	                `Clock`	                          :doc:`brian1_to_2/networks_and_clocks`
 ``FunReset``	                [string	expression]	              :doc:`brian1_to_2/neurongroup`
 ``FunThreshold``	            [string	expression]	              :doc:`brian1_to_2/neurongroup`
-``hist_plot``                   no equivalent
+``hist_plot``                   no equivalent                     --
 ``HomogeneousPoissonThreshold``	string	expression	              :doc:`brian1_to_2/neurongroup`
 ``IdentityConnection``	        `Synapses`	                      :doc:`brian1_to_2/synapses`
 ``IonicCurrent``	            #443	                          :doc:`brian1_to_2/multicompartmental`
@@ -152,7 +152,7 @@ Brian 1                         Brian 2                           More details
 ``VanRossumMetric``             [`SpikeMonitor`]                  :doc:`brian1_to_2/monitors`
 ``VariableReset``	            string expression	              :doc:`brian1_to_2/neurongroup`
 ``VariableThreshold``	        string expression	              :doc:`brian1_to_2/neurongroup`
-=============================== ================================= ===========================
+=============================== ================================= ================================================================
 
 List of detailed instructions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
