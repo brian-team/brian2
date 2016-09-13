@@ -68,7 +68,7 @@ if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.0.1'
+needs_sphinx = '1.4.2'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -225,6 +225,8 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'Brian2doc'
 
+# Suppress warnings about the mybinder badges
+suppress_warnings = ['image.nonlocal_uri']
 
 # -- Options for LaTeX output --------------------------------------------------
 
