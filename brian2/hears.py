@@ -19,7 +19,7 @@ try:
     import brian as b1
     import brian.hears as b1h
 except ImportError:
-    raise ImportError("brian2.hears is a temporary bridge between Brian 2 and the version of Brian Hears from "
+    raise ImportError("brian2.hears is a bridge between Brian 2 and the version of Brian Hears from "
                       "Brian 1, you need to have Brian 1 installed to use it.")
 
 from brian2.core.clocks import Clock
@@ -33,9 +33,6 @@ from numpy import asarray, array, ndarray
 from inspect import isclass, ismethod
 
 logger = get_logger(__name__)
-
-logger.warn("You are using the temporary bridge between Brian 2 and Brian Hears from Brian 1, this will be removed "
-            "in a later version.")
 
 def convert_unit_b1_to_b2(val):
     return Quantity.with_dimensions(float(val), arg.dim._dims)
