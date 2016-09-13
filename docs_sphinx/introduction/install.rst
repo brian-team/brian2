@@ -1,7 +1,7 @@
 Installation
 ============
 
-We recommend users to use the `Anaconda distribution <https://store.continuum.io/cshop/anaconda/>`_
+We recommend users to use the `Anaconda distribution <https://www.continuum.io/downloads>`_
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
 they don't have to be build from the source code at your machine. Furthermore,
@@ -19,7 +19,7 @@ Installation with Anaconda
 
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
-`Download the Anaconda distribution <http://continuum.io/downloads>`_
+`Download the Anaconda distribution <https://continuum.io/downloads>`_
 for your Operating System. For Windows users that want to use Python 3.x, we
 strongly recommend installing the 32 Bit version even on 64 Bit systems, since
 setting the compilation environment (see :ref:`installation_cpp` below) is less
@@ -39,7 +39,7 @@ this, indicating that you are using Anaconda's Python interpreter::
     Please check out: http://continuum.io/thanks and https://binstar.org
 
 Here's some documentation on how to set up some popular IDEs for Anaconda:
-http://docs.continuum.io/anaconda/ide_integration.html
+https://docs.continuum.io/anaconda/ide_integration
 
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
@@ -49,7 +49,7 @@ latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 
 Since Brian 2 is not part of the main Anaconda distribution, you have to install
-it from the `brian-team channel <https://conda.binstar.org/brian-team>`_. To do
+it from the `brian-team channel <https://conda.anaconda.org/brian-team>`_. To do
 so, use::
 
     conda install -c brian-team brian2
@@ -79,7 +79,7 @@ them, simply do::
 Installation from source
 ------------------------
 If you decide not to use Anaconda, you can install Brian 2 from the Python
-package index: https://pypi.python.org/pypi/brian2
+package index: https://pypi.python.org/pypi/Brian2
 
 To do so, use the ``pip`` utility::
 
@@ -108,7 +108,7 @@ it to install ``pip``::
     easy_install pip
 
 If you have neither ``pip`` nor ``easy_install``, use the approach described
-here to install ``pip``: https://pip.pypa.io/en/latest/installing.htm
+here to install ``pip``: https://pip.pypa.io/en/latest/installing/
 
 
 Alternatively, you can download the source package directly and uncompress it.

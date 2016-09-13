@@ -1,9 +1,9 @@
 Testing
 =======
 
-Brian uses the `nose package <https://nose.readthedocs.org>`__
+Brian uses the `nose package <https://nose.readthedocs.io/en/latest/>`__
 for its testing framework. To check the code coverage of the test suite, we use 
-`coverage.py <http://nedbatchelder.com/code/coverage>`__. 
+`coverage.py <http://coverage.readthedocs.io/en/latest/>`__.
 
 Running the test suite
 ----------------------
@@ -208,8 +208,8 @@ Doctests are a great way of testing things as they not only make sure that the
 code does what it is supposed to do but also that the documentation is up to
 date!
 
-.. _`doctest documentation`: http://docs.python.org/2/library/doctest.html
-.. _`Sphinx's doctest extension`: http://sphinx-doc.org/ext/doctest.html
+.. _`doctest documentation`: https://docs.python.org/2/library/doctest.html
+.. _`Sphinx's doctest extension`: http://www.sphinx-doc.org/en/stable/ext/doctest.html
 
 Test attributes
 ~~~~~~~~~~~~~~~
