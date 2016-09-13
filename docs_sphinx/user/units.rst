@@ -35,18 +35,18 @@ dimensionality mismatches::
     >>> tau += 1  # ms? second?  # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Addition, dimensions were (s) (1)
-    >>> 3*gram + 3*amp   # doctest: +ELLIPSIS
+    DimensionMismatchError: Cannot calculate ... += 1, units do not match (units are second and 1).
+    >>> 3*kgram + 3*amp   # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Addition, dimensions were (kg) (A)
+    DimensionMismatchError: Cannot calculate 3. kg + 3. A, units do not match (units are kgramme and amp).
 
 Most Brian functions will also complain about non-specified or incorrect units::
 
     >>> G = NeuronGroup(10, 'dv/dt = -v/tau: volt', dt=0.5)   # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Function "__init__" variable "dt" has wrong dimensions, dimensions were (1) (s)
+    DimensionMismatchError: Function "__init__" expected a quantitity with unit second for argument "dt" but got 0.5 (unit is 1).
 
 Numpy functions have been overwritten to correctly work with units (see the
 :doc:`developer documentation <../developer/units>` for more details)::
