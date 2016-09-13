@@ -1,8 +1,8 @@
 Release notes
 =============
 
-Changes since last release
---------------------------
+Brian 2.0
+---------
 
 New features
 ~~~~~~~~~~~~
@@ -24,6 +24,16 @@ Improvements and bug fixes
 * Fix a bug in `SpatialNeuron` where it did not detect non-linear dependencies
   on v, introduced via point currents (#743).
 
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* An interactive demo, tutorials, and examples can now be run in an interactive
+  jupyter notebook on the `mybinder <http://mybinder.org/>`_ platform, without
+  any need for a local Brian installation (#736). Thanks to Ben Evans for the
+  idea and help with the implementation.
+* A new extensive guide for converting Brian 1 simulations to Brian 2 user
+  coming from Brian 1: :doc:`changes`
+* A re-organized :doc:`../user/index`, with clearer indications which
+  information is important for new Brian users.
 Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
