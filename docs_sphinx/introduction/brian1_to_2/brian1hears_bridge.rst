@@ -1,3 +1,5 @@
+.. _brian_hears:
+
 Brian Hears
 ===========
 

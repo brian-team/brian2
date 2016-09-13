@@ -16,5 +16,3 @@ User's guide
    running
    multicompartmental
    computation
-   special_symbols
-   brian1hears_bridge

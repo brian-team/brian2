@@ -5,6 +5,11 @@ Running a simulation
     See the document :doc:`../introduction/brian1_to_2/networks_and_clocks` for
     details how to convert Brian 1 code.
 
+.. contents::
+    :local:
+    :depth: 1
+
+
 To run a simulation, one either constructs a new `Network` object and calls its
 `Network.run` method, or uses the "magic" system and a plain `run` call,
 collecting all the objects in the current namespace.
@@ -152,11 +157,12 @@ and testing is repeated several times as well::
             # Do something with the result
             # ...
 
-Advanced topics
----------------
+.. admonition:: The following topics are not essential for beginners.
+
+    |
 
 Multiple magic runs
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 When you use more than a single `run` statement, the magic system tries to
 detect which of the following two situations applies:
@@ -200,7 +206,7 @@ objects at once by assigning a new value to `Clock.dt`.
 .. _profiling:
 
 Profiling
-~~~~~~~~~
+---------
 
 To get an idea which parts of a simulation take the most time, Brian offers a
 basic profiling mechanism. If a simulation is run with the ``profile=True``
@@ -224,7 +230,7 @@ the neuronal state updates take up the most time)::
 .. _scheduling:
 
 Scheduling
-~~~~~~~~~~
+----------
 
 Every simulated object in Brian has three attributes that can be specified at
 object creation time: ``dt``, ``when``, and ``order``. The time step of the
@@ -264,7 +270,7 @@ and changing the value of ``dt`` between runs see
 :doc:`../advanced/scheduling`.
 
 Store/restore
-~~~~~~~~~~~~~
+-------------
 
 Note that `Network.run`, `Network.store` and `Network.restore` (or `run`,
 `store`, `restore`) are the only way of affecting the time of the clocks. In

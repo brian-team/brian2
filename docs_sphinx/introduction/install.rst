@@ -136,6 +136,8 @@ On Linux and Mac OS X, you will most likely already have a working C++ compiler
 installed (try calling ``g++ --version`` in a terminal). If not, use your
 distribution's package manager to install a ``g++`` package.
 
+.. _compiler_setup_windows:
+
 Windows
 ~~~~~~~
 On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work

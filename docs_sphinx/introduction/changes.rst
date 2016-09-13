@@ -53,7 +53,8 @@ The following packages have not (yet) been ported to Brian 1. If your simulation
 critically depends on them, you should consider staying with Brian 1 for now.
 
 * ``brian.tools``
-* ``brian.hears``  (the Brian 1 version can be used via `brian2.hears`, though)
+* ``brian.hears``  (the Brian 1 version can be used via `brian2.hears`, though,
+  see :ref:`brian_hears`)
 * ``brian.library.modelfitting``
 * ``brian.library.electrophysilogy``
 

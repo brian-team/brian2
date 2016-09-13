@@ -1,20 +1,36 @@
 Computational methods and efficiency
 ====================================
 
+.. contents::
+    :local:
+    :depth: 1
+
 Brian has several different methods for running the computations in a
 simulation. The default mode is :ref:`runtime`, which runs the simulation loop
 in Python but compiles and executes the modules doing the actual simulation
 work (numerical integration, synaptic propagation, etc.) in a defined target
-language. This mode has the advantage that you can combine the computations
+language. Brian will select the best available target language automatically.
+On Windows, to ensure that you get the advantages of compiled code, read
+the instructions on installing a suitable compiler in
+:ref:`compiler_setup_windows`.
+Runtime mode has the advantage that you can combine the computations
 performed by Brian with arbitrary Python code specified as `NetworkOperation`.
 
 The fact that the simulation is run in Python means that there is a (potentially
 big) overhead for each simulated time step. An alternative is to run Brian in with
 :ref:`cpp_standalone` -- this is in general faster (for certain types of simulations
-*much* faster) but cannot be used for all kinds of simulations.
+*much* faster) but cannot be used for all kinds of simulations. To enable this
+mode, add the following line after your Brian import, but before your simulation
+code::
+
+    set_device('cpp_standalone')
 
 For detailed control over the compilation process (both for runtime and standalone
 code generation), you can change the :ref:`compiler_settings` that are used.
+
+.. admonition:: The following topics are not essential for beginners.
+
+    |
 
 .. _runtime:
 

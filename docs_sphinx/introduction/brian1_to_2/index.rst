@@ -16,3 +16,4 @@ have any Brian 1 code to convert, go directly to the main
    networks_and_clocks
    multicompartmental
    library
+   brian1hears_bridge
