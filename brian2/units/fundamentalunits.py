@@ -2289,7 +2289,7 @@ def get_unit_for_display(x):
     Return a string representation of the most appropriate unit or ``'1'`` for
     a dimensionless quantity
     '''
-    if x is 1 or x is DIMENSIONLESS:
+    if x is 1 or x is DIMENSIONLESS or have_same_dimensions(x, 1):
         return '1'
     else:
         return repr(get_unit(x))
