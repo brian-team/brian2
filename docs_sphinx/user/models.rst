@@ -50,21 +50,21 @@ introduce random noise by specifying a
 `stochastic differential equation <https://en.wikipedia.org/wiki/Stochastic_differential_equation>`__.
 Brian uses the physicists' notation used in the
 `Langevin equation <https://en.wikipedia.org/wiki/Langevin_equation>`__,
-representing the noise as a term :math:`\xi(t)`, rather than the
+representing the "noise" as a term :math:`\xi(t)`, rather than the
 mathematicians' stochastic differential :math:`\mathrm{d}W_t`. The
 following is an example of the
-`Ornstein-Uhlenbeck process <https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process>`__
+`Ornstein-Uhlenbeck process <http://www.scholarpedia.org/article/Stochastic_dynamical_systems#Ornstein-Uhlenbeck_process>`__
 that is often used to model a leaky integrate-and-fire neuron with
 a stochastic current::
 
     G = NeuronGroup(10, 'dv/dt = -v/tau + sigma*xi*tau**-0.5 : volt')
 
 You can start by thinking of ``xi`` as just a Gaussian random variable
-with mean 0 and standard deviation 1. However, due to the way it
-scales with time it has units of ``second**-0.5``, which is why we
-multiply by ``tau**-0.5`` rather than ``1/tau`` to make the equation
-dimensionally consistent. For further details, see the links above
-or a textbook on stochastic differential equations.
+with mean 0 and standard deviation 1. However, it scales in an
+unusual way with time and this gives it units of ``1/sqrt(second)``.
+You don't necessarily need to understand why this is, but it is
+possible to get a reasonably simple intuition for it by thinking
+about numerical integration: :ref:`see below <time_scaling_of_noise>`.
 
 Threshold and reset
 -------------------
@@ -270,3 +270,45 @@ linking explicitly::
     # Half of the cells get the first input, other half gets the second
     neurons.inp = linked_var(inp, 'x', index=repeat([0, 1], 50))
 
+
+.. _time_scaling_of_noise:
+
+Time scaling of noise
+---------------------
+
+Suppose we just
+had the differential equation
+
+:math:`dx/dt=\xi`
+
+To solve this
+numerically, we could compute
+
+:math:`x(t+\mathrm{d}t)=x(t)+\xi_1`
+
+where :math:`\xi_1` is a normally distributed random number
+with mean 0 and standard deviation 1.
+However, what happens if we change the time step? Suppose we used
+a value of :math:`\mathrm{d}t/2` instead of :math:`\mathrm{d}t`.
+Now, we compute
+
+:math:`x(t+\mathrm{d}t)=x(t+\mathrm{d}t/2)+\xi_1=x(t)+\xi_2+\xi_1`
+
+The mean value of :math:`x(t+\mathrm{d}t)` is 0 in both cases,
+but the standard deviations are different. The first method
+:math:`x(t+\mathrm{d}t)=x(t)+\xi_1` gives :math:`x(t+\mathrm{d}t)`
+a standard deviation of 1, whereas the second method
+:math:`x(t+\mathrm{d}t)=x(t+\mathrm{d}/2)+\xi_1=x(t)+\xi_2+\xi_1`
+gives :math:`x(t)` a variance of 1+1=2 and therefore a
+standard deviation of :math:`\sqrt{2}`.
+
+In order to solve this
+problem, we use the rule
+:math:`x(t+\mathrm{d}t)=x(t)+\sqrt{\mathrm{d}t}\xi_1`, which makes
+the mean and standard deviation of the value at time :math:`t`
+independent of :math:`\mathrm{d}t`.
+For this to make sense dimensionally, :math:`\xi` must have
+units of ``1/sqrt(second)``.
+
+For further details, refer to a textbook on stochastic
+differential equations.
