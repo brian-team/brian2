@@ -1,8 +1,9 @@
 Library models (Brian 1 --> 2 conversion)
 ===============================================
 
-.. contents:: Topics
+.. contents::
     :local:
+    :depth: 1
 
 Neuron models
 -------------

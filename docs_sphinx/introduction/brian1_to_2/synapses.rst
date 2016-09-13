@@ -1,11 +1,12 @@
 Synapses (Brian 1 --> 2 conversion)
 ===================================
+.. contents::
+    :local:
+    :depth: 1
+
 You can find the documentation for how to define synapses in the document
 :doc:`../../user/synapses`. This section describes the major differences to
 Brian 1.
-
-.. contents:: Topics
-    :local:
 
 Converting Brian 1's ``Connection`` class
 -----------------------------------------

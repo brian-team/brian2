@@ -1,11 +1,12 @@
 Networks and clocks (Brian 1 --> 2 conversion)
 ==============================================
+.. contents::
+    :local:
+    :depth: 1
+
 You can find the documentation for how to run simulations, control the
 simulation timestep, etc. in the document :doc:`../../user/running`. This section
 describes the major differences to Brian 1.
-
-.. contents:: Topics
-    :local:
 
 Clocks and timesteps
 --------------------

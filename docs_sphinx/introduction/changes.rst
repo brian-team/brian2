@@ -1,5 +1,8 @@
 Changes from Brian 1
 ====================
+.. contents::
+    :local:
+    :depth: 1
 
 In most cases, Brian 2 works in a very similar way to Brian 1 but there are
 some important differences to be aware of. The major distinction is that
@@ -10,9 +13,6 @@ describes a way to resolve the issue.
 
 Specific examples how to convert code from Brian 1 can be found in the document
 :doc:`brian1_to_2/index`.
-
-.. contents:: Topics
-    :local:
 
 Physical units
 --------------
