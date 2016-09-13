@@ -576,7 +576,9 @@ class DimensionMismatchError(Exception):
 
     def __str__(self):
         s = self.desc
-        if len(self.dims) == 1:
+        if len(self.dims)==0:
+            pass
+        elif len(self.dims) == 1:
             s += ' (unit is ' + get_unit_for_display(self.dims[0])
         elif len(self.dims) == 2:
             d1, d2 = self.dims
@@ -586,7 +588,9 @@ class DimensionMismatchError(Exception):
             s += (' (units are ' +
                   ' '.join(['(' + get_unit_for_display(d) + ')'
                             for d in self.dims]))
-        return s + ').'
+        if len(self.dims):
+            s += ').'
+        return s
 
 
 def is_scalar_type(obj):
