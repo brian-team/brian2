@@ -1,5 +1,5 @@
-Changes from Brian 1
-====================
+Changes for Brian 1 users
+=========================
 .. contents::
     :local:
     :depth: 1
