@@ -851,10 +851,23 @@ class CPPStandaloneDevice(Device):
                 self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
 
         # Make sure that integration did not create NaN or very large values
-        owners = [var.owner for var in self.arrays
-                  if isinstance(var.owner, Group)]
+        owners = [var.owner for var in self.arrays]
+        # We don't want to check the same owner twice but var.owner is a
+        # weakproxy which we can't put into a set. We therefore store the name
+        # of all objects we already checked. Furthermore, under some specific
+        # instances a variable might have been created whose owner no longer
+        # exists (e.g. a `_sub_idx` variable for a subgroup) -- we ignore the
+        # resulting reference error.
+        already_checked = set()
         for owner in owners:
-            owner._check_for_invalid_states()
+            try:
+                if owner.name in already_checked:
+                    continue
+                if isinstance(owner, Group):
+                    owner._check_for_invalid_states()
+                    already_checked.add(owner.name)
+            except ReferenceError:
+                pass
 
 
     def build(self, directory='output',
