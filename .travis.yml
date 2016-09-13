@@ -133,6 +133,9 @@ install:
     conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
+  - if [ ${PYTHON:0:1} == "2" ]; then
+    conda install --yes --quiet bsddb;  # makes weave code generation much faster
+    fi
   - conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
   - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then pip install -q coveralls; fi
