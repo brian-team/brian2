@@ -1,6 +1,11 @@
 Refractoriness
 ==============
 
+.. contents::
+    :local:
+    :depth: 1
+
+
 Brian allows you to model the absolute refractory period of a neuron in a flexible
 way. The definition of refractoriness consists of two components: the amount of time
 after a spike that a neuron is considered to be refractory, and what changes in the
@@ -92,6 +97,30 @@ stop being updated during refractoriness can be marked with the
 In the above model, the ``v`` variable is clamped at 0 for 2ms after a spike but
 the adaptation variable ``w`` continues to update during this time.
 
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
+
+Arbitrary refractoriness
+------------------------
+
 In fact, arbitrary behaviours can be defined using Brian's refractoriness
-mechanism. For more details, see the documentation on details of the
-:doc:`refractoriness implementation <../advanced/refractoriness>`.
+mechanism.
+
+Internally, a `NeuronGroup` with refractoriness has a boolean variable
+`not_refractory` added to the equations, and this is used to implement
+the refractoriness behaviour. Specifically, the ``threshold`` condition
+is replaced by ``threshold and not_refractory`` and differential equations
+that are marked as ``(unless refractory)`` are multiplied by
+``int(not_refractory)`` (so that they have the value 0 when the neuron is
+refractory).
+
+This ``not_refractory`` variable is also available to the user
+to define more sophisticated refractoriness behaviour.
+For example, the following code updates the
+``w`` variable with a different time constant during refractoriness::
+
+    G = NeuronGroup(N, '''dv/dt = -(v + w)/ tau_v : 1 (unless refractory)
+                          dw/dt = (-w / tau_active)*int(not_refractory) + (-w / tau_ref)*(1 - int(not_refractory)) : 1''',
+                    threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)

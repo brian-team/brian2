@@ -248,6 +248,7 @@ the indices.
 
     |
 
+
 Creating synapses with the generator syntax
 -------------------------------------------
 

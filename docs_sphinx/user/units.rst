@@ -1,6 +1,10 @@
 Physical units
 ==============
 
+.. contents::
+    :local:
+    :depth: 1
+
 Brian includes a system for defining physical units. These are defined by
 their standard SI unit names: amp,
 kilogram, second, metre/meter, mole and the derived units coulomb, farad,
@@ -75,6 +79,10 @@ analysis functions that do not correctly work with units)
     [ 0.,  0.,  0.,  0.,  0.]
 
 
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
 Importing units
 ---------------
 Brian generates standard names for units, combining the unit name (e.g.
@@ -122,22 +130,3 @@ instead return a new value (in the same way as standard Python scalars)::
     2. * mvolt
     >>> y
     1. * mvolt
-
-Comparison with Brian 1
------------------------
-
-Brian 1 only supported scalar quantities, units were not stored for arrays.
-Some expressions therefore have different values in Brian 1 and Brian 2:
-
-================================    ================================    =================================
-Expression                          Brian 1                             Brian 2
-================================    ================================    =================================
-1 * mV                              1.0 * mvolt                         1.0 * mvolt
-np.array(1) * mV                    0.001                               1.0 * mvolt
-np.array([1]) * mV                  array([ 0.001])                     array([1.]) * mvolt
-np.mean(np.arange(5) * mV)          0.002                               2.0 * mvolt
-np.arange(2) * mV                   array([ 0.   ,  0.001])             array([ 0.,  1.]) * mvolt
-(np.arange(2) * mV) >= 1 * mV       array([False, True], dtype=bool)    array([False, True], dtype=bool)
-(np.arange(2) * mV)[0] >= 1 * mV    False                               False
-(np.arange(2) * mV)[1] >= 1 * mV    DimensionMismatchError              True
-================================    ================================    =================================

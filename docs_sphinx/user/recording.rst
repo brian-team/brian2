@@ -1,6 +1,10 @@
 Recording during a simulation
 =============================
 
+.. contents::
+    :local:
+    :depth: 1
+
 Recording variables during a simulation is done with "monitor" objects.
 Specifically, spikes are recorded with `SpikeMonitor`, the time evolution of
 variables with `StateMonitor` and the firing rate of a population of neurons
@@ -150,8 +154,12 @@ time step corresponding to the time in ``t``. For example::
 
 To get a smoother version of the rate, use `PopulationRateMonitor.smooth_rate`.
 
-Advanced topics
----------------
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
+Getting all data
+----------------
 
 Note that all monitors are implement as "groups", so you can get all the stored
 values in a monitor with the `Group.get_states` method, which can be useful to

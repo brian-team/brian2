@@ -1,6 +1,10 @@
 Equations
 =========
 
+.. contents::
+    :local:
+    :depth: 1
+
 .. _equation_strings:
 
 Equation strings
@@ -71,11 +75,12 @@ variable values, all having the same effect in this case::
 
 See :doc:`../advanced/namespaces` for more details.
 
-Advanced topics
----------------
+.. admonition:: The following topics are not essential for beginners.
+
+    |
 
 Flags
-~~~~~
+-----
 A *flag* is a keyword in parentheses at the end of the line, which
 qualifies the equations. There are several keywords:
 
@@ -114,7 +119,7 @@ Multiple flags may be specified as follows::
 	dx/dt = f : unit (flag1,flag2)
 
 Event-driven equations
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 Equations defined as event-driven are completely ignored in the state update.
 They are only defined as variables that can be externally accessed.
 There are additional constraints:
@@ -129,7 +134,7 @@ Currently, automatic event-driven updates are only possible for one-dimensional
 linear equations, but this may be extended in the future.
 
 Equation objects
-~~~~~~~~~~~~~~~~
+----------------
 The model definitions for `NeuronGroup` and `Synapses` can be simple strings or
 `Equations` objects. Such objects can be combined using the add operator::
 
@@ -149,11 +154,9 @@ The `Equations` object does some basic syntax checking and will raise an error i
 the same variable are combined. It does not however do unit checking, checking for unknown identifiers or
 incorrect flags -- all this will be done during the instantiation of a `NeuronGroup` or `Synapses` object.
 
-Examples
---------
+Examples of `Equation` objects
+------------------------------
 
-Equation objects
-~~~~~~~~~~~~~~~~
 **Concatenating equations**
 
 .. doctest::

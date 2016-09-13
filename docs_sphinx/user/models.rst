@@ -1,6 +1,10 @@
 Models and neuron groups
 ========================
 
+.. contents::
+    :local:
+    :depth: 1
+
 The core of every simulation is a `NeuronGroup`, a group of neurons that share
 the same equations defining their properties. The minimum `NeuronGroup`
 specification contains the number of neurons and the model description in the
@@ -71,17 +75,13 @@ analysing data with external tools), use an underscore after the name:
 
 .. doctest::
 
-    >>> G = NeuronGroup(10, '''dv/dt = (-v + shared_input)/tau : volt
-    ...                        shared_input : volt (shared)
+    >>> G = NeuronGroup(10, '''dv/dt = -v/tau : volt
     ...                        tau : second''')
     >>> G.v = -70*mV
     >>> G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
     >>> G.v_  # values without units
     <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
-    >>> G.shared_input = 5*mV
-    >>> G.shared_input
-    <neurongroup.shared_input: 5. * mvolt>
 
 The value of state variables can also be set using string expressions that can
 refer to units and external variables, other state variables, mathematical
@@ -119,11 +119,12 @@ connected via `Synapses`, etc. In such situations, indices (e.g. the indices of
 the neurons to record from in a `StateMonitor`) are relative to the subgroup,
 not to the main group
 
-Advanced topics
----------------
+.. admonition:: The following topics are not essential for beginners.
+
+    |
 
 Shared variables
-~~~~~~~~~~~~~~~~
+----------------
 
 Sometimes it can also be useful to introduce shared variables or subexpressions,
 i.e. variables that have a common value for all neurons. In contrast to
@@ -159,7 +160,7 @@ For shared variables, setting by string expressions can only refer to shared val
     <neurongroup.shared_input: 0.4 * mvolt>
 
 Storing state variables
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 Sometimes it can be convenient to access multiple state variables at once, e.g.
 to set initial values from a dictionary of values or to store all the values of
@@ -209,7 +210,7 @@ The data (without physical units) can also be exported/imported to/from
 .. _linked_variables:
 
 Linked variables
-~~~~~~~~~~~~~~~~
+----------------
 
 A `NeuronGroup` can define parameters that are not stored in this group, but are
 instead a reference to a state variable in another group. For this, a group

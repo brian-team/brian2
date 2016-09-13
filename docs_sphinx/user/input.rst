@@ -1,6 +1,10 @@
 Input stimuli
 =============
 
+.. contents::
+    :local:
+    :depth: 1
+
 There are various ways of providing "external" input to a network.
 
 Poisson input
@@ -136,11 +140,12 @@ expressions to have the values only updated for the chosen subset of neurons
                      I = change*(rand()*2) + (1-change)*I''',
                   dt=50*ms)
 
-Advanced topics
----------------
+.. admonition:: The following topics are not essential for beginners.
+
+    |
 
 Poisson inputs
-~~~~~~~~~~~~~~
+--------------
 
 If the given value for ``rates`` is a constant, then using
 ``PoissonGroup(N, rates)`` is equivalent to
@@ -175,7 +180,7 @@ probability for a single input.
 .. _network_operation:
 
 Arbitrary Python code (network operations)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 If none of the above techniques is general enough to fulfill the requirements
 of a simulation, Brian allows you to write a `NetworkOperation`, an arbitrary
 Python function that is executed every time step (possible on a different clock

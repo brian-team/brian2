@@ -11,8 +11,12 @@ to everything in the ``pylab`` package, which includes the plotting functions
 from matplotlib_ and everything included in numpy/scipy (e.g. functions such
 as ``arange``, ``linspace``, etc.).
 
-Advanced
---------
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
+Precise control over importing
+------------------------------
 
 If you want to use a wildcard import from Brian, but don't want to import all
 the additional symbols provided by ``pylab``, you can use::
@@ -43,7 +47,8 @@ Note that it is safe to use e.g. ``np.sin`` and ``numpy.sin`` after a
 .. _dependency_checks:
 
 Dependency checks
-~~~~~~~~~~~~~~~~~
+-----------------
+
 Brian will check the dependency versions during import and raise an error for
 an outdated dependency. An outdated dependency does not necessarily mean that
 Brian cannot be run with it, it only means that Brian is untested on that
