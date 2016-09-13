@@ -1,12 +1,13 @@
 Inputs (Brian 1 --> 2 conversion)
 =================================
+.. sidebar:: Brian 2 documentation
+
+    For the main documentation about adding external stimulation to a network,
+    see the document :doc:`../../user/input`.
+
 .. contents::
     :local:
     :depth: 1
-
-You can find the documentation for how to add external stimulation to a network
-in the document :doc:`../../user/input`. This section describes the major
-differences to Brian 1.
 
 Poisson Input
 -------------

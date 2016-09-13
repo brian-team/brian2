@@ -1,12 +1,13 @@
 Neural models (Brian 1 --> 2 conversion)
 ========================================
+.. sidebar:: Brian 2 documentation
+
+    For the main documentation about defining neural models, see the document
+    :doc:`../../user/models`.
+
 .. contents::
     :local:
     :depth: 1
-
-You can find the documentation for how to define neural models in the document
-:doc:`../../user/models`. This section describes the major differences to
-Brian 1.
 
 The syntax for specifying neuron models in a `NeuronGroup` changed in several
 details. In general, a string-based syntax (that was already optional in Brian 1)

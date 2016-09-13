@@ -1,12 +1,13 @@
 Monitors (Brian 1 --> 2 conversion)
 ===================================
+.. sidebar:: Brian 2 documentation
+
+    For the main documentation about recording network activity, see the
+    document :doc:`../../user/recording`.
+
 .. contents::
     :local:
     :depth: 1
-
-You can find the documentation for how to record network activity in the
-document :doc:`../../user/recording`. This section describes the major
-differences to Brian 1.
 
 Monitoring spiking activity
 ---------------------------
