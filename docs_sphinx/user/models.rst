@@ -9,6 +9,9 @@ Models and neuron groups
     :local:
     :depth: 1
 
+Model equations
+---------------
+
 The core of every simulation is a `NeuronGroup`, a group of neurons that share
 the same equations defining their properties. The minimum `NeuronGroup`
 specification contains the number of neurons and the model description in the
@@ -39,6 +42,29 @@ be used::
     G = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                            I_leak = g_L*(E_L - v) : amp''')
 
+Noise
+-----
+
+In addition to ordinary differential equations, Brian allows you to
+introduce random noise by specifying a
+`stochastic differential equation <https://en.wikipedia.org/wiki/Stochastic_differential_equation>`__.
+Brian uses the physicists' notation used in the
+`Langevin equation <https://en.wikipedia.org/wiki/Langevin_equation>`__,
+representing the noise as a term :math:`\xi(t)`, rather than the
+mathematicians' stochastic differential :math:`\mathrm{d}W_t`. The
+following is an example of the
+`Ornstein-Uhlenbeck process <https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process>`__
+that is often used to model a leaky integrate-and-fire neuron with
+a stochastic current::
+
+    G = NeuronGroup(10, 'dv/dt = -v/tau + sigma*xi*tau**-0.5 : volt')
+
+You can start by thinking of ``xi`` as just a Gaussian random variable
+with mean 0 and standard deviation 1. However, due to the way it
+scales with time it has units of ``second**-0.5``, which is why we
+multiply by ``tau**-0.5`` rather than ``1/tau`` to make the equation
+dimensionally consistent. For further details, see the links above
+or a textbook on stochastic differential equations.
 
 Threshold and reset
 -------------------
