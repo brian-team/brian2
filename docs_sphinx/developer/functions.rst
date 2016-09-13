@@ -2,7 +2,7 @@ Adding support for new functions
 ================================
 
 For a description of Brian's function system from the user point of view, see
-:doc:`../user/functions`.
+:doc:`../advanced/functions`.
 
 The default functions available in Brian are stored in the `DEFAULT_FUNCTIONS`
 dictionary. New `Function` objects can be added to this dictionary to make them
