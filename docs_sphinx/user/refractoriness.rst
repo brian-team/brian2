@@ -95,7 +95,10 @@ stop being updated during refractoriness can be marked with the
                     threshold='v > 1', reset='v=0; w+=0.1', refractory=2*ms)
 
 In the above model, the ``v`` variable is clamped at 0 for 2ms after a spike but
-the adaptation variable ``w`` continues to update during this time.
+the adaptation variable ``w`` continues to update during this time. In
+addition, a variable of a neuron that is in its refractory period is
+*read-only*: incoming synapses or other code will have no effect on the
+value of ``v`` until it leaves its refractory period.
 
 .. admonition:: The following topics are not essential for beginners.
 
