@@ -954,7 +954,7 @@ class Group(VariableOwner, BrianObject):
         warning if so.
         '''
         v = np.asarray(v)
-        if np.isnan(v).any() or np.abs(v) > 1e50:
+        if np.isnan(v).any() or (np.abs(v) > 1e50).any():
             logger.warn(("{name}'s variable '{k}' has NaN, very large values, "
                          "or encountered an error in numerical integration. "
                          "This is usually a sign that an unstable or invalid "
@@ -962,6 +962,7 @@ class Group(VariableOwner, BrianObject):
                          "chosen.").format(name=self.name,
                                            k=k),
                         name_suffix="invalid_values", once=True)
+
 
 class CodeRunner(BrianObject):
     '''
