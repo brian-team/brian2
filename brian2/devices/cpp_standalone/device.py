@@ -415,9 +415,9 @@ class CPPStandaloneDevice(Device):
                     if var.size[0] * var.size[1] == len(data):
                         size = var.size
                     elif var.size[0] == 0:
-                        size = (len(data)/var.size[1], var.size[1])
-                    elif var.size[0] == 0:
-                        size = (var.size[0], len(data)/var.size[0])
+                        size = (len(data)//var.size[1], var.size[1])
+                    elif var.size[1] == 0:
+                        size = (var.size[0], len(data)//var.size[0])
                     else:
                         raise IndexError(('Do not now how to deal with 2d '
                                           'array of size %s, the array on disk '
