@@ -954,9 +954,7 @@ class Group(VariableOwner, BrianObject):
         warning if so.
         '''
         v = np.asarray(v)
-        # Large value check has to be >1e100 because the period of SpikeGeneratorGroup is
-        # by default set to 1e100
-        if np.isnan(v).any() or (np.logical_and(np.abs(v) > 1e150, np.isfinite(v))).any():
+        if np.isnan(v).any() or np.abs(v) > 1e50:
             logger.warn(("{name}'s variable '{k}' has NaN, very large values, "
                          "or encountered an error in numerical integration. "
                          "This is usually a sign that an unstable or invalid "
