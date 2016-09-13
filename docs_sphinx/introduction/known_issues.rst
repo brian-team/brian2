@@ -22,12 +22,11 @@ hide it, but doesn't indicate any problems.
 Problems with numerical integration
 -----------------------------------
 
-If the beginning of a run takes a long time, the reason might be the automatic
-determination of a suitable numerical integration algorithm.
-This can in particular happen for complicated equations where sympy's solvers
-take a long time trying to solve the equations symbolically (typically failing
-in the end). We try to improve this situation (see #351) but until then, chose
-a numerical integration algorithm explicitly (:ref:`numerical_integration`).
+In some cases, the automatic choice of numerical integration method will not be
+appropriate, because of a choice of parameters that couldn't be determined in
+advance. In this case, typically you will get nan (not a number) values in the
+results, or large oscillations. In this case, Brian will generate a warning to
+let you know, but will not raise an error.
 
 Integer division
 ----------------
