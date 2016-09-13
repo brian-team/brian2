@@ -181,7 +181,7 @@ setup(name='Brian2',
       description='A clock-driven simulator for spiking neural networks',
       long_description=long_description,
       author='Marcel Stimberg, Dan Goodman, Romain Brette',
-      author_email='Romain.Brette at ens.fr',
+      author_email='team@briansimulator.org',
       keywords='computational neuroscience simulation',
       classifiers=[
           'Development Status :: 4 - Beta',
