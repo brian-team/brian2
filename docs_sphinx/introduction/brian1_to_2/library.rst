@@ -1,5 +1,5 @@
 Library models (Brian 1 --> 2 conversion)
-===============================================
+=========================================
 
 .. contents::
     :local:
@@ -25,7 +25,7 @@ Perfect integrator
 +           Current('I : volt'))                                   |    eqs = '''dvm/dt = I/tau : volt                                                        |
 +    group = NeuronGroup(N, eqs,                                   |             I : volt'''                                                                  |
 +                        threshold='v > -50*mV',                   |    group = NeuronGroup(N, eqs,                                                           |
-+                        reset='v = -70*mV')                       |                        threshold='v > -50*mV'                                            |
++                        reset='v = -70*mV')                       |                        threshold='v > -50*mV',                                           |
 +                                                                  |                        reset='v = -70*mV')                                               |
 +                                                                  |                                                                                          |
 +------------------------------------------------------------------+------------------------------------------------------------------------------------------+

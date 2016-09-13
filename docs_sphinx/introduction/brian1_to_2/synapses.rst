@@ -260,7 +260,7 @@ equations with the flag ``(summed)``:
 |     neurons = NeuronGroup(1, model='''                     |     neurons = NeuronGroup(1, model='''                     |
 |                           dv/dt = (gtot - v)/(10*ms) : 1   |                           dv/dt = (gtot - v)/(10*ms) : 1   |
 |                           gtot : 1''')                     |                           gtot : 1''')                     |
-|     syn = Synapses(input,neurons,                          |     syn = Synapses(input,neurons,                          |
+|     syn = Synapses(inputs, neurons,                        |     syn = Synapses(inputs, neurons,                        |
 |                    model='''                               |                    model='''                               |
 |                    dg/dt = -a*g+b*x*(1-g) : 1              |                    dg/dt = -a*g+b*x*(1-g) : 1              |
 |                    dx/dt = -c*x : 1                        |                    dx/dt = -c*x : 1                        |
