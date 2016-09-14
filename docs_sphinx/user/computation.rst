@@ -97,8 +97,8 @@ call. If you need non-standard arguments then you can specify them as part of th
 
     set_device('cpp_standalone', directory='my_directory', debug=True)
 
-Multiple run call
-~~~~~~~~~~~~~~~~~
+Multiple run calls
+~~~~~~~~~~~~~~~~~~
 At the beginning of the script, i.e. after the import statements, add::
 
     set_device('cpp_standalone', build_on_run=False)
@@ -109,6 +109,22 @@ After the last `run` call, call `device.build` explicitly::
 
 The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to
 compile and run the project after creating it and whether or not to compile it with debugging support or not.
+
+Multiple builds
+~~~~~~~~~~~~~~~
+To run multiple full simulations (i.e. multiple ``device.build`` calls, not just
+multiple `run` calls as discussed above), you have to reinitialize the device
+again::
+
+    device.reinit()
+    device.activate()
+
+Note that the device "forgets" about all previously set build options provided
+to `set_device` (most importantly the ``build_on_run`` option, but also e.g. the
+directory), you'll have to specify them as part of the `Device.activate` call.
+Also, `Device.activate` will reset the `defaultclock`, you'll therefore have to
+set its ``dt`` *after* the ``activate`` call if you want to use a non-default
+value.
 
 Limitations
 ~~~~~~~~~~~
