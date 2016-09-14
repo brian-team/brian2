@@ -33,6 +33,6 @@ straightforward anyway:
 |    neuron_eqs = Compartments({'soma': soma_eqs,   |    I_soma_dend = (vm_dend - vm_soma)/Ra : amp     |
 |                               'dend': dend_eqs})  |    dvm_dend/dt = -I_soma_dend/C : volt'''         |
 |                                                   |                                                   |
-|   neuron = NeuronGroup(N, neuron_eqs)             |    neuron = NeuronGroup(N, neuron_eqs)            |
+|    neuron = NeuronGroup(N, neuron_eqs)            |    neuron = NeuronGroup(N, neuron_eqs)            |
 |                                                   |                                                   |
 +---------------------------------------------------+---------------------------------------------------+

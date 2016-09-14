@@ -99,31 +99,31 @@ mechanism extensively, you'll lose all the performance advantage that Brian 2's
 code generation mechanism provides (in addition to not being able to use
 :ref:`cpp_standalone` mode at all).
 
-+------------------------------------------------------------------------+-----------------------------------------------------------------+
-| Brian 1                                                                | Brian 2                                                         |
-+========================================================================+=================================================================+
-+ .. code::                                                              | .. code::                                                       |
-+                                                                        |                                                                 |
-+    def single_threshold(v):                                            |    @check_units(v=volt, result=bool)                            |
-+        # Only let a single neuron spike                                |    def single_threshold(v):                                     |
-+        crossed_threshold = np.nonzero(v > -50*mV)[0]                   |        # ... (identical to Brian 1)                             |
-+        should_spike = np.zeros(len(P), dtype=np.bool)                  |                                                                 |
-+        if len(crossed_threshold):                                      |    @check_units(spikes=1, result=1)                             |
-+            choose = np.random.randint(len(crossed_threshold))          |    def global_reset(spikes):                                    |
-+            should_spike[crossed_threshold[choose]] = True              |        # Reset everything                                       |
-+        return should_spike                                             |        if len(spikes):                                          |
-+                                                                        |             neurons.v_[:] = -0.070                              |
-+   def global_reset(P, spikes):                                         |                                                                 |
-+       # Reset everything                                               |    neurons = NeuronGroup(N, 'dv/dt = -v / tau : volt',          |
-+       if len(spikes):                                                  |                          threshold='single_threshold(v)',       |
-+           P.v_[:] = -70*mV                                             |                          reset='dummy = global_reset(i)')       |
-+                                                                        |    # Set the code generation target for threshold/reset only:   |
-+   neurons = NeuronGroup(N, 'dv/dt = -v / tau : volt',                  |    neuron.thresholder['spike'].codeobj_class = NumpyCodeObject  |
-+                         threshold=SimpleFunThreshold(single_threshold, |    neuron.resetter['spike'].codeobj_class = NumpyCodeObject     |
-+                                                      state='v'),       |                                                                 |
-+                         reset=global_reset)                            |                                                                 |
-+                                                                        |                                                                 |
-+------------------------------------------------------------------------+-----------------------------------------------------------------+
++-------------------------------------------------------------------------+-----------------------------------------------------------------+
+| Brian 1                                                                 | Brian 2                                                         |
++=========================================================================+=================================================================+
++ .. code::                                                               | .. code::                                                       |
++                                                                         |                                                                 |
++    def single_threshold(v):                                             |    @check_units(v=volt, result=bool)                            |
++        # Only let a single neuron spike                                 |    def single_threshold(v):                                     |
++        crossed_threshold = np.nonzero(v > -50*mV)[0]                    |        pass # ... (identical to Brian 1)                        |
++        should_spike = np.zeros(len(P), dtype=np.bool)                   |                                                                 |
++        if len(crossed_threshold):                                       |    @check_units(spikes=1, result=1)                             |
++            choose = np.random.randint(len(crossed_threshold))           |    def global_reset(spikes):                                    |
++            should_spike[crossed_threshold[choose]] = True               |        # Reset everything                                       |
++        return should_spike                                              |        if len(spikes):                                          |
++                                                                         |             neurons.v_[:] = -0.070                              |
++    def global_reset(P, spikes):                                         |                                                                 |
++        # Reset everything                                               |    neurons = NeuronGroup(N, 'dv/dt = -v / tau : volt',          |
++        if len(spikes):                                                  |                          threshold='single_threshold(v)',       |
++            P.v_[:] = -70*mV                                             |                          reset='dummy = global_reset(i)')       |
++                                                                         |    # Set the code generation target for threshold/reset only:   |
++    neurons = NeuronGroup(N, 'dv/dt = -v / tau : volt',                  |    neuron.thresholder['spike'].codeobj_class = NumpyCodeObject  |
++                          threshold=SimpleFunThreshold(single_threshold, |    neuron.resetter['spike'].codeobj_class = NumpyCodeObject     |
++                                                       state='v'),       |                                                                 |
++                          reset=global_reset)                            |                                                                 |
++                                                                         |                                                                 |
++-------------------------------------------------------------------------+-----------------------------------------------------------------+
 
 For an example how to translate ``EmpiricalThreshold``, see the section on
 "Refractoriness" below.

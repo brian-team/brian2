@@ -149,7 +149,7 @@ and the spike time):
 +   mon = StateSpikeMonitor(group, 'v')                     |   mon = SpikeMonitor(group, variables='v')           |
 +   # ... do the run                                        |   # ... do the run                                   |
 +   # plot the mean v at spike time for each neuron         |   # plot the mean v at spike time for each neuron    |
-+   mean_values = [mean(mon.values('v', idx)                |   values = mon.values('v')                           |
++   mean_values = [mean(mon.values('v', idx))               |   values = mon.values('v')                           |
 +                   for idx in range(len(group))]           |   mean_values = [mean(values[idx])                   |
 +                                                           |                  for idx in range(len(group))]       |
 +   plot(mean_values/mV, 'o')                               |   plot(mean_values/mV, 'o')                          |

@@ -46,7 +46,7 @@ the same functionality with the general mechanism of `Synapses.connect`:
 +==============================================+===================================================+
 + .. code::                                    | .. code::                                         |
 +                                              |                                                   |
-+    conn1 = Connection(source, target, 'ge')  |    conn1 = Synapses(source, target, 'w: siemens'  |
++    conn1 = Connection(source, target, 'ge')  |    conn1 = Synapses(source, target, 'w: siemens', |
 +    conn1[3, 5] = 3*nS                        |                     on_pre='ge += w')             |
 +                                              |    conn1.connect(i=3, j=5)                        |
 +                                              |    conn1.w[3, 5] = 3*nS  # (or conn1.w = 3*nS)    |
@@ -97,7 +97,7 @@ matrix can be used:
 + .. code::                                    | .. code::                                         |
 +                                              |                                                   |
 +    # len(source) == 20, len(target) == 30    |    # len(source) == 20, len(target) == 30         |
-+    conn6 = Connection(source, target, 'ge')  |    conn6 = Synapses(source, target, 'w: siemens'  |
++    conn6 = Connection(source, target, 'ge')  |    conn6 = Synapses(source, target, 'w: siemens', |
 +    W = rand(20, 30)*nS                       |                     on_pre='ge += w')             |
 +    conn6.connect(source, target, weight=W)   |    W = rand(20, 30)*nS                            |
 +                                              |    conn6.connect()                                |
@@ -126,7 +126,7 @@ want to set.
 +========================================================+===================================================+
 + .. code::                                              | .. code::                                         |
 +                                                        |                                                   |
-+    conn7 = Connection(source, target, 'ge')            |    conn7 = Synapses(source, target, 'w: siemens'  |
++    conn7 = Connection(source, target, 'ge')            |    conn7 = Synapses(source, target, 'w: siemens', |
 +    conn7.connect_full(source[:5], target[5:10], 5*nS)  |                     on_pre='ge += w')             |
 +                                                        |    conn7.connect('i < 5 and j >=5 and j <10')     |
 +                                                        |    # Alternative (more efficient):                |
@@ -148,7 +148,7 @@ general, string-expression based method:
 +==================================================================+===================================================+
 + .. code::                                                        | .. code::                                         |
 +                                                                  |                                                   |
-+    conn8 = Connection(source, target, 'ge')                      |    conn8 = Synapses(source, target, 'w: siemens'  |
++    conn8 = Connection(source, target, 'ge')                      |    conn8 = Synapses(source, target, 'w: siemens', |
 +    conn8.connect_full(source, target,                            |                     on_pre='ge += w')             |
 +                       weight=lambda i,j:(1+cos(i-j))*2*nS)       |    conn8.connect()                                |
 +                                                                  |    conn8.w = '(1 + cos(i - j))*2*nS'              |
