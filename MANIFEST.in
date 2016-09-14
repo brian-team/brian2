@@ -2,6 +2,7 @@ include ez_setup.py
 
 # Include documentation
 include docs_sphinx/conf.py
+include docs_sphinx/_static/brian-logo.png
 recursive-include docs_sphinx *.rst
 prune docs_sphinx/reference
 prune docs_sphinx/examples
