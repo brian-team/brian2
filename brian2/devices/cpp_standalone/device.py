@@ -22,6 +22,7 @@ from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
+from brian2.groups.group import Group
 from brian2.parsing.rendering import CPPNodeRenderer
 from brian2.synapses.synapses import Synapses
 from brian2.core.preferences import prefs, BrianPreference
@@ -414,9 +415,9 @@ class CPPStandaloneDevice(Device):
                     if var.size[0] * var.size[1] == len(data):
                         size = var.size
                     elif var.size[0] == 0:
-                        size = (len(data)/var.size[1], var.size[1])
-                    elif var.size[0] == 0:
-                        size = (var.size[0], len(data)/var.size[0])
+                        size = (len(data)//var.size[1], var.size[1])
+                    elif var.size[1] == 0:
+                        size = (var.size[0], len(data)//var.size[0])
                     else:
                         raise IndexError(('Do not now how to deal with 2d '
                                           'array of size %s, the array on disk '
@@ -848,6 +849,26 @@ class CPPStandaloneDevice(Device):
             if os.path.isfile('results/last_run_info.txt'):
                 last_run_info = open('results/last_run_info.txt', 'r').read()
                 self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
+
+        # Make sure that integration did not create NaN or very large values
+        owners = [var.owner for var in self.arrays]
+        # We don't want to check the same owner twice but var.owner is a
+        # weakproxy which we can't put into a set. We therefore store the name
+        # of all objects we already checked. Furthermore, under some specific
+        # instances a variable might have been created whose owner no longer
+        # exists (e.g. a `_sub_idx` variable for a subgroup) -- we ignore the
+        # resulting reference error.
+        already_checked = set()
+        for owner in owners:
+            try:
+                if owner.name in already_checked:
+                    continue
+                if isinstance(owner, Group):
+                    owner._check_for_invalid_states()
+                    already_checked.add(owner.name)
+            except ReferenceError:
+                pass
+
 
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=True,

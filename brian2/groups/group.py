@@ -18,7 +18,7 @@ from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
-                                   Subexpression)
+                                   Subexpression, AuxiliaryVariable)
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
@@ -26,7 +26,7 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_CONSTANTS)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.generators.numpy_generator import NumpyCodeGenerator
-from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT
+from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT, Equations
 from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
                                            get_unit, DIMENSIONLESS)
 from brian2.utils.logger import get_logger
@@ -515,10 +515,14 @@ class VariableOwner(Nameable):
         if format not in ImportExport.methods:
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
-            vars = [name for name, var in self.variables.iteritems()
-                    if not name.startswith('_') and
-                    (subexpressions or not isinstance(var, Subexpression)) and
-                    (read_only_variables or not getattr(var, 'read_only', False))]
+            vars = []
+            for name, var in self.variables.iteritems():
+                if name.startswith('_'):
+                    continue
+                if subexpressions or not isinstance(var, Subexpression):
+                    if read_only_variables or not getattr(var, 'read_only', False):
+                        if not isinstance(var, AuxiliaryVariable):
+                            vars.append(name)
         data = ImportExport.methods[format].export_data(self, vars, units=units, level=level)
         return data
 
@@ -931,6 +935,33 @@ class Group(VariableOwner, BrianObject):
                             codeobj_class=codeobj_class)
         self.contained_objects.append(runner)
         return runner
+
+    def _check_for_invalid_states(self):
+        '''
+        Checks if any state variables updated by differential equations have
+        invalid values, and logs a warning if so.
+        '''
+        equations = getattr(self, 'equations', None)
+        if not isinstance(equations, Equations):
+            return
+        for varname in equations.diff_eq_names:
+            self._check_for_invalid_values(varname, self.state(varname,
+                                                               use_units=False))
+
+    def _check_for_invalid_values(self, k, v):
+        '''
+        Checks if variable named k value v has invalid values, and logs a
+        warning if so.
+        '''
+        v = np.asarray(v)
+        if np.isnan(v).any() or (np.abs(v) > 1e50).any():
+            logger.warn(("{name}'s variable '{k}' has NaN, very large values, "
+                         "or encountered an error in numerical integration. "
+                         "This is usually a sign that an unstable or invalid "
+                         "integration method was "
+                         "chosen.").format(name=self.name,
+                                           k=k),
+                        name_suffix="invalid_values", once=True)
 
 
 class CodeRunner(BrianObject):
