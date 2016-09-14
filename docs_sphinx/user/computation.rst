@@ -1,20 +1,36 @@
 Computational methods and efficiency
 ====================================
 
+.. contents::
+    :local:
+    :depth: 1
+
 Brian has several different methods for running the computations in a
 simulation. The default mode is :ref:`runtime`, which runs the simulation loop
 in Python but compiles and executes the modules doing the actual simulation
 work (numerical integration, synaptic propagation, etc.) in a defined target
-language. This mode has the advantage that you can combine the computations
-performed by Brian with arbitrary Python code specified as `NetworkOperation`\ s.
+language. Brian will select the best available target language automatically.
+On Windows, to ensure that you get the advantages of compiled code, read
+the instructions on installing a suitable compiler in
+:ref:`compiler_setup_windows`.
+Runtime mode has the advantage that you can combine the computations
+performed by Brian with arbitrary Python code specified as `NetworkOperation`.
 
 The fact that the simulation is run in Python means that there is a (potentially
 big) overhead for each simulated time step. An alternative is to run Brian in with
 :ref:`cpp_standalone` -- this is in general faster (for certain types of simulations
-*much* faster) but cannot be used for all kinds of simulations.
+*much* faster) but cannot be used for all kinds of simulations. To enable this
+mode, add the following line after your Brian import, but before your simulation
+code::
+
+    set_device('cpp_standalone')
 
 For detailed control over the compilation process (both for runtime and standalone
 code generation), you can change the :ref:`compiler_settings` that are used.
+
+.. admonition:: The following topics are not essential for beginners.
+
+    |
 
 .. _runtime:
 
@@ -54,7 +70,8 @@ example, if you wrote something like this it would not be efficient::
     
 The reason is that the function ``f(x)`` is a Python function and so cannot
 be called from C++ directly. To solve this problem, you need to provide an
-implementation of the function in the target language. See :doc:`functions`.
+implementation of the function in the target language. See
+:doc:`../advanced/functions`.
 
 .. _cpp_standalone:
 
@@ -80,8 +97,8 @@ call. If you need non-standard arguments then you can specify them as part of th
 
     set_device('cpp_standalone', directory='my_directory', debug=True)
 
-Multiple run call
-~~~~~~~~~~~~~~~~~
+Multiple run calls
+~~~~~~~~~~~~~~~~~~
 At the beginning of the script, i.e. after the import statements, add::
 
     set_device('cpp_standalone', build_on_run=False)
@@ -92,6 +109,22 @@ After the last `run` call, call `device.build` explicitly::
 
 The `~CPPStandaloneDevice.build` function has several arguments to specify the output directory, whether or not to
 compile and run the project after creating it and whether or not to compile it with debugging support or not.
+
+Multiple builds
+~~~~~~~~~~~~~~~
+To run multiple full simulations (i.e. multiple ``device.build`` calls, not just
+multiple `run` calls as discussed above), you have to reinitialize the device
+again::
+
+    device.reinit()
+    device.activate()
+
+Note that the device "forgets" about all previously set build options provided
+to `set_device` (most importantly the ``build_on_run`` option, but also e.g. the
+directory), you'll have to specify them as part of the `Device.activate` call.
+Also, `Device.activate` will reset the `defaultclock`, you'll therefore have to
+set its ``dt`` *after* the ``activate`` call if you want to use a non-default
+value.
 
 Limitations
 ~~~~~~~~~~~

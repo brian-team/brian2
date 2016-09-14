@@ -917,6 +917,13 @@ class CPPStandaloneDevice(Device):
                                'in this case. If you want to call it manually, '
                                'e.g. because you have multiple run calls, use '
                                'set_device with build_on_run=False.')
+        if self.has_been_run:
+            raise RuntimeError('The network has already been built and run '
+                               'before. To build several simulations in '
+                               'the same script, call "device.reinit()" '
+                               'and "device.activate()". Note that you '
+                               'will have to set build options (e.g. the '
+                               'directory) and defaultclock.dt again.')
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
                    'run_project': 'run'}

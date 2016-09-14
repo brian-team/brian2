@@ -1,7 +1,7 @@
 Installation
 ============
 
-We recommend users to use the `Anaconda distribution <https://store.continuum.io/cshop/anaconda/>`_
+We recommend users to use the `Anaconda distribution <https://www.continuum.io/downloads>`_
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
 they don't have to be build from the source code at your machine. Furthermore,
@@ -19,7 +19,7 @@ Installation with Anaconda
 
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
-`Download the Anaconda distribution <http://continuum.io/downloads>`_
+`Download the Anaconda distribution <https://continuum.io/downloads>`_
 for your Operating System. For Windows users that want to use Python 3.x, we
 strongly recommend installing the 32 Bit version even on 64 Bit systems, since
 setting the compilation environment (see :ref:`installation_cpp` below) is less
@@ -39,7 +39,7 @@ this, indicating that you are using Anaconda's Python interpreter::
     Please check out: http://continuum.io/thanks and https://binstar.org
 
 Here's some documentation on how to set up some popular IDEs for Anaconda:
-http://docs.continuum.io/anaconda/ide_integration.html
+https://docs.continuum.io/anaconda/ide_integration
 
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
@@ -49,7 +49,7 @@ latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 
 Since Brian 2 is not part of the main Anaconda distribution, you have to install
-it from the `brian-team channel <https://conda.binstar.org/brian-team>`_. To do
+it from the `brian-team channel <https://conda.anaconda.org/brian-team>`_. To do
 so, use::
 
     conda install -c brian-team brian2
@@ -68,23 +68,27 @@ Installing other useful packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 There are various packages that are useful but not necessary for working with
 Brian. These include: matplotlib_ (for plotting), nose_ (for running the test
-suite), ipython_ and ipython-notebook (for an interactive console). To install
-them, simply do::
+suite), ipython_ and jupyter_-notebook (for an interactive console). To install
+them from anaconda, simply do::
 
-    conda install matplotlib nose ipython ipython-notebook
+    conda install matplotlib nose ipython jupyter-notebook
 
+You should also have a look at the brian2tools_ package, which contains several
+useful functions to visualize Brian 2 simulations and recordings. You can
+install it with pip or anaconda, in the same way as Brian 2 itself, e.g. with::
+
+    conda install -c brian-team brian2tools
 
 .. _installation_from_source:
 
 Installation from source
 ------------------------
 If you decide not to use Anaconda, you can install Brian 2 from the Python
-package index: https://pypi.python.org/pypi/brian2
+package index: https://pypi.python.org/pypi/Brian2
 
-To do so, use the ``pip`` utility. Newer versions of ``pip`` require you to use
-the ``--pre`` option to install Brian 2 since it is not yet a final release::
+To do so, use the ``pip`` utility::
 
-    pip install --pre brian2
+    pip install brian2
 
 You might want to add the ``--user`` flag, to install Brian 2 for the local user
 only, which means that you don't need administrator privileges for the
@@ -109,7 +113,7 @@ it to install ``pip``::
     easy_install pip
 
 If you have neither ``pip`` nor ``easy_install``, use the approach described
-here to install ``pip``: https://pip.pypa.io/en/latest/installing.htm
+here to install ``pip``: https://pip.pypa.io/en/latest/installing/
 
 
 Alternatively, you can download the source package directly and uncompress it.
@@ -131,10 +135,16 @@ Cython/weave will be automatically installed if you perform the installation via
 Anaconda, as recommended. Otherwise you can install them in the usual way, e.g.
 using ``pip install cython`` or ``pip install weave``.
 
+Linux and OS X
+~~~~~~~~~~~~~~
 On Linux and Mac OS X, you will most likely already have a working C++ compiler
 installed (try calling ``g++ --version`` in a terminal). If not, use your
 distribution's package manager to install a ``g++`` package.
 
+.. _compiler_setup_windows:
+
+Windows
+~~~~~~~
 On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work
 depend on the Python version you are using:
 
@@ -223,6 +233,8 @@ warnings or errors. For more control about the tests that are run see the
 
 .. _matplotlib: http://matplotlib.org/
 .. _ipython: http://ipython.org/
+.. _jupyter: http://jupyter.org/
+.. _brian2tools: https://brian2tools.readthedocs.io
 .. _travis: https://travis-ci.org/brian-team/brian2
 .. _appveyor: https://ci.appveyor.com/project/brianteam/brian2
 .. _nose: https://pypi.python.org/pypi/nose

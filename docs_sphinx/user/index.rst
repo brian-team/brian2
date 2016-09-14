@@ -7,13 +7,12 @@ User's guide
    import
    units
    models
+   numerical_integration
    equations
    refractoriness
    synapses
    input
    recording
    running
-   computation
-   functions
-   brian1hears_bridge
    multicompartmental
+   computation

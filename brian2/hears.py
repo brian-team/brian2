@@ -1,7 +1,5 @@
 '''
-This is only a temporary bridge for using Brian 1 hears with Brian 2.
-
-This will be removed as soon as brian2hears is working.
+This is only a bridge for using Brian 1 hears with Brian 2.
 
 NOTES:
 
@@ -19,7 +17,7 @@ try:
     import brian as b1
     import brian.hears as b1h
 except ImportError:
-    raise ImportError("brian2.hears is a temporary bridge between Brian 2 and the version of Brian Hears from "
+    raise ImportError("brian2.hears is a bridge between Brian 2 and the version of Brian Hears from "
                       "Brian 1, you need to have Brian 1 installed to use it.")
 
 from brian2.core.clocks import Clock
@@ -34,8 +32,9 @@ from inspect import isclass, ismethod
 
 logger = get_logger(__name__)
 
-logger.warn("You are using the temporary bridge between Brian 2 and Brian Hears from Brian 1, this will be removed "
-            "in a later version.")
+logger.warn("You are using the bridge between Brian 2 and Brian Hears from Brian 1. "
+            "This is not guaranteed to work in all cases that brian.hears works. "
+            "See the limitations in the online documentation.")
 
 def convert_unit_b1_to_b2(val):
     return Quantity.with_dimensions(float(val), arg.dim._dims)

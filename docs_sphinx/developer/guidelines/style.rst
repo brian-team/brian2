@@ -11,7 +11,7 @@ explicit rather than abbreviated and consistent across Brian. See Romain's paper
 <http://briansimulator.org/WordPress/wp-content/uploads/2012/05/On-the-design-of-script-languages-for-neural-simulation.pdf>`__ 
 for a discussion.
 
-We use the `PEP-8 coding conventions <http://www.python.org/dev/peps/pep-0008/>`__
+We use the `PEP-8 coding conventions <https://www.python.org/dev/peps/pep-0008/>`__
 for our code. This in particular includes the following conventions:
 
 * Use 4 spaces instead of tabs per indentation level
@@ -55,7 +55,7 @@ for our code. This in particular includes the following conventions:
 Python 2 vs. Python 3
 ---------------------
 Brian is written in Python 2 but runs on Python 3 using the
-`2to3 <http://docs.python.org/2/library/2to3.html>`__ conversion tool (which is
+`2to3 <https://docs.python.org/2/library/2to3.html>`__ conversion tool (which is
 automatically applied if Brian is installed using the standard
 ``python setup.py install`` mechanism). To make this possible without too much
 effort, Brian no longer supports Python 2.5 and can therefore make use of a

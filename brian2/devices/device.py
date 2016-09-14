@@ -321,7 +321,7 @@ class Device(object):
         codeobj.compile()
         return codeobj
     
-    def activate(self, build_on_run, **kwargs):
+    def activate(self, build_on_run=True, **kwargs):
         '''
         Called when this device is set as the current device.
         '''
@@ -586,10 +586,16 @@ def reset_device(device=None):
 
 def reinit_devices():
     '''
-    Reinitialize all devices and call `Device.activate` again on the current
-    devise. Used as a "teardown" function in testing, if users want to reset
-    their device (e.g. for multiple standalone runs in a single script),
-    calling ``device.reinit()`` should normally be sufficient.
+    Reinitialize all devices, call `Device.activate` again on the current
+    device and reset the preferences. Used as a "teardown" function in testing,
+    if users want to reset their device (e.g. for multiple standalone runs in a
+    single script), calling ``device.reinit()`` followed by
+    ``device.activate()`` should normally be sufficient.
+
+    Notes
+    -----
+    This also resets the `defaultclock`, i.e. a non-standard ``dt`` has to be
+    set again.
     '''
     from brian2 import restore_initial_state  # avoids circular import
 

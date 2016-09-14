@@ -1,6 +1,10 @@
 Equations
 =========
 
+.. contents::
+    :local:
+    :depth: 1
+
 .. _equation_strings:
 
 Equation strings
@@ -13,11 +17,12 @@ Equations are used both in `NeuronGroup` and `Synapses` to:
 Equations are defined by multiline strings.
 
 An Equation is a set of single lines in a string:
-    (1) ``dx/dt = f : unit`` (differential equation)
-    (2) ``x = f : unit`` (subexpression)
-    (3) ``x : unit`` (parameter)
 
-The equations may be defined on multiple lines (no explicit line continuation with ``\`` is necessary).
+ (1) ``dx/dt = f : unit`` (differential equation)
+ (2) ``x = f : unit`` (subexpression)
+ (3) ``x : unit`` (parameter)
+
+Each equation may be spread out over multiple lines to improve formatting.
 Comments using ``#`` may also be included. Subunits are not allowed, i.e., one must write ``volt``, not ``mV``. This is
 to make it clear that the values are internally always saved in the basic units, so no confusion can arise when getting
 the values out of a `NeuronGroup` and discarding the units. Compound units are of course allowed as well (e.g. ``farad/meter**2``).
@@ -28,15 +33,54 @@ Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
 Variable names starting with an underscore and a couple of other names that have special meanings under certain
 circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.
 
-For stochastic equations with several ``xi`` values it is now necessary to make clear whether they correspond to the same
+For stochastic equations with several ``xi`` values it is necessary to make clear whether they correspond to the same
 or different noise instantiations. To make this distinction, an arbitrary suffix can be used, e.g. using ``xi_1`` several times
 refers to the same variable, ``xi_2`` (or ``xi_inh``, ``xi_alpha``, etc.) refers to another. An error will be raised if
 you use more than one plain ``xi``. Note that noise is always independent across neurons, you can only work around this
 restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with `~Group.run_regularly`),
 or create a group that models the noise and link to its variable (see :ref:`linked_variables`).
 
+.. _external-variables:
+
+External variables and functions
+--------------------------------
+Equations defining neuronal or synaptic equations can contain references to
+external parameters or functions. These references are looked up at the time
+that the simulation is run. If you don't specify where to look them up, it
+will look in the Python local/global namespace (i.e. the block of code where
+you call `run`). If you want to override this, you can specify an explicit
+"namespace". This is a Python dictionary with keys being variable names as
+they appear in the equations, and values being the desired value of that
+variable. This namespace can be specified either in the creation of the group
+or when you can the `run` function using the ``namespace`` keyword argument.
+
+The following three examples show the different ways of providing external
+variable values, all having the same effect in this case::
+
+	# Explicit argument to the NeuronGroup
+	G = NeuronGroup(1, 'dv/dt = -v / tau : 1', namespace={'tau': 10*ms})
+	net = Network(G)
+	net.run(10*ms)
+
+	# Explicit argument to the run function
+	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
+	net = Network(G)
+	net.run(10*ms, namespace={'tau': 10*ms})
+
+	# Implicit namespace from the context
+	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
+	net = Network(G)
+	tau = 10*ms
+	net.run(10*ms)
+
+See :doc:`../advanced/namespaces` for more details.
+
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
 Flags
-~~~~~
+-----
 A *flag* is a keyword in parentheses at the end of the line, which
 qualifies the equations. There are several keywords:
 
@@ -74,8 +118,39 @@ Multiple flags may be specified as follows::
 
 	dx/dt = f : unit (flag1,flag2)
 
+List of special symbols
+-----------------------
+
+The following lists all of the special symbols that Brian uses in
+equations and code blocks, and their meanings.
+
+dt
+    Time step width
+i
+    Index of a neuron (`NeuronGroup`) or the pre-synaptic neuron
+    of a synapse (`Synapses`)
+j
+    Index of a post-synaptic neuron of a synapse
+lastspike
+    Last time that the neuron spiked (for refractoriness)
+lastupdate
+    Time of the last update of synaptic variables in event-driven
+    equations.
+N
+    Number of neurons (`NeuronGroup`) or synapses (`Synapses`). Use
+    ``N_pre`` or ``N_post`` for the number of presynaptic or
+    postsynaptic neurons in the context of `Synapses`.
+not_refractory
+    Boolean variable that is normally true, and false if the neuron
+    is currently in a refractory state
+t
+    Current time
+xi, xi_*
+    Stochastic differential in equations
+
+
 Event-driven equations
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 Equations defined as event-driven are completely ignored in the state update.
 They are only defined as variables that can be externally accessed.
 There are additional constraints:
@@ -90,14 +165,14 @@ Currently, automatic event-driven updates are only possible for one-dimensional
 linear equations, but this may be extended in the future.
 
 Equation objects
-~~~~~~~~~~~~~~~~
+----------------
 The model definitions for `NeuronGroup` and `Synapses` can be simple strings or
 `Equations` objects. Such objects can be combined using the add operator::
 
 	eqs = Equations('dx/dt = (y-x)/tau : volt')
 	eqs += Equations('dy/dt = -y/tau: volt')
 
-`Equations` allow for the specification of values in the strings, but do this by simple
+`Equations` allow for the specification of values in the strings, but does this by simple
 string replacement, e.g. you can do::
   
   eqs = Equations('dx/dt = x/tau : volt', tau=10*ms)
@@ -110,47 +185,9 @@ The `Equations` object does some basic syntax checking and will raise an error i
 the same variable are combined. It does not however do unit checking, checking for unknown identifiers or
 incorrect flags -- all this will be done during the instantiation of a `NeuronGroup` or `Synapses` object.
 
+Examples of `Equation` objects
+------------------------------
 
-.. _external-variables:
-
-External variables and functions
---------------------------------
-Equations defining neuronal or synaptic equations can contain references to
-external parameters or functions. These references are looked up at the time
-that the simulation is run. If you don't specify where to look them up, it 
-will look in the Python local/global namespace (i.e. the block of code where
-you call `run`). If you want to override this, you can specify an explicit
-"namespace". This is a Python dictionary with keys being variable names as
-they appear in the equations, and values being the desired value of that
-variable. This namespace can be specified either in the creation of the group
-or when you can the `run` function using the ``namespace`` keyword argument.
-
-The following three examples show the different ways of providing external
-variable values, all having the same effect in this case::
-
-	# Explicit argument to the NeuronGroup
-	G = NeuronGroup(1, 'dv/dt = -v / tau : 1', namespace={'tau': 10*ms})
-	net = Network(G)
-	net.run(10*ms)
-	
-	# Explicit argument to the run function
-	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
-	net = Network(G)
-	net.run(10*ms, namespace={'tau': 10*ms})
-	 
-	# Implicit namespace from the context
-	G = NeuronGroup(1, 'dv/dt = -v / tau : 1')
-	net = Network(G)
-	tau = 10*ms
-	net.run(10*ms)
-
-See :doc:`../advanced/namespaces` for more details.
-
-Examples
---------
-
-Equation objects
-~~~~~~~~~~~~~~~~
 **Concatenating equations**
 
 .. doctest::

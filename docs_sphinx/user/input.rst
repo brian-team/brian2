@@ -1,52 +1,34 @@
 Input stimuli
 =============
+.. sidebar:: For Brian 1 users
 
-There are various ways of providing "external" input to a network. Brian does
-not yet provide all the features of Brian1 in this regard, but there is already
-a range of options, detailed below.
+    See the document :doc:`../introduction/brian1_to_2/inputs` for details how
+    to convert Brian 1 code.
+
+.. contents::
+    :local:
+    :depth: 1
+
+There are various ways of providing "external" input to a network.
 
 Poisson input
 -------------
 For generating spikes according to a Poisson point process, `PoissonGroup` can
-be used. It takes a rate, an array of rates (one rate per neuron), or a string
-expression evaluating to a rate as an argument and can be connected to a
-`NeuronGroup` via the usual `Synapses` mechanism.
-If the given value for ``rates`` is a constant, then using
-``PoissonGroup(N, rates)`` is equivalent to
-``NeuronGroup(N, 'rates : Hz', threshold='rand()<rates*dt')`` and setting the
-group's ``rates`` attribute. If ``rates`` is a string, then it is equivalent
-to ``NeuronGroup(N, 'rates = ... Hz', threshold='rand()<rates*dt')`` with the
-respective expression for the rates (which will be evaluated at every time step
-and therefore allows time-dependent rates). Note that, as can be seen in its
-equivalent `NeuronGroup` formulation, a `PoissonGroup` does not work for high
-rates where more than one spike might fall into a single timestep. Use several
-units with lower rates in this case (e.g. use ``PoissonGroup(10, 1000*Hz)``
-instead of ``PoissonGroup(1, 10000*Hz)``).
-
-Example use::
+be used, e.g.::
 
     P = PoissonGroup(100, np.arange(100)*Hz + 10*Hz)
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     S = Synapses(P, G, on_pre='v+=0.1')
     S.connect(j='i')
 
-For simulations where the `PoissonGroup` is just used as a source of input to a
-neuron (i.e., the individually generated spikes are not important, just their
-impact on the target cell), the `PoissonInput` class provides a more efficient
-alternative. Instead of generating spikes, it directly updates a target variable
-based on the sum of independent Poisson processes::
+It takes a rate, an array of rates (one rate per neuron), or a string
+expression evaluating to a rate as an argument and can be connected to a
+`NeuronGroup` via the usual `Synapses` mechanism.
 
-    G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
-    P = PoissonInput(G, 'v', 100, 100*Hz, weight=0.1)
-
-The `PoissonInput` class is however more restrictive than `PoissonGroup`, it
-only allows for a constant rate across all neurons (but you can create
-several `PoissonInput` objects, targeting different subgroups). It internally
-uses `BinomialFunction` which will draw a random number each time step, either
-from a binomial distribution or from a normal distribution as an approximation
-to the binomial distribution if :math:`n p > 5 \wedge n (1 - p) > 5`, where
-:math:`n` is the number of inputs and :math:`p = dt \cdot rate` the spiking
-probability for a single input.
+Note that `PoissonGroup` won't work for very high rates where there is a
+non-negligible probability of two spikes occurring in the same time step,
+as only one spike is allowed to occur. See the advanced topics below for
+ways to get around this.
 
 Spike generation
 ----------------
@@ -102,7 +84,7 @@ the equations of the respective group::
 Timed arrays
 ------------
 If the time dependence of the input cannot be expressed in the equations in the
-way shown above, it is possible to create a `TimedArray`. Such an objects acts
+way shown above, it is possible to create a `TimedArray`. This acts
 as a function of time where the values at given time points are given
 explicitly. This can be especially useful to describe non-continuous
 stimulation. For example, the following code defines a `TimedArray` where
@@ -110,11 +92,14 @@ stimulus blocks consist of a constant current of random strength for 30ms,
 followed by no stimulus for 20ms. Note that in this particular example,
 numerical integration can use exact methods, since it can assume that the
 `TimedArray` is a constant function of time during a single integration time
-step. Also note that the semantics of `TimedArray` changed slightly compared
-to Brian1: for ``TimedArray([x1, x2, ...], dt=my_dt)``, the value ``x1`` will be
-returned for all ``0<=t<my_dt``, ``x2`` for ``my_dt<=t<2*my_dt`` etc., whereas
-Brian1 returned ``x1`` for ``0<=t<0.5*my_dt``,
-``x2`` for ``0.5*my_dt<=t<1.5*my_dt``, etc.
+step.
+
+.. note::
+    The semantics of `TimedArray` changed slightly compared
+    to Brian 1: for ``TimedArray([x1, x2, ...], dt=my_dt)``, the value ``x1`` will be
+    returned for all ``0<=t<my_dt``, ``x2`` for ``my_dt<=t<2*my_dt`` etc., whereas
+    Brian1 returned ``x1`` for ``0<=t<0.5*my_dt``,
+    ``x2`` for ``0.5*my_dt<=t<1.5*my_dt``, etc.
 
 ::
 
@@ -158,6 +143,43 @@ expressions to have the values only updated for the chosen subset of neurons
   G.run_regularly('''change = int(rand() < 0.5)
                      I = change*(rand()*2) + (1-change)*I''',
                   dt=50*ms)
+
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
+Poisson inputs
+--------------
+
+If the given value for ``rates`` is a constant, then using
+``PoissonGroup(N, rates)`` is equivalent to
+``NeuronGroup(N, 'rates : Hz', threshold='rand()<rates*dt')`` and setting the
+group's ``rates`` attribute. If ``rates`` is a string, then it is equivalent
+to ``NeuronGroup(N, 'rates = ... Hz', threshold='rand()<rates*dt')`` with the
+respective expression for the rates (which will be evaluated at every time step
+and therefore allows time-dependent rates). Note that, as can be seen in its
+equivalent `NeuronGroup` formulation, a `PoissonGroup` does not work for high
+rates where more than one spike might fall into a single timestep. Use several
+units with lower rates in this case (e.g. use ``PoissonGroup(10, 1000*Hz)``
+instead of ``PoissonGroup(1, 10000*Hz)``).
+
+For simulations where the `PoissonGroup` is just used as a source of input to a
+neuron (i.e., the individually generated spikes are not important, just their
+impact on the target cell), the `PoissonInput` class provides a more efficient
+alternative. Instead of generating spikes, it directly updates a target variable
+based on the sum of independent Poisson processes::
+
+    G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
+    P = PoissonInput(G, 'v', 100, 100*Hz, weight=0.1)
+
+The `PoissonInput` class is however more restrictive than `PoissonGroup`, it
+only allows for a constant rate across all neurons (but you can create
+several `PoissonInput` objects, targeting different subgroups). It internally
+uses `BinomialFunction` which will draw a random number each time step, either
+from a binomial distribution or from a normal distribution as an approximation
+to the binomial distribution if :math:`n p > 5 \wedge n (1 - p) > 5`, where
+:math:`n` is the number of inputs and :math:`p = dt \cdot rate` the spiking
+probability for a single input.
 
 .. _network_operation:
 
@@ -215,3 +237,4 @@ cannot be used::
 
         def run(self, runtime):
             self.network.run(runtime)
+

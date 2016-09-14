@@ -1,6 +1,10 @@
 Physical units
 ==============
 
+.. contents::
+    :local:
+    :depth: 1
+
 Brian includes a system for defining physical units. These are defined by
 their standard SI unit names: amp,
 kilogram, second, metre/meter, mole and the derived units coulomb, farad,
@@ -31,18 +35,18 @@ dimensionality mismatches::
     >>> tau += 1  # ms? second?  # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Addition, dimensions were (s) (1)
-    >>> 3*gram + 3*amp   # doctest: +ELLIPSIS
+    DimensionMismatchError: Cannot calculate ... += 1, units do not match (units are second and 1).
+    >>> 3*kgram + 3*amp   # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Addition, dimensions were (kg) (A)
+    DimensionMismatchError: Cannot calculate 3. kg + 3. A, units do not match (units are kgramme and amp).
 
 Most Brian functions will also complain about non-specified or incorrect units::
 
     >>> G = NeuronGroup(10, 'dv/dt = -v/tau: volt', dt=0.5)   # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Function "__init__" variable "dt" has wrong dimensions, dimensions were (1) (s)
+    DimensionMismatchError: Function "__init__" expected a quantitity with unit second for argument "dt" but got 0.5 (unit is 1).
 
 Numpy functions have been overwritten to correctly work with units (see the
 :doc:`developer documentation <../developer/units>` for more details)::
@@ -75,6 +79,10 @@ analysis functions that do not correctly work with units)
     [ 0.,  0.,  0.,  0.,  0.]
 
 
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
 Importing units
 ---------------
 Brian generates standard names for units, combining the unit name (e.g.
@@ -85,7 +93,7 @@ versions by appending a number. For example, the units "msiemens", "siemens2",
 ``from brian2.units.allunits import *`` will result in everything from
 ``Ylumen3`` (cubed yotta lumen) to ``ymol`` (yocto mole) being imported.
 
-A better choice is normally to do an ``from brian2.units import *`` or import
+A better choice is normally to do ``from brian2.units import *`` or import
 everything ``from brian2 import *``, this imports only the base units amp,
 kilogram, second, metre/meter, mole and the derived units coulomb, farad,
 gram/gramme, hertz, joule, pascal, ohm,  siemens, volt, watt, together with the
@@ -123,21 +131,3 @@ instead return a new value (in the same way as standard Python scalars)::
     >>> y
     1. * mvolt
 
-Comparison with Brian 1
------------------------
-
-Brian 1 did only support scalar quantities, units were not stored for arrays.
-Some expressions therefore have different values in Brian 1 and Brian 2:
-
-================================    ================================    =================================
-Expression                          Brian 1                             Brian 2
-================================    ================================    =================================
-1 * mV                              1.0 * mvolt                         1.0 * mvolt
-np.array(1) * mV                    0.001                               1.0 * mvolt
-np.array([1]) * mV                  array([ 0.001])                     array([1.]) * mvolt
-np.mean(np.arange(5) * mV)          0.002                               2.0 * mvolt
-np.arange(2) * mV                   array([ 0.   ,  0.001])             array([ 0.,  1.]) * mvolt
-(np.arange(2) * mV) >= 1 * mV       array([False, True], dtype=bool)    array([False, True], dtype=bool)
-(np.arange(2) * mV)[0] >= 1 * mV    False                               False
-(np.arange(2) * mV)[1] >= 1 * mV    DimensionMismatchError              True
-================================    ================================    =================================

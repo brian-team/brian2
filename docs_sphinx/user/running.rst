@@ -1,5 +1,14 @@
 Running a simulation
 ====================
+.. sidebar:: For Brian 1 users
+
+    See the document :doc:`../introduction/brian1_to_2/networks_and_clocks` for
+    details how to convert Brian 1 code.
+
+.. contents::
+    :local:
+    :depth: 1
+
 
 To run a simulation, one either constructs a new `Network` object and calls its
 `Network.run` method, or uses the "magic" system and a plain `run` call,
@@ -41,6 +50,120 @@ function when creating the `Network` object in that case::
     net = Network(collect())  # automatically include G and S
     net.add(monitors)  # manually add the monitors
 
+.. _time_steps:
+
+Setting the simulation time step
+--------------------------------
+
+To set the simulation time step for every simulated object, set the ``dt`` attribute of the `defaultclock` which is used
+by all objects that do not explicitly specify a ``clock`` or ``dt`` value during construction::
+
+    defaultclock.dt = 0.05*ms
+
+If some objects should use a different clock (e.g. to record values with a `StateMonitor` not at every time step in a
+long running simulation), you can provide a ``dt`` argument to the respective object::
+
+    s_mon = StateMonitor(group, 'v', record=True, dt=1*ms)
+
+To sum up:
+
+* Set ``defaultclock.dt`` to the time step that should be used by most (or all) of your objects.
+* Set ``dt`` explicitly when creating objects that should use a different time step.
+
+Behind the scenes, a new `Clock` object will be created for each object that defines its own ``dt`` value.
+
+.. _progress_reporting:
+
+Progress reporting
+------------------
+Especially for long simulations it is useful to get some feedback about the
+progress of the simulation. Brian offers a few built-in options and an
+extensible system to report the progress of the simulation. In the `Network.run`
+or `run` call, two arguments determine the output: ``report`` and
+``report_period``. When ``report`` is set to ``'text'`` or ``'stdout'``, the
+progress will be printed to the standard output, when it is set to ``'stderr'``,
+it will be printed to "standard error". There will be output at the start and
+the end of the run, and during the run in ``report_period`` intervals. It is
+also possible to do :ref:`custom progress reporting <custom_progress_reporting>`.
+
+.. _continue_repeat:
+
+Continuing/repeating simulations
+--------------------------------
+
+To store the current state of the simulation, call
+`store` (use the `Network.store` method for a `Network`). You
+can store more than one snapshot of a system by providing a name for the
+snapshot; if `store` is called without a specified name,
+``'default'`` is used as the name. To restore the state, use
+`restore`.
+
+The following simple example shows how this system can be used to run several
+trials of an experiment::
+
+    # set up the network
+    G = NeuronGroup(...)
+    ...
+    spike_monitor = SpikeMonitor(G)
+
+    # Snapshot the state
+    store()
+
+    # Run the trials
+    spike_counts = []
+    for trial in range(3):
+        restore()  # Restore the initial state
+        run(...)
+        # store the results
+        spike_counts.append(spike_monitor.count)
+
+The following schematic shows how multiple snapshots can be used to run a
+network with a separate "train" and "test" phase. After training, the test is
+run several times based on the trained network. The whole process of training
+and testing is repeated several times as well::
+
+    # set up the network
+    G = NeuronGroup(..., '''...
+                         test_input : amp
+                         ...''')
+    S = Synapses(..., '''...
+                         plastic : boolean (shared)
+                         ...''')
+    G.v = ...
+    S.connect(...)
+    S.w = ...
+
+    # First snapshot at t=0
+    store('initialized')
+
+    # Run 3 complete trials
+    for trial in range(3):
+        # Simulate training phase
+        restore('initialized')
+        S.plastic = True
+        run(...)
+
+        # Snapshot after learning
+        store('after_learning')
+
+        # Run 5 tests after the training
+        for test_number in range(5):
+            restore('after_learning')
+            S.plastic = False  # switch plasticity off
+            G.test_input = test_inputs[test_number]
+            # monitor the activity now
+            spike_mon = SpikeMonitor(G)
+            run(...)
+            # Do something with the result
+            # ...
+
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
+Multiple magic runs
+-------------------
+
 When you use more than a single `run` statement, the magic system tries to
 detect which of the following two situations applies:
 
@@ -62,24 +185,29 @@ In these checks, "non-invalidating" objects (i.e. objects that have
 `BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
 creating new monitors is always possible.
 
-.. _progress_reporting:
+Changing the simulation time step
+---------------------------------
+You can change the simulation time step after objects have been created or even after a simulation has been run::
 
-Progress reporting
-------------------
-Especially for long simulations it is useful to get some feedback about the
-progress of the simulation. Brian offers a few built-in options and an
-extensible system to report the progress of the simulation. In the `Network.run`
-or `run` call, two arguments determine the output: ``report`` and
-``report_period``. When ``report`` is set to ``'text'`` or ``'stdout'``, the
-progress will be printed to the standard output, when it is set to ``'stderr'``,
-it will be printed to "standard error". There will be output at the start and
-the end of the run, and during the run in ``report_period`` intervals. It is
-also possible to do :ref:`custom progress reporting <custom_progress_reporting>`.
+    defaultclock.dt = 0.1*ms
+    # Set the network
+    # ...
+    run(initial_time)
+    defaultclock.dt = 0.01*ms
+    run(full_time - initial_time)
+
+To change the time step between runs for objects that do not use the `defaultclock`, you cannot directly change their
+``dt`` attribute (which is read-only) but instead you have to change the ``dt`` of the ``clock`` attribute. If you want
+to change the ``dt`` value of several objects at the same time (but not for all of them, i.e. when you cannot use
+``defaultclock.dt``) then you might consider creating a `Clock` object explicitly and then passing this clock to each
+object with the ``clock`` keyword argument (instead of ``dt``). This way, you can later change the ``dt`` for several
+objects at once by assigning a new value to `Clock.dt`.
 
 .. _profiling:
 
 Profiling
 ---------
+
 To get an idea which parts of a simulation take the most time, Brian offers a
 basic profiling mechanism. If a simulation is run with the ``profile=True``
 keyword argument, it will collect information about the total simulation time
@@ -141,81 +269,8 @@ For more details, including finer control over the scheduling of operations
 and changing the value of ``dt`` between runs see
 :doc:`../advanced/scheduling`.
 
-
-.. _continue_repeat:
-
-Continuing/repeating simulations
---------------------------------
-
-To store the current state of a network, including the time of the simulation,
-internal variables like triggered but not yet delivered spikes, etc., call
-`Network.store` which will store the state of all the objects
-in the network (use a plain `store` if you are using the magic system). You
-can store more than one snapshot of a system by providing a name for the
-snapshot; if `Network.store` is called without a specified name,
-``'default'`` is used as the name. To restore a network's state, use
-`Network.restore`.
-
-The following simple example shows how this system can be used to run several
-trials of an experiment::
-
-    # set up the network
-    G = NeuronGroup(...)
-    S = Synapses(...)
-    G.v = ...
-    S.connect(...)
-    S.w = ...
-    spike_monitor = SpikeMonitor(G)
-    # Snapshot the state
-    store()
-
-    # Run the trials
-    spike_counts = []
-    for trial in range(3):
-        restore()  # Restore the initial state
-        run(...)
-        # store the results
-        spike_counts.append(spike_monitor.count)
-
-The following schematic shows how multiple snapshots can be used to run a
-network with a separate "train" and "test" phase. After training, the test is
-run several times based on the trained network. The whole process of training
-and testing is repeated several times as well::
-
-    # set up the network
-    G = NeuronGroup(..., '''...
-                         test_input : amp
-                         ...''')
-    S = Synapses(..., '''...
-                         plastic : boolean (shared)
-                         ...''')
-    G.v = ...
-    S.connect(...)
-    S.w = ...
-
-    # First snapshot at t=0
-    store('initialized')
-
-    # Run 3 complete trials
-    for trial in range(3):
-        # Simulate training phase
-        restore('initialized')
-        S.plastic = True
-        run(...)
-
-        # Snapshot after learning
-        store('after_learning')
-
-        # Run 5 tests after the training
-        for test_number in range(5):
-            restore('after_learning')
-            S.plastic = False  # switch plasticity off
-            G.test_input = test_inputs[test_number]
-            # monitor the activity now
-            spike_mon = SpikeMonitor(G)
-            run(...)
-            # Do something with the result
-            # ...
+Store/restore
+-------------
 
 Note that `Network.run`, `Network.store` and `Network.restore` (or `run`,
 `store`, `restore`) are the only way of affecting the time of the clocks. In

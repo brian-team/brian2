@@ -2,8 +2,8 @@ Documentation
 =============
 
 It is very important to maintain documentation. We use the
-`Sphinx documentation generator <http://sphinx.pocoo.org/>`__ tools. The
-documentation is all hand written. Sphinx source files are stored in the
+`Sphinx documentation generator <http://www.sphinx-doc.org/en/stable/>`__
+tools. The documentation is all hand written. Sphinx source files are stored in the
 ``docs_sphinx`` folder (currently: ``dev/brian2/docs_sphinx``). The HTML files
 can be generated via the script ``dev/tools/docs/build_html_brian2.py`` and end
 up in the ``docs`` folder (currently: ``dev/brian2/docs``).
@@ -48,7 +48,7 @@ is obvious what it does. For example, there is normally no need to document
 
 For the docstring format, we use the our own sphinx extension (in
 `brian2.utils.sphinxext`) based on
-`numpydoc <http://pypi.python.org/pypi/numpydoc/>`__, allowing to write
+`numpydoc <https://pypi.python.org/pypi/numpydoc/>`__, allowing to write
 docstrings that are well readable both in sourcecode as well as in the
 rendered HTML. We generally follow the `format used by numpy
 <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`__

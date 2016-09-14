@@ -48,10 +48,10 @@ The information stored in the `Variable` objects is used to do various checks
 on the level of the abstract code, i.e. before any programming language code is
 generated. Here are some examples of errors that are caught this way::
 
-    >>> G.v = 3*ms  # G.variables['v'].unit is volt
+    >>> G.v = 3*ms  # G.variables['v'].unit is volt   # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    DimensionMismatchError: Incorrect units for setting v, dimensions were (s) (m^2 kg s^-3 A^-1)
+    DimensionMismatchError: v should be set with a value with units volt, but got 3. ms (unit is second).
     >>> G.N = 5  # G.variables['N'] is read-only
     Traceback (most recent call last):
     ...

@@ -9,6 +9,7 @@ from brian2.parsing.rendering import NodeRenderer
 from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            DimensionMismatchError,
                                            have_same_dimensions,
+                                           get_dimensions
                                            )
 
 __all__ = ['is_boolean_expression',
@@ -246,8 +247,11 @@ def parse_expression_unit(expr, variables):
             subunits.append(parse_expression_unit(node, variables))
         for left, right in zip(subunits[:-1], subunits[1:]):
             if not have_same_dimensions(left, right):
-                raise DimensionMismatchError("Comparison of expressions with different units",
-                                             *[getattr(u, 'dim', 1) for u in subunits])
+                msg = ('Comparison of expressions with different units. Expression '
+                       '"{}" has unit ({}), while expression "{}" has units ({})').format(
+                            NodeRenderer().render_node(expr.left), get_dimensions(left),
+                            NodeRenderer().render_node(expr.comparators[0]), get_dimensions(right))
+                raise DimensionMismatchError(msg)
         # but the result is a bool, so we just return 1 as the unit
         return get_unit_fast(1)
     elif expr.__class__ is ast.Call:
@@ -285,12 +289,13 @@ def parse_expression_unit(expr, variables):
             else:
                 arg_unit = parse_expression_unit(arg, variables)
                 if not have_same_dimensions(arg_unit, expected_unit):
-                    raise DimensionMismatchError(('Argument number %d for '
-                                                  'function %s does not have '
-                                                  'the correct '
-                                                  'units' % (idx + 1,
-                                                             expr.func.id)),
-                                                 arg_unit, expected_unit)
+                    msg = ('Argument number {} for function {} does not have the '
+                           'correct units. Expression "{}" has units ({}), but '
+                           'should be ({}).').format(
+                        idx+1, expr.func.id,
+                        NodeRenderer().render_node(arg),
+                        get_dimensions(arg_unit), get_dimensions(expected_unit))
+                    raise DimensionMismatchError(msg)
 
         if func._return_unit == bool:
             return Unit(1)

@@ -169,7 +169,7 @@ if not on_rtd:
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = '_static/brian-logo.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -225,6 +225,8 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'Brian2doc'
 
+# Suppress warnings about the mybinder badges
+suppress_warnings = ['image.nonlocal_uri']
 
 # -- Options for LaTeX output --------------------------------------------------
 
@@ -306,7 +308,7 @@ intersphinx_mapping = {
     'http://docs.scipy.org/doc/numpy': None,
     'http://docs.scipy.org/doc/scipy/reference': None,
     'http://docs.sympy.org/dev/': None,
-    'https://nose.readthedocs.org/en/latest/': None
+    'https://nose.readthedocs.io/en/latest/': None
 }
 
 autodoc_default_flags = ['show-inheritance']

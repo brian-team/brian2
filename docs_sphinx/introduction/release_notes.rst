@@ -1,8 +1,8 @@
 Release notes
 =============
 
-Changes since last release
---------------------------
+Brian 2.0
+---------
 
 New features
 ~~~~~~~~~~~~
@@ -23,6 +23,17 @@ Improvements and bug fixes
   which previously made plotting very slow for complex morphologies (#741).
 * Fix a bug in `SpatialNeuron` where it did not detect non-linear dependencies
   on v, introduced via point currents (#743).
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* An interactive demo, tutorials, and examples can now be run in an interactive
+  jupyter notebook on the `mybinder <http://mybinder.org/>`_ platform, without
+  any need for a local Brian installation (#736). Thanks to Ben Evans for the
+  idea and help with the implementation.
+* A new extensive guide for converting Brian 1 simulations to Brian 2 user
+  coming from Brian 1: :doc:`changes`
+* A re-organized :doc:`../user/index`, with clearer indications which
+  information is important for new Brian users.
 
 Contributions
 ~~~~~~~~~~~~~
@@ -477,7 +488,7 @@ Major new features
 * New classes `Morphology` and `SpatialNeuron` for the simulation of
   :doc:`../user/multicompartmental`
 * A temporary "bridge" for ``brian.hears`` that allows to use its Brian 1
-  version from Brian 2 (:doc:`../user/brian1hears_bridge`)
+  version from Brian 2 (:doc:`brian1_to_2/brian1hears_bridge`)
 * Cython is now a new code generation target, therefore the performance benefits
   of compiled code are now also available to users running simulations under
   Python 3.x (where ``scipy.weave`` is not available)
