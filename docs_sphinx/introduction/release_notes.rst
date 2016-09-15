@@ -27,8 +27,10 @@ Major new features
 New features
 ~~~~~~~~~~~~
 
+* Installation should now be much easier, especially if using the
+  Anaconda Python distribution. See :doc:`/introduction/install`.
 * Many improvements to `Synapses` which replaces the old ``Connection``
-  object in Brian 1. This includes: multiple synapses between a pair of neurons;
+  object in Brian 1. This includes:
   synapses that are triggered by non-spike events; synapses that target
   other synapses; huge speed improvements thanks to using code generation;
   new "generator syntax" when creating synapses is much more flexible and
@@ -46,25 +48,56 @@ New features
   :doc:`/user/units`.
 * Indexing variable by condition, e.g. you might write ``G.v['x>0']`` to
   return all values of variable ``v`` in `NeuronGroup` ``G`` where the
-  group's variable ``x>0``.
-* Correct numerical integraton of stochastic differential equations.
+  group's variable ``x>0``. See :ref:`state_variables`.
+* Correct numerical integration of stochastic differential equations.
   See :doc:`/user/numerical_integration`.
 * "Magic" `run` system has been greatly simplified and is now much more
   transparent. In addition, if there is any ambiguity about what the user
   wants to run, an erorr will be raised rather than making a guess. This
-  makes it much safer. See :doc:`/user/running`.
+  makes it much safer. In addition, there is now a `store`/`restore`
+  mechanism that simplifies restarting simulations and managing separate
+  training/testing runs. See :doc:`/user/running`.
+* Changing an external variable between runs now works as expected, i.e.
+  something like ``tau=1*ms; run(100*ms); tau=5*ms; run(100*ms)``. In
+  Brian 1 this would have used ``tau=1*ms`` for both runs. More generally,
+  in Brian 2 there is now better control over namespaces. See
+  :doc:`/advanced/namespaces`.
+* New "shared" variables with a single value shared between all neurons.
+  See :ref:`shared_variables`.
+* New `Group.run_regularly` method for a codegen-compatible way of doing
+  things that used to be done with `network_operation` (which can still
+  be used). See :ref:`regular_operations`.
 * New system for handling externally defined functions. They have to specify
   which units they accept in their arguments, and what they return. In
   addition, you can easily specify the implementation of user-defined
   functions in different languages for code generation. See
   :doc:`/advanced/functions`.
+* State variables can now be defined as integer or boolean values.
+  See :doc:`/user/equations`.
+* State variables can now be exported directly to Pandas data frame.
+  See :ref:`storing_state_variables`.
 * New generalised "flags" system for giving additional information when
   defining models. See :ref:`flags`.
 * `TimedArray` now allows for 2D arrays with arbitrary indexing.
   See :ref:`timed_arrays`.
+* Better support for using Brian in IPython/Jupyter. See, for example,
+  `start_scope`.
 * New preferences system. See :doc:`/advanced/preferences`.
-* All objects now have a unique name, used in code generation. This can
-  also be used to access the object through the `Network` object.
+* Random number generation can now be made reliably reproducible.
+  See :doc:`/advanced/random`.
+* New profiling option to see which parts of your simulation are taking
+  the longest to run. See :ref:`profiling`.
+* New logging system allows for more precise control. See
+  :doc:`/advanced/logging`.
+* New ways of importing Brian for advanced Python users. See
+  :doc:`/user/import`.
+* Improved control over the order in which objects are updated during
+  a run. See :doc:`/advanced/scheduling`.
+* Users can now easily define their own numerical integration methods.
+  See :doc:`/advanced/state_update`.
+* Support for parallel processing using the OpenMP version of
+  standalone mode. Note that all Brian tests pass with this, but it is
+  still considered to be experimental. See :ref:`openmp`.
 
 Backwards incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,6 +115,8 @@ Behind the scenes changes
   that can be compiled and built independently of Brian and Python. This
   allows for even more flexible use of Brian on non-standard hardware.
   See :doc:`/developer/devices`.
+* All objects now have a unique name, used in code generation. This can
+  also be used to access the object through the `Network` object.
 
 Brian 2.0 (changes since 2.0rc3)
 --------------------------------
@@ -126,6 +161,7 @@ TODO
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
+* Benjamin Evans (`@bdevans <https://github.com/bdevans>`_)
 * Chaofei Hong
 * Daniel Bliss
 * Jacopo Bono

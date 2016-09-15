@@ -83,6 +83,9 @@ external variables and parameters, in the same way as model descriptions::
     G = NeuronGroup(10, '''dv/dt = -v/tau : volt
                            v_th : volt  # neuron-specific threshold''',
                     threshold='v > v_th', reset='v = v_r')
+
+You can also create non-spike events. See :doc:`/advanced/custom_events`
+for more details.
                      
 Refractoriness
 --------------
@@ -95,6 +98,8 @@ refractory keyword can be used::
 This will not allow any threshold crossing for a neuron for 5ms after a spike.
 The refractory keyword allows for more flexible refractoriness specifications,
 see :doc:`refractoriness` for details.
+
+.. _state_variables:
 
 State variables
 ---------------
@@ -122,6 +127,14 @@ functions, and a special variable ``i``, the index of the neuron:
     >>> G.tau = '5*ms + (1.0*i/N)*5*ms'
     >>> G.tau
     <neurongroup.tau: array([ 5. ,  5.5,  6. ,  6.5,  7. ,  7.5,  8. ,  8.5,  9. ,  9.5]) * msecond>
+
+You can also set the value only if a condition holds, for example:
+
+.. doctest::
+
+    >>> G.v['tau>7.25*ms'] = -60*mV
+    >>> G.v
+    <neurongroup.v: array([-70., -70., -70., -70., -70., -60., -60., -60., -60., -60.]) * mvolt>
 
 Subgroups
 ---------
@@ -152,6 +165,8 @@ not to the main group
 .. admonition:: The following topics are not essential for beginners.
 
     |
+
+.. _shared_variables:
 
 Shared variables
 ----------------
@@ -188,6 +203,8 @@ For shared variables, setting by string expressions can only refer to shared val
     >>> G.shared_input = '(4.0/N)*mV'
     >>> G.shared_input
     <neurongroup.shared_input: 0.4 * mvolt>
+
+.. _storing_state_variables:
 
 Storing state variables
 -----------------------
