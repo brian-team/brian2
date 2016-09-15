@@ -118,6 +118,28 @@ Behind the scenes changes
 * All objects now have a unique name, used in code generation. This can
   also be used to access the object through the `Network` object.
 
+Contributions
+~~~~~~~~~~~~~
+Full list of all Brian 2 contributors, ordered by the time of their first
+contribution:
+
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+* Cyrille Rossant (`@rossant <https://github.com/rossant>`_)
+* Victor Benichoux (`@victorbenichoux <https://github.com/victorbenichoux>`_)
+* Pierre Yger (`@yger <https://github.com/yger>`_)
+* Werner Beroux (`@wernight <https://github.com/wernight>`_)
+* Konrad Wartke (`@Kwartke <https://github.com/Kwartke>`_)
+* Daniel Bliss (`@dabliss <https://github.com/dabliss>`_)
+* Jan-Hendrik Schleimer (`@ttxtea <https://github.com/ttxtea>`_)
+* Moritz Augustin (`@moritzaugustin <https://github.com/moritzaugustin>`_)
+* Romain Cazé (`@rcaze <https://github.com/rcaze>`_)
+* Dominik Krzemiński (`@dokato <https://github.com/dokato>`_)
+* Martino Sorbaro (`@martinosorb <https://github.com/martinosorb>`_)
+* Benjamin Evans (`@bdevans <https://github.com/bdevans>`_)
+
+
 Brian 2.0 (changes since 2.0rc3)
 --------------------------------
 
@@ -156,12 +178,13 @@ Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
 
-TODO
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Benjamin Evans (`@bdevans <https://github.com/bdevans>`_)
 
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
-* Benjamin Evans (`@bdevans <https://github.com/bdevans>`_)
 * Chaofei Hong
 * Daniel Bliss
 * Jacopo Bono
