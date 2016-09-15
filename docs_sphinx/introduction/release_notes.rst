@@ -1,8 +1,90 @@
 Release notes
 =============
 
-Brian 2.0
----------
+Brian 2.0 (changes since 1.4)
+-----------------------------
+
+Major new features
+~~~~~~~~~~~~~~~~~~
+
+* Much more flexible model definitions. The behaviour of all model elements
+  can now be defined by arbitrary equations specified in standard
+  mathematical notation.
+
+* Code generation as standard. Behind the scenes, Brian automatically generates
+  and compiles C++ code to simulate your model, making it much faster.
+
+* "Standalone mode". In this mode, Brian generates a complete C++ project tree
+  that implements your model. This can be then be compiled and run entirely
+  independently of Brian. This leads to both highly efficient code, as well as
+  making it much easier to run simulations on non-standard computational
+  hardware, for example on robotics platforms.
+
+* Multicompartmental modelling.
+
+* Python 2 and 3 support.
+
+New features
+~~~~~~~~~~~~
+
+* Many improvements to `Synapses` which replaces the old ``Connection``
+  object in Brian 1. This includes: multiple synapses between a pair of neurons;
+  synapses that are triggered by non-spike events; synapses that target
+  other synapses; huge speed improvements thanks to using code generation;
+  new "generator syntax" when creating synapses is much more flexible and
+  efficient. See :doc:`/user/synapses`.
+* New model definitions allow for much more flexible refractoriness. See
+  :doc:`/user/refractoriness`.
+* `SpikeMonitor` and `StateMonitor` are now much more flexible, and cover a
+  lot of what used to be covered by things like ``MultiStateMonitor``, etc.
+  See :doc:`/user/recording`.
+* Multiple event types. In addition to the default ``spike`` event, you can
+  create arbitrary events, and have these trigger code blocks (like reset)
+  or synaptic events. See :doc:`/advanced/custom_events`.
+* New units system allows arrays to have units. This eliminates the need for
+  a lot of the special casing that was required in Brian 1. See
+  :doc:`/user/units`.
+* Indexing variable by condition, e.g. you might write ``G.v['x>0']`` to
+  return all values of variable ``v`` in `NeuronGroup` ``G`` where the
+  group's variable ``x>0``.
+* Correct numerical integraton of stochastic differential equations.
+  See :doc:`/user/numerical_integration`.
+* "Magic" `run` system has been greatly simplified and is now much more
+  transparent. In addition, if there is any ambiguity about what the user
+  wants to run, an erorr will be raised rather than making a guess. This
+  makes it much safer. See :doc:`/user/running`.
+* New system for handling externally defined functions. They have to specify
+  which units they accept in their arguments, and what they return. In
+  addition, you can easily specify the implementation of user-defined
+  functions in different languages for code generation. See
+  :doc:`/advanced/functions`.
+* New generalised "flags" system for giving additional information when
+  defining models. See :ref:`flags`.
+* `TimedArray` now allows for 2D arrays with arbitrary indexing.
+  See :ref:`timed_arrays`.
+* New preferences system. See :doc:`/advanced/preferences`.
+* All objects now have a unique name, used in code generation. This can
+  also be used to access the object through the `Network` object.
+
+Backwards incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+See :doc:`brian1_to_2/index`.
+
+Behind the scenes changes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* All user models are now passed through the code generation system.
+  This allows us to be much more flexible about introducing new target
+  languages for generated code to make use of non-standard computational
+  hardware. See :doc:`/developer/codegen`.
+* New standalone/device mode allows generation of a complete project tree
+  that can be compiled and built independently of Brian and Python. This
+  allows for even more flexible use of Brian on non-standard hardware.
+  See :doc:`/developer/devices`.
+
+Brian 2.0 (changes since 2.0rc3)
+--------------------------------
 
 New features
 ~~~~~~~~~~~~
