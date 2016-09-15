@@ -126,9 +126,8 @@ and easily extensible. It is based on a code generation framework that allows
 to execute simulations using other programming languages and/or on different
 devices.
 
-We currently consider this software to be in the beta status, please report
-issues to the github issue tracker (https://github.com/brian-team/brian2/issues) or to the
-brian-development mailing list (http://groups.google.com/group/brian-development/)
+Please report issues to the github issue tracker (https://github.com/brian-team/brian2/issues) or to the
+brian support mailing list (http://groups.google.com/group/briansupport/)
 
 Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
@@ -184,7 +183,7 @@ setup(name='Brian2',
       author_email='team@briansimulator.org',
       keywords='computational neuroscience simulation',
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)',
           'Natural Language :: English',

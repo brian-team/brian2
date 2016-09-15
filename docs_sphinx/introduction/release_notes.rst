@@ -1,8 +1,147 @@
 Release notes
 =============
 
-Brian 2.0
----------
+Brian 2.0 (changes since 1.4)
+-----------------------------
+
+Major new features
+~~~~~~~~~~~~~~~~~~
+
+* Much more flexible model definitions. The behaviour of all model elements
+  can now be defined by arbitrary equations specified in standard
+  mathematical notation.
+
+* Code generation as standard. Behind the scenes, Brian automatically generates
+  and compiles C++ code to simulate your model, making it much faster.
+
+* "Standalone mode". In this mode, Brian generates a complete C++ project tree
+  that implements your model. This can be then be compiled and run entirely
+  independently of Brian. This leads to both highly efficient code, as well as
+  making it much easier to run simulations on non-standard computational
+  hardware, for example on robotics platforms.
+
+* Multicompartmental modelling.
+
+* Python 2 and 3 support.
+
+New features
+~~~~~~~~~~~~
+
+* Installation should now be much easier, especially if using the
+  Anaconda Python distribution. See :doc:`/introduction/install`.
+* Many improvements to `Synapses` which replaces the old ``Connection``
+  object in Brian 1. This includes:
+  synapses that are triggered by non-spike events; synapses that target
+  other synapses; huge speed improvements thanks to using code generation;
+  new "generator syntax" when creating synapses is much more flexible and
+  efficient. See :doc:`/user/synapses`.
+* New model definitions allow for much more flexible refractoriness. See
+  :doc:`/user/refractoriness`.
+* `SpikeMonitor` and `StateMonitor` are now much more flexible, and cover a
+  lot of what used to be covered by things like ``MultiStateMonitor``, etc.
+  See :doc:`/user/recording`.
+* Multiple event types. In addition to the default ``spike`` event, you can
+  create arbitrary events, and have these trigger code blocks (like reset)
+  or synaptic events. See :doc:`/advanced/custom_events`.
+* New units system allows arrays to have units. This eliminates the need for
+  a lot of the special casing that was required in Brian 1. See
+  :doc:`/user/units`.
+* Indexing variable by condition, e.g. you might write ``G.v['x>0']`` to
+  return all values of variable ``v`` in `NeuronGroup` ``G`` where the
+  group's variable ``x>0``. See :ref:`state_variables`.
+* Correct numerical integration of stochastic differential equations.
+  See :doc:`/user/numerical_integration`.
+* "Magic" `run` system has been greatly simplified and is now much more
+  transparent. In addition, if there is any ambiguity about what the user
+  wants to run, an erorr will be raised rather than making a guess. This
+  makes it much safer. In addition, there is now a `store`/`restore`
+  mechanism that simplifies restarting simulations and managing separate
+  training/testing runs. See :doc:`/user/running`.
+* Changing an external variable between runs now works as expected, i.e.
+  something like ``tau=1*ms; run(100*ms); tau=5*ms; run(100*ms)``. In
+  Brian 1 this would have used ``tau=1*ms`` for both runs. More generally,
+  in Brian 2 there is now better control over namespaces. See
+  :doc:`/advanced/namespaces`.
+* New "shared" variables with a single value shared between all neurons.
+  See :ref:`shared_variables`.
+* New `Group.run_regularly` method for a codegen-compatible way of doing
+  things that used to be done with `network_operation` (which can still
+  be used). See :ref:`regular_operations`.
+* New system for handling externally defined functions. They have to specify
+  which units they accept in their arguments, and what they return. In
+  addition, you can easily specify the implementation of user-defined
+  functions in different languages for code generation. See
+  :doc:`/advanced/functions`.
+* State variables can now be defined as integer or boolean values.
+  See :doc:`/user/equations`.
+* State variables can now be exported directly to Pandas data frame.
+  See :ref:`storing_state_variables`.
+* New generalised "flags" system for giving additional information when
+  defining models. See :ref:`flags`.
+* `TimedArray` now allows for 2D arrays with arbitrary indexing.
+  See :ref:`timed_arrays`.
+* Better support for using Brian in IPython/Jupyter. See, for example,
+  `start_scope`.
+* New preferences system. See :doc:`/advanced/preferences`.
+* Random number generation can now be made reliably reproducible.
+  See :doc:`/advanced/random`.
+* New profiling option to see which parts of your simulation are taking
+  the longest to run. See :ref:`profiling`.
+* New logging system allows for more precise control. See
+  :doc:`/advanced/logging`.
+* New ways of importing Brian for advanced Python users. See
+  :doc:`/user/import`.
+* Improved control over the order in which objects are updated during
+  a run. See :doc:`/advanced/scheduling`.
+* Users can now easily define their own numerical integration methods.
+  See :doc:`/advanced/state_update`.
+* Support for parallel processing using the OpenMP version of
+  standalone mode. Note that all Brian tests pass with this, but it is
+  still considered to be experimental. See :ref:`openmp`.
+
+Backwards incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+See :doc:`brian1_to_2/index`.
+
+Behind the scenes changes
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* All user models are now passed through the code generation system.
+  This allows us to be much more flexible about introducing new target
+  languages for generated code to make use of non-standard computational
+  hardware. See :doc:`/developer/codegen`.
+* New standalone/device mode allows generation of a complete project tree
+  that can be compiled and built independently of Brian and Python. This
+  allows for even more flexible use of Brian on non-standard hardware.
+  See :doc:`/developer/devices`.
+* All objects now have a unique name, used in code generation. This can
+  also be used to access the object through the `Network` object.
+
+Contributions
+~~~~~~~~~~~~~
+Full list of all Brian 2 contributors, ordered by the time of their first
+contribution:
+
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+* Cyrille Rossant (`@rossant <https://github.com/rossant>`_)
+* Victor Benichoux (`@victorbenichoux <https://github.com/victorbenichoux>`_)
+* Pierre Yger (`@yger <https://github.com/yger>`_)
+* Werner Beroux (`@wernight <https://github.com/wernight>`_)
+* Konrad Wartke (`@Kwartke <https://github.com/Kwartke>`_)
+* Daniel Bliss (`@dabliss <https://github.com/dabliss>`_)
+* Jan-Hendrik Schleimer (`@ttxtea <https://github.com/ttxtea>`_)
+* Moritz Augustin (`@moritzaugustin <https://github.com/moritzaugustin>`_)
+* Romain Cazé (`@rcaze <https://github.com/rcaze>`_)
+* Dominik Krzemiński (`@dokato <https://github.com/dokato>`_)
+* Martino Sorbaro (`@martinosorb <https://github.com/martinosorb>`_)
+* Benjamin Evans (`@bdevans <https://github.com/bdevans>`_)
+
+
+Brian 2.0 (changes since 2.0rc3)
+--------------------------------
 
 New features
 ~~~~~~~~~~~~
@@ -39,7 +178,9 @@ Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):
 
-TODO
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Benjamin Evans (`@bdevans <https://github.com/bdevans>`_)
 
 Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):

@@ -79,6 +79,8 @@ See :doc:`../advanced/namespaces` for more details.
 
     |
 
+.. _flags:
+
 Flags
 -----
 A *flag* is a keyword in parentheses at the end of the line, which

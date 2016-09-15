@@ -124,6 +124,7 @@ the second::
     G = NeuronGroup(100, 'dv/dt = (-v + stimulus(t, i % 2))/(10*ms) : 1',
                     threshold='v>1', reset='v=0')
 
+.. _regular_operations:
 
 Regular operations
 ------------------
