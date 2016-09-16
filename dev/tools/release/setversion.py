@@ -12,10 +12,10 @@ import os, sys, re, datetime
 
 
 def setversion(version):
+    version_parts = version.split('.')
+    assert len(version_parts) >= 2
     docs_release = version
-    major = docs_release[:docs_release.find('.')]
-    minor = docs_release[docs_release.find('.') + 1:docs_release.find('.', docs_release.find('.') + 1)]
-    docs_version = major + '.' + minor
+    docs_version = version_parts[0] + '.' + version_parts[1]
     pathname = os.path.abspath(os.path.dirname(__file__))
     os.chdir(pathname)
     os.chdir('../../../')
