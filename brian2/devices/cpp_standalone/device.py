@@ -1140,11 +1140,11 @@ class CPPStandaloneDevice(Device):
                                    'statements with this device.')
             self.build(direct_call=False, **self.build_options)
 
-    def network_store(self, net, name='default'):
+    def network_store(self, net, *args, **kwds):
         raise NotImplementedError(('The store/restore mechanism is not '
                                    'supported in the C++ standalone'))
 
-    def network_restore(self, net, name='default'):
+    def network_restore(self, net, *args, **kwds):
         raise NotImplementedError(('The store/restore mechanism is not '
                                    'supported in the C++ standalone'))
 
