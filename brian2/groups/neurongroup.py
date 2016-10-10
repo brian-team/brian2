@@ -750,10 +750,13 @@ class NeuronGroup(Group, SpikeSource):
 
         # Add the conditional-write attribute for variables with the
         # "unless refractory" flag
-        for eq in self.equations.itervalues():
-            if eq.type == DIFFERENTIAL_EQUATION and 'unless refractory' in eq.flags:
-                not_refractory_var = self.variables['not_refractory']
-                self.variables[eq.varname].set_conditional_write(not_refractory_var)
+        if self._refractory is not False:
+            for eq in self.equations.itervalues():
+                if (eq.type == DIFFERENTIAL_EQUATION and
+                            'unless refractory' in eq.flags):
+                    not_refractory_var = self.variables['not_refractory']
+                    var = self.variables[eq.varname]
+                    var.set_conditional_write(not_refractory_var)
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
