@@ -1,3 +1,4 @@
+from brian2.utils.logger import catch_logs
 from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
@@ -19,6 +20,17 @@ def test_add_refractoriness():
     # Check that the parameters were added
     assert 'not_refractory' in eqs
     assert 'lastspike' in eqs
+
+
+@attr('codegen-independent')
+def test_missing_refractory_warning():
+    # Forgotten refractory argument
+    with catch_logs() as l:
+        group = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1 (unless refractory)',
+                            threshold='v > 1', reset='v = 0')
+    assert len(l) == 1
+    assert l[0][0] == 'WARNING' and l[0][1].endswith('no_refractory')
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -201,6 +213,7 @@ def test_conditional_write_automatic_and_manual():
 
 if __name__ == '__main__':
     test_add_refractoriness()
+    test_missing_refractory_warning()
     test_refractoriness_variables()
     test_refractoriness_threshold()
     test_refractoriness_types()
