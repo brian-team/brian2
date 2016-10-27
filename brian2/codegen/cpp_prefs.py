@@ -82,6 +82,9 @@ prefs.register_preferences(
         default=[],
         docs='''
         List of directories to search for C/C++ libraries at link time.
+        Note that ``$prefix/lib`` will be appended to the end automatically,
+        where ``$prefix`` is Python's site-specific directory prefix as returned
+        by `sys.prefix`.
         '''
     ),
     runtime_library_dirs=BrianPreference(
