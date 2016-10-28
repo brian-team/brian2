@@ -105,6 +105,7 @@ class WeaveCodeObject(CodeObject):
         synapses_dir = os.path.dirname(synapses.__file__)
         self.include_dirs.append(synapses_dir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         update_for_cross_compilation(self.library_dirs,
                                      self.extra_compile_args,
                                      self.extra_link_args, logger=logger)

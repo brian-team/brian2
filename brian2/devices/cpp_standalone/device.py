@@ -949,14 +949,18 @@ class CPPStandaloneDevice(Device):
         compiler, extra_compile_args = get_compiler_and_args()
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
         compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
-                                                           prefs['codegen.cpp.include_dirs']+['brianlib/randomkit']) +
+                                                           prefs['codegen.cpp.include_dirs'] +
+                                                           ['brianlib/randomkit'] +
+                                                           [sys.prefix+'/include']) +
                           extra_compile_args)
-        if sys.platform=='win32':
+        if sys.platform == 'win32':
             wincrypt = ['advapi32']
         else:
             wincrypt = []
         linker_flags = (ccompiler.gen_lib_options(compiler_obj,
-                                                  library_dirs=prefs['codegen.cpp.library_dirs']+['brianlib/randomkit'],
+                                                  library_dirs=prefs['codegen.cpp.library_dirs'] +
+                                                               ['brianlib/randomkit'] +
+                                                               [sys.prefix+'/lib'],
                                                   runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
                                                   libraries=prefs['codegen.cpp.libraries']+wincrypt) +
                         prefs['codegen.cpp.extra_link_args'])
