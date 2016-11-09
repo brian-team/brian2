@@ -174,7 +174,7 @@ inhomogeneous Poisson processes. For example, the following code
 `PoissonGroup` as a function of time, resulting in five 100ms blocks of 100 Hz
 stimulation, followed by 100ms of silence::
 
-    stimulus = TimedArray(np.tile([100., 0.], 5), dt=100.*ms)
+    stimulus = TimedArray(np.tile([100., 0.], 5)*Hz, dt=100.*ms)
     P = PoissonGroup(1, rates='stimulus(t)')
 
 Note that, as can be seen in its equivalent `NeuronGroup` formulation, a

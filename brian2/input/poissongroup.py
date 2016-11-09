@@ -5,12 +5,15 @@ Implementation of `PoissonGroup`.
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
-from brian2.core.variables import Variables
-from brian2.units.fundamentalunits import check_units, Unit
+from brian2.core.variables import Variables, Subexpression
+from brian2.parsing.expressions import parse_expression_unit
+from brian2.units.fundamentalunits import (check_units, Unit,
+                                           fail_for_dimension_mismatch)
 from brian2.units.stdunits import Hz
 from brian2.groups.group import Group
 from brian2.groups.subgroup import Subgroup
 from brian2.groups.neurongroup import Thresholder
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['PoissonGroup']
 
@@ -83,11 +86,8 @@ class PoissonGroup(Group, SpikeSource):
 
         self._refractory = False
 
-        # To avoid a warning about the local variable rates, we set the real
-        # threshold condition only after creating the object
-        self.events = {'spike': 'False'}
-        self.thresholder = {'spike': Thresholder(self)}
         self.events = {'spike': 'rand() < rates * dt'}
+        self.thresholder = {'spike': Thresholder(self)}
         self.contained_objects.append(self.thresholder['spike'])
 
         self._enable_group_attributes()
@@ -106,6 +106,22 @@ class PoissonGroup(Group, SpikeSource):
                              (start, stop))
 
         return Subgroup(self, start, stop)
+
+    def before_run(self, run_namespace=None):
+        rates_var = self.variables['rates']
+        if isinstance(rates_var, Subexpression):
+            # Check that the units of the expression make sense
+            expr = rates_var.expr
+            identifiers = get_identifiers(expr)
+            variables = self.resolve_all(identifiers,
+                                         run_namespace,
+                                         user_identifiers=identifiers)
+            unit = parse_expression_unit(rates_var.expr, variables)
+            fail_for_dimension_mismatch(unit, Hz, "The expression provided for "
+                                                  "PoissonGroup's 'rates' "
+                                                  "argument, has to have units "
+                                                  "of Hz")
+        super(PoissonGroup, self).before_run(run_namespace)
 
     @property
     def spikes(self):

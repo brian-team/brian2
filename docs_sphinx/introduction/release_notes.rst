@@ -1,6 +1,16 @@
 Release notes
 =============
 
+Current development version (changes since 2.0)
+-----------------------------------------------
+
+Improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Check that string expressions provided as the ``rates`` argument for
+  `PoissonGroup` have correct units.
+
+
+
 Brian 2.0 (changes since 1.4)
 -----------------------------
 
