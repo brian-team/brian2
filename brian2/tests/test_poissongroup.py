@@ -1,4 +1,4 @@
-from numpy.testing.utils import assert_equal
+from numpy.testing.utils import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -32,6 +32,21 @@ def test_rate_arrays():
 
     assert_equal(spikes.count, np.array([0, 2]))
 
+@attr('codegen-independent')
+def test_rate_unit_check():
+    assert_raises(DimensionMismatchError,
+                  lambda: PoissonGroup(1, np.array([1, 2])))
+    assert_raises(DimensionMismatchError,
+                  lambda: PoissonGroup(1, np.array([1, 2])*ms))
+    P = PoissonGroup(1, 'i*mV')
+    net = Network(P)
+    assert_raises(DimensionMismatchError,
+                  lambda: net.run(0*ms))
+
+    P = PoissonGroup(1, 'i')
+    net = Network(P)
+    assert_raises(DimensionMismatchError,
+                  lambda: net.run(0 * ms))
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -86,6 +101,7 @@ def test_poissongroup_subgroup():
 if __name__ == '__main__':
     test_single_rates()
     test_rate_arrays()
+    test_rate_unit_check()
     test_time_dependent_rate()
     test_propagation()
     test_poissongroup_subgroup()
