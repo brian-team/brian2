@@ -518,6 +518,19 @@ def test_rate_monitor_subgroups():
     defaultclock.dt = old_dt
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_rate_monitor_subgroups_2():
+    G = NeuronGroup(4, '''do_spike : boolean''', threshold='do_spike')
+    G.do_spike = [True, True, False, False]
+    rate_all = PopulationRateMonitor(G)
+    rate_1 = PopulationRateMonitor(G[:2])
+    rate_2 = PopulationRateMonitor(G[2:])
+    run(2*defaultclock.dt)
+    assert_allclose(rate_all.rate, 0.5/defaultclock.dt)
+    assert_allclose(rate_1.rate, 1 / defaultclock.dt)
+    assert_allclose(rate_2.rate, 0*Hz)
+
 if __name__ == '__main__':
     test_spike_monitor()
     test_spike_monitor_indexing()
@@ -538,3 +551,4 @@ if __name__ == '__main__':
     test_rate_monitor_smoothed_rate_incorrect()
     test_rate_monitor_get_states()
     test_rate_monitor_subgroups()
+    test_rate_monitor_subgroups_2()

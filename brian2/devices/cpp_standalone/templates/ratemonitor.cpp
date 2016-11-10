@@ -7,8 +7,8 @@
 	int _num_spikes = {{_spikespace}}[_num_spikespace-1];
 	// For subgroups, we do not want to record all spikes
     // We assume that spikes are ordered
-    int _start_idx = 0;
-    int _end_idx = - 1;
+    int _start_idx = -1;
+    int _end_idx = -1;
     for(int _j=0; _j<_num_spikes; _j++)
     {
         const int _idx = {{_spikespace}}[_j];
@@ -17,6 +17,8 @@
             break;
         }
     }
+    if (_start_idx == -1)
+        _start_idx = _num_spikes;
     for(int _j=_start_idx; _j<_num_spikes; _j++)
     {
         const int _idx = {{_spikespace}}[_j];
