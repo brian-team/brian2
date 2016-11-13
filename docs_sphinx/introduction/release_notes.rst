@@ -6,6 +6,7 @@ Current development version (changes since 2.0)
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix `PopulationRateMonitor` for recordings from subgroups (#772)
 * Check that string expressions provided as the ``rates`` argument for
   `PoissonGroup` have correct units.
 

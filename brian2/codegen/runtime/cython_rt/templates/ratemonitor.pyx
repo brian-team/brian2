@@ -8,7 +8,7 @@
     
     # For subgroups, we do not want to record all spikes
     # We assume that spikes are ordered
-    cdef int _start_idx = 0
+    cdef int _start_idx = -1
     cdef int _end_idx = -1
     cdef int _j
     for _j in range(_num_spikes):
@@ -16,6 +16,8 @@
         if _idx >= _source_start:
             _start_idx = _j
             break
+    if _start_idx == -1:
+        _start_idx = _num_spikes
     for _j in range(_start_idx, _num_spikes):
         _idx = {{_spikespace}}[_j]
         if _idx >= _source_stop:
