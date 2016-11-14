@@ -19,7 +19,8 @@ from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs, profiling_summary, Quantity)
 from brian2.core.network import schedule_propagation_offset
-from brian2.devices.device import reinit_devices, Device, all_devices, set_device, get_device, reset_device
+from brian2.devices.device import (reinit_devices, Device, all_devices,
+                                   set_device, get_device, reset_device, device)
 from brian2.utils.logger import catch_logs
 
 @attr('codegen-independent')
@@ -766,6 +767,57 @@ def test_progress_report_incorrect():
     assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
 
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_multiple_runs_report_standalone(with_output=False):
+    set_device('cpp_standalone', build_on_run=False)
+    group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
+    run(1*ms, report='text')
+    run(1*ms)
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True,
+                 with_output=with_output)
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_multiple_runs_report_standalone_2(with_output=False):
+    set_device('cpp_standalone', build_on_run=False)
+    group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
+    run(1*ms)
+    run(1*ms, report='text')
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True,
+                 with_output=with_output)
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_multiple_runs_report_standalone_3(with_output=False):
+    set_device('cpp_standalone', build_on_run=False)
+    group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
+    run(1*ms, report='text')
+    run(1*ms, report='text')
+    tempdir = tempfile.mkdtemp()
+    if with_output:
+        print tempdir
+    device.build(directory=tempdir, compile=True, run=True,
+                 with_output=with_output)
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_multiple_runs_report_standalone_incorrect(with_output=False):
+    set_device('cpp_standalone', build_on_run=False)
+    group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
+    run(1*ms, report='text')
+    assert_raises(NotImplementedError, lambda: run(1*ms, report='stderr'))
+
+
 @attr('codegen-independent')
 def test_store_restore():
     source = NeuronGroup(10, '''dv/dt = rates : 1
@@ -1252,6 +1304,10 @@ if __name__ == '__main__':
             test_magic_collect,
             test_progress_report,
             test_progress_report_incorrect,
+            test_multiple_runs_report_standalone,
+            test_multiple_runs_report_standalone_2,
+            test_multiple_runs_report_standalone_3,
+            test_multiple_runs_report_standalone_incorrect,
             test_store_restore,
             test_store_restore_to_file,
             test_store_restore_to_file_new_objects,
@@ -1272,5 +1328,6 @@ if __name__ == '__main__':
             test_small_runs,
             test_long_run_dt_change,
             ]:
+        set_device(all_devices['runtime'])
         t()
-        restore_initial_state()
+        reinit_devices()

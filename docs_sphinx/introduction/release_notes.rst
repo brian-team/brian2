@@ -10,7 +10,8 @@ Improvements and bug fixes
 * Fix `SpikeMonitor` for recordings from subgroups (#777)
 * Check that string expressions provided as the ``rates`` argument for
   `PoissonGroup` have correct units.
-
+* Fix compilation errors when multiple run statements with different ``report``
+  arguments are used in C++ standalone mode.
 
 
 Brian 2.0 (changes since 1.4)
