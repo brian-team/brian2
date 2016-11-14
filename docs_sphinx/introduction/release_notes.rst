@@ -10,6 +10,12 @@ Improvements and bug fixes
 * Check that string expressions provided as the ``rates`` argument for
   `PoissonGroup` have correct units.
 
+Other changes
+~~~~~~~~~~~~~
+* We decided to no longer ship conda packages for the latest development version
+  in the ``dev`` channel. If you are interested in testing an unreleased version
+  of Brian 2, follow the updated :ref:`installation instructions <development_install>`
+  to install from github directly.
 
 
 Brian 2.0 (changes since 1.4)
