@@ -30,3 +30,13 @@ appropriate, because of a choice of parameters that couldn't be determined in
 advance. In this case, typically you will get nan (not a number) values in the
 results, or large oscillations. In this case, Brian will generate a warning to
 let you know, but will not raise an error.
+
+Jupyter notebooks and C++ standalone mode progress reporting
+------------------------------------------------------------
+
+When you run simulations in C++ standalone mode and enable progress reporting
+(e.g. by using ``report='text'`` as a keyword argument), the progress will not
+be displayed in the jupyter notebook. If you started the notebook from a
+terminal, you will find the output there. Unfortunately, this is a tricky
+problem to solve at the moment, due to the details of how the jupyter notebook
+handles output.
