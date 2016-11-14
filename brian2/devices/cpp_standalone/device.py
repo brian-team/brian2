@@ -1081,13 +1081,13 @@ class CPPStandaloneDevice(Device):
         }
         '''
         if report is None:
-            self.report_func = ''
+            report_func = ''
         elif report == 'text' or report == 'stdout':
-            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
+            report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
         elif report == 'stderr':
-            self.report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
+            report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
         elif isinstance(report, basestring):
-            self.report_func = '''
+            report_func = '''
             void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {
             %REPORT%
@@ -1097,6 +1097,14 @@ class CPPStandaloneDevice(Device):
             raise TypeError(('report argument has to be either "text", '
                              '"stdout", "stderr", or the code for a report '
                              'function'))
+
+        if report_func != '':
+            if self.report_func != '' and report_func != self.report_func:
+                raise NotImplementedError('The C++ standalone device does not '
+                                          'support multiple report functions, '
+                                          'each run has to use the same (or '
+                                          'none).')
+            self.report_func = report_func
 
         if report is not None:
             report_call = 'report_progress'
