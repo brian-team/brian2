@@ -120,6 +120,26 @@ def test_spike_monitor_get_states():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_spike_monitor_subgroups():
+    G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
+    G.do_spike = [True, False, False, False, True, True]
+    spikes_all = SpikeMonitor(G)
+    spikes_1 = SpikeMonitor(G[:2])
+    spikes_2 = SpikeMonitor(G[2:4])
+    spikes_3 = SpikeMonitor(G[4:])
+    run(defaultclock.dt)
+    assert_allclose(spikes_all.i, [0, 4, 5])
+    assert_allclose(spikes_all.t, [0, 0, 0]*ms)
+    assert_allclose(spikes_1.i, [0])
+    assert_allclose(spikes_1.t, [0]*ms)
+    assert len(spikes_2.i) == 0
+    assert len(spikes_2.t) == 0
+    assert_allclose(spikes_3.i, [0, 1])  # recorded spike indices are relative
+    assert_allclose(spikes_3.t, [0, 0] * ms)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_event_monitor():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', events={'my_event': 'v>1'})
@@ -521,20 +541,23 @@ def test_rate_monitor_subgroups():
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_rate_monitor_subgroups_2():
-    G = NeuronGroup(4, '''do_spike : boolean''', threshold='do_spike')
-    G.do_spike = [True, True, False, False]
+    G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
+    G.do_spike = [True, False, False, False, True, True]
     rate_all = PopulationRateMonitor(G)
     rate_1 = PopulationRateMonitor(G[:2])
-    rate_2 = PopulationRateMonitor(G[2:])
+    rate_2 = PopulationRateMonitor(G[2:4])
+    rate_3 = PopulationRateMonitor(G[4:])
     run(2*defaultclock.dt)
-    assert_allclose(rate_all.rate, 0.5/defaultclock.dt)
-    assert_allclose(rate_1.rate, 1 / defaultclock.dt)
+    assert_allclose(rate_all.rate, 0.5 / defaultclock.dt)
+    assert_allclose(rate_1.rate, 0.5 / defaultclock.dt)
     assert_allclose(rate_2.rate, 0*Hz)
+    assert_allclose(rate_3.rate, 1 / defaultclock.dt)
 
 if __name__ == '__main__':
     test_spike_monitor()
     test_spike_monitor_indexing()
     test_spike_monitor_get_states()
+    test_spike_monitor_subgroups()
     test_spike_monitor_variables()
     test_event_monitor()
     test_event_monitor_no_record()
