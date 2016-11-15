@@ -21,13 +21,13 @@
                 break;
             }
         }
-        for(int _j=_start_idx; _j<_num_events; _j++)
+        for(int _j=_num_events-1; _j>=_start_idx; _j--)
         {
             const int _idx = {{_eventspace}}[_j];
-            if (_idx >= _source_stop) {
-                _end_idx = _j;
+            if (_idx < _source_stop) {
                 break;
             }
+            _end_idx = _j;
         }
         _num_events = _end_idx - _start_idx;
         if (_num_events > 0) {
