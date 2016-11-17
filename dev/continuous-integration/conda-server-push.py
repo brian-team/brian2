@@ -12,7 +12,7 @@ options = ['-t', token, 'upload',
 filenames = glob.glob('*.tar.bz2')
 release = '+git' not in filenames[0]
 if not release:
-    options.extend(['--channel', 'dev', '--force'])
+    sys.exit(0)  # Let's not upload development versions to conda
 
 # Uploading sometimes fails due to server or network errors -- we try it five
 # times before giving up

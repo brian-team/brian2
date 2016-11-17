@@ -181,35 +181,38 @@ case, the Python version does not matter.
 Try running the test suite (see :ref:`testing_brian` below) after the
 installation to make sure everything is working as expected.
 
+.. _development_install:
+
 Development version
 -------------------
 
-To run the latest development code, you can install from brian-team's "dev"
-channel with Anaconda. Note that if you previously added the ``brian-team``
-channel to your list of channels, you have to first remove it::
-
-    conda config --remove channels brian-team -f
-
-Also uninstall any version of Brian 2 that you might have previously installed::
+We do not publish the latest development code on *anaconda.org* or *PyPI*, but
+you can directly install it from *github*. It can however be useful to first
+install the Brian 2 conda package as described above, since this will install
+all the necessary dependencies. Before continuing, remove the installed Brian 2
+package with::
 
     conda remove brian2
 
-Finally, install the ``brian2`` package from the development channel::
+or (if you followed the "Installation from source" instructions)::
 
-    conda install -c brian-team/channel/dev brian2
+    pip uninstall brian2
 
-If this fails with an error message about the ``py-cpuinfo`` package (a
-dependency that we provide in the main brian-team channel), install it
-from the main channel::
+To install Brian's development version, clone the git repository at github
+(https://github.com/brian-team/brian2) to a directory of your choice::
 
-    conda install -c brian-team py-cpuinfo
+    git clone https://github.com/brian-team/brian2.git <TARGET_DIRECTORY>
 
-Then repeat the command to install Brian 2 from the development channel.
+and from within the target directory run::
 
-You can also directly clone the git repository at github
-(https://github.com/brian-team/brian2) and then run ``python setup.py install``
-or ``python setup.py develop`` or simply add the source directory to your
-``PYTHONPATH`` (this will only work for Python 2.x).
+    pip install -e .
+
+This will install a link to the source directory, future updates from the
+github repository (i.e. via ``git pull``) will be taken into account
+automatically, there's no need to reinstall after very change.
+Note that this only works for Python 2.x, if you use Python 3.x, you'll
+actually have to run the above command again after every update, since the code
+is written for Python 2 and needs to be translated with the ``2to3.py`` utility.
 
 Finally, another option is to use ``pip`` to directly install from github::
 
@@ -221,13 +224,13 @@ Finally, another option is to use ``pip`` to directly install from github::
 Testing Brian
 -------------
 
-If you have the nose_ testing utility installed, you can run Brian's test
-suite::
+If you have the nose_ testing utility installed (``conda install nose`` or
+``pip install nose``), you can run Brian's test suite::
 
-    import brian2
-    brian2.test()
+    >>> import brian2
+    >>> brian2.test()
 
-It should end with "OK", possibly showing a number of skipped tests but no
+It should end with "OK", showing a number of skipped tests but no
 warnings or errors. For more control about the tests that are run see the
 :doc:`developer documentation on testing <../developer/guidelines/testing>`.
 
