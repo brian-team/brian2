@@ -18,8 +18,8 @@ Note that Brian has several different ways of running the actual computations,
 and choosing the right one can make orders of magnitude of difference in
 terms of simplicity and efficiency. See :doc:`computation` for more details.
 
-Magic networks
---------------
+Networks
+--------
 In most straightforward simulations, you do not have to explicitly create a
 `Network` object but instead can simply call `run` to run a simulation. This is
 what is called the "magic" system, because Brian figures out automatically what
@@ -49,6 +49,8 @@ function when creating the `Network` object in that case::
     # a simple run would not include the monitors
     net = Network(collect())  # automatically include G and S
     net.add(monitors)  # manually add the monitors
+
+    net.run(10*ms)
 
 .. _time_steps:
 
