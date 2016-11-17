@@ -100,15 +100,15 @@ matrix:
 before_install:
 - if [ ${PYTHON:0:1} == "2" ]; then
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
     else
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
     fi;
     else
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
     else
-    wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
     fi;
   fi
 - chmod +x miniconda.sh
@@ -128,21 +128,21 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.8.2 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.8.2 scipy==0.13.3 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
   # makes weave code generation much faster:
   - if [ ${PYTHON:0:1} == "2" ]; then
-    conda install --yes --quiet bsddb;
+    travis_retry conda install --yes --quiet bsddb;
     fi
-  - conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
-  - if [[ $CYTHON == 'yes' ]]; then conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
-  - if [[ $REPORT_COVERAGE == 'yes' ]]; then pip install -q coveralls; fi
+  - travis_retry conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
+  - if [[ $CYTHON == 'yes' ]]; then travis_retry conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
+  - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry pip install -q coveralls; fi
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
-      pip install -q sphinxcontrib-issuetracker;
+      travis_retry pip install -q sphinxcontrib-issuetracker;
       python setup.py sdist;
     fi;
 
