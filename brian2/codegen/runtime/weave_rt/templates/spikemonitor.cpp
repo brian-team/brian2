@@ -22,7 +22,7 @@
                 break;
             }
         }
-        for(int _j=_num_events-1; _j>=_source_start; _j--)
+        for(int _j=_num_events-1; _j>=_start_idx; _j--)
         {
             const int _idx = {{_eventspace}}[_j];
             if (_idx < _source_stop) {
