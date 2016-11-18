@@ -34,6 +34,7 @@ Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Myung Seok Shim
+* Pamela Hathway
 
 
 Brian 2.0 (changes since 1.4)
