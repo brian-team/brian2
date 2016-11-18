@@ -1,8 +1,15 @@
 Release notes
 =============
 
-Current development version (changes since 2.0)
------------------------------------------------
+Brian 2.0.1
+-----------
+This is a bug-fix release that fixes a number of important bugs (see below),
+but does not introduce any new features. We recommend all users of Brian 2 to
+upgrade.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development
+mailing list (brian-development@googlegroups.com).
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12,6 +19,22 @@ Improvements and bug fixes
   `PoissonGroup` have correct units.
 * Fix compilation errors when multiple run statements with different ``report``
   arguments are used in C++ standalone mode.
+* Several documentation updates and fixes
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Alex Seeholzer (`@flinz <https://github.com/flinz>`_)
+* Meng Dong (`@whenov <https://github.com/whenov>`_)
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Myung Seok Shim
+* Pamela Hathway
 
 
 Brian 2.0 (changes since 1.4)

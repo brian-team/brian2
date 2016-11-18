@@ -55,6 +55,11 @@ warning that only the Python fallback is available), set the preference to ``'nu
 
 See :doc:`../advanced/preferences` for different ways of setting preferences.
 
+.. warning::
+    Do not use the ``weave`` code generation targets when running multiple
+    simulations in parallel. See :doc:`../introduction/known_issues` for more
+    details.
+
  .. _Cython: http://cython.org/
 
 You might find that running simulations in weave or Cython modes won't work
