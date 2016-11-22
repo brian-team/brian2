@@ -1,3 +1,5 @@
+import uuid
+
 from numpy.testing.utils import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
@@ -5,6 +7,7 @@ from nose.plugins.attrib import attr
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_devices
+from brian2.utils.logger import catch_logs
 
 
 @attr('standalone-compatible')
@@ -98,6 +101,24 @@ def test_poissongroup_subgroup():
 
     assert_equal(G.v[:], np.array([0., 0., 2., 2.]))
 
+
+@attr('codegen-independent')
+def test_poissongroup_namespace():
+    rate_const = 0*Hz
+    P = PoissonGroup(1, rates='rate_const', namespace={'rate_const':
+                                                       1/defaultclock.dt},
+                     name='poissongroup_%s' % (uuid.uuid4().hex))
+    P2 = PoissonGroup(1, rates='rate_const')
+    mon = SpikeMonitor(P)
+    mon2 = SpikeMonitor(P2)
+    with catch_logs() as l:
+        run(2*defaultclock.dt)
+        assert len(l) == 1
+        assert l[0][1].endswith('resolution_conflict')
+    assert mon.num_spikes == 2
+    assert mon2.num_spikes == 0
+
+
 if __name__ == '__main__':
     test_single_rates()
     test_rate_arrays()
@@ -105,3 +126,4 @@ if __name__ == '__main__':
     test_time_dependent_rate()
     test_propagation()
     test_poissongroup_subgroup()
+    test_poissongroup_namespace()
