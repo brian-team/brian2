@@ -593,7 +593,7 @@ class Synapses(Group):
     namespace : dict, optional
         A dictionary mapping identifier names to objects. If not given, the
         namespace will be filled in at the time of the call of `Network.run`,
-        with either the values from the ``network`` argument of the
+        with either the values from the ``namespace`` argument of the
         `Network.run` method or from the local context, if no such argument is
         given.
     dtype : `dtype`, dict, optional
