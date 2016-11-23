@@ -49,11 +49,17 @@ class PoissonGroup(Group, SpikeSource):
 
     @check_units(rates=Hz)
     def __init__(self, N, rates, dt=None, clock=None, when='thresholds',
-                 order=0, name='poissongroup*', codeobj_class=None):
+                 order=0, namespace=None, name='poissongroup*',
+                 codeobj_class=None):
+
+        if namespace is None:
+            namespace = {}
+        #: The group-specific namespace
+        self.namespace = namespace
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order,
                        name=name)
-        self.namespace = None
+
         self.codeobj_class = codeobj_class
 
         self._N = N = int(N)

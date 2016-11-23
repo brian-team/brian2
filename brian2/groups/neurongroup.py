@@ -322,10 +322,11 @@ class NeuronGroup(Group, SpikeSource):
         ``threshold``. Has to be a mapping of strings (the event name) to
         strings (the condition) that will be checked.
     namespace: dict, optional
-        A dictionary mapping variable/function names to the respective objects.
-        If no `namespace` is given, the "implicit" namespace, consisting of
-        the local and global namespace surrounding the creation of the class,
-        is used.
+        A dictionary mapping identifier names to objects. If not given, the
+        namespace will be filled in at the time of the call of `Network.run`,
+        with either the values from the ``namespace`` argument of the
+        `Network.run` method or from the local context, if no such argument is
+        given.
     dtype : (`dtype`, `dict`), optional
         The `numpy.dtype` that will be used to store the values, or a
         dictionary specifying the type for variable names. If a value is not

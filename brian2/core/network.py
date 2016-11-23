@@ -630,7 +630,7 @@ class Network(Nameable):
 
         Parameters
         ----------
-        namespace : dict-like, optional
+        run_namespace : dict-like, optional
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
