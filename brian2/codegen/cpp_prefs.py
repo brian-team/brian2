@@ -57,7 +57,7 @@ prefs.register_preferences(
         '''
         ),
     extra_compile_args_msvc=BrianPreference(
-        default=['/Ox', '/w', msvc_arch_flag],
+        default=['/Ox', '/w', msvc_arch_flag, '/MP'],
         docs='''
         Extra compile arguments to pass to MSVC compiler (the default
         ``/arch:`` flag is determined based on the processor architecture)

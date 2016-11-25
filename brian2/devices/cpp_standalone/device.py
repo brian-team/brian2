@@ -69,7 +69,20 @@ prefs.register_preferences(
         be used when using no more than three threads or when the morphology
         has less than three branches in total.
         '''
-    )
+        ),
+    extra_make_args_unix=BrianPreference(
+        default=['-j'],
+        docs='''
+        Additional flags to pass to the GNU make command on Linux/OS-X.
+        Defaults to "-j" for parallel compilation.'''
+        ),
+    extra_make_args_windows=BrianPreference(
+        default=[],
+        docs='''
+        Additional flags to pass to the nmake command on Windows. By default, no
+        additional flags are passed.
+        '''
+        )
     )
 
 
@@ -795,12 +808,15 @@ class CPPStandaloneDevice(Device):
                 vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
                         vcvars_loc=vcvars_loc, arch_name=arch_name)
                 make_cmd = 'nmake /f win_makefile'
+                make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
                 if os.path.exists('winmake.log'):
                     os.remove('winmake.log')
                 with std_silent(debug):
                     if clean:
                         os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
-                    x = os.system('%s >>winmake.log 2>&1 && %s >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                    x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
+                                                                                        make_cmd,
+                                                                                        make_args))
                     if x!=0:
                         if os.path.exists('winmake.log'):
                             print open('winmake.log', 'r').read()
@@ -812,7 +828,8 @@ class CPPStandaloneDevice(Device):
                     if debug:
                         x = os.system('make debug')
                     else:
-                        x = os.system('make')
+                        make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
+                        x = os.system('make %s' % (make_args, ))
                     if x!=0:
                         raise RuntimeError("Project compilation failed")
 

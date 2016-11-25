@@ -25,7 +25,7 @@ else:
     targets = None
     independent = True
 
-if operating_system == 'windows' or report_coverage:
+if operating_system == 'windows' or report_coverage or standalone:
     in_parallel = []
 else:
     in_parallel = ['codegen_independent', 'numpy', 'cython', 'cpp_standalone']
