@@ -33,11 +33,39 @@ except ImportError:
     nose = None
 
 
+def make_argv(dirnames, attributes):
+    '''
+    Create the list of arguments for the ``nosetests`` call.
+
+    Parameters
+    ----------
+    dirnames : list of str
+        The list of directory names to check for tests.
+    attributes : str
+        The attributes of the tests to include.
+
+    Returns
+    -------
+    argv : list of str
+        The arguments for `nose.main`.
+
+    '''
+    argv = (['nosetests'] + dirnames +
+            ['-c=',  # no config file loading
+             '-I', '^hears\.py$',
+             '-I', '^\.',
+             '-I', '^_',
+             "-a", attributes,
+             '--nologcapture',
+             '--exe'])
+    return argv
+
+
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
         reset_preferences=True, fail_for_not_implemented=True,
-        build_options=None):
+        build_options=None, extra_test_dirs=None):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -79,6 +107,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     build_options : dict, optional
         Non-default build options that will be passed as arguments to the
         `set_device` call for the device specified in ``test_standalone``.
+    extra_test_dirs : list of str or str, optional
+        Additional directories as a list of strings (or a single directory as
+        a string) that will be searched for additional tests.
     '''
     if nose is None:
         raise ImportError('Running the test suite requires the "nose" package.')
@@ -88,6 +119,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     if os.name == 'nt':
         test_in_parallel = []
+
+    if extra_test_dirs is None:
+        extra_test_dirs = []
+    elif isinstance(extra_test_dirs, basestring):
+        extra_test_dirs = [extra_test_dirs]
 
     multiprocess_arguments = ['--processes=-1',
                               '--process-timeout=3600',  # we don't want them to time out
@@ -113,8 +149,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         codegen_targets = [codegen_targets]
 
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    dirnames = [dirname] + extra_test_dirs
     # We write to stderr since nose does all of its output on stderr as well
-    sys.stderr.write('Running tests in "%s" ' % dirname)
+    sys.stderr.write('Running tests in %s ' % (', '.join(dirnames)))
     if codegen_targets:
         sys.stderr.write('for targets %s' % (', '.join(codegen_targets)))
     ex_in = 'including' if long_tests else 'excluding'
@@ -180,15 +217,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             # Some doctests do actually use code generation, use numpy for that
             prefs.codegen.target = 'numpy'
             prefs._backup()
-            argv = ['nosetests', dirname,
-                    '-c=',  # no config file loading
-                    '-I', '^hears\.py$',
-                    '-I', '^\.',
-                    '-I', '^_',
-                    '--with-doctest',
-                    "-a", "codegen-independent",
-                    '--nologcapture',
-                    '--exe']
+            argv = make_argv(dirnames, "codegen-independent")
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
@@ -206,16 +235,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 exclude_str += ',!long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
             # doctest search will import it, failing on Python 3
-            argv = ['nosetests', dirname,
-                    '-c=',  # no config file loading
-                    '-I', '^hears\.py$',
-                    '-I', '^\.',
-                    '-I', '^_',
-                    # Do not run standalone or
-                    # codegen-independent tests
-                    "-a", exclude_str,
-                    '--nologcapture',
-                    '--exe']
+            argv = make_argv(dirnames, exclude_str)
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
@@ -228,15 +248,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
             sys.stderr.write('Running standalone-compatible standard tests\n')
             exclude_str = ',!long' if not long_tests else ''
-            argv = ['nosetests', dirname,
-                    '-c=',  # no config file loading
-                    '-I', '^hears\.py$',
-                    '-I', '^\.',
-                    '-I', '^_',
-                    # Only run standalone tests
-                    '-a', 'standalone-compatible'+exclude_str,
-                    '--nologcapture',
-                    '--exe']
+            argv = make_argv(dirnames, 'standalone_compatible'+exclude_str)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
@@ -248,15 +260,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 prefs._backup()
                 sys.stderr.write('Running standalone-compatible standard tests with OpenMP\n')
                 exclude_str = ',!long' if not long_tests else ''
-                argv = ['nosetests', dirname,
-                        '-c=',  # no config file loading
-                        '-I', '^hears\.py$',
-                        '-I', '^\.',
-                        '-I', '^_',
-                        # Only run standalone tests
-                        '-a', 'standalone-compatible'+exclude_str,
-                        '--nologcapture',
-                        '--exe']
+                argv = make_argv(dirnames,
+                                 'standalone_compatible' + exclude_str)
                 success.append(nose.run(argv=argv,
                                         addplugins=plugins))
                 prefs.devices.cpp_standalone.openmp_threads = 0
@@ -266,15 +271,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
             sys.stderr.write('Running standalone-specific tests\n')
             exclude_openmp = ',!openmp' if not test_openmp else ''
-            argv = ['nosetests', dirname,
-                    '-c=',  # no config file loading
-                    '-I', '^hears\.py$',
-                    '-I', '^\.',
-                    '-I', '^_',
-                    # Only run standalone tests
-                    '-a', test_standalone+exclude_openmp,
-                    '--nologcapture',
-                    '--exe']
+            argv = make_argv(dirnames, test_standalone+exclude_openmp)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
@@ -295,6 +292,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             # Restore the user preferences
             prefs.read_preference_file(StringIO(stored_prefs))
             prefs._backup()
+
 
 if __name__ == '__main__':
     run()
