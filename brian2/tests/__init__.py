@@ -246,9 +246,23 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             set_device(test_standalone, directory=None,  # use temp directory
                        with_output=False, **build_options)
             sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
-            sys.stderr.write('Running standalone-compatible standard tests\n')
+            sys.stderr.write('Running standalone-compatible standard tests (single run statement)\n')
             exclude_str = ',!long' if not long_tests else ''
-            argv = make_argv(dirnames, 'standalone_compatible'+exclude_str)
+            exclude_str += ',!multiple-runs'
+            argv = make_argv(dirnames, 'standalone-compatible'+exclude_str)
+            if test_standalone in test_in_parallel:
+                argv.extend(multiprocess_arguments)
+            success.append(nose.run(argv=argv,
+                                    addplugins=plugins))
+
+            reset_device()
+
+            sys.stderr.write('Running standalone-compatible standard tests (multiple run statements)\n')
+            set_device(test_standalone, directory=None,  # use temp directory
+                       with_output=False, build_on_run=False, **build_options)
+            exclude_str = ',!long' if not long_tests else ''
+            exclude_str += ',multiple-runs'
+            argv = make_argv(dirnames, 'standalone-compatible'+exclude_str)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
