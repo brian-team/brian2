@@ -16,18 +16,18 @@ def test_constants_sympy():
     assert sympy_to_str(str_to_sympy('sin(pi)')) == '0'
     assert sympy_to_str(str_to_sympy('log(e)')) == '1'
 
-
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_constants_values():
     '''
     Make sure that symbolic constants use the correct values in code
     '''
-    G = NeuronGroup(1, 'v : 1')
-    G.v = 'pi'
-    assert G.v == np.pi
-    G.v = 'e'
-    assert G.v == np.e
-    G.v = 'inf'
-    assert G.v == np.inf
+    G = NeuronGroup(3, 'v : 1')
+    G.v[0] = 'pi'
+    G.v[1] = 'e'
+    G.v[2] = 'inf'
+    run(0*ms)
+    assert_allclose(G.v[:], [np.pi, np.e, np.inf])
 
 
 def test_math_functions():

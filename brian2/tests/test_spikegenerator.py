@@ -10,8 +10,7 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
-from brian2.devices.cpp_standalone import cpp_standalone_device
-from brian2.devices.device import reinit_devices, set_device, reset_device
+from brian2.devices.device import reinit_devices
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -113,59 +112,56 @@ def _compare_spikes(N, indices, times, recorded, start_time=0*ms, end_time=1e100
         recorded_spikes = sorted([(idx, time) for time in recorded.t[recorded.i==idx] if time >= start_time and time < end_time])
         assert_allclose(generator_spikes, recorded_spikes)
 
-
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_change_spikes():
-    '''
-    Basic test for `SpikeGeneratorGroup`.
-    '''
-    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-    SG = SpikeGeneratorGroup(5, indices, times)
+    indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices1, times1)
     s_mon = SpikeMonitor(SG)
     net = Network(SG, s_mon)
     net.run(5*ms)
 
-    _compare_spikes(5, indices, times, s_mon)
+    indices2 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
+    times2   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 5*ms
 
-    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
-    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 5*ms
-
-    SG.set_spikes(indices, times)
+    SG.set_spikes(indices2, times2)
     net.run(5*ms)
 
-    _compare_spikes(5, indices, times, s_mon, 5*ms)
+    indices3 = np.array([4, 1, 0])
+    times3   = np.array([1, 3, 4])*ms + 10*ms
 
-    indices = np.array([4, 1, 0])
-    times   = np.array([1, 3, 4])*ms + 10*ms
-
-    SG.set_spikes(indices, times)
+    SG.set_spikes(indices3, times3)
     net.run(5*ms)
+    device.build(direct_call=False, **device.build_options)
+    _compare_spikes(5, indices1, times1, s_mon, 0*ms, 5*ms)
+    _compare_spikes(5, indices2, times2, s_mon, 5*ms, 10*ms)
+    _compare_spikes(5, indices3, times3, s_mon, 10*ms)
 
-    _compare_spikes(5, indices, times, s_mon, 10*ms)
-
-
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_change_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
     '''
-    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-    SG = SpikeGeneratorGroup(5, indices, times, period=5*ms)
+    indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
+    times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices1, times1, period=5*ms)
     s_mon = SpikeMonitor(SG)
     net = Network(SG, s_mon)
     net.run(10*ms)
 
-    _compare_spikes(5, np.hstack([indices, indices]),
-                    np.hstack([times, times+5*ms]),
-                    s_mon)
+    indices2 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
+    times2   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 10*ms
 
-    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
-    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 10*ms
-
-    SG.set_spikes(indices, times)
+    SG.set_spikes(indices2, times2)
     net.run(10*ms)  # period should no longer be in effect
+    device.build(direct_call=False, **device.build_options)
 
-    _compare_spikes(5, indices, times, s_mon, 10*ms)
+    _compare_spikes(5, np.hstack([indices1, indices1]),
+                    np.hstack([times1, times1+5*ms]),
+                    s_mon, 0*ms, 10*ms)
+    _compare_spikes(5, indices2, times2, s_mon, 10*ms)
 
 @attr('codegen-independent')
 def test_spikegenerator_incorrect_values():
@@ -290,100 +286,6 @@ def test_spikegenerator_multiple_spikes_per_bin():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
-def test_spikegenerator_standalone(with_output=False):
-    '''
-    Basic test for `SpikeGeneratorGroup` in standalone.
-    '''
-    set_device('cpp_standalone', build_on_run=False)
-    indices = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-    times   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-    SG = SpikeGeneratorGroup(5, indices, times)
-    s_mon = SpikeMonitor(SG)
-    net = Network(SG, s_mon)
-    net.run(5*ms)
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True, with_output=with_output)
-
-    _compare_spikes(5, indices, times, s_mon)
-
-    reset_device()
-
-
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
-def test_spikegenerator_standalone_change_spikes(with_output=False):
-    '''
-    Basic test for `SpikeGeneratorGroup`.
-    '''
-    set_device('cpp_standalone', build_on_run=False)
-    indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-    times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-    SG = SpikeGeneratorGroup(5, indices1, times1)
-    s_mon = SpikeMonitor(SG)
-    net = Network(SG, s_mon)
-    net.run(5*ms)
-
-    indices2 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
-    times2   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 5*ms
-
-    SG.set_spikes(indices2, times2)
-    net.run(5*ms)
-
-    indices3 = np.array([4, 1, 0])
-    times3   = np.array([1, 3, 4])*ms + 10*ms
-
-    SG.set_spikes(indices3, times3)
-    net.run(5*ms)
-
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True, with_output=with_output)
-
-    _compare_spikes(5, indices1, times1, s_mon, end_time=5*ms)
-    _compare_spikes(5, indices2, times2, s_mon, start_time=5*ms, end_time=10*ms)
-    _compare_spikes(5, indices3, times3, s_mon, start_time=10*ms)
-
-    reset_device()
-
-
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
-def test_spikegenerator_standalone_change_period(with_output=False):
-    '''
-    Basic test for `SpikeGeneratorGroup`.
-    '''
-    set_device('cpp_standalone', build_on_run=False)
-    indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
-    times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
-    SG = SpikeGeneratorGroup(5, indices1, times1, period=5*ms)
-    s_mon = SpikeMonitor(SG)
-    net = Network(SG, s_mon)
-    net.run(10*ms)
-
-    indices2 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1, 3,   3,   3,   1,   2])
-    times2   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2, 4.5, 4.7, 4.8, 4.5, 4.7])*ms + 10*ms
-
-    SG.set_spikes(indices2, times2)
-    net.run(10*ms)  # period should no longer be in effect
-
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True, with_output=with_output)
-
-    _compare_spikes(5, np.hstack([indices1, indices1]),
-                    np.hstack([times1, times1+5*ms]),
-                    s_mon, end_time=10*ms)
-    _compare_spikes(5, indices2, times2, s_mon, start_time=10*ms)
-
-    reset_device()
-
-
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'cython'
@@ -403,12 +305,5 @@ if __name__ == '__main__':
     test_spikegenerator_rounding_long()
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
-    for t in [
-                test_spikegenerator_standalone,
-                test_spikegenerator_standalone_change_spikes,
-                test_spikegenerator_standalone_change_period
-             ]:
-        t(with_output=True)
-        reinit_devices()
 
     print 'Tests took', time.time()-start

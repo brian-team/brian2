@@ -7,7 +7,7 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
-from brian2.devices.device import reinit_devices, set_device, reset_device
+from brian2.devices.device import reinit_devices
 from brian2.utils.logger import catch_logs
 
 
@@ -324,6 +324,7 @@ def test_state_monitor():
     assert_allclose(synapse_mon.w[:], np.tile(S.j[:]*nS,
                                               (synapse_mon.w[:].shape[1], 1)).T)
 
+@attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
 def test_state_monitor_record_single_timestep():
     G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
@@ -332,34 +333,14 @@ def test_state_monitor_record_single_timestep():
     # Recording before a run should not work
     assert_raises(TypeError, lambda: mon.record_single_timestep())
     run(0.5*ms)
+    mon.record_single_timestep()
+    device.build(direct_call=False, **device.build_options)
     assert mon.t[0] == 0*ms
     assert mon[0].v[0] == 1
-    assert_allclose(mon.t[-1], 0.5*ms-defaultclock.dt)
-    assert len(mon.t) == 5
-    mon.record_single_timestep()
     assert_allclose(mon.t[-1], 0.5*ms)
     assert len(mon.t) == 6
     assert mon[0].v[-1] == G.v
 
-
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
-def test_state_monitor_record_single_timestep_cpp_standalone():
-    set_device('cpp_standalone', build_on_run=False)
-    G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
-    G.v = 1
-    mon = StateMonitor(G, 'v', record=True)
-    # Recording before a run should not work
-    assert_raises(TypeError, lambda: mon.record_single_timestep())
-    run(0.5*ms)
-    mon.record_single_timestep()
-    tempdir = tempfile.mkdtemp()
-    device.build(directory=tempdir, compile=True, run=True,
-                 with_output=False)
-    assert_allclose(mon.t[-1], 0.5*ms)
-    assert len(mon.t) == 6
-    assert mon[0].v[-1] == G.v
-    reset_device()
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -564,7 +545,6 @@ if __name__ == '__main__':
     test_spike_trains()
     test_state_monitor()
     test_state_monitor_record_single_timestep()
-    test_state_monitor_record_single_timestep_cpp_standalone()
     test_state_monitor_get_states()
     test_state_monitor_indexing()
     test_state_monitor_resize()
