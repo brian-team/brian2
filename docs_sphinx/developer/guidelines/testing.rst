@@ -15,7 +15,7 @@ suite with:
 
 	$ nosetests brian2 --with-doctest
 
-This should show no errors or failures but possibly a number of skipped tests.
+This should show no errors or failures but ususally a number of skipped tests.
 The recommended way however is to import brian2 and call the test function,
 which gives you convenient control over which tests are run::
 
@@ -78,8 +78,8 @@ roughly correspond to packages, test functions should roughly correspond to
 tests for one function/method/feature. In the test functions, use assertions
 that will raise an ``AssertionError`` when they are violated, e.g.::
 
-	G = NeuronGroup(42, model='dv/dt = -v / (10*ms) : 1')
-	assert len(G) == 42
+    G = NeuronGroup(42, model='dv/dt = -v / (10*ms) : 1')
+    assert len(G) == 42
 
 When comparing arrays, use the `array_equal` function from
 `numpy.testing.utils` which takes care of comparing types, shapes and content
@@ -91,7 +91,7 @@ errors are raised when expected. For that you can use the `assert_raises`
 function (also in `numpy.testing.utils`) which takes an Exception type and
 a callable as arguments::
 
-	assert_raises(DimensionMismatchError, lambda: 3*volt + 5*second)
+    assert_raises(DimensionMismatchError, lambda: 3*volt + 5*second)
 
 Note that you cannot simply write ``3*volt + 5*second`` in the above example,
 this would raise an exception before calling assert_raises. Using a callable
@@ -103,10 +103,10 @@ mechanism <logging>` for details
 For simple functions, doctests (see below) are a great alternative to writing
 classical unit tests.
 
-By default, all tests are executed for all selected code generation targets
-(see `Running the test suite`_ above). This is not useful for all tests, some
-basic tests that for example test equation syntax or the use of physical units
-do not depend on code generation and need therefore not to be repeated. To
+By default, all tests are executed for all selected runtime code generation
+targets (see `Running the test suite`_ above). This is not useful for all tests,
+some basic tests that for example test equation syntax or the use of physical
+units do not depend on code generation and need therefore not to be repeated. To
 execute such tests only once, they can be annotated with a
 ``codegen-independent`` attribute, using the `~nose.plugins.attrib.attr`
 decorator::
@@ -130,17 +130,16 @@ the same way as for ``codegen-independent`` tests. Since standalone devices
 usually have an internal state where they store information about arrays,
 array assignments, etc., they need to be reinitialized after such a test. For
 that use the `~nose.with_setup` decorator and provide the
-`~brian2.devices.device.restore_device` function as the ``teardown``
-argument::
+`~brian2.devices.device.reinit_devices` function as the ``teardown`` argument::
 
     from nose import with_setup
     from nose.plugins.attrib import attr
     from numpy.testing.utils import assert_equal
     from brian2 import *
-    from brian2.devices.device import restore_device
+    from brian2.devices.device import reinit_devices
 
     @attr('standalone-compatible')
-    @with_setup(teardown=restore_initial_state)
+    @with_setup(teardown=reinit_devices)
     def test_simple_run():
         # Check that parameter values of a neuron don't change after a run
         group = NeuronGroup(5, 'v : volt')
@@ -148,34 +147,75 @@ argument::
         run(1*ms)
         assert_equal(group.v[:], np.arange(5)*mV)
 
-As a rule of thumb:
+Tests that have more than a single run function but are otherwise compatible
+with standalone mode (e.g. they don't need access to the number of synapses or
+results of the simulation before the end of the simulation), can be marked as
+``standalone-compatible`` and ``multiple-runs``. They then have to use an
+explicit ``device.build(...)`` call of the form shown below::
 
-* If a test does not have a `~brian2.core.network.Network.run` call, mark it as
-  ``codegen-independent``
-* If a test has only a single `~brian2.core.network.Network.run` and only reads state variable
-  values after the run, mark it as ``standalone-compatible`` and register the
-  `~brian2.devices.device.restore_device` teardown function
+    from nose import with_setup
+    from nose.plugins.attrib import attr
+    from numpy.testing.utils import assert_equal
+    from brian2 import *
+    from brian2.devices.device import reinit_devices
+
+
+    @attr('standalone-compatible', 'multiple-runs')
+    @with_setup(teardown=reinit_devices)
+    def test_multiple_runs():
+        # Check that multiple runs advance the clock as expected
+        group = NeuronGroup(5, 'v : volt')
+        mon = StateMonitor(group, 'v', record=True)
+        run(1 * ms)
+        run(1 * ms)
+        device.build(direct_call=False, **device.build_options)
+        assert_equal(defaultclock.t, 2 * ms)
+        assert_equal(mon.t[0], 0 * ms)
+        assert_equal(mon.t[-1], 2 * ms - defaultclock.dt)
+
 
 Tests can also be written specifically for a standalone device (they then have
 to include the `~brian2.devices.device.set_device` and
 `~brian2.devices.device.Device.build` calls explicitly). In this case tests
 have to be annotated with the name of the device (e.g. ``'cpp_standalone'``)
 and with ``'standalone-only'`` to exclude this test from the runtime tests.
-Also, the device should be restored in the end::
+Also, the device should be reset in the teardown function::
 
     from nose import with_setup
     from nose.plugins.attrib import attr
     from brian2 import *
-    from brian2.devices.device import restore_device
+    from brian2.devices.device import reinit_devices
 
     @attr('cpp_standalone', 'standalone-only')
-    @with_setup(teardown=restore_initial_state)
+    @with_setup(teardown=reinit_devices)
     def test_cpp_standalone():
         set_device('cpp_standalone')
         # set up simulation
         # run simulation
         device.build(...)
         # check simulation results
+
+Summary
+^^^^^^^
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
+| ``@attr`` attributes                     | Executed for devices   | needs ``teardown=reinit_devices``?  | explicit use of `device`                                    |
++==========================================+========================+=====================================+=============================================================+
+| ``codegen-independent``                  | independent of devices | no                                  | *none*                                                      |
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
+| *none*                                   | Runtime targets        | no                                  | *none*                                                      |
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
+| ``standalone-compatible``                | Runtime and standalone | yes                                 | *none*                                                      |
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
+| ``standalone-compatible, multiple-runs`` | Runtime and standalone | yes                                 | ``device.build(direct_call=False, **device.build_options)`` |
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
+| ``cpp_standalone, standalone-only``      | C++ standalone device  | yes                                 | ``set_device('cpp_standalone')``                            |
+|                                          |                        |                                     | ``...``                                                     |
+|                                          |                        |                                     | ``device.build(directory=None)``                            |
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
+| ``my_device, standalone-only``           | "My device"            | yes                                 | ``set_device('my_device')``                                 |
+|                                          |                        |                                     | ``...``                                                     |
+|                                          |                        |                                     | ``device.build(directory=None)``                            |
++------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
 
 Doctests
 ~~~~~~~~
@@ -211,28 +251,6 @@ date!
 .. _`doctest documentation`: https://docs.python.org/2/library/doctest.html
 .. _`Sphinx's doctest extension`: http://www.sphinx-doc.org/en/stable/ext/doctest.html
 
-Test attributes
-~~~~~~~~~~~~~~~
-
-As explained above, the test suite can be run with different subsets of the
-available tests. For this, tests have to be annotated with the ``attr``
-decorator available from ``nose.plugins.attrib``. Currently, the following
-attributes are understood:
-
-* **standalone**: A C++ standalone test (not run by default when calling ``brian2.test()``)
-* **codegen-independent**: A test that does not use any code generation (run by default)
-* **long**: A test that takes a long time to run (not run by default)
-
-Attributes can be simply given as a string argument to the ``attr`` decorator:
-
-.. code-block:: python
-   :emphasize-lines: 3
-
-    from nose.plugins.attrib import attr
-
-    @attr('standalone')
-    test_for_standalone():
-        pass  # ...
 
 Correctness tests
 ~~~~~~~~~~~~~~~~~
