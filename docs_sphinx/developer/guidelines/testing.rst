@@ -15,7 +15,7 @@ suite with:
 
 	$ nosetests brian2 --with-doctest
 
-This should show no errors or failures but ususally a number of skipped tests.
+This should show no errors or failures but usually a number of skipped tests.
 The recommended way however is to import brian2 and call the test function,
 which gives you convenient control over which tests are run::
 
