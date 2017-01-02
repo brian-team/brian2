@@ -1118,6 +1118,7 @@ class Synapses(Group):
         # Check that subexpressions that refer to stateful functions are labeled
         # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
+        super(Synapses, self).before_run(run_namespace=run_namespace)
 
     @device_override('synapses_connect')
     def connect(self, condition=None, i=None, j=None, p=1., n=1,
