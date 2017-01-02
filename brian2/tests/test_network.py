@@ -767,51 +767,38 @@ def test_progress_report_incorrect():
     assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
 
 
-@attr('cpp_standalone', 'standalone-only')
+@attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
-def test_multiple_runs_report_standalone(with_output=False):
-    set_device('cpp_standalone', build_on_run=False)
+def test_multiple_runs_report_standalone():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
     run(1*ms)
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True,
-                 with_output=with_output)
+    device.build(direct_call=False, **device.build_options)
 
 
-@attr('cpp_standalone', 'standalone-only')
+@attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
-def test_multiple_runs_report_standalone_2(with_output=False):
-    set_device('cpp_standalone', build_on_run=False)
+def test_multiple_runs_report_standalone_2():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms)
     run(1*ms, report='text')
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True,
-                 with_output=with_output)
+    device.build(direct_call=False, **device.build_options)
 
 
-@attr('cpp_standalone', 'standalone-only')
+@attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
-def test_multiple_runs_report_standalone_3(with_output=False):
-    set_device('cpp_standalone', build_on_run=False)
+def test_multiple_runs_report_standalone_3():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
     run(1*ms, report='text')
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True,
-                 with_output=with_output)
+    device.build(direct_call=False, **device.build_options)
 
 
+# This tests a specific limitation of the C++ standalone mode (cannot mix
+# multiple report methods)
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=reinit_devices)
-def test_multiple_runs_report_standalone_incorrect(with_output=False):
+def test_multiple_runs_report_standalone_incorrect():
     set_device('cpp_standalone', build_on_run=False)
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
@@ -1069,7 +1056,8 @@ def test_defaultclock_dt_changes():
         net.run(2*dt)
         assert_equal(mon.t[:], [0, dt/ms]*ms)
 
-@with_setup(teardown=restore_initial_state)
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
 def test_dt_changes_between_runs():
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'v:1')
@@ -1079,6 +1067,7 @@ def test_dt_changes_between_runs():
     run(.5*ms)
     defaultclock.dt = 0.1*ms
     run(.5*ms)
+    device.build(direct_call=False, **device.build_options)
     assert len(mon.t[:]) == 5 + 1 + 5
     assert_allclose(mon.t[:],
                     [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)

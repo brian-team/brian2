@@ -13,7 +13,7 @@ from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
-from brian2.devices.device import reinit_devices, all_devices, get_device, set_device, reset_device
+from brian2.devices.device import reinit_devices, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 

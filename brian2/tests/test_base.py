@@ -1,7 +1,10 @@
 from brian2 import *
-from numpy.testing import assert_raises, assert_equal
+from brian2.devices.device import reinit_devices
+
+from numpy.testing import assert_raises, assert_equal, assert_allclose
 from nose import with_setup
 from nose.plugins.attrib import attr
+
 
 class DerivedBrianObject(BrianObject):
     def __init__(self, name='derivedbrianobject*'):
@@ -60,8 +63,25 @@ def test_duplicate_names():
     net = Network(obj3, obj4)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
+
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
+def test_active_flag():
+    G = NeuronGroup(1, 'dv/dt = 1/ms : 1')
+    mon = StateMonitor(G, 'v', record=0)
+    mon.active = False
+    run(1*ms)
+    mon.active = True
+    G.active = False
+    run(1*ms)
+    device.build(direct_call=False, **device.build_options)
+    # Monitor should start recording at 1ms
+    # Neurongroup should not integrate after 1ms (but should have integrated before)
+    assert_allclose(mon[0].t[0], 1*ms)
+    assert_allclose(mon[0].v, 1.0)
+
 if __name__=='__main__':
     test_base()
     test_names()
     test_duplicate_names()
-
+    test_active_flag()

@@ -50,28 +50,6 @@ def test_cpp_standalone(with_output=False):
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=reinit_devices)
-def test_dt_changes_between_runs_standalone(with_output=False):
-    set_device('cpp_standalone', build_on_run=False)
-    defaultclock.dt = 0.1*ms
-    G = NeuronGroup(1, 'v:1')
-    mon = StateMonitor(G, 'v', record=True)
-    run(.5*ms)
-    defaultclock.dt = .5*ms
-    run(.5*ms)
-    defaultclock.dt = 0.1*ms
-    run(.5*ms)
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True, run=True,
-                 with_output=True)
-    assert len(mon.t[:]) == 5 + 1 + 5
-    assert_allclose(mon.t[:],
-                    [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)
-    reset_device()
-
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
 def test_multiple_connects(with_output=False):
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
@@ -229,39 +207,6 @@ def test_openmp_consistency(with_output=False):
 
 @attr('cpp_standalone', 'standalone-only')
 @with_setup(teardown=reinit_devices)
-def test_timedarray(with_output=True):
-    set_device('cpp_standalone', build_on_run=False)
-
-    defaultclock.dt = 0.1*ms
-    ta1d = TimedArray(np.arange(10)*volt, dt=1*ms)
-    ta2d = TimedArray(np.arange(300).reshape(3, 100).T, dt=defaultclock.dt)
-    G = NeuronGroup(4, '''x = ta1d(t) : volt
-                          y = ta2d(t, i) : 1''')
-    mon = StateMonitor(G, ['x', 'y'], record=True)
-    run(11*ms)
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir, compile=True,
-                 run=True, with_output=with_output)
-
-    for idx in xrange(4):
-        # x variable should have neuron independent values
-        assert_equal(mon[idx].x[:],
-                     np.clip(np.arange(11).repeat(10), 0, 9)*volt)
-
-    for idx in xrange(3):
-        # y variable is neuron-specific
-        assert_equal(mon[idx].y[:],
-                     np.clip(np.arange(110), 0, 99) + idx*100)
-    # the 2d array only has 3 columns, the last neuron should therefore contain
-    # only NaN
-    assert_equal(mon[3].y[:], np.nan)
-
-    reset_device()
-
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
 def test_duplicate_names_across_nets(with_output=True):
     set_device('cpp_standalone', build_on_run=False)
     # In standalone mode, names have to be globally unique, not just unique
@@ -398,46 +343,19 @@ def test_array_cache(with_output=False):
     assert_allclose(G.i, np.arange(10))
     assert_allclose(S.weight, 7)
 
-    reset_device()
-
-
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
-def test_active_flag_standalone(with_output=True):
-    set_device('cpp_standalone', build_on_run=False)
-
-    G = NeuronGroup(1, 'dv/dt = 1/ms : 1')
-    mon = StateMonitor(G, 'v', record=0)
-    mon.active = False
-    run(1*ms)
-    mon.active = True
-    G.active = False
-    run(1*ms)
-    tempdir = tempfile.mkdtemp()
-    if with_output:
-        print tempdir
-    device.build(directory=tempdir)
-    # Monitor should start recording at 1ms
-    # Neurongroup should not integrate after 1ms (but should have integrated before)
-    assert_allclose(mon[0].t[0], 1*ms)
-    assert_allclose(mon[0].v, 1.0)
-
 
 if __name__=='__main__':
     # Print the debug output when testing this file only but not when running
     # via nose test
     for t in [
              test_cpp_standalone,
-             test_dt_changes_between_runs_standalone,
              test_multiple_connects,
              test_storing_loading,
              test_openmp_consistency,
-             test_timedarray,
              test_duplicate_names_across_nets,
              test_openmp_scalar_writes,
              test_time_after_run,
              test_array_cache,
-             test_active_flag_standalone
              ]:
         t(with_output=True)
         reinit_devices()
