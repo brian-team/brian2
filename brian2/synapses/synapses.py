@@ -1114,6 +1114,7 @@ class Synapses(Group):
                                               % (eq.varname, identifier))
 
     def before_run(self, run_namespace):
+        self.equations.check_units(self, run_namespace=run_namespace)
         # Check that subexpressions that refer to stateful functions are labeled
         # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
