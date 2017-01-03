@@ -780,6 +780,7 @@ class NeuronGroup(Group, SpikeSource):
         # Check that subexpressions that refer to stateful functions are labeled
         # as "constant over dt"
         check_subexpressions(self, self.equations, run_namespace)
+        super(NeuronGroup, self).before_run(run_namespace=run_namespace)
 
     def _repr_html_(self):
         text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]

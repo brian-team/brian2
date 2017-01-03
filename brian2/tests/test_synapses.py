@@ -651,6 +651,17 @@ def test_nested_subexpression_references():
     assert_equal(G2.v[5:], (5+np.arange(5))*3)
 
 
+@attr('codegen-independent')
+def test_equations_unit_check():
+    group = NeuronGroup(1, 'v : volt', threshold='True')
+    syn = Synapses(group, group, '''sub1 = 3 : 1
+                                    sub2 = sub1 + 1*mV : volt''',
+                   on_pre='v += sub2')
+    syn.connect()
+    net = Network(group, syn)
+    assert_raises(DimensionMismatchError, lambda: net.run(0 * ms))
+
+
 def test_delay_specification():
     # By default delays are state variables (i.e. arrays), but if they are
     # specified in the initializer, they are scalars.
@@ -2115,6 +2126,7 @@ if __name__ == '__main__':
     test_subexpression_references()
     test_nested_subexpression_references()
     test_constant_variable_subexpression_in_synapses()
+    test_equations_unit_check()
     test_delay_specification()
     test_delays_pathways()
     test_delays_pathways_subgroups()
