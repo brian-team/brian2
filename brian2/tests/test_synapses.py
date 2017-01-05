@@ -206,6 +206,12 @@ def test_connection_string_deterministic():
     S9 = Synapses(G, G, 'w:1', 'v+=w')
     S9.connect('v_pre == v_post')
 
+    S9b = Synapses(G, G, '''
+                         sub_1 = v_pre : 1
+                         sub_2 = v_post : 1
+                         w:1''', 'v+=w')
+    S9b.connect('sub_1 == sub_2')
+
     S10 = Synapses(G, G, 'w:1', 'v+=w')
     S10.connect(j='i')
 
@@ -236,6 +242,8 @@ def test_connection_string_deterministic():
     _compare(S7, expected_no_self)
     _compare(S8, expected_one_to_one)
     _compare(S9, expected_one_to_one)
+    _compare(S9b, expected_one_to_one)
+    _compare(S10, expected_one_to_one)
     _compare(S11, expected_custom)
     _compare(S12, expected_custom)
 

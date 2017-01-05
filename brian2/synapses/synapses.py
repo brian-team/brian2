@@ -15,6 +15,7 @@ from brian2.core.base import device_override
 from brian2.core.namespace import get_local_namespace
 from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
+from brian2.codegen.translation import get_identifiers_recursively
 from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations, SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
@@ -1452,7 +1453,7 @@ class Synapses(Group):
         deps = set()
         if additional_indices is None:
             additional_indices = {}
-        for varname in get_identifiers(expr):
+        for varname in get_identifiers_recursively([expr], self.variables):
             if varname in additional_indices:
                 deps.add(additional_indices[varname])
             else:
