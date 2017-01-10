@@ -6,7 +6,7 @@ import numpy as np
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables, Subexpression
-from brian2.parsing.expressions import parse_expression_unit
+from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.units.fundamentalunits import (check_units, Unit,
                                            fail_for_dimension_mismatch)
 from brian2.units.stdunits import Hz
@@ -73,18 +73,17 @@ class PoissonGroup(Group, SpikeSource):
 
         self.variables = Variables(self)
         # standard variables
-        self.variables.add_constant('N', unit=Unit(1), value=self._N)
+        self.variables.add_constant('N', value=self._N)
         self.variables.add_arange('i', self._N, constant=True, read_only=True)
-        self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
-                                 dtype=np.int32)
+        self.variables.add_array('_spikespace', size=N+1, dtype=np.int32)
         self.variables.create_clock_variables(self._clock)
 
         # The firing rates
         if isinstance(rates, basestring):
-            self.variables.add_subexpression('rates', unit=Hz,
+            self.variables.add_subexpression('rates', dimensions=Hz.dim,
                                              expr=rates)
         else:
-            self.variables.add_array('rates', size=N, unit=Hz)
+            self.variables.add_array('rates', size=N, dimensions=Hz.dim)
         self._rates = rates
 
         self.start = 0
@@ -122,7 +121,7 @@ class PoissonGroup(Group, SpikeSource):
             variables = self.resolve_all(identifiers,
                                          run_namespace,
                                          user_identifiers=identifiers)
-            unit = parse_expression_unit(rates_var.expr, variables)
+            unit = parse_expression_dimensions(rates_var.expr, variables)
             fail_for_dimension_mismatch(unit, Hz, "The expression provided for "
                                                   "PoissonGroup's 'rates' "
                                                   "argument, has to have units "

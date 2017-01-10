@@ -460,7 +460,11 @@ class Dimension(object):
 
     #### COMPARISON ####
     def __eq__(self, value):
-        return np.allclose(self._dims, value._dims)
+        try:
+            return np.allclose(self._dims, value._dims)
+        except AttributeError:
+            # Only compare equal to another Dimensions object
+            return False
 
     def __ne__(self, value):
         return not self.__eq__(value)

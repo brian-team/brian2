@@ -367,7 +367,7 @@ class CPPCodeGenerator(CodeGenerator):
                 pointer_name = self.get_array_name(var)
                 if pointer_name in handled_pointers:
                     continue
-                if getattr(var, 'dimensions', 1) > 1:
+                if getattr(var, 'ndim', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 restrict = self.restrict
                 # turn off restricted pointers for scalars for safety

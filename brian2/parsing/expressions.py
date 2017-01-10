@@ -9,11 +9,12 @@ from brian2.parsing.rendering import NodeRenderer
 from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            DimensionMismatchError,
                                            have_same_dimensions,
-                                           get_dimensions
-                                           )
+                                           get_dimensions,
+                                           get_unit, DIMENSIONLESS,
+                                           fail_for_dimension_mismatch)
 
 __all__ = ['is_boolean_expression',
-           'parse_expression_unit',]
+           'parse_expression_dimensions', ]
 
 
 def is_boolean_expression(expr, variables):
@@ -181,7 +182,7 @@ def _get_value_from_expression(expr, variables):
         raise SyntaxError('Unsupported operation ' + str(expr.__class__))
 
     
-def parse_expression_unit(expr, variables):
+def parse_expression_dimensions(expr, variables):
     '''
     Returns the unit value of an expression, and checks its validity
     
@@ -215,7 +216,7 @@ def parse_expression_unit(expr, variables):
         # new class for True, False, None in Python 3.4
         value = expr.value
         if value is True or value is False:
-            return Unit(1)
+            return DIMENSIONLESS
         else:
             raise ValueError('Do not know how to handle value %s' % value)
     if expr.__class__ is ast.Name:
@@ -226,25 +227,25 @@ def parse_expression_unit(expr, variables):
             raise SyntaxError('%s was used like a variable/constant, but it is '
                               'a function.' % name)
         if name in variables:
-            return variables[name].unit
+            return variables[name].dimensions
         elif name in ['True', 'False']:
-            return Unit(1)
+            return DIMENSIONLESS
         else:
             raise KeyError('Unknown identifier %s' % name)
     elif expr.__class__ is ast.Num:
-        return get_unit_fast(1)
+        return DIMENSIONLESS
     elif expr.__class__ is ast.BoolOp:
         # check that the units are valid in each subexpression
         for node in expr.values:
-            parse_expression_unit(node, variables)
+            parse_expression_dimensions(node, variables)
         # but the result is a bool, so we just return 1 as the unit
-        return get_unit_fast(1)
+        return DIMENSIONLESS
     elif expr.__class__ is ast.Compare:
         # check that the units are consistent in each subexpression
         subexprs = [expr.left]+expr.comparators
         subunits = []
         for node in subexprs:
-            subunits.append(parse_expression_unit(node, variables))
+            subunits.append(parse_expression_dimensions(node, variables))
         for left, right in zip(subunits[:-1], subunits[1:]):
             if not have_same_dimensions(left, right):
                 msg = ('Comparison of expressions with different units. Expression '
@@ -253,7 +254,7 @@ def parse_expression_unit(expr, variables):
                             NodeRenderer().render_node(expr.comparators[0]), get_dimensions(right))
                 raise DimensionMismatchError(msg)
         # but the result is a bool, so we just return 1 as the unit
-        return get_unit_fast(1)
+        return DIMENSIONLESS
     elif expr.__class__ is ast.Call:
         if len(expr.keywords):
             raise ValueError("Keyword arguments not supported.")
@@ -287,7 +288,7 @@ def parse_expression_unit(expr, variables):
                                      '"%s".') % (idx + 1, expr.func.id,
                                                  NodeRenderer().render_node(arg)))
             else:
-                arg_unit = parse_expression_unit(arg, variables)
+                arg_unit = parse_expression_dimensions(arg, variables)
                 if not have_same_dimensions(arg_unit, expected_unit):
                     msg = ('Argument number {} for function {} does not have the '
                            'correct units. Expression "{}" has units ({}), but '
@@ -298,42 +299,47 @@ def parse_expression_unit(expr, variables):
                     raise DimensionMismatchError(msg)
 
         if func._return_unit == bool:
-            return Unit(1)
+            return DIMENSIONLESS
         elif isinstance(func._return_unit, (Unit, int)):
             # Function always returns the same unit
-            return get_unit_fast(func._return_unit)
+            return getattr(func._return_unit, 'dim', DIMENSIONLESS)
         else:
             # Function returns a unit that depends on the arguments
-            arg_units = [parse_expression_unit(arg, variables)
+            arg_units = [parse_expression_dimensions(arg, variables)
                          for arg in expr.args]
-            return func._return_unit(*arg_units)
+            return func._return_unit(*arg_units).dim
 
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
-        left = parse_expression_unit(expr.left, variables)
-        right = parse_expression_unit(expr.right, variables)
-        if op=='Add' or op=='Sub':
-            u = left+right
+        left = parse_expression_dimensions(expr.left, variables)
+        right = parse_expression_dimensions(expr.right, variables)
+        if op=='Add' or op=='Sub' or op=='Mod':
+            # dimensions should be the same
+            op_symbol = {'Add': '+', 'Sub': '-', 'Mod': '%'}.get(op)
+            fail_for_dimension_mismatch(left, right,
+                                        'Cannot determine units for '
+                                        '%s %s %s' % (NodeRenderer().render_node(expr.left),
+                                                      op_symbol,
+                                                      NodeRenderer().render_node(expr.right)))
+            u = left
         elif op=='Mult':
             u = left*right
         elif op=='Div':
             u = left/right
         elif op=='Pow':
             if have_same_dimensions(left, 1) and have_same_dimensions(right, 1):
-                return get_unit_fast(1)
+                return DIMENSIONLESS
             n = _get_value_from_expression(expr.right, variables)
             u = left**n
-        elif op=='Mod':
-            u = left % right
         else:
             raise SyntaxError("Unsupported operation "+op)
         return u
     elif expr.__class__ is ast.UnaryOp:
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
-        u = parse_expression_unit(expr.operand, variables)
+        u = parse_expression_dimensions(expr.operand, variables)
         if op=='Not':
-            return get_unit_fast(1)
+            return DIMENSIONLESS
         else:
             return u
     else:

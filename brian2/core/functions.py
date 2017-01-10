@@ -521,8 +521,7 @@ class SymbolicConstant(Constant):
     Class for representing constants (e.g. pi) that are understood by sympy.
     '''
     def __init__(self, name, sympy_obj, value):
-        super(SymbolicConstant, self).__init__(name, unit=Unit(1),
-                                               value=value)
+        super(SymbolicConstant, self).__init__(name, value=value)
         self.sympy_obj = sympy_obj
 
 

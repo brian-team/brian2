@@ -1343,11 +1343,11 @@ def check_permutation_code(code):
     variables.update(DEFAULT_FUNCTIONS)
     for var in indices:
         if var.endswith('_const'):
-            variables[var] = Constant(var, 1, 42, owner=device)
+            variables[var] = Constant(var, 42, owner=device)
         else:
-            variables[var] = ArrayVariable(var, 1, None, 10, device)
-    variables['_presynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
-    variables['_postsynaptic_idx'] = ArrayVariable(var, 1, None, 10, device)
+            variables[var] = ArrayVariable(var, None, 10, device)
+    variables['_presynaptic_idx'] = ArrayVariable(var, None, 10, device)
+    variables['_postsynaptic_idx'] = ArrayVariable(var, None, 10, device)
     scalar_statements, vector_statements = make_statements(code, variables, float64)
     check_for_order_independence(vector_statements, variables, indices)
 

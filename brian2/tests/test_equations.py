@@ -291,8 +291,8 @@ def test_construction_errors():
 def test_unit_checking():
     # dummy Variable class
     class S(object):
-        def __init__(self, unit):
-            self.unit = unit
+        def __init__(self, dimensions):
+            self.dimensions = get_dimensions(dimensions)
 
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')

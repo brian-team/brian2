@@ -112,27 +112,26 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self._neuron_index = indices
 
         # standard variables
-        self.variables.add_constant('N', unit=Unit(1), value=N)
-        self.variables.add_array('period', unit=second, size=1,
+        self.variables.add_constant('N', value=N)
+        self.variables.add_array('period', dimensions=second.dim, size=1,
                                  constant=True, read_only=True, scalar=True)
         self.variables.add_arange('i', N)
         self.variables.add_dynamic_array('spike_number',
                                          values=np.arange(len(indices)),
-                                         size=len(indices), unit=Unit(1),
+                                         size=len(indices),
                                          dtype=np.int32, read_only=True,
                                          constant=True, index='spike_number',
                                          unique=True)
         self.variables.add_dynamic_array('neuron_index', values=indices,
-                                         size=len(indices), unit=Unit(1),
+                                         size=len(indices),
                                          dtype=np.int32, index='spike_number',
                                          read_only=True, constant=True)
         self.variables.add_dynamic_array('spike_time', values=times, size=len(times),
-                                         unit=second, index='spike_number',
+                                         dimensions=second.dim, index='spike_number',
                                          read_only=True, constant=True)
-        self.variables.add_array('_spikespace', size=N+1, unit=Unit(1),
-                                 dtype=np.int32)
-        self.variables.add_array('_lastindex', size=1, values=0, unit=Unit(1),
-                                 dtype=np.int32, read_only=True, scalar=True)
+        self.variables.add_array('_spikespace', size=N+1, dtype=np.int32)
+        self.variables.add_array('_lastindex', size=1, values=0, dtype=np.int32,
+                                 read_only=True, scalar=True)
         self.variables.create_clock_variables(self._clock)
 
         #: Remember the dt we used the last time when we checked the spike bins

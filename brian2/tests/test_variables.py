@@ -16,12 +16,11 @@ from brian2.units.allunits import second
 @attr('codegen-independent')
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
-    assert_raises(ValueError, lambda: Variable(name='name', unit=second,
+    assert_raises(ValueError, lambda: Variable(name='name', dimensions=second.dim,
                                                dtype=np.bool))
 
     # Dynamic array variable that is constant but not constant in size
     assert_raises(ValueError, lambda: DynamicArrayVariable(name='name',
-                                                           unit=Unit(1),
                                                            owner=None,
                                                            size=0,
                                                            device=None,
@@ -34,13 +33,13 @@ def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')
-    variables = [Variable(name='name', unit=second),
-                 Constant(name='name', unit=second, value=1.0),
-                 AuxiliaryVariable(name='name', unit=second),
-                 ArrayVariable(name='name', unit=second, owner=None, size=10, device=None),
-                 DynamicArrayVariable(name='name', unit=second, owner=None, size=0,
+    variables = [Variable(name='name', dimensions=second.dim),
+                 Constant(name='name', dimensions=second.dim, value=1.0),
+                 AuxiliaryVariable(name='name', dimensions=second.dim),
+                 ArrayVariable(name='name', dimensions=second.dim, owner=None, size=10, device=None),
+                 DynamicArrayVariable(name='name', dimensions=second.dim, owner=None, size=0,
                                       device=None),
-                 Subexpression(name='sub', unit=second, expr='a+b', owner=group,
+                 Subexpression(name='sub', dimensions=second.dim, expr='a+b', owner=group,
                                device=None)]
     for var in variables:
         assert len(str(var))
@@ -54,14 +53,13 @@ def test_dtype_str():
     group = FakeGroup(name='groupname')
     for d in ['int32', 'int64', 'float32', 'float64', 'bool', 'int', 'float']:
         nd = np.dtype(d)
-        for var in [Constant(name='name', unit=1,
-                             value=np.zeros(1, dtype=nd)[0]),
-                    AuxiliaryVariable(name='name', dtype=nd, unit=1),
-                    ArrayVariable(name='name', owner=None, size=10, unit=1,
+        for var in [Constant(name='name', value=np.zeros(1, dtype=nd)[0]),
+                    AuxiliaryVariable(name='name', dtype=nd),
+                    ArrayVariable(name='name', owner=None, size=10,
                                   device=None, dtype=nd),
                     DynamicArrayVariable(name='name', owner=None, dtype=nd,
-                                         size=0, device=None, unit=1),
-                    Subexpression(name='sub', expr='a+b', owner=group, unit=1,
+                                         size=0, device=None),
+                    Subexpression(name='sub', expr='a+b', owner=group,
                                   device=None, dtype=nd)]:
             assert var.dtype_str.startswith(d)
 

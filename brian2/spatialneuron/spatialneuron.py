@@ -382,7 +382,7 @@ class SpatialNeuron(NeuronGroup):
                                    # The following two are only necessary for
                                    # C code where we cannot deal with scalars
                                    # and arrays interchangeably:
-                                   '_I0_all', '_gtot_all'], unit=1,
+                                   '_I0_all', '_gtot_all'],
                                   size=self.N, read_only=True)
 
         self.Cm = Cm
@@ -536,34 +536,35 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_reference('N', group)
         # One value per compartment
         self.variables.add_arange('_compartment_idx', size=compartments)
-        self.variables.add_array('_invr', unit=siemens, size=compartments,
-                                 constant=True, index='_compartment_idx')
+        self.variables.add_array('_invr', dimensions=siemens.dim,
+                                 size=compartments, constant=True,
+                                 index='_compartment_idx')
         # one value per section
         self.variables.add_arange('_section_idx', size=sections)
-        self.variables.add_array('_P_parent', unit=Unit(1), size=sections,
+        self.variables.add_array('_P_parent', size=sections,
                                  constant=True)  # elements below diagonal
         self.variables.add_arrays(['_morph_idxchild', '_morph_parent_i',
-                                   '_starts', '_ends'], unit=Unit(1),
-                                  size=sections, dtype=np.int32, constant=True)
-        self.variables.add_arrays(['_invr0', '_invrn'], unit=siemens,
+                                   '_starts', '_ends'], size=sections,
+                                  dtype=np.int32, constant=True)
+        self.variables.add_arrays(['_invr0', '_invrn'], dimensions=siemens.dim,
                                   size=sections, constant=True)
         # one value per section + 1 value for the root
         self.variables.add_arange('_section_root_idx', size=sections+1)
-        self.variables.add_array('_P_diag', unit=Unit(1), size=sections+1,
+        self.variables.add_array('_P_diag', size=sections+1,
                                  constant=True, index='_section_root_idx')
-        self.variables.add_array('_B', unit=Unit(1), size=sections+1,
+        self.variables.add_array('_B', size=sections+1,
                                  constant=True, index='_section_root_idx')
-        self.variables.add_array('_morph_children_num', unit=Unit(1),
+        self.variables.add_array('_morph_children_num',
                                  size=sections+1, dtype=np.int32,
                                  constant=True, index='_section_root_idx')
         # 2D matrices of size (sections + 1) x max children per section
         self.variables.add_arange('_morph_children_idx',
                                   size=len(group.flat_morphology.morph_children))
-        self.variables.add_array('_P_children', unit=Unit(1),
+        self.variables.add_array('_P_children',
                                  size=len(group.flat_morphology.morph_children),
                                  index='_morph_children_idx',
                                  constant=True)  # elements above diagonal
-        self.variables.add_array('_morph_children', unit=Unit(1),
+        self.variables.add_array('_morph_children',
                                  size=len(group.flat_morphology.morph_children),
                                  dtype=np.int32, constant=True,
                                  index='_morph_children_idx')

@@ -39,9 +39,9 @@ class StateMonitorView(object):
         elif item == 't_':
             return mon.variables['t'].get_value()
         elif item in mon.record_variables:
-            unit = mon.variables[item].unit
+            dims = mon.variables[item].dim
             return Quantity(mon.variables[item].get_value().T[self.indices],
-                            dim=unit.dim, copy=True)
+                            dim=dims, copy=True)
         elif item.endswith('_') and item[:-1] in mon.record_variables:
             return mon.variables[item[:-1]].get_value().T[self.indices].copy()
         else:
@@ -229,14 +229,13 @@ class StateMonitor(Group, CodeRunner):
         # Setup variables
         self.variables = Variables(self)
 
-        self.variables.add_dynamic_array('t', size=0, unit=second,
+        self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
                                          constant=False)
-        self.variables.add_array('N', unit=Unit(1), dtype=np.int32,
-                                 size=1, scalar=True, read_only=True)
+        self.variables.add_array('N', dtype=np.int32, size=1, scalar=True,
+                                 read_only=True)
         self.variables.add_array('_indices', size=len(self.record),
-                                 unit=Unit(1), dtype=self.record.dtype,
-                                 constant=True, read_only=True,
-                                 values=self.record)
+                                 dtype=self.record.dtype, constant=True,
+                                 read_only=True, values=self.record)
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         for varname in variables:
@@ -253,7 +252,7 @@ class StateMonitor(Group, CodeRunner):
             self.variables.add_dynamic_array(varname,
                                              size=(0, len(self.record)),
                                              resize_along_first=True,
-                                             unit=var.unit,
+                                             dimensions=var.dim,
                                              dtype=var.dtype,
                                              constant=False,
                                              read_only=True)
@@ -261,7 +260,7 @@ class StateMonitor(Group, CodeRunner):
         for varname in variables:
             var = self.source.variables[varname]
             self.variables.add_auxiliary_variable('_to_record_' + varname,
-                                                  unit=var.unit,
+                                                  dimensions=var.dim,
                                                   dtype=var.dtype,
                                                   scalar=var.scalar)
 
@@ -315,9 +314,9 @@ class StateMonitor(Group, CodeRunner):
         if not hasattr(self, '_group_attribute_access_active'):
             raise AttributeError
         if item in self.record_variables:
-            unit = self.variables[item].unit
+            var_dim = self.variables[item].dim
             return Quantity(self.variables[item].get_value().T,
-                            dim=unit.dim, copy=True)
+                            dim=var_dim, copy=True)
         elif item.endswith('_') and item[:-1] in self.record_variables:
             return self.variables[item[:-1]].get_value().T
         else:

@@ -4,9 +4,10 @@ Utility functions for handling the units in `Equations`.
 import re
 
 from brian2.units.fundamentalunits import (get_unit, Unit,
-                                           fail_for_dimension_mismatch)
+                                           fail_for_dimension_mismatch,
+                                           get_dimensions)
 
-from brian2.parsing.expressions import parse_expression_unit
+from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.parsing.statements import parse_statement
 from brian2.core.variables import Variable
 
@@ -36,7 +37,7 @@ def check_unit(expression, unit, variables):
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
     '''
-    expr_unit = parse_expression_unit(expression, variables)
+    expr_unit = parse_expression_dimensions(expression, variables)
     fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
                                                   'have the expected unit %r') %
                                                   (expression.strip(), unit))
@@ -94,10 +95,10 @@ def check_units_statements(code, variables):
         else:
             raise AssertionError('Unknown operator "%s"' % op) 
 
-        expr_unit = parse_expression_unit(expr, variables)
+        expr_unit = parse_expression_dimensions(expr, variables)
 
         if varname in variables:
-            expected_unit = variables[varname].unit
+            expected_unit = variables[varname].dimensions
             fail_for_dimension_mismatch(expr_unit, expected_unit,
                                         ('The right-hand-side of code '
                                          'statement ""%s" does not have the '
@@ -106,7 +107,7 @@ def check_units_statements(code, variables):
         elif varname in newly_defined:
             # note the unit for later
             variables[varname] = Variable(name=varname,
-                                          unit=get_unit(expr_unit),
+                                          dimensions=get_dimensions(expr_unit),
                                           scalar=False)
         else:
             raise AssertionError(('Variable "%s" is neither in the variables '

@@ -35,10 +35,10 @@ def test_analyse_identifiers():
     a = b+c
     d = e+f
     '''
-    known = {'b': Variable(unit=1, name='b'),
-             'c': Variable(unit=1, name='c'),
-             'd': Variable(unit=1, name='d'),
-             'g': Variable(unit=1, name='g')}
+    known = {'b': Variable(name='b'),
+             'c': Variable(name='c'),
+             'd': Variable(name='d'),
+             'g': Variable(name='g')}
     
     defined, used_known, dependent = analyse_identifiers(code, known)
     assert 'a' in defined  # There might be an additional constant added by the
@@ -52,15 +52,15 @@ def test_get_identifiers_recursively():
     '''
     Test finding identifiers including subexpressions.
     '''
-    variables = {'sub1': Subexpression(name='sub1', unit=Unit(1),
+    variables = {'sub1': Subexpression(name='sub1',
                                        dtype=np.float32, expr='sub2 * z',
                                        owner=FakeGroup(variables={}),
                                        device=None),
-                 'sub2': Subexpression(name='sub2', unit=Unit(1),
+                 'sub2': Subexpression(name='sub2',
                                        dtype=np.float32, expr='5 + y',
                                        owner=FakeGroup(variables={}),
                                        device=None),
-                 'x': Variable(unit=1, name='x')}
+                 'x': Variable(name='x')}
     identifiers = get_identifiers_recursively(['_x = sub1 + x'],
                                               variables)
     assert identifiers == {'x', '_x', 'y', 'z', 'sub1', 'sub2'}
@@ -79,12 +79,12 @@ def test_nested_subexpressions():
     x = a + b + c
     '''
     variables = {
-        'a': Subexpression(name='a', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
+        'a': Subexpression(name='a', dtype=np.float32, owner=FakeGroup(variables={}), device=None,
                            expr='b*b+d'),
-        'b': Subexpression(name='b', unit=Unit(1), dtype=np.float32, owner=FakeGroup(variables={}), device=None,
+        'b': Subexpression(name='b', dtype=np.float32, owner=FakeGroup(variables={}), device=None,
                            expr='c*c*c'),
-        'c': Variable(unit=1, name='c'),
-        'd': Variable(unit=1, name='d'),
+        'c': Variable(name='c'),
+        'd': Variable(name='d'),
         }
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
@@ -98,10 +98,10 @@ def test_nested_subexpressions():
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation():
-    variables = {'v': Variable('v', Unit(1), scalar=False),
-                 'w': Variable('w', Unit(1), scalar=False),
-                 'dt': Constant('dt', second, 0.1*ms),
-                 'tau': Constant('tau', second, 10*ms),
+    variables = {'v': Variable('v', scalar=False),
+                 'w': Variable('w', scalar=False),
+                 'dt': Constant('dt', dimensions=second.dim, value=0.1*ms),
+                 'tau': Constant('tau', dimensions=second.dim, value=10*ms),
                  'exp': DEFAULT_FUNCTIONS['exp']}
     statements = [Statement('v', '=', 'dt*w*exp(-dt/tau)/tau + v*exp(-dt/tau)', '', np.float32),
                   Statement('w', '=', 'w*exp(-dt/tau)', '', np.float32)]
@@ -115,14 +115,14 @@ def test_apply_loop_invariant_optimisation():
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_integer():
-    variables = {'v': Variable('v', Unit(1), scalar=False),
-                 'N': Constant('N', Unit(1), 10),
-                 'b': Variable('b', Unit(1), scalar=True, dtype=int),
-                 'c': Variable('c', Unit(1), scalar=True, dtype=int),
-                 'd': Variable('d', Unit(1), scalar=True, dtype=int),
-                 'y': Variable('y', Unit(1), scalar=True, dtype=float),
-                 'z': Variable('z', Unit(1), scalar=True, dtype=float),
-                 'w': Variable('w', Unit(1), scalar=True, dtype=float),
+    variables = {'v': Variable('v', scalar=False),
+                 'N': Constant('N', 10),
+                 'b': Variable('b', scalar=True, dtype=int),
+                 'c': Variable('c', scalar=True, dtype=int),
+                 'd': Variable('d', scalar=True, dtype=int),
+                 'y': Variable('y', scalar=True, dtype=float),
+                 'z': Variable('z', scalar=True, dtype=float),
+                 'w': Variable('w', scalar=True, dtype=float),
                  }
     statements = [Statement('v', '=', 'v % (2*3*N)', '', np.float32),
                   # integer version doesn't get rewritten but float version does
@@ -146,11 +146,11 @@ def test_apply_loop_invariant_optimisation_integer():
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_boolean():
-    variables = {'v1': Variable('v1', Unit(1), scalar=False),
-                 'v2': Variable('v2', Unit(1), scalar=False),
-                 'N': Constant('N', Unit(1), 10),
-                 'b': Variable('b', Unit(1), scalar=True, dtype=bool),
-                 'c': Variable('c', Unit(1), scalar=True, dtype=bool),
+    variables = {'v1': Variable('v1', scalar=False),
+                 'v2': Variable('v2', scalar=False),
+                 'N': Constant('N', 10),
+                 'b': Variable('b', scalar=True, dtype=bool),
+                 'c': Variable('c', scalar=True, dtype=bool),
                  'int': DEFAULT_FUNCTIONS['int'],
                  'foo': Function(lambda x: None,
                                  arg_units=[Unit(1)], return_unit=Unit(1),
@@ -177,11 +177,11 @@ def test_apply_loop_invariant_optimisation_boolean():
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_no_optimisation():
-    variables = {'v1': Variable('v1', Unit(1), scalar=False),
-                 'v2': Variable('v2', Unit(1), scalar=False),
-                 'N': Constant('N', Unit(1), 10),
-                 's1': Variable('s1', Unit(1), scalar=True, dtype=float),
-                 's2': Variable('s2', Unit(1), scalar=True, dtype=float),
+    variables = {'v1': Variable('v1', scalar=False),
+                 'v2': Variable('v2', scalar=False),
+                 'N': Constant('N', 10),
+                 's1': Variable('s1', scalar=True, dtype=float),
+                 's2': Variable('s2', scalar=True, dtype=float),
                  'rand': DEFAULT_FUNCTIONS['rand']
                  }
     statements = [
@@ -205,10 +205,10 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_simplification():
-    variables = {'v1': Variable('v1', Unit(1), scalar=False),
-                 'v2': Variable('v2', Unit(1), scalar=False),
-                 'i1': Variable('i1', Unit(1), scalar=False, dtype=int),
-                 'N': Constant('N', Unit(1), 10)
+    variables = {'v1': Variable('v1', scalar=False),
+                 'v2': Variable('v2', scalar=False),
+                 'i1': Variable('i1', scalar=False, dtype=int),
+                 'N': Constant('N', 10)
                  }
     statements = [
         # Should be simplified to 0.0
@@ -268,12 +268,12 @@ def test_apply_loop_invariant_optimisation_simplification():
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_constant_evaluation():
-    variables = {'v1': Variable('v1', Unit(1), scalar=False),
-                 'v2': Variable('v2', Unit(1), scalar=False),
-                 'i1': Variable('i1', Unit(1), scalar=False, dtype=int),
-                 'N': Constant('N', Unit(1), 10),
-                 's1': Variable('s1', Unit(1), scalar=True, dtype=float),
-                 's2': Variable('s2', Unit(1), scalar=True, dtype=float),
+    variables = {'v1': Variable('v1', scalar=False),
+                 'v2': Variable('v2', scalar=False),
+                 'i1': Variable('i1', scalar=False, dtype=int),
+                 'N': Constant('N', 10),
+                 's1': Variable('s1', scalar=True, dtype=float),
+                 's2': Variable('s2', scalar=True, dtype=float),
                  'exp': DEFAULT_FUNCTIONS['exp']
                  }
     statements = [
@@ -299,13 +299,13 @@ def test_automatic_augmented_assignments():
     # We test that statements that could be rewritten as augmented assignments
     # are correctly rewritten (using sympy to test for symbolic equality)
     variables = {
-        'x': ArrayVariable('x', unit=Unit(1), owner=None, size=10,
+        'x': ArrayVariable('x', owner=None, size=10,
                            device=device),
-        'y': ArrayVariable('y', unit=Unit(1), owner=None, size=10,
+        'y': ArrayVariable('y', owner=None, size=10,
                            device=device),
-        'z': ArrayVariable('y', unit=Unit(1), owner=None, size=10,
+        'z': ArrayVariable('y', owner=None, size=10,
                            device=device),
-        'b': ArrayVariable('b', unit=Unit(1), owner=None, size=10,
+        'b': ArrayVariable('b', owner=None, size=10,
                            dtype=np.bool, device=device),
         'clip': DEFAULT_FUNCTIONS['clip'],
         'inf': DEFAULT_CONSTANTS['inf']

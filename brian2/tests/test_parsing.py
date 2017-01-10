@@ -21,7 +21,7 @@ from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       )
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (is_boolean_expression,
-                                        parse_expression_unit,
+                                        parse_expression_dimensions,
                                         _get_value_from_expression)
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.parsing.functions import (abstract_code_from_function,
@@ -220,9 +220,9 @@ def test_is_boolean_expression():
             self._returns_bool = returns_bool
 
     # variables / functions
-    a = Constant('a', unit=Unit(1), value=True)
-    b = Constant('b', unit=Unit(1), value=False)
-    c = Constant('c', unit=Unit(1), value=5)
+    a = Constant('a', value=True)
+    b = Constant('b', value=False)
+    c = Constant('c', value=5)
     f = Func(returns_bool=True)
     g = Func(returns_bool=False)
     s1 = Var(is_boolean=True)
@@ -264,10 +264,10 @@ def test_is_boolean_expression():
 
 @attr('codegen-independent')
 def test_parse_expression_unit():
-    Var = namedtuple('Var', ['unit', 'dtype'])
-    variables = {'a': Var(unit=volt*amp, dtype=np.float64),
-                 'b': Var(unit=volt, dtype=np.float64),
-                 'c': Var(unit=amp, dtype=np.float64)}
+    Var = namedtuple('Var', ['dimensions', 'dtype'])
+    variables = {'a': Var(dimensions=(volt*amp).dim, dtype=np.float64),
+                 'b': Var(dimensions=volt.dim, dtype=np.float64),
+                 'c': Var(dimensions=amp.dim, dtype=np.float64)}
     group = SimpleGroup(namespace={}, variables=variables)
     EE = [
         (volt*amp, 'a+b*c'),
@@ -305,10 +305,10 @@ def test_parse_expression_unit():
                 all_variables[name] = group._resolve(name, {})
 
         if isinstance(expect, type) and issubclass(expect, Exception):
-            assert_raises(expect, parse_expression_unit, expr,
+            assert_raises(expect, parse_expression_dimensions, expr,
                           all_variables)
         else:
-            u = parse_expression_unit(expr, all_variables)
+            u = parse_expression_dimensions(expr, all_variables)
             assert have_same_dimensions(u, expect)
 
     wrong_expressions = ['a**b',
@@ -322,7 +322,7 @@ def test_parse_expression_unit():
                 all_variables[name] = variables[name]
             else:
                 all_variables[name] = group._resolve(name, {})
-        assert_raises(SyntaxError, parse_expression_unit, expr, all_variables)
+        assert_raises(SyntaxError, parse_expression_dimensions, expr, all_variables)
 
 
 @attr('codegen-independent')
@@ -340,7 +340,7 @@ def test_value_from_expression():
     variables['s_constant_scalar'].get_value = lambda: 2.0
     variables['s_non_scalar'].constant = True
     variables['s_non_constant'].scalar = True
-    variables['c'] = Constant('c', unit=Unit(1), value=3)
+    variables['c'] = Constant('c', value=3)
 
     expressions = ['1', '-0.5', 'c', '2**c', '(c + 3) * 5',
                    'c + s_constant_scalar', 'True', 'False']

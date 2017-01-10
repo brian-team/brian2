@@ -7,7 +7,8 @@ from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
 from brian2.units.fundamentalunits import (check_units, have_same_dimensions,
                                            get_unit, Quantity,
-                                           DimensionMismatchError)
+                                           DimensionMismatchError,
+                                           get_dimensions)
 from brian2.units.stdunits import Hz
 
 
@@ -58,18 +59,18 @@ class PoissonInput(CodeRunner):
         if isinstance(weight, basestring):
             weight = '(%s)' % weight
         else:
-            weight_unit = get_unit(weight)
-            weight = repr(weight)
-            target_unit = target.variables[target_var].unit
+            weight_dims = get_dimensions(weight)
+            target_dims = target.variables[target_var].dim
             # This will be checked automatically in the abstract code as well
             # but doing an explicit check here allows for a clearer error
             # message
-            if not have_same_dimensions(weight_unit, target_unit):
+            if not have_same_dimensions(weight_dims, target_dims):
                 raise DimensionMismatchError(('The provided weight does not '
                                               'have the same unit as the '
                                               'target variable "%s"') % target_var,
-                                             weight_unit.dim,
-                                             target_unit.dim)
+                                             weight_dims,
+                                             target_dims)
+            weight = repr(weight)
         self._N = N
         self._rate = rate
         binomial_sampling = BinomialFunction(N, rate*target.clock.dt,

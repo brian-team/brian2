@@ -249,7 +249,7 @@ class CythonCodeGenerator(CodeGenerator):
                 pointer_name = self.get_array_name(var)
                 if pointer_name in handled_pointers:
                     continue
-                if getattr(var, 'dimensions', 1) > 1:
+                if getattr(var, 'ndim', 1) > 1:
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 if get_dtype_str(var.dtype) == 'bool':
                     newlines = ["cdef _numpy.ndarray[char, ndim=1, mode='c', cast=True] _buf_{array_name} = _namespace['{array_name}']",

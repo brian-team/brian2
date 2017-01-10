@@ -51,15 +51,15 @@ class PopulationRateMonitor(Group, CodeRunner):
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)
         stop = getattr(source, 'stop', len(source))
-        self.variables.add_constant('_source_start', Unit(1), start)
-        self.variables.add_constant('_source_stop', Unit(1), stop)
+        self.variables.add_constant('_source_start', start)
+        self.variables.add_constant('_source_stop', stop)
         self.variables.add_reference('_spikespace', source)
-        self.variables.add_dynamic_array('rate', size=0, unit=hertz,
+        self.variables.add_dynamic_array('rate', size=0, dimensions=hertz.dim,
                                          read_only=True)
-        self.variables.add_dynamic_array('t', size=0, unit=second,
+        self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
                                          read_only=True)
         self.variables.add_reference('_num_source_neurons', source, 'N')
-        self.variables.add_array('N', unit=Unit(1), dtype=np.int32, size=1,
+        self.variables.add_array('N', dtype=np.int32, size=1,
                                  scalar=True, read_only=True)
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
