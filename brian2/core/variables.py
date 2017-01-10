@@ -981,14 +981,12 @@ class VariableView(object):
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
         from brian2.codegen.codeobject import create_runner_codeobj
-        from brian2.devices.device import get_default_codeobject_class, get_device
+        from brian2.devices.device import get_default_codeobject_class
 
-        group_index_var = get_device().get_array_name(variables['_group_idx'])
         codeobj = create_runner_codeobj(self.group,
                                         abstract_code,
                                         'group_variable_set',
                                         additional_variables=variables,
-                                        template_kwds={'_group_index_var': group_index_var},
                                         check_units=check_units,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
