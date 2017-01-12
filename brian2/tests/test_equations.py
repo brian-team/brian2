@@ -292,7 +292,7 @@ def test_unit_checking():
     # dummy Variable class
     class S(object):
         def __init__(self, dimensions):
-            self.dimensions = get_dimensions(dimensions)
+            self.dim = get_dimensions(dimensions)
 
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')

@@ -133,7 +133,7 @@ class Variable(object):
         assert isinstance(dimensions, Dimension)
 
         #: The variable's dimensions.
-        self.dimensions = dimensions
+        self.dim = dimensions
 
         #: The variable's name.
         self.name = name
@@ -170,13 +170,6 @@ class Variable(object):
         return np.issubdtype(np.bool, self.dtype)
 
     @property
-    def dim(self):
-        '''
-        The dimensions of this variable.
-        '''
-        return self.dimensions
-    
-    @property
     def dtype_str(self):
         '''
         String representation of the numpy dtype
@@ -200,7 +193,7 @@ class Variable(object):
         '''
         Return the value associated with the variable (with units).
         '''
-        return Quantity(self.get_value(), self.dimensions)
+        return Quantity(self.get_value(), self.dim)
 
     def get_addressable_value(self, name, group):
         '''
@@ -268,7 +261,7 @@ class Variable(object):
                        ' dtype={dtype}, scalar={scalar}, constant={constant},'
                        ' read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
-                                  dimensions=repr(self.dimensions),
+                                  dimensions=repr(self.dim),
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant),
@@ -641,7 +634,7 @@ class Subexpression(Variable):
                        'expr={expr}, owner=<{owner}>)>')
         return description.format(classname=self.__class__.__name__,
                                   name=repr(self.name),
-                                  dimensions=repr(self.dimensions),
+                                  dimensions=repr(self.dim),
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr),
                                   owner=self.owner.name)
@@ -757,14 +750,7 @@ class VariableView(object):
         # We keep a strong reference to the `Indexing` object so that basic
         # indexing is still possible, even if the group no longer exists
         self.indexing = self.group._indices
-        self.dimensions = dimensions
-
-    @property
-    def dim(self):
-        '''
-        The dimensions of this variable.
-        '''
-        return self.dimensions
+        self.dim = dimensions
 
     def get_item(self, item, level=0, namespace=None):
         '''
@@ -807,10 +793,10 @@ class VariableView(object):
             else:
                 values = self.get_with_index_array(item)
 
-        if self.dimensions is None:
+        if self.dim is None:
             return values
         else:
-            return Quantity(values, self.dimensions)
+            return Quantity(values, self.dim)
 
     def __getitem__(self, item):
         return self.get_item(item, level=1)
@@ -857,7 +843,7 @@ class VariableView(object):
                                         item.step is None):
             item = 'True'
 
-        check_units = self.dimensions is not None
+        check_units = self.dim is not None
 
         if namespace is None:
             namespace = get_local_namespace(level=level+1)
@@ -1187,7 +1173,7 @@ class VariableView(object):
         return np.asanyarray(self[:], dtype=dtype)
 
     def __array_prepare__(self, array, context=None):
-        if self.dimensions is None:
+        if self.dim is None:
             return array
         else:
             this = self[:]
@@ -1198,7 +1184,7 @@ class VariableView(object):
                 return array
 
     def __array_wrap__(self, out_arr, context=None):
-        if self.dimensions is None:
+        if self.dim is None:
             return out_arr
         else:
             this = self[:]
@@ -1323,7 +1309,7 @@ class VariableView(object):
 
     def __repr__(self):
         varname = self.name
-        if self.dimensions is None:
+        if self.dim is None:
             varname += '_'
 
         if self.variable.scalar:
@@ -1729,7 +1715,7 @@ class Variables(collections.Mapping):
 
         new_expr = word_substitute(subexpr.expr, substitutions)
         new_subexpr = Subexpression(name, self.owner, new_expr,
-                                    dimensions=subexpr.dimensions,
+                                    dimensions=subexpr.dim,
                                     device=subexpr.device,
                                     dtype=subexpr.dtype,
                                     scalar=subexpr.scalar)

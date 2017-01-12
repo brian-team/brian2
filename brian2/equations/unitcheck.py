@@ -100,7 +100,7 @@ def check_units_statements(code, variables):
         expr_unit = parse_expression_dimensions(expr, variables)
 
         if varname in variables:
-            expected_unit = variables[varname].dimensions
+            expected_unit = variables[varname].dim
             fail_for_dimension_mismatch(expr_unit, expected_unit,
                                         ('The right-hand-side of code '
                                          'statement ""%s" does not have the '

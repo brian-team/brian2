@@ -124,10 +124,10 @@ class EventMonitor(Group, CodeRunner):
             self.variables.add_reference('_source_%s' % variable,
                                          source, variable)
             self.variables.add_auxiliary_variable('_to_record_%s' % variable,
-                                                  dimensions=source_var.dimensions,
+                                                  dimensions=source_var.dim,
                                                   dtype=source_var.dtype)
             self.variables.add_dynamic_array(variable, size=0,
-                                             dimensions=source_var.dimensions,
+                                             dimensions=source_var.dim,
                                              dtype=source_var.dtype,
                                              read_only=True)
         self.variables.add_arange('_source_idx', size=len(source))

@@ -227,7 +227,7 @@ def parse_expression_dimensions(expr, variables):
             raise SyntaxError('%s was used like a variable/constant, but it is '
                               'a function.' % name)
         if name in variables:
-            return variables[name].dimensions
+            return variables[name].dim
         elif name in ['True', 'False']:
             return DIMENSIONLESS
         else:

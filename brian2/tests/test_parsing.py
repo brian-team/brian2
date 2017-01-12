@@ -264,10 +264,10 @@ def test_is_boolean_expression():
 
 @attr('codegen-independent')
 def test_parse_expression_unit():
-    Var = namedtuple('Var', ['dimensions', 'dtype'])
-    variables = {'a': Var(dimensions=(volt*amp).dim, dtype=np.float64),
-                 'b': Var(dimensions=volt.dim, dtype=np.float64),
-                 'c': Var(dimensions=amp.dim, dtype=np.float64)}
+    Var = namedtuple('Var', ['dim', 'dtype'])
+    variables = {'a': Var(dim=(volt*amp).dim, dtype=np.float64),
+                 'b': Var(dim=volt.dim, dtype=np.float64),
+                 'c': Var(dim=amp.dim, dtype=np.float64)}
     group = SimpleGroup(namespace={}, variables=variables)
     EE = [
         (volt*amp, 'a+b*c'),
