@@ -102,7 +102,7 @@ class Variable(object):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    dimensions : `Dimensions`
+    dimensions : `Dimensions`, optional
         The dimensions of the variable.
     owner : `Nameable`, optional
         The object that "owns" this variable, e.g. the `NeuronGroup` or
@@ -284,9 +284,9 @@ class Constant(Variable):
     ----------
     name : str
         The name of the variable
-    unit : `Unit`
-        The unit of the variable. Note that the variable itself (as referenced
-        by value) should never have units attached.
+    dimensions : `Dimension`, optional
+        The dimensions of the variable. Note that the variable itself (as
+        referenced by value) should never have units attached.
     value: reference to the variable value
         The value of the constant.
     owner : `Nameable`, optional
@@ -344,8 +344,8 @@ class AuxiliaryVariable(Variable):
     ----------
     name : str
         The name of the variable
-    unit : `Unit`
-        The unit of the variable.
+    dimensions : `Dimension`, optional
+        The dimensions of the variable.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
         to `core.default_float_dtype`.
@@ -375,8 +375,8 @@ class ArrayVariable(Variable):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    unit : `Unit`
-        The unit of the variable
+    dimensions : `Dimension`, optional
+        The dimensions of the variable
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -472,8 +472,8 @@ class DynamicArrayVariable(ArrayVariable):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    unit : `Unit`
-        The unit of the variable
+    dimensions : `Dimension`, optional
+        The dimensinos of the variable
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -571,8 +571,8 @@ class Subexpression(Variable):
     ----------
     name : str
         The name of the subexpression.
-    unit : `Unit`
-        The unit of the subexpression.
+    dimensions : `Dimension`, optional
+        The dimensions of the subexpression.
     owner : `Group`
         The group to which the expression refers.
     expr : str
@@ -723,9 +723,9 @@ class VariableView(object):
     group : `Group`
         The group through which the variable is accessed (not necessarily the
         same as `variable.owner`).
-    unit : `Unit`, optional
-        The unit to be used for the variable, should be `None` when a variable
-         is accessed without units (e.g. when accessing ``G.var_``).
+    dimensions : `Dimension`, optional
+        The dimensinos to be used for the variable, should be `None` when a
+        variable is accessed without units (e.g. when accessing ``G.var_``).
     '''
     def __init__(self, name, variable, group, dimensions=None):
         self.name = name
@@ -1409,8 +1409,8 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable.
-        unit : `Unit`
-            The unit of the variable
+        dimensions : `Dimension`, optional
+            The dimensions of the variable.
         size : int
             The size of the array.
         values : `ndarray`, optional
@@ -1461,7 +1461,7 @@ class Variables(collections.Mapping):
                                       'size: %d != %d') % (len(values), size))
                 self.device.fill_with_array(var, values)
 
-    def add_arrays(self, names, size, dimensions=DIMENSIONLESS, values=None,
+    def add_arrays(self, names, size, dimensions=DIMENSIONLESS,
                    dtype=None, constant=False, read_only=False, scalar=False,
                    unique=False, index=None):
         '''
@@ -1472,8 +1472,8 @@ class Variables(collections.Mapping):
         ----------
         names : list of str
             The names of the variable.
-        unit : `Unit`
-            The unit of the variables
+        dimensions : `Dimension`, optional
+            The dimensions of the variable.
         size : int
             The sizes of the arrays.
         dtype : `dtype`, optional
@@ -1512,8 +1512,8 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable.
-        unit : `Unit`
-            The unit of the variable
+        dimensions : `Dimension`, optional
+            The dimensions of the variable.
         size : int or tuple of int
             The (initital) size of the array.
         values : `ndarray`, optional
@@ -1605,11 +1605,11 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable
-        unit : `Unit`
-            The unit of the variable. Note that the variable itself (as referenced
-            by value) should never have units attached.
         value: reference to the variable value
             The value of the constant.
+        dimensions : `Dimension`, optional
+            The dimensions of the variable. Note that the variable itself (as
+            referenced by value) should never have units attached.
         '''
         var = Constant(name=name, dimensions=dimensions, owner=self.owner, value=value)
         self._add_variable(name, var)
