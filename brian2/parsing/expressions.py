@@ -11,10 +11,8 @@ from brian2.units.fundamentalunits import (Unit, get_unit_fast,
                                            have_same_dimensions,
                                            get_dimensions
                                            )
-
 __all__ = ['is_boolean_expression',
            'parse_expression_unit',]
-
 
 def is_boolean_expression(expr, variables):
     '''

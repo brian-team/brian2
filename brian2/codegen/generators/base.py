@@ -122,7 +122,6 @@ class CodeGenerator(object):
             vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
 
         kwds = self.determine_keywords()
-
         return scalar_code, vector_code, kwds
 
     def array_read_write(self, statements):
@@ -248,7 +247,6 @@ class CodeGenerator(object):
                              'order of execution. You can ignore this warning if '
                              'you are sure that the order of operations does not '
                              'matter. ' + error_msg))
-
         return self.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
 

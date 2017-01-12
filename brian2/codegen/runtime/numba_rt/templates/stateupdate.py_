@@ -1,0 +1,26 @@
+{% extends 'common.py_' %}
+
+{% block template_support_code %}
+
+@jit(nopython=True)
+def _stateupdate({{subroutine_parameters}}):
+    for _idx in range(N):
+        _vectorisation_idx = _idx
+        {{vector_code|autoindent}}
+    return {{subroutine_parameters}}
+
+{% endblock %}
+
+{% block maincode %}
+    {# ITERATE_ALL { _idx } #}
+    {# USES_VARIABLES { N } #}
+    {# ALLOWS_SCALAR_WRITE #}
+
+    # scalar code
+    _vectorisation_idx = 1
+    {{scalar_code|autoindent}}
+    
+    # vector code
+    {{subroutine_parameters}} = _stateupdate({{subroutine_arguments}})    
+
+{% endblock %}

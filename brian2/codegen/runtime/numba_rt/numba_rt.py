@@ -1,27 +1,27 @@
 '''
-Module providing `NumpyCodeObject`.
+Module providing `numbaCodeObject`.
 '''
-import sys
-
 import numpy as np
+import math
 
-from brian2.core.base import brian_object_exception
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 
-from ...codeobject import CodeObject, constant_or_scalar
+from ...codeobject import CodeObject
 
 from ...templates import Templater
-from ...generators.numpy_generator import NumpyCodeGenerator
+from ...generators.numba_generator import NumbaCodeGenerator
 from ...targets import codegen_targets
+from brian2.utils.stringtools import get_identifiers
 
-__all__ = ['NumpyCodeObject']
+
+__all__ = ['NumbaCodeObject']
 
 # Preferences
 prefs.register_preferences(
-    'codegen.runtime.numpy',
-    'Numpy runtime codegen preferences',
+    'codegen.runtime.numba',
+    'Numba runtime codegen preferences',
     discard_units = BrianPreference(
         default=False,
         docs='''
@@ -32,34 +32,36 @@ prefs.register_preferences(
     )
 
 
-class NumpyCodeObject(CodeObject):
+class NumbaCodeObject(CodeObject):
     '''
-    Execute code using Numpy
+    Execute code using Numba
     
-    Default for Brian because it works on all platforms.
     '''
-    templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_',
-                          env_globals={'constant_or_scalar': constant_or_scalar})
-    generator_class = NumpyCodeGenerator
-    class_name = 'numpy'
+    templater = Templater('brian2.codegen.runtime.numba_rt', '.py_')
+    generator_class = NumbaCodeGenerator
+    class_name = 'numba'
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='numpy_code_object*'):
+                 template_name, template_source, name='numba_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
         self.namespace = {'_owner': owner,
                           # TODO: This should maybe go somewhere else
-                          'logical_not': np.logical_not}
+                          'logical_not': np.logical_not, 'log10':math.log10}
         CodeObject.__init__(self, owner, code, variables, variable_indices,
                             template_name, template_source, name=name)
         self.variables_to_namespace()
 
-    @classmethod
-    def is_available(cls):
-        # no test necessary for numpy
+    @staticmethod
+    def is_available():
+        try:
+            import numba
+        except ImportError:
+            return False
         return True
 
     def variables_to_namespace(self):
+
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -71,20 +73,19 @@ class NumpyCodeObject(CodeObject):
         for name, var in self.variables.iteritems():
             if isinstance(var, (AuxiliaryVariable, Subexpression)):
                 continue
-
             try:
-                if not hasattr(var, 'get_value'):
-                    raise TypeError()
                 value = var.get_value()
-            except TypeError:
+            except (TypeError, AttributeError):
                 # A dummy Variable without value or a function
                 self.namespace[name] = var
                 continue
 
             if isinstance(var, ArrayVariable):
-                self.namespace[self.generator_class.get_array_name(var)] = value
+                self.namespace[self.device.get_array_name(var,
+                                                            self.variables)] = value
+                self.namespace['_num'+name] = var.get_len()
                 if var.scalar and var.constant:
-                    self.namespace[name] = value[0]
+                    self.namespace[name] = value.item()
             else:
                 self.namespace[name] = value
 
@@ -93,20 +94,32 @@ class NumpyCodeObject(CodeObject):
                                                                     access_data=False)
                 self.namespace[dyn_array_name] = self.device.get_value(var,
                                                                        access_data=False)
-
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
             self.namespace['_var_'+name] = var
 
-            # There is one type of objects that we have to inject into the
-            # namespace with their current value at each time step: dynamic
-            # arrays that change in size during runs (i.e. not synapses but
-            # e.g. the structures used in monitors)
+        # Get all identifiers in the code -- note that this is not a smart
+        # function, it will get identifiers from strings, comments, etc. This
+        # is not a problem here, since we only use this list to filter out
+        # things. If we include something incorrectly, this only means that we
+        # will pass something into the namespace unnecessarily.
+        all_identifiers = get_identifiers(self.code)
+        # Filter out all unneeded objects
+        self.namespace = {k: v for k, v in self.namespace.iteritems()
+                          if k in all_identifiers}
+
+        # There is one type of objects that we have to inject into the
+        # namespace with their current value at each time step: dynamic
+        # arrays that change in size during runs, where the size change is not
+        # initiated by the template itself
+        for name, var in self.variables.iteritems():
             if (isinstance(var, DynamicArrayVariable) and
                     var.needs_reference_update):
-                self.nonconstant_values.append((self.generator_class.get_array_name(var,
-                                                                                   self.variables),
-                                                var.get_value))
+                array_name = self.device.get_array_name(var, self.variables)
+                if array_name in self.namespace:
+                    self.nonconstant_values.append((array_name, var.get_value))
+                if '_num'+name in self.namespace:
+                    self.nonconstant_values.append(('_num'+name, var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace
@@ -114,24 +127,17 @@ class NumpyCodeObject(CodeObject):
             self.namespace[name] = func()
 
     def compile(self):
-        super(NumpyCodeObject, self).compile()
-        self.compiled_code = compile(self.code, '(string)', 'exec')
-
+        super(NumbaCodeObject, self).compile()
+        with open('/home/zhenrui/Research/Goodman Lab/outfile.py', "w") as f:
+            f.write(self.code)
+        execfile('/home/zhenrui/Research/Goodman Lab/outfile.py', self.namespace)
+        print self.code
 
     def run(self):
-        try:
-            exec self.compiled_code in self.namespace
-        except Exception as exc:
-            message = ('An exception occured during the execution of code '
-                       'object {}.\n').format(self.name)
-            lines = self.code.split('\n')
-            message += 'The error was raised in the following line:\n'
-            _, _, tb = sys.exc_info()
-            tb = tb.tb_next  # Line in the code object's code
-            message += lines[tb.tb_lineno - 1] + '\n'
-            raise brian_object_exception(message, self.owner, exc)
-        # output variables should land in the variable name _return_values
+        code = 'main(namespace)'
+        self.namespace['namespace'] = self.namespace
+        exec code in self.namespace
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
 
-codegen_targets.add(NumpyCodeObject)
+codegen_targets.add(NumbaCodeObject)
