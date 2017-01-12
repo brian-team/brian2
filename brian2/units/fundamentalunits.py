@@ -28,8 +28,7 @@ __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
     'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
     'in_unit', 'in_best_unit', 'Quantity', 'Unit', 'register_new_unit',
-    'check_units', 'is_scalar_type', 'get_unit', 'get_unit_fast',
-    'unit_checking'
+    'check_units', 'is_scalar_type', 'get_unit', 'unit_checking'
     ]
 
 
@@ -2297,13 +2296,6 @@ def get_unit_for_display(x):
         return '1'
     else:
         return repr(get_unit(x))
-
-def get_unit_fast(x):
-    '''
-    Return a `Quantity` with value 1 and the same dimensions.
-    '''
-    return Quantity.with_dimensions(1, get_dimensions(x))
-
 
 #### DECORATORS
 

@@ -6,11 +6,11 @@ import ast
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer
-from brian2.units.fundamentalunits import (Unit, get_unit_fast,
+from brian2.units.fundamentalunits import (Unit,
                                            DimensionMismatchError,
                                            have_same_dimensions,
                                            get_dimensions,
-                                           get_unit, DIMENSIONLESS,
+                                           DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 
 __all__ = ['is_boolean_expression',

@@ -20,7 +20,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            DimensionMismatchError,
                                            check_units,
                                            in_unit,
-                                           get_unit, get_unit_fast,
+                                           get_unit,
                                            get_or_create_dimension,
                                            DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
@@ -975,7 +975,7 @@ def test_check_units():
 @attr('codegen-independent')
 def test_get_unit():
     '''
-    Test get_unit and get_unit_fast
+    Test get_unit
     '''
     values = [3 * mV, np.array([1, 2]) * mV,
               np.arange(12).reshape(4, 3) * mV]
@@ -983,7 +983,6 @@ def test_get_unit():
         unit = get_unit(value)
         assert isinstance(unit, Unit)
         assert unit == volt
-        assert_quantity(get_unit_fast(value), 1, volt)
 
     values = [3 * amp/metre**2, np.array([1, 2]) * amp/metre**2,
               np.arange(12).reshape(4, 3) * amp/metre**2]
@@ -992,7 +991,6 @@ def test_get_unit():
         assert isinstance(unit, Unit)
         assert unit == amp/metre**2
         assert float(unit) == 1.
-        assert_quantity(get_unit_fast(value), 1, amp/metre**2)
 
 
 @attr('codegen-independent')
