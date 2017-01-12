@@ -10,7 +10,7 @@ import sympy
 import numpy as np
 
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
+from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
                                            Dimension)
 from brian2.utils.logger import get_logger
@@ -175,6 +175,16 @@ class Variable(object):
         String representation of the numpy dtype
         '''
         return get_dtype_str(self)
+
+    @property
+    def unit(self):
+        '''
+        Returns the `Unit` of this variable (deprecated, get the dimensions with
+        `Variable.dim` instead.)
+        '''
+        logger.warn("The 'unit' property is deprecated, use 'dim' instead.",
+                    'deprecated_variable_unit', once=True)
+        return get_unit(self.dim)
 
     def get_value(self):
         '''
@@ -751,6 +761,16 @@ class VariableView(object):
         # indexing is still possible, even if the group no longer exists
         self.indexing = self.group._indices
         self.dim = dimensions
+
+    @property
+    def unit(self):
+        '''
+        Returns the `Unit` of this equation (deprecated, get the dimensions with
+        `SingleEquation.dim` instead.)
+        '''
+        logger.warn("The 'unit' property is deprecated, use 'dim' instead.",
+                    'deprecated_variableview_unit', once=True)
+        return get_unit(self.dim)
 
     def get_item(self, item, level=0, namespace=None):
         '''
