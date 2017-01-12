@@ -279,18 +279,18 @@ class SpatialNeuron(NeuronGroup):
             if eq.varname == 'Im':
                 continue  # ignore -- handled separately
             if 'point current' in eq.flags:
-                fail_for_dimension_mismatch(eq.unit, amp,
+                fail_for_dimension_mismatch(eq.dim, amp,
                                             "Point current " + eq.varname + " should be in amp")
                 membrane_expr = Expression(
                     str(membrane_expr.code) + '+' + eq.varname + '/area')
-                eq = SingleEquation(eq.type, eq.varname, eq.unit, expr=eq.expr,
+                eq = SingleEquation(eq.type, eq.varname, eq.dim, expr=eq.expr,
                                     flags=list(set(eq.flags)-set(['point current'])))
             model_equations.append(eq)
 
         model_equations.append(SingleEquation(SUBEXPRESSION, 'Im',
-                                              unit=amp/meter**2,
+                                              dimensions=(amp/meter**2).dim,
                                               expr=membrane_expr))
-        model_equations.append(SingleEquation(PARAMETER, 'v', unit=volt))
+        model_equations.append(SingleEquation(PARAMETER, 'v', volt.dim))
         model = Equations(model_equations)
 
         ###### Process model equations (Im) to extract total conductance and the remaining current

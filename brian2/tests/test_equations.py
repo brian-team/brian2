@@ -24,7 +24,7 @@ from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_functions,
                                         check_identifier_units,
                                         parse_string_equations,
-                                        unit_and_type_from_string,
+                                        dimensions_and_type_from_string,
                                         SingleEquation,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, FLOAT, BOOLEAN, INTEGER,
@@ -53,19 +53,19 @@ def test_utility_functions():
     for unit in unit_namespace.itervalues():
         assert isinstance(unit, Unit)
 
-    assert unit_and_type_from_string('second') == (second, FLOAT)
-    assert unit_and_type_from_string('1') == (Unit(1, DIMENSIONLESS), FLOAT)
-    assert unit_and_type_from_string('volt') == (volt, FLOAT)
-    assert unit_and_type_from_string('second ** -1') == (Hz, FLOAT)
-    assert unit_and_type_from_string('farad / metre**2') == (farad / metre ** 2, FLOAT)
-    assert unit_and_type_from_string('boolean') == (Unit(1, DIMENSIONLESS), BOOLEAN)
-    assert unit_and_type_from_string('integer') == (Unit(1, DIMENSIONLESS), INTEGER)
-    assert_raises(ValueError, lambda: unit_and_type_from_string('metr / second'))
-    assert_raises(ValueError, lambda: unit_and_type_from_string('metre **'))
-    assert_raises(ValueError, lambda: unit_and_type_from_string('5'))
-    assert_raises(ValueError, lambda: unit_and_type_from_string('2 / second'))
+    assert dimensions_and_type_from_string('second') == (second.dim, FLOAT)
+    assert dimensions_and_type_from_string('1') == (DIMENSIONLESS, FLOAT)
+    assert dimensions_and_type_from_string('volt') == (volt.dim, FLOAT)
+    assert dimensions_and_type_from_string('second ** -1') == (Hz.dim, FLOAT)
+    assert dimensions_and_type_from_string('farad / metre**2') == ((farad / metre ** 2).dim, FLOAT)
+    assert dimensions_and_type_from_string('boolean') == (DIMENSIONLESS, BOOLEAN)
+    assert dimensions_and_type_from_string('integer') == (DIMENSIONLESS, INTEGER)
+    assert_raises(ValueError, lambda: dimensions_and_type_from_string('metr / second'))
+    assert_raises(ValueError, lambda: dimensions_and_type_from_string('metre **'))
+    assert_raises(ValueError, lambda: dimensions_and_type_from_string('5'))
+    assert_raises(ValueError, lambda: dimensions_and_type_from_string('2 / second'))
     # Only the use of base units is allowed
-    assert_raises(ValueError, lambda: unit_and_type_from_string('farad / cm**2'))
+    assert_raises(ValueError, lambda: dimensions_and_type_from_string('farad / cm**2'))
 
 
 @attr('codegen-independent')
@@ -124,7 +124,7 @@ def test_parse_equations():
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
     assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
-    assert get_dimensions(eqs['v'].unit) == DIMENSIONLESS
+    assert eqs['v'].dimensions is DIMENSIONLESS
 
     # A complex one
     eqs = parse_string_equations('''dv/dt = -(v +
@@ -147,10 +147,10 @@ def test_parse_equations():
     assert eqs['f'].var_type == FLOAT
     assert eqs['b'].var_type == BOOLEAN
     assert eqs['n'].var_type == INTEGER
-    assert get_dimensions(eqs['v'].unit) == volt.dim
-    assert get_dimensions(eqs['ge'].unit) == volt.dim
-    assert get_dimensions(eqs['I'].unit) == volt.dim
-    assert get_dimensions(eqs['f'].unit) == Hz.dim
+    assert eqs['v'].dimensions == volt.dim
+    assert eqs['ge'].dimensions == volt.dim
+    assert eqs['I'].dimensions == volt.dim
+    assert eqs['f'].dimensions == Hz.dim
     assert eqs['v'].flags == []
     assert eqs['ge'].flags == []
     assert eqs['I'].flags == []
@@ -232,9 +232,9 @@ def test_construction_errors():
     assert_raises(EquationError, lambda: Equations('''dv/dt = -v / tau : volt
                                                     v = 2 * t/second * volt : volt'''))
 
-    eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt,
+    eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt.dim,
                           expr=Expression('-v / tau')),
-           SingleEquation(SUBEXPRESSION, 'v', volt,
+           SingleEquation(SUBEXPRESSION, 'v', volt.dim,
                           expr=Expression('2 * t/second * volt'))
            ]
     assert_raises(EquationError, lambda: Equations(eqs))
@@ -353,13 +353,13 @@ def test_properties():
     assert eqs.names == {'v', 'I', 'f', 'freq'}
     assert eqs.parameter_names == {'freq'}
     assert eqs.subexpr_names == {'I', 'f'}
-    units = eqs.units
-    assert set(units.keys()) == {'v', 'I', 'f', 'freq'}
-    assert units['v'] == volt
-    assert units['I'] == volt
-    assert units['f'] == Hz
-    assert have_same_dimensions(units['freq'], 1)
-    assert eqs.names == set(eqs.units.keys())
+    dimensions = eqs.dimensions
+    assert set(dimensions.keys()) == {'v', 'I', 'f', 'freq'}
+    assert dimensions['v'] is volt.dim
+    assert dimensions['I'] is volt.dim
+    assert dimensions['f'] is Hz.dim
+    assert dimensions['freq'] is DIMENSIONLESS
+    assert eqs.names == set(eqs.dimensions.keys())
     assert eqs.identifiers == {'tau', 'volt', 'Hz', 'sin', 't'}
 
     # stochastic equations

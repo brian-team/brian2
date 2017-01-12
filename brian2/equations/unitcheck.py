@@ -11,11 +11,11 @@ from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.parsing.statements import parse_statement
 from brian2.core.variables import Variable
 
-__all__ = ['unit_from_expression', 'check_unit',
+__all__ = ['unit_from_expression', 'check_dimensions',
            'check_units_statements']
 
 
-def check_unit(expression, unit, variables):
+def check_dimensions(expression, dimensions, variables):
     '''
     Compares the unit for an expression to an expected unit in a given
     namespace.
@@ -24,8 +24,8 @@ def check_unit(expression, unit, variables):
     ----------
     expression : str
         The expression to evaluate.
-    unit : `Unit`
-        The expected unit for the `expression`.
+    dimensions : `Dimension`
+        The expected dimensions for the `expression`.
     variables : dict
         Dictionary of all variables (including external constants) used in
         the `expression`.
@@ -37,10 +37,12 @@ def check_unit(expression, unit, variables):
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
     '''
-    expr_unit = parse_expression_dimensions(expression, variables)
-    fail_for_dimension_mismatch(expr_unit, unit, ('Expression %s does not '
-                                                  'have the expected unit %r') %
-                                                  (expression.strip(), unit))
+    expr_dims = parse_expression_dimensions(expression, variables)
+    # FIXME: The error message is not great
+    fail_for_dimension_mismatch(expr_dims, dimensions,
+                                ('Expression %s does not have the expected '
+                                 'unit {expected_unit}') % expression.strip(),
+                                expected_unit=dimensions)
 
 
 def check_units_statements(code, variables):

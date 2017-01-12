@@ -696,7 +696,7 @@ class Synapses(Group):
             raise SyntaxError('lastupdate is a reserved name.')
         model._equations['lastupdate'] = SingleEquation(PARAMETER,
                                                         'lastupdate',
-                                                        second)
+                                                        second.dim)
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index
         if multisynaptic_index is not None:
@@ -704,7 +704,7 @@ class Synapses(Group):
                 raise TypeError('multisynaptic_index argument has to be a string')
             model._equations[multisynaptic_index] = SingleEquation(PARAMETER,
                                                                    multisynaptic_index,
-                                                                   unit=Unit(1),
+                                                                   DIMENSIONLESS,
                                                                    var_type=INTEGER)
 
         # Separate subexpressions depending whether they are considered to be
@@ -1011,14 +1011,14 @@ class Synapses(Group):
                 shared = 'shared' in eq.flags
                 if shared:
                     self.variables.add_array(eq.varname, size=1,
-                                             dimensions=eq.unit.dim,
+                                             dimensions=eq.dim,
                                              dtype=dtype,
                                              constant=constant,
                                              scalar=True,
                                              index='0')
                 else:
                     self.variables.add_dynamic_array(eq.varname, size=0,
-                                                     dimensions=eq.unit.dim,
+                                                     dimensions=eq.dim,
                                                      dtype=dtype,
                                                      constant=constant)
             elif eq.type == SUBEXPRESSION:
@@ -1029,7 +1029,7 @@ class Synapses(Group):
                     varname = '_summed_'+eq.varname
                 else:
                     varname = eq.varname
-                self.variables.add_subexpression(varname, dimensions=eq.unit.dim,
+                self.variables.add_subexpression(varname, dimensions=eq.dim,
                                                  expr=str(eq.expr),
                                                  scalar='shared' in eq.flags,
                                                  dtype=dtype)

@@ -111,10 +111,10 @@ class StateUpdater(CodeRunner):
             variables = self.group.resolve_all(identifiers,
                                                run_namespace,
                                                user_identifiers=identifiers)
-            unit = parse_expression_dimensions(str(ref), variables)
-            if have_same_dimensions(unit, second):
+            dims = parse_expression_dimensions(str(ref), variables)
+            if dims is second.dim:
                 abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
-            elif have_same_dimensions(unit, Unit(1)):
+            elif dims is DIMENSIONLESS:
                 if not is_boolean_expression(str(ref), variables):
                     raise TypeError(('Refractory expression is dimensionless '
                                      'but not a boolean value. It needs to '
@@ -128,7 +128,7 @@ class StateUpdater(CodeRunner):
             else:
                 raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
-                                 '"%s" has units %s instead') % (ref, unit))
+                                 '"%s" has units %s instead') % (ref, dims))
         return abstract_code
 
     def update_abstract_code(self, run_namespace):
@@ -602,7 +602,7 @@ class NeuronGroup(Group, SpikeSource):
                                            'size.') % linked_var.name)
 
             eq = self.equations[key]
-            if eq.unit.dim != linked_var.dim:
+            if eq.dim != linked_var.dim:
                 raise DimensionMismatchError(('Unit of variable %s does not '
                                               'match its link target %s') % (key,
                                                                              linked_var.name))
@@ -737,11 +737,11 @@ class NeuronGroup(Group, SpikeSource):
                     shared = 'shared' in eq.flags
                     size = 1 if shared else self._N
                     self.variables.add_array(eq.varname, size=size,
-                                             dimensions=eq.unit.dim, dtype=dtype,
+                                             dimensions=eq.dim, dtype=dtype,
                                              constant=constant,
                                              scalar=shared)
             elif eq.type == SUBEXPRESSION:
-                self.variables.add_subexpression(eq.varname, dimensions=eq.unit.dim,
+                self.variables.add_subexpression(eq.varname, dimensions=eq.dim,
                                                  expr=str(eq.expr),
                                                  dtype=dtype,
                                                  scalar='shared' in eq.flags)

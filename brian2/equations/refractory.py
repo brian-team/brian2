@@ -2,7 +2,7 @@
 Module implementing Brian's refractory mechanism.
 '''
 
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
 from brian2.units.allunits import second
 
 from .equations import (Equations, SingleEquation, DIFFERENTIAL_EQUATION,
@@ -59,15 +59,15 @@ def add_refractoriness(eqs):
             # the only case where we have to change anything
             new_code = 'int(not_refractory)*(' + eq.expr.code + ')'
             new_equations.append(SingleEquation(DIFFERENTIAL_EQUATION,
-                                                eq.varname, eq.unit,
+                                                eq.varname, eq.dim,
                                                 expr=Expression(new_code),
                                                 flags=eq.flags))
         else:
             new_equations.append(eq)
     
     # add new parameters
-    new_equations.append(SingleEquation(PARAMETER, 'not_refractory', Unit(1),
-                                        var_type=BOOLEAN))
-    new_equations.append(SingleEquation(PARAMETER, 'lastspike', second))
+    new_equations.append(SingleEquation(PARAMETER, 'not_refractory',
+                                        DIMENSIONLESS, var_type=BOOLEAN))
+    new_equations.append(SingleEquation(PARAMETER, 'lastspike', second.dim))
 
     return Equations(new_equations)
