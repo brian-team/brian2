@@ -124,7 +124,7 @@ def test_parse_equations():
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
     assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
-    assert eqs['v'].dimensions is DIMENSIONLESS
+    assert eqs['v'].dim is DIMENSIONLESS
 
     # A complex one
     eqs = parse_string_equations('''dv/dt = -(v +
@@ -147,10 +147,10 @@ def test_parse_equations():
     assert eqs['f'].var_type == FLOAT
     assert eqs['b'].var_type == BOOLEAN
     assert eqs['n'].var_type == INTEGER
-    assert eqs['v'].dimensions == volt.dim
-    assert eqs['ge'].dimensions == volt.dim
-    assert eqs['I'].dimensions == volt.dim
-    assert eqs['f'].dimensions == Hz.dim
+    assert eqs['v'].dim == volt.dim
+    assert eqs['ge'].dim == volt.dim
+    assert eqs['I'].dim == volt.dim
+    assert eqs['f'].dim == Hz.dim
     assert eqs['v'].flags == []
     assert eqs['ge'].flags == []
     assert eqs['I'].flags == []

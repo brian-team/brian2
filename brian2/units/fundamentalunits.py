@@ -257,7 +257,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
 def wrap_function_remove_dimensions(func):
     '''
     Returns a new function that wraps the given function `func` so that it
-    removes any dimensions from its input. Useful for functions that are
+    removes any dim from its input. Useful for functions that are
     returning integers (indices) or booleans, irrespective of the datatype
     contained in the array.
 
@@ -1073,7 +1073,7 @@ class Quantity(np.ndarray, object):
     @staticmethod
     def with_dimensions(value, *args, **keywords):
         """
-        Create a `Quantity` object with dimensions.
+        Create a `Quantity` object with dim.
 
         Parameters
         ----------
@@ -1082,12 +1082,12 @@ class Quantity(np.ndarray, object):
         args : {`Dimension`, sequence of float}
             Either a single argument (a `Dimension`) or a sequence of 7 values.
         kwds
-            Keywords defining the dimensions, see `Dimension` for details.
+            Keywords defining the dim, see `Dimension` for details.
 
         Returns
         -------
         q : `Quantity`
-            A `Quantity` object with the given dimensions
+            A `Quantity` object with the given dim
 
         Examples
         --------
@@ -1845,7 +1845,7 @@ class Unit(Quantity):
         Parameters
         ----------
         dim : `Dimension`
-            The dimensions of the unit.
+            The dim of the unit.
         name : `str`, optional
             The full name of the unit, e.g. ``'volt'``
         dispname : `str`, optional

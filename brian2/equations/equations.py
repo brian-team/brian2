@@ -357,7 +357,7 @@ class SingleEquation(object):
                  flags=None):
         self.type = type
         self.varname = varname
-        self.dimensions = get_dimensions(dimensions)
+        self.dim = get_dimensions(dimensions)
         self.var_type = var_type
         if dimensions is not DIMENSIONLESS:
             if var_type == BOOLEAN:
@@ -376,9 +376,6 @@ class SingleEquation(object):
 
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
-
-    dim = property(lambda self: self.dimensions,
-                   doc='The dimensions of the variable defined by this equation.')
 
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
@@ -407,7 +404,7 @@ class SingleEquation(object):
         if not self.expr is None:
             s += ' = ' + str(self.expr)
 
-        s += ' : ' + str(get_unit(self.dimensions))
+        s += ' : ' + str(get_unit(self.dim))
 
         if len(self.flags):
             s += ' (' + ', '.join(self.flags) + ')'
@@ -420,7 +417,7 @@ class SingleEquation(object):
         if not self.expr is None:
             s += ': ' + self.expr.code
 
-        s += ' (Unit: ' + str(get_unit(self.dimensions))
+        s += ' (Unit: ' + str(get_unit(self.dim))
 
         if len(self.flags):
             s += ', flags: ' + ', '.join(self.flags)
@@ -446,7 +443,7 @@ class SingleEquation(object):
             p.pretty(self.expr)
 
         p.text(' : ')
-        p.pretty(get_unit(self.dimensions))
+        p.pretty(get_unit(self.dim))
 
         if len(self.flags):
             p.text(' (' + ', '.join(self.flags) + ')')
@@ -767,7 +764,7 @@ class Equations(collections.Mapping):
                                              if eq.type == PARAMETER]),
                                doc='All parameter names.')
 
-    dimensions = property(lambda self: dict([(var, eq.dimensions) for var, eq in
+    dimensions = property(lambda self: dict([(var, eq.dim) for var, eq in
                                        self._equations.iteritems()]),
                      doc='Dictionary of all internal variables and their corresponding dimensions.')
 
@@ -1060,7 +1057,7 @@ def extract_constant_subexpressions(eqs):
                 flags = None
             without_const_subexpressions.append(SingleEquation(PARAMETER,
                                                                eq.varname,
-                                                               eq.dimensions,
+                                                               eq.dim,
                                                                var_type=eq.var_type,
                                                                flags=flags))
             const_subexpressions.append(eq)
