@@ -783,7 +783,7 @@ def in_best_unit(x, precision=None):
             precision = np.get_printoptions()['precision']
         return str(np.round(x, precision))
     
-    u = x._get_best_unit()
+    u = x.get_best_unit()
     return x.in_unit(u, precision=precision)
 
 
@@ -1212,7 +1212,7 @@ class Quantity(np.ndarray, object):
             return '%s(%s)' % (self.__class__.__name__, s.strip())
         return s.strip()
 
-    def _get_best_unit(self, *regs):
+    def get_best_unit(self, *regs):
         """
         Return the best unit for this `Quantity`.
 
@@ -1237,8 +1237,8 @@ class Quantity(np.ndarray, object):
                     pass
             return Quantity(1, self.dim)
         else:
-            return self._get_best_unit(standard_unit_register, user_unit_register,
-                                       additional_unit_register)
+            return self.get_best_unit(standard_unit_register, user_unit_register,
+                                      additional_unit_register)
 
     def in_best_unit(self, precision=None, python_code=False, *regs):
         """
@@ -1280,7 +1280,7 @@ class Quantity(np.ndarray, object):
         --------
         in_best_unit
         """
-        u = self._get_best_unit(*regs)
+        u = self.get_best_unit(*regs)
         return self.in_unit(u, precision=precision, python_code=python_code)
 
 #==============================================================================
@@ -1573,7 +1573,7 @@ class Quantity(np.ndarray, object):
     # TODO: Use sympy's _latex method, then latex(unit) should work
     def _latex(self, expr):
         from sympy import Matrix
-        best_unit = self._get_best_unit()
+        best_unit = self.get_best_unit()
         if isinstance(best_unit, Unit):
             best_unit_latex = latex(best_unit)
         else: # A quantity
