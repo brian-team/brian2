@@ -179,11 +179,8 @@ class Variable(object):
     @property
     def unit(self):
         '''
-        Returns the `Unit` of this variable (deprecated, get the dimensions with
-        `Variable.dim` instead.)
+        The `Unit` of this variable
         '''
-        logger.warn("The 'unit' property is deprecated, use 'dim' instead.",
-                    'deprecated_variable_unit', once=True)
         return get_unit(self.dim)
 
     def get_value(self):
@@ -765,11 +762,8 @@ class VariableView(object):
     @property
     def unit(self):
         '''
-        Returns the `Unit` of this equation (deprecated, get the dimensions with
-        `SingleEquation.dim` instead.)
+        The `Unit` of this variable
         '''
-        logger.warn("The 'unit' property is deprecated, use 'dim' instead.",
-                    'deprecated_variableview_unit', once=True)
         return get_unit(self.dim)
 
     def get_item(self, item, level=0, namespace=None):

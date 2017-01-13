@@ -377,15 +377,8 @@ class SingleEquation(object):
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
 
-    @property
-    def unit(self):
-        '''
-        Returns the `Unit` of this equation (deprecated, get the dimensions with
-        `SingleEquation.dim` instead.)
-        '''
-        logger.warn("The 'unit' property is deprecated, use 'dim' instead.",
-                    'deprecated_equation_unit', once=True)
-        return get_unit(self.dim)
+    unit = property(lambda self: get_unit(self.dim),
+                    doc='The `Unit` of this equation.')
 
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),

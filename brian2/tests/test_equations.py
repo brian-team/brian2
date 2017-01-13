@@ -350,6 +350,7 @@ def test_properties():
     assert (len(eqs.ordered) == 4 and
             all((isinstance(eq, SingleEquation) for eq in eqs.ordered)) and
             [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])
+    assert [eq.unit for eq in eqs.ordered] == [Hz, volt, volt, 1]
     assert eqs.names == {'v', 'I', 'f', 'freq'}
     assert eqs.parameter_names == {'freq'}
     assert eqs.subexpr_names == {'I', 'f'}
