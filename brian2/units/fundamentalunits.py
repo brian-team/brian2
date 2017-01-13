@@ -1237,7 +1237,8 @@ class Quantity(np.ndarray, object):
                     pass
             return Quantity(1, self.dim)
         else:
-            return self.get_best_unit(standard_unit_register, user_unit_register,
+            return self.get_best_unit(user_unit_register,
+                                      standard_unit_register,
                                       additional_unit_register)
 
     def in_best_unit(self, precision=None, python_code=False, *regs):
@@ -2239,31 +2240,6 @@ additional_unit_register = UnitRegistry()
 #: `UnitRegistry` containing all units defined by the user
 user_unit_register = UnitRegistry()
 
-def all_registered_units(*regs):
-    """
-    Generator returning all registered units.
-    
-    Parameters
-    ----------
-    regs : any number of `UnitRegistry` objects.
-        If given, units from the given registries are returned. If none are
-        given, units are returned from the standard units, the user-registered
-        units and the "additional units" (e.g. ``newton * metre``) in that
-        order. 
-    
-    Returns
-    -------
-        u : `Unit`
-            A single unit from the registry.
-    """
-    if not len(regs):
-        regs = [standard_unit_register,
-                user_unit_register,
-                additional_unit_register]
-    for r in regs:
-        for u in r.units:
-            yield u
-
 
 def get_unit(d):
     '''
@@ -2280,9 +2256,12 @@ def get_unit(d):
         A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
         if no unit was found.
     '''
-    for u in all_registered_units():
-        if np.array(u, copy=False) == 1 and u.dim is d:
-            return u
+    for unit_register in [user_unit_register,
+                          standard_unit_register,
+                          additional_unit_register]:
+        for u in unit_register.units_for_dimensions[d]:
+            if float(u) == 1.0:
+                return u
     return Unit(1.0, dim=d)
 
 
