@@ -229,8 +229,8 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 defined.add(var)
                 if var not in variables:
                     is_scalar = is_scalar_expression(expr, variables)
-                    new_var = AuxiliaryVariable(var, DIMENSIONLESS, # doesn't matter here
-                                                dtype=dtype, scalar=is_scalar)
+                    new_var = AuxiliaryVariable(var, dtype=dtype,
+                                                scalar=is_scalar)
                     variables[var] = new_var
             elif not variables[var].is_boolean:
                 sympy_expr = str_to_sympy(expr, variables)

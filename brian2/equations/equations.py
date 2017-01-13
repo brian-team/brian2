@@ -215,8 +215,8 @@ def dimensions_and_type_from_string(unit_string):
 
     Returns
     -------
-    u, type : (Dimension, {FLOAT, INTEGER or BOOL})
-        The resulting unit and the type of the variable.
+    d, type : (`Dimension`, {FLOAT, INTEGER or BOOL})
+        The resulting dimensions and the type of the variable.
 
     Raises
     ------

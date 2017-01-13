@@ -334,7 +334,9 @@ class Simplifier(BrianASTRenderer):
                 numpy_dtype = {'boolean': bool,
                                'integer': int,
                                'float': float}[node.dtype]
-                self.variables[name] = AuxiliaryVariable(name, DIMENSIONLESS, dtype=numpy_dtype, scalar=True)
+                self.variables[name] = AuxiliaryVariable(name,
+                                                         dtype=numpy_dtype,
+                                                         scalar=True)
             # None is the expression context, we don't use it so we just set to None
             newnode = ast.Name(name, None)
             newnode.scalar = True

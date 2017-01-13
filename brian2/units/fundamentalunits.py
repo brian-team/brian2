@@ -190,7 +190,7 @@ def wrap_function_dimensionless(func):
     '''
     Returns a new function that wraps the given function `func` so that it
     raises a DimensionMismatchError if the function is called on a quantity
-    with dimensions (excluding dimensionless quantitities). Quantities are
+    with dimensions (excluding dimensionless quantities). Quantities are
     transformed to unitless numpy arrays before calling `func`.
 
     These checks/transformations apply only to the very first argument, all
@@ -256,7 +256,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
 def wrap_function_remove_dimensions(func):
     '''
     Returns a new function that wraps the given function `func` so that it
-    removes any dim from its input. Useful for functions that are
+    removes any dimensions from its input. Useful for functions that are
     returning integers (indices) or booleans, irrespective of the datatype
     contained in the array.
 
@@ -306,7 +306,6 @@ class Dimension(object):
 
     Provides a subset of arithmetic operations appropriate to dimensions:
     multiplication, division and powers, and equality testing.
-
 
     Parameters
     ----------
@@ -681,10 +680,10 @@ def have_same_dimensions(obj1, obj2):
     same : `bool`
         ``True`` if `obj1` and `obj2` have the same dimensions.
     """
-    
+
     if not unit_checking:
         return True  # ignore units when unit checking is disabled
-    
+
     # If dimensions are consistently created using get_or_create_dimensions,
     # the fast "is" comparison should always return the correct result.
     # To be safe, we also do an equals comparison in case it fails. This
@@ -732,7 +731,7 @@ def in_unit(x, u, precision=None):
         ...
     DimensionMismatchError: Non-matching unit for method "in_unit",
     dimensions were (m^-2 kg^-1 s^3 A^2) (m^2 kg s^-3 A^-2)
-    
+
     See Also
     --------
     Quantity.in_unit    
@@ -757,16 +756,15 @@ def in_best_unit(x, precision=None):
     precision : `int`, optional
         The number of digits of precision (in the best unit, see Examples).
         If no value is given, numpy's `get_printoptions` value is used.            
-    
+
     Returns
     -------
     representation : `str`
         A string representation of this `Quantity`.
-    
+
     Examples
     --------
     >>> from brian2.units import *
-    
     >>> in_best_unit(0.00123456 * volt)
     '1.23456 mV'
     >>> in_best_unit(0.00123456 * volt, 2)
@@ -787,6 +785,7 @@ def in_best_unit(x, precision=None):
     
     u = x._get_best_unit()
     return x.in_unit(u, precision=precision)
+
 
 def quantity_with_dimensions(floatval, dims):
     '''
@@ -1139,7 +1138,7 @@ class Quantity(np.ndarray, object):
         """
         if not unit_checking:
             return True  # ignore units if unit checking is disabled
-        
+
         other_dim = get_dimensions(other)
         return (self.dim is other_dim) or (self.dim == other_dim) 
 
@@ -1176,7 +1175,7 @@ class Quantity(np.ndarray, object):
         '0.025 V'
         >>> x.in_unit(mV, 3)
         '25.123 mV'
-        
+
         See Also
         --------
         in_unit
@@ -1216,13 +1215,13 @@ class Quantity(np.ndarray, object):
     def _get_best_unit(self, *regs):
         """
         Return the best unit for this `Quantity`.
-        
+
         Parameters
-        ----------            
+        ----------
         regs : any number of `UnitRegistry` objects
             The registries that are searched for units. If none are provided, it
             will check the standard, user and additional unit registers in turn.
-    
+
         Returns
         -------
             u : `Quantity` or `Unit`
@@ -1259,24 +1258,24 @@ class Quantity(np.ndarray, object):
             The registries where to search for units. If none are given, the
             standard, user-defined and additional registries are searched in
             that order.
-        
+
         Returns
         -------
         representation : `str`
             A string representation of this `Quantity`.
-        
+
         Examples
         --------
         >>> from brian2.units import *
-        
+
         >>> x = 0.00123456 * volt
-        
+
         >>> x.in_best_unit()
         '1.23456 mV'
-        
+
         >>> x.in_best_unit(3)
         '1.235 mV'
-        
+
         See Also
         --------
         in_best_unit
