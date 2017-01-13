@@ -977,19 +977,13 @@ def test_get_unit():
     '''
     Test get_unit
     '''
-    values = [3 * mV, np.array([1, 2]) * mV,
-              np.arange(12).reshape(4, 3) * mV]
-    for value in values:
-        unit = get_unit(value)
+    values = [(volt.dim, volt),
+              (mV.dim, volt),
+              ((amp/metre**2).dim, amp/metre**2)]
+    for dim, expected_unit in values:
+        unit = get_unit(dim)
         assert isinstance(unit, Unit)
-        assert unit == volt
-
-    values = [3 * amp/metre**2, np.array([1, 2]) * amp/metre**2,
-              np.arange(12).reshape(4, 3) * amp/metre**2]
-    for value in values:
-        unit = get_unit(value)
-        assert isinstance(unit, Unit)
-        assert unit == amp/metre**2
+        assert unit == expected_unit
         assert float(unit) == 1.
 
 

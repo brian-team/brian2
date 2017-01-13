@@ -2265,36 +2265,46 @@ def all_registered_units(*regs):
             yield u
 
 
-def get_unit(x, *regs):
+def get_unit(d):
     '''
-    Find the most appropriate consistent unit from the unit registries.
+    Find an unscaled unit (e.g. `volt` but not `mvolt`) for a `Dimension`.
 
     Parameters
     ----------
-    x : {`Quantity`, `Dimension`, array-like, number}
-        The value to find a unit for.
+    d : `Dimension`
+        The dimension to find a unit for.
 
     Returns
     -------
-    q : `Unit`
-        The equivalent `Unit` for the quantity `x`.
+    u : `Unit`
+        A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
+        if no unit was found.
     '''
-    for u in all_registered_units(*regs):
-        if np.array(u, copy=False) == 1 and have_same_dimensions(u, x):
+    for u in all_registered_units():
+        if np.array(u, copy=False) == 1 and u.dim is d:
             return u
-    dim = getattr(x, 'dim', DIMENSIONLESS)  # For units, get dimensions
-    return Unit(1.0, dim=dim)
+    return Unit(1.0, dim=d)
 
 
-def get_unit_for_display(x):
+def get_unit_for_display(d):
     '''
-    Return a string representation of the most appropriate unit or ``'1'`` for
-    a dimensionless quantity
+    Return a string representation of an appropriate unscaled unit or ``'1'``
+    for a dimensionless quantity.
+
+    Parameters
+    ----------
+    d : `Dimension`
+        The dimension to find a unit for.
+
+    Returns
+    -------
+    s : str
+        A string representation of the respective unit or the string ``'1'``.
     '''
-    if x is 1 or x is DIMENSIONLESS or have_same_dimensions(x, 1):
+    if d is 1 or d is DIMENSIONLESS:
         return '1'
     else:
-        return repr(get_unit(x))
+        return repr(get_unit(d))
 
 #### DECORATORS
 
