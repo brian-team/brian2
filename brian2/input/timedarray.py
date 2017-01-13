@@ -7,7 +7,8 @@ import numpy as np
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import check_units, get_unit
+from brian2.units.fundamentalunits import check_units, get_dimensions, Quantity, \
+    get_unit
 from brian2.core.names import Nameable
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import replace
@@ -86,8 +87,8 @@ class TimedArray(Function, Nameable):
         if name is None:
             name = '_timedarray*'
         Nameable.__init__(self, name)
-        unit = get_unit(values)
-        self.unit = unit
+        dimensions = get_dimensions(values)
+        self.dim = dimensions
         values = np.asarray(values, dtype=np.double)
         self.values = values
         dt = float(dt)
@@ -101,7 +102,8 @@ class TimedArray(Function, Nameable):
                                        'for TimedArray'))
 
     def _init_1d(self):
-        unit = self.unit
+        dimensions = self.dim
+        unit = get_unit(dimensions)
         values = self.values
         dt = self.dt
 
@@ -114,7 +116,7 @@ class TimedArray(Function, Nameable):
             epsilon = dt / K
             i = np.clip(np.int_(np.round(np.asarray(t/epsilon)) / K),
                         0, len(values)-1)
-            return values[i] * unit
+            return Quantity(values[i], dim=dimensions)
 
         Function.__init__(self, pyfunc=timed_array_func)
 
@@ -192,7 +194,8 @@ class TimedArray(Function, Nameable):
 
 
     def _init_2d(self):
-        unit = self.unit
+        dimensions = self.dim
+        unit = get_unit(dimensions)
         values = self.values
         dt = self.dt
 
@@ -205,7 +208,7 @@ class TimedArray(Function, Nameable):
             epsilon = dt / K
             time_step = np.clip(np.int_(np.round(np.asarray(t/epsilon)) / K),
                         0, len(values)-1)
-            return values[time_step, i] * unit
+            return Quantity(values[time_step, i], dim=dimensions)
 
         Function.__init__(self, pyfunc=timed_array_func)
 
@@ -300,7 +303,6 @@ class TimedArray(Function, Nameable):
                                                         code=create_cython_implementation,
                                                         namespace=create_cython_namespace,
                                                         name=self.name)
-
 
     def is_locally_constant(self, dt):
         if dt > self.dt:
