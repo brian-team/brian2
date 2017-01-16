@@ -5,10 +5,17 @@ This code contains an adapted version of the voltage-dependent triplet STDP rule
 Clopath et al., Connectivity reflects coding: a model of voltage-based STDP with homeostasis, Nature Neuroscience, 2010
 (http://dx.doi.org/10.1038/nn.2479)
 
-The plasticity rule is adapted for a leaky integrate & fire model in Brian2 and does not include the homeostatic metaplasticity
+The plasticity rule is adapted for a leaky integrate & fire model in
+Brian2. In particular, the filters ``v_lowpass1`` and ``v_lowpass2`` are
+incremented by a constant at every post-synaptic spike time, to
+compensate for the lack of an actual spike in the integrate & fire
+model. Moreover, this script does not include the homeostatic
+metaplasticity.
 
 As an illustration of the Rule, we simulate a plot analogous to figure 2b in the above article, showing the frequency dependence of plasticity as measured in:
-Sjöström et al., Rate, timing and cooperativity jointly determine cortical synaptic plasticity. Neuron, 2001
+Sjöström et al., Rate, timing and cooperativity jointly determine cortical synaptic plasticity. Neuron, 2001.
+We would like to note that the parameters have been chosen arbitrarily to qualitatively
+reproduce the behavior of the original works, but need additional fitting.
 
 We kindly ask to cite both articles when using the model presented below.
 

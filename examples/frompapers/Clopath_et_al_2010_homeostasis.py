@@ -5,8 +5,14 @@ Clopath et al., Connectivity reflects coding: a model of voltage-based STDP with
 (http://dx.doi.org/10.1038/nn.2479)
 
 The plasticity rule is adapted for a leaky integrate & fire model in Brian2.
+More specifically, the filters ``v_lowpass1`` and ``v_lowpass2`` are
+incremented by a constant at every post-synaptic spike time, to
+compensate for the lack of an actual spike in the integrate & fire model.
 
-As an illustration of the rule, we simulate the competition between inputs projecting on a downstream neuron
+As an illustration of the rule, we simulate the competition between
+inputs projecting on a downstream neuron. We would like to note that the
+parameters have been chosen arbitrarily to qualitatively reproduce the
+behavior of the original work, but need additional fitting.
 
 We kindly ask to cite the article when using the model presented below.
 
