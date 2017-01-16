@@ -216,7 +216,7 @@ def dimensions_and_type_from_string(unit_string):
     Returns
     -------
     d, type : (`Dimension`, {FLOAT, INTEGER or BOOL})
-        The resulting dimensions and the type of the variable.
+        The resulting physical dimensions and the type of the variable.
 
     Raises
     ------
@@ -767,8 +767,9 @@ class Equations(collections.Mapping):
                                doc='All parameter names.')
 
     dimensions = property(lambda self: dict([(var, eq.dim) for var, eq in
-                                       self._equations.iteritems()]),
-                     doc='Dictionary of all internal variables and their corresponding dimensions.')
+                                             self._equations.iteritems()]),
+                          doc='Dictionary of all internal variables and their '
+                              'corresponding physical dimensions.')
 
 
     identifiers = property(lambda self: set().union(*[eq.identifiers for

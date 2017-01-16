@@ -17,19 +17,19 @@ __all__ = ['unit_from_expression', 'check_dimensions',
 
 def check_dimensions(expression, dimensions, variables):
     '''
-    Compares the unit for an expression to an expected unit in a given
-    namespace.
-    
+    Compares the physical dimensions of an expression to expected dimensions in
+    a given namespace.
+
     Parameters
     ----------
     expression : str
         The expression to evaluate.
     dimensions : `Dimension`
-        The expected dimensions for the `expression`.
+        The expected physical dimensions for the `expression`.
     variables : dict
         Dictionary of all variables (including external constants) used in
         the `expression`.
-    
+
     Raises
     ------
     KeyError
