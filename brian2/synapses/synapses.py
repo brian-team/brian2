@@ -26,7 +26,7 @@ from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater)
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.stateupdaters.exact import independent
-from brian2.units.fundamentalunits import (Unit, Quantity,
+from brian2.units.fundamentalunits import (Unit, Quantity, DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -182,7 +182,7 @@ class SynapticPathway(CodeRunner, Group):
                 n_synapses = synapses.N
             else:
                 n_synapses = 0
-            self.variables.add_dynamic_array('delay', unit=second,
+            self.variables.add_dynamic_array('delay', dimensions=second.dim,
                                              size=n_synapses, constant=True)
             # Register the object with the `SynapticIndex` object so it gets
             # automatically resized
@@ -204,7 +204,7 @@ class SynapticPathway(CodeRunner, Group):
             # We use a "dynamic" array of constant size here because it makes
             # the generated code easier, we don't need to deal with a different
             # type for scalar and variable delays
-            self.variables.add_dynamic_array('delay', unit=second,
+            self.variables.add_dynamic_array('delay', dimensions=second.dim,
                                              size=1, constant=True,
                                              scalar=True)
             # Since this array does not grow with the number of synapses, we
@@ -696,7 +696,7 @@ class Synapses(Group):
             raise SyntaxError('lastupdate is a reserved name.')
         model._equations['lastupdate'] = SingleEquation(PARAMETER,
                                                         'lastupdate',
-                                                        second)
+                                                        second.dim)
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index
         if multisynaptic_index is not None:
@@ -704,7 +704,7 @@ class Synapses(Group):
                 raise TypeError('multisynaptic_index argument has to be a string')
             model._equations[multisynaptic_index] = SingleEquation(PARAMETER,
                                                                    multisynaptic_index,
-                                                                   unit=Unit(1),
+                                                                   DIMENSIONLESS,
                                                                    var_type=INTEGER)
 
         # Separate subexpressions depending whether they are considered to be
@@ -867,8 +867,8 @@ class Synapses(Group):
                                   'target group.') % (varname,
                                                       orig_varname))
 
-            fail_for_dimension_mismatch(self.variables['_summed_'+varname].unit,
-                                        self.variables[varname].unit,
+            fail_for_dimension_mismatch(self.variables['_summed_'+varname].dim,
+                                        self.variables[varname].dim,
                                         ('Summed variables need to have '
                                          'the same units in Synapses '
                                          'and the target group'))
@@ -958,9 +958,9 @@ class Synapses(Group):
         self.variables = Variables(self)
 
         # Standard variables always present
-        self.variables.add_dynamic_array('_synaptic_pre', size=0, unit=Unit(1),
+        self.variables.add_dynamic_array('_synaptic_pre', size=0,
                                          dtype=np.int32)
-        self.variables.add_dynamic_array('_synaptic_post', size=0, unit=Unit(1),
+        self.variables.add_dynamic_array('_synaptic_post', size=0,
                                          dtype=np.int32)
         self.variables.add_reference('i', self.source, 'i',
                                      index='_presynaptic_idx')
@@ -972,20 +972,18 @@ class Synapses(Group):
             self.variables.add_reference('_target_offset', self.target,
                                          '_offset')
         else:
-            self.variables.add_constant('_target_offset', unit=Unit(1), value=0)
+            self.variables.add_constant('_target_offset', value=0)
         if '_offset' in self.source.variables:
             self.variables.add_reference('_source_offset', self.source,
                                          '_offset')
         else:
-            self.variables.add_constant('_source_offset', unit=Unit(1), value=0)
+            self.variables.add_constant('_source_offset', value=0)
         # To cope with connections to/from other synapses, N_incoming/N_outgoing
         # will be resized when synapses are created
-        self.variables.add_dynamic_array('N_incoming', size=0,
-                                         unit=Unit(1), dtype=np.int32,
+        self.variables.add_dynamic_array('N_incoming', size=0, dtype=np.int32,
                                          constant=True,  read_only=True,
                                          index='_postsynaptic_idx')
-        self.variables.add_dynamic_array('N_outgoing', size=0,
-                                         unit=Unit(1), dtype=np.int32,
+        self.variables.add_dynamic_array('N_outgoing', size=0, dtype=np.int32,
                                          constant=True,  read_only=True,
                                          index='_presynaptic_idx')
 
@@ -1003,9 +1001,8 @@ class Synapses(Group):
                                      '_synaptic_post')
 
         # Add the standard variables
-        self.variables.add_array('N', unit=Unit(1), dtype=np.int32,
-                                 size=1, scalar=True, constant=True,
-                                 read_only=True)
+        self.variables.add_array('N',  dtype=np.int32, size=1, scalar=True,
+                                 constant=True, read_only=True)
 
         for eq in equations.itervalues():
             dtype = get_dtype(eq, user_dtype)
@@ -1014,14 +1011,14 @@ class Synapses(Group):
                 shared = 'shared' in eq.flags
                 if shared:
                     self.variables.add_array(eq.varname, size=1,
-                                             unit=eq.unit,
+                                             dimensions=eq.dim,
                                              dtype=dtype,
                                              constant=constant,
                                              scalar=True,
                                              index='0')
                 else:
                     self.variables.add_dynamic_array(eq.varname, size=0,
-                                                     unit=eq.unit,
+                                                     dimensions=eq.dim,
                                                      dtype=dtype,
                                                      constant=constant)
             elif eq.type == SUBEXPRESSION:
@@ -1032,7 +1029,7 @@ class Synapses(Group):
                     varname = '_summed_'+eq.varname
                 else:
                     varname = eq.varname
-                self.variables.add_subexpression(varname, unit=eq.unit,
+                self.variables.add_subexpression(varname, dimensions=eq.dim,
                                                  expr=str(eq.expr),
                                                  scalar='shared' in eq.flags,
                                                  dtype=dtype)
@@ -1041,7 +1038,7 @@ class Synapses(Group):
 
         # Stochastic variables
         for xi in equations.stochastic_variables:
-            self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
+            self.variables.add_auxiliary_variable(xi, dimensions=(second ** -0.5).dim)
 
         # Add all the pre and post variables with _pre and _post suffixes
         for name in getattr(self.source, 'variables', {}).iterkeys():
@@ -1410,15 +1407,13 @@ class Synapses(Group):
         sources = sources.repeat(n)
         targets = targets.repeat(n)
 
-        variables.add_array('sources', Unit(1), len(sources), dtype=np.int32,
+        variables.add_array('sources', len(sources), dtype=np.int32,
                             values=sources)
-        variables.add_array('targets', Unit(1), len(targets), dtype=np.int32,
+        variables.add_array('targets', len(targets), dtype=np.int32,
                             values=targets)
         # These definitions are important to get the types right in C++
-        variables.add_auxiliary_variable('_real_sources', Unit(1),
-                                         dtype=np.int32)
-        variables.add_auxiliary_variable('_real_targets', Unit(1),
-                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_real_sources', dtype=np.int32)
+        variables.add_auxiliary_variable('_real_targets', dtype=np.int32)
         abstract_code = ''
         if '_offset' in self.source.variables:
             variables.add_reference('_source_offset', self.source, '_offset')
@@ -1517,44 +1512,34 @@ class Synapses(Group):
         # synapses but to all the possible sources/targets
         variables = Variables(None)
         # Will be set in the template
-        variables.add_auxiliary_variable('_i', unit=Unit(1), dtype=np.int32)
-        variables.add_auxiliary_variable('_j', unit=Unit(1), dtype=np.int32)
-        variables.add_auxiliary_variable('_iter_low', unit=Unit(1),
-                                         dtype=np.int32)
-        variables.add_auxiliary_variable('_iter_high', unit=Unit(1),
-                                         dtype=np.int32)
-        variables.add_auxiliary_variable('_iter_step', unit=Unit(1),
-                                         dtype=np.int32)
-        variables.add_auxiliary_variable('_iter_p', unit=Unit(1))
-        variables.add_auxiliary_variable('_iter_size', unit=Unit(1),
-                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_i', dtype=np.int32)
+        variables.add_auxiliary_variable('_j', dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_low', dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_high', dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_step', dtype=np.int32)
+        variables.add_auxiliary_variable('_iter_p')
+        variables.add_auxiliary_variable('_iter_size', dtype=np.int32)
         variables.add_auxiliary_variable(parsed['iteration_variable'],
-                                         unit=Unit(1), dtype=np.int32)
+                                         dtype=np.int32)
         # Make sure that variables have the correct type in the code
-        variables.add_auxiliary_variable('_pre_idx', unit=Unit(1),
-                                         dtype=np.int32)
-        variables.add_auxiliary_variable('_post_idx', unit=Unit(1),
-                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_pre_idx', dtype=np.int32)
+        variables.add_auxiliary_variable('_post_idx', dtype=np.int32)
         if parsed['if_expression'] is not None:
-            variables.add_auxiliary_variable('_cond', unit=Unit(1),
-                                             dtype=np.bool)
-        variables.add_auxiliary_variable('_n', unit=Unit(1),
-                                         dtype=np.int32)
+            variables.add_auxiliary_variable('_cond', dtype=np.bool)
+        variables.add_auxiliary_variable('_n', dtype=np.int32)
 
         if '_offset' in self.source.variables:
             variables.add_reference('_source_offset', self.source, '_offset')
         else:
-            variables.add_constant('_source_offset', unit=Unit(1), value=0)
+            variables.add_constant('_source_offset', value=0)
 
         if '_offset' in self.target.variables:
             variables.add_reference('_target_offset', self.target, '_offset')
         else:
-            variables.add_constant('_target_offset', unit=Unit(1), value=0)
+            variables.add_constant('_target_offset', value=0)
 
-        variables.add_auxiliary_variable('_raw_pre_idx', unit=Unit(1),
-                                         dtype=np.int32)
-        variables.add_auxiliary_variable('_raw_post_idx', unit=Unit(1),
-                                         dtype=np.int32)
+        variables.add_auxiliary_variable('_raw_pre_idx', dtype=np.int32)
+        variables.add_auxiliary_variable('_raw_post_idx', dtype=np.int32)
 
         variable_indices = defaultdict(lambda: '_idx')
         for varname in self.variables:

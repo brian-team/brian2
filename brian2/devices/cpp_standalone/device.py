@@ -29,8 +29,8 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.filetools import copy_directory, ensure_directory, in_directory
 from brian2.utils.stringtools import word_substitute
 from brian2.codegen.generators.cpp_generator import c_data_type
-from brian2.units.fundamentalunits import Quantity, have_same_dimensions
-from brian2.units import second, ms
+from brian2.units.fundamentalunits import Quantity
+from brian2.units import second
 from brian2.utils.logger import get_logger, std_silent
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
@@ -230,7 +230,7 @@ class CPPStandaloneDevice(Device):
         if isinstance(var, DynamicArrayVariable):
             if access_data:
                 return self.arrays[var]
-            elif var.dimensions == 1:
+            elif var.ndim == 1:
                 return self.dynamic_arrays[var]
             else:
                 return self.dynamic_arrays_2d[var]
@@ -283,13 +283,13 @@ class CPPStandaloneDevice(Device):
             orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
             suffix = 0
 
-            if var.dimensions == 1:
+            if var.ndim == 1:
                 dynamic_dict = self.dynamic_arrays
-            elif var.dimensions == 2:
+            elif var.ndim == 2:
                 dynamic_dict = self.dynamic_arrays_2d
             else:
                 raise AssertionError(('Did not expect a dynamic array with %d '
-                                      'dimensions.') % var.dimensions)
+                                      'dimensions.') % var.ndim)
             while (dynamic_name in dynamic_dict.values() or
                    array_name in self.arrays.values()):
                 suffix += 1
@@ -636,7 +636,7 @@ class CPPStandaloneDevice(Device):
                 if isinstance(v, ArrayVariable):
                     try:
                         if isinstance(v, DynamicArrayVariable):
-                            if v.dimensions == 1:
+                            if v.ndim == 1:
                                 dyn_array_name = self.dynamic_arrays[v]
                                 array_name = self.arrays[v]
                                 line = '{c_type}* const {array_name} = {dyn_array_name}.empty()? 0 : &{dyn_array_name}[0];'

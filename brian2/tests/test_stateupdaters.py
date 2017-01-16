@@ -300,7 +300,7 @@ def test_integrator_code2():
 def test_illegal_calls():
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     clock = Clock(dt=0.1*ms)
-    variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
+    variables = {'v': ArrayVariable(name='name', size=10,
                                     owner=None, device=None, dtype=np.float64,
                                     constant=False),
                  't': clock.variables['t'],
@@ -326,7 +326,7 @@ def test_priority():
     # Equations that work for the state updater
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     clock = Clock(dt=0.1*ms)
-    variables = {'v': ArrayVariable(name='name', unit=Unit(1), size=10,
+    variables = {'v': ArrayVariable(name='name', size=10,
                                     owner=None, device=None, dtype=np.float64,
                                     constant=False),
                  't': clock.variables['t'],
@@ -425,8 +425,8 @@ def test_determination():
     
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     # Just make sure that state updaters know about the two state variables
-    variables = {'v': Variable(name='v', unit=1),
-                 'w': Variable(name='w', unit=1)}
+    variables = {'v': Variable(name='v'),
+                 'w': Variable(name='w')}
     
     # all methods should work for these equations.
     # First, specify them explicitly (using the object)

@@ -5,7 +5,7 @@ import numpy as np
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable
 from brian2.core.spikesource import SpikeSource
-from brian2.units.fundamentalunits import Unit, Quantity
+from brian2.units.fundamentalunits import Quantity, DIMENSIONLESS
 from brian2.groups.group import CodeRunner, Group
 
 __all__ = ['EventMonitor', 'SpikeMonitor']
@@ -124,20 +124,19 @@ class EventMonitor(Group, CodeRunner):
             self.variables.add_reference('_source_%s' % variable,
                                          source, variable)
             self.variables.add_auxiliary_variable('_to_record_%s' % variable,
-                                                   unit=source_var.unit,
-                                                   dtype=source_var.dtype)
+                                                  dimensions=source_var.dim,
+                                                  dtype=source_var.dtype)
             self.variables.add_dynamic_array(variable, size=0,
-                                             unit=source_var.unit,
+                                             dimensions=source_var.dim,
                                              dtype=source_var.dtype,
                                              read_only=True)
         self.variables.add_arange('_source_idx', size=len(source))
-        self.variables.add_array('count', size=len(source), unit=Unit(1),
-                                 dtype=np.int32, read_only=True,
-                                 index='_source_idx')
-        self.variables.add_constant('_source_start', Unit(1), start)
-        self.variables.add_constant('_source_stop', Unit(1), stop)
-        self.variables.add_array('N', unit=Unit(1), size=1, dtype=np.int32,
-                                 read_only=True, scalar=True)
+        self.variables.add_array('count', size=len(source), dtype=np.int32,
+                                 read_only=True, index='_source_idx')
+        self.variables.add_constant('_source_start', start)
+        self.variables.add_constant('_source_stop', stop)
+        self.variables.add_array('N', size=1, dtype=np.int32, read_only=True,
+                                 scalar=True)
 
         record_variables = {varname: self.variables[varname]
                             for varname in self.record_variables}
@@ -195,7 +194,7 @@ class EventMonitor(Group, CodeRunner):
 
     def _values_dict(self, first_pos, sort_indices, used_indices, var):
         sorted_values = self.state(var, use_units=False)[sort_indices]
-        dim = self.variables[var].unit.dim
+        dim = self.variables[var].dim
         event_values = {}
         current_pos = 0  # position in the all_indices array
         for idx in xrange(len(self.source)):

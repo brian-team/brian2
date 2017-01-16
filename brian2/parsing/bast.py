@@ -118,9 +118,10 @@ class BrianASTRenderer(object):
     def render_node(self, node):
         nodename = node.__class__.__name__
         methname = 'render_'+nodename
-        if not hasattr(self, methname):
-            raise SyntaxError("Unknown syntax: "+nodename)
-        return getattr(self, methname)(node)
+        try:
+            return getattr(self, methname)(node)
+        except AttributeError:
+            raise SyntaxError("Unknown syntax: " + nodename)
 
     def render_NameConstant(self, node):
         if node.value is not True and node.value is not False:

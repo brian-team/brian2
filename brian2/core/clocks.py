@@ -10,7 +10,7 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.variables import Variables
 from brian2.groups.group import VariableOwner
-from brian2.units.fundamentalunits import check_units, Quantity, Unit
+from brian2.units.fundamentalunits import check_units, Quantity, DIMENSIONLESS
 from brian2.units.allunits import second
 
 __all__ = ['Clock', 'defaultclock']
@@ -86,14 +86,14 @@ class Clock(VariableOwner):
         Nameable.__init__(self, name=name)
         self._old_dt = None
         self.variables = Variables(self)
-        self.variables.add_array('timestep', unit=Unit(1), size=1,
-                                 dtype=np.uint64, read_only=True, scalar=True)
-        self.variables.add_array('t', unit=second, size=1,
+        self.variables.add_array('timestep', size=1, dtype=np.uint64,
+                                 read_only=True, scalar=True)
+        self.variables.add_array('t', dimensions=second.dim, size=1,
                                  dtype=np.double, read_only=True, scalar=True)
-        self.variables.add_array('dt', unit=second, size=1, values=float(dt),
+        self.variables.add_array('dt', dimensions=second.dim, size=1, values=float(dt),
                                  dtype=np.float, read_only=True, constant=True,
                                  scalar=True)
-        self.variables.add_constant('N', unit=Unit(1), value=1)
+        self.variables.add_constant('N', value=1)
         self._enable_group_attributes()
         self.dt = dt
         logger.diagnostic("Created clock {name} with dt={dt}".format(name=self.name,

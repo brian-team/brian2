@@ -16,11 +16,11 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         check_subexpressions,
                                         extract_constant_subexpressions)
 from brian2.equations.refractory import add_refractoriness
-from brian2.parsing.expressions import (parse_expression_unit,
+from brian2.parsing.expressions import (parse_expression_dimensions,
                                         is_boolean_expression)
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import (Quantity, Unit,
+from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            have_same_dimensions,
                                            DimensionMismatchError,
                                            fail_for_dimension_mismatch)
@@ -111,10 +111,10 @@ class StateUpdater(CodeRunner):
             variables = self.group.resolve_all(identifiers,
                                                run_namespace,
                                                user_identifiers=identifiers)
-            unit = parse_expression_unit(str(ref), variables)
-            if have_same_dimensions(unit, second):
+            dims = parse_expression_dimensions(str(ref), variables)
+            if dims is second.dim:
                 abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
-            elif have_same_dimensions(unit, Unit(1)):
+            elif dims is DIMENSIONLESS:
                 if not is_boolean_expression(str(ref), variables):
                     raise TypeError(('Refractory expression is dimensionless '
                                      'but not a boolean value. It needs to '
@@ -128,7 +128,7 @@ class StateUpdater(CodeRunner):
             else:
                 raise TypeError(('Refractory expression has to evaluate to a '
                                  'timespan or a boolean value, expression'
-                                 '"%s" has units %s instead') % (ref, unit))
+                                 '"%s" has units %s instead') % (ref, dims))
         return abstract_code
 
     def update_abstract_code(self, run_namespace):
@@ -202,8 +202,7 @@ class Thresholder(CodeRunner):
         template_kwds['eventspace_variable'] = group.variables[eventspace_name]
         needed_variables.append(eventspace_name)
         self.variables = Variables(self)
-        self.variables.add_auxiliary_variable('_cond', unit=Unit(1),
-                                              dtype=np.bool)
+        self.variables.add_auxiliary_variable('_cond', dtype=np.bool)
         CodeRunner.__init__(self, group,
                             'threshold',
                             code='',  # will be set in update_abstract_code
@@ -603,7 +602,7 @@ class NeuronGroup(Group, SpikeSource):
                                            'size.') % linked_var.name)
 
             eq = self.equations[key]
-            if eq.unit != linked_var.unit:
+            if eq.dim is not linked_var.dim:
                 raise DimensionMismatchError(('Unit of variable %s does not '
                                               'match its link target %s') % (key,
                                                                              linked_var.name))
@@ -640,7 +639,7 @@ class NeuronGroup(Group, SpikeSource):
                                      'contains values outside of the valid '
                                      'range [0, %d[' % (key,
                                                         var_length))
-                self.variables.add_array('_%s_indices' % key, unit=Unit(1),
+                self.variables.add_array('_%s_indices' % key,
                                          size=size, dtype=index_array.dtype,
                                          constant=True, read_only=True,
                                          values=index_array)
@@ -710,11 +709,11 @@ class NeuronGroup(Group, SpikeSource):
         entries for the equation variables and some standard entries.
         '''
         self.variables = Variables(self)
-        self.variables.add_constant('N', Unit(1), self._N)
+        self.variables.add_constant('N', self._N)
 
         # Standard variables always present
         for event in events:
-            self.variables.add_array('_{}space'.format(event), unit=Unit(1),
+            self.variables.add_array('_{}space'.format(event),
                                      size=self._N+1, dtype=np.int32,
                                      constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
@@ -738,11 +737,11 @@ class NeuronGroup(Group, SpikeSource):
                     shared = 'shared' in eq.flags
                     size = 1 if shared else self._N
                     self.variables.add_array(eq.varname, size=size,
-                                             unit=eq.unit, dtype=dtype,
+                                             dimensions=eq.dim, dtype=dtype,
                                              constant=constant,
                                              scalar=shared)
             elif eq.type == SUBEXPRESSION:
-                self.variables.add_subexpression(eq.varname, unit=eq.unit,
+                self.variables.add_subexpression(eq.varname, dimensions=eq.dim,
                                                  expr=str(eq.expr),
                                                  dtype=dtype,
                                                  scalar='shared' in eq.flags)
@@ -761,7 +760,7 @@ class NeuronGroup(Group, SpikeSource):
 
         # Stochastic variables
         for xi in self.equations.stochastic_variables:
-            self.variables.add_auxiliary_variable(xi, unit=second**-0.5)
+            self.variables.add_auxiliary_variable(xi, dimensions=(second ** -0.5).dim)
 
         # Check scalar subexpressions
         for eq in self.equations.itervalues():

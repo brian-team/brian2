@@ -278,10 +278,8 @@ class IndexWrapper(object):
     def __getitem__(self, item):
         if isinstance(item, basestring):
             variables = Variables(None)
-            variables.add_auxiliary_variable('_indices', unit=Unit(1),
-                                             dtype=np.int32)
-            variables.add_auxiliary_variable('_cond', unit=Unit(1),
-                                             dtype=np.bool)
+            variables.add_auxiliary_variable('_indices', dtype=np.int32)
+            variables.add_auxiliary_variable('_cond', dtype=np.bool)
 
             abstract_code = '_cond = ' + item
             namespace = get_local_namespace(level=1)
@@ -395,17 +393,17 @@ class VariableOwner(Nameable):
         elif name in self.variables:
             var = self.variables[name]
             if not isinstance(val, basestring):
-                if var.unit.dim is DIMENSIONLESS:
-                    fail_for_dimension_mismatch(val, var.unit,
+                if var.dim is DIMENSIONLESS:
+                    fail_for_dimension_mismatch(val, var.dim,
                                                 ('%s should be set with a '
                                                  'dimensionless value, but got '
                                                  '{value}') % name,
                                                 value=val)
                 else:
-                    fail_for_dimension_mismatch(val, var.unit,
+                    fail_for_dimension_mismatch(val, var.dim,
                                                 ('%s should be set with a '
                                                  'value with units %r, but got '
-                                                 '{value}') % (name, var.unit),
+                                                 '{value}') % (name, get_unit(var.dim)),
                                                 value=val)
             if var.read_only:
                 raise TypeError('Variable %s is read-only.' % name)
@@ -872,12 +870,12 @@ class Group(VariableOwner, BrianObject):
 
         if not isinstance(resolved, (Function, Variable)):
             # Wrap the value in a Constant object
-            unit = get_unit(resolved)
+            dimensions = getattr(resolved, 'dim', DIMENSIONLESS)
             value = np.asarray(resolved)
             if value.shape != ():
                 raise KeyError('Variable %s was found in the namespace, but is'
                                ' not a scalar value' % identifier)
-            resolved = Constant(identifier, unit=unit, value=value)
+            resolved = Constant(identifier, dimensions=dimensions, value=value)
 
         return resolved
 

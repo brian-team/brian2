@@ -5,7 +5,7 @@ import collections
 import keyword
 import re
 import string
-import numpy as np
+
 import sympy
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
@@ -13,13 +13,11 @@ from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
 from brian2.core.namespace import (DEFAULT_FUNCTIONS,
                                    DEFAULT_CONSTANTS,
                                    DEFAULT_UNITS)
-from brian2.core.variables import Constant
-from brian2.core.functions import Function
-from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
-from brian2.units.fundamentalunits import (Unit, Quantity, have_same_dimensions,
-                                           get_unit, DIMENSIONLESS,
-                                           DimensionMismatchError)
+from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
+                                           DIMENSIONLESS,
+                                           DimensionMismatchError,
+                                           get_dimensions, Dimension)
 from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
@@ -30,7 +28,7 @@ from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
 
 from .codestrings import Expression
-from .unitcheck import check_unit
+from .unitcheck import check_dimensions
 
 
 __all__ = ['Equations']
@@ -203,9 +201,9 @@ def check_identifier_constants(identifier):
                          'variable name.' % identifier)
 
 
-def unit_and_type_from_string(unit_string):
+def dimensions_and_type_from_string(unit_string):
     '''
-    Returns the unit that results from evaluating a string like
+    Returns the physical dimensions that results from evaluating a string like
     "siemens / metre ** 2", allowing for the special string "1" to signify
     dimensionless units, the string "boolean" for a boolean and "integer" for
     an integer variable.
@@ -217,8 +215,8 @@ def unit_and_type_from_string(unit_string):
 
     Returns
     -------
-    u, type : (Unit, {FLOAT, INTEGER or BOOL})
-        The resulting unit and the type of the variable.
+    d, type : (`Dimension`, {FLOAT, INTEGER or BOOL})
+        The resulting physical dimensions and the type of the variable.
 
     Raises
     ------
@@ -240,18 +238,18 @@ def unit_and_type_from_string(unit_string):
 
     # Special case: dimensionless unit
     if unit_string == '1':
-        return Unit(1, dim=DIMENSIONLESS), FLOAT
+        return DIMENSIONLESS, FLOAT
 
     # Another special case: boolean variable
     if unit_string == 'boolean':
-        return Unit(1, dim=DIMENSIONLESS), BOOLEAN
+        return DIMENSIONLESS, BOOLEAN
     if unit_string == 'bool':
         raise TypeError("Use 'boolean' not 'bool' as the unit for a boolean "
                         "variable.")
 
     # Yet another special case: integer variable
     if unit_string == 'integer':
-        return Unit(1, dim=DIMENSIONLESS), INTEGER
+        return DIMENSIONLESS, INTEGER
 
     # Check first whether the expression evaluates at all, using only base units
     try:
@@ -274,7 +272,7 @@ def unit_and_type_from_string(unit_string):
                                                        type(evaluated_unit))))
 
     # No error has been raised, all good
-    return evaluated_unit, FLOAT
+    return evaluated_unit.dim, FLOAT
 
 
 def parse_string_equations(eqns):
@@ -307,7 +305,7 @@ def parse_string_equations(eqns):
         identifier = eq_content['identifier']
 
         # Convert unit string to Unit object
-        unit, var_type = unit_and_type_from_string(eq_content['unit'])
+        dims, var_type = dimensions_and_type_from_string(eq_content['unit'])
 
         expression = eq_content.get('expression', None)
         if not expression is None:
@@ -317,7 +315,7 @@ def parse_string_equations(eqns):
             expression = Expression(p.sub(' ', expression))
         flags = list(eq_content.get('flags', []))
 
-        equation = SingleEquation(eq_type, identifier, unit, var_type=var_type,
+        equation = SingleEquation(eq_type, identifier, dims, var_type=var_type,
                                   expr=expression, flags=flags)
 
         if identifier in equations:
@@ -343,8 +341,8 @@ class SingleEquation(object):
         The type of the equation.
     varname : str
         The variable that is defined by this equation.
-    unit : Unit
-        The unit of the variable
+    dimensions : `Dimension`
+        The physical dimensions of the variable
     var_type : {FLOAT, INTEGER, BOOLEAN}
         The type of the variable (floating point value or boolean).
     expr : `Expression`, optional
@@ -353,15 +351,14 @@ class SingleEquation(object):
         A list of flags that give additional information about this equation.
         What flags are possible depends on the type of the equation and the
         context.
-    
     '''
-    def __init__(self, type, varname, unit, var_type=FLOAT, expr=None,
+    def __init__(self, type, varname, dimensions, var_type=FLOAT, expr=None,
                  flags=None):
         self.type = type
         self.varname = varname
-        self.unit = unit
+        self.dim = get_dimensions(dimensions)
         self.var_type = var_type
-        if not have_same_dimensions(unit, 1):
+        if dimensions is not DIMENSIONLESS:
             if var_type == BOOLEAN:
                 raise TypeError('Boolean variables are necessarily dimensionless.')
             elif var_type == INTEGER:
@@ -379,6 +376,8 @@ class SingleEquation(object):
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
 
+    unit = property(lambda self: get_unit(self.dim),
+                    doc='The `Unit` of this equation.')
 
     identifiers = property(lambda self: self.expr.identifiers
                            if not self.expr is None else set([]),
@@ -407,7 +406,7 @@ class SingleEquation(object):
         if not self.expr is None:
             s += ' = ' + str(self.expr)
 
-        s += ' : ' + str(self.unit)
+        s += ' : ' + str(get_unit(self.dim))
 
         if len(self.flags):
             s += ' (' + ', '.join(self.flags) + ')'
@@ -420,7 +419,7 @@ class SingleEquation(object):
         if not self.expr is None:
             s += ': ' + self.expr.code
 
-        s += ' (Unit: ' + str(self.unit)
+        s += ' (Unit: ' + str(get_unit(self.dim))
 
         if len(self.flags):
             s += ', flags: ' + ', '.join(self.flags)
@@ -446,7 +445,7 @@ class SingleEquation(object):
             p.pretty(self.expr)
 
         p.text(' : ')
-        p.pretty(self.unit)
+        p.pretty(get_unit(self.dim))
 
         if len(self.flags):
             p.text(' (' + ', '.join(self.flags) + ')')
@@ -767,9 +766,10 @@ class Equations(collections.Mapping):
                                              if eq.type == PARAMETER]),
                                doc='All parameter names.')
 
-    units = property(lambda self:dict([(var, eq.unit) for var, eq in
-                                       self._equations.iteritems()]),
-                     doc='Dictionary of all internal variables and their corresponding units.')
+    dimensions = property(lambda self: dict([(var, eq.dim) for var, eq in
+                                             self._equations.iteritems()]),
+                          doc='Dictionary of all internal variables and their '
+                              'corresponding physical dimensions.')
 
 
     identifiers = property(lambda self: set().union(*[eq.identifiers for
@@ -856,8 +856,8 @@ class Equations(collections.Mapping):
 
             if eq.type == DIFFERENTIAL_EQUATION:
                 try:
-                    check_unit(str(eq.expr), self.units[var] / second,
-                               all_variables)
+                    check_dimensions(str(eq.expr), self.dimensions[var] / second.dim,
+                                     all_variables)
                 except DimensionMismatchError as ex:
                     raise DimensionMismatchError(('Inconsistent units in '
                                                   'differential equation '
@@ -867,8 +867,8 @@ class Equations(collections.Mapping):
                                                  *ex.dims)
             elif eq.type == SUBEXPRESSION:
                 try:
-                    check_unit(str(eq.expr), self.units[var],
-                           all_variables)
+                    check_dimensions(str(eq.expr), self.dimensions[var],
+                                     all_variables)
                 except DimensionMismatchError as ex:
                     raise DimensionMismatchError(('Inconsistent units in '
                                                   'subexpression %s:'
@@ -954,13 +954,13 @@ class Equations(collections.Mapping):
                 flag_str = ''
             if eq.type == PARAMETER:
                 eq_latex = r'%s &&& \text{(unit: $%s$%s)}' % (sympy.latex(lhs),                                 
-                                                              sympy.latex(eq.unit),
+                                                              sympy.latex(get_unit(eq.dim)),
                                                               flag_str)
             else:
                 eq_latex = r'%s &= %s && \text{(unit of $%s$: $%s$%s)}' % (sympy.latex(lhs),
                                                                            sympy.latex(rhs),
                                                                            sympy.latex(varname),
-                                                                           sympy.latex(eq.unit),
+                                                                           sympy.latex(get_unit(eq.dim)),
                                                                            flag_str)
             equations.append(eq_latex)
         return r'\begin{align*}' + (r'\\' + '\n').join(equations) + r'\end{align*}'
@@ -1060,7 +1060,7 @@ def extract_constant_subexpressions(eqs):
                 flags = None
             without_const_subexpressions.append(SingleEquation(PARAMETER,
                                                                eq.varname,
-                                                               eq.unit,
+                                                               eq.dim,
                                                                var_type=eq.var_type,
                                                                flags=flags))
             const_subexpressions.append(eq)

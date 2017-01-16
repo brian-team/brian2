@@ -10,9 +10,9 @@ import sympy
 import numpy as np
 
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
+from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
-                                           have_same_dimensions, get_unit)
+                                           Dimension)
 from brian2.utils.logger import get_logger
 
 from .base import weakproxy_with_fallback, device_override
@@ -102,8 +102,8 @@ class Variable(object):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    unit : `Unit`
-        The unit of the variable.
+    dimensions : `Dimension`, optional
+        The physical dimensions of the variable.
     owner : `Nameable`, optional
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -127,18 +127,13 @@ class Variable(object):
         Whether this variable is an array. Allows for simpler check than testing
         ``isinstance(var, ArrayVariable)``. Defaults to ``False``.
     '''
-    def __init__(self, name, unit, owner=None, dtype=None, scalar=False,
-                 constant=False, read_only=False, dynamic=False, array=False):
-        if not isinstance(unit, Unit):
-            if isinstance(unit, Quantity):
-                unit = get_unit(unit)
-            elif unit == 1:
-                unit = Unit(1)
-            else:
-                raise TypeError(('unit argument has to be a Unit object, was '
-                                 'type %s instead') % type(unit))
-        #: The variable's unit.
-        self.unit = unit
+    def __init__(self, name, dimensions=DIMENSIONLESS, owner=None, dtype=None,
+                 scalar=False, constant=False, read_only=False, dynamic=False,
+                 array=False):
+        assert isinstance(dimensions, Dimension)
+
+        #: The variable's dimensions.
+        self.dim = dimensions
 
         #: The variable's name.
         self.name = name
@@ -152,7 +147,7 @@ class Variable(object):
             self.dtype = prefs.core.default_float_dtype
 
         if self.is_boolean:
-            if not have_same_dimensions(unit, 1):
+            if dimensions is not DIMENSIONLESS:
                 raise ValueError('Boolean variables can only be dimensionless')
 
         #: Whether the variable is a scalar
@@ -175,18 +170,18 @@ class Variable(object):
         return np.issubdtype(np.bool, self.dtype)
 
     @property
-    def dim(self):
-        '''
-        The dimensions of this variable.
-        '''
-        return self.unit.dim
-    
-    @property
     def dtype_str(self):
         '''
         String representation of the numpy dtype
         '''
         return get_dtype_str(self)
+
+    @property
+    def unit(self):
+        '''
+        The `Unit` of this variable
+        '''
+        return get_unit(self.dim)
 
     def get_value(self):
         '''
@@ -205,7 +200,7 @@ class Variable(object):
         '''
         Return the value associated with the variable (with units).
         '''
-        return Quantity(self.get_value(), self.unit.dimensions)
+        return Quantity(self.get_value(), self.dim)
 
     def get_addressable_value(self, name, group):
         '''
@@ -269,11 +264,11 @@ class Variable(object):
         return self.get_len()
 
     def __repr__(self):
-        description = ('<{classname}(unit={unit}, '
+        description = ('<{classname}(dimensions={dimensions}, '
                        ' dtype={dtype}, scalar={scalar}, constant={constant},'
                        ' read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
-                                  unit=repr(self.unit),
+                                  dimensions=repr(self.dim),
                                   dtype=repr(self.dtype),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant),
@@ -296,9 +291,9 @@ class Constant(Variable):
     ----------
     name : str
         The name of the variable
-    unit : `Unit`
-        The unit of the variable. Note that the variable itself (as referenced
-        by value) should never have units attached.
+    dimensions : `Dimension`, optional
+        The physical dimensions of the variable. Note that the variable itself
+        (as referenced by value) should never have units attached.
     value: reference to the variable value
         The value of the constant.
     owner : `Nameable`, optional
@@ -306,7 +301,7 @@ class Constant(Variable):
         specific group, e.g. the ``N`` constant for a `NeuronGroup`. External
         constants will have ``None`` (the default value).
     '''
-    def __init__(self, name, unit, value, owner=None):
+    def __init__(self, name, value, dimensions=DIMENSIONLESS, owner=None):
         # Determine the type of the value
         is_bool = (value is True or
                    value is False or
@@ -336,7 +331,7 @@ class Constant(Variable):
         #: The constant's value
         self.value = value
 
-        super(Constant, self).__init__(unit=unit, name=name, owner=owner,
+        super(Constant, self).__init__(dimensions=dimensions, name=name, owner=owner,
                                        dtype=dtype, scalar=True, constant=True,
                                        read_only=True)
 
@@ -356,8 +351,8 @@ class AuxiliaryVariable(Variable):
     ----------
     name : str
         The name of the variable
-    unit : `Unit`
-        The unit of the variable.
+    dimensions : `Dimension`, optional
+        The physical dimensions of the variable.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
         to `core.default_float_dtype`.
@@ -365,8 +360,8 @@ class AuxiliaryVariable(Variable):
         Whether the variable is a scalar value (``True``) or vector-valued, e.g.
         defined for every neuron (``False``). Defaults to ``False``.
     '''
-    def __init__(self, name, unit, dtype=None, scalar=False):
-        super(AuxiliaryVariable, self).__init__(unit=unit,
+    def __init__(self, name, dimensions=DIMENSIONLESS, dtype=None, scalar=False):
+        super(AuxiliaryVariable, self).__init__(dimensions=dimensions,
                                                 name=name, dtype=dtype,
                                                 scalar=scalar)
 
@@ -387,8 +382,8 @@ class ArrayVariable(Variable):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    unit : `Unit`
-        The unit of the variable
+    dimensions : `Dimension`, optional
+        The physical dimensions of the variable
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -418,10 +413,11 @@ class ArrayVariable(Variable):
         corresponding pre- and post-synaptic indices are not). Defaults to
         ``False``.
     '''
-    def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, scalar=False, read_only=False, dynamic=False,
-                 unique=False):
-        super(ArrayVariable, self).__init__(unit=unit, name=name, owner=owner,
+    def __init__(self, name, owner, size, device, dimensions=DIMENSIONLESS,
+                 dtype=None, constant=False, scalar=False, read_only=False,
+                 dynamic=False, unique=False):
+        super(ArrayVariable, self).__init__(dimensions=dimensions, name=name,
+                                            owner=owner,
                                             dtype=dtype, scalar=scalar,
                                             constant=constant,
                                             read_only=read_only,
@@ -463,11 +459,11 @@ class ArrayVariable(Variable):
         return self.size
 
     def get_addressable_value(self, name, group):
-        return VariableView(name=name, variable=self, group=group, unit=None)
+        return VariableView(name=name, variable=self, group=group, dimensions=None)
 
     def get_addressable_value_with_unit(self, name, group):
         return VariableView(name=name, variable=self, group=group,
-                            unit=self.unit)
+                            dimensions=self.dim)
 
 
 class DynamicArrayVariable(ArrayVariable):
@@ -483,8 +479,8 @@ class DynamicArrayVariable(ArrayVariable):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    unit : `Unit`
-        The unit of the variable
+    dimensions : `Dimension`, optional
+        The physical dimensions of the variable.
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -519,18 +515,18 @@ class DynamicArrayVariable(ArrayVariable):
         ``False``.
     '''
 
-    def __init__(self, name, unit, owner, size, device, dtype=None,
-                 constant=False, needs_reference_update=False,
+    def __init__(self, name, owner, size, device, dimensions=DIMENSIONLESS,
+                 dtype=None, constant=False, needs_reference_update=False,
                  resize_along_first=False, scalar=False, read_only=False,
                  unique=False):
 
         if isinstance(size, int):
-            dimensions = 1
+            ndim = 1
         else:
-            dimensions = len(size)
+            ndim = len(size)
 
         #: The number of dimensions
-        self.dimensions = dimensions
+        self.ndim = ndim
 
         if constant and needs_reference_update:
             raise ValueError('A variable cannot be constant and '
@@ -542,7 +538,7 @@ class DynamicArrayVariable(ArrayVariable):
         #: Whether this array will be only resized along the first dimension
         self.resize_along_first = resize_along_first
 
-        super(DynamicArrayVariable, self).__init__(unit=unit,
+        super(DynamicArrayVariable, self).__init__(dimensions=dimensions,
                                                    owner=owner,
                                                    name=name,
                                                    size=size,
@@ -572,7 +568,6 @@ class DynamicArrayVariable(ArrayVariable):
         self.size = new_size
 
 
-
 class Subexpression(Variable):
     '''
     An object providing information about a named subexpression in a model.
@@ -583,8 +578,8 @@ class Subexpression(Variable):
     ----------
     name : str
         The name of the subexpression.
-    unit : `Unit`
-        The unit of the subexpression.
+    dimensions : `Dimension`, optional
+        The physical dimensions of the subexpression.
     owner : `Group`
         The group to which the expression refers.
     expr : str
@@ -598,9 +593,9 @@ class Subexpression(Variable):
         Whether this is an expression only referring to scalar variables.
         Defaults to ``False``
     '''
-    def __init__(self, name, unit, owner, expr, device, dtype=None,
-                 scalar=False):
-        super(Subexpression, self).__init__(unit=unit, owner=owner,
+    def __init__(self, name, owner, expr, device, dimensions=DIMENSIONLESS,
+                 dtype=None, scalar=False):
+        super(Subexpression, self).__init__(dimensions=dimensions, owner=owner,
                                             name=name, dtype=dtype,
                                             scalar=scalar,
                                             constant=False, read_only=True)
@@ -631,21 +626,22 @@ class Subexpression(Variable):
         self.identifiers = get_identifiers(expr)
 
     def get_addressable_value(self, name, group):
-        return VariableView(name=name, variable=self, group=group, unit=None)
+        return VariableView(name=name, variable=self, group=group,
+                            dimensions=None)
 
     def get_addressable_value_with_unit(self, name, group):
         return VariableView(name=name, variable=self, group=group,
-                            unit=self.unit)
+                            dimensions=self.dim)
 
     def __contains__(self, var):
         return var in self.identifiers
 
     def __repr__(self):
-        description = ('<{classname}(name={name}, unit={unit}, dtype={dtype}, '
+        description = ('<{classname}(name={name}, dimensions={dimensions}, dtype={dtype}, '
                        'expr={expr}, owner=<{owner}>)>')
         return description.format(classname=self.__class__.__name__,
                                   name=repr(self.name),
-                                  unit=repr(self.unit),
+                                  dimensions=repr(self.dim),
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr),
                                   owner=self.owner.name)
@@ -734,11 +730,12 @@ class VariableView(object):
     group : `Group`
         The group through which the variable is accessed (not necessarily the
         same as `variable.owner`).
-    unit : `Unit`, optional
-        The unit to be used for the variable, should be `None` when a variable
-         is accessed without units (e.g. when accessing ``G.var_``).
+    dimensions : `Dimension`, optional
+        The physical dimensions to be used for the variable, should be `None`
+        when a variable is accessed without units (e.g. when accessing
+        ``G.var_``).
     '''
-    def __init__(self, name, variable, group, unit=None):
+    def __init__(self, name, variable, group, dimensions=None):
         self.name = name
         self.variable = variable
         self.index_var_name = group.variables.indices[name]
@@ -761,14 +758,14 @@ class VariableView(object):
         # We keep a strong reference to the `Indexing` object so that basic
         # indexing is still possible, even if the group no longer exists
         self.indexing = self.group._indices
-        self.unit = unit
+        self.dim = dimensions
 
     @property
-    def dim(self):
+    def unit(self):
         '''
-        The dimensions of this variable.
+        The `Unit` of this variable
         '''
-        return self.unit.dim
+        return get_unit(self.dim)
 
     def get_item(self, item, level=0, namespace=None):
         '''
@@ -811,10 +808,10 @@ class VariableView(object):
             else:
                 values = self.get_with_index_array(item)
 
-        if self.unit is None:
+        if self.dim is None:
             return values
         else:
-            return Quantity(values, self.unit.dimensions)
+            return Quantity(values, self.dim)
 
     def __getitem__(self, item):
         return self.get_item(item, level=1)
@@ -861,7 +858,7 @@ class VariableView(object):
                                         item.step is None):
             item = 'True'
 
-        check_units = self.unit is not None
+        check_units = self.dim is not None
 
         if namespace is None:
             namespace = get_local_namespace(level=level+1)
@@ -975,8 +972,8 @@ class VariableView(object):
         indices = np.atleast_1d(self.indexing(item))
         abstract_code = self.name + ' = ' + code
         variables = Variables(self.group)
-        variables.add_array('_group_idx', unit=Unit(1),
-                            size=len(indices), dtype=np.int32, values=indices)
+        variables.add_array('_group_idx', size=len(indices), dtype=np.int32,
+                            values=indices)
 
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
@@ -1019,7 +1016,7 @@ class VariableView(object):
         abstract_code_cond = '_cond = '+cond
         abstract_code = self.name + ' = ' + code
         variables = Variables(None)
-        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
+        variables.add_auxiliary_variable('_cond', dtype=np.bool)
         from brian2.codegen.codeobject import create_runner_codeobj
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
@@ -1061,10 +1058,10 @@ class VariableView(object):
         # dictionary. Important to deal correctly with
         # the type of the variable in C++
         variables = Variables(None)
-        variables.add_auxiliary_variable('_variable', unit=variable.unit,
+        variables.add_auxiliary_variable('_variable', dimensions=variable.dim,
                                          dtype=variable.dtype,
                                          scalar=variable.scalar)
-        variables.add_auxiliary_variable('_cond', unit=Unit(1), dtype=np.bool)
+        variables.add_auxiliary_variable('_cond', dtype=np.bool)
 
         abstract_code = '_variable = ' + self.name + '\n'
         abstract_code += '_cond = ' + code
@@ -1111,7 +1108,7 @@ class VariableView(object):
         # have to evaluate code for the given indices
         variables = Variables(None, default_index='_group_index')
         variables.add_auxiliary_variable('_variable',
-                                         unit=variable.unit,
+                                         dimensions=variable.dim,
                                          dtype=variable.dtype,
                                          scalar=variable.scalar)
         if indices.shape == ():
@@ -1119,8 +1116,7 @@ class VariableView(object):
             indices = np.array([indices])
         else:
             single_index = False
-        variables.add_array('_group_idx', unit=Unit(1),
-                            size=len(indices), dtype=np.int32)
+        variables.add_array('_group_idx', size=len(indices), dtype=np.int32)
         variables['_group_idx'].set_value(indices)
         # Force the use of this variable as a replacement for the original
         # index variable
@@ -1156,7 +1152,7 @@ class VariableView(object):
     def set_with_index_array(self, item, value, check_units):
         variable = self.variable
         if check_units:
-            fail_for_dimension_mismatch(variable.unit, value,
+            fail_for_dimension_mismatch(variable.dim, value,
                                         'Incorrect unit for setting variable %s' % self.name)
         if variable.scalar:
             if not (isinstance(item, slice) and item == slice(None)):
@@ -1192,7 +1188,7 @@ class VariableView(object):
         return np.asanyarray(self[:], dtype=dtype)
 
     def __array_prepare__(self, array, context=None):
-        if self.unit is None:
+        if self.dim is None:
             return array
         else:
             this = self[:]
@@ -1203,7 +1199,7 @@ class VariableView(object):
                 return array
 
     def __array_wrap__(self, out_arr, context=None):
-        if self.unit is None:
+        if self.dim is None:
             return out_arr
         else:
             this = self[:]
@@ -1328,11 +1324,11 @@ class VariableView(object):
 
     def __repr__(self):
         varname = self.name
-        if self.unit is None:
+        if self.dim is None:
             varname += '_'
 
         if self.variable.scalar:
-            dim = self.unit.dim if self.unit is not None else DIMENSIONLESS
+            dim = self.dim if self.dim is not None else DIMENSIONLESS
             values = repr(Quantity(self.variable.get_value().item(),
                                    dim=dim))
         else:
@@ -1418,9 +1414,9 @@ class Variables(collections.Mapping):
         if index is not None:
             self.indices[name] = index
 
-    def add_array(self, name, unit, size, values=None, dtype=None,
-                  constant=False, read_only=False, scalar=False, unique=False,
-                  index=None):
+    def add_array(self, name, size, dimensions=DIMENSIONLESS, values=None,
+                  dtype=None, constant=False, read_only=False, scalar=False,
+                  unique=False, index=None):
         '''
         Add an array (initialized with zeros).
 
@@ -1428,8 +1424,8 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable.
-        unit : `Unit`
-            The unit of the variable
+        dimensions : `Dimension`, optional
+            The physical dimensions of the variable.
         size : int
             The size of the array.
         values : `ndarray`, optional
@@ -1458,7 +1454,7 @@ class Variables(collections.Mapping):
             # We want a basic Python type for the size instead of something
             # like numpy.int64
             size = int(size)
-        var = ArrayVariable(name=name, unit=unit, owner=self.owner,
+        var = ArrayVariable(name=name, dimensions=dimensions, owner=self.owner,
                             device=self.device, size=size,
                             dtype=dtype,
                             constant=constant,
@@ -1480,9 +1476,9 @@ class Variables(collections.Mapping):
                                       'size: %d != %d') % (len(values), size))
                 self.device.fill_with_array(var, values)
 
-    def add_arrays(self, names, unit, size, values=None, dtype=None,
-                  constant=False, read_only=False, scalar=False, unique=False,
-                  index=None):
+    def add_arrays(self, names, size, dimensions=DIMENSIONLESS,
+                   dtype=None, constant=False, read_only=False, scalar=False,
+                   unique=False, index=None):
         '''
         Adds several arrays (initialized with zeros) with the same attributes
         (size, units, etc.).
@@ -1491,8 +1487,8 @@ class Variables(collections.Mapping):
         ----------
         names : list of str
             The names of the variable.
-        unit : `Unit`
-            The unit of the variables
+        dimensions : `Dimension`, optional
+            The physical dimensions of the variable.
         size : int
             The sizes of the arrays.
         dtype : `dtype`, optional
@@ -1515,12 +1511,13 @@ class Variables(collections.Mapping):
             See `ArrayVariable`. Defaults to ``False``.
         '''
         for name in names:
-            self.add_array(name, unit=unit, size=size, dtype=dtype,
+            self.add_array(name, dimensions=dimensions, size=size, dtype=dtype,
                            constant=constant, read_only=read_only,
                            scalar=scalar, unique=unique, index=index)
 
-    def add_dynamic_array(self, name, unit, size, values=None, dtype=None,
-                          constant=False, needs_reference_update=False,
+    def add_dynamic_array(self, name, size, dimensions=DIMENSIONLESS,
+                          values=None, dtype=None, constant=False,
+                          needs_reference_update=False,
                           resize_along_first=False, read_only=False,
                           unique=False, scalar=False, index=None):
         '''
@@ -1530,8 +1527,8 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable.
-        unit : `Unit`
-            The unit of the variable
+        dimensions : `Dimension`, optional
+            The physical dimensions of the variable.
         size : int or tuple of int
             The (initital) size of the array.
         values : `ndarray`, optional
@@ -1560,7 +1557,7 @@ class Variables(collections.Mapping):
         unique : bool, optional
             See `DynamicArrayVariable`. Defaults to ``False``.
         '''
-        var = DynamicArrayVariable(name=name, unit=unit, owner=self.owner,
+        var = DynamicArrayVariable(name=name, dimensions=dimensions, owner=self.owner,
                                    device=self.device,
                                    size=size, dtype=dtype,
                                    constant=constant,
@@ -1609,13 +1606,12 @@ class Variables(collections.Mapping):
         unique : bool, optional
             See `ArrayVariable`. Defaults to ``True`` here.
         '''
-        self.add_array(name=name, unit=Unit(1), size=size, dtype=dtype,
+        self.add_array(name=name, dimensions=DIMENSIONLESS, size=size, dtype=dtype,
                        constant=constant, read_only=read_only, unique=unique,
                        index=index)
         self.device.init_with_arange(self._variables[name], start, dtype=dtype)
 
-
-    def add_constant(self, name, unit, value):
+    def add_constant(self, name, value, dimensions=DIMENSIONLESS):
         '''
         Add a scalar constant (e.g. the number of neurons `N`).
 
@@ -1623,17 +1619,18 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable
-        unit : `Unit`
-            The unit of the variable. Note that the variable itself (as referenced
-            by value) should never have units attached.
         value: reference to the variable value
             The value of the constant.
+        dimensions : `Dimension`, optional
+            The physical dimensions of the variable. Note that the variable
+            itself (as referenced by value) should never have units attached.
         '''
-        var = Constant(name=name, unit=unit, owner=self.owner, value=value)
+        var = Constant(name=name, dimensions=dimensions, owner=self.owner,
+                       value=value)
         self._add_variable(name, var)
 
-    def add_subexpression(self, name, unit, expr, dtype=None, scalar=False,
-                          index=None):
+    def add_subexpression(self, name, expr, dimensions=DIMENSIONLESS,
+                          dtype=None, scalar=False, index=None):
         '''
         Add a named subexpression.
 
@@ -1641,8 +1638,8 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the subexpression.
-        unit : `Unit`
-            The unit of the subexpression.
+        dimensions : `Dimension`
+            The physical dimensions of the subexpression.
         expr : str
             The subexpression itself.
         dtype : `dtype`, optional
@@ -1655,11 +1652,12 @@ class Variables(collections.Mapping):
             The index to use for this variable. Defaults to
             `Variables.default_index`.
         '''
-        var = Subexpression(name=name, unit=unit, expr=expr, owner=self.owner,
+        var = Subexpression(name=name, dimensions=dimensions, expr=expr, owner=self.owner,
                             dtype=dtype, device=self.device, scalar=scalar)
         self._add_variable(name, var, index=index)
 
-    def add_auxiliary_variable(self, name, unit, dtype=None, scalar=False):
+    def add_auxiliary_variable(self, name, dimensions=DIMENSIONLESS,
+                               dtype=None, scalar=False):
         '''
         Add an auxiliary variable (most likely one that is added automatically
         to abstract code, e.g. ``_cond`` for a threshold condition),
@@ -1669,8 +1667,8 @@ class Variables(collections.Mapping):
         ----------
         name : str
             The name of the variable
-        unit : `Unit`
-            The unit of the variable.
+        dimensions : `Dimension`
+            The physical dimensions of the variable.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
             to `core.default_float_dtype`.
@@ -1678,7 +1676,7 @@ class Variables(collections.Mapping):
             Whether the variable is a scalar value (``True``) or vector-valued,
             e.g. defined for every neuron (``False``). Defaults to ``False``.
         '''
-        var = AuxiliaryVariable(name=name, unit=unit, dtype=dtype,
+        var = AuxiliaryVariable(name=name, dimensions=dimensions, dtype=dtype,
                                 scalar=scalar)
         self._add_variable(name, var)
 
@@ -1731,7 +1729,8 @@ class Variables(collections.Mapping):
                                    subexpr_var_index)
 
         new_expr = word_substitute(subexpr.expr, substitutions)
-        new_subexpr = Subexpression(name, subexpr.unit, self.owner, new_expr,
+        new_subexpr = Subexpression(name, self.owner, new_expr,
+                                    dimensions=subexpr.dim,
                                     device=subexpr.device,
                                     dtype=subexpr.dtype,
                                     scalar=subexpr.scalar)

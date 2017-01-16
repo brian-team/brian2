@@ -396,7 +396,7 @@ class RuntimeDevice(Device):
     def add_array(self, var):
         # This creates the actual numpy arrays (or DynamicArrayVariable objects)
         if isinstance(var, DynamicArrayVariable):
-            if var.dimensions == 1:
+            if var.ndim == 1:
                 arr = DynamicArray1D(var.size, dtype=var.dtype)
             else:
                 arr = DynamicArray(var.size, dtype=var.dtype)

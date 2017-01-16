@@ -26,7 +26,7 @@ from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
 from brian2.utils.topsort import topsort
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
 from brian2.parsing.statements import parse_statement
 from brian2.parsing.sympytools import (str_to_sympy, sympy_to_str,
                                        check_expression_for_multiple_stateful_functions)
@@ -89,8 +89,7 @@ def analyse_identifiers(code, variables, recursive=False):
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
-        variables = dict((k, Variable(unit=1, name=k,
-                                      dtype=np.float64))
+        variables = dict((k, Variable(name=k, dtype=np.float64))
                          for k in known)
 
     known |= STANDARD_IDENTIFIERS
@@ -230,8 +229,8 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 defined.add(var)
                 if var not in variables:
                     is_scalar = is_scalar_expression(expr, variables)
-                    new_var = AuxiliaryVariable(var, Unit(1), # doesn't matter here
-                                                dtype=dtype, scalar=is_scalar)
+                    new_var = AuxiliaryVariable(var, dtype=dtype,
+                                                scalar=is_scalar)
                     variables[var] = new_var
             elif not variables[var].is_boolean:
                 sympy_expr = str_to_sympy(expr, variables)

@@ -12,7 +12,7 @@ from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
                                  brian_dtype_from_dtype, brian_dtype_from_value)
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.units.fundamentalunits import Unit
+from brian2.units.fundamentalunits import DIMENSIONLESS
 
 from .statements import Statement
 
@@ -334,7 +334,9 @@ class Simplifier(BrianASTRenderer):
                 numpy_dtype = {'boolean': bool,
                                'integer': int,
                                'float': float}[node.dtype]
-                self.variables[name] = AuxiliaryVariable(name, Unit(1), dtype=numpy_dtype, scalar=True)
+                self.variables[name] = AuxiliaryVariable(name,
+                                                         dtype=numpy_dtype,
+                                                         scalar=True)
             # None is the expression context, we don't use it so we just set to None
             newnode = ast.Name(name, None)
             newnode.scalar = True
