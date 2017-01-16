@@ -2111,7 +2111,7 @@ class Unit(Quantity):
 
     def __eq__(self, other):
         if isinstance(other, Unit):
-            return (other.dim == self.dim and
+            return (other.dim is self.dim and
                     other.scalefactor == self.scalefactor and
                     other.scale == self.scale)
         else:

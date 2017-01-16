@@ -602,7 +602,7 @@ class NeuronGroup(Group, SpikeSource):
                                            'size.') % linked_var.name)
 
             eq = self.equations[key]
-            if eq.dim != linked_var.dim:
+            if eq.dim is not linked_var.dim:
                 raise DimensionMismatchError(('Unit of variable %s does not '
                                               'match its link target %s') % (key,
                                                                              linked_var.name))

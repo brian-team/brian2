@@ -147,10 +147,10 @@ def test_parse_equations():
     assert eqs['f'].var_type == FLOAT
     assert eqs['b'].var_type == BOOLEAN
     assert eqs['n'].var_type == INTEGER
-    assert eqs['v'].dim == volt.dim
-    assert eqs['ge'].dim == volt.dim
-    assert eqs['I'].dim == volt.dim
-    assert eqs['f'].dim == Hz.dim
+    assert eqs['v'].dim is volt.dim
+    assert eqs['ge'].dim is volt.dim
+    assert eqs['I'].dim is volt.dim
+    assert eqs['f'].dim is Hz.dim
     assert eqs['v'].flags == []
     assert eqs['ge'].flags == []
     assert eqs['I'].flags == []
