@@ -38,11 +38,10 @@ def check_dimensions(expression, dimensions, variables):
         If an unit mismatch occurs during the evaluation.
     '''
     expr_dims = parse_expression_dimensions(expression, variables)
-    # FIXME: The error message is not great
-    fail_for_dimension_mismatch(expr_dims, dimensions,
-                                ('Expression %s does not have the expected '
-                                 'unit {expected_unit}') % expression.strip(),
-                                expected_unit=dimensions)
+    err_msg = ('Expression {expr} does not have the '
+               'expected unit {expected}').format(expr=expression.strip(),
+                                                  expected=repr(get_unit(dimensions)))
+    fail_for_dimension_mismatch(expr_dims, dimensions, err_msg)
 
 
 def check_units_statements(code, variables):

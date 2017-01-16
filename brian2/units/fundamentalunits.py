@@ -178,7 +178,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
             error_message = error_message.format(**error_quantities)
         # If we are comparing an object to a specific unit, we don't want to
         # restate this unit (it is probably mentioned in the text already)
-        if obj2 is None or isinstance(obj2, Unit):
+        if obj2 is None or isinstance(obj2, (Dimension, Unit)):
             raise DimensionMismatchError(error_message, dim1)
         else:
             raise DimensionMismatchError(error_message, dim1, dim2)

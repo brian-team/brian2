@@ -11,7 +11,8 @@ from brian2.units.fundamentalunits import (Unit,
                                            have_same_dimensions,
                                            get_dimensions,
                                            DIMENSIONLESS,
-                                           fail_for_dimension_mismatch)
+                                           fail_for_dimension_mismatch,
+                                           get_unit)
 
 __all__ = ['is_boolean_expression',
            'parse_expression_dimensions', ]
@@ -246,12 +247,12 @@ def parse_expression_dimensions(expr, variables):
         subunits = []
         for node in subexprs:
             subunits.append(parse_expression_dimensions(node, variables))
-        for left, right in zip(subunits[:-1], subunits[1:]):
-            if not have_same_dimensions(left, right):
+        for left_dim, right_dim in zip(subunits[:-1], subunits[1:]):
+            if not have_same_dimensions(left_dim, right_dim):
                 msg = ('Comparison of expressions with different units. Expression '
                        '"{}" has unit ({}), while expression "{}" has units ({})').format(
-                            NodeRenderer().render_node(expr.left), get_dimensions(left),
-                            NodeRenderer().render_node(expr.comparators[0]), get_dimensions(right))
+                            NodeRenderer().render_node(expr.left), get_dimensions(left_dim),
+                            NodeRenderer().render_node(expr.comparators[0]), get_dimensions(right_dim))
                 raise DimensionMismatchError(msg)
         # but the result is a bool, so we just return 1 as the unit
         return DIMENSIONLESS
@@ -311,26 +312,35 @@ def parse_expression_dimensions(expr, variables):
 
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
-        left = parse_expression_dimensions(expr.left, variables)
-        right = parse_expression_dimensions(expr.right, variables)
-        if op=='Add' or op=='Sub' or op=='Mod':
+        left_dim = parse_expression_dimensions(expr.left, variables)
+        right_dim = parse_expression_dimensions(expr.right, variables)
+        if op in ['Add', 'Sub', 'Mod']:
             # dimensions should be the same
-            op_symbol = {'Add': '+', 'Sub': '-', 'Mod': '%'}.get(op)
-            fail_for_dimension_mismatch(left, right,
-                                        'Cannot determine units for '
-                                        '%s %s %s' % (NodeRenderer().render_node(expr.left),
-                                                      op_symbol,
-                                                      NodeRenderer().render_node(expr.right)))
-            u = left
-        elif op=='Mult':
-            u = left*right
-        elif op=='Div':
-            u = left/right
-        elif op=='Pow':
-            if have_same_dimensions(left, 1) and have_same_dimensions(right, 1):
+            if left_dim is not right_dim:
+                op_symbol = {'Add': '+', 'Sub': '-', 'Mod': '%'}.get(op)
+                left_str = NodeRenderer().render_node(expr.left)
+                right_str = NodeRenderer().render_node(expr.right)
+                left_unit = repr(get_unit(left_dim))
+                right_unit = repr(get_unit(right_dim))
+                error_msg = ('Expression "{left} {op} {right}" uses '
+                             'inconsistent units ("{left}" has unit '
+                             '{left_unit}; "{right}" '
+                             'has unit {right_unit})').format(left=left_str,
+                                                             right=right_str,
+                                                             op=op_symbol,
+                                                             left_unit=left_unit,
+                                                             right_unit=right_unit)
+                raise DimensionMismatchError(error_msg)
+            u = left_dim
+        elif op == 'Mult':
+            u = left_dim*right_dim
+        elif op == 'Div':
+            u = left_dim/right_dim
+        elif op == 'Pow':
+            if left_dim is DIMENSIONLESS and right_dim is DIMENSIONLESS:
                 return DIMENSIONLESS
             n = _get_value_from_expression(expr.right, variables)
-            u = left**n
+            u = left_dim**n
         else:
             raise SyntaxError("Unsupported operation "+op)
         return u
@@ -338,7 +348,7 @@ def parse_expression_dimensions(expr, variables):
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
         u = parse_expression_dimensions(expr.operand, variables)
-        if op=='Not':
+        if op == 'Not':
             return DIMENSIONLESS
         else:
             return u
