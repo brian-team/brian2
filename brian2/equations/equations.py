@@ -203,7 +203,7 @@ def check_identifier_constants(identifier):
 
 def dimensions_and_type_from_string(unit_string):
     '''
-    Returns the unit that results from evaluating a string like
+    Returns the physical dimensions that results from evaluating a string like
     "siemens / metre ** 2", allowing for the special string "1" to signify
     dimensionless units, the string "boolean" for a boolean and "integer" for
     an integer variable.
@@ -342,7 +342,7 @@ class SingleEquation(object):
     varname : str
         The variable that is defined by this equation.
     dimensions : `Dimension`
-        The dimensions of the variable
+        The physical dimensions of the variable
     var_type : {FLOAT, INTEGER, BOOLEAN}
         The type of the variable (floating point value or boolean).
     expr : `Expression`, optional
@@ -351,7 +351,6 @@ class SingleEquation(object):
         A list of flags that give additional information about this equation.
         What flags are possible depends on the type of the equation and the
         context.
-    
     '''
     def __init__(self, type, varname, dimensions, var_type=FLOAT, expr=None,
                  flags=None):

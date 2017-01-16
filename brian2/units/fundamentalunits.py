@@ -130,8 +130,8 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
     Returns
     -------
     dim1, dim2 : `Dimension`, `Dimension`
-        The dimensions of the two arguments (so that later code does not need
-        to get the dimensions again).
+        The physical dimensions of the two arguments (so that later code does
+        not need to get the dimensions again).
 
     Raises
     ------
@@ -560,9 +560,9 @@ class DimensionMismatchError(Exception):
     description : ``str``
         A description of the type of operation being performed, e.g. Addition,
         Multiplication, etc.
-    dims : ``Dimension``
-        The dimensions of the objects involved in the operation, any number of
-        them is possible
+    dims : `Dimension`
+        The physical dimensions of the objects involved in the operation, any
+        number of them is possible
     """
     def __init__(self, description, *dims):
         # Call the base class constructor to make Exception pickable, see:
@@ -632,7 +632,7 @@ def get_dimensions(obj):
     Returns
     -------
     dim: `Dimension`
-        The dimensions of the `obj`.
+        The physical dimensions of the `obj`.
     """
     try:
         return obj.dim
@@ -800,7 +800,7 @@ def quantity_with_dimensions(floatval, dims):
     floatval : `float`
         The floating point value of the quantity.
     dims : `Dimension`
-        The dimensions of the quantity.
+        The physical dimensions of the quantity.
 
     Returns
     -------
@@ -880,7 +880,7 @@ class Quantity(np.ndarray, object):
     dimensions
     is_dimensionless
     dim : Dimensions
-        The dimensions of this quantity.
+        The physical dimensions of this quantity.
 
     Methods
     -------
@@ -1112,7 +1112,7 @@ class Quantity(np.ndarray, object):
     @property
     def dimensions(self):
         '''
-        The dimensions of this quantity.
+        The physical dimensions of this quantity.
         '''
         return self.dim
 

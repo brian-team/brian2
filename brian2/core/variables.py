@@ -102,8 +102,8 @@ class Variable(object):
         name in the owning group. The same variable may be known under other
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
-    dimensions : `Dimensions`, optional
-        The dimensions of the variable.
+    dimensions : `Dimension`, optional
+        The physical dimensions of the variable.
     owner : `Nameable`, optional
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -292,8 +292,8 @@ class Constant(Variable):
     name : str
         The name of the variable
     dimensions : `Dimension`, optional
-        The dimensions of the variable. Note that the variable itself (as
-        referenced by value) should never have units attached.
+        The physical dimensions of the variable. Note that the variable itself
+        (as referenced by value) should never have units attached.
     value: reference to the variable value
         The value of the constant.
     owner : `Nameable`, optional
@@ -352,7 +352,7 @@ class AuxiliaryVariable(Variable):
     name : str
         The name of the variable
     dimensions : `Dimension`, optional
-        The dimensions of the variable.
+        The physical dimensions of the variable.
     dtype : `dtype`, optional
         The dtype used for storing the variable. If none is given, defaults
         to `core.default_float_dtype`.
@@ -383,7 +383,7 @@ class ArrayVariable(Variable):
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
     dimensions : `Dimension`, optional
-        The dimensions of the variable
+        The physical dimensions of the variable
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -480,7 +480,7 @@ class DynamicArrayVariable(ArrayVariable):
         names in other groups (e.g. the variable ``v`` of a `NeuronGroup` is
         known as ``v_post`` in a `Synapse` connecting to the group).
     dimensions : `Dimension`, optional
-        The dimensinos of the variable
+        The physical dimensions of the variable.
     owner : `Nameable`
         The object that "owns" this variable, e.g. the `NeuronGroup` or
         `Synapses` object that declares the variable in its model equations.
@@ -579,7 +579,7 @@ class Subexpression(Variable):
     name : str
         The name of the subexpression.
     dimensions : `Dimension`, optional
-        The dimensions of the subexpression.
+        The physical dimensions of the subexpression.
     owner : `Group`
         The group to which the expression refers.
     expr : str
@@ -731,8 +731,9 @@ class VariableView(object):
         The group through which the variable is accessed (not necessarily the
         same as `variable.owner`).
     dimensions : `Dimension`, optional
-        The dimensinos to be used for the variable, should be `None` when a
-        variable is accessed without units (e.g. when accessing ``G.var_``).
+        The physical dimensions to be used for the variable, should be `None`
+        when a variable is accessed without units (e.g. when accessing
+        ``G.var_``).
     '''
     def __init__(self, name, variable, group, dimensions=None):
         self.name = name
@@ -1424,7 +1425,7 @@ class Variables(collections.Mapping):
         name : str
             The name of the variable.
         dimensions : `Dimension`, optional
-            The dimensions of the variable.
+            The physical dimensions of the variable.
         size : int
             The size of the array.
         values : `ndarray`, optional
@@ -1487,7 +1488,7 @@ class Variables(collections.Mapping):
         names : list of str
             The names of the variable.
         dimensions : `Dimension`, optional
-            The dimensions of the variable.
+            The physical dimensions of the variable.
         size : int
             The sizes of the arrays.
         dtype : `dtype`, optional
@@ -1527,7 +1528,7 @@ class Variables(collections.Mapping):
         name : str
             The name of the variable.
         dimensions : `Dimension`, optional
-            The dimensions of the variable.
+            The physical dimensions of the variable.
         size : int or tuple of int
             The (initital) size of the array.
         values : `ndarray`, optional
@@ -1610,7 +1611,6 @@ class Variables(collections.Mapping):
                        index=index)
         self.device.init_with_arange(self._variables[name], start, dtype=dtype)
 
-
     def add_constant(self, name, value, dimensions=DIMENSIONLESS):
         '''
         Add a scalar constant (e.g. the number of neurons `N`).
@@ -1622,10 +1622,11 @@ class Variables(collections.Mapping):
         value: reference to the variable value
             The value of the constant.
         dimensions : `Dimension`, optional
-            The dimensions of the variable. Note that the variable itself (as
-            referenced by value) should never have units attached.
+            The physical dimensions of the variable. Note that the variable
+            itself (as referenced by value) should never have units attached.
         '''
-        var = Constant(name=name, dimensions=dimensions, owner=self.owner, value=value)
+        var = Constant(name=name, dimensions=dimensions, owner=self.owner,
+                       value=value)
         self._add_variable(name, var)
 
     def add_subexpression(self, name, expr, dimensions=DIMENSIONLESS,
@@ -1638,7 +1639,7 @@ class Variables(collections.Mapping):
         name : str
             The name of the subexpression.
         dimensions : `Dimension`
-            The dimensions of the subexpression.
+            The physical dimensions of the subexpression.
         expr : str
             The subexpression itself.
         dtype : `dtype`, optional
@@ -1667,7 +1668,7 @@ class Variables(collections.Mapping):
         name : str
             The name of the variable
         dimensions : `Dimension`
-            The dimensions of the variable.
+            The physical dimensions of the variable.
         dtype : `dtype`, optional
             The dtype used for storing the variable. If none is given, defaults
             to `core.default_float_dtype`.
