@@ -1,6 +1,26 @@
 Release notes
 =============
 
+Next release
+------------
+
+New features
+~~~~~~~~~~~~
+
+Improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Contributions
+~~~~~~~~~~~~~
+Code and documentation contributions (ordered by the number of commits):
+
+TODO
+
+Testing, suggestions and bug reports (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Christopher Nolan
+
 Brian 2.0.1
 -----------
 This is a bug-fix release that fixes a number of important bugs (see below),

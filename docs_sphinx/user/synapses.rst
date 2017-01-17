@@ -221,24 +221,24 @@ Monitoring synaptic variables
 A `StateMonitor` object can be used to monitor synaptic variables. For example, the following statement
 creates a monitor for variable ``w`` for the synapses 0 and 1::
 
-	M = StateMonitor(S,'w',record=[0,1])
+	M = StateMonitor(S, 'w', record=[0,1])
 
 Note that these are *synapse* indices, not neuron indices. More convenient is
 to directly index the `Synapses` object, Brian will automatically calculate the
 indices for you in this case::
 
-	M = StateMonitor(S,'w',record=S[0, :])  # all synapses originating from neuron 0
-	M = StateMonitor(S,'w',record=S['i!=j'])  # all synapses excluding autapses
-	M = StateMonitor(S,'w',record=S['w>0'])  # all synapses with non-zero weights (at this time)
+	M = StateMonitor(S, 'w', record=S[0, :])  # all synapses originating from neuron 0
+	M = StateMonitor(S, 'w', record=S['i!=j'])  # all synapses excluding autapses
+	M = StateMonitor(S, 'w', record=S['w>0'])  # all synapses with non-zero weights (at this time)
 
 You can also record a synaptic variable for all synapses by passing ``record=True``.
 
 The recorded traces can then be accessed in the usual way, again with the
 possibility to index the `Synapses` object::
 
-	plot(M.t / ms, M[0].w / nS)  # first synapse
-	plot(M.t / ms, M[0, :].w / nS)  # all synapses originating from neuron 0
-	plot(M.t / ms, M['w>0'].w / nS)  # all synapses with non-zero weights (at this time)
+	plot(M.t / ms, M[S[0]].w / nS)  # first synapse
+	plot(M.t / ms, M[S[0, :]].w / nS)  # all synapses originating from neuron 0
+	plot(M.t / ms, M[S['w>0*nS']].w / nS)  # all synapses with non-zero weights (at this time)
 
 Note (for users of Brian's advanced standalone mode only):
 the use of the `Synapses` object for indexing and ``record=True`` only
