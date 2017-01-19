@@ -24,13 +24,14 @@ from brian2.equations.equations import (Equations, SingleEquation,
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater)
-from brian2.stateupdaters.base import StateUpdateMethod
-from brian2.stateupdaters.exact import independent
-from brian2.units.fundamentalunits import (Unit, Quantity, DIMENSIONLESS,
+from brian2.stateupdaters.base import (StateUpdateMethod,
+                                       UnsupportedEquationsException)
+from brian2.stateupdaters.exact import linear, independent
+from brian2.units.fundamentalunits import (Quantity, DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import word_substitute, get_identifiers
+from brian2.utils.stringtools import word_substitute
 from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
@@ -241,8 +242,12 @@ class SynapticPathway(CodeRunner, Group):
     @device_override('synaptic_pathway_update_abstract_code')
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
-            event_driven_update = independent(self.synapses.event_driven,
-                                              self.group.variables)
+            try:
+                event_driven_update = linear(self.synapses.event_driven,
+                                             self.group.variables)
+            except UnsupportedEquationsException:
+                event_driven_update = independent(self.synapses.event_driven,
+                                                  self.group.variables)
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(r'\bdt\b', '(t - lastupdate)',
                                          event_driven_update)
