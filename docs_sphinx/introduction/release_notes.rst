@@ -9,6 +9,9 @@ New features
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Make exact integration of ``event-driven`` synaptic variables use the `linear`
+  numerical integration algorithm (instead of `independent`), fixing rare
+  occasions where integration failed despite the equations being linear (#801).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -20,6 +23,7 @@ Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Christopher Nolan
+* Meng Dong
 
 Brian 2.0.1
 -----------
