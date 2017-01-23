@@ -180,6 +180,23 @@ of the number of threads. However, this is working fine for networks with not
 too small timestep (dt > 0.1ms), and results do not depend on the number of
 threads used in the simulation.
 
+.. _standalone_custom_build:
+
+Customizing the build process
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In standalone mode, a standard "make file" is used to orchestrate the
+compilation and linking. To provide additional arguments to the ``make`` command
+(respectively ``nmake`` on Windows), you can use the
+`devices.cpp_standalone.extra_make_args_unix` or
+`devices.cpp_standalone.extra_make_args_windows` preference. On Linux,
+this preference is by default set to ``['-j']`` to enable parallel compilation.
+Note that you can also use these arguments to overwrite variables in the make
+file, e.g. to use `clang <https://clang.llvm.org/>`_ instead of the default
+`gcc <https://gcc.gnu.org/>`_ compiler::
+
+    prefs.devices.cpp_standalone.extra_make_args_unix += ['CC=clang++']
+
+
 .. _compiler_settings:
 
 Compiler settings
