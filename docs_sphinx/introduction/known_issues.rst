@@ -52,3 +52,15 @@ scripts (or two processes started from the same Python script, e.g. via the
 `multiprocessing` package) try to store compilation results at the same time,
 ``weave`` will crash with an error message. The ``numpy`` and ``cython`` targets
 are not affected by this problem.
+
+Slow standalone simulations
+---------------------------
+
+While we are not yet sure about the exact reason, we have observed that some
+simulations run very slow on modern hardware when compiled with the gcc
+compiler in C++ standalone mode (see #803). Workarounds are to switch to a
+different compiler (e.g. clang, see :ref:`standalone_custom_build` for details)
+or to enable "unsafe" math optimisations by adding ``-ffinite-math-only`` to
+the compiler preferences (see :ref:`compiler_settings`). Note that this option
+may lead to incorrect simulation results if NaN or infinity values are
+encountered during the simulation.
