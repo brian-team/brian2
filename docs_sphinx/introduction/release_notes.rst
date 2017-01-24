@@ -23,6 +23,7 @@ Testing, suggestions and bug reports (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Christopher Nolan
+* Denis Alevi
 * Meng Dong
 
 Brian 2.0.1

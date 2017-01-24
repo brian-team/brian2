@@ -74,7 +74,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
                 const double elapsed = omp_get_wtime() - start;
                 {% else %}
                 current = std::clock();
-                const double elapsed = (double)((current - start) / CLOCKS_PER_SEC);
+                const double elapsed = ((double)(current - start) / CLOCKS_PER_SEC);
                 {% endif %}
                 if (elapsed > next_report_time)
                 {
