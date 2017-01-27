@@ -25,6 +25,7 @@ anyone we forgot...):
 * Christopher Nolan
 * Denis Alevi
 * Meng Dong
+* Shailesh Appukuttan
 
 Brian 2.0.1
 -----------
