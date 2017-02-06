@@ -438,7 +438,8 @@ DEFAULT_FUNCTIONS['abs'].implementations.add_implementation(CPPCodeGenerator,
                                                             name='_brian_abs')
 
 clip_code = '''
-        inline double _clip(const double value, const double a_min, const double a_max)
+        template <typename T>
+        inline T _clip(const T value, const double a_min, const double a_max)
         {
 	        if (value < a_min)
 	            return a_min;
