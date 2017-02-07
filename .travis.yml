@@ -100,9 +100,9 @@ matrix:
 before_install:
 - if [ ${PYTHON:0:1} == "2" ]; then
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    travis_retry wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda2-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
     else
-    travis_retry wget http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
     fi;
     else
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
