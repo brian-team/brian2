@@ -13,6 +13,7 @@ addons:
     - g++-multilib
     - lib32z1
 
+# TODO: We don't test Python 3.6 yet, since we do not have a Python 3.6 package for py-cpuinfo
 matrix:
   include:
       # test that the documentation can be built from the tarball -- we
@@ -55,15 +56,15 @@ matrix:
     - python: "3.5"
       env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86"
       os: linux
-    - python: "3.6"
-      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
-      os: linux
-    - python: "3.6"
-      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
-      os: osx
-    - python: "3.6"
-      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86"
-      os: linux
+#    - python: "3.6"
+#      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+#      os: linux
+#    - python: "3.6"
+#      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+#      os: osx
+#    - python: "3.6"
+#      env: PYTHON="3.4" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="34" CONDA_BUILD='yes' ARCHITECTURE="x86"
+#      os: linux
     # test standalone
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes CONDA_BUILD='no' ARCHITECTURE="x86_64"
@@ -74,15 +75,15 @@ matrix:
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: osx
-    - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
-      os: linux
-    - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86"
-      os: linux
-    - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
-      os: osx
+#    - python: "3.6"
+#      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+#      os: linux
+#    - python: "3.6"
+#      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86"
+#      os: linux
+#    - python: "3.6"
+#      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+#      os: osx
     # test without installed cython
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes ARCHITECTURE="x86_64"
@@ -90,9 +91,9 @@ matrix:
     - python: "3.5"
       env: PYTHON="3.5" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
       os: linux
-    - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
-      os: linux
+#    - python: "3.6"
+#      env: PYTHON="3.6" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
+#      os: linux
 
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
