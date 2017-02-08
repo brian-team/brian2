@@ -90,6 +90,33 @@ def test_math_functions():
             assert_allclose(numpy_result, mon.func_.flatten(),
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_clip():
+    G = NeuronGroup(4, '''
+                       clipexpr1 = clip(integer_var1, 0, 1) : integer
+                       clipexpr2 = clip(integer_var2, -0.5, 1.5) : integer
+                       clipexpr3 = clip(float_var1, 0, 1) : 1
+                       clipexpr4 = clip(float_var2, -0.5, 1.5) : 1
+                       integer_var1 : integer
+                       integer_var2 : integer
+                       float_var1 : 1
+                       float_var2 : 1
+                       ''')
+    G.integer_var1 = [0, 1, -1, 2]
+    G.integer_var2 = [0, 1, -1, 2]
+    G.float_var1 = [0., 1., -1., 2.]
+    G.float_var2 = [0., 1., -1., 2.]
+    s_mon = StateMonitor(G, ['clipexpr1', 'clipexpr2',
+                             'clipexpr3', 'clipexpr4'], record=True)
+    run(defaultclock.dt)
+    assert_equal(s_mon.clipexpr1.flatten(), [0, 1, 0, 1])
+    assert_equal(s_mon.clipexpr2.flatten(), [0, 1, 0, 1])
+    assert_equal(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
+    assert_equal(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_bool_to_int():
@@ -611,6 +638,7 @@ if __name__ == '__main__':
             test_constants_sympy,
             test_constants_values,
             test_math_functions,
+            test_clip,
             test_bool_to_int,
             test_user_defined_function,
             test_user_defined_function_units,

@@ -368,11 +368,18 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator
                                                              name='_sign')
 
 clip_code = '''
-cdef double clip(double x, double low, double high):
-    if x<low:
-        return low
-    if x>high:
-        return high
+ctypedef fused _to_clip:
+    char
+    short
+    int
+    float
+    double
+
+cdef _to_clip clip(_to_clip x, double low, double high):
+    if x < low:
+        return <_to_clip?>low
+    if x > high:
+        return <_to_clip?>high
     return x
 '''
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator,
