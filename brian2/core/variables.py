@@ -550,6 +550,13 @@ class DynamicArrayVariable(ArrayVariable):
                                                    read_only=read_only,
                                                    unique=unique)
 
+    @property
+    def dimensions(self):
+        logger.warn('The DynamicArrayVariable.dimensions attribute is '
+                    'deprecated, use .ndim instead', 'deprecated_dimensions',
+                    once=True)
+        return self.ndim
+
     def resize(self, new_size):
         '''
         Resize the dynamic array. Calls `self.device.resize` to do the
