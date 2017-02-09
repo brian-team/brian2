@@ -1119,6 +1119,27 @@ def test_scalar_subexpression():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_sim_with_scalar_variable():
+    G = NeuronGroup(10, '''tau : second (shared)
+                           dv/dt = -v/tau : 1''', method='linear')
+    G.tau = 10*ms
+    G.v = '1.0*i/N'
+    run(1*ms)
+    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_sim_with_scalar_subexpression():
+    G = NeuronGroup(10, '''tau = 10*ms : second (shared)
+                           dv/dt = -v/tau : 1''', method='linear')
+    G.v = '1.0*i/N'
+    run(1*ms)
+    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_constant_variable_subexpression():
     G = NeuronGroup(10, '''dv1/dt = -v1**2 / (10*ms) : 1
                            dv2/dt = -v_const**2 / (10*ms) : 1
@@ -1507,6 +1528,8 @@ if __name__ == '__main__':
     test_subexpression_with_constant()
     test_scalar_parameter_access()
     test_scalar_subexpression()
+    test_sim_with_scalar_variable()
+    test_sim_with_scalar_subexpression()
     test_constant_variable_subexpression()
     test_constant_subexpression_order()
     test_subexpression_checks()
