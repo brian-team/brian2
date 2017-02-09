@@ -895,7 +895,6 @@ def test_transmission_all_to_one_heterogeneous_delays():
     else:
         offset = 1
     run((4 + offset)*defaultclock.dt)
-    print mon[0].v
     assert mon[0].v[0+offset] == 3
     assert mon[0].v[1+offset] == 12
     assert mon[0].v[2+offset] == 33
@@ -1208,7 +1207,7 @@ def test_sim_with_scalar_variable():
     syn.connect(j='i')
     syn.w = [1, 2]
     syn.s = 5
-    run(defaultclock.dt)
+    run(2*defaultclock.dt)
     assert_allclose(out.v[:], [6, 7])
 
 @attr('standalone-compatible')
@@ -1221,7 +1220,7 @@ def test_sim_with_scalar_subexpression():
                    on_pre='v += s + w')
     syn.connect(j='i')
     syn.w = [1, 2]
-    run(defaultclock.dt)
+    run(2*defaultclock.dt)
     assert_allclose(out.v[:], [6, 7])
 
 @attr('standalone-compatible')
