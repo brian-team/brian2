@@ -1197,6 +1197,32 @@ def test_scalar_subexpression():
                                                      sub = v_post + s : 1 (shared)''',
                                                 on_pre='v+=s'))
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_sim_with_scalar_variable():
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
+    out = NeuronGroup(2, 'v : 1')
+    syn = Synapses(inp, out, '''w : 1
+                                s : 1 (shared)''',
+                   on_pre='v += s + w')
+    syn.connect(j='i')
+    syn.w = [1, 2]
+    syn.s = 5
+    run(defaultclock.dt)
+    assert_allclose(out.v[:], [6, 7])
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_sim_with_scalar_subexpression():
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
+    out = NeuronGroup(2, 'v : 1')
+    syn = Synapses(inp, out, '''w : 1
+                                s = 5 : 1 (shared)''',
+                   on_pre='v += s + w')
+    syn.connect(j='i')
+    syn.w = [1, 2]
+    run(defaultclock.dt)
+    assert_allclose(out.v[:], [6, 7])
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -2158,6 +2184,8 @@ if __name__ == '__main__':
     test_summed_variable_errors()
     test_scalar_parameter_access()
     test_scalar_subexpression()
+    test_sim_with_scalar_variable()
+    test_sim_with_scalar_subexpression()
     test_external_variables()
     test_event_driven()
     test_repr()
