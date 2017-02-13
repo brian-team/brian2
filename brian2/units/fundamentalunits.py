@@ -22,6 +22,7 @@ import operator
 import itertools
 
 import numpy as np
+from numpy import VisibleDeprecationWarning
 from sympy import latex
 
 __all__ = [
@@ -1240,6 +1241,11 @@ class Quantity(np.ndarray, object):
             return self.get_best_unit(user_unit_register,
                                       standard_unit_register,
                                       additional_unit_register)
+
+    def _get_best_unit(self, *regs):
+        warn('Quantity._get_best_unit has been renamed to '
+             'Quantity.get_best_unit.', VisibleDeprecationWarning)
+        return self.get_best_unit(*regs)
 
     def in_best_unit(self, precision=None, python_code=False, *regs):
         """
