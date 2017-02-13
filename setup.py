@@ -160,7 +160,7 @@ setup(name='Brian2',
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },
-      install_requires=['numpy>=1.8.2',
+      install_requires=['numpy>=1.9',
                         'sympy>=0.7.6',
                         'pyparsing',
                         'jinja2>=2.7',

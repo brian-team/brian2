@@ -90,7 +90,7 @@ def _check_dependency_version(name, version):
 
             logger.warn(message, 'outdated_dependency')
 
-for name, version in [('numpy',  '1.8.2'),
+for name, version in [('numpy',  '1.9'),
                       ('sympy',  '0.7.6'),
                       ('jinja2', '2.7')]:
     _check_dependency_version(name, version)
