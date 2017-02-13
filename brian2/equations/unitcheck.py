@@ -74,7 +74,7 @@ def check_units_statements(code, variables):
     
     if len(unknown):
         raise AssertionError(('Encountered unknown identifiers, this should '
-                             'not happen at this stage. Unkown identifiers: %s'
+                             'not happen at this stage. Unknown identifiers: %s'
                              % unknown))
 
     
