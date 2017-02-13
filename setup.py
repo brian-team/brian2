@@ -167,7 +167,7 @@ setup(name='Brian2',
                         'py-cpuinfo>=0.1.6',
                         'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
                        ],
-      setup_requires=['numpy>=1.8.2',
+      setup_requires=['numpy>=1.9',
                       'setuptools>=6.0'
                       ],
       cmdclass={'build_ext': optional_build_ext},
