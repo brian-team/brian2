@@ -89,8 +89,7 @@ prefs.register_preferences(
 
 
 mod_support_code = ''
-typestrs = ['unsigned char', 'char', 'unsigned short', 'short', 'unsigned int', 'int', 'unsigned long', 'long',
-            'unsigned long long', 'long long', 'float', 'double', 'long double']
+typestrs = ['int', 'long', 'long long', 'float', 'double', 'long double']
 floattypestrs = ['float', 'double', 'long double']
 for ix, xtype in enumerate(typestrs):
     for iy, ytype in enumerate(typestrs):
