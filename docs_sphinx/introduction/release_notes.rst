@@ -9,6 +9,10 @@ New features
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Work around low performance for certain C++ standalone simulations on Linux,
+  due to a bug in glibc (see #803). Thanks to Oleg Strikov
+  (`@xj8z <https://github.com/xj8z>`_) for debugging this
+  issue and providing the workaround that is now in use.
 * Make exact integration of ``event-driven`` synaptic variables use the `linear`
   numerical integration algorithm (instead of `independent`), fixing rare
   occasions where integration failed despite the equations being linear (#801).
@@ -25,6 +29,7 @@ anyone we forgot...):
 * Christopher Nolan
 * Denis Alevi
 * Meng Dong
+* Oleg Strikov
 * Shailesh Appukuttan
 
 Brian 2.0.1
