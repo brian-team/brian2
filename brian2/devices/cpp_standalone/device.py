@@ -82,6 +82,13 @@ prefs.register_preferences(
         Additional flags to pass to the nmake command on Windows. By default, no
         additional flags are passed.
         '''
+        ),
+    run_environment_variables=BrianPreference(
+        default={'LD_BIND_NOW': '1'},
+        docs='''
+        Dictionary of environment variables and their values that will be set
+        during the execution of the standalone code.
+        '''
         )
     )
 
@@ -847,6 +854,13 @@ class CPPStandaloneDevice(Device):
 
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
+            # Set environment variables
+            for key, value in prefs.devices.cpp_standalone.run_environment_variables.iteritems():
+                if key in os.environ and os.environ[key] != value:
+                    logger.info('Overwriting environment variable '
+                                '"{key}"'.format(key=key),
+                                name_suffix='overwritten_env_var', once=True)
+                os.environ[key] = value
             if not with_output:
                 stdout = open('results/stdout.txt', 'w')
             else:
