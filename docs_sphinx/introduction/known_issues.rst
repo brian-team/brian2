@@ -56,11 +56,11 @@ are not affected by this problem.
 Slow standalone simulations
 ---------------------------
 
-While we are not yet sure about the exact reason, we have observed that some
-simulations run very slow on modern hardware when compiled with the gcc
-compiler in C++ standalone mode (see #803). Workarounds are to switch to a
-different compiler (e.g. clang, see :ref:`standalone_custom_build` for details)
-or to enable "unsafe" math optimisations by adding ``-ffinite-math-only`` to
-the compiler preferences (see :ref:`compiler_settings`). Note that this option
-may lead to incorrect simulation results if NaN or infinity values are
-encountered during the simulation.
+Some versions of the GNU standard library (in particular those used by recent
+Ubuntu versions) have a bug that can dramatically slow down simulations in
+C++ standalone mode on modern hardware (see #803). As a workaround, Brian will
+set an environment variable ``LD_BIND_NOW`` during the execution of standalone
+stimulations which changes the way the library is linked so that it does not
+suffer from this problem. If this environment variable leads to unwanted
+behaviour on your machine, change the
+`prefs.devices.cpp_standalone.run_environment_variables` preference.
