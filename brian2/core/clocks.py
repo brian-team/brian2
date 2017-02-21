@@ -49,8 +49,8 @@ def check_dt(new_dt, old_dt, target_t):
     ...
     ValueError: Cannot set dt from 100. us to 200. us, the time 10.1 ms is not a multiple of 200. us
     '''
-    old_t = np.uint64(np.round(target_t / old_dt)) * old_dt
-    new_t = np.uint64(np.round(target_t / new_dt)) * new_dt
+    old_t = np.int64(np.round(target_t / old_dt)) * old_dt
+    new_t = np.int64(np.round(target_t / new_dt)) * new_dt
     error_t = target_t
     if abs(new_t - old_t)/new_dt > Clock.epsilon_dt:
         raise ValueError(('Cannot set dt from {old} to {new}, the '
@@ -86,7 +86,7 @@ class Clock(VariableOwner):
         Nameable.__init__(self, name=name)
         self._old_dt = None
         self.variables = Variables(self)
-        self.variables.add_array('timestep', size=1, dtype=np.uint64,
+        self.variables.add_array('timestep', size=1, dtype=np.int64,
                                  read_only=True, scalar=True)
         self.variables.add_array('t', dimensions=second.dim, size=1,
                                  dtype=np.double, read_only=True, scalar=True)
@@ -133,13 +133,13 @@ class Clock(VariableOwner):
         timestep : int
             The target time in integers (based on dt)
         '''
-        new_i = np.uint64(np.round(target_t / self.dt_))
+        new_i = np.int64(np.round(target_t / self.dt_))
         new_t = new_i * self.dt_
         if (new_t == target_t or
                         np.abs(new_t - target_t)/self.dt_ <= Clock.epsilon_dt):
             new_timestep = new_i
         else:
-            new_timestep = np.uint64(np.ceil(target_t / self.dt_))
+            new_timestep = np.int64(np.ceil(target_t / self.dt_))
         return new_timestep
 
     def __repr__(self):

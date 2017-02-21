@@ -17,7 +17,7 @@ class Clock
 public:
 	double epsilon;
 	double *dt;
-	uint64_t *timestep;
+	int64_t *timestep;
 	double *t;
 	Clock(double _epsilon=1e-14) : epsilon(_epsilon) { i_end = 0;};
     inline void tick()
@@ -45,7 +45,7 @@ public:
         }
 	}
 private:
-	uint64_t i_end;
+	int64_t i_end;
 };
 
 #endif
