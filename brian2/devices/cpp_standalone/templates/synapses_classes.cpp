@@ -39,7 +39,7 @@ public:
 			delete(queue[_idx]);
 	}
 
-	void push(int *spikes, unsigned int nspikes)
+	void push(int *spikes, int nspikes)
     {
     	queue[{{ openmp_pragma('get_thread_num') }}]->push(spikes, nspikes);
     }
@@ -65,20 +65,20 @@ public:
     	return &all_peek;
     }
 
-    void prepare(int n_source, int n_target, scalar *real_delays, unsigned int n_delays,
-                 int *sources, unsigned int n_synapses, double _dt)
+    void prepare(int n_source, int n_target, scalar *real_delays, int n_delays,
+                 int *sources, int n_synapses, double _dt)
     {
         Nsource = n_source;
         Ntarget = n_target;
     	{{ openmp_pragma('parallel') }}
     	{
-            unsigned int length;
+            int length;
             if ({{ openmp_pragma('get_thread_num') }} == _nb_threads - 1) 
-                length = n_synapses - (unsigned int) {{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
+                length = n_synapses - (int){{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
             else
-                length = (unsigned int) n_synapses/_nb_threads;
+                length = (int) n_synapses/_nb_threads;
 
-            unsigned int padding  = {{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
+            int padding  = {{ openmp_pragma('get_thread_num') }}*(n_synapses/_nb_threads);
 
             queue[{{ openmp_pragma('get_thread_num') }}]->openmp_padding = padding;
             if (n_delays > 1)
