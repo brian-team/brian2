@@ -20,13 +20,13 @@ cdef extern from "stdint_compat.h":
     ctypedef signed int int32_t
     ctypedef signed long int64_t
 
-ctypedef pair[unsigned int, vector[vector[int32_t]]] state_pair
+ctypedef pair[int, vector[vector[int32_t]]] state_pair
 
 cdef extern from "cspikequeue.cpp":
     cdef cppclass CSpikeQueue[T]:
         CSpikeQueue(int, int) except +
-        void prepare(T*, int, int32_t*, unsigned int, double)
-        void push(int32_t *, unsigned int)
+        void prepare(T*, int, int32_t*, int, double)
+        void push(int32_t *, int)
         state_pair _full_state()
         void _restore_from_full_state(state_pair)
         vector[int32_t]* peek()
