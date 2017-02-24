@@ -1225,6 +1225,20 @@ def test_sim_with_scalar_subexpression():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_sim_with_constant_subexpression():
+    inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
+    out = NeuronGroup(2, 'v : 1')
+    syn = Synapses(inp, out, '''w : 1
+                                s = 5 : 1 (constant over dt)''',
+                   on_pre='v += s + w')
+    syn.connect(j='i')
+    syn.w = [1, 2]
+    run(2*defaultclock.dt)
+    assert_allclose(out.v[:], [6, 7])
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_external_variables():
     # Make sure that external variables are correctly resolved
     source = SpikeGeneratorGroup(1, [0], [0]*ms)
@@ -1684,6 +1698,18 @@ def test_synaptic_equations():
     S.w = 'i'
     run(10*ms)
     assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapse_with_run_regularly():
+    # Check that integration works for synaptic equations
+    G = NeuronGroup(10, '')
+    tau = 10*ms
+    S = Synapses(G, G, 'w : 1')
+    S.connect(j='i')
+    S.run_regularly('w = i')
+    run(defaultclock.dt)
+    assert_allclose(S.w[:], np.arange(10))
 
 
 @attr('standalone-compatible')
@@ -2185,6 +2211,7 @@ if __name__ == '__main__':
     test_scalar_subexpression()
     test_sim_with_scalar_variable()
     test_sim_with_scalar_subexpression()
+    test_sim_with_constant_subexpression()
     test_external_variables()
     test_event_driven()
     test_repr()
@@ -2194,6 +2221,7 @@ if __name__ == '__main__':
     test_vectorisation()
     test_vectorisation_STDP_like()
     test_synaptic_equations()
+    test_synapse_with_run_regularly()
     test_synapses_to_synapses()
     test_synapses_to_synapses_different_sizes()
     test_synapses_to_synapses_summed_variable()

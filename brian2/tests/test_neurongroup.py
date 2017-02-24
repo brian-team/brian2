@@ -1479,6 +1479,24 @@ def test_no_code():
     assert group_2.state_updater.codeobj is not None
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_run_regularly_scheduling():
+    G = NeuronGroup(1, '''v1 : 1
+                          v2 : 1
+                          v3 : 1
+                          v4 : 1''')
+    G.run_regularly('v1 += 1')
+    G.run_regularly('v2 += 1', dt=2*defaultclock.dt)
+    G.run_regularly('v3 = v1', when='end')
+    G.run_regularly('v4 = v1', when='before_start')
+    run(2*defaultclock.dt)  # for standalone
+    assert_allclose(G.v1[:], 2)
+    assert_allclose(G.v2[:], 1)
+    assert_allclose(G.v3[:], 2)
+    assert_allclose(G.v4[:], 1)
+
+
 if __name__ == '__main__':
     test_set_states()
     test_creation()
@@ -1548,3 +1566,4 @@ if __name__ == '__main__':
     test_random_values_fixed_seed()
     test_random_values_fixed_and_random()
     test_no_code()
+    test_run_regularly_scheduling()
