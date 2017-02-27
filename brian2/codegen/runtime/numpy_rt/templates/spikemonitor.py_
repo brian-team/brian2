@@ -19,7 +19,7 @@ if _n_events > 0:
         _newlen = _curlen + _n_events
         _owner.resize(_newlen)
         {{N}} = _newlen
-        _vectorisation_idx = _n_events
+        _vectorisation_idx = _events
         _idx = _events
         {{vector_code|autoindent}}
         {% for varname, var in record_variables.items() %}

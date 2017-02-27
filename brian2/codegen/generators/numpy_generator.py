@@ -305,27 +305,19 @@ for func_name, func in [('sin', np.sin), ('cos', np.cos), ('tan', np.tan),
 def randn_func(vectorisation_idx):
     try:
         N = len(vectorisation_idx)
+        return np.random.randn(N)
     except TypeError:
-        N = int(vectorisation_idx)
-
-    numbers = np.random.randn(N)
-    if N == 1:
-        return numbers[0]
-    else:
-        return numbers
+        # scalar value
+        return np.random.randn()
 
 
 def rand_func(vectorisation_idx):
     try:
         N = len(vectorisation_idx)
+        return np.random.rand(N)
     except TypeError:
-        N = int(vectorisation_idx)
-
-    numbers = np.random.rand(N)
-    if N == 1:
-        return numbers[0]
-    else:
-        return numbers
+        # scalar value
+        return np.random.rand()
 
 
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumpyCodeGenerator,

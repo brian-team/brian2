@@ -2,6 +2,7 @@
 Module providing `NumpyCodeObject`.
 '''
 import sys
+from collections import Iterable
 
 import numpy as np
 
@@ -30,6 +31,116 @@ prefs.register_preferences(
         '''
         )
     )
+
+
+class LazyArange(Iterable):
+    '''
+    A class that can be used as a `~numpy.arange` replacement (with an implied
+    step size of 1) but does not actually create an array of values until
+    necessary. It is somewhat similar to the ``range()`` function in Python 3,
+    but does not use a generator. It is tailored to a special use case, the
+    ``_vectorisation_idx`` variable in numpy templates, and not meant for
+    general use. The ``_vectorisation_idx`` is used for stateless function
+    calls such as ``rand()`` and for the numpy codegen target determines the
+    number of values produced by such a call. This will often be the number of
+    neurons or synapses, and this class avoids creating a new array of that size
+    at every code object call when all that is needed is the *length* of the
+    array.
+
+    Examples
+    --------
+    >>> from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+    >>> ar = LazyArange(10)
+    >>> len(ar)
+    10
+    >>> len(ar[:5])
+    5
+    >>> type(ar[:5])
+    <class 'brian2.codegen.runtime.numpy_rt.numpy_rt.LazyArange'>
+    >>> ar[5]
+    5
+    >>> for value in ar[3:7]:
+    ...     print(value)
+    ...
+    3
+    4
+    5
+    6
+    >>> len(ar[np.array([1, 2, 3])])
+    3
+    '''
+    def __init__(self, stop, start=0, indices=None):
+        self.start = start
+        self.stop = stop
+        self.indices = indices
+
+    def __len__(self):
+        if self.indices is None:
+            return self.stop - self.start
+        else:
+            return len(self.indices)
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            if self.indices is None:
+                start, stop, step = item.start, item.stop, item.step
+                if step not in [None, 1]:
+                    raise NotImplementedError('Step should be 1')
+                if start is None:
+                    start = 0
+                if stop is None:
+                    stop = len(self)
+                return LazyArange(start=self.start+start,
+                                  stop=min([self.start+stop, self.stop]))
+            else:
+                raise NotImplementedError('Cannot slice LazyArange with indices')
+        elif isinstance(item, np.ndarray):
+            if item.dtype == np.dtype(bool):
+                item = np.nonzero(item)[0]  # convert boolean array into integers
+            if len(item) == 0:
+                return np.array([], dtype=np.int32)
+            if np.min(item) < 0 or np.max(item) > len(self):
+                raise IndexError('Indexing array contains out-of-bounds values')
+            return LazyArange(start=self.start, stop=self.stop, indices=item)
+        elif isinstance(item, int):
+            if self.indices is None:
+                index = self.start + item
+                if index >= self.stop:
+                    raise IndexError(index)
+                return index
+            else:
+                return self.indices[item]
+        else:
+            raise TypeError('Can only index with integer, numpy array, or slice.')
+
+    def __iter__(self):
+        if self.indices is None:
+            return iter(np.arange(self.start, self.stop))
+        else:
+            return iter(self.indices)
+
+    # Allow conversion to a proper array with np.array(...)
+    def __array__(self, dtype=None):
+        if self.indices is None:
+            return np.arange(self.start, self.stop)
+        else:
+            return self.indices + self.start
+
+    # Allow basic arithmetics (used when shifting stuff for subgroups)
+    def __add__(self, other):
+        if isinstance(other, int):
+            return LazyArange(start=self.start + other, stop=self.stop + other)
+        else:
+            return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        if isinstance(other, int):
+            return LazyArange(start=self.start - other, stop=self.stop - other)
+        else:
+            return NotImplemented
 
 
 class NumpyCodeObject(CodeObject):

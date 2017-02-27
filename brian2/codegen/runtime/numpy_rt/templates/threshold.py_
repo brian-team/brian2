@@ -7,6 +7,8 @@
 {# ITERATE_ALL { _idx } #}
 import numpy as _numpy
 
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+
 numpy_True = _numpy.bool_(True)
 numpy_False = _numpy.bool_(False)
 
@@ -15,11 +17,11 @@ _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
 # vector code
-_vectorisation_idx = N
+_vectorisation_idx = LazyArange(N)
 
 {{vector_code|autoindent}}
 if _cond is True or _cond is numpy_True:
-    _events = _numpy.arange(_vectorisation_idx)
+    _events = _numpy.arange(N)
 elif _cond is False or _cond is numpy_False:
     _events = _numpy.array([])
 else:
