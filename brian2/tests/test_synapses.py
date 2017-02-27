@@ -2161,6 +2161,35 @@ def test_synapse_generator_random_with_condition():
     assert all(S26.j[:] >= S26.i[:])
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapses_refractory():
+    source = NeuronGroup(10, '', threshold='True')
+    target = NeuronGroup(10, 'dv/dt = 0/second : 1 (unless refractory)',
+                         threshold='i>=5', refractory=defaultclock.dt)
+    S = Synapses(source, target, on_pre='v += 1')
+    S.connect(j='i')
+    run(defaultclock.dt)
+    assert_allclose(target.v[:5], 1)
+    assert_equal(target.v[5:], 0)
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_synapses_refractory_rand():
+    source = NeuronGroup(10, '', threshold='True')
+    target = NeuronGroup(10, 'dv/dt = 0/second : 1 (unless refractory)',
+                         threshold='i>=5', refractory=defaultclock.dt)
+    S = Synapses(source, target, on_pre='v += rand()')
+    S.connect(j='i')
+    with catch_logs() as _:
+        # Currently, rand() is a stateful function (we do not make use of
+        # _vectorisation_idx yet to make random numbers completely
+        # reproducible), which will lead to a warning, since the result depends
+        # on the order of execution.
+        run(defaultclock.dt)
+    assert all(target.v[:5] > 0)
+    assert_equal(target.v[5:], 0)
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
@@ -2233,5 +2262,6 @@ if __name__ == '__main__':
     test_synapse_generator_deterministic()
     test_synapse_generator_random()
     test_synapse_generator_random_with_condition()
-
+    test_synapses_refractory()
+    test_synapses_refractory_rand()
     print 'Tests took', time.time()-start

@@ -239,6 +239,9 @@ class NumpyCodeGenerator(CodeGenerator):
             # all newly created vars are arrays and will need indexing
             for varname in created_vars:
                 subs[varname] = varname + '[' + repl_string + ']'
+            # Also index _vectorisation_idx so that e.g. rand() works correctly
+            subs['_vectorisation_idx'] = '_vectorisation_idx' + '[' + repl_string + ']'
+
             line = word_substitute(line, subs)
             line = line.replace(repl_string, index)
         return line
