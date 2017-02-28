@@ -294,13 +294,6 @@ class SpatialNeuron(NeuronGroup):
         model = Equations(model_equations)
 
         ###### Process model equations (Im) to extract total conductance and the remaining current
-        # Check conditional linearity with respect to v
-        # Match to _A*v+_B
-        var = sp.Symbol('v', real=True)
-        wildcard = sp.Wild('_A', exclude=[var])
-        constant_wildcard = sp.Wild('_B', exclude=[var])
-        pattern = wildcard * var + constant_wildcard
-
         # Expand expressions in the membrane equation
         for var, expr in model.get_substituted_expressions(include_subexpressions=True):
             if var == 'Im':
@@ -309,24 +302,21 @@ class SpatialNeuron(NeuronGroup):
         else:
             raise AssertionError('Model equations did not contain Im!')
 
-        # Factor out the variable
-        s_expr = sp.collect(str_to_sympy(Im_expr.code).expand(), var)
-        matches = s_expr.match(pattern)
+        # Differentiate Im with respect to v
+        Im_sympy_exp = str_to_sympy(Im_expr.code)
+        v_sympy = sp.Symbol('v', real=True)
+        diffed = sp.diff(Im_sympy_exp, v_sympy)
 
-        if matches is None:
-            raise TypeError("The membrane current must be linear with respect to v")
-        a, b = (matches[wildcard],
-                matches[constant_wildcard])
+        gtot_str = sympy_to_str(sp.simplify(-diffed))
+        I0_str = sympy_to_str(sp.simplify(Im_sympy_exp - diffed*v_sympy))
 
-        # Extracts the total conductance from Im, and the remaining current
-        minusa_str, b_str = sympy_to_str(-a), sympy_to_str(b)
-        # Add correct units if necessary
-        if minusa_str == '0':
-            minusa_str += '*siemens/meter**2'
-        if b_str == '0':
-            b_str += '*amp/meter**2'
-        gtot_str = "gtot__private=" + minusa_str + ": siemens/meter**2"
-        I0_str = "I0__private=" + b_str + ": amp/meter**2"
+        if gtot_str == '0':
+            gtot_str += '*siemens/meter**2'
+        if I0_str == '0':
+            I0_str += '*amp/meter**2'
+        gtot_str = "gtot__private=" + gtot_str + ": siemens/meter**2"
+        I0_str = "I0__private=" + I0_str + ": amp/meter**2"
+
         model += Equations(gtot_str + "\n" + I0_str)
 
         # Insert morphology (store a copy)
