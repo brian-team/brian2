@@ -543,6 +543,7 @@ if __name__ == '__main__':
     test_event_monitor()
     test_event_monitor_no_record()
     test_spike_trains()
+    test_synapses_state_monitor()
     test_state_monitor()
     test_state_monitor_record_single_timestep()
     test_state_monitor_get_states()

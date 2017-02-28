@@ -2,6 +2,8 @@
 {# ITERATE_ALL { _idx } #}
 import numpy as _numpy
 
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+
 {% set _target_var_array = get_array_name(_target_var) %}
 {% set _index_array = get_array_name(_index_var) %}
 
@@ -10,7 +12,7 @@ _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
 # vector code
-_vectorisation_idx = N
+_vectorisation_idx = LazyArange(N)
 {{vector_code|autoindent}}
 
 # We write to the array, using the name provided as a keyword argument to the

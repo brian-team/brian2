@@ -33,7 +33,7 @@ except ImportError:
     nose = None
 
 
-def make_argv(dirnames, attributes):
+def make_argv(dirnames, attributes, doctests=False):
     '''
     Create the list of arguments for the ``nosetests`` call.
 
@@ -58,6 +58,8 @@ def make_argv(dirnames, attributes):
              "-a", attributes,
              '--nologcapture',
              '--exe'])
+    if doctests:
+        argv += ['--with-doctest']
     return argv
 
 
@@ -217,7 +219,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             # Some doctests do actually use code generation, use numpy for that
             prefs.codegen.target = 'numpy'
             prefs._backup()
-            argv = make_argv(dirnames, "codegen-independent")
+            argv = make_argv(dirnames, "codegen-independent", doctests=True)
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,

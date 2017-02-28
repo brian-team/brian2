@@ -2,6 +2,8 @@
 {# ALLOWS_SCALAR_WRITE #}
 import numpy as _numpy
 
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+
 numpy_False = _numpy.bool_(False)
 numpy_True = _numpy.bool_(True)
 
@@ -15,7 +17,7 @@ _vectorisation_idx = 1
 
 # vector code
 _idx = slice(None)
-_vectorisation_idx = {{constant_or_scalar('N', variables['N'])}}
+_vectorisation_idx = LazyArange({{constant_or_scalar('N', variables['N'])}})
 {{vector_code['condition']|autoindent}}
 
 # Phase 2: having computed _cond, the boolean array of points where
@@ -33,10 +35,10 @@ _vectorisation_idx = 1
 # vector code
 if _cond is True or _cond is numpy_True:
     _idx = slice(None)
-    _vectorisation_idx = N
+    _vectorisation_idx = LazyArange(N)
 elif _cond is False or _cond is numpy_False:
     _idx = []
-    _vectorisation_idx = 0
+    _vectorisation_idx = np.array([], dtype=np.int32)
 else:
     _vectorisation_idx = _idx = _numpy.nonzero(_cond)[0]
 

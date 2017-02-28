@@ -1,4 +1,4 @@
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -67,7 +67,22 @@ def test_poissoninput_errors():
     defaultclock.dt = old_dt
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_poissoninput_refractory():
+    eqs = '''
+    dv/dt = 0/second : 1 (unless refractory)
+    '''
+    G = NeuronGroup(10, eqs, reset='v=0', threshold='v>4.5', refractory=5*defaultclock.dt)
+    # Will increase the value by 1.0 at each time step
+    P = PoissonInput(G, 'v', 1, 1/defaultclock.dt, weight=1.0)
+    mon = StateMonitor(G, 'v', record=5)
+    run(10*defaultclock.dt)
+    assert_allclose(mon[5].v[:], [0, 1, 2, 3, 4, 5, 0, 0, 0, 0])
+
+
 if __name__ == '__main__':
     test_poissoninput()
     reinit_devices()
     test_poissoninput_errors()
+    test_poissoninput_refractory()

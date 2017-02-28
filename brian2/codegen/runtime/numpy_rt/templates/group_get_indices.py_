@@ -1,13 +1,15 @@
 {# USES_VARIABLES { N } #}
 import numpy as _numpy
 
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
 
 # vector code
-_idx = _numpy.arange(N)
-_vectorisation_idx = N
+_idx = LazyArange(N)
+_vectorisation_idx = _idx
 
 {{vector_code|autoindent}}
 
@@ -16,5 +18,4 @@ if _cond is True:
 if _cond is False:
     _cond = []
 
-# _indices is set in the abstract code, see IndexWrapper.__getitem__
-_return_values = _idx[_cond]
+_return_values = _numpy.array(_idx[_cond])

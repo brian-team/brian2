@@ -1,6 +1,8 @@
-{# USES_VARIABLES { _group_idx } #}
+{# USES_VARIABLES { _group_idx, N } #}
 {# ITERATE_ALL { _target_idx } #}
 import numpy as _numpy
+
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
 
 # scalar code
 _vectorisation_idx = 1
