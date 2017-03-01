@@ -8,7 +8,7 @@ _siprefixes = {"y":1e-24, "z":1e-21, "a":1e-18, "f":1e-15, "p":1e-12, "n":1e-9,
                "k":1e3, "M":1e6, "G":1e9, "T":1e12, "P":1e15, "E":1e18,
                "Z":1e21, "Y":1e24}
 
-fundamental_units = ['metre', 'meter', 'gram', 'second', 'amp', 'kelvin', 'mole', 'candle']
+fundamental_units = ['metre', 'meter', 'gram', 'second', 'amp', 'ampere', 'kelvin', 'mole', 'mol', 'candle']
 
 #### DERIVED UNITS, from http://physics.nist.gov/cuu/Units/units.html
 derived_unit_table = [

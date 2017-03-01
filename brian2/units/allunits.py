@@ -17,8 +17,10 @@ __all__ = [
     "gram",
     "second",
     "amp",
+    "ampere",
     "kelvin",
     "mole",
+    "mol",
     "candle",
     "gramme",
     "kilogram",
@@ -147,6 +149,26 @@ __all__ = [
     "Mamp",
     "kamp",
     "Yamp",
+    "aampere",
+    "campere",
+    "Zampere",
+    "Pampere",
+    "dampere",
+    "Gampere",
+    "fampere",
+    "hampere",
+    "daampere",
+    "mampere",
+    "nampere",
+    "pampere",
+    "uampere",
+    "Tampere",
+    "yampere",
+    "Eampere",
+    "zampere",
+    "Mampere",
+    "kampere",
+    "Yampere",
     "akelvin",
     "ckelvin",
     "Zkelvin",
@@ -187,6 +209,26 @@ __all__ = [
     "Mmole",
     "kmole",
     "Ymole",
+    "amol",
+    "cmol",
+    "Zmol",
+    "Pmol",
+    "dmol",
+    "Gmol",
+    "fmol",
+    "hmol",
+    "damol",
+    "mmol",
+    "nmol",
+    "pmol",
+    "umol",
+    "Tmol",
+    "ymol",
+    "Emol",
+    "zmol",
+    "Mmol",
+    "kmol",
+    "Ymol",
     "acandle",
     "ccandle",
     "Zcandle",
@@ -757,10 +799,14 @@ __all__ = [
     "second3",
     "amp2",
     "amp3",
+    "ampere2",
+    "ampere3",
     "kelvin2",
     "kelvin3",
     "mole2",
     "mole3",
+    "mol2",
+    "mol3",
     "candle2",
     "candle3",
     "gramme2",
@@ -1017,6 +1063,46 @@ __all__ = [
     "kamp3",
     "Yamp2",
     "Yamp3",
+    "aampere2",
+    "aampere3",
+    "campere2",
+    "campere3",
+    "Zampere2",
+    "Zampere3",
+    "Pampere2",
+    "Pampere3",
+    "dampere2",
+    "dampere3",
+    "Gampere2",
+    "Gampere3",
+    "fampere2",
+    "fampere3",
+    "hampere2",
+    "hampere3",
+    "daampere2",
+    "daampere3",
+    "mampere2",
+    "mampere3",
+    "nampere2",
+    "nampere3",
+    "pampere2",
+    "pampere3",
+    "uampere2",
+    "uampere3",
+    "Tampere2",
+    "Tampere3",
+    "yampere2",
+    "yampere3",
+    "Eampere2",
+    "Eampere3",
+    "zampere2",
+    "zampere3",
+    "Mampere2",
+    "Mampere3",
+    "kampere2",
+    "kampere3",
+    "Yampere2",
+    "Yampere3",
     "akelvin2",
     "akelvin3",
     "ckelvin2",
@@ -1097,6 +1183,46 @@ __all__ = [
     "kmole3",
     "Ymole2",
     "Ymole3",
+    "amol2",
+    "amol3",
+    "cmol2",
+    "cmol3",
+    "Zmol2",
+    "Zmol3",
+    "Pmol2",
+    "Pmol3",
+    "dmol2",
+    "dmol3",
+    "Gmol2",
+    "Gmol3",
+    "fmol2",
+    "fmol3",
+    "hmol2",
+    "hmol3",
+    "damol2",
+    "damol3",
+    "mmol2",
+    "mmol3",
+    "nmol2",
+    "nmol3",
+    "pmol2",
+    "pmol3",
+    "umol2",
+    "umol3",
+    "Tmol2",
+    "Tmol3",
+    "ymol2",
+    "ymol3",
+    "Emol2",
+    "Emol3",
+    "zmol2",
+    "zmol3",
+    "Mmol2",
+    "Mmol3",
+    "kmol2",
+    "kmol3",
+    "Ymol2",
+    "Ymol3",
     "acandle2",
     "acandle3",
     "ccandle2",
@@ -2240,8 +2366,10 @@ gramme.set_name('gramme')
 gramme.set_display_name('g')
 second = Unit.create(get_or_create_dimension(s=1), "second", "s")
 amp = Unit.create(get_or_create_dimension(A=1), "amp", "A")
+ampere = Unit.create(get_or_create_dimension(A=1), "ampere", "A")
 kelvin = Unit.create(get_or_create_dimension(K=1), "kelvin", "K")
 mole = Unit.create(get_or_create_dimension(mol=1), "mole", "mol")
+mol = Unit.create(get_or_create_dimension(mol=1), "mol", "mol")
 molar = mole/liter
 molar.set_name('molar')
 molar.set_display_name('M')
@@ -2372,6 +2500,26 @@ zamp = Unit.create_scaled_unit(amp, "z")
 Mamp = Unit.create_scaled_unit(amp, "M")
 kamp = Unit.create_scaled_unit(amp, "k")
 Yamp = Unit.create_scaled_unit(amp, "Y")
+aampere = Unit.create_scaled_unit(ampere, "a")
+campere = Unit.create_scaled_unit(ampere, "c")
+Zampere = Unit.create_scaled_unit(ampere, "Z")
+Pampere = Unit.create_scaled_unit(ampere, "P")
+dampere = Unit.create_scaled_unit(ampere, "d")
+Gampere = Unit.create_scaled_unit(ampere, "G")
+fampere = Unit.create_scaled_unit(ampere, "f")
+hampere = Unit.create_scaled_unit(ampere, "h")
+daampere = Unit.create_scaled_unit(ampere, "da")
+mampere = Unit.create_scaled_unit(ampere, "m")
+nampere = Unit.create_scaled_unit(ampere, "n")
+pampere = Unit.create_scaled_unit(ampere, "p")
+uampere = Unit.create_scaled_unit(ampere, "u")
+Tampere = Unit.create_scaled_unit(ampere, "T")
+yampere = Unit.create_scaled_unit(ampere, "y")
+Eampere = Unit.create_scaled_unit(ampere, "E")
+zampere = Unit.create_scaled_unit(ampere, "z")
+Mampere = Unit.create_scaled_unit(ampere, "M")
+kampere = Unit.create_scaled_unit(ampere, "k")
+Yampere = Unit.create_scaled_unit(ampere, "Y")
 akelvin = Unit.create_scaled_unit(kelvin, "a")
 ckelvin = Unit.create_scaled_unit(kelvin, "c")
 Zkelvin = Unit.create_scaled_unit(kelvin, "Z")
@@ -2412,6 +2560,26 @@ zmole = Unit.create_scaled_unit(mole, "z")
 Mmole = Unit.create_scaled_unit(mole, "M")
 kmole = Unit.create_scaled_unit(mole, "k")
 Ymole = Unit.create_scaled_unit(mole, "Y")
+amol = Unit.create_scaled_unit(mol, "a")
+cmol = Unit.create_scaled_unit(mol, "c")
+Zmol = Unit.create_scaled_unit(mol, "Z")
+Pmol = Unit.create_scaled_unit(mol, "P")
+dmol = Unit.create_scaled_unit(mol, "d")
+Gmol = Unit.create_scaled_unit(mol, "G")
+fmol = Unit.create_scaled_unit(mol, "f")
+hmol = Unit.create_scaled_unit(mol, "h")
+damol = Unit.create_scaled_unit(mol, "da")
+mmol = Unit.create_scaled_unit(mol, "m")
+nmol = Unit.create_scaled_unit(mol, "n")
+pmol = Unit.create_scaled_unit(mol, "p")
+umol = Unit.create_scaled_unit(mol, "u")
+Tmol = Unit.create_scaled_unit(mol, "T")
+ymol = Unit.create_scaled_unit(mol, "y")
+Emol = Unit.create_scaled_unit(mol, "E")
+zmol = Unit.create_scaled_unit(mol, "z")
+Mmol = Unit.create_scaled_unit(mol, "M")
+kmol = Unit.create_scaled_unit(mol, "k")
+Ymol = Unit.create_scaled_unit(mol, "Y")
 acandle = Unit.create_scaled_unit(candle, "a")
 ccandle = Unit.create_scaled_unit(candle, "c")
 Zcandle = Unit.create_scaled_unit(candle, "Z")
@@ -2993,6 +3161,10 @@ amp2 = amp**2
 amp2.name = "amp2"
 amp3 = amp**3
 amp3.name = "amp3"
+ampere2 = ampere**2
+ampere2.name = "ampere2"
+ampere3 = ampere**3
+ampere3.name = "ampere3"
 kelvin2 = kelvin**2
 kelvin2.name = "kelvin2"
 kelvin3 = kelvin**3
@@ -3001,6 +3173,10 @@ mole2 = mole**2
 mole2.name = "mole2"
 mole3 = mole**3
 mole3.name = "mole3"
+mol2 = mol**2
+mol2.name = "mol2"
+mol3 = mol**3
+mol3.name = "mol3"
 candle2 = candle**2
 candle2.name = "candle2"
 candle3 = candle**3
@@ -3513,6 +3689,86 @@ Yamp2 = Yamp**2
 Yamp2.name = "Yamp2"
 Yamp3 = Yamp**3
 Yamp3.name = "Yamp3"
+aampere2 = aampere**2
+aampere2.name = "aampere2"
+aampere3 = aampere**3
+aampere3.name = "aampere3"
+campere2 = campere**2
+campere2.name = "campere2"
+campere3 = campere**3
+campere3.name = "campere3"
+Zampere2 = Zampere**2
+Zampere2.name = "Zampere2"
+Zampere3 = Zampere**3
+Zampere3.name = "Zampere3"
+Pampere2 = Pampere**2
+Pampere2.name = "Pampere2"
+Pampere3 = Pampere**3
+Pampere3.name = "Pampere3"
+dampere2 = dampere**2
+dampere2.name = "dampere2"
+dampere3 = dampere**3
+dampere3.name = "dampere3"
+Gampere2 = Gampere**2
+Gampere2.name = "Gampere2"
+Gampere3 = Gampere**3
+Gampere3.name = "Gampere3"
+fampere2 = fampere**2
+fampere2.name = "fampere2"
+fampere3 = fampere**3
+fampere3.name = "fampere3"
+hampere2 = hampere**2
+hampere2.name = "hampere2"
+hampere3 = hampere**3
+hampere3.name = "hampere3"
+daampere2 = daampere**2
+daampere2.name = "daampere2"
+daampere3 = daampere**3
+daampere3.name = "daampere3"
+mampere2 = mampere**2
+mampere2.name = "mampere2"
+mampere3 = mampere**3
+mampere3.name = "mampere3"
+nampere2 = nampere**2
+nampere2.name = "nampere2"
+nampere3 = nampere**3
+nampere3.name = "nampere3"
+pampere2 = pampere**2
+pampere2.name = "pampere2"
+pampere3 = pampere**3
+pampere3.name = "pampere3"
+uampere2 = uampere**2
+uampere2.name = "uampere2"
+uampere3 = uampere**3
+uampere3.name = "uampere3"
+Tampere2 = Tampere**2
+Tampere2.name = "Tampere2"
+Tampere3 = Tampere**3
+Tampere3.name = "Tampere3"
+yampere2 = yampere**2
+yampere2.name = "yampere2"
+yampere3 = yampere**3
+yampere3.name = "yampere3"
+Eampere2 = Eampere**2
+Eampere2.name = "Eampere2"
+Eampere3 = Eampere**3
+Eampere3.name = "Eampere3"
+zampere2 = zampere**2
+zampere2.name = "zampere2"
+zampere3 = zampere**3
+zampere3.name = "zampere3"
+Mampere2 = Mampere**2
+Mampere2.name = "Mampere2"
+Mampere3 = Mampere**3
+Mampere3.name = "Mampere3"
+kampere2 = kampere**2
+kampere2.name = "kampere2"
+kampere3 = kampere**3
+kampere3.name = "kampere3"
+Yampere2 = Yampere**2
+Yampere2.name = "Yampere2"
+Yampere3 = Yampere**3
+Yampere3.name = "Yampere3"
 akelvin2 = akelvin**2
 akelvin2.name = "akelvin2"
 akelvin3 = akelvin**3
@@ -3673,6 +3929,86 @@ Ymole2 = Ymole**2
 Ymole2.name = "Ymole2"
 Ymole3 = Ymole**3
 Ymole3.name = "Ymole3"
+amol2 = amol**2
+amol2.name = "amol2"
+amol3 = amol**3
+amol3.name = "amol3"
+cmol2 = cmol**2
+cmol2.name = "cmol2"
+cmol3 = cmol**3
+cmol3.name = "cmol3"
+Zmol2 = Zmol**2
+Zmol2.name = "Zmol2"
+Zmol3 = Zmol**3
+Zmol3.name = "Zmol3"
+Pmol2 = Pmol**2
+Pmol2.name = "Pmol2"
+Pmol3 = Pmol**3
+Pmol3.name = "Pmol3"
+dmol2 = dmol**2
+dmol2.name = "dmol2"
+dmol3 = dmol**3
+dmol3.name = "dmol3"
+Gmol2 = Gmol**2
+Gmol2.name = "Gmol2"
+Gmol3 = Gmol**3
+Gmol3.name = "Gmol3"
+fmol2 = fmol**2
+fmol2.name = "fmol2"
+fmol3 = fmol**3
+fmol3.name = "fmol3"
+hmol2 = hmol**2
+hmol2.name = "hmol2"
+hmol3 = hmol**3
+hmol3.name = "hmol3"
+damol2 = damol**2
+damol2.name = "damol2"
+damol3 = damol**3
+damol3.name = "damol3"
+mmol2 = mmol**2
+mmol2.name = "mmol2"
+mmol3 = mmol**3
+mmol3.name = "mmol3"
+nmol2 = nmol**2
+nmol2.name = "nmol2"
+nmol3 = nmol**3
+nmol3.name = "nmol3"
+pmol2 = pmol**2
+pmol2.name = "pmol2"
+pmol3 = pmol**3
+pmol3.name = "pmol3"
+umol2 = umol**2
+umol2.name = "umol2"
+umol3 = umol**3
+umol3.name = "umol3"
+Tmol2 = Tmol**2
+Tmol2.name = "Tmol2"
+Tmol3 = Tmol**3
+Tmol3.name = "Tmol3"
+ymol2 = ymol**2
+ymol2.name = "ymol2"
+ymol3 = ymol**3
+ymol3.name = "ymol3"
+Emol2 = Emol**2
+Emol2.name = "Emol2"
+Emol3 = Emol**3
+Emol3.name = "Emol3"
+zmol2 = zmol**2
+zmol2.name = "zmol2"
+zmol3 = zmol**3
+zmol3.name = "zmol3"
+Mmol2 = Mmol**2
+Mmol2.name = "Mmol2"
+Mmol3 = Mmol**3
+Mmol3.name = "Mmol3"
+kmol2 = kmol**2
+kmol2.name = "kmol2"
+kmol3 = kmol**3
+kmol3.name = "kmol3"
+Ymol2 = Ymol**2
+Ymol2.name = "Ymol2"
+Ymol3 = Ymol**3
+Ymol3.name = "Ymol3"
 acandle2 = acandle**2
 acandle2.name = "acandle2"
 acandle3 = acandle**3
@@ -5922,8 +6258,10 @@ base_units = [
     gram,
     second,
     amp,
+    ampere,
     kelvin,
     mole,
+    mol,
     candle,
     gramme,
     kilogram,
@@ -6036,6 +6374,22 @@ scaled_units = [
     Mamp,
     kamp,
     Yamp,
+    aampere,
+    Zampere,
+    Pampere,
+    Gampere,
+    fampere,
+    mampere,
+    nampere,
+    pampere,
+    uampere,
+    Tampere,
+    yampere,
+    Eampere,
+    zampere,
+    Mampere,
+    kampere,
+    Yampere,
     akelvin,
     Zkelvin,
     Pkelvin,
@@ -6068,6 +6422,22 @@ scaled_units = [
     Mmole,
     kmole,
     Ymole,
+    amol,
+    Zmol,
+    Pmol,
+    Gmol,
+    fmol,
+    mmol,
+    nmol,
+    pmol,
+    umol,
+    Tmol,
+    ymol,
+    Emol,
+    zmol,
+    Mmol,
+    kmol,
+    Ymol,
     acandle,
     Zcandle,
     Pcandle,
@@ -6530,10 +6900,14 @@ powered_units = [
     second3,
     amp2,
     amp3,
+    ampere2,
+    ampere3,
     kelvin2,
     kelvin3,
     mole2,
     mole3,
+    mol2,
+    mol3,
     candle2,
     candle3,
     gramme2,
@@ -6750,6 +7124,38 @@ powered_units = [
     kamp3,
     Yamp2,
     Yamp3,
+    aampere2,
+    aampere3,
+    Zampere2,
+    Zampere3,
+    Pampere2,
+    Pampere3,
+    Gampere2,
+    Gampere3,
+    fampere2,
+    fampere3,
+    mampere2,
+    mampere3,
+    nampere2,
+    nampere3,
+    pampere2,
+    pampere3,
+    uampere2,
+    uampere3,
+    Tampere2,
+    Tampere3,
+    yampere2,
+    yampere3,
+    Eampere2,
+    Eampere3,
+    zampere2,
+    zampere3,
+    Mampere2,
+    Mampere3,
+    kampere2,
+    kampere3,
+    Yampere2,
+    Yampere3,
     akelvin2,
     akelvin3,
     Zkelvin2,
@@ -6814,6 +7220,38 @@ powered_units = [
     kmole3,
     Ymole2,
     Ymole3,
+    amol2,
+    amol3,
+    Zmol2,
+    Zmol3,
+    Pmol2,
+    Pmol3,
+    Gmol2,
+    Gmol3,
+    fmol2,
+    fmol3,
+    mmol2,
+    mmol3,
+    nmol2,
+    nmol3,
+    pmol2,
+    pmol3,
+    umol2,
+    umol3,
+    Tmol2,
+    Tmol3,
+    ymol2,
+    ymol3,
+    Emol2,
+    Emol3,
+    zmol2,
+    zmol3,
+    Mmol2,
+    Mmol3,
+    kmol2,
+    kmol3,
+    Ymol2,
+    Ymol3,
     acandle2,
     acandle3,
     Zcandle2,
@@ -7728,8 +8166,10 @@ all_units = [
     gram,
     second,
     amp,
+    ampere,
     kelvin,
     mole,
+    mol,
     candle,
     gramme,
     kilogram,
@@ -7858,6 +8298,26 @@ all_units = [
     Mamp,
     kamp,
     Yamp,
+    aampere,
+    campere,
+    Zampere,
+    Pampere,
+    dampere,
+    Gampere,
+    fampere,
+    hampere,
+    daampere,
+    mampere,
+    nampere,
+    pampere,
+    uampere,
+    Tampere,
+    yampere,
+    Eampere,
+    zampere,
+    Mampere,
+    kampere,
+    Yampere,
     akelvin,
     ckelvin,
     Zkelvin,
@@ -7898,6 +8358,26 @@ all_units = [
     Mmole,
     kmole,
     Ymole,
+    amol,
+    cmol,
+    Zmol,
+    Pmol,
+    dmol,
+    Gmol,
+    fmol,
+    hmol,
+    damol,
+    mmol,
+    nmol,
+    pmol,
+    umol,
+    Tmol,
+    ymol,
+    Emol,
+    zmol,
+    Mmol,
+    kmol,
+    Ymol,
     acandle,
     ccandle,
     Zcandle,
@@ -8468,10 +8948,14 @@ all_units = [
     second3,
     amp2,
     amp3,
+    ampere2,
+    ampere3,
     kelvin2,
     kelvin3,
     mole2,
     mole3,
+    mol2,
+    mol3,
     candle2,
     candle3,
     gramme2,
@@ -8728,6 +9212,46 @@ all_units = [
     kamp3,
     Yamp2,
     Yamp3,
+    aampere2,
+    aampere3,
+    campere2,
+    campere3,
+    Zampere2,
+    Zampere3,
+    Pampere2,
+    Pampere3,
+    dampere2,
+    dampere3,
+    Gampere2,
+    Gampere3,
+    fampere2,
+    fampere3,
+    hampere2,
+    hampere3,
+    daampere2,
+    daampere3,
+    mampere2,
+    mampere3,
+    nampere2,
+    nampere3,
+    pampere2,
+    pampere3,
+    uampere2,
+    uampere3,
+    Tampere2,
+    Tampere3,
+    yampere2,
+    yampere3,
+    Eampere2,
+    Eampere3,
+    zampere2,
+    zampere3,
+    Mampere2,
+    Mampere3,
+    kampere2,
+    kampere3,
+    Yampere2,
+    Yampere3,
     akelvin2,
     akelvin3,
     ckelvin2,
@@ -8808,6 +9332,46 @@ all_units = [
     kmole3,
     Ymole2,
     Ymole3,
+    amol2,
+    amol3,
+    cmol2,
+    cmol3,
+    Zmol2,
+    Zmol3,
+    Pmol2,
+    Pmol3,
+    dmol2,
+    dmol3,
+    Gmol2,
+    Gmol3,
+    fmol2,
+    fmol3,
+    hmol2,
+    hmol3,
+    damol2,
+    damol3,
+    mmol2,
+    mmol3,
+    nmol2,
+    nmol3,
+    pmol2,
+    pmol3,
+    umol2,
+    umol3,
+    Tmol2,
+    Tmol3,
+    ymol2,
+    ymol3,
+    Emol2,
+    Emol3,
+    zmol2,
+    zmol3,
+    Mmol2,
+    Mmol3,
+    kmol2,
+    kmol3,
+    Ymol2,
+    Ymol3,
     acandle2,
     acandle3,
     ccandle2,
