@@ -24,6 +24,7 @@ __all__ = [
     "kilogram",
     "liter",
     "litre",
+    "molar",
     "radian",
     "steradian",
     "hertz",
@@ -286,6 +287,26 @@ __all__ = [
     "Mlitre",
     "klitre",
     "Ylitre",
+    "amolar",
+    "cmolar",
+    "Zmolar",
+    "Pmolar",
+    "dmolar",
+    "Gmolar",
+    "fmolar",
+    "hmolar",
+    "damolar",
+    "mmolar",
+    "nmolar",
+    "pmolar",
+    "umolar",
+    "Tmolar",
+    "ymolar",
+    "Emolar",
+    "zmolar",
+    "Mmolar",
+    "kmolar",
+    "Ymolar",
     "aradian",
     "cradian",
     "Zradian",
@@ -750,6 +771,8 @@ __all__ = [
     "liter3",
     "litre2",
     "litre3",
+    "molar2",
+    "molar3",
     "radian2",
     "radian3",
     "steradian2",
@@ -1274,6 +1297,46 @@ __all__ = [
     "klitre3",
     "Ylitre2",
     "Ylitre3",
+    "amolar2",
+    "amolar3",
+    "cmolar2",
+    "cmolar3",
+    "Zmolar2",
+    "Zmolar3",
+    "Pmolar2",
+    "Pmolar3",
+    "dmolar2",
+    "dmolar3",
+    "Gmolar2",
+    "Gmolar3",
+    "fmolar2",
+    "fmolar3",
+    "hmolar2",
+    "hmolar3",
+    "damolar2",
+    "damolar3",
+    "mmolar2",
+    "mmolar3",
+    "nmolar2",
+    "nmolar3",
+    "pmolar2",
+    "pmolar3",
+    "umolar2",
+    "umolar3",
+    "Tmolar2",
+    "Tmolar3",
+    "ymolar2",
+    "ymolar3",
+    "Emolar2",
+    "Emolar3",
+    "zmolar2",
+    "zmolar3",
+    "Mmolar2",
+    "Mmolar3",
+    "kmolar2",
+    "kmolar3",
+    "Ymolar2",
+    "Ymolar3",
     "aradian2",
     "aradian3",
     "cradian2",
@@ -2179,6 +2242,9 @@ second = Unit.create(get_or_create_dimension(s=1), "second", "s")
 amp = Unit.create(get_or_create_dimension(A=1), "amp", "A")
 kelvin = Unit.create(get_or_create_dimension(K=1), "kelvin", "K")
 mole = Unit.create(get_or_create_dimension(mol=1), "mole", "mol")
+molar = mole/liter
+molar.set_name('molar')
+molar.set_display_name('M')
 candle = Unit.create(get_or_create_dimension(candle=1), "candle", "cd")
 fundamental_units = [metre, meter, gram, second, amp, kelvin, mole, candle]
 
@@ -2204,7 +2270,6 @@ becquerel = Unit.create(get_or_create_dimension(s=-1), "becquerel", "Bq")
 gray = Unit.create(get_or_create_dimension(m=2, s=-2), "gray", "Gy")
 sievert = Unit.create(get_or_create_dimension(m=2, s=-2), "sievert", "Sv")
 katal = Unit.create(get_or_create_dimension(s=-1, mol=1), "katal", "kat")
-
 
 ######### SCALED BASE UNITS ###########
 ametre = Unit.create_scaled_unit(metre, "a")
@@ -2447,6 +2512,26 @@ zlitre = Unit.create_scaled_unit(litre, "z")
 Mlitre = Unit.create_scaled_unit(litre, "M")
 klitre = Unit.create_scaled_unit(litre, "k")
 Ylitre = Unit.create_scaled_unit(litre, "Y")
+amolar = Unit.create_scaled_unit(molar, "a")
+cmolar = Unit.create_scaled_unit(molar, "c")
+Zmolar = Unit.create_scaled_unit(molar, "Z")
+Pmolar = Unit.create_scaled_unit(molar, "P")
+dmolar = Unit.create_scaled_unit(molar, "d")
+Gmolar = Unit.create_scaled_unit(molar, "G")
+fmolar = Unit.create_scaled_unit(molar, "f")
+hmolar = Unit.create_scaled_unit(molar, "h")
+damolar = Unit.create_scaled_unit(molar, "da")
+mmolar = Unit.create_scaled_unit(molar, "m")
+nmolar = Unit.create_scaled_unit(molar, "n")
+pmolar = Unit.create_scaled_unit(molar, "p")
+umolar = Unit.create_scaled_unit(molar, "u")
+Tmolar = Unit.create_scaled_unit(molar, "T")
+ymolar = Unit.create_scaled_unit(molar, "y")
+Emolar = Unit.create_scaled_unit(molar, "E")
+zmolar = Unit.create_scaled_unit(molar, "z")
+Mmolar = Unit.create_scaled_unit(molar, "M")
+kmolar = Unit.create_scaled_unit(molar, "k")
+Ymolar = Unit.create_scaled_unit(molar, "Y")
 aradian = Unit.create_scaled_unit(radian, "a")
 cradian = Unit.create_scaled_unit(radian, "c")
 Zradian = Unit.create_scaled_unit(radian, "Z")
@@ -2936,6 +3021,10 @@ litre2 = litre**2
 litre2.name = "litre2"
 litre3 = litre**3
 litre3.name = "litre3"
+molar2 = molar**2
+molar2.name = "molar2"
+molar3 = molar**3
+molar3.name = "molar3"
 radian2 = radian**2
 radian2.name = "radian2"
 radian3 = radian**3
@@ -3984,6 +4073,86 @@ Ylitre2 = Ylitre**2
 Ylitre2.name = "Ylitre2"
 Ylitre3 = Ylitre**3
 Ylitre3.name = "Ylitre3"
+amolar2 = amolar**2
+amolar2.name = "amolar2"
+amolar3 = amolar**3
+amolar3.name = "amolar3"
+cmolar2 = cmolar**2
+cmolar2.name = "cmolar2"
+cmolar3 = cmolar**3
+cmolar3.name = "cmolar3"
+Zmolar2 = Zmolar**2
+Zmolar2.name = "Zmolar2"
+Zmolar3 = Zmolar**3
+Zmolar3.name = "Zmolar3"
+Pmolar2 = Pmolar**2
+Pmolar2.name = "Pmolar2"
+Pmolar3 = Pmolar**3
+Pmolar3.name = "Pmolar3"
+dmolar2 = dmolar**2
+dmolar2.name = "dmolar2"
+dmolar3 = dmolar**3
+dmolar3.name = "dmolar3"
+Gmolar2 = Gmolar**2
+Gmolar2.name = "Gmolar2"
+Gmolar3 = Gmolar**3
+Gmolar3.name = "Gmolar3"
+fmolar2 = fmolar**2
+fmolar2.name = "fmolar2"
+fmolar3 = fmolar**3
+fmolar3.name = "fmolar3"
+hmolar2 = hmolar**2
+hmolar2.name = "hmolar2"
+hmolar3 = hmolar**3
+hmolar3.name = "hmolar3"
+damolar2 = damolar**2
+damolar2.name = "damolar2"
+damolar3 = damolar**3
+damolar3.name = "damolar3"
+mmolar2 = mmolar**2
+mmolar2.name = "mmolar2"
+mmolar3 = mmolar**3
+mmolar3.name = "mmolar3"
+nmolar2 = nmolar**2
+nmolar2.name = "nmolar2"
+nmolar3 = nmolar**3
+nmolar3.name = "nmolar3"
+pmolar2 = pmolar**2
+pmolar2.name = "pmolar2"
+pmolar3 = pmolar**3
+pmolar3.name = "pmolar3"
+umolar2 = umolar**2
+umolar2.name = "umolar2"
+umolar3 = umolar**3
+umolar3.name = "umolar3"
+Tmolar2 = Tmolar**2
+Tmolar2.name = "Tmolar2"
+Tmolar3 = Tmolar**3
+Tmolar3.name = "Tmolar3"
+ymolar2 = ymolar**2
+ymolar2.name = "ymolar2"
+ymolar3 = ymolar**3
+ymolar3.name = "ymolar3"
+Emolar2 = Emolar**2
+Emolar2.name = "Emolar2"
+Emolar3 = Emolar**3
+Emolar3.name = "Emolar3"
+zmolar2 = zmolar**2
+zmolar2.name = "zmolar2"
+zmolar3 = zmolar**3
+zmolar3.name = "zmolar3"
+Mmolar2 = Mmolar**2
+Mmolar2.name = "Mmolar2"
+Mmolar3 = Mmolar**3
+Mmolar3.name = "Mmolar3"
+kmolar2 = kmolar**2
+kmolar2.name = "kmolar2"
+kmolar3 = kmolar**3
+kmolar3.name = "kmolar3"
+Ymolar2 = Ymolar**2
+Ymolar2.name = "Ymolar2"
+Ymolar3 = Ymolar**3
+Ymolar3.name = "Ymolar3"
 aradian2 = aradian**2
 aradian2.name = "aradian2"
 aradian3 = aradian**3
@@ -5760,6 +5929,7 @@ base_units = [
     kilogram,
     liter,
     litre,
+    molar,
     radian,
     steradian,
     hertz,
@@ -5978,6 +6148,22 @@ scaled_units = [
     Mlitre,
     klitre,
     Ylitre,
+    amolar,
+    Zmolar,
+    Pmolar,
+    Gmolar,
+    fmolar,
+    mmolar,
+    nmolar,
+    pmolar,
+    umolar,
+    Tmolar,
+    ymolar,
+    Emolar,
+    zmolar,
+    Mmolar,
+    kmolar,
+    Ymolar,
     aradian,
     Zradian,
     Pradian,
@@ -6358,6 +6544,8 @@ powered_units = [
     liter3,
     litre2,
     litre3,
+    molar2,
+    molar3,
     radian2,
     radian3,
     steradian2,
@@ -6786,6 +6974,38 @@ powered_units = [
     klitre3,
     Ylitre2,
     Ylitre3,
+    amolar2,
+    amolar3,
+    Zmolar2,
+    Zmolar3,
+    Pmolar2,
+    Pmolar3,
+    Gmolar2,
+    Gmolar3,
+    fmolar2,
+    fmolar3,
+    mmolar2,
+    mmolar3,
+    nmolar2,
+    nmolar3,
+    pmolar2,
+    pmolar3,
+    umolar2,
+    umolar3,
+    Tmolar2,
+    Tmolar3,
+    ymolar2,
+    ymolar3,
+    Emolar2,
+    Emolar3,
+    zmolar2,
+    zmolar3,
+    Mmolar2,
+    Mmolar3,
+    kmolar2,
+    kmolar3,
+    Ymolar2,
+    Ymolar3,
     aradian2,
     aradian3,
     Zradian2,
@@ -7515,6 +7735,7 @@ all_units = [
     kilogram,
     liter,
     litre,
+    molar,
     radian,
     steradian,
     hertz,
@@ -7777,6 +7998,26 @@ all_units = [
     Mlitre,
     klitre,
     Ylitre,
+    amolar,
+    cmolar,
+    Zmolar,
+    Pmolar,
+    dmolar,
+    Gmolar,
+    fmolar,
+    hmolar,
+    damolar,
+    mmolar,
+    nmolar,
+    pmolar,
+    umolar,
+    Tmolar,
+    ymolar,
+    Emolar,
+    zmolar,
+    Mmolar,
+    kmolar,
+    Ymolar,
     aradian,
     cradian,
     Zradian,
@@ -8241,6 +8482,8 @@ all_units = [
     liter3,
     litre2,
     litre3,
+    molar2,
+    molar3,
     radian2,
     radian3,
     steradian2,
@@ -8765,6 +9008,46 @@ all_units = [
     klitre3,
     Ylitre2,
     Ylitre3,
+    amolar2,
+    amolar3,
+    cmolar2,
+    cmolar3,
+    Zmolar2,
+    Zmolar3,
+    Pmolar2,
+    Pmolar3,
+    dmolar2,
+    dmolar3,
+    Gmolar2,
+    Gmolar3,
+    fmolar2,
+    fmolar3,
+    hmolar2,
+    hmolar3,
+    damolar2,
+    damolar3,
+    mmolar2,
+    mmolar3,
+    nmolar2,
+    nmolar3,
+    pmolar2,
+    pmolar3,
+    umolar2,
+    umolar3,
+    Tmolar2,
+    Tmolar3,
+    ymolar2,
+    ymolar3,
+    Emolar2,
+    Emolar3,
+    zmolar2,
+    zmolar3,
+    Mmolar2,
+    Mmolar3,
+    kmolar2,
+    kmolar3,
+    Ymolar2,
+    Ymolar3,
     aradian2,
     aradian3,
     cradian2,

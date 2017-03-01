@@ -12,28 +12,28 @@ fundamental_units = ['metre', 'meter', 'gram', 'second', 'amp', 'kelvin', 'mole'
 
 #### DERIVED UNITS, from http://physics.nist.gov/cuu/Units/units.html
 derived_unit_table = [
-        [ 'radian',    'rad',  'get_or_create_dimension()' ],
-        [ 'steradian', 'sr',   'get_or_create_dimension()' ],
-        [ 'hertz',     'Hz',   'get_or_create_dimension(s= -1)' ],
-        [ 'newton',    'N',    'get_or_create_dimension(m=1, kg=1, s=-2)' ],
-        [ 'pascal',    'Pa',   'get_or_create_dimension(m= -1, kg=1, s=-2)' ],
-        [ 'joule',     'J',    'get_or_create_dimension(m=2, kg=1, s=-2)' ],
-        [ 'watt',      'W',    'get_or_create_dimension(m=2, kg=1, s=-3)' ],
-        [ 'coulomb',   'C',    'get_or_create_dimension(s=1, A=1)' ],
-        [ 'volt',      'V',    'get_or_create_dimension(m=2, kg=1, s=-3, A=-1)' ],
-        [ 'farad',     'F',    'get_or_create_dimension(m= -2, kg=-1, s=4, A=2)' ],
-        [ 'ohm',       'ohm',  'get_or_create_dimension(m=2, kg=1, s= -3, A=-2)' ],
-        [ 'siemens',   'S',    'get_or_create_dimension(m= -2, kg=-1, s=3, A=2)' ],
-        [ 'weber',     'Wb',   'get_or_create_dimension(m=2, kg=1, s=-2, A=-1)' ],
-        [ 'tesla',     'T',    'get_or_create_dimension(kg=1, s=-2, A=-1)' ],
-        [ 'henry',     'H',    'get_or_create_dimension(m=2, kg=1, s=-2, A=-2)' ],
-        [ 'celsius',   'degC', 'get_or_create_dimension(K=1)' ],
-        [ 'lumen',     'lm',   'get_or_create_dimension(cd=1)' ],
-        [ 'lux',       'lx',   'get_or_create_dimension(m=-2, cd=1)' ],
-        [ 'becquerel', 'Bq',   'get_or_create_dimension(s=-1)' ],
-        [ 'gray',      'Gy',   'get_or_create_dimension(m=2, s=-2)' ],
-        [ 'sievert',   'Sv',   'get_or_create_dimension(m=2, s=-2)' ],
-        [ 'katal',     'kat',  'get_or_create_dimension(s=-1, mol=1)' ],
+        ['radian',    'rad',  'get_or_create_dimension()'],
+        ['steradian', 'sr',   'get_or_create_dimension()'],
+        ['hertz',     'Hz',   'get_or_create_dimension(s= -1)'],
+        ['newton',    'N',    'get_or_create_dimension(m=1, kg=1, s=-2)'],
+        ['pascal',    'Pa',   'get_or_create_dimension(m= -1, kg=1, s=-2)'],
+        ['joule',     'J',    'get_or_create_dimension(m=2, kg=1, s=-2)'],
+        ['watt',      'W',    'get_or_create_dimension(m=2, kg=1, s=-3)'],
+        ['coulomb',   'C',    'get_or_create_dimension(s=1, A=1)'],
+        ['volt',      'V',    'get_or_create_dimension(m=2, kg=1, s=-3, A=-1)'],
+        ['farad',     'F',    'get_or_create_dimension(m= -2, kg=-1, s=4, A=2)'],
+        ['ohm',       'ohm',  'get_or_create_dimension(m=2, kg=1, s= -3, A=-2)'],
+        ['siemens',   'S',    'get_or_create_dimension(m= -2, kg=-1, s=3, A=2)'],
+        ['weber',     'Wb',   'get_or_create_dimension(m=2, kg=1, s=-2, A=-1)'],
+        ['tesla',     'T',    'get_or_create_dimension(kg=1, s=-2, A=-1)'],
+        ['henry',     'H',    'get_or_create_dimension(m=2, kg=1, s=-2, A=-2)'],
+        ['celsius',   'degC', 'get_or_create_dimension(K=1)'],
+        ['lumen',     'lm',   'get_or_create_dimension(cd=1)'],
+        ['lux',       'lx',   'get_or_create_dimension(m=-2, cd=1)'],
+        ['becquerel', 'Bq',   'get_or_create_dimension(s=-1)'],
+        ['gray',      'Gy',   'get_or_create_dimension(m=2, s=-2)'],
+        ['sievert',   'Sv',   'get_or_create_dimension(m=2, s=-2)'],
+        ['katal',     'kat',  'get_or_create_dimension(s=-1, mol=1)'],
         ]
 
 additional_units = '''
@@ -47,7 +47,7 @@ additional_units = [
 '''
 
 ## Generate derived unit objects and make a table of base units from these and the fundamental ones
-base_units = fundamental_units+['gramme', 'kilogram', 'liter', 'litre']
+base_units = fundamental_units+['gramme', 'kilogram', 'liter', 'litre', 'molar']
 derived = ''
 for longname, shortname, definition in derived_unit_table:
     derived += '{longname} = Unit.create({definition}, "{longname}", "{shortname}")\n'.format(
