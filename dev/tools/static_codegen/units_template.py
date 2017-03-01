@@ -17,6 +17,12 @@ Unit.automatically_register_units = False
 #### FUNDAMENTAL UNITS
 metre = Unit.create(get_or_create_dimension(m=1), "metre", "m")
 meter = Unit.create(get_or_create_dimension(m=1), "meter", "m")
+liter = Unit.create_scaled_unit(meter**3, "m")
+liter.set_name('liter')
+liter.set_display_name('l')
+litre = Unit.create_scaled_unit(meter**3, "m")
+litre.set_name('litre')
+litre.set_display_name('l')
 kilogram = Unit.create(get_or_create_dimension(kg=1), "kilogram", "kg")
 gram = Unit.create_scaled_unit(kilogram, "m")
 gram.set_name('gram')

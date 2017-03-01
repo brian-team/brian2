@@ -47,7 +47,7 @@ additional_units = [
 '''
 
 ## Generate derived unit objects and make a table of base units from these and the fundamental ones
-base_units = fundamental_units+['gramme', 'kilogram']
+base_units = fundamental_units+['gramme', 'kilogram', 'liter', 'litre']
 derived = ''
 for longname, shortname, definition in derived_unit_table:
     derived += '{longname} = Unit.create({definition}, "{longname}", "{shortname}")\n'.format(
