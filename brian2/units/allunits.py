@@ -169,26 +169,6 @@ __all__ = [
     "Mampere",
     "kampere",
     "Yampere",
-    "akelvin",
-    "ckelvin",
-    "Zkelvin",
-    "Pkelvin",
-    "dkelvin",
-    "Gkelvin",
-    "fkelvin",
-    "hkelvin",
-    "dakelvin",
-    "mkelvin",
-    "nkelvin",
-    "pkelvin",
-    "ukelvin",
-    "Tkelvin",
-    "ykelvin",
-    "Ekelvin",
-    "zkelvin",
-    "Mkelvin",
-    "kkelvin",
-    "Ykelvin",
     "amole",
     "cmole",
     "Zmole",
@@ -1103,46 +1083,6 @@ __all__ = [
     "kampere3",
     "Yampere2",
     "Yampere3",
-    "akelvin2",
-    "akelvin3",
-    "ckelvin2",
-    "ckelvin3",
-    "Zkelvin2",
-    "Zkelvin3",
-    "Pkelvin2",
-    "Pkelvin3",
-    "dkelvin2",
-    "dkelvin3",
-    "Gkelvin2",
-    "Gkelvin3",
-    "fkelvin2",
-    "fkelvin3",
-    "hkelvin2",
-    "hkelvin3",
-    "dakelvin2",
-    "dakelvin3",
-    "mkelvin2",
-    "mkelvin3",
-    "nkelvin2",
-    "nkelvin3",
-    "pkelvin2",
-    "pkelvin3",
-    "ukelvin2",
-    "ukelvin3",
-    "Tkelvin2",
-    "Tkelvin3",
-    "ykelvin2",
-    "ykelvin3",
-    "Ekelvin2",
-    "Ekelvin3",
-    "zkelvin2",
-    "zkelvin3",
-    "Mkelvin2",
-    "Mkelvin3",
-    "kkelvin2",
-    "kkelvin3",
-    "Ykelvin2",
-    "Ykelvin3",
     "amole2",
     "amole3",
     "cmole2",
@@ -2520,26 +2460,6 @@ zampere = Unit.create_scaled_unit(ampere, "z")
 Mampere = Unit.create_scaled_unit(ampere, "M")
 kampere = Unit.create_scaled_unit(ampere, "k")
 Yampere = Unit.create_scaled_unit(ampere, "Y")
-akelvin = Unit.create_scaled_unit(kelvin, "a")
-ckelvin = Unit.create_scaled_unit(kelvin, "c")
-Zkelvin = Unit.create_scaled_unit(kelvin, "Z")
-Pkelvin = Unit.create_scaled_unit(kelvin, "P")
-dkelvin = Unit.create_scaled_unit(kelvin, "d")
-Gkelvin = Unit.create_scaled_unit(kelvin, "G")
-fkelvin = Unit.create_scaled_unit(kelvin, "f")
-hkelvin = Unit.create_scaled_unit(kelvin, "h")
-dakelvin = Unit.create_scaled_unit(kelvin, "da")
-mkelvin = Unit.create_scaled_unit(kelvin, "m")
-nkelvin = Unit.create_scaled_unit(kelvin, "n")
-pkelvin = Unit.create_scaled_unit(kelvin, "p")
-ukelvin = Unit.create_scaled_unit(kelvin, "u")
-Tkelvin = Unit.create_scaled_unit(kelvin, "T")
-ykelvin = Unit.create_scaled_unit(kelvin, "y")
-Ekelvin = Unit.create_scaled_unit(kelvin, "E")
-zkelvin = Unit.create_scaled_unit(kelvin, "z")
-Mkelvin = Unit.create_scaled_unit(kelvin, "M")
-kkelvin = Unit.create_scaled_unit(kelvin, "k")
-Ykelvin = Unit.create_scaled_unit(kelvin, "Y")
 amole = Unit.create_scaled_unit(mole, "a")
 cmole = Unit.create_scaled_unit(mole, "c")
 Zmole = Unit.create_scaled_unit(mole, "Z")
@@ -3769,86 +3689,6 @@ Yampere2 = Yampere**2
 Yampere2.name = "Yampere2"
 Yampere3 = Yampere**3
 Yampere3.name = "Yampere3"
-akelvin2 = akelvin**2
-akelvin2.name = "akelvin2"
-akelvin3 = akelvin**3
-akelvin3.name = "akelvin3"
-ckelvin2 = ckelvin**2
-ckelvin2.name = "ckelvin2"
-ckelvin3 = ckelvin**3
-ckelvin3.name = "ckelvin3"
-Zkelvin2 = Zkelvin**2
-Zkelvin2.name = "Zkelvin2"
-Zkelvin3 = Zkelvin**3
-Zkelvin3.name = "Zkelvin3"
-Pkelvin2 = Pkelvin**2
-Pkelvin2.name = "Pkelvin2"
-Pkelvin3 = Pkelvin**3
-Pkelvin3.name = "Pkelvin3"
-dkelvin2 = dkelvin**2
-dkelvin2.name = "dkelvin2"
-dkelvin3 = dkelvin**3
-dkelvin3.name = "dkelvin3"
-Gkelvin2 = Gkelvin**2
-Gkelvin2.name = "Gkelvin2"
-Gkelvin3 = Gkelvin**3
-Gkelvin3.name = "Gkelvin3"
-fkelvin2 = fkelvin**2
-fkelvin2.name = "fkelvin2"
-fkelvin3 = fkelvin**3
-fkelvin3.name = "fkelvin3"
-hkelvin2 = hkelvin**2
-hkelvin2.name = "hkelvin2"
-hkelvin3 = hkelvin**3
-hkelvin3.name = "hkelvin3"
-dakelvin2 = dakelvin**2
-dakelvin2.name = "dakelvin2"
-dakelvin3 = dakelvin**3
-dakelvin3.name = "dakelvin3"
-mkelvin2 = mkelvin**2
-mkelvin2.name = "mkelvin2"
-mkelvin3 = mkelvin**3
-mkelvin3.name = "mkelvin3"
-nkelvin2 = nkelvin**2
-nkelvin2.name = "nkelvin2"
-nkelvin3 = nkelvin**3
-nkelvin3.name = "nkelvin3"
-pkelvin2 = pkelvin**2
-pkelvin2.name = "pkelvin2"
-pkelvin3 = pkelvin**3
-pkelvin3.name = "pkelvin3"
-ukelvin2 = ukelvin**2
-ukelvin2.name = "ukelvin2"
-ukelvin3 = ukelvin**3
-ukelvin3.name = "ukelvin3"
-Tkelvin2 = Tkelvin**2
-Tkelvin2.name = "Tkelvin2"
-Tkelvin3 = Tkelvin**3
-Tkelvin3.name = "Tkelvin3"
-ykelvin2 = ykelvin**2
-ykelvin2.name = "ykelvin2"
-ykelvin3 = ykelvin**3
-ykelvin3.name = "ykelvin3"
-Ekelvin2 = Ekelvin**2
-Ekelvin2.name = "Ekelvin2"
-Ekelvin3 = Ekelvin**3
-Ekelvin3.name = "Ekelvin3"
-zkelvin2 = zkelvin**2
-zkelvin2.name = "zkelvin2"
-zkelvin3 = zkelvin**3
-zkelvin3.name = "zkelvin3"
-Mkelvin2 = Mkelvin**2
-Mkelvin2.name = "Mkelvin2"
-Mkelvin3 = Mkelvin**3
-Mkelvin3.name = "Mkelvin3"
-kkelvin2 = kkelvin**2
-kkelvin2.name = "kkelvin2"
-kkelvin3 = kkelvin**3
-kkelvin3.name = "kkelvin3"
-Ykelvin2 = Ykelvin**2
-Ykelvin2.name = "Ykelvin2"
-Ykelvin3 = Ykelvin**3
-Ykelvin3.name = "Ykelvin3"
 amole2 = amole**2
 amole2.name = "amole2"
 amole3 = amole**3
@@ -6390,22 +6230,6 @@ scaled_units = [
     Mampere,
     kampere,
     Yampere,
-    akelvin,
-    Zkelvin,
-    Pkelvin,
-    Gkelvin,
-    fkelvin,
-    mkelvin,
-    nkelvin,
-    pkelvin,
-    ukelvin,
-    Tkelvin,
-    ykelvin,
-    Ekelvin,
-    zkelvin,
-    Mkelvin,
-    kkelvin,
-    Ykelvin,
     amole,
     Zmole,
     Pmole,
@@ -7156,38 +6980,6 @@ powered_units = [
     kampere3,
     Yampere2,
     Yampere3,
-    akelvin2,
-    akelvin3,
-    Zkelvin2,
-    Zkelvin3,
-    Pkelvin2,
-    Pkelvin3,
-    Gkelvin2,
-    Gkelvin3,
-    fkelvin2,
-    fkelvin3,
-    mkelvin2,
-    mkelvin3,
-    nkelvin2,
-    nkelvin3,
-    pkelvin2,
-    pkelvin3,
-    ukelvin2,
-    ukelvin3,
-    Tkelvin2,
-    Tkelvin3,
-    ykelvin2,
-    ykelvin3,
-    Ekelvin2,
-    Ekelvin3,
-    zkelvin2,
-    zkelvin3,
-    Mkelvin2,
-    Mkelvin3,
-    kkelvin2,
-    kkelvin3,
-    Ykelvin2,
-    Ykelvin3,
     amole2,
     amole3,
     Zmole2,
@@ -8318,26 +8110,6 @@ all_units = [
     Mampere,
     kampere,
     Yampere,
-    akelvin,
-    ckelvin,
-    Zkelvin,
-    Pkelvin,
-    dkelvin,
-    Gkelvin,
-    fkelvin,
-    hkelvin,
-    dakelvin,
-    mkelvin,
-    nkelvin,
-    pkelvin,
-    ukelvin,
-    Tkelvin,
-    ykelvin,
-    Ekelvin,
-    zkelvin,
-    Mkelvin,
-    kkelvin,
-    Ykelvin,
     amole,
     cmole,
     Zmole,
@@ -9252,46 +9024,6 @@ all_units = [
     kampere3,
     Yampere2,
     Yampere3,
-    akelvin2,
-    akelvin3,
-    ckelvin2,
-    ckelvin3,
-    Zkelvin2,
-    Zkelvin3,
-    Pkelvin2,
-    Pkelvin3,
-    dkelvin2,
-    dkelvin3,
-    Gkelvin2,
-    Gkelvin3,
-    fkelvin2,
-    fkelvin3,
-    hkelvin2,
-    hkelvin3,
-    dakelvin2,
-    dakelvin3,
-    mkelvin2,
-    mkelvin3,
-    nkelvin2,
-    nkelvin3,
-    pkelvin2,
-    pkelvin3,
-    ukelvin2,
-    ukelvin3,
-    Tkelvin2,
-    Tkelvin3,
-    ykelvin2,
-    ykelvin3,
-    Ekelvin2,
-    Ekelvin3,
-    zkelvin2,
-    zkelvin3,
-    Mkelvin2,
-    Mkelvin3,
-    kkelvin2,
-    kkelvin3,
-    Ykelvin2,
-    Ykelvin3,
     amole2,
     amole3,
     cmole2,

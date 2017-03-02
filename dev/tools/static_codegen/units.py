@@ -62,6 +62,8 @@ definitions = '######### SCALED BASE UNITS ###########\n'
 scaled_units = []
 excluded_scaled_units = set()
 for _bu in base_units:
+    if _bu == 'kelvin':
+        continue  # do not create "mkelvin", etc.
     for _k in _siprefixes.keys():
         if len(_k):
             _u = _k+_bu
