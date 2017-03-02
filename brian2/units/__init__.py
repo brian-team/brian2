@@ -5,6 +5,7 @@ from .allunits import (
                        # basic units
                        pamp, namp, uamp, mamp, amp,
                        kamp, Mamp, Gamp, Tamp,
+                       kelvin,
                        kilogram, # silly to have mkilogram, etc...
                        pmetre, nmetre, umetre, mmetre, metre,
                        kmetre, Mmetre, Gmetre, Tmetre,
@@ -53,6 +54,7 @@ from .stdunits import __all__ as stdunits_all
 
 __all__ = ['pamp', 'namp', 'uamp', 'mamp', 'amp',
            'kamp', 'Mamp', 'Gamp', 'Tamp',
+           'kelvin',
            'kilogram',
            'pmetre', 'nmetre', 'umetre', 'mmetre', 'metre',
            'kmetre', 'Mmetre', 'Gmetre', 'Tmetre',
