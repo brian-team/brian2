@@ -200,7 +200,7 @@ def test_str_repr():
     for u in itertools.chain(units_which_should_exist, some_scaled_units,
                               powered_units, complex_units, unitless):
         assert(len(str(u)) > 0)
-        assert_equal(eval(repr(u)), u)
+        assert_allclose(eval(repr(u)), u)
 
     # test the `DIMENSIONLESS` object
     assert str(DIMENSIONLESS) == '1'
