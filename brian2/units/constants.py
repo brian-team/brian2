@@ -8,6 +8,10 @@ import numpy as np
 
 from .allunits import (amp, coulomb, farad, gram, joule, kelvin, kilogram,
                        meter, mole, newton)
+from .fundamentalunits import Unit
+
+# FIXME: I am not quite sure why this is necessary
+Unit.automatically_register_units = False
 
 # Boltzmann constant
 k = k_B = Boltzmann = 1.38064852e-23*joule/kelvin
@@ -29,3 +33,5 @@ m_e = electron_mass = 9.10938356e-31*kilogram
 M_u = molar_mass = 1*gram/mole
 # electric constant (http://physics.nist.gov/cgi-bin/cuu/Value?ep0)
 epsilon_0 = electric_constant = vacuum_permittivity = 8.854187817e-12*farad/meter
+
+Unit.automatically_register_units = True
