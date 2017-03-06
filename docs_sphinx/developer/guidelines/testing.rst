@@ -175,11 +175,13 @@ explicit ``device.build(...)`` call of the form shown below::
 
 
 Tests can also be written specifically for a standalone device (they then have
-to include the `~brian2.devices.device.set_device` and
-`~brian2.devices.device.Device.build` calls explicitly). In this case tests
+to include the `~brian2.devices.device.set_device` call and possibly the
+`~brian2.devices.device.Device.build` call explicitly). In this case tests
 have to be annotated with the name of the device (e.g. ``'cpp_standalone'``)
 and with ``'standalone-only'`` to exclude this test from the runtime tests.
-Also, the device should be reset in the teardown function::
+Also, the device should be reset in the teardown function. Such code would look
+like this for a single `run` call, i.e. using the automatic "build on run"
+feature::
 
     from nose import with_setup
     from nose.plugins.attrib import attr
@@ -189,11 +191,34 @@ Also, the device should be reset in the teardown function::
     @attr('cpp_standalone', 'standalone-only')
     @with_setup(teardown=reinit_devices)
     def test_cpp_standalone():
-        set_device('cpp_standalone')
+        set_device('cpp_standalone', directory=None)
         # set up simulation
         # run simulation
-        device.build(...)
+        run(...)
         # check simulation results
+
+
+If the code uses more than one `run` statement, it needs an explicit
+`~brian2.devices.device.Device.build` call::
+
+    from nose import with_setup
+    from nose.plugins.attrib import attr
+    from brian2 import *
+    from brian2.devices.device import reinit_devices
+
+    @attr('cpp_standalone', 'standalone-only')
+    @with_setup(teardown=reinit_devices)
+    def test_cpp_standalone():
+        set_device('cpp_standalone', build_on_run=False)
+        # set up simulation
+        # run simulation
+        run(...)
+        # do something
+        # run again
+        run(...)
+        device.build(directory=None)
+        # check simulation results
+
 
 Summary
 ^^^^^^^
