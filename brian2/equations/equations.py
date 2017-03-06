@@ -23,7 +23,7 @@ from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mo
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
                                    farad, ohm, siemens, weber, tesla, henry,
-                                   celsius, lumen, lux, becquerel, gray,
+                                   lumen, lux, becquerel, gray,
                                    sievert, katal, kgram, kgramme)
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
@@ -230,7 +230,7 @@ def dimensions_and_type_from_string(unit_string):
     base_units = [[meter, metre],
                   [second],
                   [amp, ampere],
-                  [kelvin, celsius],
+                  [kelvin],
                   [mole],
                   [lumen, candle],
                   [kilogram, kgram, kgramme],

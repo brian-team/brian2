@@ -174,7 +174,7 @@ def test_str_repr():
     units_which_should_exist = [metre, meter, kilogram, second, amp, kelvin, mole, candle,
                                 radian, steradian, hertz, newton, pascal, joule, watt,
                                 coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
-                                celsius, lumen, lux, becquerel, gray, sievert, katal,
+                                lumen, lux, becquerel, gray, sievert, katal,
                                 gram, gramme]
     
     # scaled versions of all these units should exist (we just check farad as an example)

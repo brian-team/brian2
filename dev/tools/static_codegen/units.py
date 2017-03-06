@@ -27,7 +27,6 @@ derived_unit_table = [
         ['weber',     'Wb',   'get_or_create_dimension(m=2, kg=1, s=-2, A=-1)'],
         ['tesla',     'T',    'get_or_create_dimension(kg=1, s=-2, A=-1)'],
         ['henry',     'H',    'get_or_create_dimension(m=2, kg=1, s=-2, A=-2)'],
-        ['celsius',   'degC', 'get_or_create_dimension(K=1)'],
         ['lumen',     'lm',   'get_or_create_dimension(cd=1)'],
         ['lux',       'lx',   'get_or_create_dimension(m=-2, cd=1)'],
         ['becquerel', 'Bq',   'get_or_create_dimension(s=-1)'],
@@ -91,6 +90,7 @@ for bu in all_units + []:
 all = '''
 __all__ = [
 {allunits}
+    "celsius"  # Dummy object raising an error
     ]
 '''.format(allunits='\n'.join('    "'+u+'",' for u in all_units))
 
