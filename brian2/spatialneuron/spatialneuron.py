@@ -429,6 +429,28 @@ class SpatialNeuron(NeuronGroup):
         return self.spatialneuron_segment(self, item)
 
     @staticmethod
+    def _find_subtree_end(morpho):
+        '''
+        Go down a morphology recursively to find the (absolute) index of the
+        "final" compartment (i.e. the one with the highest index) of the
+        subtree.
+
+        Parameters
+        ----------
+        morpho : `Morphology`
+            The morphology for which to find the index.
+
+        Returns
+        -------
+        index : int
+            The highest index within the subtree.
+        '''
+        indices = [morpho.indices[-1]]
+        for child in morpho.children:
+            indices.append(SpatialNeuron._find_subtree_end(child))
+        return max(indices)
+
+    @staticmethod
     def spatialneuron_attribute(neuron, name):
         '''
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
@@ -442,10 +464,9 @@ class SpatialNeuron(NeuronGroup):
         elif (name != 'morphology') and ((name in getattr(neuron.morphology, 'children', [])) or
                                       all([c in 'LR123456789' for c in name])):  # subtree
             morpho = neuron.morphology[name]
-            indices = morpho.indices[:]
-            start, stop = indices[0], indices[-1]
-            return SpatialSubgroup(neuron, start, stop + 1,
-                                   morphology=morpho)
+            start = morpho.indices[0]
+            stop = SpatialNeuron._find_subtree_end(morpho)
+            return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho)
         else:
             return Group.__getattr__(neuron, name)
 
