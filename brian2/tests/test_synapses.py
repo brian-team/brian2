@@ -2169,7 +2169,7 @@ def test_synapses_refractory():
                          threshold='i>=5', refractory=defaultclock.dt)
     S = Synapses(source, target, on_pre='v += 1')
     S.connect(j='i')
-    run(defaultclock.dt)
+    run(defaultclock.dt + schedule_propagation_offset())
     assert_allclose(target.v[:5], 1)
     assert_equal(target.v[5:], 0)
 
@@ -2186,7 +2186,7 @@ def test_synapses_refractory_rand():
         # _vectorisation_idx yet to make random numbers completely
         # reproducible), which will lead to a warning, since the result depends
         # on the order of execution.
-        run(defaultclock.dt)
+        run(defaultclock.dt + schedule_propagation_offset())
     assert all(target.v[:5] > 0)
     assert_equal(target.v[5:], 0)
 
