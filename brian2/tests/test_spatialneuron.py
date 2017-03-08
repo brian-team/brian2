@@ -694,6 +694,57 @@ def test_tree_index_consistency():
         # Separate subtrees should not overlap
         assert len(all_subsec_indices) == len(set(all_subsec_indices))
 
+@attr('codegen-independent')
+def test_spatialneuron_subtree_assignment():
+    sec = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec11 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec12 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2.sec21 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
+
+    neuron.v = 1*volt
+    assert_allclose(neuron.v[:], np.ones(12)*volt)
+    neuron.sec1.v += 1*volt
+    assert_allclose(neuron.main.v[:], np.ones(2)*volt)
+    assert_allclose(neuron.sec1.v[:], np.ones(6)*2*volt)
+    assert_allclose(neuron.sec1.main.v[:], np.ones(2)*2*volt)
+    assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*2*volt)
+    assert_allclose(neuron.sec1.sec12.v[:], np.ones(2)*2*volt)
+    assert_allclose(neuron.sec2.v[:], np.ones(4)*volt)
+    neuron.sec2.v = 5*volt
+    assert_allclose(neuron.sec2.v[:], np.ones(4)*5*volt)
+    assert_allclose(neuron.sec2.main.v[:], np.ones(2)*5*volt)
+    assert_allclose(neuron.sec2.sec21.v[:], np.ones(2)*5*volt)
+
+
+@attr('codegen-independent')
+def test_spatialneuron_morphology_assignment():
+    sec = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec11 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec12 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2.sec21 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
+
+    neuron.v[sec.sec1.sec11] = 1*volt
+    assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*volt)
+    assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec1.main.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.main.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec2.v[:], np.zeros(4)*volt)
+
+    neuron.v[sec.sec2[25*um:]] = 2*volt
+    neuron.v[sec.sec1[:25*um]] = 3 * volt
+    assert_allclose(neuron.main.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec2.main.v[:], [0, 2]*volt)
+    assert_allclose(neuron.sec2.sec21.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec1.main.v[:], [3, 0]*volt)
+    assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*volt)
+    assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
+
 
 if __name__ == '__main__':
     test_custom_events()
@@ -709,3 +760,5 @@ if __name__ == '__main__':
     test_allowed_integration()
     test_spatialneuron_indexing()
     test_tree_index_consistency()
+    test_spatialneuron_subtree_assignment()
+    test_spatialneuron_morphology_assignment()
