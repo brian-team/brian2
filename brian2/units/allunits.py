@@ -15,7 +15,7 @@ from .fundamentalunits import (Unit, get_or_create_dimension,
 __all__ = [
     "metre",
     "meter",
-    "gram",
+    "kilogram",
     "second",
     "amp",
     "ampere",
@@ -23,10 +23,9 @@ __all__ = [
     "mole",
     "mol",
     "candle",
+    "kilogramme",
+    "gram",
     "gramme",
-    "kilogram",
-    "liter",
-    "litre",
     "molar",
     "radian",
     "steradian",
@@ -89,26 +88,26 @@ __all__ = [
     "Mmeter",
     "kmeter",
     "Ymeter",
-    "agram",
-    "cgram",
-    "Zgram",
-    "Pgram",
-    "dgram",
-    "Ggram",
-    "fgram",
-    "hgram",
-    "dagram",
-    "mgram",
-    "ngram",
-    "pgram",
-    "ugram",
-    "Tgram",
-    "ygram",
-    "Egram",
-    "zgram",
-    "Mgram",
-    "kgram",
-    "Ygram",
+    "akilogram",
+    "ckilogram",
+    "Zkilogram",
+    "Pkilogram",
+    "dkilogram",
+    "Gkilogram",
+    "fkilogram",
+    "hkilogram",
+    "dakilogram",
+    "mkilogram",
+    "nkilogram",
+    "pkilogram",
+    "ukilogram",
+    "Tkilogram",
+    "ykilogram",
+    "Ekilogram",
+    "zkilogram",
+    "Mkilogram",
+    "kkilogram",
+    "Ykilogram",
     "asecond",
     "csecond",
     "Zsecond",
@@ -229,6 +228,46 @@ __all__ = [
     "Mcandle",
     "kcandle",
     "Ycandle",
+    "akilogramme",
+    "ckilogramme",
+    "Zkilogramme",
+    "Pkilogramme",
+    "dkilogramme",
+    "Gkilogramme",
+    "fkilogramme",
+    "hkilogramme",
+    "dakilogramme",
+    "mkilogramme",
+    "nkilogramme",
+    "pkilogramme",
+    "ukilogramme",
+    "Tkilogramme",
+    "ykilogramme",
+    "Ekilogramme",
+    "zkilogramme",
+    "Mkilogramme",
+    "kkilogramme",
+    "Ykilogramme",
+    "agram",
+    "cgram",
+    "Zgram",
+    "Pgram",
+    "dgram",
+    "Ggram",
+    "fgram",
+    "hgram",
+    "dagram",
+    "mgram",
+    "ngram",
+    "pgram",
+    "ugram",
+    "Tgram",
+    "ygram",
+    "Egram",
+    "zgram",
+    "Mgram",
+    "kgram",
+    "Ygram",
     "agramme",
     "cgramme",
     "Zgramme",
@@ -249,66 +288,6 @@ __all__ = [
     "Mgramme",
     "kgramme",
     "Ygramme",
-    "akilogram",
-    "ckilogram",
-    "Zkilogram",
-    "Pkilogram",
-    "dkilogram",
-    "Gkilogram",
-    "fkilogram",
-    "hkilogram",
-    "dakilogram",
-    "mkilogram",
-    "nkilogram",
-    "pkilogram",
-    "ukilogram",
-    "Tkilogram",
-    "ykilogram",
-    "Ekilogram",
-    "zkilogram",
-    "Mkilogram",
-    "kkilogram",
-    "Ykilogram",
-    "aliter",
-    "cliter",
-    "Zliter",
-    "Pliter",
-    "dliter",
-    "Gliter",
-    "fliter",
-    "hliter",
-    "daliter",
-    "mliter",
-    "nliter",
-    "pliter",
-    "uliter",
-    "Tliter",
-    "yliter",
-    "Eliter",
-    "zliter",
-    "Mliter",
-    "kliter",
-    "Yliter",
-    "alitre",
-    "clitre",
-    "Zlitre",
-    "Plitre",
-    "dlitre",
-    "Glitre",
-    "flitre",
-    "hlitre",
-    "dalitre",
-    "mlitre",
-    "nlitre",
-    "plitre",
-    "ulitre",
-    "Tlitre",
-    "ylitre",
-    "Elitre",
-    "zlitre",
-    "Mlitre",
-    "klitre",
-    "Ylitre",
     "amolar",
     "cmolar",
     "Zmolar",
@@ -753,8 +732,8 @@ __all__ = [
     "metre3",
     "meter2",
     "meter3",
-    "gram2",
-    "gram3",
+    "kilogram2",
+    "kilogram3",
     "second2",
     "second3",
     "amp2",
@@ -769,14 +748,12 @@ __all__ = [
     "mol3",
     "candle2",
     "candle3",
+    "kilogramme2",
+    "kilogramme3",
+    "gram2",
+    "gram3",
     "gramme2",
     "gramme3",
-    "kilogram2",
-    "kilogram3",
-    "liter2",
-    "liter3",
-    "litre2",
-    "litre3",
     "molar2",
     "molar3",
     "radian2",
@@ -901,46 +878,46 @@ __all__ = [
     "kmeter3",
     "Ymeter2",
     "Ymeter3",
-    "agram2",
-    "agram3",
-    "cgram2",
-    "cgram3",
-    "Zgram2",
-    "Zgram3",
-    "Pgram2",
-    "Pgram3",
-    "dgram2",
-    "dgram3",
-    "Ggram2",
-    "Ggram3",
-    "fgram2",
-    "fgram3",
-    "hgram2",
-    "hgram3",
-    "dagram2",
-    "dagram3",
-    "mgram2",
-    "mgram3",
-    "ngram2",
-    "ngram3",
-    "pgram2",
-    "pgram3",
-    "ugram2",
-    "ugram3",
-    "Tgram2",
-    "Tgram3",
-    "ygram2",
-    "ygram3",
-    "Egram2",
-    "Egram3",
-    "zgram2",
-    "zgram3",
-    "Mgram2",
-    "Mgram3",
-    "kgram2",
-    "kgram3",
-    "Ygram2",
-    "Ygram3",
+    "akilogram2",
+    "akilogram3",
+    "ckilogram2",
+    "ckilogram3",
+    "Zkilogram2",
+    "Zkilogram3",
+    "Pkilogram2",
+    "Pkilogram3",
+    "dkilogram2",
+    "dkilogram3",
+    "Gkilogram2",
+    "Gkilogram3",
+    "fkilogram2",
+    "fkilogram3",
+    "hkilogram2",
+    "hkilogram3",
+    "dakilogram2",
+    "dakilogram3",
+    "mkilogram2",
+    "mkilogram3",
+    "nkilogram2",
+    "nkilogram3",
+    "pkilogram2",
+    "pkilogram3",
+    "ukilogram2",
+    "ukilogram3",
+    "Tkilogram2",
+    "Tkilogram3",
+    "ykilogram2",
+    "ykilogram3",
+    "Ekilogram2",
+    "Ekilogram3",
+    "zkilogram2",
+    "zkilogram3",
+    "Mkilogram2",
+    "Mkilogram3",
+    "kkilogram2",
+    "kkilogram3",
+    "Ykilogram2",
+    "Ykilogram3",
     "asecond2",
     "asecond3",
     "csecond2",
@@ -1181,6 +1158,86 @@ __all__ = [
     "kcandle3",
     "Ycandle2",
     "Ycandle3",
+    "akilogramme2",
+    "akilogramme3",
+    "ckilogramme2",
+    "ckilogramme3",
+    "Zkilogramme2",
+    "Zkilogramme3",
+    "Pkilogramme2",
+    "Pkilogramme3",
+    "dkilogramme2",
+    "dkilogramme3",
+    "Gkilogramme2",
+    "Gkilogramme3",
+    "fkilogramme2",
+    "fkilogramme3",
+    "hkilogramme2",
+    "hkilogramme3",
+    "dakilogramme2",
+    "dakilogramme3",
+    "mkilogramme2",
+    "mkilogramme3",
+    "nkilogramme2",
+    "nkilogramme3",
+    "pkilogramme2",
+    "pkilogramme3",
+    "ukilogramme2",
+    "ukilogramme3",
+    "Tkilogramme2",
+    "Tkilogramme3",
+    "ykilogramme2",
+    "ykilogramme3",
+    "Ekilogramme2",
+    "Ekilogramme3",
+    "zkilogramme2",
+    "zkilogramme3",
+    "Mkilogramme2",
+    "Mkilogramme3",
+    "kkilogramme2",
+    "kkilogramme3",
+    "Ykilogramme2",
+    "Ykilogramme3",
+    "agram2",
+    "agram3",
+    "cgram2",
+    "cgram3",
+    "Zgram2",
+    "Zgram3",
+    "Pgram2",
+    "Pgram3",
+    "dgram2",
+    "dgram3",
+    "Ggram2",
+    "Ggram3",
+    "fgram2",
+    "fgram3",
+    "hgram2",
+    "hgram3",
+    "dagram2",
+    "dagram3",
+    "mgram2",
+    "mgram3",
+    "ngram2",
+    "ngram3",
+    "pgram2",
+    "pgram3",
+    "ugram2",
+    "ugram3",
+    "Tgram2",
+    "Tgram3",
+    "ygram2",
+    "ygram3",
+    "Egram2",
+    "Egram3",
+    "zgram2",
+    "zgram3",
+    "Mgram2",
+    "Mgram3",
+    "kgram2",
+    "kgram3",
+    "Ygram2",
+    "Ygram3",
     "agramme2",
     "agramme3",
     "cgramme2",
@@ -1221,126 +1278,6 @@ __all__ = [
     "kgramme3",
     "Ygramme2",
     "Ygramme3",
-    "akilogram2",
-    "akilogram3",
-    "ckilogram2",
-    "ckilogram3",
-    "Zkilogram2",
-    "Zkilogram3",
-    "Pkilogram2",
-    "Pkilogram3",
-    "dkilogram2",
-    "dkilogram3",
-    "Gkilogram2",
-    "Gkilogram3",
-    "fkilogram2",
-    "fkilogram3",
-    "hkilogram2",
-    "hkilogram3",
-    "dakilogram2",
-    "dakilogram3",
-    "mkilogram2",
-    "mkilogram3",
-    "nkilogram2",
-    "nkilogram3",
-    "pkilogram2",
-    "pkilogram3",
-    "ukilogram2",
-    "ukilogram3",
-    "Tkilogram2",
-    "Tkilogram3",
-    "ykilogram2",
-    "ykilogram3",
-    "Ekilogram2",
-    "Ekilogram3",
-    "zkilogram2",
-    "zkilogram3",
-    "Mkilogram2",
-    "Mkilogram3",
-    "kkilogram2",
-    "kkilogram3",
-    "Ykilogram2",
-    "Ykilogram3",
-    "aliter2",
-    "aliter3",
-    "cliter2",
-    "cliter3",
-    "Zliter2",
-    "Zliter3",
-    "Pliter2",
-    "Pliter3",
-    "dliter2",
-    "dliter3",
-    "Gliter2",
-    "Gliter3",
-    "fliter2",
-    "fliter3",
-    "hliter2",
-    "hliter3",
-    "daliter2",
-    "daliter3",
-    "mliter2",
-    "mliter3",
-    "nliter2",
-    "nliter3",
-    "pliter2",
-    "pliter3",
-    "uliter2",
-    "uliter3",
-    "Tliter2",
-    "Tliter3",
-    "yliter2",
-    "yliter3",
-    "Eliter2",
-    "Eliter3",
-    "zliter2",
-    "zliter3",
-    "Mliter2",
-    "Mliter3",
-    "kliter2",
-    "kliter3",
-    "Yliter2",
-    "Yliter3",
-    "alitre2",
-    "alitre3",
-    "clitre2",
-    "clitre3",
-    "Zlitre2",
-    "Zlitre3",
-    "Plitre2",
-    "Plitre3",
-    "dlitre2",
-    "dlitre3",
-    "Glitre2",
-    "Glitre3",
-    "flitre2",
-    "flitre3",
-    "hlitre2",
-    "hlitre3",
-    "dalitre2",
-    "dalitre3",
-    "mlitre2",
-    "mlitre3",
-    "nlitre2",
-    "nlitre3",
-    "plitre2",
-    "plitre3",
-    "ulitre2",
-    "ulitre3",
-    "Tlitre2",
-    "Tlitre3",
-    "ylitre2",
-    "ylitre3",
-    "Elitre2",
-    "Elitre3",
-    "zlitre2",
-    "zlitre3",
-    "Mlitre2",
-    "Mlitre3",
-    "klitre2",
-    "klitre3",
-    "Ylitre2",
-    "Ylitre3",
     "amolar2",
     "amolar3",
     "cmolar2",
@@ -2221,6 +2158,48 @@ __all__ = [
     "kkatal3",
     "Ykatal2",
     "Ykatal3",
+    "liter",
+    "aliter",
+    "cliter",
+    "Zliter",
+    "Pliter",
+    "dliter",
+    "Gliter",
+    "fliter",
+    "hliter",
+    "daliter",
+    "mliter",
+    "nliter",
+    "pliter",
+    "uliter",
+    "Tliter",
+    "yliter",
+    "Eliter",
+    "zliter",
+    "Mliter",
+    "kliter",
+    "Yliter",
+    "litre",
+    "alitre",
+    "clitre",
+    "Zlitre",
+    "Plitre",
+    "dlitre",
+    "Glitre",
+    "flitre",
+    "hlitre",
+    "dalitre",
+    "mlitre",
+    "nlitre",
+    "plitre",
+    "ulitre",
+    "Tlitre",
+    "ylitre",
+    "Elitre",
+    "zlitre",
+    "Mlitre",
+    "klitre",
+    "Ylitre",
     "celsius"  # Dummy object raising an error
     ]
 
@@ -2237,6 +2216,7 @@ litre = Unit.create_scaled_unit(meter**3, "m")
 litre.set_name('litre')
 litre.set_display_name('l')
 kilogram = Unit.create(get_or_create_dimension(kg=1), "kilogram", "kg")
+kilogramme = Unit.create(get_or_create_dimension(kg=1), "kilogramme", "kg")
 gram = Unit.create_scaled_unit(kilogram, "m")
 gram.set_name('gram')
 gram.set_display_name('g')
@@ -2318,26 +2298,26 @@ zmeter = Unit.create_scaled_unit(meter, "z")
 Mmeter = Unit.create_scaled_unit(meter, "M")
 kmeter = Unit.create_scaled_unit(meter, "k")
 Ymeter = Unit.create_scaled_unit(meter, "Y")
-agram = Unit.create_scaled_unit(gram, "a")
-cgram = Unit.create_scaled_unit(gram, "c")
-Zgram = Unit.create_scaled_unit(gram, "Z")
-Pgram = Unit.create_scaled_unit(gram, "P")
-dgram = Unit.create_scaled_unit(gram, "d")
-Ggram = Unit.create_scaled_unit(gram, "G")
-fgram = Unit.create_scaled_unit(gram, "f")
-hgram = Unit.create_scaled_unit(gram, "h")
-dagram = Unit.create_scaled_unit(gram, "da")
-mgram = Unit.create_scaled_unit(gram, "m")
-ngram = Unit.create_scaled_unit(gram, "n")
-pgram = Unit.create_scaled_unit(gram, "p")
-ugram = Unit.create_scaled_unit(gram, "u")
-Tgram = Unit.create_scaled_unit(gram, "T")
-ygram = Unit.create_scaled_unit(gram, "y")
-Egram = Unit.create_scaled_unit(gram, "E")
-zgram = Unit.create_scaled_unit(gram, "z")
-Mgram = Unit.create_scaled_unit(gram, "M")
-kgram = Unit.create_scaled_unit(gram, "k")
-Ygram = Unit.create_scaled_unit(gram, "Y")
+akilogram = Unit.create_scaled_unit(kilogram, "a")
+ckilogram = Unit.create_scaled_unit(kilogram, "c")
+Zkilogram = Unit.create_scaled_unit(kilogram, "Z")
+Pkilogram = Unit.create_scaled_unit(kilogram, "P")
+dkilogram = Unit.create_scaled_unit(kilogram, "d")
+Gkilogram = Unit.create_scaled_unit(kilogram, "G")
+fkilogram = Unit.create_scaled_unit(kilogram, "f")
+hkilogram = Unit.create_scaled_unit(kilogram, "h")
+dakilogram = Unit.create_scaled_unit(kilogram, "da")
+mkilogram = Unit.create_scaled_unit(kilogram, "m")
+nkilogram = Unit.create_scaled_unit(kilogram, "n")
+pkilogram = Unit.create_scaled_unit(kilogram, "p")
+ukilogram = Unit.create_scaled_unit(kilogram, "u")
+Tkilogram = Unit.create_scaled_unit(kilogram, "T")
+ykilogram = Unit.create_scaled_unit(kilogram, "y")
+Ekilogram = Unit.create_scaled_unit(kilogram, "E")
+zkilogram = Unit.create_scaled_unit(kilogram, "z")
+Mkilogram = Unit.create_scaled_unit(kilogram, "M")
+kkilogram = Unit.create_scaled_unit(kilogram, "k")
+Ykilogram = Unit.create_scaled_unit(kilogram, "Y")
 asecond = Unit.create_scaled_unit(second, "a")
 csecond = Unit.create_scaled_unit(second, "c")
 Zsecond = Unit.create_scaled_unit(second, "Z")
@@ -2458,6 +2438,46 @@ zcandle = Unit.create_scaled_unit(candle, "z")
 Mcandle = Unit.create_scaled_unit(candle, "M")
 kcandle = Unit.create_scaled_unit(candle, "k")
 Ycandle = Unit.create_scaled_unit(candle, "Y")
+akilogramme = Unit.create_scaled_unit(kilogramme, "a")
+ckilogramme = Unit.create_scaled_unit(kilogramme, "c")
+Zkilogramme = Unit.create_scaled_unit(kilogramme, "Z")
+Pkilogramme = Unit.create_scaled_unit(kilogramme, "P")
+dkilogramme = Unit.create_scaled_unit(kilogramme, "d")
+Gkilogramme = Unit.create_scaled_unit(kilogramme, "G")
+fkilogramme = Unit.create_scaled_unit(kilogramme, "f")
+hkilogramme = Unit.create_scaled_unit(kilogramme, "h")
+dakilogramme = Unit.create_scaled_unit(kilogramme, "da")
+mkilogramme = Unit.create_scaled_unit(kilogramme, "m")
+nkilogramme = Unit.create_scaled_unit(kilogramme, "n")
+pkilogramme = Unit.create_scaled_unit(kilogramme, "p")
+ukilogramme = Unit.create_scaled_unit(kilogramme, "u")
+Tkilogramme = Unit.create_scaled_unit(kilogramme, "T")
+ykilogramme = Unit.create_scaled_unit(kilogramme, "y")
+Ekilogramme = Unit.create_scaled_unit(kilogramme, "E")
+zkilogramme = Unit.create_scaled_unit(kilogramme, "z")
+Mkilogramme = Unit.create_scaled_unit(kilogramme, "M")
+kkilogramme = Unit.create_scaled_unit(kilogramme, "k")
+Ykilogramme = Unit.create_scaled_unit(kilogramme, "Y")
+agram = Unit.create_scaled_unit(gram, "a")
+cgram = Unit.create_scaled_unit(gram, "c")
+Zgram = Unit.create_scaled_unit(gram, "Z")
+Pgram = Unit.create_scaled_unit(gram, "P")
+dgram = Unit.create_scaled_unit(gram, "d")
+Ggram = Unit.create_scaled_unit(gram, "G")
+fgram = Unit.create_scaled_unit(gram, "f")
+hgram = Unit.create_scaled_unit(gram, "h")
+dagram = Unit.create_scaled_unit(gram, "da")
+mgram = Unit.create_scaled_unit(gram, "m")
+ngram = Unit.create_scaled_unit(gram, "n")
+pgram = Unit.create_scaled_unit(gram, "p")
+ugram = Unit.create_scaled_unit(gram, "u")
+Tgram = Unit.create_scaled_unit(gram, "T")
+ygram = Unit.create_scaled_unit(gram, "y")
+Egram = Unit.create_scaled_unit(gram, "E")
+zgram = Unit.create_scaled_unit(gram, "z")
+Mgram = Unit.create_scaled_unit(gram, "M")
+kgram = Unit.create_scaled_unit(gram, "k")
+Ygram = Unit.create_scaled_unit(gram, "Y")
 agramme = Unit.create_scaled_unit(gramme, "a")
 cgramme = Unit.create_scaled_unit(gramme, "c")
 Zgramme = Unit.create_scaled_unit(gramme, "Z")
@@ -2478,66 +2498,6 @@ zgramme = Unit.create_scaled_unit(gramme, "z")
 Mgramme = Unit.create_scaled_unit(gramme, "M")
 kgramme = Unit.create_scaled_unit(gramme, "k")
 Ygramme = Unit.create_scaled_unit(gramme, "Y")
-akilogram = Unit.create_scaled_unit(kilogram, "a")
-ckilogram = Unit.create_scaled_unit(kilogram, "c")
-Zkilogram = Unit.create_scaled_unit(kilogram, "Z")
-Pkilogram = Unit.create_scaled_unit(kilogram, "P")
-dkilogram = Unit.create_scaled_unit(kilogram, "d")
-Gkilogram = Unit.create_scaled_unit(kilogram, "G")
-fkilogram = Unit.create_scaled_unit(kilogram, "f")
-hkilogram = Unit.create_scaled_unit(kilogram, "h")
-dakilogram = Unit.create_scaled_unit(kilogram, "da")
-mkilogram = Unit.create_scaled_unit(kilogram, "m")
-nkilogram = Unit.create_scaled_unit(kilogram, "n")
-pkilogram = Unit.create_scaled_unit(kilogram, "p")
-ukilogram = Unit.create_scaled_unit(kilogram, "u")
-Tkilogram = Unit.create_scaled_unit(kilogram, "T")
-ykilogram = Unit.create_scaled_unit(kilogram, "y")
-Ekilogram = Unit.create_scaled_unit(kilogram, "E")
-zkilogram = Unit.create_scaled_unit(kilogram, "z")
-Mkilogram = Unit.create_scaled_unit(kilogram, "M")
-kkilogram = Unit.create_scaled_unit(kilogram, "k")
-Ykilogram = Unit.create_scaled_unit(kilogram, "Y")
-aliter = Unit.create_scaled_unit(liter, "a")
-cliter = Unit.create_scaled_unit(liter, "c")
-Zliter = Unit.create_scaled_unit(liter, "Z")
-Pliter = Unit.create_scaled_unit(liter, "P")
-dliter = Unit.create_scaled_unit(liter, "d")
-Gliter = Unit.create_scaled_unit(liter, "G")
-fliter = Unit.create_scaled_unit(liter, "f")
-hliter = Unit.create_scaled_unit(liter, "h")
-daliter = Unit.create_scaled_unit(liter, "da")
-mliter = Unit.create_scaled_unit(liter, "m")
-nliter = Unit.create_scaled_unit(liter, "n")
-pliter = Unit.create_scaled_unit(liter, "p")
-uliter = Unit.create_scaled_unit(liter, "u")
-Tliter = Unit.create_scaled_unit(liter, "T")
-yliter = Unit.create_scaled_unit(liter, "y")
-Eliter = Unit.create_scaled_unit(liter, "E")
-zliter = Unit.create_scaled_unit(liter, "z")
-Mliter = Unit.create_scaled_unit(liter, "M")
-kliter = Unit.create_scaled_unit(liter, "k")
-Yliter = Unit.create_scaled_unit(liter, "Y")
-alitre = Unit.create_scaled_unit(litre, "a")
-clitre = Unit.create_scaled_unit(litre, "c")
-Zlitre = Unit.create_scaled_unit(litre, "Z")
-Plitre = Unit.create_scaled_unit(litre, "P")
-dlitre = Unit.create_scaled_unit(litre, "d")
-Glitre = Unit.create_scaled_unit(litre, "G")
-flitre = Unit.create_scaled_unit(litre, "f")
-hlitre = Unit.create_scaled_unit(litre, "h")
-dalitre = Unit.create_scaled_unit(litre, "da")
-mlitre = Unit.create_scaled_unit(litre, "m")
-nlitre = Unit.create_scaled_unit(litre, "n")
-plitre = Unit.create_scaled_unit(litre, "p")
-ulitre = Unit.create_scaled_unit(litre, "u")
-Tlitre = Unit.create_scaled_unit(litre, "T")
-ylitre = Unit.create_scaled_unit(litre, "y")
-Elitre = Unit.create_scaled_unit(litre, "E")
-zlitre = Unit.create_scaled_unit(litre, "z")
-Mlitre = Unit.create_scaled_unit(litre, "M")
-klitre = Unit.create_scaled_unit(litre, "k")
-Ylitre = Unit.create_scaled_unit(litre, "Y")
 amolar = Unit.create_scaled_unit(molar, "a")
 cmolar = Unit.create_scaled_unit(molar, "c")
 Zmolar = Unit.create_scaled_unit(molar, "Z")
@@ -2987,10 +2947,10 @@ meter2 = meter**2
 meter2.name = "meter2"
 meter3 = meter**3
 meter3.name = "meter3"
-gram2 = gram**2
-gram2.name = "gram2"
-gram3 = gram**3
-gram3.name = "gram3"
+kilogram2 = kilogram**2
+kilogram2.name = "kilogram2"
+kilogram3 = kilogram**3
+kilogram3.name = "kilogram3"
 second2 = second**2
 second2.name = "second2"
 second3 = second**3
@@ -3019,22 +2979,18 @@ candle2 = candle**2
 candle2.name = "candle2"
 candle3 = candle**3
 candle3.name = "candle3"
+kilogramme2 = kilogramme**2
+kilogramme2.name = "kilogramme2"
+kilogramme3 = kilogramme**3
+kilogramme3.name = "kilogramme3"
+gram2 = gram**2
+gram2.name = "gram2"
+gram3 = gram**3
+gram3.name = "gram3"
 gramme2 = gramme**2
 gramme2.name = "gramme2"
 gramme3 = gramme**3
 gramme3.name = "gramme3"
-kilogram2 = kilogram**2
-kilogram2.name = "kilogram2"
-kilogram3 = kilogram**3
-kilogram3.name = "kilogram3"
-liter2 = liter**2
-liter2.name = "liter2"
-liter3 = liter**3
-liter3.name = "liter3"
-litre2 = litre**2
-litre2.name = "litre2"
-litre3 = litre**3
-litre3.name = "litre3"
 molar2 = molar**2
 molar2.name = "molar2"
 molar3 = molar**3
@@ -3283,86 +3239,86 @@ Ymeter2 = Ymeter**2
 Ymeter2.name = "Ymeter2"
 Ymeter3 = Ymeter**3
 Ymeter3.name = "Ymeter3"
-agram2 = agram**2
-agram2.name = "agram2"
-agram3 = agram**3
-agram3.name = "agram3"
-cgram2 = cgram**2
-cgram2.name = "cgram2"
-cgram3 = cgram**3
-cgram3.name = "cgram3"
-Zgram2 = Zgram**2
-Zgram2.name = "Zgram2"
-Zgram3 = Zgram**3
-Zgram3.name = "Zgram3"
-Pgram2 = Pgram**2
-Pgram2.name = "Pgram2"
-Pgram3 = Pgram**3
-Pgram3.name = "Pgram3"
-dgram2 = dgram**2
-dgram2.name = "dgram2"
-dgram3 = dgram**3
-dgram3.name = "dgram3"
-Ggram2 = Ggram**2
-Ggram2.name = "Ggram2"
-Ggram3 = Ggram**3
-Ggram3.name = "Ggram3"
-fgram2 = fgram**2
-fgram2.name = "fgram2"
-fgram3 = fgram**3
-fgram3.name = "fgram3"
-hgram2 = hgram**2
-hgram2.name = "hgram2"
-hgram3 = hgram**3
-hgram3.name = "hgram3"
-dagram2 = dagram**2
-dagram2.name = "dagram2"
-dagram3 = dagram**3
-dagram3.name = "dagram3"
-mgram2 = mgram**2
-mgram2.name = "mgram2"
-mgram3 = mgram**3
-mgram3.name = "mgram3"
-ngram2 = ngram**2
-ngram2.name = "ngram2"
-ngram3 = ngram**3
-ngram3.name = "ngram3"
-pgram2 = pgram**2
-pgram2.name = "pgram2"
-pgram3 = pgram**3
-pgram3.name = "pgram3"
-ugram2 = ugram**2
-ugram2.name = "ugram2"
-ugram3 = ugram**3
-ugram3.name = "ugram3"
-Tgram2 = Tgram**2
-Tgram2.name = "Tgram2"
-Tgram3 = Tgram**3
-Tgram3.name = "Tgram3"
-ygram2 = ygram**2
-ygram2.name = "ygram2"
-ygram3 = ygram**3
-ygram3.name = "ygram3"
-Egram2 = Egram**2
-Egram2.name = "Egram2"
-Egram3 = Egram**3
-Egram3.name = "Egram3"
-zgram2 = zgram**2
-zgram2.name = "zgram2"
-zgram3 = zgram**3
-zgram3.name = "zgram3"
-Mgram2 = Mgram**2
-Mgram2.name = "Mgram2"
-Mgram3 = Mgram**3
-Mgram3.name = "Mgram3"
-kgram2 = kgram**2
-kgram2.name = "kgram2"
-kgram3 = kgram**3
-kgram3.name = "kgram3"
-Ygram2 = Ygram**2
-Ygram2.name = "Ygram2"
-Ygram3 = Ygram**3
-Ygram3.name = "Ygram3"
+akilogram2 = akilogram**2
+akilogram2.name = "akilogram2"
+akilogram3 = akilogram**3
+akilogram3.name = "akilogram3"
+ckilogram2 = ckilogram**2
+ckilogram2.name = "ckilogram2"
+ckilogram3 = ckilogram**3
+ckilogram3.name = "ckilogram3"
+Zkilogram2 = Zkilogram**2
+Zkilogram2.name = "Zkilogram2"
+Zkilogram3 = Zkilogram**3
+Zkilogram3.name = "Zkilogram3"
+Pkilogram2 = Pkilogram**2
+Pkilogram2.name = "Pkilogram2"
+Pkilogram3 = Pkilogram**3
+Pkilogram3.name = "Pkilogram3"
+dkilogram2 = dkilogram**2
+dkilogram2.name = "dkilogram2"
+dkilogram3 = dkilogram**3
+dkilogram3.name = "dkilogram3"
+Gkilogram2 = Gkilogram**2
+Gkilogram2.name = "Gkilogram2"
+Gkilogram3 = Gkilogram**3
+Gkilogram3.name = "Gkilogram3"
+fkilogram2 = fkilogram**2
+fkilogram2.name = "fkilogram2"
+fkilogram3 = fkilogram**3
+fkilogram3.name = "fkilogram3"
+hkilogram2 = hkilogram**2
+hkilogram2.name = "hkilogram2"
+hkilogram3 = hkilogram**3
+hkilogram3.name = "hkilogram3"
+dakilogram2 = dakilogram**2
+dakilogram2.name = "dakilogram2"
+dakilogram3 = dakilogram**3
+dakilogram3.name = "dakilogram3"
+mkilogram2 = mkilogram**2
+mkilogram2.name = "mkilogram2"
+mkilogram3 = mkilogram**3
+mkilogram3.name = "mkilogram3"
+nkilogram2 = nkilogram**2
+nkilogram2.name = "nkilogram2"
+nkilogram3 = nkilogram**3
+nkilogram3.name = "nkilogram3"
+pkilogram2 = pkilogram**2
+pkilogram2.name = "pkilogram2"
+pkilogram3 = pkilogram**3
+pkilogram3.name = "pkilogram3"
+ukilogram2 = ukilogram**2
+ukilogram2.name = "ukilogram2"
+ukilogram3 = ukilogram**3
+ukilogram3.name = "ukilogram3"
+Tkilogram2 = Tkilogram**2
+Tkilogram2.name = "Tkilogram2"
+Tkilogram3 = Tkilogram**3
+Tkilogram3.name = "Tkilogram3"
+ykilogram2 = ykilogram**2
+ykilogram2.name = "ykilogram2"
+ykilogram3 = ykilogram**3
+ykilogram3.name = "ykilogram3"
+Ekilogram2 = Ekilogram**2
+Ekilogram2.name = "Ekilogram2"
+Ekilogram3 = Ekilogram**3
+Ekilogram3.name = "Ekilogram3"
+zkilogram2 = zkilogram**2
+zkilogram2.name = "zkilogram2"
+zkilogram3 = zkilogram**3
+zkilogram3.name = "zkilogram3"
+Mkilogram2 = Mkilogram**2
+Mkilogram2.name = "Mkilogram2"
+Mkilogram3 = Mkilogram**3
+Mkilogram3.name = "Mkilogram3"
+kkilogram2 = kkilogram**2
+kkilogram2.name = "kkilogram2"
+kkilogram3 = kkilogram**3
+kkilogram3.name = "kkilogram3"
+Ykilogram2 = Ykilogram**2
+Ykilogram2.name = "Ykilogram2"
+Ykilogram3 = Ykilogram**3
+Ykilogram3.name = "Ykilogram3"
 asecond2 = asecond**2
 asecond2.name = "asecond2"
 asecond3 = asecond**3
@@ -3843,6 +3799,166 @@ Ycandle2 = Ycandle**2
 Ycandle2.name = "Ycandle2"
 Ycandle3 = Ycandle**3
 Ycandle3.name = "Ycandle3"
+akilogramme2 = akilogramme**2
+akilogramme2.name = "akilogramme2"
+akilogramme3 = akilogramme**3
+akilogramme3.name = "akilogramme3"
+ckilogramme2 = ckilogramme**2
+ckilogramme2.name = "ckilogramme2"
+ckilogramme3 = ckilogramme**3
+ckilogramme3.name = "ckilogramme3"
+Zkilogramme2 = Zkilogramme**2
+Zkilogramme2.name = "Zkilogramme2"
+Zkilogramme3 = Zkilogramme**3
+Zkilogramme3.name = "Zkilogramme3"
+Pkilogramme2 = Pkilogramme**2
+Pkilogramme2.name = "Pkilogramme2"
+Pkilogramme3 = Pkilogramme**3
+Pkilogramme3.name = "Pkilogramme3"
+dkilogramme2 = dkilogramme**2
+dkilogramme2.name = "dkilogramme2"
+dkilogramme3 = dkilogramme**3
+dkilogramme3.name = "dkilogramme3"
+Gkilogramme2 = Gkilogramme**2
+Gkilogramme2.name = "Gkilogramme2"
+Gkilogramme3 = Gkilogramme**3
+Gkilogramme3.name = "Gkilogramme3"
+fkilogramme2 = fkilogramme**2
+fkilogramme2.name = "fkilogramme2"
+fkilogramme3 = fkilogramme**3
+fkilogramme3.name = "fkilogramme3"
+hkilogramme2 = hkilogramme**2
+hkilogramme2.name = "hkilogramme2"
+hkilogramme3 = hkilogramme**3
+hkilogramme3.name = "hkilogramme3"
+dakilogramme2 = dakilogramme**2
+dakilogramme2.name = "dakilogramme2"
+dakilogramme3 = dakilogramme**3
+dakilogramme3.name = "dakilogramme3"
+mkilogramme2 = mkilogramme**2
+mkilogramme2.name = "mkilogramme2"
+mkilogramme3 = mkilogramme**3
+mkilogramme3.name = "mkilogramme3"
+nkilogramme2 = nkilogramme**2
+nkilogramme2.name = "nkilogramme2"
+nkilogramme3 = nkilogramme**3
+nkilogramme3.name = "nkilogramme3"
+pkilogramme2 = pkilogramme**2
+pkilogramme2.name = "pkilogramme2"
+pkilogramme3 = pkilogramme**3
+pkilogramme3.name = "pkilogramme3"
+ukilogramme2 = ukilogramme**2
+ukilogramme2.name = "ukilogramme2"
+ukilogramme3 = ukilogramme**3
+ukilogramme3.name = "ukilogramme3"
+Tkilogramme2 = Tkilogramme**2
+Tkilogramme2.name = "Tkilogramme2"
+Tkilogramme3 = Tkilogramme**3
+Tkilogramme3.name = "Tkilogramme3"
+ykilogramme2 = ykilogramme**2
+ykilogramme2.name = "ykilogramme2"
+ykilogramme3 = ykilogramme**3
+ykilogramme3.name = "ykilogramme3"
+Ekilogramme2 = Ekilogramme**2
+Ekilogramme2.name = "Ekilogramme2"
+Ekilogramme3 = Ekilogramme**3
+Ekilogramme3.name = "Ekilogramme3"
+zkilogramme2 = zkilogramme**2
+zkilogramme2.name = "zkilogramme2"
+zkilogramme3 = zkilogramme**3
+zkilogramme3.name = "zkilogramme3"
+Mkilogramme2 = Mkilogramme**2
+Mkilogramme2.name = "Mkilogramme2"
+Mkilogramme3 = Mkilogramme**3
+Mkilogramme3.name = "Mkilogramme3"
+kkilogramme2 = kkilogramme**2
+kkilogramme2.name = "kkilogramme2"
+kkilogramme3 = kkilogramme**3
+kkilogramme3.name = "kkilogramme3"
+Ykilogramme2 = Ykilogramme**2
+Ykilogramme2.name = "Ykilogramme2"
+Ykilogramme3 = Ykilogramme**3
+Ykilogramme3.name = "Ykilogramme3"
+agram2 = agram**2
+agram2.name = "agram2"
+agram3 = agram**3
+agram3.name = "agram3"
+cgram2 = cgram**2
+cgram2.name = "cgram2"
+cgram3 = cgram**3
+cgram3.name = "cgram3"
+Zgram2 = Zgram**2
+Zgram2.name = "Zgram2"
+Zgram3 = Zgram**3
+Zgram3.name = "Zgram3"
+Pgram2 = Pgram**2
+Pgram2.name = "Pgram2"
+Pgram3 = Pgram**3
+Pgram3.name = "Pgram3"
+dgram2 = dgram**2
+dgram2.name = "dgram2"
+dgram3 = dgram**3
+dgram3.name = "dgram3"
+Ggram2 = Ggram**2
+Ggram2.name = "Ggram2"
+Ggram3 = Ggram**3
+Ggram3.name = "Ggram3"
+fgram2 = fgram**2
+fgram2.name = "fgram2"
+fgram3 = fgram**3
+fgram3.name = "fgram3"
+hgram2 = hgram**2
+hgram2.name = "hgram2"
+hgram3 = hgram**3
+hgram3.name = "hgram3"
+dagram2 = dagram**2
+dagram2.name = "dagram2"
+dagram3 = dagram**3
+dagram3.name = "dagram3"
+mgram2 = mgram**2
+mgram2.name = "mgram2"
+mgram3 = mgram**3
+mgram3.name = "mgram3"
+ngram2 = ngram**2
+ngram2.name = "ngram2"
+ngram3 = ngram**3
+ngram3.name = "ngram3"
+pgram2 = pgram**2
+pgram2.name = "pgram2"
+pgram3 = pgram**3
+pgram3.name = "pgram3"
+ugram2 = ugram**2
+ugram2.name = "ugram2"
+ugram3 = ugram**3
+ugram3.name = "ugram3"
+Tgram2 = Tgram**2
+Tgram2.name = "Tgram2"
+Tgram3 = Tgram**3
+Tgram3.name = "Tgram3"
+ygram2 = ygram**2
+ygram2.name = "ygram2"
+ygram3 = ygram**3
+ygram3.name = "ygram3"
+Egram2 = Egram**2
+Egram2.name = "Egram2"
+Egram3 = Egram**3
+Egram3.name = "Egram3"
+zgram2 = zgram**2
+zgram2.name = "zgram2"
+zgram3 = zgram**3
+zgram3.name = "zgram3"
+Mgram2 = Mgram**2
+Mgram2.name = "Mgram2"
+Mgram3 = Mgram**3
+Mgram3.name = "Mgram3"
+kgram2 = kgram**2
+kgram2.name = "kgram2"
+kgram3 = kgram**3
+kgram3.name = "kgram3"
+Ygram2 = Ygram**2
+Ygram2.name = "Ygram2"
+Ygram3 = Ygram**3
+Ygram3.name = "Ygram3"
 agramme2 = agramme**2
 agramme2.name = "agramme2"
 agramme3 = agramme**3
@@ -3923,246 +4039,6 @@ Ygramme2 = Ygramme**2
 Ygramme2.name = "Ygramme2"
 Ygramme3 = Ygramme**3
 Ygramme3.name = "Ygramme3"
-akilogram2 = akilogram**2
-akilogram2.name = "akilogram2"
-akilogram3 = akilogram**3
-akilogram3.name = "akilogram3"
-ckilogram2 = ckilogram**2
-ckilogram2.name = "ckilogram2"
-ckilogram3 = ckilogram**3
-ckilogram3.name = "ckilogram3"
-Zkilogram2 = Zkilogram**2
-Zkilogram2.name = "Zkilogram2"
-Zkilogram3 = Zkilogram**3
-Zkilogram3.name = "Zkilogram3"
-Pkilogram2 = Pkilogram**2
-Pkilogram2.name = "Pkilogram2"
-Pkilogram3 = Pkilogram**3
-Pkilogram3.name = "Pkilogram3"
-dkilogram2 = dkilogram**2
-dkilogram2.name = "dkilogram2"
-dkilogram3 = dkilogram**3
-dkilogram3.name = "dkilogram3"
-Gkilogram2 = Gkilogram**2
-Gkilogram2.name = "Gkilogram2"
-Gkilogram3 = Gkilogram**3
-Gkilogram3.name = "Gkilogram3"
-fkilogram2 = fkilogram**2
-fkilogram2.name = "fkilogram2"
-fkilogram3 = fkilogram**3
-fkilogram3.name = "fkilogram3"
-hkilogram2 = hkilogram**2
-hkilogram2.name = "hkilogram2"
-hkilogram3 = hkilogram**3
-hkilogram3.name = "hkilogram3"
-dakilogram2 = dakilogram**2
-dakilogram2.name = "dakilogram2"
-dakilogram3 = dakilogram**3
-dakilogram3.name = "dakilogram3"
-mkilogram2 = mkilogram**2
-mkilogram2.name = "mkilogram2"
-mkilogram3 = mkilogram**3
-mkilogram3.name = "mkilogram3"
-nkilogram2 = nkilogram**2
-nkilogram2.name = "nkilogram2"
-nkilogram3 = nkilogram**3
-nkilogram3.name = "nkilogram3"
-pkilogram2 = pkilogram**2
-pkilogram2.name = "pkilogram2"
-pkilogram3 = pkilogram**3
-pkilogram3.name = "pkilogram3"
-ukilogram2 = ukilogram**2
-ukilogram2.name = "ukilogram2"
-ukilogram3 = ukilogram**3
-ukilogram3.name = "ukilogram3"
-Tkilogram2 = Tkilogram**2
-Tkilogram2.name = "Tkilogram2"
-Tkilogram3 = Tkilogram**3
-Tkilogram3.name = "Tkilogram3"
-ykilogram2 = ykilogram**2
-ykilogram2.name = "ykilogram2"
-ykilogram3 = ykilogram**3
-ykilogram3.name = "ykilogram3"
-Ekilogram2 = Ekilogram**2
-Ekilogram2.name = "Ekilogram2"
-Ekilogram3 = Ekilogram**3
-Ekilogram3.name = "Ekilogram3"
-zkilogram2 = zkilogram**2
-zkilogram2.name = "zkilogram2"
-zkilogram3 = zkilogram**3
-zkilogram3.name = "zkilogram3"
-Mkilogram2 = Mkilogram**2
-Mkilogram2.name = "Mkilogram2"
-Mkilogram3 = Mkilogram**3
-Mkilogram3.name = "Mkilogram3"
-kkilogram2 = kkilogram**2
-kkilogram2.name = "kkilogram2"
-kkilogram3 = kkilogram**3
-kkilogram3.name = "kkilogram3"
-Ykilogram2 = Ykilogram**2
-Ykilogram2.name = "Ykilogram2"
-Ykilogram3 = Ykilogram**3
-Ykilogram3.name = "Ykilogram3"
-aliter2 = aliter**2
-aliter2.name = "aliter2"
-aliter3 = aliter**3
-aliter3.name = "aliter3"
-cliter2 = cliter**2
-cliter2.name = "cliter2"
-cliter3 = cliter**3
-cliter3.name = "cliter3"
-Zliter2 = Zliter**2
-Zliter2.name = "Zliter2"
-Zliter3 = Zliter**3
-Zliter3.name = "Zliter3"
-Pliter2 = Pliter**2
-Pliter2.name = "Pliter2"
-Pliter3 = Pliter**3
-Pliter3.name = "Pliter3"
-dliter2 = dliter**2
-dliter2.name = "dliter2"
-dliter3 = dliter**3
-dliter3.name = "dliter3"
-Gliter2 = Gliter**2
-Gliter2.name = "Gliter2"
-Gliter3 = Gliter**3
-Gliter3.name = "Gliter3"
-fliter2 = fliter**2
-fliter2.name = "fliter2"
-fliter3 = fliter**3
-fliter3.name = "fliter3"
-hliter2 = hliter**2
-hliter2.name = "hliter2"
-hliter3 = hliter**3
-hliter3.name = "hliter3"
-daliter2 = daliter**2
-daliter2.name = "daliter2"
-daliter3 = daliter**3
-daliter3.name = "daliter3"
-mliter2 = mliter**2
-mliter2.name = "mliter2"
-mliter3 = mliter**3
-mliter3.name = "mliter3"
-nliter2 = nliter**2
-nliter2.name = "nliter2"
-nliter3 = nliter**3
-nliter3.name = "nliter3"
-pliter2 = pliter**2
-pliter2.name = "pliter2"
-pliter3 = pliter**3
-pliter3.name = "pliter3"
-uliter2 = uliter**2
-uliter2.name = "uliter2"
-uliter3 = uliter**3
-uliter3.name = "uliter3"
-Tliter2 = Tliter**2
-Tliter2.name = "Tliter2"
-Tliter3 = Tliter**3
-Tliter3.name = "Tliter3"
-yliter2 = yliter**2
-yliter2.name = "yliter2"
-yliter3 = yliter**3
-yliter3.name = "yliter3"
-Eliter2 = Eliter**2
-Eliter2.name = "Eliter2"
-Eliter3 = Eliter**3
-Eliter3.name = "Eliter3"
-zliter2 = zliter**2
-zliter2.name = "zliter2"
-zliter3 = zliter**3
-zliter3.name = "zliter3"
-Mliter2 = Mliter**2
-Mliter2.name = "Mliter2"
-Mliter3 = Mliter**3
-Mliter3.name = "Mliter3"
-kliter2 = kliter**2
-kliter2.name = "kliter2"
-kliter3 = kliter**3
-kliter3.name = "kliter3"
-Yliter2 = Yliter**2
-Yliter2.name = "Yliter2"
-Yliter3 = Yliter**3
-Yliter3.name = "Yliter3"
-alitre2 = alitre**2
-alitre2.name = "alitre2"
-alitre3 = alitre**3
-alitre3.name = "alitre3"
-clitre2 = clitre**2
-clitre2.name = "clitre2"
-clitre3 = clitre**3
-clitre3.name = "clitre3"
-Zlitre2 = Zlitre**2
-Zlitre2.name = "Zlitre2"
-Zlitre3 = Zlitre**3
-Zlitre3.name = "Zlitre3"
-Plitre2 = Plitre**2
-Plitre2.name = "Plitre2"
-Plitre3 = Plitre**3
-Plitre3.name = "Plitre3"
-dlitre2 = dlitre**2
-dlitre2.name = "dlitre2"
-dlitre3 = dlitre**3
-dlitre3.name = "dlitre3"
-Glitre2 = Glitre**2
-Glitre2.name = "Glitre2"
-Glitre3 = Glitre**3
-Glitre3.name = "Glitre3"
-flitre2 = flitre**2
-flitre2.name = "flitre2"
-flitre3 = flitre**3
-flitre3.name = "flitre3"
-hlitre2 = hlitre**2
-hlitre2.name = "hlitre2"
-hlitre3 = hlitre**3
-hlitre3.name = "hlitre3"
-dalitre2 = dalitre**2
-dalitre2.name = "dalitre2"
-dalitre3 = dalitre**3
-dalitre3.name = "dalitre3"
-mlitre2 = mlitre**2
-mlitre2.name = "mlitre2"
-mlitre3 = mlitre**3
-mlitre3.name = "mlitre3"
-nlitre2 = nlitre**2
-nlitre2.name = "nlitre2"
-nlitre3 = nlitre**3
-nlitre3.name = "nlitre3"
-plitre2 = plitre**2
-plitre2.name = "plitre2"
-plitre3 = plitre**3
-plitre3.name = "plitre3"
-ulitre2 = ulitre**2
-ulitre2.name = "ulitre2"
-ulitre3 = ulitre**3
-ulitre3.name = "ulitre3"
-Tlitre2 = Tlitre**2
-Tlitre2.name = "Tlitre2"
-Tlitre3 = Tlitre**3
-Tlitre3.name = "Tlitre3"
-ylitre2 = ylitre**2
-ylitre2.name = "ylitre2"
-ylitre3 = ylitre**3
-ylitre3.name = "ylitre3"
-Elitre2 = Elitre**2
-Elitre2.name = "Elitre2"
-Elitre3 = Elitre**3
-Elitre3.name = "Elitre3"
-zlitre2 = zlitre**2
-zlitre2.name = "zlitre2"
-zlitre3 = zlitre**3
-zlitre3.name = "zlitre3"
-Mlitre2 = Mlitre**2
-Mlitre2.name = "Mlitre2"
-Mlitre3 = Mlitre**3
-Mlitre3.name = "Mlitre3"
-klitre2 = klitre**2
-klitre2.name = "klitre2"
-klitre3 = klitre**3
-klitre3.name = "klitre3"
-Ylitre2 = Ylitre**2
-Ylitre2.name = "Ylitre2"
-Ylitre3 = Ylitre**3
-Ylitre3.name = "Ylitre3"
 amolar2 = amolar**2
 amolar2.name = "amolar2"
 amolar3 = amolar**3
@@ -5923,13 +5799,53 @@ Ykatal2 = Ykatal**2
 Ykatal2.name = "Ykatal2"
 Ykatal3 = Ykatal**3
 Ykatal3.name = "Ykatal3"
+aliter = Unit.create_scaled_unit(liter, "a")
+cliter = Unit.create_scaled_unit(liter, "c")
+Zliter = Unit.create_scaled_unit(liter, "Z")
+Pliter = Unit.create_scaled_unit(liter, "P")
+dliter = Unit.create_scaled_unit(liter, "d")
+Gliter = Unit.create_scaled_unit(liter, "G")
+fliter = Unit.create_scaled_unit(liter, "f")
+hliter = Unit.create_scaled_unit(liter, "h")
+daliter = Unit.create_scaled_unit(liter, "da")
+mliter = Unit.create_scaled_unit(liter, "m")
+nliter = Unit.create_scaled_unit(liter, "n")
+pliter = Unit.create_scaled_unit(liter, "p")
+uliter = Unit.create_scaled_unit(liter, "u")
+Tliter = Unit.create_scaled_unit(liter, "T")
+yliter = Unit.create_scaled_unit(liter, "y")
+Eliter = Unit.create_scaled_unit(liter, "E")
+zliter = Unit.create_scaled_unit(liter, "z")
+Mliter = Unit.create_scaled_unit(liter, "M")
+kliter = Unit.create_scaled_unit(liter, "k")
+Yliter = Unit.create_scaled_unit(liter, "Y")
+alitre = Unit.create_scaled_unit(litre, "a")
+clitre = Unit.create_scaled_unit(litre, "c")
+Zlitre = Unit.create_scaled_unit(litre, "Z")
+Plitre = Unit.create_scaled_unit(litre, "P")
+dlitre = Unit.create_scaled_unit(litre, "d")
+Glitre = Unit.create_scaled_unit(litre, "G")
+flitre = Unit.create_scaled_unit(litre, "f")
+hlitre = Unit.create_scaled_unit(litre, "h")
+dalitre = Unit.create_scaled_unit(litre, "da")
+mlitre = Unit.create_scaled_unit(litre, "m")
+nlitre = Unit.create_scaled_unit(litre, "n")
+plitre = Unit.create_scaled_unit(litre, "p")
+ulitre = Unit.create_scaled_unit(litre, "u")
+Tlitre = Unit.create_scaled_unit(litre, "T")
+ylitre = Unit.create_scaled_unit(litre, "y")
+Elitre = Unit.create_scaled_unit(litre, "E")
+zlitre = Unit.create_scaled_unit(litre, "z")
+Mlitre = Unit.create_scaled_unit(litre, "M")
+klitre = Unit.create_scaled_unit(litre, "k")
+Ylitre = Unit.create_scaled_unit(litre, "Y")
 
 
 
 base_units = [
     metre,
     meter,
-    gram,
+    kilogram,
     second,
     amp,
     ampere,
@@ -5937,10 +5853,9 @@ base_units = [
     mole,
     mol,
     candle,
+    kilogramme,
+    gram,
     gramme,
-    kilogram,
-    liter,
-    litre,
     molar,
     radian,
     steradian,
@@ -5999,22 +5914,22 @@ scaled_units = [
     Mmeter,
     kmeter,
     Ymeter,
-    agram,
-    Zgram,
-    Pgram,
-    Ggram,
-    fgram,
-    mgram,
-    ngram,
-    pgram,
-    ugram,
-    Tgram,
-    ygram,
-    Egram,
-    zgram,
-    Mgram,
-    kgram,
-    Ygram,
+    akilogram,
+    Zkilogram,
+    Pkilogram,
+    Gkilogram,
+    fkilogram,
+    mkilogram,
+    nkilogram,
+    pkilogram,
+    ukilogram,
+    Tkilogram,
+    ykilogram,
+    Ekilogram,
+    zkilogram,
+    Mkilogram,
+    kkilogram,
+    Ykilogram,
     asecond,
     Zsecond,
     Psecond,
@@ -6111,6 +6026,38 @@ scaled_units = [
     Mcandle,
     kcandle,
     Ycandle,
+    akilogramme,
+    Zkilogramme,
+    Pkilogramme,
+    Gkilogramme,
+    fkilogramme,
+    mkilogramme,
+    nkilogramme,
+    pkilogramme,
+    ukilogramme,
+    Tkilogramme,
+    ykilogramme,
+    Ekilogramme,
+    zkilogramme,
+    Mkilogramme,
+    kkilogramme,
+    Ykilogramme,
+    agram,
+    Zgram,
+    Pgram,
+    Ggram,
+    fgram,
+    mgram,
+    ngram,
+    pgram,
+    ugram,
+    Tgram,
+    ygram,
+    Egram,
+    zgram,
+    Mgram,
+    kgram,
+    Ygram,
     agramme,
     Zgramme,
     Pgramme,
@@ -6127,54 +6074,6 @@ scaled_units = [
     Mgramme,
     kgramme,
     Ygramme,
-    akilogram,
-    Zkilogram,
-    Pkilogram,
-    Gkilogram,
-    fkilogram,
-    mkilogram,
-    nkilogram,
-    pkilogram,
-    ukilogram,
-    Tkilogram,
-    ykilogram,
-    Ekilogram,
-    zkilogram,
-    Mkilogram,
-    kkilogram,
-    Ykilogram,
-    aliter,
-    Zliter,
-    Pliter,
-    Gliter,
-    fliter,
-    mliter,
-    nliter,
-    pliter,
-    uliter,
-    Tliter,
-    yliter,
-    Eliter,
-    zliter,
-    Mliter,
-    kliter,
-    Yliter,
-    alitre,
-    Zlitre,
-    Plitre,
-    Glitre,
-    flitre,
-    mlitre,
-    nlitre,
-    plitre,
-    ulitre,
-    Tlitre,
-    ylitre,
-    Elitre,
-    zlitre,
-    Mlitre,
-    klitre,
-    Ylitre,
     amolar,
     Zmolar,
     Pmolar,
@@ -6535,8 +6434,8 @@ powered_units = [
     metre3,
     meter2,
     meter3,
-    gram2,
-    gram3,
+    kilogram2,
+    kilogram3,
     second2,
     second3,
     amp2,
@@ -6551,14 +6450,12 @@ powered_units = [
     mol3,
     candle2,
     candle3,
+    kilogramme2,
+    kilogramme3,
+    gram2,
+    gram3,
     gramme2,
     gramme3,
-    kilogram2,
-    kilogram3,
-    liter2,
-    liter3,
-    litre2,
-    litre3,
     molar2,
     molar3,
     radian2,
@@ -6667,38 +6564,38 @@ powered_units = [
     kmeter3,
     Ymeter2,
     Ymeter3,
-    agram2,
-    agram3,
-    Zgram2,
-    Zgram3,
-    Pgram2,
-    Pgram3,
-    Ggram2,
-    Ggram3,
-    fgram2,
-    fgram3,
-    mgram2,
-    mgram3,
-    ngram2,
-    ngram3,
-    pgram2,
-    pgram3,
-    ugram2,
-    ugram3,
-    Tgram2,
-    Tgram3,
-    ygram2,
-    ygram3,
-    Egram2,
-    Egram3,
-    zgram2,
-    zgram3,
-    Mgram2,
-    Mgram3,
-    kgram2,
-    kgram3,
-    Ygram2,
-    Ygram3,
+    akilogram2,
+    akilogram3,
+    Zkilogram2,
+    Zkilogram3,
+    Pkilogram2,
+    Pkilogram3,
+    Gkilogram2,
+    Gkilogram3,
+    fkilogram2,
+    fkilogram3,
+    mkilogram2,
+    mkilogram3,
+    nkilogram2,
+    nkilogram3,
+    pkilogram2,
+    pkilogram3,
+    ukilogram2,
+    ukilogram3,
+    Tkilogram2,
+    Tkilogram3,
+    ykilogram2,
+    ykilogram3,
+    Ekilogram2,
+    Ekilogram3,
+    zkilogram2,
+    zkilogram3,
+    Mkilogram2,
+    Mkilogram3,
+    kkilogram2,
+    kkilogram3,
+    Ykilogram2,
+    Ykilogram3,
     asecond2,
     asecond3,
     Zsecond2,
@@ -6891,6 +6788,70 @@ powered_units = [
     kcandle3,
     Ycandle2,
     Ycandle3,
+    akilogramme2,
+    akilogramme3,
+    Zkilogramme2,
+    Zkilogramme3,
+    Pkilogramme2,
+    Pkilogramme3,
+    Gkilogramme2,
+    Gkilogramme3,
+    fkilogramme2,
+    fkilogramme3,
+    mkilogramme2,
+    mkilogramme3,
+    nkilogramme2,
+    nkilogramme3,
+    pkilogramme2,
+    pkilogramme3,
+    ukilogramme2,
+    ukilogramme3,
+    Tkilogramme2,
+    Tkilogramme3,
+    ykilogramme2,
+    ykilogramme3,
+    Ekilogramme2,
+    Ekilogramme3,
+    zkilogramme2,
+    zkilogramme3,
+    Mkilogramme2,
+    Mkilogramme3,
+    kkilogramme2,
+    kkilogramme3,
+    Ykilogramme2,
+    Ykilogramme3,
+    agram2,
+    agram3,
+    Zgram2,
+    Zgram3,
+    Pgram2,
+    Pgram3,
+    Ggram2,
+    Ggram3,
+    fgram2,
+    fgram3,
+    mgram2,
+    mgram3,
+    ngram2,
+    ngram3,
+    pgram2,
+    pgram3,
+    ugram2,
+    ugram3,
+    Tgram2,
+    Tgram3,
+    ygram2,
+    ygram3,
+    Egram2,
+    Egram3,
+    zgram2,
+    zgram3,
+    Mgram2,
+    Mgram3,
+    kgram2,
+    kgram3,
+    Ygram2,
+    Ygram3,
     agramme2,
     agramme3,
     Zgramme2,
@@ -6923,102 +6884,6 @@ powered_units = [
     kgramme3,
     Ygramme2,
     Ygramme3,
-    akilogram2,
-    akilogram3,
-    Zkilogram2,
-    Zkilogram3,
-    Pkilogram2,
-    Pkilogram3,
-    Gkilogram2,
-    Gkilogram3,
-    fkilogram2,
-    fkilogram3,
-    mkilogram2,
-    mkilogram3,
-    nkilogram2,
-    nkilogram3,
-    pkilogram2,
-    pkilogram3,
-    ukilogram2,
-    ukilogram3,
-    Tkilogram2,
-    Tkilogram3,
-    ykilogram2,
-    ykilogram3,
-    Ekilogram2,
-    Ekilogram3,
-    zkilogram2,
-    zkilogram3,
-    Mkilogram2,
-    Mkilogram3,
-    kkilogram2,
-    kkilogram3,
-    Ykilogram2,
-    Ykilogram3,
-    aliter2,
-    aliter3,
-    Zliter2,
-    Zliter3,
-    Pliter2,
-    Pliter3,
-    Gliter2,
-    Gliter3,
-    fliter2,
-    fliter3,
-    mliter2,
-    mliter3,
-    nliter2,
-    nliter3,
-    pliter2,
-    pliter3,
-    uliter2,
-    uliter3,
-    Tliter2,
-    Tliter3,
-    yliter2,
-    yliter3,
-    Eliter2,
-    Eliter3,
-    zliter2,
-    zliter3,
-    Mliter2,
-    Mliter3,
-    kliter2,
-    kliter3,
-    Yliter2,
-    Yliter3,
-    alitre2,
-    alitre3,
-    Zlitre2,
-    Zlitre3,
-    Plitre2,
-    Plitre3,
-    Glitre2,
-    Glitre3,
-    flitre2,
-    flitre3,
-    mlitre2,
-    mlitre3,
-    nlitre2,
-    nlitre3,
-    plitre2,
-    plitre3,
-    ulitre2,
-    ulitre3,
-    Tlitre2,
-    Tlitre3,
-    ylitre2,
-    ylitre3,
-    Elitre2,
-    Elitre3,
-    zlitre2,
-    zlitre3,
-    Mlitre2,
-    Mlitre3,
-    klitre2,
-    klitre3,
-    Ylitre2,
-    Ylitre3,
     amolar2,
     amolar3,
     Zmolar2,
@@ -7723,6 +7588,38 @@ powered_units = [
     kkatal3,
     Ykatal2,
     Ykatal3,
+    aliter,
+    Zliter,
+    Pliter,
+    Gliter,
+    fliter,
+    mliter,
+    nliter,
+    pliter,
+    uliter,
+    Tliter,
+    yliter,
+    Eliter,
+    zliter,
+    Mliter,
+    kliter,
+    Yliter,
+    alitre,
+    Zlitre,
+    Plitre,
+    Glitre,
+    flitre,
+    mlitre,
+    nlitre,
+    plitre,
+    ulitre,
+    Tlitre,
+    ylitre,
+    Elitre,
+    zlitre,
+    Mlitre,
+    klitre,
+    Ylitre,
     ]
 
 
@@ -7738,7 +7635,7 @@ additional_units = [
 all_units = [
     metre,
     meter,
-    gram,
+    kilogram,
     second,
     amp,
     ampere,
@@ -7746,10 +7643,9 @@ all_units = [
     mole,
     mol,
     candle,
+    kilogramme,
+    gram,
     gramme,
-    kilogram,
-    liter,
-    litre,
     molar,
     radian,
     steradian,
@@ -7812,26 +7708,26 @@ all_units = [
     Mmeter,
     kmeter,
     Ymeter,
-    agram,
-    cgram,
-    Zgram,
-    Pgram,
-    dgram,
-    Ggram,
-    fgram,
-    hgram,
-    dagram,
-    mgram,
-    ngram,
-    pgram,
-    ugram,
-    Tgram,
-    ygram,
-    Egram,
-    zgram,
-    Mgram,
-    kgram,
-    Ygram,
+    akilogram,
+    ckilogram,
+    Zkilogram,
+    Pkilogram,
+    dkilogram,
+    Gkilogram,
+    fkilogram,
+    hkilogram,
+    dakilogram,
+    mkilogram,
+    nkilogram,
+    pkilogram,
+    ukilogram,
+    Tkilogram,
+    ykilogram,
+    Ekilogram,
+    zkilogram,
+    Mkilogram,
+    kkilogram,
+    Ykilogram,
     asecond,
     csecond,
     Zsecond,
@@ -7952,6 +7848,46 @@ all_units = [
     Mcandle,
     kcandle,
     Ycandle,
+    akilogramme,
+    ckilogramme,
+    Zkilogramme,
+    Pkilogramme,
+    dkilogramme,
+    Gkilogramme,
+    fkilogramme,
+    hkilogramme,
+    dakilogramme,
+    mkilogramme,
+    nkilogramme,
+    pkilogramme,
+    ukilogramme,
+    Tkilogramme,
+    ykilogramme,
+    Ekilogramme,
+    zkilogramme,
+    Mkilogramme,
+    kkilogramme,
+    Ykilogramme,
+    agram,
+    cgram,
+    Zgram,
+    Pgram,
+    dgram,
+    Ggram,
+    fgram,
+    hgram,
+    dagram,
+    mgram,
+    ngram,
+    pgram,
+    ugram,
+    Tgram,
+    ygram,
+    Egram,
+    zgram,
+    Mgram,
+    kgram,
+    Ygram,
     agramme,
     cgramme,
     Zgramme,
@@ -7972,66 +7908,6 @@ all_units = [
     Mgramme,
     kgramme,
     Ygramme,
-    akilogram,
-    ckilogram,
-    Zkilogram,
-    Pkilogram,
-    dkilogram,
-    Gkilogram,
-    fkilogram,
-    hkilogram,
-    dakilogram,
-    mkilogram,
-    nkilogram,
-    pkilogram,
-    ukilogram,
-    Tkilogram,
-    ykilogram,
-    Ekilogram,
-    zkilogram,
-    Mkilogram,
-    kkilogram,
-    Ykilogram,
-    aliter,
-    cliter,
-    Zliter,
-    Pliter,
-    dliter,
-    Gliter,
-    fliter,
-    hliter,
-    daliter,
-    mliter,
-    nliter,
-    pliter,
-    uliter,
-    Tliter,
-    yliter,
-    Eliter,
-    zliter,
-    Mliter,
-    kliter,
-    Yliter,
-    alitre,
-    clitre,
-    Zlitre,
-    Plitre,
-    dlitre,
-    Glitre,
-    flitre,
-    hlitre,
-    dalitre,
-    mlitre,
-    nlitre,
-    plitre,
-    ulitre,
-    Tlitre,
-    ylitre,
-    Elitre,
-    zlitre,
-    Mlitre,
-    klitre,
-    Ylitre,
     amolar,
     cmolar,
     Zmolar,
@@ -8476,8 +8352,8 @@ all_units = [
     metre3,
     meter2,
     meter3,
-    gram2,
-    gram3,
+    kilogram2,
+    kilogram3,
     second2,
     second3,
     amp2,
@@ -8492,14 +8368,12 @@ all_units = [
     mol3,
     candle2,
     candle3,
+    kilogramme2,
+    kilogramme3,
+    gram2,
+    gram3,
     gramme2,
     gramme3,
-    kilogram2,
-    kilogram3,
-    liter2,
-    liter3,
-    litre2,
-    litre3,
     molar2,
     molar3,
     radian2,
@@ -8624,46 +8498,46 @@ all_units = [
     kmeter3,
     Ymeter2,
     Ymeter3,
-    agram2,
-    agram3,
-    cgram2,
-    cgram3,
-    Zgram2,
-    Zgram3,
-    Pgram2,
-    Pgram3,
-    dgram2,
-    dgram3,
-    Ggram2,
-    Ggram3,
-    fgram2,
-    fgram3,
-    hgram2,
-    hgram3,
-    dagram2,
-    dagram3,
-    mgram2,
-    mgram3,
-    ngram2,
-    ngram3,
-    pgram2,
-    pgram3,
-    ugram2,
-    ugram3,
-    Tgram2,
-    Tgram3,
-    ygram2,
-    ygram3,
-    Egram2,
-    Egram3,
-    zgram2,
-    zgram3,
-    Mgram2,
-    Mgram3,
-    kgram2,
-    kgram3,
-    Ygram2,
-    Ygram3,
+    akilogram2,
+    akilogram3,
+    ckilogram2,
+    ckilogram3,
+    Zkilogram2,
+    Zkilogram3,
+    Pkilogram2,
+    Pkilogram3,
+    dkilogram2,
+    dkilogram3,
+    Gkilogram2,
+    Gkilogram3,
+    fkilogram2,
+    fkilogram3,
+    hkilogram2,
+    hkilogram3,
+    dakilogram2,
+    dakilogram3,
+    mkilogram2,
+    mkilogram3,
+    nkilogram2,
+    nkilogram3,
+    pkilogram2,
+    pkilogram3,
+    ukilogram2,
+    ukilogram3,
+    Tkilogram2,
+    Tkilogram3,
+    ykilogram2,
+    ykilogram3,
+    Ekilogram2,
+    Ekilogram3,
+    zkilogram2,
+    zkilogram3,
+    Mkilogram2,
+    Mkilogram3,
+    kkilogram2,
+    kkilogram3,
+    Ykilogram2,
+    Ykilogram3,
     asecond2,
     asecond3,
     csecond2,
@@ -8904,6 +8778,86 @@ all_units = [
     kcandle3,
     Ycandle2,
     Ycandle3,
+    akilogramme2,
+    akilogramme3,
+    ckilogramme2,
+    ckilogramme3,
+    Zkilogramme2,
+    Zkilogramme3,
+    Pkilogramme2,
+    Pkilogramme3,
+    dkilogramme2,
+    dkilogramme3,
+    Gkilogramme2,
+    Gkilogramme3,
+    fkilogramme2,
+    fkilogramme3,
+    hkilogramme2,
+    hkilogramme3,
+    dakilogramme2,
+    dakilogramme3,
+    mkilogramme2,
+    mkilogramme3,
+    nkilogramme2,
+    nkilogramme3,
+    pkilogramme2,
+    pkilogramme3,
+    ukilogramme2,
+    ukilogramme3,
+    Tkilogramme2,
+    Tkilogramme3,
+    ykilogramme2,
+    ykilogramme3,
+    Ekilogramme2,
+    Ekilogramme3,
+    zkilogramme2,
+    zkilogramme3,
+    Mkilogramme2,
+    Mkilogramme3,
+    kkilogramme2,
+    kkilogramme3,
+    Ykilogramme2,
+    Ykilogramme3,
+    agram2,
+    agram3,
+    cgram2,
+    cgram3,
+    Zgram2,
+    Zgram3,
+    Pgram2,
+    Pgram3,
+    dgram2,
+    dgram3,
+    Ggram2,
+    Ggram3,
+    fgram2,
+    fgram3,
+    hgram2,
+    hgram3,
+    dagram2,
+    dagram3,
+    mgram2,
+    mgram3,
+    ngram2,
+    ngram3,
+    pgram2,
+    pgram3,
+    ugram2,
+    ugram3,
+    Tgram2,
+    Tgram3,
+    ygram2,
+    ygram3,
+    Egram2,
+    Egram3,
+    zgram2,
+    zgram3,
+    Mgram2,
+    Mgram3,
+    kgram2,
+    kgram3,
+    Ygram2,
+    Ygram3,
     agramme2,
     agramme3,
     cgramme2,
@@ -8944,126 +8898,6 @@ all_units = [
     kgramme3,
     Ygramme2,
     Ygramme3,
-    akilogram2,
-    akilogram3,
-    ckilogram2,
-    ckilogram3,
-    Zkilogram2,
-    Zkilogram3,
-    Pkilogram2,
-    Pkilogram3,
-    dkilogram2,
-    dkilogram3,
-    Gkilogram2,
-    Gkilogram3,
-    fkilogram2,
-    fkilogram3,
-    hkilogram2,
-    hkilogram3,
-    dakilogram2,
-    dakilogram3,
-    mkilogram2,
-    mkilogram3,
-    nkilogram2,
-    nkilogram3,
-    pkilogram2,
-    pkilogram3,
-    ukilogram2,
-    ukilogram3,
-    Tkilogram2,
-    Tkilogram3,
-    ykilogram2,
-    ykilogram3,
-    Ekilogram2,
-    Ekilogram3,
-    zkilogram2,
-    zkilogram3,
-    Mkilogram2,
-    Mkilogram3,
-    kkilogram2,
-    kkilogram3,
-    Ykilogram2,
-    Ykilogram3,
-    aliter2,
-    aliter3,
-    cliter2,
-    cliter3,
-    Zliter2,
-    Zliter3,
-    Pliter2,
-    Pliter3,
-    dliter2,
-    dliter3,
-    Gliter2,
-    Gliter3,
-    fliter2,
-    fliter3,
-    hliter2,
-    hliter3,
-    daliter2,
-    daliter3,
-    mliter2,
-    mliter3,
-    nliter2,
-    nliter3,
-    pliter2,
-    pliter3,
-    uliter2,
-    uliter3,
-    Tliter2,
-    Tliter3,
-    yliter2,
-    yliter3,
-    Eliter2,
-    Eliter3,
-    zliter2,
-    zliter3,
-    Mliter2,
-    Mliter3,
-    kliter2,
-    kliter3,
-    Yliter2,
-    Yliter3,
-    alitre2,
-    alitre3,
-    clitre2,
-    clitre3,
-    Zlitre2,
-    Zlitre3,
-    Plitre2,
-    Plitre3,
-    dlitre2,
-    dlitre3,
-    Glitre2,
-    Glitre3,
-    flitre2,
-    flitre3,
-    hlitre2,
-    hlitre3,
-    dalitre2,
-    dalitre3,
-    mlitre2,
-    mlitre3,
-    nlitre2,
-    nlitre3,
-    plitre2,
-    plitre3,
-    ulitre2,
-    ulitre3,
-    Tlitre2,
-    Tlitre3,
-    ylitre2,
-    ylitre3,
-    Elitre2,
-    Elitre3,
-    zlitre2,
-    zlitre3,
-    Mlitre2,
-    Mlitre3,
-    klitre2,
-    klitre3,
-    Ylitre2,
-    Ylitre3,
     amolar2,
     amolar3,
     cmolar2,
@@ -9944,6 +9778,48 @@ all_units = [
     kkatal3,
     Ykatal2,
     Ykatal3,
+    liter,
+    aliter,
+    cliter,
+    Zliter,
+    Pliter,
+    dliter,
+    Gliter,
+    fliter,
+    hliter,
+    daliter,
+    mliter,
+    nliter,
+    pliter,
+    uliter,
+    Tliter,
+    yliter,
+    Eliter,
+    zliter,
+    Mliter,
+    kliter,
+    Yliter,
+    litre,
+    alitre,
+    clitre,
+    Zlitre,
+    Plitre,
+    dlitre,
+    Glitre,
+    flitre,
+    hlitre,
+    dalitre,
+    mlitre,
+    nlitre,
+    plitre,
+    ulitre,
+    Tlitre,
+    ylitre,
+    Elitre,
+    zlitre,
+    Mlitre,
+    klitre,
+    Ylitre,
     ]
 
 
