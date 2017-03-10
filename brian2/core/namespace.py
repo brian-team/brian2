@@ -2,6 +2,7 @@
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
+import collections
 import inspect
 import itertools
 
@@ -57,7 +58,8 @@ def _get_default_unit_namespace():
     namespace : dict
         The unit namespace
     '''
-    namespace = dict([(u.name, u) for u in standard_unit_register.units])
+    namespace = collections.OrderedDict([(u.name, u)
+                                         for u in standard_unit_register.units])
     namespace.update(stdunits)
     return namespace
 

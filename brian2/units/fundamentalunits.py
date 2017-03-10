@@ -2157,7 +2157,7 @@ class UnitRegistry(object):
 
 
     def __init__(self):
-        self.units = set()
+        self.units = collections.OrderedDict()
         self.units_for_dimensions = collections.defaultdict(list)
 
 
@@ -2166,13 +2166,13 @@ class UnitRegistry(object):
         """
         if u in self.units:
             return
-        self.units.add(u)
+        self.units[u] = None   # We use the OrderedDict as an "ordered set"
         self.units_for_dimensions[u.dim].append(u)
 
     def remove(self, u):
         """Remove a unit from the registry
         """
-        self.units.remove(u)
+        del self.units[u]
         dim = u.dim
         self.units_for_dimensions[dim].remove(u)
 
