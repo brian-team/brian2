@@ -1238,8 +1238,8 @@ class Quantity(np.ndarray, object):
                     pass
             return Quantity(1, self.dim)
         else:
-            return self.get_best_unit(user_unit_register,
-                                      standard_unit_register,
+            return self.get_best_unit(standard_unit_register,
+                                      user_unit_register,
                                       additional_unit_register)
 
     def _get_best_unit(self, *regs):
@@ -2262,8 +2262,8 @@ def get_unit(d):
         A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
         if no unit was found.
     '''
-    for unit_register in [user_unit_register,
-                          standard_unit_register,
+    for unit_register in [standard_unit_register,
+                          user_unit_register,
                           additional_unit_register]:
         for u in unit_register.units_for_dimensions[d]:
             if float(u) == 1.0:
