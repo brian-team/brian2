@@ -222,6 +222,12 @@ def test_construction_errors():
     '''
     # parse error
     assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau volt'))
+    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : volt second'))
+
+    # incorrect unit definition
+    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : mvolt'))
+    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : voltage'))
+    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : 1.0*volt'))
 
     # Only a single string or a list of SingleEquation objects is allowed
     assert_raises(TypeError, lambda: Equations(None))
