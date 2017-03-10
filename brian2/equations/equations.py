@@ -202,6 +202,8 @@ def check_identifier_constants(identifier):
                          'variable name.' % identifier)
 
 
+_base_units = None
+_single_base_units = None
 def dimensions_and_type_from_string(unit_string):
     '''
     Returns the physical dimensions that results from evaluating a string like
@@ -226,33 +228,25 @@ def dimensions_and_type_from_string(unit_string):
     '''
     # Lazy import to avoid circular dependency
     from brian2.core.namespace import DEFAULT_UNITS
+    global _base_units  # we only want to do this once
+    global _single_base_units
 
-    base_units = [[meter, metre],
-                  [second],
-                  [amp, ampere],
-                  [kelvin],
-                  [mole],
-                  [lumen, candle],
-                  [kilogram, kgram, kgramme],
-                  [radian, steradian],
-                  [hertz, becquerel],
-                  [newton],
-                  [pascal],
-                  [joule],
-                  [watt],
-                  [coulomb],
-                  [volt],
-                  [farad],
-                  [ohm],
-                  [siemens],
-                  [weber],
-                  [tesla],
-                  [henry],
-                  [lux],
-                  [sievert, gray],
-                  [katal]]
-    namespace = dict((repr(unit), unit) for units in base_units for unit in units)
-    namespace['Hz'] = hertz  # we have to add this manually, since repr(Hz) == hertz
+    if _base_units is None:
+        base_units_for_dims = {}
+        _base_units = collections.OrderedDict()
+        for unit_name, unit in DEFAULT_UNITS.iteritems():
+            if float(unit) == 1.0:
+                _base_units[unit_name] = unit
+        # Go through it a second time -- we only want to display one unit per
+        # dimensionality to the user and don't bother displaying powered units
+        # (meter2, meter3, ...)
+        for unit in _base_units.itervalues():
+            if (unit.dim not in base_units_for_dims and
+                    repr(unit)[-1] not in ['2', '3']):
+                base_units_for_dims[unit.dim] = unit
+        _single_base_units = sorted([repr(unit)
+                                     for unit in base_units_for_dims.itervalues()])
+
     unit_string = unit_string.strip()
 
     # Special case: dimensionless unit
@@ -273,13 +267,13 @@ def dimensions_and_type_from_string(unit_string):
     # Check first whether the expression only refers to base units
     identifiers = get_identifiers(unit_string)
     for identifier in identifiers:
-        if identifier not in namespace:
+        if identifier not in _base_units:
             if identifier in DEFAULT_UNITS:
                 # A known unit, but not a base unit
                 base_unit = get_unit(DEFAULT_UNITS[identifier].dim)
-                if not repr(base_unit) in namespace:
-                    # The base unit is not allow, could happen for "molar" --
-                    # we do not allow "mmolar"
+                if not repr(base_unit) in _base_units:
+                    # Make sure that we don't suggest a unit that is not allowed
+                    # (should not happen, normally)
                     base_unit = Unit(1, dim=base_unit.dim)
                 raise ValueError(('Unit specification refers to '
                                   '"{identifier}", but this is not a base '
@@ -288,18 +282,17 @@ def dimensions_and_type_from_string(unit_string):
                                                      base_unit=repr(base_unit)))
             else:
                 # Not a known unit
-                allowed_units = ', '.join(sorted(repr(u[0])
-                                                 for u in base_units))
+                allowed = ', '.join(_single_base_units)
                 raise ValueError(('Unit specification refers to '
                                   '"{identifier}", but this is not a base '
                                   'unit. The following base units are '
                                   'allowed: {allowed_units} (plus some '
                                   'variants of these, e.g. "Hz" instead of '
-                                  '"hertz", or "metre" instead of '
-                                  '"meter").').format(identifier=identifier,
-                                                     allowed_units=allowed_units))
+                                  '"hertz", or "meter" instead of '
+                                  '"metre").').format(identifier=identifier,
+                                                      allowed_units=allowed))
     try:
-        evaluated_unit = eval(unit_string, namespace)
+        evaluated_unit = eval(unit_string, _base_units)
     except Exception as ex:
         raise ValueError(('Could not interpret "%s" as a unit specification: '
                           '%s') % (unit_string, ex))
