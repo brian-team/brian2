@@ -1805,8 +1805,6 @@ class Unit(Quantity):
             dim = DIMENSIONLESS
         obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
                                        copy=copy, force_quantity=True)
-        if Unit.automatically_register_units:
-            register_new_unit(obj)
         return obj
 
     def __array_finalize__(self, orig):
@@ -2022,12 +2020,14 @@ class Unit(Quantity):
     #### ARITHMETIC ####
     def __mul__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.array(self, copy=False) * np.array(other, copy=False))
+            u = Unit(np.array(self, copy=False) * np.array(other, copy=False),
+                     dim=self.dim * other.dim)
             u.name = self.name + " * " + other.name
             u.dispname = self.dispname + ' ' + other.dispname
             u.latexname = self.latexname + r'\,' + other.latexname
-            u.dim = self.dim * other.dim
             u.iscompound = True
+            if Unit.automatically_register_units:
+                register_new_unit(u)
             return u
         else:
             return super(Unit, self).__mul__(other)
@@ -2037,7 +2037,8 @@ class Unit(Quantity):
 
     def __div__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.array(self, copy=False) / np.array(other, copy=False))
+            u = Unit(np.array(self, copy=False) / np.array(other, copy=False),
+                     dim=self.dim / other.dim)
             if other.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
@@ -2052,11 +2053,12 @@ class Unit(Quantity):
             else:
                 u.dispname += other.dispname
                 u.name += other.name
-            u.dim = self.dim / other.dim
             u.iscompound = True
 
             u.latexname = r'\frac{%s}{%s}' % (self.latexname, other.latexname)
 
+            if Unit.automatically_register_units:
+                register_new_unit(u)
             return u
         else:
             return super(Unit, self).__div__(other)
@@ -2074,7 +2076,8 @@ class Unit(Quantity):
 
     def __pow__(self, other):
         if is_scalar_type(other):
-            u = Unit(np.array(self, copy=False) ** other)
+            u = Unit(np.array(self, copy=False) ** other,
+                     dim=self.dim**other)
             if self.iscompound:
                 u.dispname = '(' + self.dispname + ')'
                 u.name = '(' + self.name + ')'
@@ -2086,7 +2089,8 @@ class Unit(Quantity):
             u.dispname += '^' + str(other)
             u.name += ' ** ' + repr(other)
             u.latexname += '^{%s}' % latex(other)
-            u.dim = self.dim ** other
+            if Unit.automatically_register_units:
+                register_new_unit(u)
             return u
         else:
             return super(Unit, self).__pow__(other)
@@ -2128,7 +2132,8 @@ class Unit(Quantity):
 
     def __hash__(self):
         return hash((self.dim, self.scalefactor, self.scale,
-                     self.name, self.dispname))
+                     self._name, self._dispname, self._latexname,
+                     self.iscompound))
 
 
 class UnitRegistry(object):
