@@ -579,7 +579,7 @@ class DimensionMismatchError(Exception):
 
     def __str__(self):
         s = self.desc
-        if len(self.dims)==0:
+        if len(self.dims) == 0:
             pass
         elif len(self.dims) == 1:
             s += ' (unit is ' + get_unit_for_display(self.dims[0])
@@ -2414,7 +2414,8 @@ def check_units(**au):
                                                            unit=repr(au[k]),
                                                            value=newkeyset[k])
                         raise DimensionMismatchError(error_message,
-                                                     newkeyset[k])
+                                                     get_dimensions(newkeyset[k]))
+
             result = f(*args, **kwds)
             if 'result' in au:
                 if au['result'] == bool:
