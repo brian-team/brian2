@@ -80,8 +80,7 @@ powered_units = []
 for bu in all_units + []:
     for i in [2, 3]:
         u = bu+str(i)
-        definitions += '{u} = {bu}**{i}\n'.format(u=u, bu=bu, i=i)
-        definitions += '{u}.name = "{u}"\n'.format(u=u)
+        definitions += '{u} = Unit.create(({bu}**{i}).dim, name="{u}")\n'.format(u=u, bu=bu, i=i)
         all_units.append(u)
         if bu not in excluded_scaled_units:
             powered_units.append(u)

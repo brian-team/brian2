@@ -2209,29 +2209,19 @@ Unit.automatically_register_units = False
 #### FUNDAMENTAL UNITS
 metre = Unit.create(get_or_create_dimension(m=1), "metre", "m")
 meter = Unit.create(get_or_create_dimension(m=1), "meter", "m")
-liter = Unit.create_scaled_unit(meter**3, "m")
-liter.set_name('liter')
-liter.set_display_name('l')
-litre = Unit.create_scaled_unit(meter**3, "m")
-litre.set_name('litre')
-litre.set_display_name('l')
+liter = Unit(0.001, dim=(meter**3).dim, name="liter", dispname="l")
+litre = Unit(0.001, dim=(meter**3).dim, name="litre", dispname="l")
 kilogram = Unit.create(get_or_create_dimension(kg=1), "kilogram", "kg")
 kilogramme = Unit.create(get_or_create_dimension(kg=1), "kilogramme", "kg")
-gram = Unit.create_scaled_unit(kilogram, "m")
-gram.set_name('gram')
-gram.set_display_name('g')
-gramme = Unit.create_scaled_unit(kilogram, "m")
-gramme.set_name('gramme')
-gramme.set_display_name('g')
+gram = Unit(0.001, dim=kilogram.dim, name="gram", dispname="g")
+gramme = Unit(0.001, dim=kilogram.dim, name="gramme", dispname="g")
 second = Unit.create(get_or_create_dimension(s=1), "second", "s")
 amp = Unit.create(get_or_create_dimension(A=1), "amp", "A")
 ampere = Unit.create(get_or_create_dimension(A=1), "ampere", "A")
 kelvin = Unit.create(get_or_create_dimension(K=1), "kelvin", "K")
 mole = Unit.create(get_or_create_dimension(mol=1), "mole", "mol")
 mol = Unit.create(get_or_create_dimension(mol=1), "mol", "mol")
-molar = mole/liter
-molar.set_name('molar')
-molar.set_display_name('M')
+molar = Unit.create((mole/liter).dim, name="molar", dispname="M")
 candle = Unit.create(get_or_create_dimension(candle=1), "candle", "cd")
 fundamental_units = [metre, meter, gram, second, amp, kelvin, mole, candle]
 
@@ -2939,2866 +2929,1436 @@ Mkatal = Unit.create_scaled_unit(katal, "M")
 kkatal = Unit.create_scaled_unit(katal, "k")
 Ykatal = Unit.create_scaled_unit(katal, "Y")
 ######### SCALED BASE UNITS TO POWERS ###########
-metre2 = metre**2
-metre2.name = "metre2"
-metre3 = metre**3
-metre3.name = "metre3"
-meter2 = meter**2
-meter2.name = "meter2"
-meter3 = meter**3
-meter3.name = "meter3"
-kilogram2 = kilogram**2
-kilogram2.name = "kilogram2"
-kilogram3 = kilogram**3
-kilogram3.name = "kilogram3"
-second2 = second**2
-second2.name = "second2"
-second3 = second**3
-second3.name = "second3"
-amp2 = amp**2
-amp2.name = "amp2"
-amp3 = amp**3
-amp3.name = "amp3"
-ampere2 = ampere**2
-ampere2.name = "ampere2"
-ampere3 = ampere**3
-ampere3.name = "ampere3"
-kelvin2 = kelvin**2
-kelvin2.name = "kelvin2"
-kelvin3 = kelvin**3
-kelvin3.name = "kelvin3"
-mole2 = mole**2
-mole2.name = "mole2"
-mole3 = mole**3
-mole3.name = "mole3"
-mol2 = mol**2
-mol2.name = "mol2"
-mol3 = mol**3
-mol3.name = "mol3"
-candle2 = candle**2
-candle2.name = "candle2"
-candle3 = candle**3
-candle3.name = "candle3"
-kilogramme2 = kilogramme**2
-kilogramme2.name = "kilogramme2"
-kilogramme3 = kilogramme**3
-kilogramme3.name = "kilogramme3"
-gram2 = gram**2
-gram2.name = "gram2"
-gram3 = gram**3
-gram3.name = "gram3"
-gramme2 = gramme**2
-gramme2.name = "gramme2"
-gramme3 = gramme**3
-gramme3.name = "gramme3"
-molar2 = molar**2
-molar2.name = "molar2"
-molar3 = molar**3
-molar3.name = "molar3"
-radian2 = radian**2
-radian2.name = "radian2"
-radian3 = radian**3
-radian3.name = "radian3"
-steradian2 = steradian**2
-steradian2.name = "steradian2"
-steradian3 = steradian**3
-steradian3.name = "steradian3"
-hertz2 = hertz**2
-hertz2.name = "hertz2"
-hertz3 = hertz**3
-hertz3.name = "hertz3"
-newton2 = newton**2
-newton2.name = "newton2"
-newton3 = newton**3
-newton3.name = "newton3"
-pascal2 = pascal**2
-pascal2.name = "pascal2"
-pascal3 = pascal**3
-pascal3.name = "pascal3"
-joule2 = joule**2
-joule2.name = "joule2"
-joule3 = joule**3
-joule3.name = "joule3"
-watt2 = watt**2
-watt2.name = "watt2"
-watt3 = watt**3
-watt3.name = "watt3"
-coulomb2 = coulomb**2
-coulomb2.name = "coulomb2"
-coulomb3 = coulomb**3
-coulomb3.name = "coulomb3"
-volt2 = volt**2
-volt2.name = "volt2"
-volt3 = volt**3
-volt3.name = "volt3"
-farad2 = farad**2
-farad2.name = "farad2"
-farad3 = farad**3
-farad3.name = "farad3"
-ohm2 = ohm**2
-ohm2.name = "ohm2"
-ohm3 = ohm**3
-ohm3.name = "ohm3"
-siemens2 = siemens**2
-siemens2.name = "siemens2"
-siemens3 = siemens**3
-siemens3.name = "siemens3"
-weber2 = weber**2
-weber2.name = "weber2"
-weber3 = weber**3
-weber3.name = "weber3"
-tesla2 = tesla**2
-tesla2.name = "tesla2"
-tesla3 = tesla**3
-tesla3.name = "tesla3"
-henry2 = henry**2
-henry2.name = "henry2"
-henry3 = henry**3
-henry3.name = "henry3"
-lumen2 = lumen**2
-lumen2.name = "lumen2"
-lumen3 = lumen**3
-lumen3.name = "lumen3"
-lux2 = lux**2
-lux2.name = "lux2"
-lux3 = lux**3
-lux3.name = "lux3"
-becquerel2 = becquerel**2
-becquerel2.name = "becquerel2"
-becquerel3 = becquerel**3
-becquerel3.name = "becquerel3"
-gray2 = gray**2
-gray2.name = "gray2"
-gray3 = gray**3
-gray3.name = "gray3"
-sievert2 = sievert**2
-sievert2.name = "sievert2"
-sievert3 = sievert**3
-sievert3.name = "sievert3"
-katal2 = katal**2
-katal2.name = "katal2"
-katal3 = katal**3
-katal3.name = "katal3"
-ametre2 = ametre**2
-ametre2.name = "ametre2"
-ametre3 = ametre**3
-ametre3.name = "ametre3"
-cmetre2 = cmetre**2
-cmetre2.name = "cmetre2"
-cmetre3 = cmetre**3
-cmetre3.name = "cmetre3"
-Zmetre2 = Zmetre**2
-Zmetre2.name = "Zmetre2"
-Zmetre3 = Zmetre**3
-Zmetre3.name = "Zmetre3"
-Pmetre2 = Pmetre**2
-Pmetre2.name = "Pmetre2"
-Pmetre3 = Pmetre**3
-Pmetre3.name = "Pmetre3"
-dmetre2 = dmetre**2
-dmetre2.name = "dmetre2"
-dmetre3 = dmetre**3
-dmetre3.name = "dmetre3"
-Gmetre2 = Gmetre**2
-Gmetre2.name = "Gmetre2"
-Gmetre3 = Gmetre**3
-Gmetre3.name = "Gmetre3"
-fmetre2 = fmetre**2
-fmetre2.name = "fmetre2"
-fmetre3 = fmetre**3
-fmetre3.name = "fmetre3"
-hmetre2 = hmetre**2
-hmetre2.name = "hmetre2"
-hmetre3 = hmetre**3
-hmetre3.name = "hmetre3"
-dametre2 = dametre**2
-dametre2.name = "dametre2"
-dametre3 = dametre**3
-dametre3.name = "dametre3"
-mmetre2 = mmetre**2
-mmetre2.name = "mmetre2"
-mmetre3 = mmetre**3
-mmetre3.name = "mmetre3"
-nmetre2 = nmetre**2
-nmetre2.name = "nmetre2"
-nmetre3 = nmetre**3
-nmetre3.name = "nmetre3"
-pmetre2 = pmetre**2
-pmetre2.name = "pmetre2"
-pmetre3 = pmetre**3
-pmetre3.name = "pmetre3"
-umetre2 = umetre**2
-umetre2.name = "umetre2"
-umetre3 = umetre**3
-umetre3.name = "umetre3"
-Tmetre2 = Tmetre**2
-Tmetre2.name = "Tmetre2"
-Tmetre3 = Tmetre**3
-Tmetre3.name = "Tmetre3"
-ymetre2 = ymetre**2
-ymetre2.name = "ymetre2"
-ymetre3 = ymetre**3
-ymetre3.name = "ymetre3"
-Emetre2 = Emetre**2
-Emetre2.name = "Emetre2"
-Emetre3 = Emetre**3
-Emetre3.name = "Emetre3"
-zmetre2 = zmetre**2
-zmetre2.name = "zmetre2"
-zmetre3 = zmetre**3
-zmetre3.name = "zmetre3"
-Mmetre2 = Mmetre**2
-Mmetre2.name = "Mmetre2"
-Mmetre3 = Mmetre**3
-Mmetre3.name = "Mmetre3"
-kmetre2 = kmetre**2
-kmetre2.name = "kmetre2"
-kmetre3 = kmetre**3
-kmetre3.name = "kmetre3"
-Ymetre2 = Ymetre**2
-Ymetre2.name = "Ymetre2"
-Ymetre3 = Ymetre**3
-Ymetre3.name = "Ymetre3"
-ameter2 = ameter**2
-ameter2.name = "ameter2"
-ameter3 = ameter**3
-ameter3.name = "ameter3"
-cmeter2 = cmeter**2
-cmeter2.name = "cmeter2"
-cmeter3 = cmeter**3
-cmeter3.name = "cmeter3"
-Zmeter2 = Zmeter**2
-Zmeter2.name = "Zmeter2"
-Zmeter3 = Zmeter**3
-Zmeter3.name = "Zmeter3"
-Pmeter2 = Pmeter**2
-Pmeter2.name = "Pmeter2"
-Pmeter3 = Pmeter**3
-Pmeter3.name = "Pmeter3"
-dmeter2 = dmeter**2
-dmeter2.name = "dmeter2"
-dmeter3 = dmeter**3
-dmeter3.name = "dmeter3"
-Gmeter2 = Gmeter**2
-Gmeter2.name = "Gmeter2"
-Gmeter3 = Gmeter**3
-Gmeter3.name = "Gmeter3"
-fmeter2 = fmeter**2
-fmeter2.name = "fmeter2"
-fmeter3 = fmeter**3
-fmeter3.name = "fmeter3"
-hmeter2 = hmeter**2
-hmeter2.name = "hmeter2"
-hmeter3 = hmeter**3
-hmeter3.name = "hmeter3"
-dameter2 = dameter**2
-dameter2.name = "dameter2"
-dameter3 = dameter**3
-dameter3.name = "dameter3"
-mmeter2 = mmeter**2
-mmeter2.name = "mmeter2"
-mmeter3 = mmeter**3
-mmeter3.name = "mmeter3"
-nmeter2 = nmeter**2
-nmeter2.name = "nmeter2"
-nmeter3 = nmeter**3
-nmeter3.name = "nmeter3"
-pmeter2 = pmeter**2
-pmeter2.name = "pmeter2"
-pmeter3 = pmeter**3
-pmeter3.name = "pmeter3"
-umeter2 = umeter**2
-umeter2.name = "umeter2"
-umeter3 = umeter**3
-umeter3.name = "umeter3"
-Tmeter2 = Tmeter**2
-Tmeter2.name = "Tmeter2"
-Tmeter3 = Tmeter**3
-Tmeter3.name = "Tmeter3"
-ymeter2 = ymeter**2
-ymeter2.name = "ymeter2"
-ymeter3 = ymeter**3
-ymeter3.name = "ymeter3"
-Emeter2 = Emeter**2
-Emeter2.name = "Emeter2"
-Emeter3 = Emeter**3
-Emeter3.name = "Emeter3"
-zmeter2 = zmeter**2
-zmeter2.name = "zmeter2"
-zmeter3 = zmeter**3
-zmeter3.name = "zmeter3"
-Mmeter2 = Mmeter**2
-Mmeter2.name = "Mmeter2"
-Mmeter3 = Mmeter**3
-Mmeter3.name = "Mmeter3"
-kmeter2 = kmeter**2
-kmeter2.name = "kmeter2"
-kmeter3 = kmeter**3
-kmeter3.name = "kmeter3"
-Ymeter2 = Ymeter**2
-Ymeter2.name = "Ymeter2"
-Ymeter3 = Ymeter**3
-Ymeter3.name = "Ymeter3"
-akilogram2 = akilogram**2
-akilogram2.name = "akilogram2"
-akilogram3 = akilogram**3
-akilogram3.name = "akilogram3"
-ckilogram2 = ckilogram**2
-ckilogram2.name = "ckilogram2"
-ckilogram3 = ckilogram**3
-ckilogram3.name = "ckilogram3"
-Zkilogram2 = Zkilogram**2
-Zkilogram2.name = "Zkilogram2"
-Zkilogram3 = Zkilogram**3
-Zkilogram3.name = "Zkilogram3"
-Pkilogram2 = Pkilogram**2
-Pkilogram2.name = "Pkilogram2"
-Pkilogram3 = Pkilogram**3
-Pkilogram3.name = "Pkilogram3"
-dkilogram2 = dkilogram**2
-dkilogram2.name = "dkilogram2"
-dkilogram3 = dkilogram**3
-dkilogram3.name = "dkilogram3"
-Gkilogram2 = Gkilogram**2
-Gkilogram2.name = "Gkilogram2"
-Gkilogram3 = Gkilogram**3
-Gkilogram3.name = "Gkilogram3"
-fkilogram2 = fkilogram**2
-fkilogram2.name = "fkilogram2"
-fkilogram3 = fkilogram**3
-fkilogram3.name = "fkilogram3"
-hkilogram2 = hkilogram**2
-hkilogram2.name = "hkilogram2"
-hkilogram3 = hkilogram**3
-hkilogram3.name = "hkilogram3"
-dakilogram2 = dakilogram**2
-dakilogram2.name = "dakilogram2"
-dakilogram3 = dakilogram**3
-dakilogram3.name = "dakilogram3"
-mkilogram2 = mkilogram**2
-mkilogram2.name = "mkilogram2"
-mkilogram3 = mkilogram**3
-mkilogram3.name = "mkilogram3"
-nkilogram2 = nkilogram**2
-nkilogram2.name = "nkilogram2"
-nkilogram3 = nkilogram**3
-nkilogram3.name = "nkilogram3"
-pkilogram2 = pkilogram**2
-pkilogram2.name = "pkilogram2"
-pkilogram3 = pkilogram**3
-pkilogram3.name = "pkilogram3"
-ukilogram2 = ukilogram**2
-ukilogram2.name = "ukilogram2"
-ukilogram3 = ukilogram**3
-ukilogram3.name = "ukilogram3"
-Tkilogram2 = Tkilogram**2
-Tkilogram2.name = "Tkilogram2"
-Tkilogram3 = Tkilogram**3
-Tkilogram3.name = "Tkilogram3"
-ykilogram2 = ykilogram**2
-ykilogram2.name = "ykilogram2"
-ykilogram3 = ykilogram**3
-ykilogram3.name = "ykilogram3"
-Ekilogram2 = Ekilogram**2
-Ekilogram2.name = "Ekilogram2"
-Ekilogram3 = Ekilogram**3
-Ekilogram3.name = "Ekilogram3"
-zkilogram2 = zkilogram**2
-zkilogram2.name = "zkilogram2"
-zkilogram3 = zkilogram**3
-zkilogram3.name = "zkilogram3"
-Mkilogram2 = Mkilogram**2
-Mkilogram2.name = "Mkilogram2"
-Mkilogram3 = Mkilogram**3
-Mkilogram3.name = "Mkilogram3"
-kkilogram2 = kkilogram**2
-kkilogram2.name = "kkilogram2"
-kkilogram3 = kkilogram**3
-kkilogram3.name = "kkilogram3"
-Ykilogram2 = Ykilogram**2
-Ykilogram2.name = "Ykilogram2"
-Ykilogram3 = Ykilogram**3
-Ykilogram3.name = "Ykilogram3"
-asecond2 = asecond**2
-asecond2.name = "asecond2"
-asecond3 = asecond**3
-asecond3.name = "asecond3"
-csecond2 = csecond**2
-csecond2.name = "csecond2"
-csecond3 = csecond**3
-csecond3.name = "csecond3"
-Zsecond2 = Zsecond**2
-Zsecond2.name = "Zsecond2"
-Zsecond3 = Zsecond**3
-Zsecond3.name = "Zsecond3"
-Psecond2 = Psecond**2
-Psecond2.name = "Psecond2"
-Psecond3 = Psecond**3
-Psecond3.name = "Psecond3"
-dsecond2 = dsecond**2
-dsecond2.name = "dsecond2"
-dsecond3 = dsecond**3
-dsecond3.name = "dsecond3"
-Gsecond2 = Gsecond**2
-Gsecond2.name = "Gsecond2"
-Gsecond3 = Gsecond**3
-Gsecond3.name = "Gsecond3"
-fsecond2 = fsecond**2
-fsecond2.name = "fsecond2"
-fsecond3 = fsecond**3
-fsecond3.name = "fsecond3"
-hsecond2 = hsecond**2
-hsecond2.name = "hsecond2"
-hsecond3 = hsecond**3
-hsecond3.name = "hsecond3"
-dasecond2 = dasecond**2
-dasecond2.name = "dasecond2"
-dasecond3 = dasecond**3
-dasecond3.name = "dasecond3"
-msecond2 = msecond**2
-msecond2.name = "msecond2"
-msecond3 = msecond**3
-msecond3.name = "msecond3"
-nsecond2 = nsecond**2
-nsecond2.name = "nsecond2"
-nsecond3 = nsecond**3
-nsecond3.name = "nsecond3"
-psecond2 = psecond**2
-psecond2.name = "psecond2"
-psecond3 = psecond**3
-psecond3.name = "psecond3"
-usecond2 = usecond**2
-usecond2.name = "usecond2"
-usecond3 = usecond**3
-usecond3.name = "usecond3"
-Tsecond2 = Tsecond**2
-Tsecond2.name = "Tsecond2"
-Tsecond3 = Tsecond**3
-Tsecond3.name = "Tsecond3"
-ysecond2 = ysecond**2
-ysecond2.name = "ysecond2"
-ysecond3 = ysecond**3
-ysecond3.name = "ysecond3"
-Esecond2 = Esecond**2
-Esecond2.name = "Esecond2"
-Esecond3 = Esecond**3
-Esecond3.name = "Esecond3"
-zsecond2 = zsecond**2
-zsecond2.name = "zsecond2"
-zsecond3 = zsecond**3
-zsecond3.name = "zsecond3"
-Msecond2 = Msecond**2
-Msecond2.name = "Msecond2"
-Msecond3 = Msecond**3
-Msecond3.name = "Msecond3"
-ksecond2 = ksecond**2
-ksecond2.name = "ksecond2"
-ksecond3 = ksecond**3
-ksecond3.name = "ksecond3"
-Ysecond2 = Ysecond**2
-Ysecond2.name = "Ysecond2"
-Ysecond3 = Ysecond**3
-Ysecond3.name = "Ysecond3"
-aamp2 = aamp**2
-aamp2.name = "aamp2"
-aamp3 = aamp**3
-aamp3.name = "aamp3"
-camp2 = camp**2
-camp2.name = "camp2"
-camp3 = camp**3
-camp3.name = "camp3"
-Zamp2 = Zamp**2
-Zamp2.name = "Zamp2"
-Zamp3 = Zamp**3
-Zamp3.name = "Zamp3"
-Pamp2 = Pamp**2
-Pamp2.name = "Pamp2"
-Pamp3 = Pamp**3
-Pamp3.name = "Pamp3"
-damp2 = damp**2
-damp2.name = "damp2"
-damp3 = damp**3
-damp3.name = "damp3"
-Gamp2 = Gamp**2
-Gamp2.name = "Gamp2"
-Gamp3 = Gamp**3
-Gamp3.name = "Gamp3"
-famp2 = famp**2
-famp2.name = "famp2"
-famp3 = famp**3
-famp3.name = "famp3"
-hamp2 = hamp**2
-hamp2.name = "hamp2"
-hamp3 = hamp**3
-hamp3.name = "hamp3"
-daamp2 = daamp**2
-daamp2.name = "daamp2"
-daamp3 = daamp**3
-daamp3.name = "daamp3"
-mamp2 = mamp**2
-mamp2.name = "mamp2"
-mamp3 = mamp**3
-mamp3.name = "mamp3"
-namp2 = namp**2
-namp2.name = "namp2"
-namp3 = namp**3
-namp3.name = "namp3"
-pamp2 = pamp**2
-pamp2.name = "pamp2"
-pamp3 = pamp**3
-pamp3.name = "pamp3"
-uamp2 = uamp**2
-uamp2.name = "uamp2"
-uamp3 = uamp**3
-uamp3.name = "uamp3"
-Tamp2 = Tamp**2
-Tamp2.name = "Tamp2"
-Tamp3 = Tamp**3
-Tamp3.name = "Tamp3"
-yamp2 = yamp**2
-yamp2.name = "yamp2"
-yamp3 = yamp**3
-yamp3.name = "yamp3"
-Eamp2 = Eamp**2
-Eamp2.name = "Eamp2"
-Eamp3 = Eamp**3
-Eamp3.name = "Eamp3"
-zamp2 = zamp**2
-zamp2.name = "zamp2"
-zamp3 = zamp**3
-zamp3.name = "zamp3"
-Mamp2 = Mamp**2
-Mamp2.name = "Mamp2"
-Mamp3 = Mamp**3
-Mamp3.name = "Mamp3"
-kamp2 = kamp**2
-kamp2.name = "kamp2"
-kamp3 = kamp**3
-kamp3.name = "kamp3"
-Yamp2 = Yamp**2
-Yamp2.name = "Yamp2"
-Yamp3 = Yamp**3
-Yamp3.name = "Yamp3"
-aampere2 = aampere**2
-aampere2.name = "aampere2"
-aampere3 = aampere**3
-aampere3.name = "aampere3"
-campere2 = campere**2
-campere2.name = "campere2"
-campere3 = campere**3
-campere3.name = "campere3"
-Zampere2 = Zampere**2
-Zampere2.name = "Zampere2"
-Zampere3 = Zampere**3
-Zampere3.name = "Zampere3"
-Pampere2 = Pampere**2
-Pampere2.name = "Pampere2"
-Pampere3 = Pampere**3
-Pampere3.name = "Pampere3"
-dampere2 = dampere**2
-dampere2.name = "dampere2"
-dampere3 = dampere**3
-dampere3.name = "dampere3"
-Gampere2 = Gampere**2
-Gampere2.name = "Gampere2"
-Gampere3 = Gampere**3
-Gampere3.name = "Gampere3"
-fampere2 = fampere**2
-fampere2.name = "fampere2"
-fampere3 = fampere**3
-fampere3.name = "fampere3"
-hampere2 = hampere**2
-hampere2.name = "hampere2"
-hampere3 = hampere**3
-hampere3.name = "hampere3"
-daampere2 = daampere**2
-daampere2.name = "daampere2"
-daampere3 = daampere**3
-daampere3.name = "daampere3"
-mampere2 = mampere**2
-mampere2.name = "mampere2"
-mampere3 = mampere**3
-mampere3.name = "mampere3"
-nampere2 = nampere**2
-nampere2.name = "nampere2"
-nampere3 = nampere**3
-nampere3.name = "nampere3"
-pampere2 = pampere**2
-pampere2.name = "pampere2"
-pampere3 = pampere**3
-pampere3.name = "pampere3"
-uampere2 = uampere**2
-uampere2.name = "uampere2"
-uampere3 = uampere**3
-uampere3.name = "uampere3"
-Tampere2 = Tampere**2
-Tampere2.name = "Tampere2"
-Tampere3 = Tampere**3
-Tampere3.name = "Tampere3"
-yampere2 = yampere**2
-yampere2.name = "yampere2"
-yampere3 = yampere**3
-yampere3.name = "yampere3"
-Eampere2 = Eampere**2
-Eampere2.name = "Eampere2"
-Eampere3 = Eampere**3
-Eampere3.name = "Eampere3"
-zampere2 = zampere**2
-zampere2.name = "zampere2"
-zampere3 = zampere**3
-zampere3.name = "zampere3"
-Mampere2 = Mampere**2
-Mampere2.name = "Mampere2"
-Mampere3 = Mampere**3
-Mampere3.name = "Mampere3"
-kampere2 = kampere**2
-kampere2.name = "kampere2"
-kampere3 = kampere**3
-kampere3.name = "kampere3"
-Yampere2 = Yampere**2
-Yampere2.name = "Yampere2"
-Yampere3 = Yampere**3
-Yampere3.name = "Yampere3"
-amole2 = amole**2
-amole2.name = "amole2"
-amole3 = amole**3
-amole3.name = "amole3"
-cmole2 = cmole**2
-cmole2.name = "cmole2"
-cmole3 = cmole**3
-cmole3.name = "cmole3"
-Zmole2 = Zmole**2
-Zmole2.name = "Zmole2"
-Zmole3 = Zmole**3
-Zmole3.name = "Zmole3"
-Pmole2 = Pmole**2
-Pmole2.name = "Pmole2"
-Pmole3 = Pmole**3
-Pmole3.name = "Pmole3"
-dmole2 = dmole**2
-dmole2.name = "dmole2"
-dmole3 = dmole**3
-dmole3.name = "dmole3"
-Gmole2 = Gmole**2
-Gmole2.name = "Gmole2"
-Gmole3 = Gmole**3
-Gmole3.name = "Gmole3"
-fmole2 = fmole**2
-fmole2.name = "fmole2"
-fmole3 = fmole**3
-fmole3.name = "fmole3"
-hmole2 = hmole**2
-hmole2.name = "hmole2"
-hmole3 = hmole**3
-hmole3.name = "hmole3"
-damole2 = damole**2
-damole2.name = "damole2"
-damole3 = damole**3
-damole3.name = "damole3"
-mmole2 = mmole**2
-mmole2.name = "mmole2"
-mmole3 = mmole**3
-mmole3.name = "mmole3"
-nmole2 = nmole**2
-nmole2.name = "nmole2"
-nmole3 = nmole**3
-nmole3.name = "nmole3"
-pmole2 = pmole**2
-pmole2.name = "pmole2"
-pmole3 = pmole**3
-pmole3.name = "pmole3"
-umole2 = umole**2
-umole2.name = "umole2"
-umole3 = umole**3
-umole3.name = "umole3"
-Tmole2 = Tmole**2
-Tmole2.name = "Tmole2"
-Tmole3 = Tmole**3
-Tmole3.name = "Tmole3"
-ymole2 = ymole**2
-ymole2.name = "ymole2"
-ymole3 = ymole**3
-ymole3.name = "ymole3"
-Emole2 = Emole**2
-Emole2.name = "Emole2"
-Emole3 = Emole**3
-Emole3.name = "Emole3"
-zmole2 = zmole**2
-zmole2.name = "zmole2"
-zmole3 = zmole**3
-zmole3.name = "zmole3"
-Mmole2 = Mmole**2
-Mmole2.name = "Mmole2"
-Mmole3 = Mmole**3
-Mmole3.name = "Mmole3"
-kmole2 = kmole**2
-kmole2.name = "kmole2"
-kmole3 = kmole**3
-kmole3.name = "kmole3"
-Ymole2 = Ymole**2
-Ymole2.name = "Ymole2"
-Ymole3 = Ymole**3
-Ymole3.name = "Ymole3"
-amol2 = amol**2
-amol2.name = "amol2"
-amol3 = amol**3
-amol3.name = "amol3"
-cmol2 = cmol**2
-cmol2.name = "cmol2"
-cmol3 = cmol**3
-cmol3.name = "cmol3"
-Zmol2 = Zmol**2
-Zmol2.name = "Zmol2"
-Zmol3 = Zmol**3
-Zmol3.name = "Zmol3"
-Pmol2 = Pmol**2
-Pmol2.name = "Pmol2"
-Pmol3 = Pmol**3
-Pmol3.name = "Pmol3"
-dmol2 = dmol**2
-dmol2.name = "dmol2"
-dmol3 = dmol**3
-dmol3.name = "dmol3"
-Gmol2 = Gmol**2
-Gmol2.name = "Gmol2"
-Gmol3 = Gmol**3
-Gmol3.name = "Gmol3"
-fmol2 = fmol**2
-fmol2.name = "fmol2"
-fmol3 = fmol**3
-fmol3.name = "fmol3"
-hmol2 = hmol**2
-hmol2.name = "hmol2"
-hmol3 = hmol**3
-hmol3.name = "hmol3"
-damol2 = damol**2
-damol2.name = "damol2"
-damol3 = damol**3
-damol3.name = "damol3"
-mmol2 = mmol**2
-mmol2.name = "mmol2"
-mmol3 = mmol**3
-mmol3.name = "mmol3"
-nmol2 = nmol**2
-nmol2.name = "nmol2"
-nmol3 = nmol**3
-nmol3.name = "nmol3"
-pmol2 = pmol**2
-pmol2.name = "pmol2"
-pmol3 = pmol**3
-pmol3.name = "pmol3"
-umol2 = umol**2
-umol2.name = "umol2"
-umol3 = umol**3
-umol3.name = "umol3"
-Tmol2 = Tmol**2
-Tmol2.name = "Tmol2"
-Tmol3 = Tmol**3
-Tmol3.name = "Tmol3"
-ymol2 = ymol**2
-ymol2.name = "ymol2"
-ymol3 = ymol**3
-ymol3.name = "ymol3"
-Emol2 = Emol**2
-Emol2.name = "Emol2"
-Emol3 = Emol**3
-Emol3.name = "Emol3"
-zmol2 = zmol**2
-zmol2.name = "zmol2"
-zmol3 = zmol**3
-zmol3.name = "zmol3"
-Mmol2 = Mmol**2
-Mmol2.name = "Mmol2"
-Mmol3 = Mmol**3
-Mmol3.name = "Mmol3"
-kmol2 = kmol**2
-kmol2.name = "kmol2"
-kmol3 = kmol**3
-kmol3.name = "kmol3"
-Ymol2 = Ymol**2
-Ymol2.name = "Ymol2"
-Ymol3 = Ymol**3
-Ymol3.name = "Ymol3"
-acandle2 = acandle**2
-acandle2.name = "acandle2"
-acandle3 = acandle**3
-acandle3.name = "acandle3"
-ccandle2 = ccandle**2
-ccandle2.name = "ccandle2"
-ccandle3 = ccandle**3
-ccandle3.name = "ccandle3"
-Zcandle2 = Zcandle**2
-Zcandle2.name = "Zcandle2"
-Zcandle3 = Zcandle**3
-Zcandle3.name = "Zcandle3"
-Pcandle2 = Pcandle**2
-Pcandle2.name = "Pcandle2"
-Pcandle3 = Pcandle**3
-Pcandle3.name = "Pcandle3"
-dcandle2 = dcandle**2
-dcandle2.name = "dcandle2"
-dcandle3 = dcandle**3
-dcandle3.name = "dcandle3"
-Gcandle2 = Gcandle**2
-Gcandle2.name = "Gcandle2"
-Gcandle3 = Gcandle**3
-Gcandle3.name = "Gcandle3"
-fcandle2 = fcandle**2
-fcandle2.name = "fcandle2"
-fcandle3 = fcandle**3
-fcandle3.name = "fcandle3"
-hcandle2 = hcandle**2
-hcandle2.name = "hcandle2"
-hcandle3 = hcandle**3
-hcandle3.name = "hcandle3"
-dacandle2 = dacandle**2
-dacandle2.name = "dacandle2"
-dacandle3 = dacandle**3
-dacandle3.name = "dacandle3"
-mcandle2 = mcandle**2
-mcandle2.name = "mcandle2"
-mcandle3 = mcandle**3
-mcandle3.name = "mcandle3"
-ncandle2 = ncandle**2
-ncandle2.name = "ncandle2"
-ncandle3 = ncandle**3
-ncandle3.name = "ncandle3"
-pcandle2 = pcandle**2
-pcandle2.name = "pcandle2"
-pcandle3 = pcandle**3
-pcandle3.name = "pcandle3"
-ucandle2 = ucandle**2
-ucandle2.name = "ucandle2"
-ucandle3 = ucandle**3
-ucandle3.name = "ucandle3"
-Tcandle2 = Tcandle**2
-Tcandle2.name = "Tcandle2"
-Tcandle3 = Tcandle**3
-Tcandle3.name = "Tcandle3"
-ycandle2 = ycandle**2
-ycandle2.name = "ycandle2"
-ycandle3 = ycandle**3
-ycandle3.name = "ycandle3"
-Ecandle2 = Ecandle**2
-Ecandle2.name = "Ecandle2"
-Ecandle3 = Ecandle**3
-Ecandle3.name = "Ecandle3"
-zcandle2 = zcandle**2
-zcandle2.name = "zcandle2"
-zcandle3 = zcandle**3
-zcandle3.name = "zcandle3"
-Mcandle2 = Mcandle**2
-Mcandle2.name = "Mcandle2"
-Mcandle3 = Mcandle**3
-Mcandle3.name = "Mcandle3"
-kcandle2 = kcandle**2
-kcandle2.name = "kcandle2"
-kcandle3 = kcandle**3
-kcandle3.name = "kcandle3"
-Ycandle2 = Ycandle**2
-Ycandle2.name = "Ycandle2"
-Ycandle3 = Ycandle**3
-Ycandle3.name = "Ycandle3"
-akilogramme2 = akilogramme**2
-akilogramme2.name = "akilogramme2"
-akilogramme3 = akilogramme**3
-akilogramme3.name = "akilogramme3"
-ckilogramme2 = ckilogramme**2
-ckilogramme2.name = "ckilogramme2"
-ckilogramme3 = ckilogramme**3
-ckilogramme3.name = "ckilogramme3"
-Zkilogramme2 = Zkilogramme**2
-Zkilogramme2.name = "Zkilogramme2"
-Zkilogramme3 = Zkilogramme**3
-Zkilogramme3.name = "Zkilogramme3"
-Pkilogramme2 = Pkilogramme**2
-Pkilogramme2.name = "Pkilogramme2"
-Pkilogramme3 = Pkilogramme**3
-Pkilogramme3.name = "Pkilogramme3"
-dkilogramme2 = dkilogramme**2
-dkilogramme2.name = "dkilogramme2"
-dkilogramme3 = dkilogramme**3
-dkilogramme3.name = "dkilogramme3"
-Gkilogramme2 = Gkilogramme**2
-Gkilogramme2.name = "Gkilogramme2"
-Gkilogramme3 = Gkilogramme**3
-Gkilogramme3.name = "Gkilogramme3"
-fkilogramme2 = fkilogramme**2
-fkilogramme2.name = "fkilogramme2"
-fkilogramme3 = fkilogramme**3
-fkilogramme3.name = "fkilogramme3"
-hkilogramme2 = hkilogramme**2
-hkilogramme2.name = "hkilogramme2"
-hkilogramme3 = hkilogramme**3
-hkilogramme3.name = "hkilogramme3"
-dakilogramme2 = dakilogramme**2
-dakilogramme2.name = "dakilogramme2"
-dakilogramme3 = dakilogramme**3
-dakilogramme3.name = "dakilogramme3"
-mkilogramme2 = mkilogramme**2
-mkilogramme2.name = "mkilogramme2"
-mkilogramme3 = mkilogramme**3
-mkilogramme3.name = "mkilogramme3"
-nkilogramme2 = nkilogramme**2
-nkilogramme2.name = "nkilogramme2"
-nkilogramme3 = nkilogramme**3
-nkilogramme3.name = "nkilogramme3"
-pkilogramme2 = pkilogramme**2
-pkilogramme2.name = "pkilogramme2"
-pkilogramme3 = pkilogramme**3
-pkilogramme3.name = "pkilogramme3"
-ukilogramme2 = ukilogramme**2
-ukilogramme2.name = "ukilogramme2"
-ukilogramme3 = ukilogramme**3
-ukilogramme3.name = "ukilogramme3"
-Tkilogramme2 = Tkilogramme**2
-Tkilogramme2.name = "Tkilogramme2"
-Tkilogramme3 = Tkilogramme**3
-Tkilogramme3.name = "Tkilogramme3"
-ykilogramme2 = ykilogramme**2
-ykilogramme2.name = "ykilogramme2"
-ykilogramme3 = ykilogramme**3
-ykilogramme3.name = "ykilogramme3"
-Ekilogramme2 = Ekilogramme**2
-Ekilogramme2.name = "Ekilogramme2"
-Ekilogramme3 = Ekilogramme**3
-Ekilogramme3.name = "Ekilogramme3"
-zkilogramme2 = zkilogramme**2
-zkilogramme2.name = "zkilogramme2"
-zkilogramme3 = zkilogramme**3
-zkilogramme3.name = "zkilogramme3"
-Mkilogramme2 = Mkilogramme**2
-Mkilogramme2.name = "Mkilogramme2"
-Mkilogramme3 = Mkilogramme**3
-Mkilogramme3.name = "Mkilogramme3"
-kkilogramme2 = kkilogramme**2
-kkilogramme2.name = "kkilogramme2"
-kkilogramme3 = kkilogramme**3
-kkilogramme3.name = "kkilogramme3"
-Ykilogramme2 = Ykilogramme**2
-Ykilogramme2.name = "Ykilogramme2"
-Ykilogramme3 = Ykilogramme**3
-Ykilogramme3.name = "Ykilogramme3"
-agram2 = agram**2
-agram2.name = "agram2"
-agram3 = agram**3
-agram3.name = "agram3"
-cgram2 = cgram**2
-cgram2.name = "cgram2"
-cgram3 = cgram**3
-cgram3.name = "cgram3"
-Zgram2 = Zgram**2
-Zgram2.name = "Zgram2"
-Zgram3 = Zgram**3
-Zgram3.name = "Zgram3"
-Pgram2 = Pgram**2
-Pgram2.name = "Pgram2"
-Pgram3 = Pgram**3
-Pgram3.name = "Pgram3"
-dgram2 = dgram**2
-dgram2.name = "dgram2"
-dgram3 = dgram**3
-dgram3.name = "dgram3"
-Ggram2 = Ggram**2
-Ggram2.name = "Ggram2"
-Ggram3 = Ggram**3
-Ggram3.name = "Ggram3"
-fgram2 = fgram**2
-fgram2.name = "fgram2"
-fgram3 = fgram**3
-fgram3.name = "fgram3"
-hgram2 = hgram**2
-hgram2.name = "hgram2"
-hgram3 = hgram**3
-hgram3.name = "hgram3"
-dagram2 = dagram**2
-dagram2.name = "dagram2"
-dagram3 = dagram**3
-dagram3.name = "dagram3"
-mgram2 = mgram**2
-mgram2.name = "mgram2"
-mgram3 = mgram**3
-mgram3.name = "mgram3"
-ngram2 = ngram**2
-ngram2.name = "ngram2"
-ngram3 = ngram**3
-ngram3.name = "ngram3"
-pgram2 = pgram**2
-pgram2.name = "pgram2"
-pgram3 = pgram**3
-pgram3.name = "pgram3"
-ugram2 = ugram**2
-ugram2.name = "ugram2"
-ugram3 = ugram**3
-ugram3.name = "ugram3"
-Tgram2 = Tgram**2
-Tgram2.name = "Tgram2"
-Tgram3 = Tgram**3
-Tgram3.name = "Tgram3"
-ygram2 = ygram**2
-ygram2.name = "ygram2"
-ygram3 = ygram**3
-ygram3.name = "ygram3"
-Egram2 = Egram**2
-Egram2.name = "Egram2"
-Egram3 = Egram**3
-Egram3.name = "Egram3"
-zgram2 = zgram**2
-zgram2.name = "zgram2"
-zgram3 = zgram**3
-zgram3.name = "zgram3"
-Mgram2 = Mgram**2
-Mgram2.name = "Mgram2"
-Mgram3 = Mgram**3
-Mgram3.name = "Mgram3"
-kgram2 = kgram**2
-kgram2.name = "kgram2"
-kgram3 = kgram**3
-kgram3.name = "kgram3"
-Ygram2 = Ygram**2
-Ygram2.name = "Ygram2"
-Ygram3 = Ygram**3
-Ygram3.name = "Ygram3"
-agramme2 = agramme**2
-agramme2.name = "agramme2"
-agramme3 = agramme**3
-agramme3.name = "agramme3"
-cgramme2 = cgramme**2
-cgramme2.name = "cgramme2"
-cgramme3 = cgramme**3
-cgramme3.name = "cgramme3"
-Zgramme2 = Zgramme**2
-Zgramme2.name = "Zgramme2"
-Zgramme3 = Zgramme**3
-Zgramme3.name = "Zgramme3"
-Pgramme2 = Pgramme**2
-Pgramme2.name = "Pgramme2"
-Pgramme3 = Pgramme**3
-Pgramme3.name = "Pgramme3"
-dgramme2 = dgramme**2
-dgramme2.name = "dgramme2"
-dgramme3 = dgramme**3
-dgramme3.name = "dgramme3"
-Ggramme2 = Ggramme**2
-Ggramme2.name = "Ggramme2"
-Ggramme3 = Ggramme**3
-Ggramme3.name = "Ggramme3"
-fgramme2 = fgramme**2
-fgramme2.name = "fgramme2"
-fgramme3 = fgramme**3
-fgramme3.name = "fgramme3"
-hgramme2 = hgramme**2
-hgramme2.name = "hgramme2"
-hgramme3 = hgramme**3
-hgramme3.name = "hgramme3"
-dagramme2 = dagramme**2
-dagramme2.name = "dagramme2"
-dagramme3 = dagramme**3
-dagramme3.name = "dagramme3"
-mgramme2 = mgramme**2
-mgramme2.name = "mgramme2"
-mgramme3 = mgramme**3
-mgramme3.name = "mgramme3"
-ngramme2 = ngramme**2
-ngramme2.name = "ngramme2"
-ngramme3 = ngramme**3
-ngramme3.name = "ngramme3"
-pgramme2 = pgramme**2
-pgramme2.name = "pgramme2"
-pgramme3 = pgramme**3
-pgramme3.name = "pgramme3"
-ugramme2 = ugramme**2
-ugramme2.name = "ugramme2"
-ugramme3 = ugramme**3
-ugramme3.name = "ugramme3"
-Tgramme2 = Tgramme**2
-Tgramme2.name = "Tgramme2"
-Tgramme3 = Tgramme**3
-Tgramme3.name = "Tgramme3"
-ygramme2 = ygramme**2
-ygramme2.name = "ygramme2"
-ygramme3 = ygramme**3
-ygramme3.name = "ygramme3"
-Egramme2 = Egramme**2
-Egramme2.name = "Egramme2"
-Egramme3 = Egramme**3
-Egramme3.name = "Egramme3"
-zgramme2 = zgramme**2
-zgramme2.name = "zgramme2"
-zgramme3 = zgramme**3
-zgramme3.name = "zgramme3"
-Mgramme2 = Mgramme**2
-Mgramme2.name = "Mgramme2"
-Mgramme3 = Mgramme**3
-Mgramme3.name = "Mgramme3"
-kgramme2 = kgramme**2
-kgramme2.name = "kgramme2"
-kgramme3 = kgramme**3
-kgramme3.name = "kgramme3"
-Ygramme2 = Ygramme**2
-Ygramme2.name = "Ygramme2"
-Ygramme3 = Ygramme**3
-Ygramme3.name = "Ygramme3"
-amolar2 = amolar**2
-amolar2.name = "amolar2"
-amolar3 = amolar**3
-amolar3.name = "amolar3"
-cmolar2 = cmolar**2
-cmolar2.name = "cmolar2"
-cmolar3 = cmolar**3
-cmolar3.name = "cmolar3"
-Zmolar2 = Zmolar**2
-Zmolar2.name = "Zmolar2"
-Zmolar3 = Zmolar**3
-Zmolar3.name = "Zmolar3"
-Pmolar2 = Pmolar**2
-Pmolar2.name = "Pmolar2"
-Pmolar3 = Pmolar**3
-Pmolar3.name = "Pmolar3"
-dmolar2 = dmolar**2
-dmolar2.name = "dmolar2"
-dmolar3 = dmolar**3
-dmolar3.name = "dmolar3"
-Gmolar2 = Gmolar**2
-Gmolar2.name = "Gmolar2"
-Gmolar3 = Gmolar**3
-Gmolar3.name = "Gmolar3"
-fmolar2 = fmolar**2
-fmolar2.name = "fmolar2"
-fmolar3 = fmolar**3
-fmolar3.name = "fmolar3"
-hmolar2 = hmolar**2
-hmolar2.name = "hmolar2"
-hmolar3 = hmolar**3
-hmolar3.name = "hmolar3"
-damolar2 = damolar**2
-damolar2.name = "damolar2"
-damolar3 = damolar**3
-damolar3.name = "damolar3"
-mmolar2 = mmolar**2
-mmolar2.name = "mmolar2"
-mmolar3 = mmolar**3
-mmolar3.name = "mmolar3"
-nmolar2 = nmolar**2
-nmolar2.name = "nmolar2"
-nmolar3 = nmolar**3
-nmolar3.name = "nmolar3"
-pmolar2 = pmolar**2
-pmolar2.name = "pmolar2"
-pmolar3 = pmolar**3
-pmolar3.name = "pmolar3"
-umolar2 = umolar**2
-umolar2.name = "umolar2"
-umolar3 = umolar**3
-umolar3.name = "umolar3"
-Tmolar2 = Tmolar**2
-Tmolar2.name = "Tmolar2"
-Tmolar3 = Tmolar**3
-Tmolar3.name = "Tmolar3"
-ymolar2 = ymolar**2
-ymolar2.name = "ymolar2"
-ymolar3 = ymolar**3
-ymolar3.name = "ymolar3"
-Emolar2 = Emolar**2
-Emolar2.name = "Emolar2"
-Emolar3 = Emolar**3
-Emolar3.name = "Emolar3"
-zmolar2 = zmolar**2
-zmolar2.name = "zmolar2"
-zmolar3 = zmolar**3
-zmolar3.name = "zmolar3"
-Mmolar2 = Mmolar**2
-Mmolar2.name = "Mmolar2"
-Mmolar3 = Mmolar**3
-Mmolar3.name = "Mmolar3"
-kmolar2 = kmolar**2
-kmolar2.name = "kmolar2"
-kmolar3 = kmolar**3
-kmolar3.name = "kmolar3"
-Ymolar2 = Ymolar**2
-Ymolar2.name = "Ymolar2"
-Ymolar3 = Ymolar**3
-Ymolar3.name = "Ymolar3"
-aradian2 = aradian**2
-aradian2.name = "aradian2"
-aradian3 = aradian**3
-aradian3.name = "aradian3"
-cradian2 = cradian**2
-cradian2.name = "cradian2"
-cradian3 = cradian**3
-cradian3.name = "cradian3"
-Zradian2 = Zradian**2
-Zradian2.name = "Zradian2"
-Zradian3 = Zradian**3
-Zradian3.name = "Zradian3"
-Pradian2 = Pradian**2
-Pradian2.name = "Pradian2"
-Pradian3 = Pradian**3
-Pradian3.name = "Pradian3"
-dradian2 = dradian**2
-dradian2.name = "dradian2"
-dradian3 = dradian**3
-dradian3.name = "dradian3"
-Gradian2 = Gradian**2
-Gradian2.name = "Gradian2"
-Gradian3 = Gradian**3
-Gradian3.name = "Gradian3"
-fradian2 = fradian**2
-fradian2.name = "fradian2"
-fradian3 = fradian**3
-fradian3.name = "fradian3"
-hradian2 = hradian**2
-hradian2.name = "hradian2"
-hradian3 = hradian**3
-hradian3.name = "hradian3"
-daradian2 = daradian**2
-daradian2.name = "daradian2"
-daradian3 = daradian**3
-daradian3.name = "daradian3"
-mradian2 = mradian**2
-mradian2.name = "mradian2"
-mradian3 = mradian**3
-mradian3.name = "mradian3"
-nradian2 = nradian**2
-nradian2.name = "nradian2"
-nradian3 = nradian**3
-nradian3.name = "nradian3"
-pradian2 = pradian**2
-pradian2.name = "pradian2"
-pradian3 = pradian**3
-pradian3.name = "pradian3"
-uradian2 = uradian**2
-uradian2.name = "uradian2"
-uradian3 = uradian**3
-uradian3.name = "uradian3"
-Tradian2 = Tradian**2
-Tradian2.name = "Tradian2"
-Tradian3 = Tradian**3
-Tradian3.name = "Tradian3"
-yradian2 = yradian**2
-yradian2.name = "yradian2"
-yradian3 = yradian**3
-yradian3.name = "yradian3"
-Eradian2 = Eradian**2
-Eradian2.name = "Eradian2"
-Eradian3 = Eradian**3
-Eradian3.name = "Eradian3"
-zradian2 = zradian**2
-zradian2.name = "zradian2"
-zradian3 = zradian**3
-zradian3.name = "zradian3"
-Mradian2 = Mradian**2
-Mradian2.name = "Mradian2"
-Mradian3 = Mradian**3
-Mradian3.name = "Mradian3"
-kradian2 = kradian**2
-kradian2.name = "kradian2"
-kradian3 = kradian**3
-kradian3.name = "kradian3"
-Yradian2 = Yradian**2
-Yradian2.name = "Yradian2"
-Yradian3 = Yradian**3
-Yradian3.name = "Yradian3"
-asteradian2 = asteradian**2
-asteradian2.name = "asteradian2"
-asteradian3 = asteradian**3
-asteradian3.name = "asteradian3"
-csteradian2 = csteradian**2
-csteradian2.name = "csteradian2"
-csteradian3 = csteradian**3
-csteradian3.name = "csteradian3"
-Zsteradian2 = Zsteradian**2
-Zsteradian2.name = "Zsteradian2"
-Zsteradian3 = Zsteradian**3
-Zsteradian3.name = "Zsteradian3"
-Psteradian2 = Psteradian**2
-Psteradian2.name = "Psteradian2"
-Psteradian3 = Psteradian**3
-Psteradian3.name = "Psteradian3"
-dsteradian2 = dsteradian**2
-dsteradian2.name = "dsteradian2"
-dsteradian3 = dsteradian**3
-dsteradian3.name = "dsteradian3"
-Gsteradian2 = Gsteradian**2
-Gsteradian2.name = "Gsteradian2"
-Gsteradian3 = Gsteradian**3
-Gsteradian3.name = "Gsteradian3"
-fsteradian2 = fsteradian**2
-fsteradian2.name = "fsteradian2"
-fsteradian3 = fsteradian**3
-fsteradian3.name = "fsteradian3"
-hsteradian2 = hsteradian**2
-hsteradian2.name = "hsteradian2"
-hsteradian3 = hsteradian**3
-hsteradian3.name = "hsteradian3"
-dasteradian2 = dasteradian**2
-dasteradian2.name = "dasteradian2"
-dasteradian3 = dasteradian**3
-dasteradian3.name = "dasteradian3"
-msteradian2 = msteradian**2
-msteradian2.name = "msteradian2"
-msteradian3 = msteradian**3
-msteradian3.name = "msteradian3"
-nsteradian2 = nsteradian**2
-nsteradian2.name = "nsteradian2"
-nsteradian3 = nsteradian**3
-nsteradian3.name = "nsteradian3"
-psteradian2 = psteradian**2
-psteradian2.name = "psteradian2"
-psteradian3 = psteradian**3
-psteradian3.name = "psteradian3"
-usteradian2 = usteradian**2
-usteradian2.name = "usteradian2"
-usteradian3 = usteradian**3
-usteradian3.name = "usteradian3"
-Tsteradian2 = Tsteradian**2
-Tsteradian2.name = "Tsteradian2"
-Tsteradian3 = Tsteradian**3
-Tsteradian3.name = "Tsteradian3"
-ysteradian2 = ysteradian**2
-ysteradian2.name = "ysteradian2"
-ysteradian3 = ysteradian**3
-ysteradian3.name = "ysteradian3"
-Esteradian2 = Esteradian**2
-Esteradian2.name = "Esteradian2"
-Esteradian3 = Esteradian**3
-Esteradian3.name = "Esteradian3"
-zsteradian2 = zsteradian**2
-zsteradian2.name = "zsteradian2"
-zsteradian3 = zsteradian**3
-zsteradian3.name = "zsteradian3"
-Msteradian2 = Msteradian**2
-Msteradian2.name = "Msteradian2"
-Msteradian3 = Msteradian**3
-Msteradian3.name = "Msteradian3"
-ksteradian2 = ksteradian**2
-ksteradian2.name = "ksteradian2"
-ksteradian3 = ksteradian**3
-ksteradian3.name = "ksteradian3"
-Ysteradian2 = Ysteradian**2
-Ysteradian2.name = "Ysteradian2"
-Ysteradian3 = Ysteradian**3
-Ysteradian3.name = "Ysteradian3"
-ahertz2 = ahertz**2
-ahertz2.name = "ahertz2"
-ahertz3 = ahertz**3
-ahertz3.name = "ahertz3"
-chertz2 = chertz**2
-chertz2.name = "chertz2"
-chertz3 = chertz**3
-chertz3.name = "chertz3"
-Zhertz2 = Zhertz**2
-Zhertz2.name = "Zhertz2"
-Zhertz3 = Zhertz**3
-Zhertz3.name = "Zhertz3"
-Phertz2 = Phertz**2
-Phertz2.name = "Phertz2"
-Phertz3 = Phertz**3
-Phertz3.name = "Phertz3"
-dhertz2 = dhertz**2
-dhertz2.name = "dhertz2"
-dhertz3 = dhertz**3
-dhertz3.name = "dhertz3"
-Ghertz2 = Ghertz**2
-Ghertz2.name = "Ghertz2"
-Ghertz3 = Ghertz**3
-Ghertz3.name = "Ghertz3"
-fhertz2 = fhertz**2
-fhertz2.name = "fhertz2"
-fhertz3 = fhertz**3
-fhertz3.name = "fhertz3"
-hhertz2 = hhertz**2
-hhertz2.name = "hhertz2"
-hhertz3 = hhertz**3
-hhertz3.name = "hhertz3"
-dahertz2 = dahertz**2
-dahertz2.name = "dahertz2"
-dahertz3 = dahertz**3
-dahertz3.name = "dahertz3"
-mhertz2 = mhertz**2
-mhertz2.name = "mhertz2"
-mhertz3 = mhertz**3
-mhertz3.name = "mhertz3"
-nhertz2 = nhertz**2
-nhertz2.name = "nhertz2"
-nhertz3 = nhertz**3
-nhertz3.name = "nhertz3"
-phertz2 = phertz**2
-phertz2.name = "phertz2"
-phertz3 = phertz**3
-phertz3.name = "phertz3"
-uhertz2 = uhertz**2
-uhertz2.name = "uhertz2"
-uhertz3 = uhertz**3
-uhertz3.name = "uhertz3"
-Thertz2 = Thertz**2
-Thertz2.name = "Thertz2"
-Thertz3 = Thertz**3
-Thertz3.name = "Thertz3"
-yhertz2 = yhertz**2
-yhertz2.name = "yhertz2"
-yhertz3 = yhertz**3
-yhertz3.name = "yhertz3"
-Ehertz2 = Ehertz**2
-Ehertz2.name = "Ehertz2"
-Ehertz3 = Ehertz**3
-Ehertz3.name = "Ehertz3"
-zhertz2 = zhertz**2
-zhertz2.name = "zhertz2"
-zhertz3 = zhertz**3
-zhertz3.name = "zhertz3"
-Mhertz2 = Mhertz**2
-Mhertz2.name = "Mhertz2"
-Mhertz3 = Mhertz**3
-Mhertz3.name = "Mhertz3"
-khertz2 = khertz**2
-khertz2.name = "khertz2"
-khertz3 = khertz**3
-khertz3.name = "khertz3"
-Yhertz2 = Yhertz**2
-Yhertz2.name = "Yhertz2"
-Yhertz3 = Yhertz**3
-Yhertz3.name = "Yhertz3"
-anewton2 = anewton**2
-anewton2.name = "anewton2"
-anewton3 = anewton**3
-anewton3.name = "anewton3"
-cnewton2 = cnewton**2
-cnewton2.name = "cnewton2"
-cnewton3 = cnewton**3
-cnewton3.name = "cnewton3"
-Znewton2 = Znewton**2
-Znewton2.name = "Znewton2"
-Znewton3 = Znewton**3
-Znewton3.name = "Znewton3"
-Pnewton2 = Pnewton**2
-Pnewton2.name = "Pnewton2"
-Pnewton3 = Pnewton**3
-Pnewton3.name = "Pnewton3"
-dnewton2 = dnewton**2
-dnewton2.name = "dnewton2"
-dnewton3 = dnewton**3
-dnewton3.name = "dnewton3"
-Gnewton2 = Gnewton**2
-Gnewton2.name = "Gnewton2"
-Gnewton3 = Gnewton**3
-Gnewton3.name = "Gnewton3"
-fnewton2 = fnewton**2
-fnewton2.name = "fnewton2"
-fnewton3 = fnewton**3
-fnewton3.name = "fnewton3"
-hnewton2 = hnewton**2
-hnewton2.name = "hnewton2"
-hnewton3 = hnewton**3
-hnewton3.name = "hnewton3"
-danewton2 = danewton**2
-danewton2.name = "danewton2"
-danewton3 = danewton**3
-danewton3.name = "danewton3"
-mnewton2 = mnewton**2
-mnewton2.name = "mnewton2"
-mnewton3 = mnewton**3
-mnewton3.name = "mnewton3"
-nnewton2 = nnewton**2
-nnewton2.name = "nnewton2"
-nnewton3 = nnewton**3
-nnewton3.name = "nnewton3"
-pnewton2 = pnewton**2
-pnewton2.name = "pnewton2"
-pnewton3 = pnewton**3
-pnewton3.name = "pnewton3"
-unewton2 = unewton**2
-unewton2.name = "unewton2"
-unewton3 = unewton**3
-unewton3.name = "unewton3"
-Tnewton2 = Tnewton**2
-Tnewton2.name = "Tnewton2"
-Tnewton3 = Tnewton**3
-Tnewton3.name = "Tnewton3"
-ynewton2 = ynewton**2
-ynewton2.name = "ynewton2"
-ynewton3 = ynewton**3
-ynewton3.name = "ynewton3"
-Enewton2 = Enewton**2
-Enewton2.name = "Enewton2"
-Enewton3 = Enewton**3
-Enewton3.name = "Enewton3"
-znewton2 = znewton**2
-znewton2.name = "znewton2"
-znewton3 = znewton**3
-znewton3.name = "znewton3"
-Mnewton2 = Mnewton**2
-Mnewton2.name = "Mnewton2"
-Mnewton3 = Mnewton**3
-Mnewton3.name = "Mnewton3"
-knewton2 = knewton**2
-knewton2.name = "knewton2"
-knewton3 = knewton**3
-knewton3.name = "knewton3"
-Ynewton2 = Ynewton**2
-Ynewton2.name = "Ynewton2"
-Ynewton3 = Ynewton**3
-Ynewton3.name = "Ynewton3"
-apascal2 = apascal**2
-apascal2.name = "apascal2"
-apascal3 = apascal**3
-apascal3.name = "apascal3"
-cpascal2 = cpascal**2
-cpascal2.name = "cpascal2"
-cpascal3 = cpascal**3
-cpascal3.name = "cpascal3"
-Zpascal2 = Zpascal**2
-Zpascal2.name = "Zpascal2"
-Zpascal3 = Zpascal**3
-Zpascal3.name = "Zpascal3"
-Ppascal2 = Ppascal**2
-Ppascal2.name = "Ppascal2"
-Ppascal3 = Ppascal**3
-Ppascal3.name = "Ppascal3"
-dpascal2 = dpascal**2
-dpascal2.name = "dpascal2"
-dpascal3 = dpascal**3
-dpascal3.name = "dpascal3"
-Gpascal2 = Gpascal**2
-Gpascal2.name = "Gpascal2"
-Gpascal3 = Gpascal**3
-Gpascal3.name = "Gpascal3"
-fpascal2 = fpascal**2
-fpascal2.name = "fpascal2"
-fpascal3 = fpascal**3
-fpascal3.name = "fpascal3"
-hpascal2 = hpascal**2
-hpascal2.name = "hpascal2"
-hpascal3 = hpascal**3
-hpascal3.name = "hpascal3"
-dapascal2 = dapascal**2
-dapascal2.name = "dapascal2"
-dapascal3 = dapascal**3
-dapascal3.name = "dapascal3"
-mpascal2 = mpascal**2
-mpascal2.name = "mpascal2"
-mpascal3 = mpascal**3
-mpascal3.name = "mpascal3"
-npascal2 = npascal**2
-npascal2.name = "npascal2"
-npascal3 = npascal**3
-npascal3.name = "npascal3"
-ppascal2 = ppascal**2
-ppascal2.name = "ppascal2"
-ppascal3 = ppascal**3
-ppascal3.name = "ppascal3"
-upascal2 = upascal**2
-upascal2.name = "upascal2"
-upascal3 = upascal**3
-upascal3.name = "upascal3"
-Tpascal2 = Tpascal**2
-Tpascal2.name = "Tpascal2"
-Tpascal3 = Tpascal**3
-Tpascal3.name = "Tpascal3"
-ypascal2 = ypascal**2
-ypascal2.name = "ypascal2"
-ypascal3 = ypascal**3
-ypascal3.name = "ypascal3"
-Epascal2 = Epascal**2
-Epascal2.name = "Epascal2"
-Epascal3 = Epascal**3
-Epascal3.name = "Epascal3"
-zpascal2 = zpascal**2
-zpascal2.name = "zpascal2"
-zpascal3 = zpascal**3
-zpascal3.name = "zpascal3"
-Mpascal2 = Mpascal**2
-Mpascal2.name = "Mpascal2"
-Mpascal3 = Mpascal**3
-Mpascal3.name = "Mpascal3"
-kpascal2 = kpascal**2
-kpascal2.name = "kpascal2"
-kpascal3 = kpascal**3
-kpascal3.name = "kpascal3"
-Ypascal2 = Ypascal**2
-Ypascal2.name = "Ypascal2"
-Ypascal3 = Ypascal**3
-Ypascal3.name = "Ypascal3"
-ajoule2 = ajoule**2
-ajoule2.name = "ajoule2"
-ajoule3 = ajoule**3
-ajoule3.name = "ajoule3"
-cjoule2 = cjoule**2
-cjoule2.name = "cjoule2"
-cjoule3 = cjoule**3
-cjoule3.name = "cjoule3"
-Zjoule2 = Zjoule**2
-Zjoule2.name = "Zjoule2"
-Zjoule3 = Zjoule**3
-Zjoule3.name = "Zjoule3"
-Pjoule2 = Pjoule**2
-Pjoule2.name = "Pjoule2"
-Pjoule3 = Pjoule**3
-Pjoule3.name = "Pjoule3"
-djoule2 = djoule**2
-djoule2.name = "djoule2"
-djoule3 = djoule**3
-djoule3.name = "djoule3"
-Gjoule2 = Gjoule**2
-Gjoule2.name = "Gjoule2"
-Gjoule3 = Gjoule**3
-Gjoule3.name = "Gjoule3"
-fjoule2 = fjoule**2
-fjoule2.name = "fjoule2"
-fjoule3 = fjoule**3
-fjoule3.name = "fjoule3"
-hjoule2 = hjoule**2
-hjoule2.name = "hjoule2"
-hjoule3 = hjoule**3
-hjoule3.name = "hjoule3"
-dajoule2 = dajoule**2
-dajoule2.name = "dajoule2"
-dajoule3 = dajoule**3
-dajoule3.name = "dajoule3"
-mjoule2 = mjoule**2
-mjoule2.name = "mjoule2"
-mjoule3 = mjoule**3
-mjoule3.name = "mjoule3"
-njoule2 = njoule**2
-njoule2.name = "njoule2"
-njoule3 = njoule**3
-njoule3.name = "njoule3"
-pjoule2 = pjoule**2
-pjoule2.name = "pjoule2"
-pjoule3 = pjoule**3
-pjoule3.name = "pjoule3"
-ujoule2 = ujoule**2
-ujoule2.name = "ujoule2"
-ujoule3 = ujoule**3
-ujoule3.name = "ujoule3"
-Tjoule2 = Tjoule**2
-Tjoule2.name = "Tjoule2"
-Tjoule3 = Tjoule**3
-Tjoule3.name = "Tjoule3"
-yjoule2 = yjoule**2
-yjoule2.name = "yjoule2"
-yjoule3 = yjoule**3
-yjoule3.name = "yjoule3"
-Ejoule2 = Ejoule**2
-Ejoule2.name = "Ejoule2"
-Ejoule3 = Ejoule**3
-Ejoule3.name = "Ejoule3"
-zjoule2 = zjoule**2
-zjoule2.name = "zjoule2"
-zjoule3 = zjoule**3
-zjoule3.name = "zjoule3"
-Mjoule2 = Mjoule**2
-Mjoule2.name = "Mjoule2"
-Mjoule3 = Mjoule**3
-Mjoule3.name = "Mjoule3"
-kjoule2 = kjoule**2
-kjoule2.name = "kjoule2"
-kjoule3 = kjoule**3
-kjoule3.name = "kjoule3"
-Yjoule2 = Yjoule**2
-Yjoule2.name = "Yjoule2"
-Yjoule3 = Yjoule**3
-Yjoule3.name = "Yjoule3"
-awatt2 = awatt**2
-awatt2.name = "awatt2"
-awatt3 = awatt**3
-awatt3.name = "awatt3"
-cwatt2 = cwatt**2
-cwatt2.name = "cwatt2"
-cwatt3 = cwatt**3
-cwatt3.name = "cwatt3"
-Zwatt2 = Zwatt**2
-Zwatt2.name = "Zwatt2"
-Zwatt3 = Zwatt**3
-Zwatt3.name = "Zwatt3"
-Pwatt2 = Pwatt**2
-Pwatt2.name = "Pwatt2"
-Pwatt3 = Pwatt**3
-Pwatt3.name = "Pwatt3"
-dwatt2 = dwatt**2
-dwatt2.name = "dwatt2"
-dwatt3 = dwatt**3
-dwatt3.name = "dwatt3"
-Gwatt2 = Gwatt**2
-Gwatt2.name = "Gwatt2"
-Gwatt3 = Gwatt**3
-Gwatt3.name = "Gwatt3"
-fwatt2 = fwatt**2
-fwatt2.name = "fwatt2"
-fwatt3 = fwatt**3
-fwatt3.name = "fwatt3"
-hwatt2 = hwatt**2
-hwatt2.name = "hwatt2"
-hwatt3 = hwatt**3
-hwatt3.name = "hwatt3"
-dawatt2 = dawatt**2
-dawatt2.name = "dawatt2"
-dawatt3 = dawatt**3
-dawatt3.name = "dawatt3"
-mwatt2 = mwatt**2
-mwatt2.name = "mwatt2"
-mwatt3 = mwatt**3
-mwatt3.name = "mwatt3"
-nwatt2 = nwatt**2
-nwatt2.name = "nwatt2"
-nwatt3 = nwatt**3
-nwatt3.name = "nwatt3"
-pwatt2 = pwatt**2
-pwatt2.name = "pwatt2"
-pwatt3 = pwatt**3
-pwatt3.name = "pwatt3"
-uwatt2 = uwatt**2
-uwatt2.name = "uwatt2"
-uwatt3 = uwatt**3
-uwatt3.name = "uwatt3"
-Twatt2 = Twatt**2
-Twatt2.name = "Twatt2"
-Twatt3 = Twatt**3
-Twatt3.name = "Twatt3"
-ywatt2 = ywatt**2
-ywatt2.name = "ywatt2"
-ywatt3 = ywatt**3
-ywatt3.name = "ywatt3"
-Ewatt2 = Ewatt**2
-Ewatt2.name = "Ewatt2"
-Ewatt3 = Ewatt**3
-Ewatt3.name = "Ewatt3"
-zwatt2 = zwatt**2
-zwatt2.name = "zwatt2"
-zwatt3 = zwatt**3
-zwatt3.name = "zwatt3"
-Mwatt2 = Mwatt**2
-Mwatt2.name = "Mwatt2"
-Mwatt3 = Mwatt**3
-Mwatt3.name = "Mwatt3"
-kwatt2 = kwatt**2
-kwatt2.name = "kwatt2"
-kwatt3 = kwatt**3
-kwatt3.name = "kwatt3"
-Ywatt2 = Ywatt**2
-Ywatt2.name = "Ywatt2"
-Ywatt3 = Ywatt**3
-Ywatt3.name = "Ywatt3"
-acoulomb2 = acoulomb**2
-acoulomb2.name = "acoulomb2"
-acoulomb3 = acoulomb**3
-acoulomb3.name = "acoulomb3"
-ccoulomb2 = ccoulomb**2
-ccoulomb2.name = "ccoulomb2"
-ccoulomb3 = ccoulomb**3
-ccoulomb3.name = "ccoulomb3"
-Zcoulomb2 = Zcoulomb**2
-Zcoulomb2.name = "Zcoulomb2"
-Zcoulomb3 = Zcoulomb**3
-Zcoulomb3.name = "Zcoulomb3"
-Pcoulomb2 = Pcoulomb**2
-Pcoulomb2.name = "Pcoulomb2"
-Pcoulomb3 = Pcoulomb**3
-Pcoulomb3.name = "Pcoulomb3"
-dcoulomb2 = dcoulomb**2
-dcoulomb2.name = "dcoulomb2"
-dcoulomb3 = dcoulomb**3
-dcoulomb3.name = "dcoulomb3"
-Gcoulomb2 = Gcoulomb**2
-Gcoulomb2.name = "Gcoulomb2"
-Gcoulomb3 = Gcoulomb**3
-Gcoulomb3.name = "Gcoulomb3"
-fcoulomb2 = fcoulomb**2
-fcoulomb2.name = "fcoulomb2"
-fcoulomb3 = fcoulomb**3
-fcoulomb3.name = "fcoulomb3"
-hcoulomb2 = hcoulomb**2
-hcoulomb2.name = "hcoulomb2"
-hcoulomb3 = hcoulomb**3
-hcoulomb3.name = "hcoulomb3"
-dacoulomb2 = dacoulomb**2
-dacoulomb2.name = "dacoulomb2"
-dacoulomb3 = dacoulomb**3
-dacoulomb3.name = "dacoulomb3"
-mcoulomb2 = mcoulomb**2
-mcoulomb2.name = "mcoulomb2"
-mcoulomb3 = mcoulomb**3
-mcoulomb3.name = "mcoulomb3"
-ncoulomb2 = ncoulomb**2
-ncoulomb2.name = "ncoulomb2"
-ncoulomb3 = ncoulomb**3
-ncoulomb3.name = "ncoulomb3"
-pcoulomb2 = pcoulomb**2
-pcoulomb2.name = "pcoulomb2"
-pcoulomb3 = pcoulomb**3
-pcoulomb3.name = "pcoulomb3"
-ucoulomb2 = ucoulomb**2
-ucoulomb2.name = "ucoulomb2"
-ucoulomb3 = ucoulomb**3
-ucoulomb3.name = "ucoulomb3"
-Tcoulomb2 = Tcoulomb**2
-Tcoulomb2.name = "Tcoulomb2"
-Tcoulomb3 = Tcoulomb**3
-Tcoulomb3.name = "Tcoulomb3"
-ycoulomb2 = ycoulomb**2
-ycoulomb2.name = "ycoulomb2"
-ycoulomb3 = ycoulomb**3
-ycoulomb3.name = "ycoulomb3"
-Ecoulomb2 = Ecoulomb**2
-Ecoulomb2.name = "Ecoulomb2"
-Ecoulomb3 = Ecoulomb**3
-Ecoulomb3.name = "Ecoulomb3"
-zcoulomb2 = zcoulomb**2
-zcoulomb2.name = "zcoulomb2"
-zcoulomb3 = zcoulomb**3
-zcoulomb3.name = "zcoulomb3"
-Mcoulomb2 = Mcoulomb**2
-Mcoulomb2.name = "Mcoulomb2"
-Mcoulomb3 = Mcoulomb**3
-Mcoulomb3.name = "Mcoulomb3"
-kcoulomb2 = kcoulomb**2
-kcoulomb2.name = "kcoulomb2"
-kcoulomb3 = kcoulomb**3
-kcoulomb3.name = "kcoulomb3"
-Ycoulomb2 = Ycoulomb**2
-Ycoulomb2.name = "Ycoulomb2"
-Ycoulomb3 = Ycoulomb**3
-Ycoulomb3.name = "Ycoulomb3"
-avolt2 = avolt**2
-avolt2.name = "avolt2"
-avolt3 = avolt**3
-avolt3.name = "avolt3"
-cvolt2 = cvolt**2
-cvolt2.name = "cvolt2"
-cvolt3 = cvolt**3
-cvolt3.name = "cvolt3"
-Zvolt2 = Zvolt**2
-Zvolt2.name = "Zvolt2"
-Zvolt3 = Zvolt**3
-Zvolt3.name = "Zvolt3"
-Pvolt2 = Pvolt**2
-Pvolt2.name = "Pvolt2"
-Pvolt3 = Pvolt**3
-Pvolt3.name = "Pvolt3"
-dvolt2 = dvolt**2
-dvolt2.name = "dvolt2"
-dvolt3 = dvolt**3
-dvolt3.name = "dvolt3"
-Gvolt2 = Gvolt**2
-Gvolt2.name = "Gvolt2"
-Gvolt3 = Gvolt**3
-Gvolt3.name = "Gvolt3"
-fvolt2 = fvolt**2
-fvolt2.name = "fvolt2"
-fvolt3 = fvolt**3
-fvolt3.name = "fvolt3"
-hvolt2 = hvolt**2
-hvolt2.name = "hvolt2"
-hvolt3 = hvolt**3
-hvolt3.name = "hvolt3"
-davolt2 = davolt**2
-davolt2.name = "davolt2"
-davolt3 = davolt**3
-davolt3.name = "davolt3"
-mvolt2 = mvolt**2
-mvolt2.name = "mvolt2"
-mvolt3 = mvolt**3
-mvolt3.name = "mvolt3"
-nvolt2 = nvolt**2
-nvolt2.name = "nvolt2"
-nvolt3 = nvolt**3
-nvolt3.name = "nvolt3"
-pvolt2 = pvolt**2
-pvolt2.name = "pvolt2"
-pvolt3 = pvolt**3
-pvolt3.name = "pvolt3"
-uvolt2 = uvolt**2
-uvolt2.name = "uvolt2"
-uvolt3 = uvolt**3
-uvolt3.name = "uvolt3"
-Tvolt2 = Tvolt**2
-Tvolt2.name = "Tvolt2"
-Tvolt3 = Tvolt**3
-Tvolt3.name = "Tvolt3"
-yvolt2 = yvolt**2
-yvolt2.name = "yvolt2"
-yvolt3 = yvolt**3
-yvolt3.name = "yvolt3"
-Evolt2 = Evolt**2
-Evolt2.name = "Evolt2"
-Evolt3 = Evolt**3
-Evolt3.name = "Evolt3"
-zvolt2 = zvolt**2
-zvolt2.name = "zvolt2"
-zvolt3 = zvolt**3
-zvolt3.name = "zvolt3"
-Mvolt2 = Mvolt**2
-Mvolt2.name = "Mvolt2"
-Mvolt3 = Mvolt**3
-Mvolt3.name = "Mvolt3"
-kvolt2 = kvolt**2
-kvolt2.name = "kvolt2"
-kvolt3 = kvolt**3
-kvolt3.name = "kvolt3"
-Yvolt2 = Yvolt**2
-Yvolt2.name = "Yvolt2"
-Yvolt3 = Yvolt**3
-Yvolt3.name = "Yvolt3"
-afarad2 = afarad**2
-afarad2.name = "afarad2"
-afarad3 = afarad**3
-afarad3.name = "afarad3"
-cfarad2 = cfarad**2
-cfarad2.name = "cfarad2"
-cfarad3 = cfarad**3
-cfarad3.name = "cfarad3"
-Zfarad2 = Zfarad**2
-Zfarad2.name = "Zfarad2"
-Zfarad3 = Zfarad**3
-Zfarad3.name = "Zfarad3"
-Pfarad2 = Pfarad**2
-Pfarad2.name = "Pfarad2"
-Pfarad3 = Pfarad**3
-Pfarad3.name = "Pfarad3"
-dfarad2 = dfarad**2
-dfarad2.name = "dfarad2"
-dfarad3 = dfarad**3
-dfarad3.name = "dfarad3"
-Gfarad2 = Gfarad**2
-Gfarad2.name = "Gfarad2"
-Gfarad3 = Gfarad**3
-Gfarad3.name = "Gfarad3"
-ffarad2 = ffarad**2
-ffarad2.name = "ffarad2"
-ffarad3 = ffarad**3
-ffarad3.name = "ffarad3"
-hfarad2 = hfarad**2
-hfarad2.name = "hfarad2"
-hfarad3 = hfarad**3
-hfarad3.name = "hfarad3"
-dafarad2 = dafarad**2
-dafarad2.name = "dafarad2"
-dafarad3 = dafarad**3
-dafarad3.name = "dafarad3"
-mfarad2 = mfarad**2
-mfarad2.name = "mfarad2"
-mfarad3 = mfarad**3
-mfarad3.name = "mfarad3"
-nfarad2 = nfarad**2
-nfarad2.name = "nfarad2"
-nfarad3 = nfarad**3
-nfarad3.name = "nfarad3"
-pfarad2 = pfarad**2
-pfarad2.name = "pfarad2"
-pfarad3 = pfarad**3
-pfarad3.name = "pfarad3"
-ufarad2 = ufarad**2
-ufarad2.name = "ufarad2"
-ufarad3 = ufarad**3
-ufarad3.name = "ufarad3"
-Tfarad2 = Tfarad**2
-Tfarad2.name = "Tfarad2"
-Tfarad3 = Tfarad**3
-Tfarad3.name = "Tfarad3"
-yfarad2 = yfarad**2
-yfarad2.name = "yfarad2"
-yfarad3 = yfarad**3
-yfarad3.name = "yfarad3"
-Efarad2 = Efarad**2
-Efarad2.name = "Efarad2"
-Efarad3 = Efarad**3
-Efarad3.name = "Efarad3"
-zfarad2 = zfarad**2
-zfarad2.name = "zfarad2"
-zfarad3 = zfarad**3
-zfarad3.name = "zfarad3"
-Mfarad2 = Mfarad**2
-Mfarad2.name = "Mfarad2"
-Mfarad3 = Mfarad**3
-Mfarad3.name = "Mfarad3"
-kfarad2 = kfarad**2
-kfarad2.name = "kfarad2"
-kfarad3 = kfarad**3
-kfarad3.name = "kfarad3"
-Yfarad2 = Yfarad**2
-Yfarad2.name = "Yfarad2"
-Yfarad3 = Yfarad**3
-Yfarad3.name = "Yfarad3"
-aohm2 = aohm**2
-aohm2.name = "aohm2"
-aohm3 = aohm**3
-aohm3.name = "aohm3"
-cohm2 = cohm**2
-cohm2.name = "cohm2"
-cohm3 = cohm**3
-cohm3.name = "cohm3"
-Zohm2 = Zohm**2
-Zohm2.name = "Zohm2"
-Zohm3 = Zohm**3
-Zohm3.name = "Zohm3"
-Pohm2 = Pohm**2
-Pohm2.name = "Pohm2"
-Pohm3 = Pohm**3
-Pohm3.name = "Pohm3"
-dohm2 = dohm**2
-dohm2.name = "dohm2"
-dohm3 = dohm**3
-dohm3.name = "dohm3"
-Gohm2 = Gohm**2
-Gohm2.name = "Gohm2"
-Gohm3 = Gohm**3
-Gohm3.name = "Gohm3"
-fohm2 = fohm**2
-fohm2.name = "fohm2"
-fohm3 = fohm**3
-fohm3.name = "fohm3"
-hohm2 = hohm**2
-hohm2.name = "hohm2"
-hohm3 = hohm**3
-hohm3.name = "hohm3"
-daohm2 = daohm**2
-daohm2.name = "daohm2"
-daohm3 = daohm**3
-daohm3.name = "daohm3"
-mohm2 = mohm**2
-mohm2.name = "mohm2"
-mohm3 = mohm**3
-mohm3.name = "mohm3"
-nohm2 = nohm**2
-nohm2.name = "nohm2"
-nohm3 = nohm**3
-nohm3.name = "nohm3"
-pohm2 = pohm**2
-pohm2.name = "pohm2"
-pohm3 = pohm**3
-pohm3.name = "pohm3"
-uohm2 = uohm**2
-uohm2.name = "uohm2"
-uohm3 = uohm**3
-uohm3.name = "uohm3"
-Tohm2 = Tohm**2
-Tohm2.name = "Tohm2"
-Tohm3 = Tohm**3
-Tohm3.name = "Tohm3"
-yohm2 = yohm**2
-yohm2.name = "yohm2"
-yohm3 = yohm**3
-yohm3.name = "yohm3"
-Eohm2 = Eohm**2
-Eohm2.name = "Eohm2"
-Eohm3 = Eohm**3
-Eohm3.name = "Eohm3"
-zohm2 = zohm**2
-zohm2.name = "zohm2"
-zohm3 = zohm**3
-zohm3.name = "zohm3"
-Mohm2 = Mohm**2
-Mohm2.name = "Mohm2"
-Mohm3 = Mohm**3
-Mohm3.name = "Mohm3"
-kohm2 = kohm**2
-kohm2.name = "kohm2"
-kohm3 = kohm**3
-kohm3.name = "kohm3"
-Yohm2 = Yohm**2
-Yohm2.name = "Yohm2"
-Yohm3 = Yohm**3
-Yohm3.name = "Yohm3"
-asiemens2 = asiemens**2
-asiemens2.name = "asiemens2"
-asiemens3 = asiemens**3
-asiemens3.name = "asiemens3"
-csiemens2 = csiemens**2
-csiemens2.name = "csiemens2"
-csiemens3 = csiemens**3
-csiemens3.name = "csiemens3"
-Zsiemens2 = Zsiemens**2
-Zsiemens2.name = "Zsiemens2"
-Zsiemens3 = Zsiemens**3
-Zsiemens3.name = "Zsiemens3"
-Psiemens2 = Psiemens**2
-Psiemens2.name = "Psiemens2"
-Psiemens3 = Psiemens**3
-Psiemens3.name = "Psiemens3"
-dsiemens2 = dsiemens**2
-dsiemens2.name = "dsiemens2"
-dsiemens3 = dsiemens**3
-dsiemens3.name = "dsiemens3"
-Gsiemens2 = Gsiemens**2
-Gsiemens2.name = "Gsiemens2"
-Gsiemens3 = Gsiemens**3
-Gsiemens3.name = "Gsiemens3"
-fsiemens2 = fsiemens**2
-fsiemens2.name = "fsiemens2"
-fsiemens3 = fsiemens**3
-fsiemens3.name = "fsiemens3"
-hsiemens2 = hsiemens**2
-hsiemens2.name = "hsiemens2"
-hsiemens3 = hsiemens**3
-hsiemens3.name = "hsiemens3"
-dasiemens2 = dasiemens**2
-dasiemens2.name = "dasiemens2"
-dasiemens3 = dasiemens**3
-dasiemens3.name = "dasiemens3"
-msiemens2 = msiemens**2
-msiemens2.name = "msiemens2"
-msiemens3 = msiemens**3
-msiemens3.name = "msiemens3"
-nsiemens2 = nsiemens**2
-nsiemens2.name = "nsiemens2"
-nsiemens3 = nsiemens**3
-nsiemens3.name = "nsiemens3"
-psiemens2 = psiemens**2
-psiemens2.name = "psiemens2"
-psiemens3 = psiemens**3
-psiemens3.name = "psiemens3"
-usiemens2 = usiemens**2
-usiemens2.name = "usiemens2"
-usiemens3 = usiemens**3
-usiemens3.name = "usiemens3"
-Tsiemens2 = Tsiemens**2
-Tsiemens2.name = "Tsiemens2"
-Tsiemens3 = Tsiemens**3
-Tsiemens3.name = "Tsiemens3"
-ysiemens2 = ysiemens**2
-ysiemens2.name = "ysiemens2"
-ysiemens3 = ysiemens**3
-ysiemens3.name = "ysiemens3"
-Esiemens2 = Esiemens**2
-Esiemens2.name = "Esiemens2"
-Esiemens3 = Esiemens**3
-Esiemens3.name = "Esiemens3"
-zsiemens2 = zsiemens**2
-zsiemens2.name = "zsiemens2"
-zsiemens3 = zsiemens**3
-zsiemens3.name = "zsiemens3"
-Msiemens2 = Msiemens**2
-Msiemens2.name = "Msiemens2"
-Msiemens3 = Msiemens**3
-Msiemens3.name = "Msiemens3"
-ksiemens2 = ksiemens**2
-ksiemens2.name = "ksiemens2"
-ksiemens3 = ksiemens**3
-ksiemens3.name = "ksiemens3"
-Ysiemens2 = Ysiemens**2
-Ysiemens2.name = "Ysiemens2"
-Ysiemens3 = Ysiemens**3
-Ysiemens3.name = "Ysiemens3"
-aweber2 = aweber**2
-aweber2.name = "aweber2"
-aweber3 = aweber**3
-aweber3.name = "aweber3"
-cweber2 = cweber**2
-cweber2.name = "cweber2"
-cweber3 = cweber**3
-cweber3.name = "cweber3"
-Zweber2 = Zweber**2
-Zweber2.name = "Zweber2"
-Zweber3 = Zweber**3
-Zweber3.name = "Zweber3"
-Pweber2 = Pweber**2
-Pweber2.name = "Pweber2"
-Pweber3 = Pweber**3
-Pweber3.name = "Pweber3"
-dweber2 = dweber**2
-dweber2.name = "dweber2"
-dweber3 = dweber**3
-dweber3.name = "dweber3"
-Gweber2 = Gweber**2
-Gweber2.name = "Gweber2"
-Gweber3 = Gweber**3
-Gweber3.name = "Gweber3"
-fweber2 = fweber**2
-fweber2.name = "fweber2"
-fweber3 = fweber**3
-fweber3.name = "fweber3"
-hweber2 = hweber**2
-hweber2.name = "hweber2"
-hweber3 = hweber**3
-hweber3.name = "hweber3"
-daweber2 = daweber**2
-daweber2.name = "daweber2"
-daweber3 = daweber**3
-daweber3.name = "daweber3"
-mweber2 = mweber**2
-mweber2.name = "mweber2"
-mweber3 = mweber**3
-mweber3.name = "mweber3"
-nweber2 = nweber**2
-nweber2.name = "nweber2"
-nweber3 = nweber**3
-nweber3.name = "nweber3"
-pweber2 = pweber**2
-pweber2.name = "pweber2"
-pweber3 = pweber**3
-pweber3.name = "pweber3"
-uweber2 = uweber**2
-uweber2.name = "uweber2"
-uweber3 = uweber**3
-uweber3.name = "uweber3"
-Tweber2 = Tweber**2
-Tweber2.name = "Tweber2"
-Tweber3 = Tweber**3
-Tweber3.name = "Tweber3"
-yweber2 = yweber**2
-yweber2.name = "yweber2"
-yweber3 = yweber**3
-yweber3.name = "yweber3"
-Eweber2 = Eweber**2
-Eweber2.name = "Eweber2"
-Eweber3 = Eweber**3
-Eweber3.name = "Eweber3"
-zweber2 = zweber**2
-zweber2.name = "zweber2"
-zweber3 = zweber**3
-zweber3.name = "zweber3"
-Mweber2 = Mweber**2
-Mweber2.name = "Mweber2"
-Mweber3 = Mweber**3
-Mweber3.name = "Mweber3"
-kweber2 = kweber**2
-kweber2.name = "kweber2"
-kweber3 = kweber**3
-kweber3.name = "kweber3"
-Yweber2 = Yweber**2
-Yweber2.name = "Yweber2"
-Yweber3 = Yweber**3
-Yweber3.name = "Yweber3"
-atesla2 = atesla**2
-atesla2.name = "atesla2"
-atesla3 = atesla**3
-atesla3.name = "atesla3"
-ctesla2 = ctesla**2
-ctesla2.name = "ctesla2"
-ctesla3 = ctesla**3
-ctesla3.name = "ctesla3"
-Ztesla2 = Ztesla**2
-Ztesla2.name = "Ztesla2"
-Ztesla3 = Ztesla**3
-Ztesla3.name = "Ztesla3"
-Ptesla2 = Ptesla**2
-Ptesla2.name = "Ptesla2"
-Ptesla3 = Ptesla**3
-Ptesla3.name = "Ptesla3"
-dtesla2 = dtesla**2
-dtesla2.name = "dtesla2"
-dtesla3 = dtesla**3
-dtesla3.name = "dtesla3"
-Gtesla2 = Gtesla**2
-Gtesla2.name = "Gtesla2"
-Gtesla3 = Gtesla**3
-Gtesla3.name = "Gtesla3"
-ftesla2 = ftesla**2
-ftesla2.name = "ftesla2"
-ftesla3 = ftesla**3
-ftesla3.name = "ftesla3"
-htesla2 = htesla**2
-htesla2.name = "htesla2"
-htesla3 = htesla**3
-htesla3.name = "htesla3"
-datesla2 = datesla**2
-datesla2.name = "datesla2"
-datesla3 = datesla**3
-datesla3.name = "datesla3"
-mtesla2 = mtesla**2
-mtesla2.name = "mtesla2"
-mtesla3 = mtesla**3
-mtesla3.name = "mtesla3"
-ntesla2 = ntesla**2
-ntesla2.name = "ntesla2"
-ntesla3 = ntesla**3
-ntesla3.name = "ntesla3"
-ptesla2 = ptesla**2
-ptesla2.name = "ptesla2"
-ptesla3 = ptesla**3
-ptesla3.name = "ptesla3"
-utesla2 = utesla**2
-utesla2.name = "utesla2"
-utesla3 = utesla**3
-utesla3.name = "utesla3"
-Ttesla2 = Ttesla**2
-Ttesla2.name = "Ttesla2"
-Ttesla3 = Ttesla**3
-Ttesla3.name = "Ttesla3"
-ytesla2 = ytesla**2
-ytesla2.name = "ytesla2"
-ytesla3 = ytesla**3
-ytesla3.name = "ytesla3"
-Etesla2 = Etesla**2
-Etesla2.name = "Etesla2"
-Etesla3 = Etesla**3
-Etesla3.name = "Etesla3"
-ztesla2 = ztesla**2
-ztesla2.name = "ztesla2"
-ztesla3 = ztesla**3
-ztesla3.name = "ztesla3"
-Mtesla2 = Mtesla**2
-Mtesla2.name = "Mtesla2"
-Mtesla3 = Mtesla**3
-Mtesla3.name = "Mtesla3"
-ktesla2 = ktesla**2
-ktesla2.name = "ktesla2"
-ktesla3 = ktesla**3
-ktesla3.name = "ktesla3"
-Ytesla2 = Ytesla**2
-Ytesla2.name = "Ytesla2"
-Ytesla3 = Ytesla**3
-Ytesla3.name = "Ytesla3"
-ahenry2 = ahenry**2
-ahenry2.name = "ahenry2"
-ahenry3 = ahenry**3
-ahenry3.name = "ahenry3"
-chenry2 = chenry**2
-chenry2.name = "chenry2"
-chenry3 = chenry**3
-chenry3.name = "chenry3"
-Zhenry2 = Zhenry**2
-Zhenry2.name = "Zhenry2"
-Zhenry3 = Zhenry**3
-Zhenry3.name = "Zhenry3"
-Phenry2 = Phenry**2
-Phenry2.name = "Phenry2"
-Phenry3 = Phenry**3
-Phenry3.name = "Phenry3"
-dhenry2 = dhenry**2
-dhenry2.name = "dhenry2"
-dhenry3 = dhenry**3
-dhenry3.name = "dhenry3"
-Ghenry2 = Ghenry**2
-Ghenry2.name = "Ghenry2"
-Ghenry3 = Ghenry**3
-Ghenry3.name = "Ghenry3"
-fhenry2 = fhenry**2
-fhenry2.name = "fhenry2"
-fhenry3 = fhenry**3
-fhenry3.name = "fhenry3"
-hhenry2 = hhenry**2
-hhenry2.name = "hhenry2"
-hhenry3 = hhenry**3
-hhenry3.name = "hhenry3"
-dahenry2 = dahenry**2
-dahenry2.name = "dahenry2"
-dahenry3 = dahenry**3
-dahenry3.name = "dahenry3"
-mhenry2 = mhenry**2
-mhenry2.name = "mhenry2"
-mhenry3 = mhenry**3
-mhenry3.name = "mhenry3"
-nhenry2 = nhenry**2
-nhenry2.name = "nhenry2"
-nhenry3 = nhenry**3
-nhenry3.name = "nhenry3"
-phenry2 = phenry**2
-phenry2.name = "phenry2"
-phenry3 = phenry**3
-phenry3.name = "phenry3"
-uhenry2 = uhenry**2
-uhenry2.name = "uhenry2"
-uhenry3 = uhenry**3
-uhenry3.name = "uhenry3"
-Thenry2 = Thenry**2
-Thenry2.name = "Thenry2"
-Thenry3 = Thenry**3
-Thenry3.name = "Thenry3"
-yhenry2 = yhenry**2
-yhenry2.name = "yhenry2"
-yhenry3 = yhenry**3
-yhenry3.name = "yhenry3"
-Ehenry2 = Ehenry**2
-Ehenry2.name = "Ehenry2"
-Ehenry3 = Ehenry**3
-Ehenry3.name = "Ehenry3"
-zhenry2 = zhenry**2
-zhenry2.name = "zhenry2"
-zhenry3 = zhenry**3
-zhenry3.name = "zhenry3"
-Mhenry2 = Mhenry**2
-Mhenry2.name = "Mhenry2"
-Mhenry3 = Mhenry**3
-Mhenry3.name = "Mhenry3"
-khenry2 = khenry**2
-khenry2.name = "khenry2"
-khenry3 = khenry**3
-khenry3.name = "khenry3"
-Yhenry2 = Yhenry**2
-Yhenry2.name = "Yhenry2"
-Yhenry3 = Yhenry**3
-Yhenry3.name = "Yhenry3"
-alumen2 = alumen**2
-alumen2.name = "alumen2"
-alumen3 = alumen**3
-alumen3.name = "alumen3"
-clumen2 = clumen**2
-clumen2.name = "clumen2"
-clumen3 = clumen**3
-clumen3.name = "clumen3"
-Zlumen2 = Zlumen**2
-Zlumen2.name = "Zlumen2"
-Zlumen3 = Zlumen**3
-Zlumen3.name = "Zlumen3"
-Plumen2 = Plumen**2
-Plumen2.name = "Plumen2"
-Plumen3 = Plumen**3
-Plumen3.name = "Plumen3"
-dlumen2 = dlumen**2
-dlumen2.name = "dlumen2"
-dlumen3 = dlumen**3
-dlumen3.name = "dlumen3"
-Glumen2 = Glumen**2
-Glumen2.name = "Glumen2"
-Glumen3 = Glumen**3
-Glumen3.name = "Glumen3"
-flumen2 = flumen**2
-flumen2.name = "flumen2"
-flumen3 = flumen**3
-flumen3.name = "flumen3"
-hlumen2 = hlumen**2
-hlumen2.name = "hlumen2"
-hlumen3 = hlumen**3
-hlumen3.name = "hlumen3"
-dalumen2 = dalumen**2
-dalumen2.name = "dalumen2"
-dalumen3 = dalumen**3
-dalumen3.name = "dalumen3"
-mlumen2 = mlumen**2
-mlumen2.name = "mlumen2"
-mlumen3 = mlumen**3
-mlumen3.name = "mlumen3"
-nlumen2 = nlumen**2
-nlumen2.name = "nlumen2"
-nlumen3 = nlumen**3
-nlumen3.name = "nlumen3"
-plumen2 = plumen**2
-plumen2.name = "plumen2"
-plumen3 = plumen**3
-plumen3.name = "plumen3"
-ulumen2 = ulumen**2
-ulumen2.name = "ulumen2"
-ulumen3 = ulumen**3
-ulumen3.name = "ulumen3"
-Tlumen2 = Tlumen**2
-Tlumen2.name = "Tlumen2"
-Tlumen3 = Tlumen**3
-Tlumen3.name = "Tlumen3"
-ylumen2 = ylumen**2
-ylumen2.name = "ylumen2"
-ylumen3 = ylumen**3
-ylumen3.name = "ylumen3"
-Elumen2 = Elumen**2
-Elumen2.name = "Elumen2"
-Elumen3 = Elumen**3
-Elumen3.name = "Elumen3"
-zlumen2 = zlumen**2
-zlumen2.name = "zlumen2"
-zlumen3 = zlumen**3
-zlumen3.name = "zlumen3"
-Mlumen2 = Mlumen**2
-Mlumen2.name = "Mlumen2"
-Mlumen3 = Mlumen**3
-Mlumen3.name = "Mlumen3"
-klumen2 = klumen**2
-klumen2.name = "klumen2"
-klumen3 = klumen**3
-klumen3.name = "klumen3"
-Ylumen2 = Ylumen**2
-Ylumen2.name = "Ylumen2"
-Ylumen3 = Ylumen**3
-Ylumen3.name = "Ylumen3"
-alux2 = alux**2
-alux2.name = "alux2"
-alux3 = alux**3
-alux3.name = "alux3"
-clux2 = clux**2
-clux2.name = "clux2"
-clux3 = clux**3
-clux3.name = "clux3"
-Zlux2 = Zlux**2
-Zlux2.name = "Zlux2"
-Zlux3 = Zlux**3
-Zlux3.name = "Zlux3"
-Plux2 = Plux**2
-Plux2.name = "Plux2"
-Plux3 = Plux**3
-Plux3.name = "Plux3"
-dlux2 = dlux**2
-dlux2.name = "dlux2"
-dlux3 = dlux**3
-dlux3.name = "dlux3"
-Glux2 = Glux**2
-Glux2.name = "Glux2"
-Glux3 = Glux**3
-Glux3.name = "Glux3"
-flux2 = flux**2
-flux2.name = "flux2"
-flux3 = flux**3
-flux3.name = "flux3"
-hlux2 = hlux**2
-hlux2.name = "hlux2"
-hlux3 = hlux**3
-hlux3.name = "hlux3"
-dalux2 = dalux**2
-dalux2.name = "dalux2"
-dalux3 = dalux**3
-dalux3.name = "dalux3"
-mlux2 = mlux**2
-mlux2.name = "mlux2"
-mlux3 = mlux**3
-mlux3.name = "mlux3"
-nlux2 = nlux**2
-nlux2.name = "nlux2"
-nlux3 = nlux**3
-nlux3.name = "nlux3"
-plux2 = plux**2
-plux2.name = "plux2"
-plux3 = plux**3
-plux3.name = "plux3"
-ulux2 = ulux**2
-ulux2.name = "ulux2"
-ulux3 = ulux**3
-ulux3.name = "ulux3"
-Tlux2 = Tlux**2
-Tlux2.name = "Tlux2"
-Tlux3 = Tlux**3
-Tlux3.name = "Tlux3"
-ylux2 = ylux**2
-ylux2.name = "ylux2"
-ylux3 = ylux**3
-ylux3.name = "ylux3"
-Elux2 = Elux**2
-Elux2.name = "Elux2"
-Elux3 = Elux**3
-Elux3.name = "Elux3"
-zlux2 = zlux**2
-zlux2.name = "zlux2"
-zlux3 = zlux**3
-zlux3.name = "zlux3"
-Mlux2 = Mlux**2
-Mlux2.name = "Mlux2"
-Mlux3 = Mlux**3
-Mlux3.name = "Mlux3"
-klux2 = klux**2
-klux2.name = "klux2"
-klux3 = klux**3
-klux3.name = "klux3"
-Ylux2 = Ylux**2
-Ylux2.name = "Ylux2"
-Ylux3 = Ylux**3
-Ylux3.name = "Ylux3"
-abecquerel2 = abecquerel**2
-abecquerel2.name = "abecquerel2"
-abecquerel3 = abecquerel**3
-abecquerel3.name = "abecquerel3"
-cbecquerel2 = cbecquerel**2
-cbecquerel2.name = "cbecquerel2"
-cbecquerel3 = cbecquerel**3
-cbecquerel3.name = "cbecquerel3"
-Zbecquerel2 = Zbecquerel**2
-Zbecquerel2.name = "Zbecquerel2"
-Zbecquerel3 = Zbecquerel**3
-Zbecquerel3.name = "Zbecquerel3"
-Pbecquerel2 = Pbecquerel**2
-Pbecquerel2.name = "Pbecquerel2"
-Pbecquerel3 = Pbecquerel**3
-Pbecquerel3.name = "Pbecquerel3"
-dbecquerel2 = dbecquerel**2
-dbecquerel2.name = "dbecquerel2"
-dbecquerel3 = dbecquerel**3
-dbecquerel3.name = "dbecquerel3"
-Gbecquerel2 = Gbecquerel**2
-Gbecquerel2.name = "Gbecquerel2"
-Gbecquerel3 = Gbecquerel**3
-Gbecquerel3.name = "Gbecquerel3"
-fbecquerel2 = fbecquerel**2
-fbecquerel2.name = "fbecquerel2"
-fbecquerel3 = fbecquerel**3
-fbecquerel3.name = "fbecquerel3"
-hbecquerel2 = hbecquerel**2
-hbecquerel2.name = "hbecquerel2"
-hbecquerel3 = hbecquerel**3
-hbecquerel3.name = "hbecquerel3"
-dabecquerel2 = dabecquerel**2
-dabecquerel2.name = "dabecquerel2"
-dabecquerel3 = dabecquerel**3
-dabecquerel3.name = "dabecquerel3"
-mbecquerel2 = mbecquerel**2
-mbecquerel2.name = "mbecquerel2"
-mbecquerel3 = mbecquerel**3
-mbecquerel3.name = "mbecquerel3"
-nbecquerel2 = nbecquerel**2
-nbecquerel2.name = "nbecquerel2"
-nbecquerel3 = nbecquerel**3
-nbecquerel3.name = "nbecquerel3"
-pbecquerel2 = pbecquerel**2
-pbecquerel2.name = "pbecquerel2"
-pbecquerel3 = pbecquerel**3
-pbecquerel3.name = "pbecquerel3"
-ubecquerel2 = ubecquerel**2
-ubecquerel2.name = "ubecquerel2"
-ubecquerel3 = ubecquerel**3
-ubecquerel3.name = "ubecquerel3"
-Tbecquerel2 = Tbecquerel**2
-Tbecquerel2.name = "Tbecquerel2"
-Tbecquerel3 = Tbecquerel**3
-Tbecquerel3.name = "Tbecquerel3"
-ybecquerel2 = ybecquerel**2
-ybecquerel2.name = "ybecquerel2"
-ybecquerel3 = ybecquerel**3
-ybecquerel3.name = "ybecquerel3"
-Ebecquerel2 = Ebecquerel**2
-Ebecquerel2.name = "Ebecquerel2"
-Ebecquerel3 = Ebecquerel**3
-Ebecquerel3.name = "Ebecquerel3"
-zbecquerel2 = zbecquerel**2
-zbecquerel2.name = "zbecquerel2"
-zbecquerel3 = zbecquerel**3
-zbecquerel3.name = "zbecquerel3"
-Mbecquerel2 = Mbecquerel**2
-Mbecquerel2.name = "Mbecquerel2"
-Mbecquerel3 = Mbecquerel**3
-Mbecquerel3.name = "Mbecquerel3"
-kbecquerel2 = kbecquerel**2
-kbecquerel2.name = "kbecquerel2"
-kbecquerel3 = kbecquerel**3
-kbecquerel3.name = "kbecquerel3"
-Ybecquerel2 = Ybecquerel**2
-Ybecquerel2.name = "Ybecquerel2"
-Ybecquerel3 = Ybecquerel**3
-Ybecquerel3.name = "Ybecquerel3"
-agray2 = agray**2
-agray2.name = "agray2"
-agray3 = agray**3
-agray3.name = "agray3"
-cgray2 = cgray**2
-cgray2.name = "cgray2"
-cgray3 = cgray**3
-cgray3.name = "cgray3"
-Zgray2 = Zgray**2
-Zgray2.name = "Zgray2"
-Zgray3 = Zgray**3
-Zgray3.name = "Zgray3"
-Pgray2 = Pgray**2
-Pgray2.name = "Pgray2"
-Pgray3 = Pgray**3
-Pgray3.name = "Pgray3"
-dgray2 = dgray**2
-dgray2.name = "dgray2"
-dgray3 = dgray**3
-dgray3.name = "dgray3"
-Ggray2 = Ggray**2
-Ggray2.name = "Ggray2"
-Ggray3 = Ggray**3
-Ggray3.name = "Ggray3"
-fgray2 = fgray**2
-fgray2.name = "fgray2"
-fgray3 = fgray**3
-fgray3.name = "fgray3"
-hgray2 = hgray**2
-hgray2.name = "hgray2"
-hgray3 = hgray**3
-hgray3.name = "hgray3"
-dagray2 = dagray**2
-dagray2.name = "dagray2"
-dagray3 = dagray**3
-dagray3.name = "dagray3"
-mgray2 = mgray**2
-mgray2.name = "mgray2"
-mgray3 = mgray**3
-mgray3.name = "mgray3"
-ngray2 = ngray**2
-ngray2.name = "ngray2"
-ngray3 = ngray**3
-ngray3.name = "ngray3"
-pgray2 = pgray**2
-pgray2.name = "pgray2"
-pgray3 = pgray**3
-pgray3.name = "pgray3"
-ugray2 = ugray**2
-ugray2.name = "ugray2"
-ugray3 = ugray**3
-ugray3.name = "ugray3"
-Tgray2 = Tgray**2
-Tgray2.name = "Tgray2"
-Tgray3 = Tgray**3
-Tgray3.name = "Tgray3"
-ygray2 = ygray**2
-ygray2.name = "ygray2"
-ygray3 = ygray**3
-ygray3.name = "ygray3"
-Egray2 = Egray**2
-Egray2.name = "Egray2"
-Egray3 = Egray**3
-Egray3.name = "Egray3"
-zgray2 = zgray**2
-zgray2.name = "zgray2"
-zgray3 = zgray**3
-zgray3.name = "zgray3"
-Mgray2 = Mgray**2
-Mgray2.name = "Mgray2"
-Mgray3 = Mgray**3
-Mgray3.name = "Mgray3"
-kgray2 = kgray**2
-kgray2.name = "kgray2"
-kgray3 = kgray**3
-kgray3.name = "kgray3"
-Ygray2 = Ygray**2
-Ygray2.name = "Ygray2"
-Ygray3 = Ygray**3
-Ygray3.name = "Ygray3"
-asievert2 = asievert**2
-asievert2.name = "asievert2"
-asievert3 = asievert**3
-asievert3.name = "asievert3"
-csievert2 = csievert**2
-csievert2.name = "csievert2"
-csievert3 = csievert**3
-csievert3.name = "csievert3"
-Zsievert2 = Zsievert**2
-Zsievert2.name = "Zsievert2"
-Zsievert3 = Zsievert**3
-Zsievert3.name = "Zsievert3"
-Psievert2 = Psievert**2
-Psievert2.name = "Psievert2"
-Psievert3 = Psievert**3
-Psievert3.name = "Psievert3"
-dsievert2 = dsievert**2
-dsievert2.name = "dsievert2"
-dsievert3 = dsievert**3
-dsievert3.name = "dsievert3"
-Gsievert2 = Gsievert**2
-Gsievert2.name = "Gsievert2"
-Gsievert3 = Gsievert**3
-Gsievert3.name = "Gsievert3"
-fsievert2 = fsievert**2
-fsievert2.name = "fsievert2"
-fsievert3 = fsievert**3
-fsievert3.name = "fsievert3"
-hsievert2 = hsievert**2
-hsievert2.name = "hsievert2"
-hsievert3 = hsievert**3
-hsievert3.name = "hsievert3"
-dasievert2 = dasievert**2
-dasievert2.name = "dasievert2"
-dasievert3 = dasievert**3
-dasievert3.name = "dasievert3"
-msievert2 = msievert**2
-msievert2.name = "msievert2"
-msievert3 = msievert**3
-msievert3.name = "msievert3"
-nsievert2 = nsievert**2
-nsievert2.name = "nsievert2"
-nsievert3 = nsievert**3
-nsievert3.name = "nsievert3"
-psievert2 = psievert**2
-psievert2.name = "psievert2"
-psievert3 = psievert**3
-psievert3.name = "psievert3"
-usievert2 = usievert**2
-usievert2.name = "usievert2"
-usievert3 = usievert**3
-usievert3.name = "usievert3"
-Tsievert2 = Tsievert**2
-Tsievert2.name = "Tsievert2"
-Tsievert3 = Tsievert**3
-Tsievert3.name = "Tsievert3"
-ysievert2 = ysievert**2
-ysievert2.name = "ysievert2"
-ysievert3 = ysievert**3
-ysievert3.name = "ysievert3"
-Esievert2 = Esievert**2
-Esievert2.name = "Esievert2"
-Esievert3 = Esievert**3
-Esievert3.name = "Esievert3"
-zsievert2 = zsievert**2
-zsievert2.name = "zsievert2"
-zsievert3 = zsievert**3
-zsievert3.name = "zsievert3"
-Msievert2 = Msievert**2
-Msievert2.name = "Msievert2"
-Msievert3 = Msievert**3
-Msievert3.name = "Msievert3"
-ksievert2 = ksievert**2
-ksievert2.name = "ksievert2"
-ksievert3 = ksievert**3
-ksievert3.name = "ksievert3"
-Ysievert2 = Ysievert**2
-Ysievert2.name = "Ysievert2"
-Ysievert3 = Ysievert**3
-Ysievert3.name = "Ysievert3"
-akatal2 = akatal**2
-akatal2.name = "akatal2"
-akatal3 = akatal**3
-akatal3.name = "akatal3"
-ckatal2 = ckatal**2
-ckatal2.name = "ckatal2"
-ckatal3 = ckatal**3
-ckatal3.name = "ckatal3"
-Zkatal2 = Zkatal**2
-Zkatal2.name = "Zkatal2"
-Zkatal3 = Zkatal**3
-Zkatal3.name = "Zkatal3"
-Pkatal2 = Pkatal**2
-Pkatal2.name = "Pkatal2"
-Pkatal3 = Pkatal**3
-Pkatal3.name = "Pkatal3"
-dkatal2 = dkatal**2
-dkatal2.name = "dkatal2"
-dkatal3 = dkatal**3
-dkatal3.name = "dkatal3"
-Gkatal2 = Gkatal**2
-Gkatal2.name = "Gkatal2"
-Gkatal3 = Gkatal**3
-Gkatal3.name = "Gkatal3"
-fkatal2 = fkatal**2
-fkatal2.name = "fkatal2"
-fkatal3 = fkatal**3
-fkatal3.name = "fkatal3"
-hkatal2 = hkatal**2
-hkatal2.name = "hkatal2"
-hkatal3 = hkatal**3
-hkatal3.name = "hkatal3"
-dakatal2 = dakatal**2
-dakatal2.name = "dakatal2"
-dakatal3 = dakatal**3
-dakatal3.name = "dakatal3"
-mkatal2 = mkatal**2
-mkatal2.name = "mkatal2"
-mkatal3 = mkatal**3
-mkatal3.name = "mkatal3"
-nkatal2 = nkatal**2
-nkatal2.name = "nkatal2"
-nkatal3 = nkatal**3
-nkatal3.name = "nkatal3"
-pkatal2 = pkatal**2
-pkatal2.name = "pkatal2"
-pkatal3 = pkatal**3
-pkatal3.name = "pkatal3"
-ukatal2 = ukatal**2
-ukatal2.name = "ukatal2"
-ukatal3 = ukatal**3
-ukatal3.name = "ukatal3"
-Tkatal2 = Tkatal**2
-Tkatal2.name = "Tkatal2"
-Tkatal3 = Tkatal**3
-Tkatal3.name = "Tkatal3"
-ykatal2 = ykatal**2
-ykatal2.name = "ykatal2"
-ykatal3 = ykatal**3
-ykatal3.name = "ykatal3"
-Ekatal2 = Ekatal**2
-Ekatal2.name = "Ekatal2"
-Ekatal3 = Ekatal**3
-Ekatal3.name = "Ekatal3"
-zkatal2 = zkatal**2
-zkatal2.name = "zkatal2"
-zkatal3 = zkatal**3
-zkatal3.name = "zkatal3"
-Mkatal2 = Mkatal**2
-Mkatal2.name = "Mkatal2"
-Mkatal3 = Mkatal**3
-Mkatal3.name = "Mkatal3"
-kkatal2 = kkatal**2
-kkatal2.name = "kkatal2"
-kkatal3 = kkatal**3
-kkatal3.name = "kkatal3"
-Ykatal2 = Ykatal**2
-Ykatal2.name = "Ykatal2"
-Ykatal3 = Ykatal**3
-Ykatal3.name = "Ykatal3"
+metre2 = Unit.create((metre**2).dim, name="metre2")
+metre3 = Unit.create((metre**3).dim, name="metre3")
+meter2 = Unit.create((meter**2).dim, name="meter2")
+meter3 = Unit.create((meter**3).dim, name="meter3")
+kilogram2 = Unit.create((kilogram**2).dim, name="kilogram2")
+kilogram3 = Unit.create((kilogram**3).dim, name="kilogram3")
+second2 = Unit.create((second**2).dim, name="second2")
+second3 = Unit.create((second**3).dim, name="second3")
+amp2 = Unit.create((amp**2).dim, name="amp2")
+amp3 = Unit.create((amp**3).dim, name="amp3")
+ampere2 = Unit.create((ampere**2).dim, name="ampere2")
+ampere3 = Unit.create((ampere**3).dim, name="ampere3")
+kelvin2 = Unit.create((kelvin**2).dim, name="kelvin2")
+kelvin3 = Unit.create((kelvin**3).dim, name="kelvin3")
+mole2 = Unit.create((mole**2).dim, name="mole2")
+mole3 = Unit.create((mole**3).dim, name="mole3")
+mol2 = Unit.create((mol**2).dim, name="mol2")
+mol3 = Unit.create((mol**3).dim, name="mol3")
+candle2 = Unit.create((candle**2).dim, name="candle2")
+candle3 = Unit.create((candle**3).dim, name="candle3")
+kilogramme2 = Unit.create((kilogramme**2).dim, name="kilogramme2")
+kilogramme3 = Unit.create((kilogramme**3).dim, name="kilogramme3")
+gram2 = Unit.create((gram**2).dim, name="gram2")
+gram3 = Unit.create((gram**3).dim, name="gram3")
+gramme2 = Unit.create((gramme**2).dim, name="gramme2")
+gramme3 = Unit.create((gramme**3).dim, name="gramme3")
+molar2 = Unit.create((molar**2).dim, name="molar2")
+molar3 = Unit.create((molar**3).dim, name="molar3")
+radian2 = Unit.create((radian**2).dim, name="radian2")
+radian3 = Unit.create((radian**3).dim, name="radian3")
+steradian2 = Unit.create((steradian**2).dim, name="steradian2")
+steradian3 = Unit.create((steradian**3).dim, name="steradian3")
+hertz2 = Unit.create((hertz**2).dim, name="hertz2")
+hertz3 = Unit.create((hertz**3).dim, name="hertz3")
+newton2 = Unit.create((newton**2).dim, name="newton2")
+newton3 = Unit.create((newton**3).dim, name="newton3")
+pascal2 = Unit.create((pascal**2).dim, name="pascal2")
+pascal3 = Unit.create((pascal**3).dim, name="pascal3")
+joule2 = Unit.create((joule**2).dim, name="joule2")
+joule3 = Unit.create((joule**3).dim, name="joule3")
+watt2 = Unit.create((watt**2).dim, name="watt2")
+watt3 = Unit.create((watt**3).dim, name="watt3")
+coulomb2 = Unit.create((coulomb**2).dim, name="coulomb2")
+coulomb3 = Unit.create((coulomb**3).dim, name="coulomb3")
+volt2 = Unit.create((volt**2).dim, name="volt2")
+volt3 = Unit.create((volt**3).dim, name="volt3")
+farad2 = Unit.create((farad**2).dim, name="farad2")
+farad3 = Unit.create((farad**3).dim, name="farad3")
+ohm2 = Unit.create((ohm**2).dim, name="ohm2")
+ohm3 = Unit.create((ohm**3).dim, name="ohm3")
+siemens2 = Unit.create((siemens**2).dim, name="siemens2")
+siemens3 = Unit.create((siemens**3).dim, name="siemens3")
+weber2 = Unit.create((weber**2).dim, name="weber2")
+weber3 = Unit.create((weber**3).dim, name="weber3")
+tesla2 = Unit.create((tesla**2).dim, name="tesla2")
+tesla3 = Unit.create((tesla**3).dim, name="tesla3")
+henry2 = Unit.create((henry**2).dim, name="henry2")
+henry3 = Unit.create((henry**3).dim, name="henry3")
+lumen2 = Unit.create((lumen**2).dim, name="lumen2")
+lumen3 = Unit.create((lumen**3).dim, name="lumen3")
+lux2 = Unit.create((lux**2).dim, name="lux2")
+lux3 = Unit.create((lux**3).dim, name="lux3")
+becquerel2 = Unit.create((becquerel**2).dim, name="becquerel2")
+becquerel3 = Unit.create((becquerel**3).dim, name="becquerel3")
+gray2 = Unit.create((gray**2).dim, name="gray2")
+gray3 = Unit.create((gray**3).dim, name="gray3")
+sievert2 = Unit.create((sievert**2).dim, name="sievert2")
+sievert3 = Unit.create((sievert**3).dim, name="sievert3")
+katal2 = Unit.create((katal**2).dim, name="katal2")
+katal3 = Unit.create((katal**3).dim, name="katal3")
+ametre2 = Unit.create((ametre**2).dim, name="ametre2")
+ametre3 = Unit.create((ametre**3).dim, name="ametre3")
+cmetre2 = Unit.create((cmetre**2).dim, name="cmetre2")
+cmetre3 = Unit.create((cmetre**3).dim, name="cmetre3")
+Zmetre2 = Unit.create((Zmetre**2).dim, name="Zmetre2")
+Zmetre3 = Unit.create((Zmetre**3).dim, name="Zmetre3")
+Pmetre2 = Unit.create((Pmetre**2).dim, name="Pmetre2")
+Pmetre3 = Unit.create((Pmetre**3).dim, name="Pmetre3")
+dmetre2 = Unit.create((dmetre**2).dim, name="dmetre2")
+dmetre3 = Unit.create((dmetre**3).dim, name="dmetre3")
+Gmetre2 = Unit.create((Gmetre**2).dim, name="Gmetre2")
+Gmetre3 = Unit.create((Gmetre**3).dim, name="Gmetre3")
+fmetre2 = Unit.create((fmetre**2).dim, name="fmetre2")
+fmetre3 = Unit.create((fmetre**3).dim, name="fmetre3")
+hmetre2 = Unit.create((hmetre**2).dim, name="hmetre2")
+hmetre3 = Unit.create((hmetre**3).dim, name="hmetre3")
+dametre2 = Unit.create((dametre**2).dim, name="dametre2")
+dametre3 = Unit.create((dametre**3).dim, name="dametre3")
+mmetre2 = Unit.create((mmetre**2).dim, name="mmetre2")
+mmetre3 = Unit.create((mmetre**3).dim, name="mmetre3")
+nmetre2 = Unit.create((nmetre**2).dim, name="nmetre2")
+nmetre3 = Unit.create((nmetre**3).dim, name="nmetre3")
+pmetre2 = Unit.create((pmetre**2).dim, name="pmetre2")
+pmetre3 = Unit.create((pmetre**3).dim, name="pmetre3")
+umetre2 = Unit.create((umetre**2).dim, name="umetre2")
+umetre3 = Unit.create((umetre**3).dim, name="umetre3")
+Tmetre2 = Unit.create((Tmetre**2).dim, name="Tmetre2")
+Tmetre3 = Unit.create((Tmetre**3).dim, name="Tmetre3")
+ymetre2 = Unit.create((ymetre**2).dim, name="ymetre2")
+ymetre3 = Unit.create((ymetre**3).dim, name="ymetre3")
+Emetre2 = Unit.create((Emetre**2).dim, name="Emetre2")
+Emetre3 = Unit.create((Emetre**3).dim, name="Emetre3")
+zmetre2 = Unit.create((zmetre**2).dim, name="zmetre2")
+zmetre3 = Unit.create((zmetre**3).dim, name="zmetre3")
+Mmetre2 = Unit.create((Mmetre**2).dim, name="Mmetre2")
+Mmetre3 = Unit.create((Mmetre**3).dim, name="Mmetre3")
+kmetre2 = Unit.create((kmetre**2).dim, name="kmetre2")
+kmetre3 = Unit.create((kmetre**3).dim, name="kmetre3")
+Ymetre2 = Unit.create((Ymetre**2).dim, name="Ymetre2")
+Ymetre3 = Unit.create((Ymetre**3).dim, name="Ymetre3")
+ameter2 = Unit.create((ameter**2).dim, name="ameter2")
+ameter3 = Unit.create((ameter**3).dim, name="ameter3")
+cmeter2 = Unit.create((cmeter**2).dim, name="cmeter2")
+cmeter3 = Unit.create((cmeter**3).dim, name="cmeter3")
+Zmeter2 = Unit.create((Zmeter**2).dim, name="Zmeter2")
+Zmeter3 = Unit.create((Zmeter**3).dim, name="Zmeter3")
+Pmeter2 = Unit.create((Pmeter**2).dim, name="Pmeter2")
+Pmeter3 = Unit.create((Pmeter**3).dim, name="Pmeter3")
+dmeter2 = Unit.create((dmeter**2).dim, name="dmeter2")
+dmeter3 = Unit.create((dmeter**3).dim, name="dmeter3")
+Gmeter2 = Unit.create((Gmeter**2).dim, name="Gmeter2")
+Gmeter3 = Unit.create((Gmeter**3).dim, name="Gmeter3")
+fmeter2 = Unit.create((fmeter**2).dim, name="fmeter2")
+fmeter3 = Unit.create((fmeter**3).dim, name="fmeter3")
+hmeter2 = Unit.create((hmeter**2).dim, name="hmeter2")
+hmeter3 = Unit.create((hmeter**3).dim, name="hmeter3")
+dameter2 = Unit.create((dameter**2).dim, name="dameter2")
+dameter3 = Unit.create((dameter**3).dim, name="dameter3")
+mmeter2 = Unit.create((mmeter**2).dim, name="mmeter2")
+mmeter3 = Unit.create((mmeter**3).dim, name="mmeter3")
+nmeter2 = Unit.create((nmeter**2).dim, name="nmeter2")
+nmeter3 = Unit.create((nmeter**3).dim, name="nmeter3")
+pmeter2 = Unit.create((pmeter**2).dim, name="pmeter2")
+pmeter3 = Unit.create((pmeter**3).dim, name="pmeter3")
+umeter2 = Unit.create((umeter**2).dim, name="umeter2")
+umeter3 = Unit.create((umeter**3).dim, name="umeter3")
+Tmeter2 = Unit.create((Tmeter**2).dim, name="Tmeter2")
+Tmeter3 = Unit.create((Tmeter**3).dim, name="Tmeter3")
+ymeter2 = Unit.create((ymeter**2).dim, name="ymeter2")
+ymeter3 = Unit.create((ymeter**3).dim, name="ymeter3")
+Emeter2 = Unit.create((Emeter**2).dim, name="Emeter2")
+Emeter3 = Unit.create((Emeter**3).dim, name="Emeter3")
+zmeter2 = Unit.create((zmeter**2).dim, name="zmeter2")
+zmeter3 = Unit.create((zmeter**3).dim, name="zmeter3")
+Mmeter2 = Unit.create((Mmeter**2).dim, name="Mmeter2")
+Mmeter3 = Unit.create((Mmeter**3).dim, name="Mmeter3")
+kmeter2 = Unit.create((kmeter**2).dim, name="kmeter2")
+kmeter3 = Unit.create((kmeter**3).dim, name="kmeter3")
+Ymeter2 = Unit.create((Ymeter**2).dim, name="Ymeter2")
+Ymeter3 = Unit.create((Ymeter**3).dim, name="Ymeter3")
+akilogram2 = Unit.create((akilogram**2).dim, name="akilogram2")
+akilogram3 = Unit.create((akilogram**3).dim, name="akilogram3")
+ckilogram2 = Unit.create((ckilogram**2).dim, name="ckilogram2")
+ckilogram3 = Unit.create((ckilogram**3).dim, name="ckilogram3")
+Zkilogram2 = Unit.create((Zkilogram**2).dim, name="Zkilogram2")
+Zkilogram3 = Unit.create((Zkilogram**3).dim, name="Zkilogram3")
+Pkilogram2 = Unit.create((Pkilogram**2).dim, name="Pkilogram2")
+Pkilogram3 = Unit.create((Pkilogram**3).dim, name="Pkilogram3")
+dkilogram2 = Unit.create((dkilogram**2).dim, name="dkilogram2")
+dkilogram3 = Unit.create((dkilogram**3).dim, name="dkilogram3")
+Gkilogram2 = Unit.create((Gkilogram**2).dim, name="Gkilogram2")
+Gkilogram3 = Unit.create((Gkilogram**3).dim, name="Gkilogram3")
+fkilogram2 = Unit.create((fkilogram**2).dim, name="fkilogram2")
+fkilogram3 = Unit.create((fkilogram**3).dim, name="fkilogram3")
+hkilogram2 = Unit.create((hkilogram**2).dim, name="hkilogram2")
+hkilogram3 = Unit.create((hkilogram**3).dim, name="hkilogram3")
+dakilogram2 = Unit.create((dakilogram**2).dim, name="dakilogram2")
+dakilogram3 = Unit.create((dakilogram**3).dim, name="dakilogram3")
+mkilogram2 = Unit.create((mkilogram**2).dim, name="mkilogram2")
+mkilogram3 = Unit.create((mkilogram**3).dim, name="mkilogram3")
+nkilogram2 = Unit.create((nkilogram**2).dim, name="nkilogram2")
+nkilogram3 = Unit.create((nkilogram**3).dim, name="nkilogram3")
+pkilogram2 = Unit.create((pkilogram**2).dim, name="pkilogram2")
+pkilogram3 = Unit.create((pkilogram**3).dim, name="pkilogram3")
+ukilogram2 = Unit.create((ukilogram**2).dim, name="ukilogram2")
+ukilogram3 = Unit.create((ukilogram**3).dim, name="ukilogram3")
+Tkilogram2 = Unit.create((Tkilogram**2).dim, name="Tkilogram2")
+Tkilogram3 = Unit.create((Tkilogram**3).dim, name="Tkilogram3")
+ykilogram2 = Unit.create((ykilogram**2).dim, name="ykilogram2")
+ykilogram3 = Unit.create((ykilogram**3).dim, name="ykilogram3")
+Ekilogram2 = Unit.create((Ekilogram**2).dim, name="Ekilogram2")
+Ekilogram3 = Unit.create((Ekilogram**3).dim, name="Ekilogram3")
+zkilogram2 = Unit.create((zkilogram**2).dim, name="zkilogram2")
+zkilogram3 = Unit.create((zkilogram**3).dim, name="zkilogram3")
+Mkilogram2 = Unit.create((Mkilogram**2).dim, name="Mkilogram2")
+Mkilogram3 = Unit.create((Mkilogram**3).dim, name="Mkilogram3")
+kkilogram2 = Unit.create((kkilogram**2).dim, name="kkilogram2")
+kkilogram3 = Unit.create((kkilogram**3).dim, name="kkilogram3")
+Ykilogram2 = Unit.create((Ykilogram**2).dim, name="Ykilogram2")
+Ykilogram3 = Unit.create((Ykilogram**3).dim, name="Ykilogram3")
+asecond2 = Unit.create((asecond**2).dim, name="asecond2")
+asecond3 = Unit.create((asecond**3).dim, name="asecond3")
+csecond2 = Unit.create((csecond**2).dim, name="csecond2")
+csecond3 = Unit.create((csecond**3).dim, name="csecond3")
+Zsecond2 = Unit.create((Zsecond**2).dim, name="Zsecond2")
+Zsecond3 = Unit.create((Zsecond**3).dim, name="Zsecond3")
+Psecond2 = Unit.create((Psecond**2).dim, name="Psecond2")
+Psecond3 = Unit.create((Psecond**3).dim, name="Psecond3")
+dsecond2 = Unit.create((dsecond**2).dim, name="dsecond2")
+dsecond3 = Unit.create((dsecond**3).dim, name="dsecond3")
+Gsecond2 = Unit.create((Gsecond**2).dim, name="Gsecond2")
+Gsecond3 = Unit.create((Gsecond**3).dim, name="Gsecond3")
+fsecond2 = Unit.create((fsecond**2).dim, name="fsecond2")
+fsecond3 = Unit.create((fsecond**3).dim, name="fsecond3")
+hsecond2 = Unit.create((hsecond**2).dim, name="hsecond2")
+hsecond3 = Unit.create((hsecond**3).dim, name="hsecond3")
+dasecond2 = Unit.create((dasecond**2).dim, name="dasecond2")
+dasecond3 = Unit.create((dasecond**3).dim, name="dasecond3")
+msecond2 = Unit.create((msecond**2).dim, name="msecond2")
+msecond3 = Unit.create((msecond**3).dim, name="msecond3")
+nsecond2 = Unit.create((nsecond**2).dim, name="nsecond2")
+nsecond3 = Unit.create((nsecond**3).dim, name="nsecond3")
+psecond2 = Unit.create((psecond**2).dim, name="psecond2")
+psecond3 = Unit.create((psecond**3).dim, name="psecond3")
+usecond2 = Unit.create((usecond**2).dim, name="usecond2")
+usecond3 = Unit.create((usecond**3).dim, name="usecond3")
+Tsecond2 = Unit.create((Tsecond**2).dim, name="Tsecond2")
+Tsecond3 = Unit.create((Tsecond**3).dim, name="Tsecond3")
+ysecond2 = Unit.create((ysecond**2).dim, name="ysecond2")
+ysecond3 = Unit.create((ysecond**3).dim, name="ysecond3")
+Esecond2 = Unit.create((Esecond**2).dim, name="Esecond2")
+Esecond3 = Unit.create((Esecond**3).dim, name="Esecond3")
+zsecond2 = Unit.create((zsecond**2).dim, name="zsecond2")
+zsecond3 = Unit.create((zsecond**3).dim, name="zsecond3")
+Msecond2 = Unit.create((Msecond**2).dim, name="Msecond2")
+Msecond3 = Unit.create((Msecond**3).dim, name="Msecond3")
+ksecond2 = Unit.create((ksecond**2).dim, name="ksecond2")
+ksecond3 = Unit.create((ksecond**3).dim, name="ksecond3")
+Ysecond2 = Unit.create((Ysecond**2).dim, name="Ysecond2")
+Ysecond3 = Unit.create((Ysecond**3).dim, name="Ysecond3")
+aamp2 = Unit.create((aamp**2).dim, name="aamp2")
+aamp3 = Unit.create((aamp**3).dim, name="aamp3")
+camp2 = Unit.create((camp**2).dim, name="camp2")
+camp3 = Unit.create((camp**3).dim, name="camp3")
+Zamp2 = Unit.create((Zamp**2).dim, name="Zamp2")
+Zamp3 = Unit.create((Zamp**3).dim, name="Zamp3")
+Pamp2 = Unit.create((Pamp**2).dim, name="Pamp2")
+Pamp3 = Unit.create((Pamp**3).dim, name="Pamp3")
+damp2 = Unit.create((damp**2).dim, name="damp2")
+damp3 = Unit.create((damp**3).dim, name="damp3")
+Gamp2 = Unit.create((Gamp**2).dim, name="Gamp2")
+Gamp3 = Unit.create((Gamp**3).dim, name="Gamp3")
+famp2 = Unit.create((famp**2).dim, name="famp2")
+famp3 = Unit.create((famp**3).dim, name="famp3")
+hamp2 = Unit.create((hamp**2).dim, name="hamp2")
+hamp3 = Unit.create((hamp**3).dim, name="hamp3")
+daamp2 = Unit.create((daamp**2).dim, name="daamp2")
+daamp3 = Unit.create((daamp**3).dim, name="daamp3")
+mamp2 = Unit.create((mamp**2).dim, name="mamp2")
+mamp3 = Unit.create((mamp**3).dim, name="mamp3")
+namp2 = Unit.create((namp**2).dim, name="namp2")
+namp3 = Unit.create((namp**3).dim, name="namp3")
+pamp2 = Unit.create((pamp**2).dim, name="pamp2")
+pamp3 = Unit.create((pamp**3).dim, name="pamp3")
+uamp2 = Unit.create((uamp**2).dim, name="uamp2")
+uamp3 = Unit.create((uamp**3).dim, name="uamp3")
+Tamp2 = Unit.create((Tamp**2).dim, name="Tamp2")
+Tamp3 = Unit.create((Tamp**3).dim, name="Tamp3")
+yamp2 = Unit.create((yamp**2).dim, name="yamp2")
+yamp3 = Unit.create((yamp**3).dim, name="yamp3")
+Eamp2 = Unit.create((Eamp**2).dim, name="Eamp2")
+Eamp3 = Unit.create((Eamp**3).dim, name="Eamp3")
+zamp2 = Unit.create((zamp**2).dim, name="zamp2")
+zamp3 = Unit.create((zamp**3).dim, name="zamp3")
+Mamp2 = Unit.create((Mamp**2).dim, name="Mamp2")
+Mamp3 = Unit.create((Mamp**3).dim, name="Mamp3")
+kamp2 = Unit.create((kamp**2).dim, name="kamp2")
+kamp3 = Unit.create((kamp**3).dim, name="kamp3")
+Yamp2 = Unit.create((Yamp**2).dim, name="Yamp2")
+Yamp3 = Unit.create((Yamp**3).dim, name="Yamp3")
+aampere2 = Unit.create((aampere**2).dim, name="aampere2")
+aampere3 = Unit.create((aampere**3).dim, name="aampere3")
+campere2 = Unit.create((campere**2).dim, name="campere2")
+campere3 = Unit.create((campere**3).dim, name="campere3")
+Zampere2 = Unit.create((Zampere**2).dim, name="Zampere2")
+Zampere3 = Unit.create((Zampere**3).dim, name="Zampere3")
+Pampere2 = Unit.create((Pampere**2).dim, name="Pampere2")
+Pampere3 = Unit.create((Pampere**3).dim, name="Pampere3")
+dampere2 = Unit.create((dampere**2).dim, name="dampere2")
+dampere3 = Unit.create((dampere**3).dim, name="dampere3")
+Gampere2 = Unit.create((Gampere**2).dim, name="Gampere2")
+Gampere3 = Unit.create((Gampere**3).dim, name="Gampere3")
+fampere2 = Unit.create((fampere**2).dim, name="fampere2")
+fampere3 = Unit.create((fampere**3).dim, name="fampere3")
+hampere2 = Unit.create((hampere**2).dim, name="hampere2")
+hampere3 = Unit.create((hampere**3).dim, name="hampere3")
+daampere2 = Unit.create((daampere**2).dim, name="daampere2")
+daampere3 = Unit.create((daampere**3).dim, name="daampere3")
+mampere2 = Unit.create((mampere**2).dim, name="mampere2")
+mampere3 = Unit.create((mampere**3).dim, name="mampere3")
+nampere2 = Unit.create((nampere**2).dim, name="nampere2")
+nampere3 = Unit.create((nampere**3).dim, name="nampere3")
+pampere2 = Unit.create((pampere**2).dim, name="pampere2")
+pampere3 = Unit.create((pampere**3).dim, name="pampere3")
+uampere2 = Unit.create((uampere**2).dim, name="uampere2")
+uampere3 = Unit.create((uampere**3).dim, name="uampere3")
+Tampere2 = Unit.create((Tampere**2).dim, name="Tampere2")
+Tampere3 = Unit.create((Tampere**3).dim, name="Tampere3")
+yampere2 = Unit.create((yampere**2).dim, name="yampere2")
+yampere3 = Unit.create((yampere**3).dim, name="yampere3")
+Eampere2 = Unit.create((Eampere**2).dim, name="Eampere2")
+Eampere3 = Unit.create((Eampere**3).dim, name="Eampere3")
+zampere2 = Unit.create((zampere**2).dim, name="zampere2")
+zampere3 = Unit.create((zampere**3).dim, name="zampere3")
+Mampere2 = Unit.create((Mampere**2).dim, name="Mampere2")
+Mampere3 = Unit.create((Mampere**3).dim, name="Mampere3")
+kampere2 = Unit.create((kampere**2).dim, name="kampere2")
+kampere3 = Unit.create((kampere**3).dim, name="kampere3")
+Yampere2 = Unit.create((Yampere**2).dim, name="Yampere2")
+Yampere3 = Unit.create((Yampere**3).dim, name="Yampere3")
+amole2 = Unit.create((amole**2).dim, name="amole2")
+amole3 = Unit.create((amole**3).dim, name="amole3")
+cmole2 = Unit.create((cmole**2).dim, name="cmole2")
+cmole3 = Unit.create((cmole**3).dim, name="cmole3")
+Zmole2 = Unit.create((Zmole**2).dim, name="Zmole2")
+Zmole3 = Unit.create((Zmole**3).dim, name="Zmole3")
+Pmole2 = Unit.create((Pmole**2).dim, name="Pmole2")
+Pmole3 = Unit.create((Pmole**3).dim, name="Pmole3")
+dmole2 = Unit.create((dmole**2).dim, name="dmole2")
+dmole3 = Unit.create((dmole**3).dim, name="dmole3")
+Gmole2 = Unit.create((Gmole**2).dim, name="Gmole2")
+Gmole3 = Unit.create((Gmole**3).dim, name="Gmole3")
+fmole2 = Unit.create((fmole**2).dim, name="fmole2")
+fmole3 = Unit.create((fmole**3).dim, name="fmole3")
+hmole2 = Unit.create((hmole**2).dim, name="hmole2")
+hmole3 = Unit.create((hmole**3).dim, name="hmole3")
+damole2 = Unit.create((damole**2).dim, name="damole2")
+damole3 = Unit.create((damole**3).dim, name="damole3")
+mmole2 = Unit.create((mmole**2).dim, name="mmole2")
+mmole3 = Unit.create((mmole**3).dim, name="mmole3")
+nmole2 = Unit.create((nmole**2).dim, name="nmole2")
+nmole3 = Unit.create((nmole**3).dim, name="nmole3")
+pmole2 = Unit.create((pmole**2).dim, name="pmole2")
+pmole3 = Unit.create((pmole**3).dim, name="pmole3")
+umole2 = Unit.create((umole**2).dim, name="umole2")
+umole3 = Unit.create((umole**3).dim, name="umole3")
+Tmole2 = Unit.create((Tmole**2).dim, name="Tmole2")
+Tmole3 = Unit.create((Tmole**3).dim, name="Tmole3")
+ymole2 = Unit.create((ymole**2).dim, name="ymole2")
+ymole3 = Unit.create((ymole**3).dim, name="ymole3")
+Emole2 = Unit.create((Emole**2).dim, name="Emole2")
+Emole3 = Unit.create((Emole**3).dim, name="Emole3")
+zmole2 = Unit.create((zmole**2).dim, name="zmole2")
+zmole3 = Unit.create((zmole**3).dim, name="zmole3")
+Mmole2 = Unit.create((Mmole**2).dim, name="Mmole2")
+Mmole3 = Unit.create((Mmole**3).dim, name="Mmole3")
+kmole2 = Unit.create((kmole**2).dim, name="kmole2")
+kmole3 = Unit.create((kmole**3).dim, name="kmole3")
+Ymole2 = Unit.create((Ymole**2).dim, name="Ymole2")
+Ymole3 = Unit.create((Ymole**3).dim, name="Ymole3")
+amol2 = Unit.create((amol**2).dim, name="amol2")
+amol3 = Unit.create((amol**3).dim, name="amol3")
+cmol2 = Unit.create((cmol**2).dim, name="cmol2")
+cmol3 = Unit.create((cmol**3).dim, name="cmol3")
+Zmol2 = Unit.create((Zmol**2).dim, name="Zmol2")
+Zmol3 = Unit.create((Zmol**3).dim, name="Zmol3")
+Pmol2 = Unit.create((Pmol**2).dim, name="Pmol2")
+Pmol3 = Unit.create((Pmol**3).dim, name="Pmol3")
+dmol2 = Unit.create((dmol**2).dim, name="dmol2")
+dmol3 = Unit.create((dmol**3).dim, name="dmol3")
+Gmol2 = Unit.create((Gmol**2).dim, name="Gmol2")
+Gmol3 = Unit.create((Gmol**3).dim, name="Gmol3")
+fmol2 = Unit.create((fmol**2).dim, name="fmol2")
+fmol3 = Unit.create((fmol**3).dim, name="fmol3")
+hmol2 = Unit.create((hmol**2).dim, name="hmol2")
+hmol3 = Unit.create((hmol**3).dim, name="hmol3")
+damol2 = Unit.create((damol**2).dim, name="damol2")
+damol3 = Unit.create((damol**3).dim, name="damol3")
+mmol2 = Unit.create((mmol**2).dim, name="mmol2")
+mmol3 = Unit.create((mmol**3).dim, name="mmol3")
+nmol2 = Unit.create((nmol**2).dim, name="nmol2")
+nmol3 = Unit.create((nmol**3).dim, name="nmol3")
+pmol2 = Unit.create((pmol**2).dim, name="pmol2")
+pmol3 = Unit.create((pmol**3).dim, name="pmol3")
+umol2 = Unit.create((umol**2).dim, name="umol2")
+umol3 = Unit.create((umol**3).dim, name="umol3")
+Tmol2 = Unit.create((Tmol**2).dim, name="Tmol2")
+Tmol3 = Unit.create((Tmol**3).dim, name="Tmol3")
+ymol2 = Unit.create((ymol**2).dim, name="ymol2")
+ymol3 = Unit.create((ymol**3).dim, name="ymol3")
+Emol2 = Unit.create((Emol**2).dim, name="Emol2")
+Emol3 = Unit.create((Emol**3).dim, name="Emol3")
+zmol2 = Unit.create((zmol**2).dim, name="zmol2")
+zmol3 = Unit.create((zmol**3).dim, name="zmol3")
+Mmol2 = Unit.create((Mmol**2).dim, name="Mmol2")
+Mmol3 = Unit.create((Mmol**3).dim, name="Mmol3")
+kmol2 = Unit.create((kmol**2).dim, name="kmol2")
+kmol3 = Unit.create((kmol**3).dim, name="kmol3")
+Ymol2 = Unit.create((Ymol**2).dim, name="Ymol2")
+Ymol3 = Unit.create((Ymol**3).dim, name="Ymol3")
+acandle2 = Unit.create((acandle**2).dim, name="acandle2")
+acandle3 = Unit.create((acandle**3).dim, name="acandle3")
+ccandle2 = Unit.create((ccandle**2).dim, name="ccandle2")
+ccandle3 = Unit.create((ccandle**3).dim, name="ccandle3")
+Zcandle2 = Unit.create((Zcandle**2).dim, name="Zcandle2")
+Zcandle3 = Unit.create((Zcandle**3).dim, name="Zcandle3")
+Pcandle2 = Unit.create((Pcandle**2).dim, name="Pcandle2")
+Pcandle3 = Unit.create((Pcandle**3).dim, name="Pcandle3")
+dcandle2 = Unit.create((dcandle**2).dim, name="dcandle2")
+dcandle3 = Unit.create((dcandle**3).dim, name="dcandle3")
+Gcandle2 = Unit.create((Gcandle**2).dim, name="Gcandle2")
+Gcandle3 = Unit.create((Gcandle**3).dim, name="Gcandle3")
+fcandle2 = Unit.create((fcandle**2).dim, name="fcandle2")
+fcandle3 = Unit.create((fcandle**3).dim, name="fcandle3")
+hcandle2 = Unit.create((hcandle**2).dim, name="hcandle2")
+hcandle3 = Unit.create((hcandle**3).dim, name="hcandle3")
+dacandle2 = Unit.create((dacandle**2).dim, name="dacandle2")
+dacandle3 = Unit.create((dacandle**3).dim, name="dacandle3")
+mcandle2 = Unit.create((mcandle**2).dim, name="mcandle2")
+mcandle3 = Unit.create((mcandle**3).dim, name="mcandle3")
+ncandle2 = Unit.create((ncandle**2).dim, name="ncandle2")
+ncandle3 = Unit.create((ncandle**3).dim, name="ncandle3")
+pcandle2 = Unit.create((pcandle**2).dim, name="pcandle2")
+pcandle3 = Unit.create((pcandle**3).dim, name="pcandle3")
+ucandle2 = Unit.create((ucandle**2).dim, name="ucandle2")
+ucandle3 = Unit.create((ucandle**3).dim, name="ucandle3")
+Tcandle2 = Unit.create((Tcandle**2).dim, name="Tcandle2")
+Tcandle3 = Unit.create((Tcandle**3).dim, name="Tcandle3")
+ycandle2 = Unit.create((ycandle**2).dim, name="ycandle2")
+ycandle3 = Unit.create((ycandle**3).dim, name="ycandle3")
+Ecandle2 = Unit.create((Ecandle**2).dim, name="Ecandle2")
+Ecandle3 = Unit.create((Ecandle**3).dim, name="Ecandle3")
+zcandle2 = Unit.create((zcandle**2).dim, name="zcandle2")
+zcandle3 = Unit.create((zcandle**3).dim, name="zcandle3")
+Mcandle2 = Unit.create((Mcandle**2).dim, name="Mcandle2")
+Mcandle3 = Unit.create((Mcandle**3).dim, name="Mcandle3")
+kcandle2 = Unit.create((kcandle**2).dim, name="kcandle2")
+kcandle3 = Unit.create((kcandle**3).dim, name="kcandle3")
+Ycandle2 = Unit.create((Ycandle**2).dim, name="Ycandle2")
+Ycandle3 = Unit.create((Ycandle**3).dim, name="Ycandle3")
+akilogramme2 = Unit.create((akilogramme**2).dim, name="akilogramme2")
+akilogramme3 = Unit.create((akilogramme**3).dim, name="akilogramme3")
+ckilogramme2 = Unit.create((ckilogramme**2).dim, name="ckilogramme2")
+ckilogramme3 = Unit.create((ckilogramme**3).dim, name="ckilogramme3")
+Zkilogramme2 = Unit.create((Zkilogramme**2).dim, name="Zkilogramme2")
+Zkilogramme3 = Unit.create((Zkilogramme**3).dim, name="Zkilogramme3")
+Pkilogramme2 = Unit.create((Pkilogramme**2).dim, name="Pkilogramme2")
+Pkilogramme3 = Unit.create((Pkilogramme**3).dim, name="Pkilogramme3")
+dkilogramme2 = Unit.create((dkilogramme**2).dim, name="dkilogramme2")
+dkilogramme3 = Unit.create((dkilogramme**3).dim, name="dkilogramme3")
+Gkilogramme2 = Unit.create((Gkilogramme**2).dim, name="Gkilogramme2")
+Gkilogramme3 = Unit.create((Gkilogramme**3).dim, name="Gkilogramme3")
+fkilogramme2 = Unit.create((fkilogramme**2).dim, name="fkilogramme2")
+fkilogramme3 = Unit.create((fkilogramme**3).dim, name="fkilogramme3")
+hkilogramme2 = Unit.create((hkilogramme**2).dim, name="hkilogramme2")
+hkilogramme3 = Unit.create((hkilogramme**3).dim, name="hkilogramme3")
+dakilogramme2 = Unit.create((dakilogramme**2).dim, name="dakilogramme2")
+dakilogramme3 = Unit.create((dakilogramme**3).dim, name="dakilogramme3")
+mkilogramme2 = Unit.create((mkilogramme**2).dim, name="mkilogramme2")
+mkilogramme3 = Unit.create((mkilogramme**3).dim, name="mkilogramme3")
+nkilogramme2 = Unit.create((nkilogramme**2).dim, name="nkilogramme2")
+nkilogramme3 = Unit.create((nkilogramme**3).dim, name="nkilogramme3")
+pkilogramme2 = Unit.create((pkilogramme**2).dim, name="pkilogramme2")
+pkilogramme3 = Unit.create((pkilogramme**3).dim, name="pkilogramme3")
+ukilogramme2 = Unit.create((ukilogramme**2).dim, name="ukilogramme2")
+ukilogramme3 = Unit.create((ukilogramme**3).dim, name="ukilogramme3")
+Tkilogramme2 = Unit.create((Tkilogramme**2).dim, name="Tkilogramme2")
+Tkilogramme3 = Unit.create((Tkilogramme**3).dim, name="Tkilogramme3")
+ykilogramme2 = Unit.create((ykilogramme**2).dim, name="ykilogramme2")
+ykilogramme3 = Unit.create((ykilogramme**3).dim, name="ykilogramme3")
+Ekilogramme2 = Unit.create((Ekilogramme**2).dim, name="Ekilogramme2")
+Ekilogramme3 = Unit.create((Ekilogramme**3).dim, name="Ekilogramme3")
+zkilogramme2 = Unit.create((zkilogramme**2).dim, name="zkilogramme2")
+zkilogramme3 = Unit.create((zkilogramme**3).dim, name="zkilogramme3")
+Mkilogramme2 = Unit.create((Mkilogramme**2).dim, name="Mkilogramme2")
+Mkilogramme3 = Unit.create((Mkilogramme**3).dim, name="Mkilogramme3")
+kkilogramme2 = Unit.create((kkilogramme**2).dim, name="kkilogramme2")
+kkilogramme3 = Unit.create((kkilogramme**3).dim, name="kkilogramme3")
+Ykilogramme2 = Unit.create((Ykilogramme**2).dim, name="Ykilogramme2")
+Ykilogramme3 = Unit.create((Ykilogramme**3).dim, name="Ykilogramme3")
+agram2 = Unit.create((agram**2).dim, name="agram2")
+agram3 = Unit.create((agram**3).dim, name="agram3")
+cgram2 = Unit.create((cgram**2).dim, name="cgram2")
+cgram3 = Unit.create((cgram**3).dim, name="cgram3")
+Zgram2 = Unit.create((Zgram**2).dim, name="Zgram2")
+Zgram3 = Unit.create((Zgram**3).dim, name="Zgram3")
+Pgram2 = Unit.create((Pgram**2).dim, name="Pgram2")
+Pgram3 = Unit.create((Pgram**3).dim, name="Pgram3")
+dgram2 = Unit.create((dgram**2).dim, name="dgram2")
+dgram3 = Unit.create((dgram**3).dim, name="dgram3")
+Ggram2 = Unit.create((Ggram**2).dim, name="Ggram2")
+Ggram3 = Unit.create((Ggram**3).dim, name="Ggram3")
+fgram2 = Unit.create((fgram**2).dim, name="fgram2")
+fgram3 = Unit.create((fgram**3).dim, name="fgram3")
+hgram2 = Unit.create((hgram**2).dim, name="hgram2")
+hgram3 = Unit.create((hgram**3).dim, name="hgram3")
+dagram2 = Unit.create((dagram**2).dim, name="dagram2")
+dagram3 = Unit.create((dagram**3).dim, name="dagram3")
+mgram2 = Unit.create((mgram**2).dim, name="mgram2")
+mgram3 = Unit.create((mgram**3).dim, name="mgram3")
+ngram2 = Unit.create((ngram**2).dim, name="ngram2")
+ngram3 = Unit.create((ngram**3).dim, name="ngram3")
+pgram2 = Unit.create((pgram**2).dim, name="pgram2")
+pgram3 = Unit.create((pgram**3).dim, name="pgram3")
+ugram2 = Unit.create((ugram**2).dim, name="ugram2")
+ugram3 = Unit.create((ugram**3).dim, name="ugram3")
+Tgram2 = Unit.create((Tgram**2).dim, name="Tgram2")
+Tgram3 = Unit.create((Tgram**3).dim, name="Tgram3")
+ygram2 = Unit.create((ygram**2).dim, name="ygram2")
+ygram3 = Unit.create((ygram**3).dim, name="ygram3")
+Egram2 = Unit.create((Egram**2).dim, name="Egram2")
+Egram3 = Unit.create((Egram**3).dim, name="Egram3")
+zgram2 = Unit.create((zgram**2).dim, name="zgram2")
+zgram3 = Unit.create((zgram**3).dim, name="zgram3")
+Mgram2 = Unit.create((Mgram**2).dim, name="Mgram2")
+Mgram3 = Unit.create((Mgram**3).dim, name="Mgram3")
+kgram2 = Unit.create((kgram**2).dim, name="kgram2")
+kgram3 = Unit.create((kgram**3).dim, name="kgram3")
+Ygram2 = Unit.create((Ygram**2).dim, name="Ygram2")
+Ygram3 = Unit.create((Ygram**3).dim, name="Ygram3")
+agramme2 = Unit.create((agramme**2).dim, name="agramme2")
+agramme3 = Unit.create((agramme**3).dim, name="agramme3")
+cgramme2 = Unit.create((cgramme**2).dim, name="cgramme2")
+cgramme3 = Unit.create((cgramme**3).dim, name="cgramme3")
+Zgramme2 = Unit.create((Zgramme**2).dim, name="Zgramme2")
+Zgramme3 = Unit.create((Zgramme**3).dim, name="Zgramme3")
+Pgramme2 = Unit.create((Pgramme**2).dim, name="Pgramme2")
+Pgramme3 = Unit.create((Pgramme**3).dim, name="Pgramme3")
+dgramme2 = Unit.create((dgramme**2).dim, name="dgramme2")
+dgramme3 = Unit.create((dgramme**3).dim, name="dgramme3")
+Ggramme2 = Unit.create((Ggramme**2).dim, name="Ggramme2")
+Ggramme3 = Unit.create((Ggramme**3).dim, name="Ggramme3")
+fgramme2 = Unit.create((fgramme**2).dim, name="fgramme2")
+fgramme3 = Unit.create((fgramme**3).dim, name="fgramme3")
+hgramme2 = Unit.create((hgramme**2).dim, name="hgramme2")
+hgramme3 = Unit.create((hgramme**3).dim, name="hgramme3")
+dagramme2 = Unit.create((dagramme**2).dim, name="dagramme2")
+dagramme3 = Unit.create((dagramme**3).dim, name="dagramme3")
+mgramme2 = Unit.create((mgramme**2).dim, name="mgramme2")
+mgramme3 = Unit.create((mgramme**3).dim, name="mgramme3")
+ngramme2 = Unit.create((ngramme**2).dim, name="ngramme2")
+ngramme3 = Unit.create((ngramme**3).dim, name="ngramme3")
+pgramme2 = Unit.create((pgramme**2).dim, name="pgramme2")
+pgramme3 = Unit.create((pgramme**3).dim, name="pgramme3")
+ugramme2 = Unit.create((ugramme**2).dim, name="ugramme2")
+ugramme3 = Unit.create((ugramme**3).dim, name="ugramme3")
+Tgramme2 = Unit.create((Tgramme**2).dim, name="Tgramme2")
+Tgramme3 = Unit.create((Tgramme**3).dim, name="Tgramme3")
+ygramme2 = Unit.create((ygramme**2).dim, name="ygramme2")
+ygramme3 = Unit.create((ygramme**3).dim, name="ygramme3")
+Egramme2 = Unit.create((Egramme**2).dim, name="Egramme2")
+Egramme3 = Unit.create((Egramme**3).dim, name="Egramme3")
+zgramme2 = Unit.create((zgramme**2).dim, name="zgramme2")
+zgramme3 = Unit.create((zgramme**3).dim, name="zgramme3")
+Mgramme2 = Unit.create((Mgramme**2).dim, name="Mgramme2")
+Mgramme3 = Unit.create((Mgramme**3).dim, name="Mgramme3")
+kgramme2 = Unit.create((kgramme**2).dim, name="kgramme2")
+kgramme3 = Unit.create((kgramme**3).dim, name="kgramme3")
+Ygramme2 = Unit.create((Ygramme**2).dim, name="Ygramme2")
+Ygramme3 = Unit.create((Ygramme**3).dim, name="Ygramme3")
+amolar2 = Unit.create((amolar**2).dim, name="amolar2")
+amolar3 = Unit.create((amolar**3).dim, name="amolar3")
+cmolar2 = Unit.create((cmolar**2).dim, name="cmolar2")
+cmolar3 = Unit.create((cmolar**3).dim, name="cmolar3")
+Zmolar2 = Unit.create((Zmolar**2).dim, name="Zmolar2")
+Zmolar3 = Unit.create((Zmolar**3).dim, name="Zmolar3")
+Pmolar2 = Unit.create((Pmolar**2).dim, name="Pmolar2")
+Pmolar3 = Unit.create((Pmolar**3).dim, name="Pmolar3")
+dmolar2 = Unit.create((dmolar**2).dim, name="dmolar2")
+dmolar3 = Unit.create((dmolar**3).dim, name="dmolar3")
+Gmolar2 = Unit.create((Gmolar**2).dim, name="Gmolar2")
+Gmolar3 = Unit.create((Gmolar**3).dim, name="Gmolar3")
+fmolar2 = Unit.create((fmolar**2).dim, name="fmolar2")
+fmolar3 = Unit.create((fmolar**3).dim, name="fmolar3")
+hmolar2 = Unit.create((hmolar**2).dim, name="hmolar2")
+hmolar3 = Unit.create((hmolar**3).dim, name="hmolar3")
+damolar2 = Unit.create((damolar**2).dim, name="damolar2")
+damolar3 = Unit.create((damolar**3).dim, name="damolar3")
+mmolar2 = Unit.create((mmolar**2).dim, name="mmolar2")
+mmolar3 = Unit.create((mmolar**3).dim, name="mmolar3")
+nmolar2 = Unit.create((nmolar**2).dim, name="nmolar2")
+nmolar3 = Unit.create((nmolar**3).dim, name="nmolar3")
+pmolar2 = Unit.create((pmolar**2).dim, name="pmolar2")
+pmolar3 = Unit.create((pmolar**3).dim, name="pmolar3")
+umolar2 = Unit.create((umolar**2).dim, name="umolar2")
+umolar3 = Unit.create((umolar**3).dim, name="umolar3")
+Tmolar2 = Unit.create((Tmolar**2).dim, name="Tmolar2")
+Tmolar3 = Unit.create((Tmolar**3).dim, name="Tmolar3")
+ymolar2 = Unit.create((ymolar**2).dim, name="ymolar2")
+ymolar3 = Unit.create((ymolar**3).dim, name="ymolar3")
+Emolar2 = Unit.create((Emolar**2).dim, name="Emolar2")
+Emolar3 = Unit.create((Emolar**3).dim, name="Emolar3")
+zmolar2 = Unit.create((zmolar**2).dim, name="zmolar2")
+zmolar3 = Unit.create((zmolar**3).dim, name="zmolar3")
+Mmolar2 = Unit.create((Mmolar**2).dim, name="Mmolar2")
+Mmolar3 = Unit.create((Mmolar**3).dim, name="Mmolar3")
+kmolar2 = Unit.create((kmolar**2).dim, name="kmolar2")
+kmolar3 = Unit.create((kmolar**3).dim, name="kmolar3")
+Ymolar2 = Unit.create((Ymolar**2).dim, name="Ymolar2")
+Ymolar3 = Unit.create((Ymolar**3).dim, name="Ymolar3")
+aradian2 = Unit.create((aradian**2).dim, name="aradian2")
+aradian3 = Unit.create((aradian**3).dim, name="aradian3")
+cradian2 = Unit.create((cradian**2).dim, name="cradian2")
+cradian3 = Unit.create((cradian**3).dim, name="cradian3")
+Zradian2 = Unit.create((Zradian**2).dim, name="Zradian2")
+Zradian3 = Unit.create((Zradian**3).dim, name="Zradian3")
+Pradian2 = Unit.create((Pradian**2).dim, name="Pradian2")
+Pradian3 = Unit.create((Pradian**3).dim, name="Pradian3")
+dradian2 = Unit.create((dradian**2).dim, name="dradian2")
+dradian3 = Unit.create((dradian**3).dim, name="dradian3")
+Gradian2 = Unit.create((Gradian**2).dim, name="Gradian2")
+Gradian3 = Unit.create((Gradian**3).dim, name="Gradian3")
+fradian2 = Unit.create((fradian**2).dim, name="fradian2")
+fradian3 = Unit.create((fradian**3).dim, name="fradian3")
+hradian2 = Unit.create((hradian**2).dim, name="hradian2")
+hradian3 = Unit.create((hradian**3).dim, name="hradian3")
+daradian2 = Unit.create((daradian**2).dim, name="daradian2")
+daradian3 = Unit.create((daradian**3).dim, name="daradian3")
+mradian2 = Unit.create((mradian**2).dim, name="mradian2")
+mradian3 = Unit.create((mradian**3).dim, name="mradian3")
+nradian2 = Unit.create((nradian**2).dim, name="nradian2")
+nradian3 = Unit.create((nradian**3).dim, name="nradian3")
+pradian2 = Unit.create((pradian**2).dim, name="pradian2")
+pradian3 = Unit.create((pradian**3).dim, name="pradian3")
+uradian2 = Unit.create((uradian**2).dim, name="uradian2")
+uradian3 = Unit.create((uradian**3).dim, name="uradian3")
+Tradian2 = Unit.create((Tradian**2).dim, name="Tradian2")
+Tradian3 = Unit.create((Tradian**3).dim, name="Tradian3")
+yradian2 = Unit.create((yradian**2).dim, name="yradian2")
+yradian3 = Unit.create((yradian**3).dim, name="yradian3")
+Eradian2 = Unit.create((Eradian**2).dim, name="Eradian2")
+Eradian3 = Unit.create((Eradian**3).dim, name="Eradian3")
+zradian2 = Unit.create((zradian**2).dim, name="zradian2")
+zradian3 = Unit.create((zradian**3).dim, name="zradian3")
+Mradian2 = Unit.create((Mradian**2).dim, name="Mradian2")
+Mradian3 = Unit.create((Mradian**3).dim, name="Mradian3")
+kradian2 = Unit.create((kradian**2).dim, name="kradian2")
+kradian3 = Unit.create((kradian**3).dim, name="kradian3")
+Yradian2 = Unit.create((Yradian**2).dim, name="Yradian2")
+Yradian3 = Unit.create((Yradian**3).dim, name="Yradian3")
+asteradian2 = Unit.create((asteradian**2).dim, name="asteradian2")
+asteradian3 = Unit.create((asteradian**3).dim, name="asteradian3")
+csteradian2 = Unit.create((csteradian**2).dim, name="csteradian2")
+csteradian3 = Unit.create((csteradian**3).dim, name="csteradian3")
+Zsteradian2 = Unit.create((Zsteradian**2).dim, name="Zsteradian2")
+Zsteradian3 = Unit.create((Zsteradian**3).dim, name="Zsteradian3")
+Psteradian2 = Unit.create((Psteradian**2).dim, name="Psteradian2")
+Psteradian3 = Unit.create((Psteradian**3).dim, name="Psteradian3")
+dsteradian2 = Unit.create((dsteradian**2).dim, name="dsteradian2")
+dsteradian3 = Unit.create((dsteradian**3).dim, name="dsteradian3")
+Gsteradian2 = Unit.create((Gsteradian**2).dim, name="Gsteradian2")
+Gsteradian3 = Unit.create((Gsteradian**3).dim, name="Gsteradian3")
+fsteradian2 = Unit.create((fsteradian**2).dim, name="fsteradian2")
+fsteradian3 = Unit.create((fsteradian**3).dim, name="fsteradian3")
+hsteradian2 = Unit.create((hsteradian**2).dim, name="hsteradian2")
+hsteradian3 = Unit.create((hsteradian**3).dim, name="hsteradian3")
+dasteradian2 = Unit.create((dasteradian**2).dim, name="dasteradian2")
+dasteradian3 = Unit.create((dasteradian**3).dim, name="dasteradian3")
+msteradian2 = Unit.create((msteradian**2).dim, name="msteradian2")
+msteradian3 = Unit.create((msteradian**3).dim, name="msteradian3")
+nsteradian2 = Unit.create((nsteradian**2).dim, name="nsteradian2")
+nsteradian3 = Unit.create((nsteradian**3).dim, name="nsteradian3")
+psteradian2 = Unit.create((psteradian**2).dim, name="psteradian2")
+psteradian3 = Unit.create((psteradian**3).dim, name="psteradian3")
+usteradian2 = Unit.create((usteradian**2).dim, name="usteradian2")
+usteradian3 = Unit.create((usteradian**3).dim, name="usteradian3")
+Tsteradian2 = Unit.create((Tsteradian**2).dim, name="Tsteradian2")
+Tsteradian3 = Unit.create((Tsteradian**3).dim, name="Tsteradian3")
+ysteradian2 = Unit.create((ysteradian**2).dim, name="ysteradian2")
+ysteradian3 = Unit.create((ysteradian**3).dim, name="ysteradian3")
+Esteradian2 = Unit.create((Esteradian**2).dim, name="Esteradian2")
+Esteradian3 = Unit.create((Esteradian**3).dim, name="Esteradian3")
+zsteradian2 = Unit.create((zsteradian**2).dim, name="zsteradian2")
+zsteradian3 = Unit.create((zsteradian**3).dim, name="zsteradian3")
+Msteradian2 = Unit.create((Msteradian**2).dim, name="Msteradian2")
+Msteradian3 = Unit.create((Msteradian**3).dim, name="Msteradian3")
+ksteradian2 = Unit.create((ksteradian**2).dim, name="ksteradian2")
+ksteradian3 = Unit.create((ksteradian**3).dim, name="ksteradian3")
+Ysteradian2 = Unit.create((Ysteradian**2).dim, name="Ysteradian2")
+Ysteradian3 = Unit.create((Ysteradian**3).dim, name="Ysteradian3")
+ahertz2 = Unit.create((ahertz**2).dim, name="ahertz2")
+ahertz3 = Unit.create((ahertz**3).dim, name="ahertz3")
+chertz2 = Unit.create((chertz**2).dim, name="chertz2")
+chertz3 = Unit.create((chertz**3).dim, name="chertz3")
+Zhertz2 = Unit.create((Zhertz**2).dim, name="Zhertz2")
+Zhertz3 = Unit.create((Zhertz**3).dim, name="Zhertz3")
+Phertz2 = Unit.create((Phertz**2).dim, name="Phertz2")
+Phertz3 = Unit.create((Phertz**3).dim, name="Phertz3")
+dhertz2 = Unit.create((dhertz**2).dim, name="dhertz2")
+dhertz3 = Unit.create((dhertz**3).dim, name="dhertz3")
+Ghertz2 = Unit.create((Ghertz**2).dim, name="Ghertz2")
+Ghertz3 = Unit.create((Ghertz**3).dim, name="Ghertz3")
+fhertz2 = Unit.create((fhertz**2).dim, name="fhertz2")
+fhertz3 = Unit.create((fhertz**3).dim, name="fhertz3")
+hhertz2 = Unit.create((hhertz**2).dim, name="hhertz2")
+hhertz3 = Unit.create((hhertz**3).dim, name="hhertz3")
+dahertz2 = Unit.create((dahertz**2).dim, name="dahertz2")
+dahertz3 = Unit.create((dahertz**3).dim, name="dahertz3")
+mhertz2 = Unit.create((mhertz**2).dim, name="mhertz2")
+mhertz3 = Unit.create((mhertz**3).dim, name="mhertz3")
+nhertz2 = Unit.create((nhertz**2).dim, name="nhertz2")
+nhertz3 = Unit.create((nhertz**3).dim, name="nhertz3")
+phertz2 = Unit.create((phertz**2).dim, name="phertz2")
+phertz3 = Unit.create((phertz**3).dim, name="phertz3")
+uhertz2 = Unit.create((uhertz**2).dim, name="uhertz2")
+uhertz3 = Unit.create((uhertz**3).dim, name="uhertz3")
+Thertz2 = Unit.create((Thertz**2).dim, name="Thertz2")
+Thertz3 = Unit.create((Thertz**3).dim, name="Thertz3")
+yhertz2 = Unit.create((yhertz**2).dim, name="yhertz2")
+yhertz3 = Unit.create((yhertz**3).dim, name="yhertz3")
+Ehertz2 = Unit.create((Ehertz**2).dim, name="Ehertz2")
+Ehertz3 = Unit.create((Ehertz**3).dim, name="Ehertz3")
+zhertz2 = Unit.create((zhertz**2).dim, name="zhertz2")
+zhertz3 = Unit.create((zhertz**3).dim, name="zhertz3")
+Mhertz2 = Unit.create((Mhertz**2).dim, name="Mhertz2")
+Mhertz3 = Unit.create((Mhertz**3).dim, name="Mhertz3")
+khertz2 = Unit.create((khertz**2).dim, name="khertz2")
+khertz3 = Unit.create((khertz**3).dim, name="khertz3")
+Yhertz2 = Unit.create((Yhertz**2).dim, name="Yhertz2")
+Yhertz3 = Unit.create((Yhertz**3).dim, name="Yhertz3")
+anewton2 = Unit.create((anewton**2).dim, name="anewton2")
+anewton3 = Unit.create((anewton**3).dim, name="anewton3")
+cnewton2 = Unit.create((cnewton**2).dim, name="cnewton2")
+cnewton3 = Unit.create((cnewton**3).dim, name="cnewton3")
+Znewton2 = Unit.create((Znewton**2).dim, name="Znewton2")
+Znewton3 = Unit.create((Znewton**3).dim, name="Znewton3")
+Pnewton2 = Unit.create((Pnewton**2).dim, name="Pnewton2")
+Pnewton3 = Unit.create((Pnewton**3).dim, name="Pnewton3")
+dnewton2 = Unit.create((dnewton**2).dim, name="dnewton2")
+dnewton3 = Unit.create((dnewton**3).dim, name="dnewton3")
+Gnewton2 = Unit.create((Gnewton**2).dim, name="Gnewton2")
+Gnewton3 = Unit.create((Gnewton**3).dim, name="Gnewton3")
+fnewton2 = Unit.create((fnewton**2).dim, name="fnewton2")
+fnewton3 = Unit.create((fnewton**3).dim, name="fnewton3")
+hnewton2 = Unit.create((hnewton**2).dim, name="hnewton2")
+hnewton3 = Unit.create((hnewton**3).dim, name="hnewton3")
+danewton2 = Unit.create((danewton**2).dim, name="danewton2")
+danewton3 = Unit.create((danewton**3).dim, name="danewton3")
+mnewton2 = Unit.create((mnewton**2).dim, name="mnewton2")
+mnewton3 = Unit.create((mnewton**3).dim, name="mnewton3")
+nnewton2 = Unit.create((nnewton**2).dim, name="nnewton2")
+nnewton3 = Unit.create((nnewton**3).dim, name="nnewton3")
+pnewton2 = Unit.create((pnewton**2).dim, name="pnewton2")
+pnewton3 = Unit.create((pnewton**3).dim, name="pnewton3")
+unewton2 = Unit.create((unewton**2).dim, name="unewton2")
+unewton3 = Unit.create((unewton**3).dim, name="unewton3")
+Tnewton2 = Unit.create((Tnewton**2).dim, name="Tnewton2")
+Tnewton3 = Unit.create((Tnewton**3).dim, name="Tnewton3")
+ynewton2 = Unit.create((ynewton**2).dim, name="ynewton2")
+ynewton3 = Unit.create((ynewton**3).dim, name="ynewton3")
+Enewton2 = Unit.create((Enewton**2).dim, name="Enewton2")
+Enewton3 = Unit.create((Enewton**3).dim, name="Enewton3")
+znewton2 = Unit.create((znewton**2).dim, name="znewton2")
+znewton3 = Unit.create((znewton**3).dim, name="znewton3")
+Mnewton2 = Unit.create((Mnewton**2).dim, name="Mnewton2")
+Mnewton3 = Unit.create((Mnewton**3).dim, name="Mnewton3")
+knewton2 = Unit.create((knewton**2).dim, name="knewton2")
+knewton3 = Unit.create((knewton**3).dim, name="knewton3")
+Ynewton2 = Unit.create((Ynewton**2).dim, name="Ynewton2")
+Ynewton3 = Unit.create((Ynewton**3).dim, name="Ynewton3")
+apascal2 = Unit.create((apascal**2).dim, name="apascal2")
+apascal3 = Unit.create((apascal**3).dim, name="apascal3")
+cpascal2 = Unit.create((cpascal**2).dim, name="cpascal2")
+cpascal3 = Unit.create((cpascal**3).dim, name="cpascal3")
+Zpascal2 = Unit.create((Zpascal**2).dim, name="Zpascal2")
+Zpascal3 = Unit.create((Zpascal**3).dim, name="Zpascal3")
+Ppascal2 = Unit.create((Ppascal**2).dim, name="Ppascal2")
+Ppascal3 = Unit.create((Ppascal**3).dim, name="Ppascal3")
+dpascal2 = Unit.create((dpascal**2).dim, name="dpascal2")
+dpascal3 = Unit.create((dpascal**3).dim, name="dpascal3")
+Gpascal2 = Unit.create((Gpascal**2).dim, name="Gpascal2")
+Gpascal3 = Unit.create((Gpascal**3).dim, name="Gpascal3")
+fpascal2 = Unit.create((fpascal**2).dim, name="fpascal2")
+fpascal3 = Unit.create((fpascal**3).dim, name="fpascal3")
+hpascal2 = Unit.create((hpascal**2).dim, name="hpascal2")
+hpascal3 = Unit.create((hpascal**3).dim, name="hpascal3")
+dapascal2 = Unit.create((dapascal**2).dim, name="dapascal2")
+dapascal3 = Unit.create((dapascal**3).dim, name="dapascal3")
+mpascal2 = Unit.create((mpascal**2).dim, name="mpascal2")
+mpascal3 = Unit.create((mpascal**3).dim, name="mpascal3")
+npascal2 = Unit.create((npascal**2).dim, name="npascal2")
+npascal3 = Unit.create((npascal**3).dim, name="npascal3")
+ppascal2 = Unit.create((ppascal**2).dim, name="ppascal2")
+ppascal3 = Unit.create((ppascal**3).dim, name="ppascal3")
+upascal2 = Unit.create((upascal**2).dim, name="upascal2")
+upascal3 = Unit.create((upascal**3).dim, name="upascal3")
+Tpascal2 = Unit.create((Tpascal**2).dim, name="Tpascal2")
+Tpascal3 = Unit.create((Tpascal**3).dim, name="Tpascal3")
+ypascal2 = Unit.create((ypascal**2).dim, name="ypascal2")
+ypascal3 = Unit.create((ypascal**3).dim, name="ypascal3")
+Epascal2 = Unit.create((Epascal**2).dim, name="Epascal2")
+Epascal3 = Unit.create((Epascal**3).dim, name="Epascal3")
+zpascal2 = Unit.create((zpascal**2).dim, name="zpascal2")
+zpascal3 = Unit.create((zpascal**3).dim, name="zpascal3")
+Mpascal2 = Unit.create((Mpascal**2).dim, name="Mpascal2")
+Mpascal3 = Unit.create((Mpascal**3).dim, name="Mpascal3")
+kpascal2 = Unit.create((kpascal**2).dim, name="kpascal2")
+kpascal3 = Unit.create((kpascal**3).dim, name="kpascal3")
+Ypascal2 = Unit.create((Ypascal**2).dim, name="Ypascal2")
+Ypascal3 = Unit.create((Ypascal**3).dim, name="Ypascal3")
+ajoule2 = Unit.create((ajoule**2).dim, name="ajoule2")
+ajoule3 = Unit.create((ajoule**3).dim, name="ajoule3")
+cjoule2 = Unit.create((cjoule**2).dim, name="cjoule2")
+cjoule3 = Unit.create((cjoule**3).dim, name="cjoule3")
+Zjoule2 = Unit.create((Zjoule**2).dim, name="Zjoule2")
+Zjoule3 = Unit.create((Zjoule**3).dim, name="Zjoule3")
+Pjoule2 = Unit.create((Pjoule**2).dim, name="Pjoule2")
+Pjoule3 = Unit.create((Pjoule**3).dim, name="Pjoule3")
+djoule2 = Unit.create((djoule**2).dim, name="djoule2")
+djoule3 = Unit.create((djoule**3).dim, name="djoule3")
+Gjoule2 = Unit.create((Gjoule**2).dim, name="Gjoule2")
+Gjoule3 = Unit.create((Gjoule**3).dim, name="Gjoule3")
+fjoule2 = Unit.create((fjoule**2).dim, name="fjoule2")
+fjoule3 = Unit.create((fjoule**3).dim, name="fjoule3")
+hjoule2 = Unit.create((hjoule**2).dim, name="hjoule2")
+hjoule3 = Unit.create((hjoule**3).dim, name="hjoule3")
+dajoule2 = Unit.create((dajoule**2).dim, name="dajoule2")
+dajoule3 = Unit.create((dajoule**3).dim, name="dajoule3")
+mjoule2 = Unit.create((mjoule**2).dim, name="mjoule2")
+mjoule3 = Unit.create((mjoule**3).dim, name="mjoule3")
+njoule2 = Unit.create((njoule**2).dim, name="njoule2")
+njoule3 = Unit.create((njoule**3).dim, name="njoule3")
+pjoule2 = Unit.create((pjoule**2).dim, name="pjoule2")
+pjoule3 = Unit.create((pjoule**3).dim, name="pjoule3")
+ujoule2 = Unit.create((ujoule**2).dim, name="ujoule2")
+ujoule3 = Unit.create((ujoule**3).dim, name="ujoule3")
+Tjoule2 = Unit.create((Tjoule**2).dim, name="Tjoule2")
+Tjoule3 = Unit.create((Tjoule**3).dim, name="Tjoule3")
+yjoule2 = Unit.create((yjoule**2).dim, name="yjoule2")
+yjoule3 = Unit.create((yjoule**3).dim, name="yjoule3")
+Ejoule2 = Unit.create((Ejoule**2).dim, name="Ejoule2")
+Ejoule3 = Unit.create((Ejoule**3).dim, name="Ejoule3")
+zjoule2 = Unit.create((zjoule**2).dim, name="zjoule2")
+zjoule3 = Unit.create((zjoule**3).dim, name="zjoule3")
+Mjoule2 = Unit.create((Mjoule**2).dim, name="Mjoule2")
+Mjoule3 = Unit.create((Mjoule**3).dim, name="Mjoule3")
+kjoule2 = Unit.create((kjoule**2).dim, name="kjoule2")
+kjoule3 = Unit.create((kjoule**3).dim, name="kjoule3")
+Yjoule2 = Unit.create((Yjoule**2).dim, name="Yjoule2")
+Yjoule3 = Unit.create((Yjoule**3).dim, name="Yjoule3")
+awatt2 = Unit.create((awatt**2).dim, name="awatt2")
+awatt3 = Unit.create((awatt**3).dim, name="awatt3")
+cwatt2 = Unit.create((cwatt**2).dim, name="cwatt2")
+cwatt3 = Unit.create((cwatt**3).dim, name="cwatt3")
+Zwatt2 = Unit.create((Zwatt**2).dim, name="Zwatt2")
+Zwatt3 = Unit.create((Zwatt**3).dim, name="Zwatt3")
+Pwatt2 = Unit.create((Pwatt**2).dim, name="Pwatt2")
+Pwatt3 = Unit.create((Pwatt**3).dim, name="Pwatt3")
+dwatt2 = Unit.create((dwatt**2).dim, name="dwatt2")
+dwatt3 = Unit.create((dwatt**3).dim, name="dwatt3")
+Gwatt2 = Unit.create((Gwatt**2).dim, name="Gwatt2")
+Gwatt3 = Unit.create((Gwatt**3).dim, name="Gwatt3")
+fwatt2 = Unit.create((fwatt**2).dim, name="fwatt2")
+fwatt3 = Unit.create((fwatt**3).dim, name="fwatt3")
+hwatt2 = Unit.create((hwatt**2).dim, name="hwatt2")
+hwatt3 = Unit.create((hwatt**3).dim, name="hwatt3")
+dawatt2 = Unit.create((dawatt**2).dim, name="dawatt2")
+dawatt3 = Unit.create((dawatt**3).dim, name="dawatt3")
+mwatt2 = Unit.create((mwatt**2).dim, name="mwatt2")
+mwatt3 = Unit.create((mwatt**3).dim, name="mwatt3")
+nwatt2 = Unit.create((nwatt**2).dim, name="nwatt2")
+nwatt3 = Unit.create((nwatt**3).dim, name="nwatt3")
+pwatt2 = Unit.create((pwatt**2).dim, name="pwatt2")
+pwatt3 = Unit.create((pwatt**3).dim, name="pwatt3")
+uwatt2 = Unit.create((uwatt**2).dim, name="uwatt2")
+uwatt3 = Unit.create((uwatt**3).dim, name="uwatt3")
+Twatt2 = Unit.create((Twatt**2).dim, name="Twatt2")
+Twatt3 = Unit.create((Twatt**3).dim, name="Twatt3")
+ywatt2 = Unit.create((ywatt**2).dim, name="ywatt2")
+ywatt3 = Unit.create((ywatt**3).dim, name="ywatt3")
+Ewatt2 = Unit.create((Ewatt**2).dim, name="Ewatt2")
+Ewatt3 = Unit.create((Ewatt**3).dim, name="Ewatt3")
+zwatt2 = Unit.create((zwatt**2).dim, name="zwatt2")
+zwatt3 = Unit.create((zwatt**3).dim, name="zwatt3")
+Mwatt2 = Unit.create((Mwatt**2).dim, name="Mwatt2")
+Mwatt3 = Unit.create((Mwatt**3).dim, name="Mwatt3")
+kwatt2 = Unit.create((kwatt**2).dim, name="kwatt2")
+kwatt3 = Unit.create((kwatt**3).dim, name="kwatt3")
+Ywatt2 = Unit.create((Ywatt**2).dim, name="Ywatt2")
+Ywatt3 = Unit.create((Ywatt**3).dim, name="Ywatt3")
+acoulomb2 = Unit.create((acoulomb**2).dim, name="acoulomb2")
+acoulomb3 = Unit.create((acoulomb**3).dim, name="acoulomb3")
+ccoulomb2 = Unit.create((ccoulomb**2).dim, name="ccoulomb2")
+ccoulomb3 = Unit.create((ccoulomb**3).dim, name="ccoulomb3")
+Zcoulomb2 = Unit.create((Zcoulomb**2).dim, name="Zcoulomb2")
+Zcoulomb3 = Unit.create((Zcoulomb**3).dim, name="Zcoulomb3")
+Pcoulomb2 = Unit.create((Pcoulomb**2).dim, name="Pcoulomb2")
+Pcoulomb3 = Unit.create((Pcoulomb**3).dim, name="Pcoulomb3")
+dcoulomb2 = Unit.create((dcoulomb**2).dim, name="dcoulomb2")
+dcoulomb3 = Unit.create((dcoulomb**3).dim, name="dcoulomb3")
+Gcoulomb2 = Unit.create((Gcoulomb**2).dim, name="Gcoulomb2")
+Gcoulomb3 = Unit.create((Gcoulomb**3).dim, name="Gcoulomb3")
+fcoulomb2 = Unit.create((fcoulomb**2).dim, name="fcoulomb2")
+fcoulomb3 = Unit.create((fcoulomb**3).dim, name="fcoulomb3")
+hcoulomb2 = Unit.create((hcoulomb**2).dim, name="hcoulomb2")
+hcoulomb3 = Unit.create((hcoulomb**3).dim, name="hcoulomb3")
+dacoulomb2 = Unit.create((dacoulomb**2).dim, name="dacoulomb2")
+dacoulomb3 = Unit.create((dacoulomb**3).dim, name="dacoulomb3")
+mcoulomb2 = Unit.create((mcoulomb**2).dim, name="mcoulomb2")
+mcoulomb3 = Unit.create((mcoulomb**3).dim, name="mcoulomb3")
+ncoulomb2 = Unit.create((ncoulomb**2).dim, name="ncoulomb2")
+ncoulomb3 = Unit.create((ncoulomb**3).dim, name="ncoulomb3")
+pcoulomb2 = Unit.create((pcoulomb**2).dim, name="pcoulomb2")
+pcoulomb3 = Unit.create((pcoulomb**3).dim, name="pcoulomb3")
+ucoulomb2 = Unit.create((ucoulomb**2).dim, name="ucoulomb2")
+ucoulomb3 = Unit.create((ucoulomb**3).dim, name="ucoulomb3")
+Tcoulomb2 = Unit.create((Tcoulomb**2).dim, name="Tcoulomb2")
+Tcoulomb3 = Unit.create((Tcoulomb**3).dim, name="Tcoulomb3")
+ycoulomb2 = Unit.create((ycoulomb**2).dim, name="ycoulomb2")
+ycoulomb3 = Unit.create((ycoulomb**3).dim, name="ycoulomb3")
+Ecoulomb2 = Unit.create((Ecoulomb**2).dim, name="Ecoulomb2")
+Ecoulomb3 = Unit.create((Ecoulomb**3).dim, name="Ecoulomb3")
+zcoulomb2 = Unit.create((zcoulomb**2).dim, name="zcoulomb2")
+zcoulomb3 = Unit.create((zcoulomb**3).dim, name="zcoulomb3")
+Mcoulomb2 = Unit.create((Mcoulomb**2).dim, name="Mcoulomb2")
+Mcoulomb3 = Unit.create((Mcoulomb**3).dim, name="Mcoulomb3")
+kcoulomb2 = Unit.create((kcoulomb**2).dim, name="kcoulomb2")
+kcoulomb3 = Unit.create((kcoulomb**3).dim, name="kcoulomb3")
+Ycoulomb2 = Unit.create((Ycoulomb**2).dim, name="Ycoulomb2")
+Ycoulomb3 = Unit.create((Ycoulomb**3).dim, name="Ycoulomb3")
+avolt2 = Unit.create((avolt**2).dim, name="avolt2")
+avolt3 = Unit.create((avolt**3).dim, name="avolt3")
+cvolt2 = Unit.create((cvolt**2).dim, name="cvolt2")
+cvolt3 = Unit.create((cvolt**3).dim, name="cvolt3")
+Zvolt2 = Unit.create((Zvolt**2).dim, name="Zvolt2")
+Zvolt3 = Unit.create((Zvolt**3).dim, name="Zvolt3")
+Pvolt2 = Unit.create((Pvolt**2).dim, name="Pvolt2")
+Pvolt3 = Unit.create((Pvolt**3).dim, name="Pvolt3")
+dvolt2 = Unit.create((dvolt**2).dim, name="dvolt2")
+dvolt3 = Unit.create((dvolt**3).dim, name="dvolt3")
+Gvolt2 = Unit.create((Gvolt**2).dim, name="Gvolt2")
+Gvolt3 = Unit.create((Gvolt**3).dim, name="Gvolt3")
+fvolt2 = Unit.create((fvolt**2).dim, name="fvolt2")
+fvolt3 = Unit.create((fvolt**3).dim, name="fvolt3")
+hvolt2 = Unit.create((hvolt**2).dim, name="hvolt2")
+hvolt3 = Unit.create((hvolt**3).dim, name="hvolt3")
+davolt2 = Unit.create((davolt**2).dim, name="davolt2")
+davolt3 = Unit.create((davolt**3).dim, name="davolt3")
+mvolt2 = Unit.create((mvolt**2).dim, name="mvolt2")
+mvolt3 = Unit.create((mvolt**3).dim, name="mvolt3")
+nvolt2 = Unit.create((nvolt**2).dim, name="nvolt2")
+nvolt3 = Unit.create((nvolt**3).dim, name="nvolt3")
+pvolt2 = Unit.create((pvolt**2).dim, name="pvolt2")
+pvolt3 = Unit.create((pvolt**3).dim, name="pvolt3")
+uvolt2 = Unit.create((uvolt**2).dim, name="uvolt2")
+uvolt3 = Unit.create((uvolt**3).dim, name="uvolt3")
+Tvolt2 = Unit.create((Tvolt**2).dim, name="Tvolt2")
+Tvolt3 = Unit.create((Tvolt**3).dim, name="Tvolt3")
+yvolt2 = Unit.create((yvolt**2).dim, name="yvolt2")
+yvolt3 = Unit.create((yvolt**3).dim, name="yvolt3")
+Evolt2 = Unit.create((Evolt**2).dim, name="Evolt2")
+Evolt3 = Unit.create((Evolt**3).dim, name="Evolt3")
+zvolt2 = Unit.create((zvolt**2).dim, name="zvolt2")
+zvolt3 = Unit.create((zvolt**3).dim, name="zvolt3")
+Mvolt2 = Unit.create((Mvolt**2).dim, name="Mvolt2")
+Mvolt3 = Unit.create((Mvolt**3).dim, name="Mvolt3")
+kvolt2 = Unit.create((kvolt**2).dim, name="kvolt2")
+kvolt3 = Unit.create((kvolt**3).dim, name="kvolt3")
+Yvolt2 = Unit.create((Yvolt**2).dim, name="Yvolt2")
+Yvolt3 = Unit.create((Yvolt**3).dim, name="Yvolt3")
+afarad2 = Unit.create((afarad**2).dim, name="afarad2")
+afarad3 = Unit.create((afarad**3).dim, name="afarad3")
+cfarad2 = Unit.create((cfarad**2).dim, name="cfarad2")
+cfarad3 = Unit.create((cfarad**3).dim, name="cfarad3")
+Zfarad2 = Unit.create((Zfarad**2).dim, name="Zfarad2")
+Zfarad3 = Unit.create((Zfarad**3).dim, name="Zfarad3")
+Pfarad2 = Unit.create((Pfarad**2).dim, name="Pfarad2")
+Pfarad3 = Unit.create((Pfarad**3).dim, name="Pfarad3")
+dfarad2 = Unit.create((dfarad**2).dim, name="dfarad2")
+dfarad3 = Unit.create((dfarad**3).dim, name="dfarad3")
+Gfarad2 = Unit.create((Gfarad**2).dim, name="Gfarad2")
+Gfarad3 = Unit.create((Gfarad**3).dim, name="Gfarad3")
+ffarad2 = Unit.create((ffarad**2).dim, name="ffarad2")
+ffarad3 = Unit.create((ffarad**3).dim, name="ffarad3")
+hfarad2 = Unit.create((hfarad**2).dim, name="hfarad2")
+hfarad3 = Unit.create((hfarad**3).dim, name="hfarad3")
+dafarad2 = Unit.create((dafarad**2).dim, name="dafarad2")
+dafarad3 = Unit.create((dafarad**3).dim, name="dafarad3")
+mfarad2 = Unit.create((mfarad**2).dim, name="mfarad2")
+mfarad3 = Unit.create((mfarad**3).dim, name="mfarad3")
+nfarad2 = Unit.create((nfarad**2).dim, name="nfarad2")
+nfarad3 = Unit.create((nfarad**3).dim, name="nfarad3")
+pfarad2 = Unit.create((pfarad**2).dim, name="pfarad2")
+pfarad3 = Unit.create((pfarad**3).dim, name="pfarad3")
+ufarad2 = Unit.create((ufarad**2).dim, name="ufarad2")
+ufarad3 = Unit.create((ufarad**3).dim, name="ufarad3")
+Tfarad2 = Unit.create((Tfarad**2).dim, name="Tfarad2")
+Tfarad3 = Unit.create((Tfarad**3).dim, name="Tfarad3")
+yfarad2 = Unit.create((yfarad**2).dim, name="yfarad2")
+yfarad3 = Unit.create((yfarad**3).dim, name="yfarad3")
+Efarad2 = Unit.create((Efarad**2).dim, name="Efarad2")
+Efarad3 = Unit.create((Efarad**3).dim, name="Efarad3")
+zfarad2 = Unit.create((zfarad**2).dim, name="zfarad2")
+zfarad3 = Unit.create((zfarad**3).dim, name="zfarad3")
+Mfarad2 = Unit.create((Mfarad**2).dim, name="Mfarad2")
+Mfarad3 = Unit.create((Mfarad**3).dim, name="Mfarad3")
+kfarad2 = Unit.create((kfarad**2).dim, name="kfarad2")
+kfarad3 = Unit.create((kfarad**3).dim, name="kfarad3")
+Yfarad2 = Unit.create((Yfarad**2).dim, name="Yfarad2")
+Yfarad3 = Unit.create((Yfarad**3).dim, name="Yfarad3")
+aohm2 = Unit.create((aohm**2).dim, name="aohm2")
+aohm3 = Unit.create((aohm**3).dim, name="aohm3")
+cohm2 = Unit.create((cohm**2).dim, name="cohm2")
+cohm3 = Unit.create((cohm**3).dim, name="cohm3")
+Zohm2 = Unit.create((Zohm**2).dim, name="Zohm2")
+Zohm3 = Unit.create((Zohm**3).dim, name="Zohm3")
+Pohm2 = Unit.create((Pohm**2).dim, name="Pohm2")
+Pohm3 = Unit.create((Pohm**3).dim, name="Pohm3")
+dohm2 = Unit.create((dohm**2).dim, name="dohm2")
+dohm3 = Unit.create((dohm**3).dim, name="dohm3")
+Gohm2 = Unit.create((Gohm**2).dim, name="Gohm2")
+Gohm3 = Unit.create((Gohm**3).dim, name="Gohm3")
+fohm2 = Unit.create((fohm**2).dim, name="fohm2")
+fohm3 = Unit.create((fohm**3).dim, name="fohm3")
+hohm2 = Unit.create((hohm**2).dim, name="hohm2")
+hohm3 = Unit.create((hohm**3).dim, name="hohm3")
+daohm2 = Unit.create((daohm**2).dim, name="daohm2")
+daohm3 = Unit.create((daohm**3).dim, name="daohm3")
+mohm2 = Unit.create((mohm**2).dim, name="mohm2")
+mohm3 = Unit.create((mohm**3).dim, name="mohm3")
+nohm2 = Unit.create((nohm**2).dim, name="nohm2")
+nohm3 = Unit.create((nohm**3).dim, name="nohm3")
+pohm2 = Unit.create((pohm**2).dim, name="pohm2")
+pohm3 = Unit.create((pohm**3).dim, name="pohm3")
+uohm2 = Unit.create((uohm**2).dim, name="uohm2")
+uohm3 = Unit.create((uohm**3).dim, name="uohm3")
+Tohm2 = Unit.create((Tohm**2).dim, name="Tohm2")
+Tohm3 = Unit.create((Tohm**3).dim, name="Tohm3")
+yohm2 = Unit.create((yohm**2).dim, name="yohm2")
+yohm3 = Unit.create((yohm**3).dim, name="yohm3")
+Eohm2 = Unit.create((Eohm**2).dim, name="Eohm2")
+Eohm3 = Unit.create((Eohm**3).dim, name="Eohm3")
+zohm2 = Unit.create((zohm**2).dim, name="zohm2")
+zohm3 = Unit.create((zohm**3).dim, name="zohm3")
+Mohm2 = Unit.create((Mohm**2).dim, name="Mohm2")
+Mohm3 = Unit.create((Mohm**3).dim, name="Mohm3")
+kohm2 = Unit.create((kohm**2).dim, name="kohm2")
+kohm3 = Unit.create((kohm**3).dim, name="kohm3")
+Yohm2 = Unit.create((Yohm**2).dim, name="Yohm2")
+Yohm3 = Unit.create((Yohm**3).dim, name="Yohm3")
+asiemens2 = Unit.create((asiemens**2).dim, name="asiemens2")
+asiemens3 = Unit.create((asiemens**3).dim, name="asiemens3")
+csiemens2 = Unit.create((csiemens**2).dim, name="csiemens2")
+csiemens3 = Unit.create((csiemens**3).dim, name="csiemens3")
+Zsiemens2 = Unit.create((Zsiemens**2).dim, name="Zsiemens2")
+Zsiemens3 = Unit.create((Zsiemens**3).dim, name="Zsiemens3")
+Psiemens2 = Unit.create((Psiemens**2).dim, name="Psiemens2")
+Psiemens3 = Unit.create((Psiemens**3).dim, name="Psiemens3")
+dsiemens2 = Unit.create((dsiemens**2).dim, name="dsiemens2")
+dsiemens3 = Unit.create((dsiemens**3).dim, name="dsiemens3")
+Gsiemens2 = Unit.create((Gsiemens**2).dim, name="Gsiemens2")
+Gsiemens3 = Unit.create((Gsiemens**3).dim, name="Gsiemens3")
+fsiemens2 = Unit.create((fsiemens**2).dim, name="fsiemens2")
+fsiemens3 = Unit.create((fsiemens**3).dim, name="fsiemens3")
+hsiemens2 = Unit.create((hsiemens**2).dim, name="hsiemens2")
+hsiemens3 = Unit.create((hsiemens**3).dim, name="hsiemens3")
+dasiemens2 = Unit.create((dasiemens**2).dim, name="dasiemens2")
+dasiemens3 = Unit.create((dasiemens**3).dim, name="dasiemens3")
+msiemens2 = Unit.create((msiemens**2).dim, name="msiemens2")
+msiemens3 = Unit.create((msiemens**3).dim, name="msiemens3")
+nsiemens2 = Unit.create((nsiemens**2).dim, name="nsiemens2")
+nsiemens3 = Unit.create((nsiemens**3).dim, name="nsiemens3")
+psiemens2 = Unit.create((psiemens**2).dim, name="psiemens2")
+psiemens3 = Unit.create((psiemens**3).dim, name="psiemens3")
+usiemens2 = Unit.create((usiemens**2).dim, name="usiemens2")
+usiemens3 = Unit.create((usiemens**3).dim, name="usiemens3")
+Tsiemens2 = Unit.create((Tsiemens**2).dim, name="Tsiemens2")
+Tsiemens3 = Unit.create((Tsiemens**3).dim, name="Tsiemens3")
+ysiemens2 = Unit.create((ysiemens**2).dim, name="ysiemens2")
+ysiemens3 = Unit.create((ysiemens**3).dim, name="ysiemens3")
+Esiemens2 = Unit.create((Esiemens**2).dim, name="Esiemens2")
+Esiemens3 = Unit.create((Esiemens**3).dim, name="Esiemens3")
+zsiemens2 = Unit.create((zsiemens**2).dim, name="zsiemens2")
+zsiemens3 = Unit.create((zsiemens**3).dim, name="zsiemens3")
+Msiemens2 = Unit.create((Msiemens**2).dim, name="Msiemens2")
+Msiemens3 = Unit.create((Msiemens**3).dim, name="Msiemens3")
+ksiemens2 = Unit.create((ksiemens**2).dim, name="ksiemens2")
+ksiemens3 = Unit.create((ksiemens**3).dim, name="ksiemens3")
+Ysiemens2 = Unit.create((Ysiemens**2).dim, name="Ysiemens2")
+Ysiemens3 = Unit.create((Ysiemens**3).dim, name="Ysiemens3")
+aweber2 = Unit.create((aweber**2).dim, name="aweber2")
+aweber3 = Unit.create((aweber**3).dim, name="aweber3")
+cweber2 = Unit.create((cweber**2).dim, name="cweber2")
+cweber3 = Unit.create((cweber**3).dim, name="cweber3")
+Zweber2 = Unit.create((Zweber**2).dim, name="Zweber2")
+Zweber3 = Unit.create((Zweber**3).dim, name="Zweber3")
+Pweber2 = Unit.create((Pweber**2).dim, name="Pweber2")
+Pweber3 = Unit.create((Pweber**3).dim, name="Pweber3")
+dweber2 = Unit.create((dweber**2).dim, name="dweber2")
+dweber3 = Unit.create((dweber**3).dim, name="dweber3")
+Gweber2 = Unit.create((Gweber**2).dim, name="Gweber2")
+Gweber3 = Unit.create((Gweber**3).dim, name="Gweber3")
+fweber2 = Unit.create((fweber**2).dim, name="fweber2")
+fweber3 = Unit.create((fweber**3).dim, name="fweber3")
+hweber2 = Unit.create((hweber**2).dim, name="hweber2")
+hweber3 = Unit.create((hweber**3).dim, name="hweber3")
+daweber2 = Unit.create((daweber**2).dim, name="daweber2")
+daweber3 = Unit.create((daweber**3).dim, name="daweber3")
+mweber2 = Unit.create((mweber**2).dim, name="mweber2")
+mweber3 = Unit.create((mweber**3).dim, name="mweber3")
+nweber2 = Unit.create((nweber**2).dim, name="nweber2")
+nweber3 = Unit.create((nweber**3).dim, name="nweber3")
+pweber2 = Unit.create((pweber**2).dim, name="pweber2")
+pweber3 = Unit.create((pweber**3).dim, name="pweber3")
+uweber2 = Unit.create((uweber**2).dim, name="uweber2")
+uweber3 = Unit.create((uweber**3).dim, name="uweber3")
+Tweber2 = Unit.create((Tweber**2).dim, name="Tweber2")
+Tweber3 = Unit.create((Tweber**3).dim, name="Tweber3")
+yweber2 = Unit.create((yweber**2).dim, name="yweber2")
+yweber3 = Unit.create((yweber**3).dim, name="yweber3")
+Eweber2 = Unit.create((Eweber**2).dim, name="Eweber2")
+Eweber3 = Unit.create((Eweber**3).dim, name="Eweber3")
+zweber2 = Unit.create((zweber**2).dim, name="zweber2")
+zweber3 = Unit.create((zweber**3).dim, name="zweber3")
+Mweber2 = Unit.create((Mweber**2).dim, name="Mweber2")
+Mweber3 = Unit.create((Mweber**3).dim, name="Mweber3")
+kweber2 = Unit.create((kweber**2).dim, name="kweber2")
+kweber3 = Unit.create((kweber**3).dim, name="kweber3")
+Yweber2 = Unit.create((Yweber**2).dim, name="Yweber2")
+Yweber3 = Unit.create((Yweber**3).dim, name="Yweber3")
+atesla2 = Unit.create((atesla**2).dim, name="atesla2")
+atesla3 = Unit.create((atesla**3).dim, name="atesla3")
+ctesla2 = Unit.create((ctesla**2).dim, name="ctesla2")
+ctesla3 = Unit.create((ctesla**3).dim, name="ctesla3")
+Ztesla2 = Unit.create((Ztesla**2).dim, name="Ztesla2")
+Ztesla3 = Unit.create((Ztesla**3).dim, name="Ztesla3")
+Ptesla2 = Unit.create((Ptesla**2).dim, name="Ptesla2")
+Ptesla3 = Unit.create((Ptesla**3).dim, name="Ptesla3")
+dtesla2 = Unit.create((dtesla**2).dim, name="dtesla2")
+dtesla3 = Unit.create((dtesla**3).dim, name="dtesla3")
+Gtesla2 = Unit.create((Gtesla**2).dim, name="Gtesla2")
+Gtesla3 = Unit.create((Gtesla**3).dim, name="Gtesla3")
+ftesla2 = Unit.create((ftesla**2).dim, name="ftesla2")
+ftesla3 = Unit.create((ftesla**3).dim, name="ftesla3")
+htesla2 = Unit.create((htesla**2).dim, name="htesla2")
+htesla3 = Unit.create((htesla**3).dim, name="htesla3")
+datesla2 = Unit.create((datesla**2).dim, name="datesla2")
+datesla3 = Unit.create((datesla**3).dim, name="datesla3")
+mtesla2 = Unit.create((mtesla**2).dim, name="mtesla2")
+mtesla3 = Unit.create((mtesla**3).dim, name="mtesla3")
+ntesla2 = Unit.create((ntesla**2).dim, name="ntesla2")
+ntesla3 = Unit.create((ntesla**3).dim, name="ntesla3")
+ptesla2 = Unit.create((ptesla**2).dim, name="ptesla2")
+ptesla3 = Unit.create((ptesla**3).dim, name="ptesla3")
+utesla2 = Unit.create((utesla**2).dim, name="utesla2")
+utesla3 = Unit.create((utesla**3).dim, name="utesla3")
+Ttesla2 = Unit.create((Ttesla**2).dim, name="Ttesla2")
+Ttesla3 = Unit.create((Ttesla**3).dim, name="Ttesla3")
+ytesla2 = Unit.create((ytesla**2).dim, name="ytesla2")
+ytesla3 = Unit.create((ytesla**3).dim, name="ytesla3")
+Etesla2 = Unit.create((Etesla**2).dim, name="Etesla2")
+Etesla3 = Unit.create((Etesla**3).dim, name="Etesla3")
+ztesla2 = Unit.create((ztesla**2).dim, name="ztesla2")
+ztesla3 = Unit.create((ztesla**3).dim, name="ztesla3")
+Mtesla2 = Unit.create((Mtesla**2).dim, name="Mtesla2")
+Mtesla3 = Unit.create((Mtesla**3).dim, name="Mtesla3")
+ktesla2 = Unit.create((ktesla**2).dim, name="ktesla2")
+ktesla3 = Unit.create((ktesla**3).dim, name="ktesla3")
+Ytesla2 = Unit.create((Ytesla**2).dim, name="Ytesla2")
+Ytesla3 = Unit.create((Ytesla**3).dim, name="Ytesla3")
+ahenry2 = Unit.create((ahenry**2).dim, name="ahenry2")
+ahenry3 = Unit.create((ahenry**3).dim, name="ahenry3")
+chenry2 = Unit.create((chenry**2).dim, name="chenry2")
+chenry3 = Unit.create((chenry**3).dim, name="chenry3")
+Zhenry2 = Unit.create((Zhenry**2).dim, name="Zhenry2")
+Zhenry3 = Unit.create((Zhenry**3).dim, name="Zhenry3")
+Phenry2 = Unit.create((Phenry**2).dim, name="Phenry2")
+Phenry3 = Unit.create((Phenry**3).dim, name="Phenry3")
+dhenry2 = Unit.create((dhenry**2).dim, name="dhenry2")
+dhenry3 = Unit.create((dhenry**3).dim, name="dhenry3")
+Ghenry2 = Unit.create((Ghenry**2).dim, name="Ghenry2")
+Ghenry3 = Unit.create((Ghenry**3).dim, name="Ghenry3")
+fhenry2 = Unit.create((fhenry**2).dim, name="fhenry2")
+fhenry3 = Unit.create((fhenry**3).dim, name="fhenry3")
+hhenry2 = Unit.create((hhenry**2).dim, name="hhenry2")
+hhenry3 = Unit.create((hhenry**3).dim, name="hhenry3")
+dahenry2 = Unit.create((dahenry**2).dim, name="dahenry2")
+dahenry3 = Unit.create((dahenry**3).dim, name="dahenry3")
+mhenry2 = Unit.create((mhenry**2).dim, name="mhenry2")
+mhenry3 = Unit.create((mhenry**3).dim, name="mhenry3")
+nhenry2 = Unit.create((nhenry**2).dim, name="nhenry2")
+nhenry3 = Unit.create((nhenry**3).dim, name="nhenry3")
+phenry2 = Unit.create((phenry**2).dim, name="phenry2")
+phenry3 = Unit.create((phenry**3).dim, name="phenry3")
+uhenry2 = Unit.create((uhenry**2).dim, name="uhenry2")
+uhenry3 = Unit.create((uhenry**3).dim, name="uhenry3")
+Thenry2 = Unit.create((Thenry**2).dim, name="Thenry2")
+Thenry3 = Unit.create((Thenry**3).dim, name="Thenry3")
+yhenry2 = Unit.create((yhenry**2).dim, name="yhenry2")
+yhenry3 = Unit.create((yhenry**3).dim, name="yhenry3")
+Ehenry2 = Unit.create((Ehenry**2).dim, name="Ehenry2")
+Ehenry3 = Unit.create((Ehenry**3).dim, name="Ehenry3")
+zhenry2 = Unit.create((zhenry**2).dim, name="zhenry2")
+zhenry3 = Unit.create((zhenry**3).dim, name="zhenry3")
+Mhenry2 = Unit.create((Mhenry**2).dim, name="Mhenry2")
+Mhenry3 = Unit.create((Mhenry**3).dim, name="Mhenry3")
+khenry2 = Unit.create((khenry**2).dim, name="khenry2")
+khenry3 = Unit.create((khenry**3).dim, name="khenry3")
+Yhenry2 = Unit.create((Yhenry**2).dim, name="Yhenry2")
+Yhenry3 = Unit.create((Yhenry**3).dim, name="Yhenry3")
+alumen2 = Unit.create((alumen**2).dim, name="alumen2")
+alumen3 = Unit.create((alumen**3).dim, name="alumen3")
+clumen2 = Unit.create((clumen**2).dim, name="clumen2")
+clumen3 = Unit.create((clumen**3).dim, name="clumen3")
+Zlumen2 = Unit.create((Zlumen**2).dim, name="Zlumen2")
+Zlumen3 = Unit.create((Zlumen**3).dim, name="Zlumen3")
+Plumen2 = Unit.create((Plumen**2).dim, name="Plumen2")
+Plumen3 = Unit.create((Plumen**3).dim, name="Plumen3")
+dlumen2 = Unit.create((dlumen**2).dim, name="dlumen2")
+dlumen3 = Unit.create((dlumen**3).dim, name="dlumen3")
+Glumen2 = Unit.create((Glumen**2).dim, name="Glumen2")
+Glumen3 = Unit.create((Glumen**3).dim, name="Glumen3")
+flumen2 = Unit.create((flumen**2).dim, name="flumen2")
+flumen3 = Unit.create((flumen**3).dim, name="flumen3")
+hlumen2 = Unit.create((hlumen**2).dim, name="hlumen2")
+hlumen3 = Unit.create((hlumen**3).dim, name="hlumen3")
+dalumen2 = Unit.create((dalumen**2).dim, name="dalumen2")
+dalumen3 = Unit.create((dalumen**3).dim, name="dalumen3")
+mlumen2 = Unit.create((mlumen**2).dim, name="mlumen2")
+mlumen3 = Unit.create((mlumen**3).dim, name="mlumen3")
+nlumen2 = Unit.create((nlumen**2).dim, name="nlumen2")
+nlumen3 = Unit.create((nlumen**3).dim, name="nlumen3")
+plumen2 = Unit.create((plumen**2).dim, name="plumen2")
+plumen3 = Unit.create((plumen**3).dim, name="plumen3")
+ulumen2 = Unit.create((ulumen**2).dim, name="ulumen2")
+ulumen3 = Unit.create((ulumen**3).dim, name="ulumen3")
+Tlumen2 = Unit.create((Tlumen**2).dim, name="Tlumen2")
+Tlumen3 = Unit.create((Tlumen**3).dim, name="Tlumen3")
+ylumen2 = Unit.create((ylumen**2).dim, name="ylumen2")
+ylumen3 = Unit.create((ylumen**3).dim, name="ylumen3")
+Elumen2 = Unit.create((Elumen**2).dim, name="Elumen2")
+Elumen3 = Unit.create((Elumen**3).dim, name="Elumen3")
+zlumen2 = Unit.create((zlumen**2).dim, name="zlumen2")
+zlumen3 = Unit.create((zlumen**3).dim, name="zlumen3")
+Mlumen2 = Unit.create((Mlumen**2).dim, name="Mlumen2")
+Mlumen3 = Unit.create((Mlumen**3).dim, name="Mlumen3")
+klumen2 = Unit.create((klumen**2).dim, name="klumen2")
+klumen3 = Unit.create((klumen**3).dim, name="klumen3")
+Ylumen2 = Unit.create((Ylumen**2).dim, name="Ylumen2")
+Ylumen3 = Unit.create((Ylumen**3).dim, name="Ylumen3")
+alux2 = Unit.create((alux**2).dim, name="alux2")
+alux3 = Unit.create((alux**3).dim, name="alux3")
+clux2 = Unit.create((clux**2).dim, name="clux2")
+clux3 = Unit.create((clux**3).dim, name="clux3")
+Zlux2 = Unit.create((Zlux**2).dim, name="Zlux2")
+Zlux3 = Unit.create((Zlux**3).dim, name="Zlux3")
+Plux2 = Unit.create((Plux**2).dim, name="Plux2")
+Plux3 = Unit.create((Plux**3).dim, name="Plux3")
+dlux2 = Unit.create((dlux**2).dim, name="dlux2")
+dlux3 = Unit.create((dlux**3).dim, name="dlux3")
+Glux2 = Unit.create((Glux**2).dim, name="Glux2")
+Glux3 = Unit.create((Glux**3).dim, name="Glux3")
+flux2 = Unit.create((flux**2).dim, name="flux2")
+flux3 = Unit.create((flux**3).dim, name="flux3")
+hlux2 = Unit.create((hlux**2).dim, name="hlux2")
+hlux3 = Unit.create((hlux**3).dim, name="hlux3")
+dalux2 = Unit.create((dalux**2).dim, name="dalux2")
+dalux3 = Unit.create((dalux**3).dim, name="dalux3")
+mlux2 = Unit.create((mlux**2).dim, name="mlux2")
+mlux3 = Unit.create((mlux**3).dim, name="mlux3")
+nlux2 = Unit.create((nlux**2).dim, name="nlux2")
+nlux3 = Unit.create((nlux**3).dim, name="nlux3")
+plux2 = Unit.create((plux**2).dim, name="plux2")
+plux3 = Unit.create((plux**3).dim, name="plux3")
+ulux2 = Unit.create((ulux**2).dim, name="ulux2")
+ulux3 = Unit.create((ulux**3).dim, name="ulux3")
+Tlux2 = Unit.create((Tlux**2).dim, name="Tlux2")
+Tlux3 = Unit.create((Tlux**3).dim, name="Tlux3")
+ylux2 = Unit.create((ylux**2).dim, name="ylux2")
+ylux3 = Unit.create((ylux**3).dim, name="ylux3")
+Elux2 = Unit.create((Elux**2).dim, name="Elux2")
+Elux3 = Unit.create((Elux**3).dim, name="Elux3")
+zlux2 = Unit.create((zlux**2).dim, name="zlux2")
+zlux3 = Unit.create((zlux**3).dim, name="zlux3")
+Mlux2 = Unit.create((Mlux**2).dim, name="Mlux2")
+Mlux3 = Unit.create((Mlux**3).dim, name="Mlux3")
+klux2 = Unit.create((klux**2).dim, name="klux2")
+klux3 = Unit.create((klux**3).dim, name="klux3")
+Ylux2 = Unit.create((Ylux**2).dim, name="Ylux2")
+Ylux3 = Unit.create((Ylux**3).dim, name="Ylux3")
+abecquerel2 = Unit.create((abecquerel**2).dim, name="abecquerel2")
+abecquerel3 = Unit.create((abecquerel**3).dim, name="abecquerel3")
+cbecquerel2 = Unit.create((cbecquerel**2).dim, name="cbecquerel2")
+cbecquerel3 = Unit.create((cbecquerel**3).dim, name="cbecquerel3")
+Zbecquerel2 = Unit.create((Zbecquerel**2).dim, name="Zbecquerel2")
+Zbecquerel3 = Unit.create((Zbecquerel**3).dim, name="Zbecquerel3")
+Pbecquerel2 = Unit.create((Pbecquerel**2).dim, name="Pbecquerel2")
+Pbecquerel3 = Unit.create((Pbecquerel**3).dim, name="Pbecquerel3")
+dbecquerel2 = Unit.create((dbecquerel**2).dim, name="dbecquerel2")
+dbecquerel3 = Unit.create((dbecquerel**3).dim, name="dbecquerel3")
+Gbecquerel2 = Unit.create((Gbecquerel**2).dim, name="Gbecquerel2")
+Gbecquerel3 = Unit.create((Gbecquerel**3).dim, name="Gbecquerel3")
+fbecquerel2 = Unit.create((fbecquerel**2).dim, name="fbecquerel2")
+fbecquerel3 = Unit.create((fbecquerel**3).dim, name="fbecquerel3")
+hbecquerel2 = Unit.create((hbecquerel**2).dim, name="hbecquerel2")
+hbecquerel3 = Unit.create((hbecquerel**3).dim, name="hbecquerel3")
+dabecquerel2 = Unit.create((dabecquerel**2).dim, name="dabecquerel2")
+dabecquerel3 = Unit.create((dabecquerel**3).dim, name="dabecquerel3")
+mbecquerel2 = Unit.create((mbecquerel**2).dim, name="mbecquerel2")
+mbecquerel3 = Unit.create((mbecquerel**3).dim, name="mbecquerel3")
+nbecquerel2 = Unit.create((nbecquerel**2).dim, name="nbecquerel2")
+nbecquerel3 = Unit.create((nbecquerel**3).dim, name="nbecquerel3")
+pbecquerel2 = Unit.create((pbecquerel**2).dim, name="pbecquerel2")
+pbecquerel3 = Unit.create((pbecquerel**3).dim, name="pbecquerel3")
+ubecquerel2 = Unit.create((ubecquerel**2).dim, name="ubecquerel2")
+ubecquerel3 = Unit.create((ubecquerel**3).dim, name="ubecquerel3")
+Tbecquerel2 = Unit.create((Tbecquerel**2).dim, name="Tbecquerel2")
+Tbecquerel3 = Unit.create((Tbecquerel**3).dim, name="Tbecquerel3")
+ybecquerel2 = Unit.create((ybecquerel**2).dim, name="ybecquerel2")
+ybecquerel3 = Unit.create((ybecquerel**3).dim, name="ybecquerel3")
+Ebecquerel2 = Unit.create((Ebecquerel**2).dim, name="Ebecquerel2")
+Ebecquerel3 = Unit.create((Ebecquerel**3).dim, name="Ebecquerel3")
+zbecquerel2 = Unit.create((zbecquerel**2).dim, name="zbecquerel2")
+zbecquerel3 = Unit.create((zbecquerel**3).dim, name="zbecquerel3")
+Mbecquerel2 = Unit.create((Mbecquerel**2).dim, name="Mbecquerel2")
+Mbecquerel3 = Unit.create((Mbecquerel**3).dim, name="Mbecquerel3")
+kbecquerel2 = Unit.create((kbecquerel**2).dim, name="kbecquerel2")
+kbecquerel3 = Unit.create((kbecquerel**3).dim, name="kbecquerel3")
+Ybecquerel2 = Unit.create((Ybecquerel**2).dim, name="Ybecquerel2")
+Ybecquerel3 = Unit.create((Ybecquerel**3).dim, name="Ybecquerel3")
+agray2 = Unit.create((agray**2).dim, name="agray2")
+agray3 = Unit.create((agray**3).dim, name="agray3")
+cgray2 = Unit.create((cgray**2).dim, name="cgray2")
+cgray3 = Unit.create((cgray**3).dim, name="cgray3")
+Zgray2 = Unit.create((Zgray**2).dim, name="Zgray2")
+Zgray3 = Unit.create((Zgray**3).dim, name="Zgray3")
+Pgray2 = Unit.create((Pgray**2).dim, name="Pgray2")
+Pgray3 = Unit.create((Pgray**3).dim, name="Pgray3")
+dgray2 = Unit.create((dgray**2).dim, name="dgray2")
+dgray3 = Unit.create((dgray**3).dim, name="dgray3")
+Ggray2 = Unit.create((Ggray**2).dim, name="Ggray2")
+Ggray3 = Unit.create((Ggray**3).dim, name="Ggray3")
+fgray2 = Unit.create((fgray**2).dim, name="fgray2")
+fgray3 = Unit.create((fgray**3).dim, name="fgray3")
+hgray2 = Unit.create((hgray**2).dim, name="hgray2")
+hgray3 = Unit.create((hgray**3).dim, name="hgray3")
+dagray2 = Unit.create((dagray**2).dim, name="dagray2")
+dagray3 = Unit.create((dagray**3).dim, name="dagray3")
+mgray2 = Unit.create((mgray**2).dim, name="mgray2")
+mgray3 = Unit.create((mgray**3).dim, name="mgray3")
+ngray2 = Unit.create((ngray**2).dim, name="ngray2")
+ngray3 = Unit.create((ngray**3).dim, name="ngray3")
+pgray2 = Unit.create((pgray**2).dim, name="pgray2")
+pgray3 = Unit.create((pgray**3).dim, name="pgray3")
+ugray2 = Unit.create((ugray**2).dim, name="ugray2")
+ugray3 = Unit.create((ugray**3).dim, name="ugray3")
+Tgray2 = Unit.create((Tgray**2).dim, name="Tgray2")
+Tgray3 = Unit.create((Tgray**3).dim, name="Tgray3")
+ygray2 = Unit.create((ygray**2).dim, name="ygray2")
+ygray3 = Unit.create((ygray**3).dim, name="ygray3")
+Egray2 = Unit.create((Egray**2).dim, name="Egray2")
+Egray3 = Unit.create((Egray**3).dim, name="Egray3")
+zgray2 = Unit.create((zgray**2).dim, name="zgray2")
+zgray3 = Unit.create((zgray**3).dim, name="zgray3")
+Mgray2 = Unit.create((Mgray**2).dim, name="Mgray2")
+Mgray3 = Unit.create((Mgray**3).dim, name="Mgray3")
+kgray2 = Unit.create((kgray**2).dim, name="kgray2")
+kgray3 = Unit.create((kgray**3).dim, name="kgray3")
+Ygray2 = Unit.create((Ygray**2).dim, name="Ygray2")
+Ygray3 = Unit.create((Ygray**3).dim, name="Ygray3")
+asievert2 = Unit.create((asievert**2).dim, name="asievert2")
+asievert3 = Unit.create((asievert**3).dim, name="asievert3")
+csievert2 = Unit.create((csievert**2).dim, name="csievert2")
+csievert3 = Unit.create((csievert**3).dim, name="csievert3")
+Zsievert2 = Unit.create((Zsievert**2).dim, name="Zsievert2")
+Zsievert3 = Unit.create((Zsievert**3).dim, name="Zsievert3")
+Psievert2 = Unit.create((Psievert**2).dim, name="Psievert2")
+Psievert3 = Unit.create((Psievert**3).dim, name="Psievert3")
+dsievert2 = Unit.create((dsievert**2).dim, name="dsievert2")
+dsievert3 = Unit.create((dsievert**3).dim, name="dsievert3")
+Gsievert2 = Unit.create((Gsievert**2).dim, name="Gsievert2")
+Gsievert3 = Unit.create((Gsievert**3).dim, name="Gsievert3")
+fsievert2 = Unit.create((fsievert**2).dim, name="fsievert2")
+fsievert3 = Unit.create((fsievert**3).dim, name="fsievert3")
+hsievert2 = Unit.create((hsievert**2).dim, name="hsievert2")
+hsievert3 = Unit.create((hsievert**3).dim, name="hsievert3")
+dasievert2 = Unit.create((dasievert**2).dim, name="dasievert2")
+dasievert3 = Unit.create((dasievert**3).dim, name="dasievert3")
+msievert2 = Unit.create((msievert**2).dim, name="msievert2")
+msievert3 = Unit.create((msievert**3).dim, name="msievert3")
+nsievert2 = Unit.create((nsievert**2).dim, name="nsievert2")
+nsievert3 = Unit.create((nsievert**3).dim, name="nsievert3")
+psievert2 = Unit.create((psievert**2).dim, name="psievert2")
+psievert3 = Unit.create((psievert**3).dim, name="psievert3")
+usievert2 = Unit.create((usievert**2).dim, name="usievert2")
+usievert3 = Unit.create((usievert**3).dim, name="usievert3")
+Tsievert2 = Unit.create((Tsievert**2).dim, name="Tsievert2")
+Tsievert3 = Unit.create((Tsievert**3).dim, name="Tsievert3")
+ysievert2 = Unit.create((ysievert**2).dim, name="ysievert2")
+ysievert3 = Unit.create((ysievert**3).dim, name="ysievert3")
+Esievert2 = Unit.create((Esievert**2).dim, name="Esievert2")
+Esievert3 = Unit.create((Esievert**3).dim, name="Esievert3")
+zsievert2 = Unit.create((zsievert**2).dim, name="zsievert2")
+zsievert3 = Unit.create((zsievert**3).dim, name="zsievert3")
+Msievert2 = Unit.create((Msievert**2).dim, name="Msievert2")
+Msievert3 = Unit.create((Msievert**3).dim, name="Msievert3")
+ksievert2 = Unit.create((ksievert**2).dim, name="ksievert2")
+ksievert3 = Unit.create((ksievert**3).dim, name="ksievert3")
+Ysievert2 = Unit.create((Ysievert**2).dim, name="Ysievert2")
+Ysievert3 = Unit.create((Ysievert**3).dim, name="Ysievert3")
+akatal2 = Unit.create((akatal**2).dim, name="akatal2")
+akatal3 = Unit.create((akatal**3).dim, name="akatal3")
+ckatal2 = Unit.create((ckatal**2).dim, name="ckatal2")
+ckatal3 = Unit.create((ckatal**3).dim, name="ckatal3")
+Zkatal2 = Unit.create((Zkatal**2).dim, name="Zkatal2")
+Zkatal3 = Unit.create((Zkatal**3).dim, name="Zkatal3")
+Pkatal2 = Unit.create((Pkatal**2).dim, name="Pkatal2")
+Pkatal3 = Unit.create((Pkatal**3).dim, name="Pkatal3")
+dkatal2 = Unit.create((dkatal**2).dim, name="dkatal2")
+dkatal3 = Unit.create((dkatal**3).dim, name="dkatal3")
+Gkatal2 = Unit.create((Gkatal**2).dim, name="Gkatal2")
+Gkatal3 = Unit.create((Gkatal**3).dim, name="Gkatal3")
+fkatal2 = Unit.create((fkatal**2).dim, name="fkatal2")
+fkatal3 = Unit.create((fkatal**3).dim, name="fkatal3")
+hkatal2 = Unit.create((hkatal**2).dim, name="hkatal2")
+hkatal3 = Unit.create((hkatal**3).dim, name="hkatal3")
+dakatal2 = Unit.create((dakatal**2).dim, name="dakatal2")
+dakatal3 = Unit.create((dakatal**3).dim, name="dakatal3")
+mkatal2 = Unit.create((mkatal**2).dim, name="mkatal2")
+mkatal3 = Unit.create((mkatal**3).dim, name="mkatal3")
+nkatal2 = Unit.create((nkatal**2).dim, name="nkatal2")
+nkatal3 = Unit.create((nkatal**3).dim, name="nkatal3")
+pkatal2 = Unit.create((pkatal**2).dim, name="pkatal2")
+pkatal3 = Unit.create((pkatal**3).dim, name="pkatal3")
+ukatal2 = Unit.create((ukatal**2).dim, name="ukatal2")
+ukatal3 = Unit.create((ukatal**3).dim, name="ukatal3")
+Tkatal2 = Unit.create((Tkatal**2).dim, name="Tkatal2")
+Tkatal3 = Unit.create((Tkatal**3).dim, name="Tkatal3")
+ykatal2 = Unit.create((ykatal**2).dim, name="ykatal2")
+ykatal3 = Unit.create((ykatal**3).dim, name="ykatal3")
+Ekatal2 = Unit.create((Ekatal**2).dim, name="Ekatal2")
+Ekatal3 = Unit.create((Ekatal**3).dim, name="Ekatal3")
+zkatal2 = Unit.create((zkatal**2).dim, name="zkatal2")
+zkatal3 = Unit.create((zkatal**3).dim, name="zkatal3")
+Mkatal2 = Unit.create((Mkatal**2).dim, name="Mkatal2")
+Mkatal3 = Unit.create((Mkatal**3).dim, name="Mkatal3")
+kkatal2 = Unit.create((kkatal**2).dim, name="kkatal2")
+kkatal3 = Unit.create((kkatal**3).dim, name="kkatal3")
+Ykatal2 = Unit.create((Ykatal**2).dim, name="Ykatal2")
+Ykatal3 = Unit.create((Ykatal**3).dim, name="Ykatal3")
 aliter = Unit.create_scaled_unit(liter, "a")
 cliter = Unit.create_scaled_unit(liter, "c")
 Zliter = Unit.create_scaled_unit(liter, "Z")
