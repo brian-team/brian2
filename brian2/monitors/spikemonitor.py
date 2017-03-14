@@ -113,6 +113,7 @@ class EventMonitor(Group, CodeRunner):
         # Handle subgroups correctly
         start = getattr(source, 'start', 0)
         stop = getattr(source, 'stop', len(source))
+        source_N = getattr(source, '_source_N', len(source))
 
         Nameable.__init__(self, name=name)
 
@@ -135,6 +136,7 @@ class EventMonitor(Group, CodeRunner):
                                  read_only=True, index='_source_idx')
         self.variables.add_constant('_source_start', start)
         self.variables.add_constant('_source_stop', stop)
+        self.variables.add_constant('_source_N', source_N)
         self.variables.add_array('N', size=1, dtype=np.int32, read_only=True,
                                  scalar=True)
 

@@ -25,6 +25,8 @@ Improvements and bug fixes
 * Better error messages for incorrect unit definitions in equations.
 * Various fixes for the internal representation of physical units and the
   unit registration system.
+* Numpy target: fix an indexing error for a `SpikeMonitor` that records from a
+  subgroup (#824)
 
 Backwards-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

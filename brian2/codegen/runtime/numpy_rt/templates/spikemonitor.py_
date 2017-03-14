@@ -1,4 +1,4 @@
-{# USES_VARIABLES {N, count, _clock_t, _source_start, _source_stop} #}
+{# USES_VARIABLES {N, count, _clock_t, _source_start, _source_stop, _source_N} #}
 import numpy as _numpy
 
 {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
@@ -8,7 +8,7 @@ _n_events = {{_eventspace}}[-1]
 if _n_events > 0:
     _events = {{_eventspace}}[:_n_events]
     # Take subgroups into account
-    if _source_start!=0 or _source_stop!={{N}}:
+    if _source_start != 0 or _source_stop != _source_N:
         _events = _events[(_events >= _source_start) & (_events < _source_stop)]
         _n_events = len(_events)
 
