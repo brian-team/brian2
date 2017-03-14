@@ -1765,32 +1765,6 @@ class Unit(Quantity):
 
     >>> (1*Nm).in_unit(Nm)
     '1. N m'
-    
-    which returns ``"1 N m"`` because the `Unit` class generates a new
-    display name of ``"N m"`` from the display names ``"N"`` and ``"m"`` for
-    newtons and metres automatically.
-
-    To register this unit for use in the automatic printing
-    of the `Quantity.in_best_unit` method, see the documentation
-    for the `~brian2.units.fundamentalunits.UnitRegistry` class.
-
-    **Construction**
-
-    The best way to construct a new unit is to use standard units
-    already defined and arithmetic operations, e.g. ``newton*metre``.
-    See the documentation for the static methods `Unit.create`
-    and `Unit.create_scaled_units` for more details.
-
-    If you don't like the automatically generated display name for
-    the unit, use the `Unit.set_display_name` method.
-
-    **Representation**
-
-    A new unit defined by multiplication, division or taking powers
-    generates a name for the unit automatically, so that for
-    example the name for ``pfarad/mmetre**2`` is ``"pF/mm^2"``, etc. If you
-    don't like the automatically generated name, use the
-    `Unit.set_display_name` method.
     '''
     __slots__ = ["dim", "scale", "scalefactor", "_dispname", "_name",
                  "_latexname", "iscompound"]
@@ -2163,27 +2137,15 @@ class UnitRegistry(object):
     add
     __getitem__
     """
-
-
     def __init__(self):
-        self.units = collections.OrderedDict()
-        self.units_for_dimensions = collections.defaultdict(list)
-
+        self.units = {}
+        self.units_for_dimensions = collections.defaultdict(dict)
 
     def add(self, u):
         """Add a unit to the registry
         """
-        if u in self.units:
-            return
-        self.units[u] = None   # We use the OrderedDict as an "ordered set"
-        self.units_for_dimensions[u.dim].append(u)
-
-    def remove(self, u):
-        """Remove a unit from the registry
-        """
-        del self.units[u]
-        dim = u.dim
-        self.units_for_dimensions[dim].remove(u)
+        self.units[repr(u)] = u
+        self.units_for_dimensions[u.dim][float(u)] = u
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
@@ -2197,21 +2159,22 @@ class UnitRegistry(object):
         unit where the deviations from that are the smallest. More precisely,
         the unit that minimizes the sum of (log10(m)-1)**2 over all entries).
         """
-        matching = self.units_for_dimensions.get(x.dim, [])
+        matching = self.units_for_dimensions.get(x.dim, {})
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
 
         # determine how well this unit represents the value
-        matching_values = np.array(matching, copy=False)
+        matching_values = np.array(matching.keys(), copy=False)
         x_flat = np.array(x, copy=False).flatten()
         floatreps = np.tile(np.abs(x_flat), (len(matching), 1)).T / matching_values
         # ignore zeros, they are well represented in any unit
         floatreps[floatreps == 0] = np.nan
         if np.all(np.isnan(floatreps)):
-            return matching[0]  # all zeros, use the base unit
+            return matching[1.0]  # all zeros, use the base unit
 
         deviations = np.nansum((np.log10(floatreps) - 1)**2, axis=0)
-        return matching[deviations.argmin()]
+        return matching.values()[deviations.argmin()]
+
 
 def register_new_unit(u):
     """Register a new unit for automatic displaying of quantities
@@ -2229,23 +2192,8 @@ def register_new_unit(u):
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
     2000000. * pfarad / mmetre ** 2
-    >>> unregister_unit(pfarad / mmetre**2)
-    >>> 2.0*farad/metre**2
-    2. * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     """
     user_unit_register.add(u)
-
-
-def unregister_unit(u):
-    """Remove a previously registered unit for automatic displaying of
-    quantities
-
-    Parameters
-    ----------
-    u : `Unit`
-        The unit that should be unregistered.
-    """
-    user_unit_register.remove(u)
 
 
 #: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
@@ -2274,9 +2222,8 @@ def get_unit(d):
     for unit_register in [standard_unit_register,
                           user_unit_register,
                           additional_unit_register]:
-        for u in unit_register.units_for_dimensions[d]:
-            if float(u) == 1.0:
-                return u
+        if 1.0 in unit_register.units_for_dimensions[d]:
+            return unit_register.units_for_dimensions[d][1.0]
     return Unit(1.0, dim=d)
 
 

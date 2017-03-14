@@ -58,8 +58,7 @@ def _get_default_unit_namespace():
     namespace : dict
         The unit namespace
     '''
-    namespace = collections.OrderedDict([(u.name, u)
-                                         for u in standard_unit_register.units])
+    namespace = dict(standard_unit_register.units)
     namespace.update(stdunits)
     return namespace
 

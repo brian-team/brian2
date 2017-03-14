@@ -81,5 +81,5 @@ celsius = _Celsius()
 
 Unit.automatically_register_units = True
 
-map(standard_unit_register.add, base_units + scaled_units + powered_units)
+map(standard_unit_register.add, powered_units + scaled_units + base_units)
 map(additional_unit_register.add, additional_units)
