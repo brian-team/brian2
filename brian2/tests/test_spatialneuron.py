@@ -1,4 +1,5 @@
 import os
+import itertools
 
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 from nose import with_setup
@@ -606,6 +607,144 @@ def test_allowed_integration():
         # Should raise an error
         assert_raises(TypeError, SpatialNeuron, morph, eqs)
 
+@attr('codegen-independent')
+def test_spatialneuron_indexing():
+    sec = Cylinder(length=50*um, diameter=10*um, n=1)
+    sec.sec1 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec11 = Cylinder(length=50 * um, diameter=10 * um, n=4)
+    sec.sec1.sec12 = Cylinder(length=50 * um, diameter=10 * um, n=8)
+    sec.sec2 = Cylinder(length=50 * um, diameter=10 * um, n=16)
+    sec.sec2.sec21 = Cylinder(length=50 * um, diameter=10 * um, n=32)
+    neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
+
+    # Accessing indices/variables of a subtree refers to the full subtree
+    assert len(neuron.indices[:]) == 1 + 2 + 4 + 8 + 16 + 32
+    assert len(neuron.sec1.indices[:]) == 2 + 4 + 8
+    assert len(neuron.sec1.sec11.indices[:]) == 4
+    assert len(neuron.sec1.sec12.indices[:]) == 8
+    assert len(neuron.sec2.indices[:]) == 16 + 32
+    assert len(neuron.sec2.sec21.indices[:]) == 32
+    assert len(neuron.v[:]) == 1 + 2 + 4 + 8 + 16 + 32
+    assert len(neuron.sec1.v[:]) == 2 + 4 + 8
+    assert len(neuron.sec1.sec11.v[:]) == 4
+    assert len(neuron.sec1.sec12.v[:]) == 8
+    assert len(neuron.sec2.v[:]) == 16 + 32
+    assert len(neuron.sec2.sec21.v[:]) == 32
+    # Accessing indices/variables with ".main" only refers to the section
+    assert len(neuron.main.indices[:]) == 1
+    assert len(neuron.sec1.main.indices[:]) == 2
+    assert len(neuron.sec1.sec11.main.indices[:]) == 4
+    assert len(neuron.sec1.sec12.main.indices[:]) == 8
+    assert len(neuron.sec2.main.indices[:]) == 16
+    assert len(neuron.sec2.sec21.main.indices[:]) == 32
+    assert len(neuron.main.v[:]) == 1
+    assert len(neuron.sec1.main.v[:]) == 2
+    assert len(neuron.sec1.sec11.main.v[:]) == 4
+    assert len(neuron.sec1.sec12.main.v[:]) == 8
+    assert len(neuron.sec2.main.v[:]) == 16
+    assert len(neuron.sec2.sec21.main.v[:]) == 32
+
+@attr('codegen-independent')
+def test_tree_index_consistency():
+    # Test all possible trees with depth 3 and a maximum of 3 branches subtree
+    # (a total of 84 trees)
+    # This tests whether the indices (i.e. where the compartments are placed in
+    # the overall flattened 1D structure) make sense: for the `SpatialSubgroup`
+    # mechanism to work correctly, each subtree has to have contiguous indices.
+    # Separate subtrees should of course have non-overlapping indices.
+    for tree_description in itertools.product([1, 2, 3],  # children of root
+                                              [0, 1, 2, 3], # children of first branch
+                                              [0, 1, 2, 3], # children of second branch
+                                              [0, 1, 2, 3]  # children of third branch
+                                              ):
+        sec = Cylinder(length=50 * um, diameter=10 * um, n=1)
+        root_children = tree_description[0]
+        if not all([tree_description[x] == 0 for x in xrange(root_children + 1, 4)]):
+            # skip redundant descriptions (differing number of branches in a
+            # subtree that does not exist)
+            continue
+
+        # Create a tree according to the description
+        for idx in xrange(root_children):
+            setattr(sec, 'sec%d' % (idx + 1),
+                    Cylinder(length=50*um, diameter=10*um, n=2*(idx + 1)))
+        for child in xrange(root_children):
+            subsec = getattr(sec, 'sec%d' % (child + 1))
+            subsec_children = tree_description[child + 1]
+            for idx in xrange(subsec_children):
+                setattr(subsec, 'sec%d%d' % (child + 1, idx + 1),
+                        Cylinder(length=50 * um, diameter=10 * um, n=1 + (child + 1) * idx))
+
+        neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
+        # Check the indicies for the full neuron:
+        assert_equal(neuron.indices[:], np.arange(sec.total_compartments))
+
+        all_subsec_indices = []
+        for child in xrange(root_children):
+            subsec = getattr(neuron, 'sec%d' % (child + 1))
+            sub_indices = set(subsec.main.indices[:])
+            subsec_children = tree_description[child + 1]
+            for idx in xrange(subsec_children):
+                subsubsec = getattr(subsec, 'sec%d%d' % (child + 1, idx + 1))
+                sub_indices |= set(subsubsec.main.indices[:])
+            # The indices for a full subtree should be the union of the indices
+            # for all subsections within that subtree
+            assert sub_indices == set(subsec.indices[:])
+            all_subsec_indices.extend(subsec.indices[:])
+        # Separate subtrees should not overlap
+        assert len(all_subsec_indices) == len(set(all_subsec_indices))
+
+@attr('codegen-independent')
+def test_spatialneuron_subtree_assignment():
+    sec = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec11 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec12 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2.sec21 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
+
+    neuron.v = 1*volt
+    assert_allclose(neuron.v[:], np.ones(12)*volt)
+    neuron.sec1.v += 1*volt
+    assert_allclose(neuron.main.v[:], np.ones(2)*volt)
+    assert_allclose(neuron.sec1.v[:], np.ones(6)*2*volt)
+    assert_allclose(neuron.sec1.main.v[:], np.ones(2)*2*volt)
+    assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*2*volt)
+    assert_allclose(neuron.sec1.sec12.v[:], np.ones(2)*2*volt)
+    assert_allclose(neuron.sec2.v[:], np.ones(4)*volt)
+    neuron.sec2.v = 5*volt
+    assert_allclose(neuron.sec2.v[:], np.ones(4)*5*volt)
+    assert_allclose(neuron.sec2.main.v[:], np.ones(2)*5*volt)
+    assert_allclose(neuron.sec2.sec21.v[:], np.ones(2)*5*volt)
+
+
+@attr('codegen-independent')
+def test_spatialneuron_morphology_assignment():
+    sec = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec11 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec1.sec12 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    sec.sec2.sec21 = Cylinder(length=50 * um, diameter=10 * um, n=2)
+    neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
+
+    neuron.v[sec.sec1.sec11] = 1*volt
+    assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*volt)
+    assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec1.main.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.main.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec2.v[:], np.zeros(4)*volt)
+
+    neuron.v[sec.sec2[25*um:]] = 2*volt
+    neuron.v[sec.sec1[:25*um]] = 3 * volt
+    assert_allclose(neuron.main.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec2.main.v[:], [0, 2]*volt)
+    assert_allclose(neuron.sec2.sec21.v[:], np.zeros(2)*volt)
+    assert_allclose(neuron.sec1.main.v[:], [3, 0]*volt)
+    assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*volt)
+    assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
+
 
 if __name__ == '__main__':
     test_custom_events()
@@ -619,3 +758,7 @@ if __name__ == '__main__':
     test_rall()
     test_basic_diffusion()
     test_allowed_integration()
+    test_spatialneuron_indexing()
+    test_tree_index_consistency()
+    test_spatialneuron_subtree_assignment()
+    test_spatialneuron_morphology_assignment()
