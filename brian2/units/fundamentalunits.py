@@ -1780,6 +1780,8 @@ class Unit(Quantity):
             dim = DIMENSIONLESS
         obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
                                        copy=copy, force_quantity=True)
+        if Unit.automatically_register_units:
+            register_new_unit(obj)
         return obj
 
     def __array_finalize__(self, orig):
@@ -1859,8 +1861,6 @@ class Unit(Quantity):
 
         u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale),
                  name=name, dispname=dispname, latexname=latexname)
-        if Unit.automatically_register_units:
-            register_new_unit(u)
 
         return u
 
@@ -1891,8 +1891,6 @@ class Unit(Quantity):
 
         u = Unit(value, dim=baseunit.dim,  name=name, dispname=dispname,
                  latexname=latexname)
-        if Unit.automatically_register_units:
-            register_new_unit(u)
 
         return u
 
