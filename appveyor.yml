@@ -101,7 +101,7 @@ install:
   - 'python -c "import struct; print(struct.calcsize(''P'') * 8)"'
 
   # Install the build dependencies of the project via conda
-  - 'appveyor-retry conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
+  - 'appveyor-retry conda install --yes --quiet numpy scipy==0.18 nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
   - 'appveyor-retry conda install --yes --quiet -c brian-team py-cpuinfo'
   # For faster tests, only build conda packages for the master branch or pull requests
   - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set CONDA_BUILD=FALSE'

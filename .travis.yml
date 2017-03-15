@@ -131,7 +131,7 @@ install:
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
     travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.9 scipy==0.14 libgfortran==1 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy scipy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy scipy==0.18 nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
   # makes weave code generation much faster:
