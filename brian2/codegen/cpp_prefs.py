@@ -18,17 +18,21 @@ __all__ = ['get_compiler_and_args']
 # Try to get architecture information to get the best compiler setting for
 # Windows
 msvc_arch_flag = ''
-res = cpuinfo.get_cpu_info()
-# Note that this overwrites the arch_flag, i.e. only the best option will
-# be used
-if 'sse' in res['flags']:
-    msvc_arch_flag = '/arch:SSE'
-if 'sse2' in res['flags']:
-    msvc_arch_flag = '/arch:SSE2'
-if 'avx' in res['flags']:
-    msvc_arch_flag = '/arch:AVX'
-if 'avx2' in res['flags']:
-    msvc_arch_flag = '/arch:AVX2'
+try:
+    res = cpuinfo.get_cpu_info()
+    # Note that this overwrites the arch_flag, i.e. only the best option will
+    # be used
+    if 'sse' in res['flags']:
+        msvc_arch_flag = '/arch:SSE'
+    if 'sse2' in res['flags']:
+        msvc_arch_flag = '/arch:SSE2'
+    if 'avx' in res['flags']:
+        msvc_arch_flag = '/arch:AVX'
+    if 'avx2' in res['flags']:
+        msvc_arch_flag = '/arch:AVX2'
+except Exception:
+    pass  # apparently it does not always work on appveyor
+
 
 # Preferences
 prefs.register_preferences(
