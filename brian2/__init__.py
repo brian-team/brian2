@@ -32,7 +32,7 @@ except ImportError as ex:
 
 try:
     import cpuinfo
-except ImportError as ex:
+except Exception as ex:
     sys.stderr.write('Importing cpuinfo failed: %s\n' % ex)
     missing.append('py-cpuinfo')
 

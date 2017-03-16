@@ -13,7 +13,6 @@ import tempfile
 from distutils import ccompiler
 
 import numpy as np
-from cpuinfo import cpuinfo
 
 import brian2
 

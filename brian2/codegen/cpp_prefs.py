@@ -8,8 +8,6 @@ Preferences
 '''
 from distutils.ccompiler import get_default_compiler
 
-from cpuinfo import cpuinfo
-
 from brian2.core.preferences import prefs, BrianPreference
 from .codeobject import sys_info
 
@@ -19,6 +17,7 @@ __all__ = ['get_compiler_and_args']
 # Windows
 msvc_arch_flag = ''
 try:
+    from cpuinfo import cpuinfo
     res = cpuinfo.get_cpu_info()
     # Note that this overwrites the arch_flag, i.e. only the best option will
     # be used
