@@ -88,26 +88,6 @@ __all__ = [
     "Mmeter",
     "kmeter",
     "Ymeter",
-    "akilogram",
-    "ckilogram",
-    "Zkilogram",
-    "Pkilogram",
-    "dkilogram",
-    "Gkilogram",
-    "fkilogram",
-    "hkilogram",
-    "dakilogram",
-    "mkilogram",
-    "nkilogram",
-    "pkilogram",
-    "ukilogram",
-    "Tkilogram",
-    "ykilogram",
-    "Ekilogram",
-    "zkilogram",
-    "Mkilogram",
-    "kkilogram",
-    "Ykilogram",
     "asecond",
     "csecond",
     "Zsecond",
@@ -228,26 +208,6 @@ __all__ = [
     "Mcandle",
     "kcandle",
     "Ycandle",
-    "akilogramme",
-    "ckilogramme",
-    "Zkilogramme",
-    "Pkilogramme",
-    "dkilogramme",
-    "Gkilogramme",
-    "fkilogramme",
-    "hkilogramme",
-    "dakilogramme",
-    "mkilogramme",
-    "nkilogramme",
-    "pkilogramme",
-    "ukilogramme",
-    "Tkilogramme",
-    "ykilogramme",
-    "Ekilogramme",
-    "zkilogramme",
-    "Mkilogramme",
-    "kkilogramme",
-    "Ykilogramme",
     "agram",
     "cgram",
     "Zgram",
@@ -878,46 +838,6 @@ __all__ = [
     "kmeter3",
     "Ymeter2",
     "Ymeter3",
-    "akilogram2",
-    "akilogram3",
-    "ckilogram2",
-    "ckilogram3",
-    "Zkilogram2",
-    "Zkilogram3",
-    "Pkilogram2",
-    "Pkilogram3",
-    "dkilogram2",
-    "dkilogram3",
-    "Gkilogram2",
-    "Gkilogram3",
-    "fkilogram2",
-    "fkilogram3",
-    "hkilogram2",
-    "hkilogram3",
-    "dakilogram2",
-    "dakilogram3",
-    "mkilogram2",
-    "mkilogram3",
-    "nkilogram2",
-    "nkilogram3",
-    "pkilogram2",
-    "pkilogram3",
-    "ukilogram2",
-    "ukilogram3",
-    "Tkilogram2",
-    "Tkilogram3",
-    "ykilogram2",
-    "ykilogram3",
-    "Ekilogram2",
-    "Ekilogram3",
-    "zkilogram2",
-    "zkilogram3",
-    "Mkilogram2",
-    "Mkilogram3",
-    "kkilogram2",
-    "kkilogram3",
-    "Ykilogram2",
-    "Ykilogram3",
     "asecond2",
     "asecond3",
     "csecond2",
@@ -1158,46 +1078,6 @@ __all__ = [
     "kcandle3",
     "Ycandle2",
     "Ycandle3",
-    "akilogramme2",
-    "akilogramme3",
-    "ckilogramme2",
-    "ckilogramme3",
-    "Zkilogramme2",
-    "Zkilogramme3",
-    "Pkilogramme2",
-    "Pkilogramme3",
-    "dkilogramme2",
-    "dkilogramme3",
-    "Gkilogramme2",
-    "Gkilogramme3",
-    "fkilogramme2",
-    "fkilogramme3",
-    "hkilogramme2",
-    "hkilogramme3",
-    "dakilogramme2",
-    "dakilogramme3",
-    "mkilogramme2",
-    "mkilogramme3",
-    "nkilogramme2",
-    "nkilogramme3",
-    "pkilogramme2",
-    "pkilogramme3",
-    "ukilogramme2",
-    "ukilogramme3",
-    "Tkilogramme2",
-    "Tkilogramme3",
-    "ykilogramme2",
-    "ykilogramme3",
-    "Ekilogramme2",
-    "Ekilogramme3",
-    "zkilogramme2",
-    "zkilogramme3",
-    "Mkilogramme2",
-    "Mkilogramme3",
-    "kkilogramme2",
-    "kkilogramme3",
-    "Ykilogramme2",
-    "Ykilogramme3",
     "agram2",
     "agram3",
     "cgram2",
@@ -2292,26 +2172,6 @@ zmeter = Unit.create_scaled_unit(meter, "z")
 Mmeter = Unit.create_scaled_unit(meter, "M")
 kmeter = Unit.create_scaled_unit(meter, "k")
 Ymeter = Unit.create_scaled_unit(meter, "Y")
-akilogram = Unit.create_scaled_unit(kilogram, "a")
-ckilogram = Unit.create_scaled_unit(kilogram, "c")
-Zkilogram = Unit.create_scaled_unit(kilogram, "Z")
-Pkilogram = Unit.create_scaled_unit(kilogram, "P")
-dkilogram = Unit.create_scaled_unit(kilogram, "d")
-Gkilogram = Unit.create_scaled_unit(kilogram, "G")
-fkilogram = Unit.create_scaled_unit(kilogram, "f")
-hkilogram = Unit.create_scaled_unit(kilogram, "h")
-dakilogram = Unit.create_scaled_unit(kilogram, "da")
-mkilogram = Unit.create_scaled_unit(kilogram, "m")
-nkilogram = Unit.create_scaled_unit(kilogram, "n")
-pkilogram = Unit.create_scaled_unit(kilogram, "p")
-ukilogram = Unit.create_scaled_unit(kilogram, "u")
-Tkilogram = Unit.create_scaled_unit(kilogram, "T")
-ykilogram = Unit.create_scaled_unit(kilogram, "y")
-Ekilogram = Unit.create_scaled_unit(kilogram, "E")
-zkilogram = Unit.create_scaled_unit(kilogram, "z")
-Mkilogram = Unit.create_scaled_unit(kilogram, "M")
-kkilogram = Unit.create_scaled_unit(kilogram, "k")
-Ykilogram = Unit.create_scaled_unit(kilogram, "Y")
 asecond = Unit.create_scaled_unit(second, "a")
 csecond = Unit.create_scaled_unit(second, "c")
 Zsecond = Unit.create_scaled_unit(second, "Z")
@@ -2432,26 +2292,6 @@ zcandle = Unit.create_scaled_unit(candle, "z")
 Mcandle = Unit.create_scaled_unit(candle, "M")
 kcandle = Unit.create_scaled_unit(candle, "k")
 Ycandle = Unit.create_scaled_unit(candle, "Y")
-akilogramme = Unit.create_scaled_unit(kilogramme, "a")
-ckilogramme = Unit.create_scaled_unit(kilogramme, "c")
-Zkilogramme = Unit.create_scaled_unit(kilogramme, "Z")
-Pkilogramme = Unit.create_scaled_unit(kilogramme, "P")
-dkilogramme = Unit.create_scaled_unit(kilogramme, "d")
-Gkilogramme = Unit.create_scaled_unit(kilogramme, "G")
-fkilogramme = Unit.create_scaled_unit(kilogramme, "f")
-hkilogramme = Unit.create_scaled_unit(kilogramme, "h")
-dakilogramme = Unit.create_scaled_unit(kilogramme, "da")
-mkilogramme = Unit.create_scaled_unit(kilogramme, "m")
-nkilogramme = Unit.create_scaled_unit(kilogramme, "n")
-pkilogramme = Unit.create_scaled_unit(kilogramme, "p")
-ukilogramme = Unit.create_scaled_unit(kilogramme, "u")
-Tkilogramme = Unit.create_scaled_unit(kilogramme, "T")
-ykilogramme = Unit.create_scaled_unit(kilogramme, "y")
-Ekilogramme = Unit.create_scaled_unit(kilogramme, "E")
-zkilogramme = Unit.create_scaled_unit(kilogramme, "z")
-Mkilogramme = Unit.create_scaled_unit(kilogramme, "M")
-kkilogramme = Unit.create_scaled_unit(kilogramme, "k")
-Ykilogramme = Unit.create_scaled_unit(kilogramme, "Y")
 agram = Unit.create_scaled_unit(gram, "a")
 cgram = Unit.create_scaled_unit(gram, "c")
 Zgram = Unit.create_scaled_unit(gram, "Z")
@@ -3083,46 +2923,6 @@ kmeter2 = Unit.create((kmeter**2).dim, name="kmeter2", dispname=str(kmeter)+"^2"
 kmeter3 = Unit.create((kmeter**3).dim, name="kmeter3", dispname=str(kmeter)+"^3", scale=kmeter.scale*3)
 Ymeter2 = Unit.create((Ymeter**2).dim, name="Ymeter2", dispname=str(Ymeter)+"^2", scale=Ymeter.scale*2)
 Ymeter3 = Unit.create((Ymeter**3).dim, name="Ymeter3", dispname=str(Ymeter)+"^3", scale=Ymeter.scale*3)
-akilogram2 = Unit.create((akilogram**2).dim, name="akilogram2", dispname=str(akilogram)+"^2", scale=akilogram.scale*2)
-akilogram3 = Unit.create((akilogram**3).dim, name="akilogram3", dispname=str(akilogram)+"^3", scale=akilogram.scale*3)
-ckilogram2 = Unit.create((ckilogram**2).dim, name="ckilogram2", dispname=str(ckilogram)+"^2", scale=ckilogram.scale*2)
-ckilogram3 = Unit.create((ckilogram**3).dim, name="ckilogram3", dispname=str(ckilogram)+"^3", scale=ckilogram.scale*3)
-Zkilogram2 = Unit.create((Zkilogram**2).dim, name="Zkilogram2", dispname=str(Zkilogram)+"^2", scale=Zkilogram.scale*2)
-Zkilogram3 = Unit.create((Zkilogram**3).dim, name="Zkilogram3", dispname=str(Zkilogram)+"^3", scale=Zkilogram.scale*3)
-Pkilogram2 = Unit.create((Pkilogram**2).dim, name="Pkilogram2", dispname=str(Pkilogram)+"^2", scale=Pkilogram.scale*2)
-Pkilogram3 = Unit.create((Pkilogram**3).dim, name="Pkilogram3", dispname=str(Pkilogram)+"^3", scale=Pkilogram.scale*3)
-dkilogram2 = Unit.create((dkilogram**2).dim, name="dkilogram2", dispname=str(dkilogram)+"^2", scale=dkilogram.scale*2)
-dkilogram3 = Unit.create((dkilogram**3).dim, name="dkilogram3", dispname=str(dkilogram)+"^3", scale=dkilogram.scale*3)
-Gkilogram2 = Unit.create((Gkilogram**2).dim, name="Gkilogram2", dispname=str(Gkilogram)+"^2", scale=Gkilogram.scale*2)
-Gkilogram3 = Unit.create((Gkilogram**3).dim, name="Gkilogram3", dispname=str(Gkilogram)+"^3", scale=Gkilogram.scale*3)
-fkilogram2 = Unit.create((fkilogram**2).dim, name="fkilogram2", dispname=str(fkilogram)+"^2", scale=fkilogram.scale*2)
-fkilogram3 = Unit.create((fkilogram**3).dim, name="fkilogram3", dispname=str(fkilogram)+"^3", scale=fkilogram.scale*3)
-hkilogram2 = Unit.create((hkilogram**2).dim, name="hkilogram2", dispname=str(hkilogram)+"^2", scale=hkilogram.scale*2)
-hkilogram3 = Unit.create((hkilogram**3).dim, name="hkilogram3", dispname=str(hkilogram)+"^3", scale=hkilogram.scale*3)
-dakilogram2 = Unit.create((dakilogram**2).dim, name="dakilogram2", dispname=str(dakilogram)+"^2", scale=dakilogram.scale*2)
-dakilogram3 = Unit.create((dakilogram**3).dim, name="dakilogram3", dispname=str(dakilogram)+"^3", scale=dakilogram.scale*3)
-mkilogram2 = Unit.create((mkilogram**2).dim, name="mkilogram2", dispname=str(mkilogram)+"^2", scale=mkilogram.scale*2)
-mkilogram3 = Unit.create((mkilogram**3).dim, name="mkilogram3", dispname=str(mkilogram)+"^3", scale=mkilogram.scale*3)
-nkilogram2 = Unit.create((nkilogram**2).dim, name="nkilogram2", dispname=str(nkilogram)+"^2", scale=nkilogram.scale*2)
-nkilogram3 = Unit.create((nkilogram**3).dim, name="nkilogram3", dispname=str(nkilogram)+"^3", scale=nkilogram.scale*3)
-pkilogram2 = Unit.create((pkilogram**2).dim, name="pkilogram2", dispname=str(pkilogram)+"^2", scale=pkilogram.scale*2)
-pkilogram3 = Unit.create((pkilogram**3).dim, name="pkilogram3", dispname=str(pkilogram)+"^3", scale=pkilogram.scale*3)
-ukilogram2 = Unit.create((ukilogram**2).dim, name="ukilogram2", dispname=str(ukilogram)+"^2", scale=ukilogram.scale*2)
-ukilogram3 = Unit.create((ukilogram**3).dim, name="ukilogram3", dispname=str(ukilogram)+"^3", scale=ukilogram.scale*3)
-Tkilogram2 = Unit.create((Tkilogram**2).dim, name="Tkilogram2", dispname=str(Tkilogram)+"^2", scale=Tkilogram.scale*2)
-Tkilogram3 = Unit.create((Tkilogram**3).dim, name="Tkilogram3", dispname=str(Tkilogram)+"^3", scale=Tkilogram.scale*3)
-ykilogram2 = Unit.create((ykilogram**2).dim, name="ykilogram2", dispname=str(ykilogram)+"^2", scale=ykilogram.scale*2)
-ykilogram3 = Unit.create((ykilogram**3).dim, name="ykilogram3", dispname=str(ykilogram)+"^3", scale=ykilogram.scale*3)
-Ekilogram2 = Unit.create((Ekilogram**2).dim, name="Ekilogram2", dispname=str(Ekilogram)+"^2", scale=Ekilogram.scale*2)
-Ekilogram3 = Unit.create((Ekilogram**3).dim, name="Ekilogram3", dispname=str(Ekilogram)+"^3", scale=Ekilogram.scale*3)
-zkilogram2 = Unit.create((zkilogram**2).dim, name="zkilogram2", dispname=str(zkilogram)+"^2", scale=zkilogram.scale*2)
-zkilogram3 = Unit.create((zkilogram**3).dim, name="zkilogram3", dispname=str(zkilogram)+"^3", scale=zkilogram.scale*3)
-Mkilogram2 = Unit.create((Mkilogram**2).dim, name="Mkilogram2", dispname=str(Mkilogram)+"^2", scale=Mkilogram.scale*2)
-Mkilogram3 = Unit.create((Mkilogram**3).dim, name="Mkilogram3", dispname=str(Mkilogram)+"^3", scale=Mkilogram.scale*3)
-kkilogram2 = Unit.create((kkilogram**2).dim, name="kkilogram2", dispname=str(kkilogram)+"^2", scale=kkilogram.scale*2)
-kkilogram3 = Unit.create((kkilogram**3).dim, name="kkilogram3", dispname=str(kkilogram)+"^3", scale=kkilogram.scale*3)
-Ykilogram2 = Unit.create((Ykilogram**2).dim, name="Ykilogram2", dispname=str(Ykilogram)+"^2", scale=Ykilogram.scale*2)
-Ykilogram3 = Unit.create((Ykilogram**3).dim, name="Ykilogram3", dispname=str(Ykilogram)+"^3", scale=Ykilogram.scale*3)
 asecond2 = Unit.create((asecond**2).dim, name="asecond2", dispname=str(asecond)+"^2", scale=asecond.scale*2)
 asecond3 = Unit.create((asecond**3).dim, name="asecond3", dispname=str(asecond)+"^3", scale=asecond.scale*3)
 csecond2 = Unit.create((csecond**2).dim, name="csecond2", dispname=str(csecond)+"^2", scale=csecond.scale*2)
@@ -3363,46 +3163,6 @@ kcandle2 = Unit.create((kcandle**2).dim, name="kcandle2", dispname=str(kcandle)+
 kcandle3 = Unit.create((kcandle**3).dim, name="kcandle3", dispname=str(kcandle)+"^3", scale=kcandle.scale*3)
 Ycandle2 = Unit.create((Ycandle**2).dim, name="Ycandle2", dispname=str(Ycandle)+"^2", scale=Ycandle.scale*2)
 Ycandle3 = Unit.create((Ycandle**3).dim, name="Ycandle3", dispname=str(Ycandle)+"^3", scale=Ycandle.scale*3)
-akilogramme2 = Unit.create((akilogramme**2).dim, name="akilogramme2", dispname=str(akilogramme)+"^2", scale=akilogramme.scale*2)
-akilogramme3 = Unit.create((akilogramme**3).dim, name="akilogramme3", dispname=str(akilogramme)+"^3", scale=akilogramme.scale*3)
-ckilogramme2 = Unit.create((ckilogramme**2).dim, name="ckilogramme2", dispname=str(ckilogramme)+"^2", scale=ckilogramme.scale*2)
-ckilogramme3 = Unit.create((ckilogramme**3).dim, name="ckilogramme3", dispname=str(ckilogramme)+"^3", scale=ckilogramme.scale*3)
-Zkilogramme2 = Unit.create((Zkilogramme**2).dim, name="Zkilogramme2", dispname=str(Zkilogramme)+"^2", scale=Zkilogramme.scale*2)
-Zkilogramme3 = Unit.create((Zkilogramme**3).dim, name="Zkilogramme3", dispname=str(Zkilogramme)+"^3", scale=Zkilogramme.scale*3)
-Pkilogramme2 = Unit.create((Pkilogramme**2).dim, name="Pkilogramme2", dispname=str(Pkilogramme)+"^2", scale=Pkilogramme.scale*2)
-Pkilogramme3 = Unit.create((Pkilogramme**3).dim, name="Pkilogramme3", dispname=str(Pkilogramme)+"^3", scale=Pkilogramme.scale*3)
-dkilogramme2 = Unit.create((dkilogramme**2).dim, name="dkilogramme2", dispname=str(dkilogramme)+"^2", scale=dkilogramme.scale*2)
-dkilogramme3 = Unit.create((dkilogramme**3).dim, name="dkilogramme3", dispname=str(dkilogramme)+"^3", scale=dkilogramme.scale*3)
-Gkilogramme2 = Unit.create((Gkilogramme**2).dim, name="Gkilogramme2", dispname=str(Gkilogramme)+"^2", scale=Gkilogramme.scale*2)
-Gkilogramme3 = Unit.create((Gkilogramme**3).dim, name="Gkilogramme3", dispname=str(Gkilogramme)+"^3", scale=Gkilogramme.scale*3)
-fkilogramme2 = Unit.create((fkilogramme**2).dim, name="fkilogramme2", dispname=str(fkilogramme)+"^2", scale=fkilogramme.scale*2)
-fkilogramme3 = Unit.create((fkilogramme**3).dim, name="fkilogramme3", dispname=str(fkilogramme)+"^3", scale=fkilogramme.scale*3)
-hkilogramme2 = Unit.create((hkilogramme**2).dim, name="hkilogramme2", dispname=str(hkilogramme)+"^2", scale=hkilogramme.scale*2)
-hkilogramme3 = Unit.create((hkilogramme**3).dim, name="hkilogramme3", dispname=str(hkilogramme)+"^3", scale=hkilogramme.scale*3)
-dakilogramme2 = Unit.create((dakilogramme**2).dim, name="dakilogramme2", dispname=str(dakilogramme)+"^2", scale=dakilogramme.scale*2)
-dakilogramme3 = Unit.create((dakilogramme**3).dim, name="dakilogramme3", dispname=str(dakilogramme)+"^3", scale=dakilogramme.scale*3)
-mkilogramme2 = Unit.create((mkilogramme**2).dim, name="mkilogramme2", dispname=str(mkilogramme)+"^2", scale=mkilogramme.scale*2)
-mkilogramme3 = Unit.create((mkilogramme**3).dim, name="mkilogramme3", dispname=str(mkilogramme)+"^3", scale=mkilogramme.scale*3)
-nkilogramme2 = Unit.create((nkilogramme**2).dim, name="nkilogramme2", dispname=str(nkilogramme)+"^2", scale=nkilogramme.scale*2)
-nkilogramme3 = Unit.create((nkilogramme**3).dim, name="nkilogramme3", dispname=str(nkilogramme)+"^3", scale=nkilogramme.scale*3)
-pkilogramme2 = Unit.create((pkilogramme**2).dim, name="pkilogramme2", dispname=str(pkilogramme)+"^2", scale=pkilogramme.scale*2)
-pkilogramme3 = Unit.create((pkilogramme**3).dim, name="pkilogramme3", dispname=str(pkilogramme)+"^3", scale=pkilogramme.scale*3)
-ukilogramme2 = Unit.create((ukilogramme**2).dim, name="ukilogramme2", dispname=str(ukilogramme)+"^2", scale=ukilogramme.scale*2)
-ukilogramme3 = Unit.create((ukilogramme**3).dim, name="ukilogramme3", dispname=str(ukilogramme)+"^3", scale=ukilogramme.scale*3)
-Tkilogramme2 = Unit.create((Tkilogramme**2).dim, name="Tkilogramme2", dispname=str(Tkilogramme)+"^2", scale=Tkilogramme.scale*2)
-Tkilogramme3 = Unit.create((Tkilogramme**3).dim, name="Tkilogramme3", dispname=str(Tkilogramme)+"^3", scale=Tkilogramme.scale*3)
-ykilogramme2 = Unit.create((ykilogramme**2).dim, name="ykilogramme2", dispname=str(ykilogramme)+"^2", scale=ykilogramme.scale*2)
-ykilogramme3 = Unit.create((ykilogramme**3).dim, name="ykilogramme3", dispname=str(ykilogramme)+"^3", scale=ykilogramme.scale*3)
-Ekilogramme2 = Unit.create((Ekilogramme**2).dim, name="Ekilogramme2", dispname=str(Ekilogramme)+"^2", scale=Ekilogramme.scale*2)
-Ekilogramme3 = Unit.create((Ekilogramme**3).dim, name="Ekilogramme3", dispname=str(Ekilogramme)+"^3", scale=Ekilogramme.scale*3)
-zkilogramme2 = Unit.create((zkilogramme**2).dim, name="zkilogramme2", dispname=str(zkilogramme)+"^2", scale=zkilogramme.scale*2)
-zkilogramme3 = Unit.create((zkilogramme**3).dim, name="zkilogramme3", dispname=str(zkilogramme)+"^3", scale=zkilogramme.scale*3)
-Mkilogramme2 = Unit.create((Mkilogramme**2).dim, name="Mkilogramme2", dispname=str(Mkilogramme)+"^2", scale=Mkilogramme.scale*2)
-Mkilogramme3 = Unit.create((Mkilogramme**3).dim, name="Mkilogramme3", dispname=str(Mkilogramme)+"^3", scale=Mkilogramme.scale*3)
-kkilogramme2 = Unit.create((kkilogramme**2).dim, name="kkilogramme2", dispname=str(kkilogramme)+"^2", scale=kkilogramme.scale*2)
-kkilogramme3 = Unit.create((kkilogramme**3).dim, name="kkilogramme3", dispname=str(kkilogramme)+"^3", scale=kkilogramme.scale*3)
-Ykilogramme2 = Unit.create((Ykilogramme**2).dim, name="Ykilogramme2", dispname=str(Ykilogramme)+"^2", scale=Ykilogramme.scale*2)
-Ykilogramme3 = Unit.create((Ykilogramme**3).dim, name="Ykilogramme3", dispname=str(Ykilogramme)+"^3", scale=Ykilogramme.scale*3)
 agram2 = Unit.create((agram**2).dim, name="agram2", dispname=str(agram)+"^2", scale=agram.scale*2)
 agram3 = Unit.create((agram**3).dim, name="agram3", dispname=str(agram)+"^3", scale=agram.scale*3)
 cgram2 = Unit.create((cgram**2).dim, name="cgram2", dispname=str(cgram)+"^2", scale=cgram.scale*2)
@@ -4832,22 +4592,6 @@ scaled_units = [
     Pgram,
     Zgram,
     agram,
-    Ykilogramme,
-    kkilogramme,
-    Mkilogramme,
-    zkilogramme,
-    Ekilogramme,
-    ykilogramme,
-    Tkilogramme,
-    ukilogramme,
-    pkilogramme,
-    nkilogramme,
-    mkilogramme,
-    fkilogramme,
-    Gkilogramme,
-    Pkilogramme,
-    Zkilogramme,
-    akilogramme,
     Ycandle,
     kcandle,
     Mcandle,
@@ -4944,22 +4688,6 @@ scaled_units = [
     Psecond,
     Zsecond,
     asecond,
-    Ykilogram,
-    kkilogram,
-    Mkilogram,
-    zkilogram,
-    Ekilogram,
-    ykilogram,
-    Tkilogram,
-    ukilogram,
-    pkilogram,
-    nkilogram,
-    mkilogram,
-    fkilogram,
-    Gkilogram,
-    Pkilogram,
-    Zkilogram,
-    akilogram,
     Ymeter,
     kmeter,
     Mmeter,
@@ -4996,40 +4724,6 @@ scaled_units = [
 
 
 powered_units = [
-    Ylitre,
-    klitre,
-    Mlitre,
-    zlitre,
-    Elitre,
-    ylitre,
-    Tlitre,
-    ulitre,
-    plitre,
-    nlitre,
-    mlitre,
-    flitre,
-    Glitre,
-    Plitre,
-    Zlitre,
-    litre,
-    alitre,
-    Yliter,
-    kliter,
-    Mliter,
-    zliter,
-    Eliter,
-    yliter,
-    Tliter,
-    uliter,
-    pliter,
-    nliter,
-    mliter,
-    fliter,
-    Gliter,
-    Pliter,
-    Zliter,
-    liter,
-    aliter,
     Ykatal3,
     Ykatal2,
     kkatal3,
@@ -5798,38 +5492,6 @@ powered_units = [
     Zgram2,
     agram3,
     agram2,
-    Ykilogramme3,
-    Ykilogramme2,
-    kkilogramme3,
-    kkilogramme2,
-    Mkilogramme3,
-    Mkilogramme2,
-    zkilogramme3,
-    zkilogramme2,
-    Ekilogramme3,
-    Ekilogramme2,
-    ykilogramme3,
-    ykilogramme2,
-    Tkilogramme3,
-    Tkilogramme2,
-    ukilogramme3,
-    ukilogramme2,
-    pkilogramme3,
-    pkilogramme2,
-    nkilogramme3,
-    nkilogramme2,
-    mkilogramme3,
-    mkilogramme2,
-    fkilogramme3,
-    fkilogramme2,
-    Gkilogramme3,
-    Gkilogramme2,
-    Pkilogramme3,
-    Pkilogramme2,
-    Zkilogramme3,
-    Zkilogramme2,
-    akilogramme3,
-    akilogramme2,
     Ycandle3,
     Ycandle2,
     kcandle3,
@@ -6022,38 +5684,6 @@ powered_units = [
     Zsecond2,
     asecond3,
     asecond2,
-    Ykilogram3,
-    Ykilogram2,
-    kkilogram3,
-    kkilogram2,
-    Mkilogram3,
-    Mkilogram2,
-    zkilogram3,
-    zkilogram2,
-    Ekilogram3,
-    Ekilogram2,
-    ykilogram3,
-    ykilogram2,
-    Tkilogram3,
-    Tkilogram2,
-    ukilogram3,
-    ukilogram2,
-    pkilogram3,
-    pkilogram2,
-    nkilogram3,
-    nkilogram2,
-    mkilogram3,
-    mkilogram2,
-    fkilogram3,
-    fkilogram2,
-    Gkilogram3,
-    Gkilogram2,
-    Pkilogram3,
-    Pkilogram2,
-    Zkilogram3,
-    Zkilogram2,
-    akilogram3,
-    akilogram2,
     Ymeter3,
     Ymeter2,
     kmeter3,
@@ -6197,8 +5827,10 @@ additional_units = [
     joule / (kilogram * kelvin), joule / kilogram, watt / (metre * kelvin),
     joule / metre ** 3, volt / metre ** 3, coulomb / metre ** 3, coulomb / metre ** 2,
     farad / metre, henry / metre, joule / mole, joule / (mole * kelvin),
-    coulomb / kilogram, gray / second, katal / metre ** 3 ]
-
+    coulomb / kilogram, gray / second, katal / metre ** 3,
+    # We don't want liter/litre to be used as a standard unit for display, so we
+    # put it here instead of in the standard units
+    aliter, liter, cliter, Zliter, Pliter, dliter, Gliter, fliter, hliter, daliter, mliter, nliter, pliter, uliter, Tliter, yliter, Eliter, zliter, Mliter, kliter, Yliter, alitre, litre, clitre, Zlitre, Plitre, dlitre, Glitre, flitre, hlitre, dalitre, mlitre, nlitre, plitre, ulitre, Tlitre, ylitre, Elitre, zlitre, Mlitre, klitre, Ylitre, ]
 
 all_units = [
     Ylitre,
@@ -7205,46 +6837,6 @@ all_units = [
     cgram2,
     agram3,
     agram2,
-    Ykilogramme3,
-    Ykilogramme2,
-    kkilogramme3,
-    kkilogramme2,
-    Mkilogramme3,
-    Mkilogramme2,
-    zkilogramme3,
-    zkilogramme2,
-    Ekilogramme3,
-    Ekilogramme2,
-    ykilogramme3,
-    ykilogramme2,
-    Tkilogramme3,
-    Tkilogramme2,
-    ukilogramme3,
-    ukilogramme2,
-    pkilogramme3,
-    pkilogramme2,
-    nkilogramme3,
-    nkilogramme2,
-    mkilogramme3,
-    mkilogramme2,
-    dakilogramme3,
-    dakilogramme2,
-    hkilogramme3,
-    hkilogramme2,
-    fkilogramme3,
-    fkilogramme2,
-    Gkilogramme3,
-    Gkilogramme2,
-    dkilogramme3,
-    dkilogramme2,
-    Pkilogramme3,
-    Pkilogramme2,
-    Zkilogramme3,
-    Zkilogramme2,
-    ckilogramme3,
-    ckilogramme2,
-    akilogramme3,
-    akilogramme2,
     Ycandle3,
     Ycandle2,
     kcandle3,
@@ -7485,46 +7077,6 @@ all_units = [
     csecond2,
     asecond3,
     asecond2,
-    Ykilogram3,
-    Ykilogram2,
-    kkilogram3,
-    kkilogram2,
-    Mkilogram3,
-    Mkilogram2,
-    zkilogram3,
-    zkilogram2,
-    Ekilogram3,
-    Ekilogram2,
-    ykilogram3,
-    ykilogram2,
-    Tkilogram3,
-    Tkilogram2,
-    ukilogram3,
-    ukilogram2,
-    pkilogram3,
-    pkilogram2,
-    nkilogram3,
-    nkilogram2,
-    mkilogram3,
-    mkilogram2,
-    dakilogram3,
-    dakilogram2,
-    hkilogram3,
-    hkilogram2,
-    fkilogram3,
-    fkilogram2,
-    Gkilogram3,
-    Gkilogram2,
-    dkilogram3,
-    dkilogram2,
-    Pkilogram3,
-    Pkilogram2,
-    Zkilogram3,
-    Zkilogram2,
-    ckilogram3,
-    ckilogram2,
-    akilogram3,
-    akilogram2,
     Ymeter3,
     Ymeter2,
     kmeter3,
@@ -8155,26 +7707,6 @@ all_units = [
     Zgram,
     cgram,
     agram,
-    Ykilogramme,
-    kkilogramme,
-    Mkilogramme,
-    zkilogramme,
-    Ekilogramme,
-    ykilogramme,
-    Tkilogramme,
-    ukilogramme,
-    pkilogramme,
-    nkilogramme,
-    mkilogramme,
-    dakilogramme,
-    hkilogramme,
-    fkilogramme,
-    Gkilogramme,
-    dkilogramme,
-    Pkilogramme,
-    Zkilogramme,
-    ckilogramme,
-    akilogramme,
     Ycandle,
     kcandle,
     Mcandle,
@@ -8295,26 +7827,6 @@ all_units = [
     Zsecond,
     csecond,
     asecond,
-    Ykilogram,
-    kkilogram,
-    Mkilogram,
-    zkilogram,
-    Ekilogram,
-    ykilogram,
-    Tkilogram,
-    ukilogram,
-    pkilogram,
-    nkilogram,
-    mkilogram,
-    dakilogram,
-    hkilogram,
-    fkilogram,
-    Gkilogram,
-    dkilogram,
-    Pkilogram,
-    Zkilogram,
-    ckilogram,
-    akilogram,
     Ymeter,
     kmeter,
     Mmeter,

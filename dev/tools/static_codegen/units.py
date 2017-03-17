@@ -35,16 +35,6 @@ derived_unit_table = [
         ['katal',     'kat',  'get_or_create_dimension(s=-1, mol=1)'],
         ]
 
-additional_units = '''
-# Current list from http://physics.nist.gov/cuu/Units/units.html, far from complete
-additional_units = [
-    pascal * second, newton * metre, watt / metre ** 2, joule / kelvin,
-    joule / (kilogram * kelvin), joule / kilogram, watt / (metre * kelvin),
-    joule / metre ** 3, volt / metre ** 3, coulomb / metre ** 3, coulomb / metre ** 2,
-    farad / metre, henry / metre, joule / mole, joule / (mole * kelvin),
-    coulomb / kilogram, gray / second, katal / metre ** 3 ]
-'''
-
 ## Generate derived unit objects and make a table of base units from these and the fundamental ones
 base_units = fundamental_units+['kilogramme', 'gram', 'gramme', 'molar']
 derived = ''
@@ -61,8 +51,8 @@ definitions = '######### SCALED BASE UNITS ###########\n'
 scaled_units = []
 excluded_scaled_units = set()
 for _bu in base_units:
-    if _bu == 'kelvin':
-        continue  # do not create "mkelvin", etc.
+    if _bu in ['kelvin', 'kilogram', 'kilogramme']:
+        continue  # do not create "mkelvin", "kkilogram" etc.
     for _k in _siprefixes.keys():
         if len(_k):
             _u = _k+_bu
@@ -87,9 +77,22 @@ for bu in all_units + []:
         if bu not in excluded_scaled_units:
             powered_units.append(u)
 
+        additional_units = '''
+# Current list from http://physics.nist.gov/cuu/Units/units.html, far from complete
+additional_units = [
+    pascal * second, newton * metre, watt / metre ** 2, joule / kelvin,
+    joule / (kilogram * kelvin), joule / kilogram, watt / (metre * kelvin),
+    joule / metre ** 3, volt / metre ** 3, coulomb / metre ** 3, coulomb / metre ** 2,
+    farad / metre, henry / metre, joule / mole, joule / (mole * kelvin),
+    coulomb / kilogram, gray / second, katal / metre ** 3,
+    # We don't want liter/litre to be used as a standard unit for display, so we
+    # put it here instead of in the standard units
+    '''
+
 # Scaled units for liter (we don't want liter**2, etc., so it is not included
-# in the base units above; also, we don't want it to appear earlier than meter3
-# so it is not the unit of choice for displaying volume quantities)
+# in the base units above; also, we don't want it to register in the standard
+# units, so it is not chosen instead of meter**3 for displaying volume
+# quantities)
 for _bu in ['liter', 'litre']:
     all_units.append(_bu)
     for _k in _siprefixes.keys():
@@ -97,8 +100,8 @@ for _bu in ['liter', 'litre']:
         all_units.append(_u)
         definitions += '{_u} = Unit.create_scaled_unit({_bu}, "{_k}")\n'.format(
                                                     _u=_u, _bu=_bu, _k=_k)
-        if _k not in ["da", "d", "c", "h"]:
-            powered_units.append(_u)  # "liter" is powered (dimensions are meter**3)
+        additional_units += _u + ', '
+additional_units += ']'
 
 # Add unit names to __all__
 all = '''
