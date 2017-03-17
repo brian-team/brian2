@@ -34,7 +34,7 @@ try:
     import cpuinfo
 except Exception as ex:
     sys.stderr.write('Importing cpuinfo failed: %s\n' % ex)
-    missing.append('py-cpuinfo')
+    # we don't append it to "missing", Brian runs fine without it
 
 if len(missing):
     raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
