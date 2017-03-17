@@ -2020,7 +2020,8 @@ class Unit(Quantity):
             latexname = r'\frac{%s}{%s}' % (self.latexname, other.latexname)
             scale = self.scale - other.scale
             u = Unit(10.0**scale, dim=self.dim / other.dim, name=name,
-                     dispname=dispname, latexname=latexname, scale=scale)
+                     dispname=dispname, latexname=latexname, scale=scale,
+                     iscompound=True)
             return u
         else:
             return super(Unit, self).__div__(other)
