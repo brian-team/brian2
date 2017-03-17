@@ -69,7 +69,7 @@ for _bu in base_units:
             all_units.append(_u)
             definitions += '{_u} = Unit.create_scaled_unit({_bu}, "{_k}")\n'.format(
                                                         _u=_u, _bu=_bu, _k=_k)
-            if not _k in ["da", "d", "c", "h"]:
+            if _k not in ["da", "d", "c", "h"]:
                 scaled_units.append(_u)
             else:
                 excluded_scaled_units.add(_u)
@@ -80,7 +80,9 @@ powered_units = []
 for bu in all_units + []:
     for i in [2, 3]:
         u = bu+str(i)
-        definitions += '{u} = Unit.create(({bu}**{i}).dim, name="{u}")\n'.format(u=u, bu=bu, i=i)
+        definitions += '{u} = Unit.create(({bu}**{i}).dim, name="{u}", ' \
+                       'dispname=str({bu})+"^{i}", ' \
+                       'scale={bu}.scale*{i})\n'.format(u=u, bu=bu, i=i)
         all_units.append(u)
         if bu not in excluded_scaled_units:
             powered_units.append(u)
@@ -91,13 +93,12 @@ for bu in all_units + []:
 for _bu in ['liter', 'litre']:
     all_units.append(_bu)
     for _k in _siprefixes.keys():
-        if len(_k):
-            _u = _k + _bu
-            all_units.append(_u)
-            definitions += '{_u} = Unit.create_scaled_unit({_bu}, "{_k}")\n'.format(
-                                                        _u=_u, _bu=_bu, _k=_k)
-            if not _k in ["da", "d", "c", "h"]:
-                powered_units.append(_u)  # "liter" is powered (dimensions are meter**3)
+        _u = _k + _bu
+        all_units.append(_u)
+        definitions += '{_u} = Unit.create_scaled_unit({_bu}, "{_k}")\n'.format(
+                                                    _u=_u, _bu=_bu, _k=_k)
+        if _k not in ["da", "d", "c", "h"]:
+            powered_units.append(_u)  # "liter" is powered (dimensions are meter**3)
 
 # Add unit names to __all__
 all = '''

@@ -146,7 +146,39 @@ def test_display():
     assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
     
     # A bit artificial...
-    assert_equal(in_unit(10.0, Unit(10)), '1.0')
+    assert_equal(in_unit(10.0, Unit(10.0, scale=1)), '1.0')
+
+@attr('codegen-independent')
+def test_scale():
+    # Check that unit scaling is implemented correctly
+    from brian2.core.namespace import DEFAULT_UNITS
+    siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
+                  "n": 1e-9, "u": 1e-6, "m": 1e-3, "": 1.0, "k": 1e3,
+                  "M": 1e6, "G": 1e9, "T": 1e12, "P": 1e15, "E": 1e18,
+                  "Z": 1e21, "Y": 1e24}
+    for prefix in siprefixes:
+        if prefix in ['c', 'd', 'da', 'h']:
+            continue
+        scaled_unit = DEFAULT_UNITS[prefix + 'meter']
+        assert_allclose(float(scaled_unit), siprefixes[prefix])
+        assert_allclose(5*scaled_unit/meter, 5*siprefixes[prefix])
+        scaled_unit = DEFAULT_UNITS[prefix + 'meter2']
+        assert_allclose(float(scaled_unit), siprefixes[prefix]**2)
+        assert_allclose(5 * scaled_unit / meter2, 5 * siprefixes[prefix] ** 2)
+        scaled_unit = DEFAULT_UNITS[prefix + 'meter3']
+        assert_allclose(float(scaled_unit), siprefixes[prefix]**3)
+        assert_allclose(5 * scaled_unit / meter3, 5 * siprefixes[prefix] ** 3)
+        # liter, gram, and molar are special, they are not base units with a
+        # value of one, even though they do not have any prefix
+        for unit, factor in [('liter', 1e-3),
+                             ('litre', 1e-3),
+                             ('gram', 1e-3),
+                             ('gramme', 1e-3),
+                             ('molar', 1e3)]:
+            base_unit = DEFAULT_UNITS[unit]
+            scaled_unit = DEFAULT_UNITS[prefix + unit]
+            assert_allclose(float(scaled_unit), siprefixes[prefix]*factor)
+            assert_allclose(5 * scaled_unit / base_unit, 5 * siprefixes[prefix])
 
 
 @attr('codegen-independent')
@@ -1125,6 +1157,7 @@ if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
     test_display()
+    test_scale()
     test_power()
     test_pickling()
     test_str_repr()
