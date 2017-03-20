@@ -7908,7 +7908,7 @@ all_units = [
 class _Celsius(object):
     '''
     A dummy object to raise errors when ``celsius`` is used. The use of
-    `celsius` can lead to ambiguities when mixed with temperaturs in `kelvin`,
+    `celsius` can lead to ambiguities when mixed with temperatures in `kelvin`,
     so its use is no longer supported. See github issue #817 for details.
     '''
     error_text = ('The unit "celsius" is no longer supported to avoid '
@@ -7916,7 +7916,8 @@ class _Celsius(object):
                   'in Kelvin. Directly use "kelvin" when you are only '
                   'interested in temperature differences, and add the '
                   '"zero_celsius" constant from the brian2.units.constants '
-                  'module if you want to convert a temperature from °C to °K.')
+                  'module if you want to convert a temperature from Celsius to '
+                  'Kelvin.')
 
     def __mul__(self, other):
         raise TypeError(_Celsius.error_text)
