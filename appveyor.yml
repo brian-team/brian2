@@ -28,7 +28,7 @@ environment:
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
-  - PYTHON: "C:\\Miniconda36"
+    - PYTHON: "C:\\Miniconda36"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "32"
       platform: x86
