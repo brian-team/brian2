@@ -6,6 +6,12 @@ Next release
 
 New features
 ~~~~~~~~~~~~
+* `molar` and `liter` (as well as `litre`, scaled versions of the former, and a
+  few useful abbreviations such as `mM`) have been added as new units (#574).
+* A new module `brian2.units.constants` provides physical constants such as the
+  Faraday constants or the gas constant (see :ref:`constants` for details).
+* Anaconda packages for Brian 2 are now available for Python 3.6 (but Python 3.4
+  support has been removed).
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -16,6 +22,18 @@ Improvements and bug fixes
 * Make exact integration of ``event-driven`` synaptic variables use the `linear`
   numerical integration algorithm (instead of `independent`), fixing rare
   occasions where integration failed despite the equations being linear (#801).
+* Better error messages for incorrect unit definitions in equations.
+* Various fixes for the internal representation of physical units and the
+  unit registration system.
+
+Backwards-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* `celsius` has been removed as a unit, because it was ambiguous in its relation
+  to `kelvin` and gave wrong results when used as an absolute temperature (and
+  not a temperature difference). For temperature differences, you can directly
+  replace `celsius` by `kelvin`. To convert an absolute temperature in degree
+  Celsius to Kelvin, add the `zero_celsius` constant from
+  `brian2.units.constants` (#817).
 
 Contributions
 ~~~~~~~~~~~~~

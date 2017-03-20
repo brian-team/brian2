@@ -119,6 +119,8 @@ absolute temperatures
           temperatures. To avoid confusion and possible misinterpretation,
           the ``celsius`` unit has therefore been removed.
 
+.. _constants::
+
 Constants
 ---------
 The `brian2.units.constants` package provides a range of physical constants that
