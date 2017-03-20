@@ -10,24 +10,6 @@ environment:
     secure: mP9XvwSNUqxq7cFK4V0wM2rNmvlGUYecSlZvkYjRtdGotr9ueS2IycSDvvNGlSdK
 
   matrix:
-    - PYTHON: "C:\\Miniconda3"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      CONDA_PY: "34"
-      CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda3-x64"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "FALSE"
-      CONDA_PY: "34"
-      CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
     - PYTHON: "C:\\Miniconda35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "32"
@@ -43,6 +25,24 @@ environment:
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "35"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+  - PYTHON: "C:\\Miniconda36"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "FALSE"
+      CONDA_PY: "36"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+    - PYTHON: "C:\\Miniconda36-x64"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "FALSE"
+      CONDA_PY: "36"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
