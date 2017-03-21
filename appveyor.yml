@@ -128,7 +128,6 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           %appveyor-retry CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.10 &&
           %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.11 &&
           %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.12 &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
