@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Defines physical units and quantities
 
@@ -294,11 +295,11 @@ _ilabel = ["m", "kg", "s", "A", "K", "mol", "cd"]
 _iclass_label = ["metre", "kilogram", "second", "amp", "kelvin", "mole",
                  "candle"]
 
-# SI unit _prefixes, see table at end of file
-_siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
-               "n": 1e-9, "u": 1e-6, "m": 1e-3, "c": 1e-2, "d": 1e-1, "": 1,
-               "da": 1e1, "h": 1e2, "k": 1e3, "M": 1e6, "G": 1e9, "T": 1e12,
-               "P": 1e15, "E": 1e18, "Z": 1e21, "Y": 1e24}
+# SI unit _prefixes as integer exponents of 10, see table at end of file.
+_siprefixes = {"y": -24, "z": -21, "a": -18, "f": -15, "p": -12,
+               "n": -9, "u": -6, "m": -3, "c": -2, "d": -1, "": 0,
+               "da": 1, "h": 2, "k": 3, "M": 6, "G": 9, "T": 12,
+               "P": 15, "E": 18, "Z": 21, "Y": 24}
 
 
 class Dimension(object):
@@ -579,7 +580,7 @@ class DimensionMismatchError(Exception):
 
     def __str__(self):
         s = self.desc
-        if len(self.dims)==0:
+        if len(self.dims) == 0:
             pass
         elif len(self.dims) == 1:
             s += ' (unit is ' + get_unit_for_display(self.dims[0])
@@ -1238,8 +1239,8 @@ class Quantity(np.ndarray, object):
                     pass
             return Quantity(1, self.dim)
         else:
-            return self.get_best_unit(user_unit_register,
-                                      standard_unit_register,
+            return self.get_best_unit(standard_unit_register,
+                                      user_unit_register,
                                       additional_unit_register)
 
     def _get_best_unit(self, *regs):
@@ -1758,41 +1759,51 @@ class Unit(Quantity):
     It can be useful to define your own units for printing
     purposes. So for example, to define the newton metre, you
     write
-    >>> from brian2.units.allunits import metre, newton
+
+    >>> from brian2 import *
+    >>> from brian2.units.allunits import newton
     >>> Nm = newton * metre
 
     You can then do
 
     >>> (1*Nm).in_unit(Nm)
     '1. N m'
-    
-    which returns ``"1 N m"`` because the `Unit` class generates a new
-    display name of ``"N m"`` from the display names ``"N"`` and ``"m"`` for
-    newtons and metres automatically.
 
-    To register this unit for use in the automatic printing
-    of the `Quantity.in_best_unit` method, see the documentation
-    for the `~brian2.units.fundamentalunits.UnitRegistry` class.
+    New "compound units", i.e. units that are composed of other units will be
+    automatically registered and from then on used for display. For example,
+    imagine you define total conductance for a membrane, and the total area of
+    that membrane:
 
-    **Construction**
+    >>> conductance = 10.*nS
+    >>> area = 20000*um**2
 
-    The best way to construct a new unit is to use standard units
-    already defined and arithmetic operations, e.g. ``newton*metre``.
-    See the documentation for the static methods `Unit.create`
-    and `Unit.create_scaled_units` for more details.
+    If you now ask for the conductance density, you will get an "ugly" display
+    in basic SI dimensions, as Brian does not know of a corresponding unit:
 
-    If you don't like the automatically generated display name for
-    the unit, use the `Unit.set_display_name` method.
+    >>> conductance/area
+    0.5 * metre ** -4 * kilogram ** -1 * second ** 3 * amp ** 2
 
-    **Representation**
+    By using an appropriate unit once, it will be registered and from then on
+    used for display when appropriate:
 
-    A new unit defined by multiplication, division or taking powers
-    generates a name for the unit automatically, so that for
-    example the name for ``pfarad/mmetre**2`` is ``"pF/mm^2"``, etc. If you
-    don't like the automatically generated name, use the
-    `Unit.set_display_name` method.
+    >>> usiemens/cm**2
+    usiemens / cmetre ** 2
+    >>> conductance/area  # same as before, but now Brian nows about uS/cm^2
+    50. * usiemens / cmetre ** 2
+
+    Note that user-defined units cannot override the standard units (`volt`,
+    `second`, etc.) that are predefined by Brian. For example, the unit
+    ``Nm`` has the dimensions "length²·mass/time²", and therefore the same
+    dimensions as the standard unit `joule`. The latter will be used for display
+    purposes:
+
+    >>> 3*joule
+    3. * joule
+    >>> 3*Nm
+    3. * joule
+
     '''
-    __slots__ = ["dim", "scale", "scalefactor", "_dispname", "_name",
+    __slots__ = ["dim", "scale", "_dispname", "_name",
                  "_latexname", "iscompound"]
 
     __array_priority__ = 100
@@ -1800,91 +1811,92 @@ class Unit(Quantity):
     automatically_register_units = True
 
     #### CONSTRUCTION ####
-    def __new__(cls, arr, dim=None, scale=None, dtype=None, copy=False):
+    def __new__(cls, arr, dim=None, scale=0, name=None, dispname=None,
+                latexname=None, iscompound=False, dtype=None, copy=False):
         if dim is None:
             dim = DIMENSIONLESS
         obj = super(Unit, cls).__new__(cls, arr, dim=dim, dtype=dtype,
                                        copy=copy, force_quantity=True)
-        if Unit.automatically_register_units:
-            register_new_unit(obj)
         return obj
 
     def __array_finalize__(self, orig):
         self.dim = getattr(orig, 'dim', DIMENSIONLESS)
-        self.scale = getattr(orig, 'scale', ("", "", "", "", "", "", ""))
-        self.scalefactor = getattr(orig, 'scalefactor', '')
+        self.scale = getattr(orig, 'scale', 0)
         self._name = getattr(orig, '_name', '')
         self._dispname = getattr(orig, '_dispname', '')
         self._latexname = getattr(orig, '_latexname', '')
         self.iscompound = getattr(orig, '_iscompound', False)
         return self
 
-    def __init__(self, value, dim=None, scale=None):
+    def __init__(self, value, dim=None, scale=0, name=None, dispname=None,
+                 latexname='', iscompound=False):
+        if value != 10.0**scale:
+            raise AssertionError('Unit value has to be 10**scale '
+                                 '(scale={scale}, value={value})'.format(scale=scale,
+                                                                         value=value))
         if dim is None:
             dim = DIMENSIONLESS
         self.dim = dim  #: The Dimensions of this unit
-        if scale is None:
-            scale = ("", "", "", "", "", "", "")
-        if not len(scale) == 7:
-            raise ValueError('scale needs seven entries')
 
-        #: The scale for this unit (a 7-tuple)
+        #: The scale for this unit (as the integer exponent of 10), i.e.
+        #: a scale of 3 means 10^3, e.g. for a "k" prefix.
         self.scale = scale
-        #: The scalefactor for this unit, e.g. 'm' for milli
-        self.scalefactor = ""
+        if name is None:
+            if dim is DIMENSIONLESS:
+                name = 'Unit(1)'
+            else:
+                name = repr(dim)
+        if dispname is None:
+            if dim is DIMENSIONLESS:
+                dispname = '1'
+            else:
+                dispname = str(dim)
         #: The full name of this unit.
-        self._name = ""
+        self._name = name
         #: The display name of this unit.
-        self._dispname = ""
+        self._dispname = dispname
         #: A LaTeX expression for the name of this unit.
-        self._latexname = ""
+        self._latexname = latexname
         #: Whether this unit is a combination of other units.
-        self.iscompound = False
+        self.iscompound = iscompound
+
+        if Unit.automatically_register_units:
+            register_new_unit(self)
 
     @staticmethod
-    def create(dim, name="", dispname="", latexname=None, scalefactor="",
-               **keywords):
+    def create(dim, name, dispname, latexname=None, scale=0):
         """
         Create a new named unit.
 
         Parameters
         ----------
         dim : `Dimension`
-            The dim of the unit.
-        name : `str`, optional
+            The dimensions of the unit.
+        name : `str`
             The full name of the unit, e.g. ``'volt'``
-        dispname : `str`, optional
+        dispname : `str`
             The display name, e.g. ``'V'``
         latexname : str, optional
             The name as a LaTeX expression (math mode is assumed, do not add
             $ signs or similar), e.g. ``'\omega'``. If no `latexname` is
             specified, `dispname` will be used.
-        scalefactor : str, optional
-            The scaling factor, e.g. ``'m'`` for mvolt
-        keywords
-            The scaling for each SI dimension, e.g. ``length="m"``,
-            ``mass="-1"``, etc.
+        scale : int, optional
+            The scale of this unit as an exponent of 10, e.g. -3 for a unit that
+            is 1/1000 of the base scale. Defaults to 0 (i.e. a base unit).
 
         Returns
         -------
         u : `Unit`
             The new unit.
         """
-        scale = [ "", "", "", "", "", "", "" ]
-        for k in keywords:
-            scale[_di[k]] = keywords[k]
-        v = 1.0
-        for s, i in itertools.izip(scale, dim._dims):
-            if i:
-                v *= _siprefixes[s] ** i
-        u = Unit(v * _siprefixes[scalefactor], dim=dim, scale=tuple(scale))
-        u.scalefactor = scalefactor + ""
-        u._name = str(name)
-        u._dispname = str(dispname)
+        name = str(name)
+        dispname = str(dispname)
         if latexname is None:
-            latexname = u._dispname
-        u._latexname = r'\mathrm{' + latexname + '}'
-        u.iscompound = False
+            latexname = r'\mathrm{' + dispname + '}'
+
+        u = Unit(10.0**scale, dim=dim, scale=scale, name=name,
+                 dispname=dispname, latexname=latexname)
+
         return u
 
     @staticmethod
@@ -1905,105 +1917,57 @@ class Unit(Quantity):
         u : `Unit`
             The new unit.
         """
-        u = Unit(np.array(baseunit, copy=False) * _siprefixes[scalefactor],
-                 dim=baseunit.dim, scale=baseunit.scale)
-        u.scalefactor = scalefactor
-        u._name = scalefactor + baseunit._name
-        u._dispname = scalefactor + baseunit._dispname
-        # As u --> \mu is the only transformation we have, I think it
-        # makes sense to just special-case it here instead of coming
-        # up with a general system for scale factors
-        # TODO: Unfortunately, \mu gives the typographically incorrect symbol,
-        #it should be an upright letter :-/
+        name = scalefactor + baseunit.name
+        dispname = scalefactor + baseunit.dispname
+        scale = _siprefixes[scalefactor] + baseunit.scale
         if scalefactor == 'u':
             scalefactor = r'\mu'
-        u._latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
-        u.iscompound = False
+        latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
+
+        u = Unit(10.0**scale, dim=baseunit.dim,  name=name, dispname=dispname,
+                 latexname=latexname, scale=scale)
+
         return u
 
     #### METHODS ####
-    def get_name(self):
-        if self._name == "":
-            if self.scalefactor:
-                parts = [repr(_siprefixes[self.scalefactor])]
-            else:
-                parts = []
-            for i in range(7):
-                if self.dim._dims[i]:
-                    s = self.scale[i] + _iclass_label[i]
-                    if self.dim._dims[i] != 1:
-                        s += ' ** ' + str(self.dim._dims[i])
-                    parts.append(s)
-            s = " * ".join(parts)
-            s = s.strip()
-            if not len(s):
-                return "%s(1)" % self.__class__.__name__
-            else:
-                return s
-        else:
-            return self._name
-
     def set_name(self, name):
-        """Sets the name for the unit
-        """
-        self._name = name
+        """Sets the name for the unit.
 
-    def get_display_name(self):
-        if self._dispname == "":
-            s = self.scalefactor + " "
-            for i in range(7):
-                if self.dim._dims[i]:
-                    s += self.scale[i] + _ilabel[i]
-                    if self.dim._dims[i] != 1:
-                        s += "^" + str(self.dim._dims[i])
-                    s += " "
-            s = s.strip()
-            if not len(s):
-                return "1"
-            else:
-                return s
-        else:
-            return self._dispname
+        .. deprecated:: 2.1
+            Create a new unit with `Unit.create` instead.
+        """
+        raise NotImplementedError('Setting the name for a unit after'
+                                  'its creation is no longer supported, use'
+                                  '"Unit.create" to create a new unit.')
+
 
     def set_display_name(self, name):
-        """Sets the display name for the unit
-        """
-        self._dispname = name
+        """Sets the display name for the unit.
 
-    def get_latex_name(self):
-        if self._latexname == "":
-            if len(self.scalefactor):
-                if self.scalefactor == 'u':
-                    scalefactor = r'\mu'
-                else:
-                    scalefactor = self.scalefactor
-                s = r'\mathrm{' + scalefactor + "} "
-            else:
-                s = ''
-            for i in range(7):
-                if self.dim._dims[i]:
-                    s += self.scale[i] + _ilabel[i]
-                    if self.dim._dims[i] != 1:
-                        s += "^{" + str(self.dim._dims[i]) + '}'
-                    s += " "
-            s = s.strip()
-            if not len(s):
-                return "1"
-            else:
-                return s
-        else:
-            return self._latexname
+        .. deprecated:: 2.1
+            Create a new unit with `Unit.create` instead.
+        """
+        raise NotImplementedError('Setting the display name for a unit after'
+                                  'its creation is no longer supported, use'
+                                  '"Unit.create" to create a new unit.')
 
     def set_latex_name(self, name):
-        self._latexname = name
+        """Sets the LaTeX name for the unit.
 
-    name = property(fget=get_name, fset=set_name,
+        .. deprecated:: 2.1
+            Create a new unit with `Unit.create` instead.
+        """
+        raise NotImplementedError('Setting the LaTeX name for a unit after'
+                                  'its creation is no longer supported, use'
+                                  '"Unit.create" to create a new unit.')
+
+    name = property(fget=lambda self: self._name, fset=set_name,
                     doc='The name of the unit')
 
-    dispname = property(fget=get_display_name, fset=set_display_name,
+    dispname = property(fget=lambda self: self._dispname, fset=set_display_name,
                         doc='The display name of the unit')
 
-    latexname = property(fget=get_latex_name, fset=set_latex_name,
+    latexname = property(fget=lambda self: self._latexname, fset=set_latex_name,
                          doc='The LaTeX name of the unit')
 
     #### REPRESENTATION ####
@@ -2022,12 +1986,13 @@ class Unit(Quantity):
     #### ARITHMETIC ####
     def __mul__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.array(self, copy=False) * np.array(other, copy=False))
-            u.name = self.name + " * " + other.name
-            u.dispname = self.dispname + ' ' + other.dispname
-            u.latexname = self.latexname + r'\,' + other.latexname
-            u.dim = self.dim * other.dim
-            u.iscompound = True
+            name = self.name + " * " + other.name
+            dispname = self.dispname + ' ' + other.dispname
+            latexname = self.latexname + r'\,' + other.latexname
+            scale = self.scale + other.scale
+            u = Unit(10.0**scale, dim=self.dim * other.dim, name=name,
+                     dispname=dispname, latexname=latexname, iscompound=True,
+                     scale=scale)
             return u
         else:
             return super(Unit, self).__mul__(other)
@@ -2037,26 +2002,26 @@ class Unit(Quantity):
 
     def __div__(self, other):
         if isinstance(other, Unit):
-            u = Unit(np.array(self, copy=False) / np.array(other, copy=False))
             if other.iscompound:
-                u.dispname = '(' + self.dispname + ')'
-                u.name = '(' + self.name + ')'
+                dispname = '(' + self.dispname + ')'
+                name = '(' + self.name + ')'
             else:
-                u.dispname = self.dispname
-                u.name = self.name
-            u.dispname += '/'
-            u.name += ' / '
+                dispname = self.dispname
+                name = self.name
+            dispname += '/'
+            name += ' / '
             if other.iscompound:
-                u.dispname += '(' + other.dispname + ')'
-                u.name += '(' + other.name + ')'
+                dispname += '(' + other.dispname + ')'
+                name += '(' + other.name + ')'
             else:
-                u.dispname += other.dispname
-                u.name += other.name
-            u.dim = self.dim / other.dim
-            u.iscompound = True
+                dispname += other.dispname
+                name += other.name
 
-            u.latexname = r'\frac{%s}{%s}' % (self.latexname, other.latexname)
-
+            latexname = r'\frac{%s}{%s}' % (self.latexname, other.latexname)
+            scale = self.scale - other.scale
+            u = Unit(10.0**scale, dim=self.dim / other.dim, name=name,
+                     dispname=dispname, latexname=latexname, scale=scale,
+                     iscompound=True)
             return u
         else:
             return super(Unit, self).__div__(other)
@@ -2074,19 +2039,20 @@ class Unit(Quantity):
 
     def __pow__(self, other):
         if is_scalar_type(other):
-            u = Unit(np.array(self, copy=False) ** other)
             if self.iscompound:
-                u.dispname = '(' + self.dispname + ')'
-                u.name = '(' + self.name + ')'
-                u.latexname = r'\left(%s\right)' % self.latexname
+                dispname = '(' + self.dispname + ')'
+                name = '(' + self.name + ')'
+                latexname = r'\left(%s\right)' % self.latexname
             else:
-                u.dispname = self.dispname
-                u.name = self.name
-                u.latexname = self.latexname
-            u.dispname += '^' + str(other)
-            u.name += ' ** ' + repr(other)
-            u.latexname += '^{%s}' % latex(other)
-            u.dim = self.dim ** other
+                dispname = self.dispname
+                name = self.name
+                latexname = self.latexname
+            dispname += '^' + str(other)
+            name += ' ** ' + repr(other)
+            latexname += '^{%s}' % latex(other)
+            scale = self.scale * other
+            u = Unit(10.0**scale, dim=self.dim ** other, name=name,
+                     dispname=dispname, latexname=latexname, scale=scale)
             return u
         else:
             return super(Unit, self).__pow__(other)
@@ -2117,9 +2083,7 @@ class Unit(Quantity):
 
     def __eq__(self, other):
         if isinstance(other, Unit):
-            return (other.dim is self.dim and
-                    other.scalefactor == self.scalefactor and
-                    other.scale == self.scale)
+            return other.dim is self.dim and other.scale == self.scale
         else:
             return Quantity.__eq__(self, other)
 
@@ -2127,8 +2091,7 @@ class Unit(Quantity):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.dim, self.scalefactor, self.scale,
-                     self.name, self.dispname))
+        return hash((self.dim, self.scale))
 
 
 class UnitRegistry(object):
@@ -2154,27 +2117,15 @@ class UnitRegistry(object):
     add
     __getitem__
     """
-
-
     def __init__(self):
-        self.units = set()
-        self.units_for_dimensions = collections.defaultdict(list)
-
+        self.units = {}
+        self.units_for_dimensions = collections.defaultdict(dict)
 
     def add(self, u):
         """Add a unit to the registry
         """
-        if u in self.units:
-            return
-        self.units.add(u)
-        self.units_for_dimensions[u.dim].append(u)
-
-    def remove(self, u):
-        """Remove a unit from the registry
-        """
-        self.units.remove(u)
-        dim = u.dim
-        self.units_for_dimensions[dim].remove(u)
+        self.units[repr(u)] = u
+        self.units_for_dimensions[u.dim][float(u)] = u
 
     def __getitem__(self, x):
         """Returns the best unit for quantity x
@@ -2188,21 +2139,22 @@ class UnitRegistry(object):
         unit where the deviations from that are the smallest. More precisely,
         the unit that minimizes the sum of (log10(m)-1)**2 over all entries).
         """
-        matching = self.units_for_dimensions.get(x.dim, [])
+        matching = self.units_for_dimensions.get(x.dim, {})
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
 
         # determine how well this unit represents the value
-        matching_values = np.array(matching, copy=False)
+        matching_values = np.array(matching.keys(), copy=False)
         x_flat = np.array(x, copy=False).flatten()
         floatreps = np.tile(np.abs(x_flat), (len(matching), 1)).T / matching_values
         # ignore zeros, they are well represented in any unit
         floatreps[floatreps == 0] = np.nan
         if np.all(np.isnan(floatreps)):
-            return matching[0]  # all zeros, use the base unit
+            return matching[1.0]  # all zeros, use the base unit
 
         deviations = np.nansum((np.log10(floatreps) - 1)**2, axis=0)
-        return matching[deviations.argmin()]
+        return matching.values()[deviations.argmin()]
+
 
 def register_new_unit(u):
     """Register a new unit for automatic displaying of quantities
@@ -2220,23 +2172,8 @@ def register_new_unit(u):
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
     2000000. * pfarad / mmetre ** 2
-    >>> unregister_unit(pfarad / mmetre**2)
-    >>> 2.0*farad/metre**2
-    2. * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     """
     user_unit_register.add(u)
-
-
-def unregister_unit(u):
-    """Remove a previously registered unit for automatic displaying of
-    quantities
-
-    Parameters
-    ----------
-    u : `Unit`
-        The unit that should be unregistered.
-    """
-    user_unit_register.remove(u)
 
 
 #: `UnitRegistry` containing all the standard units (metre, kilogram, um2...)
@@ -2262,12 +2199,11 @@ def get_unit(d):
         A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
         if no unit was found.
     '''
-    for unit_register in [user_unit_register,
-                          standard_unit_register,
+    for unit_register in [standard_unit_register,
+                          user_unit_register,
                           additional_unit_register]:
-        for u in unit_register.units_for_dimensions[d]:
-            if float(u) == 1.0:
-                return u
+        if 1.0 in unit_register.units_for_dimensions[d]:
+            return unit_register.units_for_dimensions[d][1.0]
     return Unit(1.0, dim=d)
 
 
@@ -2414,7 +2350,8 @@ def check_units(**au):
                                                            unit=repr(au[k]),
                                                            value=newkeyset[k])
                         raise DimensionMismatchError(error_message,
-                                                     newkeyset[k])
+                                                     get_dimensions(newkeyset[k]))
+
             result = f(*args, **kwds)
             if 'result' in au:
                 if au['result'] == bool:

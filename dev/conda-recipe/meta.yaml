@@ -20,7 +20,7 @@ requirements:
     - numpy x.x
     - sympy >=0.7.6
     - pyparsing
-    - scipy >=0.13.3 # [py2k]
+    - scipy >=0.13.3,<0.19 # [py2k]
     - bsddb # [py2k and not win]
     - cython >=0.18
     - jinja2 >=2.7

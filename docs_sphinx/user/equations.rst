@@ -29,6 +29,10 @@ the values out of a `NeuronGroup` and discarding the units. Compound units are o
 There are also three special "units" that can be used: ``1`` denotes a dimensionless floating point variable,
 ``boolean`` and ``integer`` denote dimensionless variables of the respective kind.
 
+.. note:: For molar concentration, the base unit that has to be used in the equations is ``mmolar`` (or ``mM``), *not*
+          ``molar``. This is because 1 molar is 10³ mol/m³ in SI units (i.e., it has a "scale" of 10³), whereas
+          1 millimolar corresponds to 1 mol/m³.
+
 Some special variables are defined: `t`, `dt` (time) and `xi` (white noise).
 Variable names starting with an underscore and a couple of other names that have special meanings under certain
 circumstances (e.g. names ending in ``_pre`` or ``_post``) are forbidden.

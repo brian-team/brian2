@@ -7,6 +7,7 @@ import re
 import string
 
 import sympy
+from brian2.utils.stringtools import get_identifiers
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 
@@ -18,11 +19,11 @@ from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
                                            DIMENSIONLESS,
                                            DimensionMismatchError,
                                            get_dimensions, Dimension)
-from brian2.units.allunits import (metre, meter, second, amp, kelvin, mole,
+from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
                                    farad, ohm, siemens, weber, tesla, henry,
-                                   celsius, lumen, lux, becquerel, gray,
+                                   lumen, lux, becquerel, gray,
                                    sievert, katal, kgram, kgramme)
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
@@ -201,6 +202,8 @@ def check_identifier_constants(identifier):
                          'variable name.' % identifier)
 
 
+_base_units = None
+_single_base_units = None
 def dimensions_and_type_from_string(unit_string):
     '''
     Returns the physical dimensions that results from evaluating a string like
@@ -223,17 +226,27 @@ def dimensions_and_type_from_string(unit_string):
     ValueError
         If the string cannot be evaluated to a unit.
     '''
+    # Lazy import to avoid circular dependency
+    from brian2.core.namespace import DEFAULT_UNITS
+    global _base_units  # we only want to do this once
+    global _single_base_units
 
-    # We avoid using DEFAULT_NUMPY_NAMESPACE here as importing core.namespace
-    # would introduce a circular dependency between it and the equations
-    # package
-    base_units = [metre, meter, second, amp, kelvin, mole, candle, kilogram,
-                  radian, steradian, hertz, newton, pascal, joule, watt,
-                  coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
-                  celsius, lumen, lux, becquerel, gray, sievert, katal, kgram,
-                  kgramme]
-    namespace = dict((repr(unit), unit) for unit in base_units)
-    namespace['Hz'] = hertz  # Also allow Hz instead of hertz
+    if _base_units is None:
+        base_units_for_dims = {}
+        _base_units = collections.OrderedDict()
+        for unit_name, unit in DEFAULT_UNITS.iteritems():
+            if float(unit) == 1.0:
+                _base_units[unit_name] = unit
+        # Go through it a second time -- we only want to display one unit per
+        # dimensionality to the user and don't bother displaying powered units
+        # (meter2, meter3, ...)
+        for unit in _base_units.itervalues():
+            if (unit.dim not in base_units_for_dims and
+                    repr(unit)[-1] not in ['2', '3']):
+                base_units_for_dims[unit.dim] = unit
+        _single_base_units = sorted([repr(unit)
+                                     for unit in base_units_for_dims.itervalues()])
+
     unit_string = unit_string.strip()
 
     # Special case: dimensionless unit
@@ -251,13 +264,38 @@ def dimensions_and_type_from_string(unit_string):
     if unit_string == 'integer':
         return DIMENSIONLESS, INTEGER
 
-    # Check first whether the expression evaluates at all, using only base units
+    # Check first whether the expression only refers to base units
+    identifiers = get_identifiers(unit_string)
+    for identifier in identifiers:
+        if identifier not in _base_units:
+            if identifier in DEFAULT_UNITS:
+                # A known unit, but not a base unit
+                base_unit = get_unit(DEFAULT_UNITS[identifier].dim)
+                if not repr(base_unit) in _base_units:
+                    # Make sure that we don't suggest a unit that is not allowed
+                    # (should not happen, normally)
+                    base_unit = Unit(1, dim=base_unit.dim)
+                raise ValueError(('Unit specification refers to '
+                                  '"{identifier}", but this is not a base '
+                                  'unit. Use "{base_unit}" '
+                                  'instead.').format(identifier=identifier,
+                                                     base_unit=repr(base_unit)))
+            else:
+                # Not a known unit
+                allowed = ', '.join(_single_base_units)
+                raise ValueError(('Unit specification refers to '
+                                  '"{identifier}", but this is not a base '
+                                  'unit. The following base units are '
+                                  'allowed: {allowed_units} (plus some '
+                                  'variants of these, e.g. "Hz" instead of '
+                                  '"hertz", or "meter" instead of '
+                                  '"metre").').format(identifier=identifier,
+                                                      allowed_units=allowed))
     try:
-        evaluated_unit = eval(unit_string, namespace)
+        evaluated_unit = eval(unit_string, _base_units)
     except Exception as ex:
-        raise ValueError(('"%s" does not evaluate to a unit when only using '
-                          'base units (e.g. volt but not mV): %s') %
-                         (unit_string, ex))
+        raise ValueError(('Could not interpret "%s" as a unit specification: '
+                          '%s') % (unit_string, ex))
 
     # Check whether the result is a unit
     if not isinstance(evaluated_unit, Unit):
@@ -305,7 +343,11 @@ def parse_string_equations(eqns):
         identifier = eq_content['identifier']
 
         # Convert unit string to Unit object
-        dims, var_type = dimensions_and_type_from_string(eq_content['unit'])
+        try:
+            dims, var_type = dimensions_and_type_from_string(eq_content['unit'])
+        except ValueError as ex:
+            raise EquationError('Error parsing the unit specification for '
+                                'variable "%s": %s' % (identifier, ex))
 
         expression = eq_content.get('expression', None)
         if not expression is None:

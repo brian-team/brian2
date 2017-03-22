@@ -25,7 +25,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import *
-from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz
+from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz, mM
 
 
 # To work around an issue in matplotlib 1.3.1 (see
@@ -146,7 +146,39 @@ def test_display():
     assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
     
     # A bit artificial...
-    assert_equal(in_unit(10.0, Unit(10)), '1.0')
+    assert_equal(in_unit(10.0, Unit(10.0, scale=1)), '1.0')
+
+@attr('codegen-independent')
+def test_scale():
+    # Check that unit scaling is implemented correctly
+    from brian2.core.namespace import DEFAULT_UNITS
+    siprefixes = {"y": 1e-24, "z": 1e-21, "a": 1e-18, "f": 1e-15, "p": 1e-12,
+                  "n": 1e-9, "u": 1e-6, "m": 1e-3, "": 1.0, "k": 1e3,
+                  "M": 1e6, "G": 1e9, "T": 1e12, "P": 1e15, "E": 1e18,
+                  "Z": 1e21, "Y": 1e24}
+    for prefix in siprefixes:
+        if prefix in ['c', 'd', 'da', 'h']:
+            continue
+        scaled_unit = DEFAULT_UNITS[prefix + 'meter']
+        assert_allclose(float(scaled_unit), siprefixes[prefix])
+        assert_allclose(5*scaled_unit/meter, 5*siprefixes[prefix])
+        scaled_unit = DEFAULT_UNITS[prefix + 'meter2']
+        assert_allclose(float(scaled_unit), siprefixes[prefix]**2)
+        assert_allclose(5 * scaled_unit / meter2, 5 * siprefixes[prefix] ** 2)
+        scaled_unit = DEFAULT_UNITS[prefix + 'meter3']
+        assert_allclose(float(scaled_unit), siprefixes[prefix]**3)
+        assert_allclose(5 * scaled_unit / meter3, 5 * siprefixes[prefix] ** 3)
+        # liter, gram, and molar are special, they are not base units with a
+        # value of one, even though they do not have any prefix
+        for unit, factor in [('liter', 1e-3),
+                             ('litre', 1e-3),
+                             ('gram', 1e-3),
+                             ('gramme', 1e-3),
+                             ('molar', 1e3)]:
+            base_unit = DEFAULT_UNITS[unit]
+            scaled_unit = DEFAULT_UNITS[prefix + unit]
+            assert_allclose(float(scaled_unit), siprefixes[prefix]*factor)
+            assert_allclose(5 * scaled_unit / base_unit, 5 * siprefixes[prefix])
 
 
 @attr('codegen-independent')
@@ -171,11 +203,11 @@ def test_str_repr():
     '''
     from numpy import array # necessary for evaluating repr    
     
-    units_which_should_exist = [metre, meter, kilogram, second, amp, kelvin, mole, candle,
+    units_which_should_exist = [metre, meter, kilogram, kilogramme, second, amp, kelvin, mole, candle,
                                 radian, steradian, hertz, newton, pascal, joule, watt,
                                 coulomb, volt, farad, ohm, siemens, weber, tesla, henry,
-                                celsius, lumen, lux, becquerel, gray, sievert, katal,
-                                gram, gramme]
+                                lumen, lux, becquerel, gray, sievert, katal,
+                                gram, gramme, molar, liter, litre]
     
     # scaled versions of all these units should exist (we just check farad as an example)
     some_scaled_units = [Yfarad, Zfarad, Efarad, Pfarad, Tfarad, Gfarad, Mfarad, kfarad,
@@ -193,14 +225,15 @@ def test_str_repr():
                      np.ones(3) * nS / cm**2,
                      Unit(1, dim=get_or_create_dimension(length=5, time=2)),
                      8000*umetre**3, [0.0001, 10000] * umetre**3,
-                     1/metre, 1/(coulomb*metre**2), Unit(1)/second]
+                     1/metre, 1/(coulomb*metre**2), Unit(1)/second,
+                     3.*mM, 5*mole/liter, 7*liter/meter3]
     
     unitless = [second/second, 5 * second/second, Unit(1)]
     
     for u in itertools.chain(units_which_should_exist, some_scaled_units,
                               powered_units, complex_units, unitless):
         assert(len(str(u)) > 0)
-        assert_equal(eval(repr(u)), u)
+        assert_allclose(eval(repr(u)), u)
 
     # test the `DIMENSIONLESS` object
     assert str(DIMENSIONLESS) == '1'
@@ -1098,11 +1131,33 @@ def test_all_units_list():
     assert Hz in all_units
     assert all(isinstance(u, Unit) for u in all_units)
 
+@attr('codegen-independent')
+def test_constants():
+    import brian2.units.constants as constants
+    # Check that the expected names exist and have the correct dimensions
+    assert constants.avogadro_constant.dim == (1/mole).dim
+    assert constants.boltzmann_constant.dim == (joule/kelvin).dim
+    assert constants.electric_constant.dim == (farad/meter).dim
+    assert constants.electron_mass.dim == kilogram.dim
+    assert constants.elementary_charge.dim == coulomb.dim
+    assert constants.faraday_constant.dim == (coulomb/mole).dim
+    assert constants.gas_constant.dim == (joule/mole/kelvin).dim
+    assert constants.magnetic_constant.dim == (newton/amp2).dim
+    assert constants.molar_mass_constant.dim == (kilogram/mole).dim
+    assert constants.zero_celsius.dim == kelvin.dim
+
+    # Check the consistency between a few constants
+    assert_allclose(constants.gas_constant,
+                    constants.avogadro_constant*constants.boltzmann_constant)
+    assert_allclose(constants.faraday_constant,
+                    constants.avogadro_constant*constants.elementary_charge)
+
 
 if __name__ == '__main__':
     test_construction()
     test_get_dimensions()
     test_display()
+    test_scale()
     test_power()
     test_pickling()
     test_str_repr()
@@ -1132,3 +1187,4 @@ if __name__ == '__main__':
     test_inplace_on_scalars()
     test_units_vs_quantities()
     test_all_units_list()
+    test_constants()

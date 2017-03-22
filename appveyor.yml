@@ -10,24 +10,6 @@ environment:
     secure: mP9XvwSNUqxq7cFK4V0wM2rNmvlGUYecSlZvkYjRtdGotr9ueS2IycSDvvNGlSdK
 
   matrix:
-    - PYTHON: "C:\\Miniconda3"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      CONDA_PY: "34"
-      CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda3-x64"
-      PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "FALSE"
-      CONDA_PY: "34"
-      CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
     - PYTHON: "C:\\Miniconda35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "32"
@@ -43,6 +25,24 @@ environment:
       platform: x64
       STANDALONE: "FALSE"
       CONDA_PY: "35"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+    - PYTHON: "C:\\Miniconda36"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "FALSE"
+      CONDA_PY: "36"
+      CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+    - PYTHON: "C:\\Miniconda36-x64"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "FALSE"
+      CONDA_PY: "36"
       CONDA_BUILD: "TRUE"
       SPLIT_RUN: "FALSE"
 
@@ -101,7 +101,10 @@ install:
   - 'python -c "import struct; print(struct.calcsize(''P'') * 8)"'
 
   # Install the build dependencies of the project via conda
-  - 'appveyor-retry conda install --yes --quiet numpy scipy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
+  - 'appveyor-retry conda install --yes --quiet numpy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
+  # Install an older version of scipy (which still has weave) on Python 2
+  - 'if "%PYTHON_VERSION:~0,1%" == "2" appveyor-retry conda install --yes --quiet scipy==0.18'
+  - 'if "%PYTHON_VERSION:~0,1%" == "3" appveyor-retry conda install --yes --quiet scipy'
   - 'appveyor-retry conda install --yes --quiet -c brian-team py-cpuinfo'
   # For faster tests, only build conda packages for the master branch or pull requests
   - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set CONDA_BUILD=FALSE'
@@ -125,9 +128,8 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           %appveyor-retry CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.9 &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.10 &&
           %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.11 &&
+          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.12 &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
           if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'
