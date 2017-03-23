@@ -4,6 +4,7 @@ from nose.plugins.attrib import attr
 
 from brian2 import *
 from brian2.devices.device import reinit_devices
+from brian2.core.network import schedule_propagation_offset
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -78,7 +79,9 @@ def test_poissoninput_refractory():
     P = PoissonInput(G, 'v', 1, 1/defaultclock.dt, weight=1.0)
     mon = StateMonitor(G, 'v', record=5)
     run(10*defaultclock.dt)
-    assert_allclose(mon[5].v[:], [0, 1, 2, 3, 4, 5, 0, 0, 0, 0])
+    expected = np.arange(10, dtype=np.float)
+    expected[6-int(schedule_propagation_offset()/defaultclock.dt):] = 0
+    assert_allclose(mon[5].v[:], expected)
 
 
 if __name__ == '__main__':
