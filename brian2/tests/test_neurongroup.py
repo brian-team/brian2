@@ -1484,17 +1484,25 @@ def test_no_code():
 def test_run_regularly_scheduling():
     G = NeuronGroup(1, '''v1 : 1
                           v2 : 1
-                          v3 : 1
-                          v4 : 1''')
+                          v3 : 1''')
     G.run_regularly('v1 += 1')
-    G.run_regularly('v2 += 1', dt=2*defaultclock.dt)
-    G.run_regularly('v3 = v1', when='end')
-    G.run_regularly('v4 = v1', when='before_start')
-    run(2*defaultclock.dt)  # for standalone
+    G.run_regularly('v2 = v1', when='end')
+    G.run_regularly('v3 = v1', when='before_start')
+    run(2*defaultclock.dt)
     assert_allclose(G.v1[:], 2)
-    assert_allclose(G.v2[:], 1)
-    assert_allclose(G.v3[:], 2)
-    assert_allclose(G.v4[:], 1)
+    assert_allclose(G.v2[:], 2)
+    assert_allclose(G.v3[:], 1)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_run_regularly_dt():
+    G = NeuronGroup(1, 'v : 1')
+    G.run_regularly('v += 1', dt=2*defaultclock.dt)
+    M = StateMonitor(G, 'v', record=0, when='end')
+    run(10 * defaultclock.dt)
+    assert_allclose(G.v[:], 5)
+    assert_equal(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
 
 
 if __name__ == '__main__':
@@ -1567,3 +1575,4 @@ if __name__ == '__main__':
     test_random_values_fixed_and_random()
     test_no_code()
     test_run_regularly_scheduling()
+    test_run_regularly_dt()
