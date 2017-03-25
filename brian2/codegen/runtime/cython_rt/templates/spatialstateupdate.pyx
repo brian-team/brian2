@@ -198,4 +198,5 @@
     for _i in range(0, N):
         {{Ic}}[_i] = {{Cm}}[_i]*({{v}}[_i] - _v_previous[_i])/{{dt}}
 
+    free(_v_previous)
 {% endblock %}
