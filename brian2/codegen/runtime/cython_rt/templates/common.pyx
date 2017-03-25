@@ -16,7 +16,7 @@ from libcpp cimport bool
 _numpy.import_array()
 cdef extern from "numpy/ndarraytypes.h":
     void PyArray_CLEARFLAGS(_numpy.PyArrayObject *arr, int flags)
-from libc.stdlib cimport free
+from libc.stdlib cimport free, malloc
 
 cdef extern from "stdint_compat.h":
     # Longness only used for type promotion
