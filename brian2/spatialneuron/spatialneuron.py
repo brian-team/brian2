@@ -344,6 +344,7 @@ class SpatialNeuron(NeuronGroup):
         distance : meter (constant)
         area : meter**2 (constant)
         volume : meter**3
+        Ic : amp/meter**2
         diameter : meter (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
