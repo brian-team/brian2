@@ -4,7 +4,7 @@ import logging
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
-                                 assert_array_equal)
+                                 assert_raises_regex, assert_array_equal)
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
@@ -2190,6 +2190,22 @@ def test_synapses_refractory_rand():
     assert all(target.v[:5] > 0)
     assert_equal(target.v[5:], 0)
 
+
+@attr('codegen-independent')
+def test_synapse_generator_range_noint():
+    # arguments to `range` should only be integers (issue #781)
+    G = NeuronGroup(42, 'v: 1', threshold='False')
+    S = Synapses(G, G, 'w:1', 'v+=w')
+    msg = 'The "{}" argument of the range function was .+, but it needs to be an integer\.'
+    assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(42.0)'))
+    assert_raises_regex(TypeError, msg.format('low'), lambda: S.connect(j='k for k in range(0.0, 42)'))
+    assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(0, 42.0)'))
+    assert_raises_regex(TypeError, msg.format('step'), lambda: S.connect(j='k for k in range(0, 42, 1.0)'))
+    assert_raises_regex(TypeError, msg.format('low'), lambda: S.connect(j='k for k in range(True, 42)'))
+    assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(0, True)'))
+    assert_raises_regex(TypeError, msg.format('step'), lambda: S.connect(j='k for k in range(0, 42, True)'))
+
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
@@ -2264,4 +2280,5 @@ if __name__ == '__main__':
     test_synapse_generator_random_with_condition()
     test_synapses_refractory()
     test_synapses_refractory_rand()
+    test_synapse_generator_range_noint()
     print 'Tests took', time.time()-start

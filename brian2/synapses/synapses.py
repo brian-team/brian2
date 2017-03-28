@@ -31,10 +31,11 @@ from brian2.units.fundamentalunits import (Quantity, DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
-from brian2.utils.stringtools import word_substitute
+from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.utils.arrays import calc_repeats
 from brian2.core.spikesource import SpikeSource
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
+from brian2.parsing.bast import brian_ast
 from brian2.parsing.rendering import NodeRenderer
 
 MAX_SYNAPSES = 2147483647
@@ -1463,8 +1464,14 @@ class Synapses(Group):
         return deps
 
     def _add_synapses_generator(self, j, n, skip_if_invalid=False, namespace=None, level=0):
-        template_kwds, needed_variables = self._get_multisynaptic_indices()
+        # Get the local namespace
+        if namespace is None:
+            namespace = get_local_namespace(level=level+1)
+
         parsed = parse_synapse_generator(j)
+        self._check_parsed_synapses_generator(parsed, namespace)
+
+        template_kwds, needed_variables = self._get_multisynaptic_indices()
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
 
@@ -1557,9 +1564,7 @@ class Synapses(Group):
                       "using generator '%s'") % (self.source.name,
                                                  self.target.name,
                                                  parsed['original_expression']))
-        # Get the local namespace
-        if namespace is None:
-            namespace = get_local_namespace(level=level+1)
+
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',
@@ -1570,3 +1575,21 @@ class Synapses(Group):
                                         check_units=False,
                                         run_namespace=namespace)
         codeobj()
+
+    def _check_parsed_synapses_generator(self, parsed, namespace):
+        """
+        Type-check the parsed synapses generator. This function will raise a
+        TypeError if any of the arguments to the iterator function are of an
+        invalid type.
+        """
+        if parsed['iterator_func'] == 'range':
+            # We expect all arguments of the range function to be integers
+            for argname, arg in parsed['iterator_kwds'].items():
+                identifiers = get_identifiers(arg)
+                variables = self.resolve_all(identifiers, run_namespace=namespace,
+                                             user_identifiers=identifiers)
+                annotated = brian_ast(arg, variables)
+                if annotated.dtype != 'integer':
+                    raise TypeError('The "%s" argument of the range function was '
+                                      '"%s", but it needs to be an '
+                                      'integer.' % (argname, arg))
