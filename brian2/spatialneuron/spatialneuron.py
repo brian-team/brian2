@@ -407,6 +407,9 @@ class SpatialNeuron(NeuronGroup):
                                                            clock=self.clock,
                                                            order=order)
 
+        # Update v after the gating variables to obtain consistent Ic and Im
+        self.diffusion_state_updater.order = 1
+
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])
 
