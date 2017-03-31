@@ -52,10 +52,9 @@ lfp = NeuronGroup(Ne,model='''v : volt
                               z : meter''')
 lfp.x = 7*cm # Off center (to be far from stimulating electrode)
 lfp.y = [1*mm, 2*mm, 4*mm, 8*mm, 16*mm]
-# Synapses are normally executed after state update, so v-previous_v = dv
 S = Synapses(neuron,lfp,model='''w : ohm*meter**2 (constant) # Weight in the LFP calculation
                                  v_post = w*(Ic_pre-Im_pre) : volt (summed)''')
-S.summed_updaters['v_post'].when = 'after_groups'  # otherwise v and previous_v would be identical
+S.summed_updaters['v_post'].when = 'after_groups'  # otherwise Ic has not yet been updated for the current time step.
 S.connect()
 S.w = 'area_pre/(4*pi*sigma)/((x_pre-x_post)**2+(y_pre-y_post)**2+(z_pre-z_post)**2)**.5'
 

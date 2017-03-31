@@ -745,7 +745,8 @@ def test_spatialneuron_morphology_assignment():
     assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*volt)
     assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
 
-@attr('codegen-independent')
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
 def test_spatialneuron_capacitive_currents():
     morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=200, type='axon')
 
@@ -782,6 +783,7 @@ def test_spatialneuron_capacitive_currents():
     run(3*ms)
     neuron.I = 0*amp
     run(10*ms)
+    device.build(direct_call=False, **device.build_options)
     assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230), atol=1e-10)
 
 if __name__ == '__main__':

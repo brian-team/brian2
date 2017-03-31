@@ -377,6 +377,7 @@ class SpatialNeuron(NeuronGroup):
                                    '_a_plus0', '_a_plus1', '_a_plus2',
                                    '_b_plus', '_b_minus',
                                    '_v_star', '_u_plus', '_u_minus',
+                                   '_v_previous',
                                    # The following three are for solving the
                                    # three tridiag systems in parallel
                                    '_c1', '_c2', '_c3',

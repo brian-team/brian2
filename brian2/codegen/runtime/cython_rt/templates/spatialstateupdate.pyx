@@ -2,6 +2,7 @@
                   _ab_star0, _ab_star1, _ab_star2, _b_plus,
                   _a_plus0, _a_plus1, _a_plus2, _b_minus,
                   _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _v_previous,
                   _gtot_all, _I0_all,
                   _c1, _c2, _c3,
                   _P_diag, _P_parent, _P_children,
@@ -27,7 +28,6 @@
     cdef int _num_children
     cdef double _subfac
     cdef int _children_rowlength
-    cdef double *_v_previous = <double *>malloc(N * sizeof(double))
 
     # MAIN CODE
     _vectorisation_idx = 1
@@ -42,7 +42,7 @@
         {{vector_code|autoindent}}
         {{_gtot_all}}[_idx] = _gtot
         {{_I0_all}}[_idx] = _I0
-        _v_previous[_idx] = {{v}}[_idx]
+        {{_v_previous}}[_idx] = {{v}}[_idx]
 
     # STEP 2: for each section: solve three tridiagonal systems
 
@@ -196,7 +196,6 @@
                                             + {{_B}}[_i+1] * {{_u_plus}}[_j])
 
     for _i in range(0, N):
-        {{Ic}}[_i] = {{Cm}}[_i]*({{v}}[_i] - _v_previous[_i])/{{dt}}
+        {{Ic}}[_i] = {{Cm}}[_i]*({{v}}[_i] - {{_v_previous}}[_i])/{{dt}}
 
-    free(_v_previous)
 {% endblock %}
