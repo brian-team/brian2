@@ -27,7 +27,7 @@ _vectorisation_idx = 1
 _vectorisation_idx = LazyArange(N)
 {{vector_code|autoindent}}
 
-{{_v_previous}} = {{v}}.copy()
+{{_v_previous}}[:] = {{v}}
 {%if _scipy_available %}
 from scipy.linalg import solve_banded
 

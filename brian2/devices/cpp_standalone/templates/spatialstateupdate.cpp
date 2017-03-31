@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
-{# USES_VARIABLES { Cm, dt, v, N,
+{# USES_VARIABLES { Cm, dt, v, N, Ic,
                   _ab_star0, _ab_star1, _ab_star2, _b_plus,
                   _a_plus0, _a_plus1, _a_plus2, _b_minus,
                   _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
