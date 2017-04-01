@@ -344,6 +344,7 @@ class SpatialNeuron(NeuronGroup):
         distance : meter (constant)
         area : meter**2 (constant)
         volume : meter**3
+        Ic : amp/meter**2
         diameter : meter (constant)
         Cm : farad/meter**2 (constant)
         Ri : ohm*meter (constant, shared)
@@ -376,6 +377,7 @@ class SpatialNeuron(NeuronGroup):
                                    '_a_plus0', '_a_plus1', '_a_plus2',
                                    '_b_plus', '_b_minus',
                                    '_v_star', '_u_plus', '_u_minus',
+                                   '_v_previous',
                                    # The following three are for solving the
                                    # three tridiag systems in parallel
                                    '_c1', '_c2', '_c3',
@@ -405,6 +407,9 @@ class SpatialNeuron(NeuronGroup):
         self.diffusion_state_updater = SpatialStateUpdater(self, method,
                                                            clock=self.clock,
                                                            order=order)
+
+        # Update v after the gating variables to obtain consistent Ic and Im
+        self.diffusion_state_updater.order = 1
 
         # Creation of contained_objects that do the work
         self.contained_objects.extend([self.diffusion_state_updater])

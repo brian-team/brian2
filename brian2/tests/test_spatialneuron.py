@@ -745,6 +745,46 @@ def test_spatialneuron_morphology_assignment():
     assert_allclose(neuron.sec1.sec11.v[:], np.ones(2)*volt)
     assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
 
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
+def test_spatialneuron_capacitive_currents():
+    morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=200, type='axon')
+
+    El = 10.613* mV
+    ENa = 115*mV
+    EK = -12*mV
+    gl = 0.3*msiemens/cm**2
+    gNa0 = 120*msiemens/cm**2
+    gK = 36*msiemens/cm**2
+
+    # Typical equations
+    eqs = '''
+    # The same equations for the whole neuron, but possibly different parameter values
+    # distributed transmembrane current
+    Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) + gK * n**4 * (EK-v) : amp/meter**2
+    I : amp (point current) # applied current
+    dm/dt = alpham * (1-m) - betam * m : 1
+    dn/dt = alphan * (1-n) - betan * n : 1
+    dh/dt = alphah * (1-h) - betah * h : 1
+    alpham = (0.1/mV) * (-v+25*mV) / (exp((-v+25*mV) / (10*mV)) - 1)/ms : Hz
+    betam = 4 * exp(-v/(18*mV))/ms : Hz
+    alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
+    betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz
+    alphan = (0.01/mV) * (-v+10*mV) / (exp((-v+10*mV) / (10*mV)) - 1)/ms : Hz
+    betan = 0.125*exp(-v/(80*mV))/ms : Hz
+    gNa : siemens/meter**2
+    '''
+
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2,
+                           Ri=35.4*ohm*cm, method="exponential_euler")
+    mon = StateMonitor(neuron,['Im','Ic'],record=True, when='end')
+    run(10*ms)
+    neuron.I[0] = 1*uA  # current injection at one end
+    run(3*ms)
+    neuron.I = 0*amp
+    run(10*ms)
+    device.build(direct_call=False, **device.build_options)
+    assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230), atol=1e-10)
 
 if __name__ == '__main__':
     test_custom_events()
@@ -762,3 +802,4 @@ if __name__ == '__main__':
     test_tree_index_consistency()
     test_spatialneuron_subtree_assignment()
     test_spatialneuron_morphology_assignment()
+    test_spatialneuron_capacitive_currents()

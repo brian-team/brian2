@@ -1,7 +1,8 @@
-{# USES_VARIABLES { Cm, dt, v, N,
+{# USES_VARIABLES { Cm, dt, v, N, Ic,
                   _ab_star0, _ab_star1, _ab_star2, _b_plus,
                   _a_plus0, _a_plus1, _a_plus2, _b_minus,
                   _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _v_previous,
                   _gtot_all, _I0_all, v
                   _c1, _c2, _c3,
                   _P_diag, _P_parent, _P_children,
@@ -26,6 +27,7 @@ _vectorisation_idx = 1
 _vectorisation_idx = LazyArange(N)
 {{vector_code|autoindent}}
 
+{{_v_previous}}[:] = {{v}}
 {%if _scipy_available %}
 from scipy.linalg import solve_banded
 
@@ -191,3 +193,4 @@ for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}
         {{v}}[_j_start:_j_end] = ({{_v_star}}[_j_start:_j_end] + _B_parent * {{_u_minus}}[_j_start:_j_end]
                      + _B_current * {{_u_plus}}[_j_start:_j_end])
 
+{{Ic}}[:] = {{Cm}}*({{v}} - {{_v_previous}})/{{dt}}

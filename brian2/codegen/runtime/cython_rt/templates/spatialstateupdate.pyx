@@ -1,7 +1,8 @@
-{# USES_VARIABLES { Cm, dt, v, N,
+{# USES_VARIABLES { Cm, dt, v, N, Ic,
                   _ab_star0, _ab_star1, _ab_star2, _b_plus,
                   _a_plus0, _a_plus1, _a_plus2, _b_minus,
                   _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _v_previous,
                   _gtot_all, _I0_all,
                   _c1, _c2, _c3,
                   _P_diag, _P_parent, _P_children,
@@ -12,7 +13,6 @@
 {% extends 'common.pyx' %}
 
 {% block maincode %}
-
     cdef int _i
     cdef int _j
     cdef int _k
@@ -33,6 +33,7 @@
     _vectorisation_idx = 1
     {{scalar_code|autoindent}}
 
+    
     # STEP 1: compute g_total and I_0
     for _i in range(0, N):
         _idx = _i
@@ -41,6 +42,7 @@
         {{vector_code|autoindent}}
         {{_gtot_all}}[_idx] = _gtot
         {{_I0_all}}[_idx] = _I0
+        {{_v_previous}}[_idx] = {{v}}[_idx]
 
     # STEP 2: for each section: solve three tridiagonal systems
 
@@ -193,6 +195,7 @@
                 {{v}}[_j] = ({{_v_star}}[_j] + {{_B}}[_i_parent] * {{_u_minus}}[_j]
                                             + {{_B}}[_i+1] * {{_u_plus}}[_j])
 
-
+    for _i in range(0, N):
+        {{Ic}}[_i] = {{Cm}}[_i]*({{v}}[_i] - {{_v_previous}}[_i])/{{dt}}
 
 {% endblock %}

@@ -30,7 +30,6 @@ betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz
 alphan = (0.01/mV) * (-v+10*mV) / (exp((-v+10*mV) / (10*mV)) - 1)/ms : Hz
 betan = 0.125*exp(-v/(80*mV))/ms : Hz
 gNa : siemens/meter**2
-previous_v : volt
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2,
@@ -44,8 +43,6 @@ neuron.gNa = gNa0
 neuron[5*cm:10*cm].gNa = 0*siemens/cm**2
 M = StateMonitor(neuron, 'v', record=True)
 
-neuron.run_regularly('previous_v = v', when='start')
-
 # LFP recorder
 Ne = 5 # Number of electrodes
 sigma = 0.3*siemens/meter # Resistivity of extracellular field (0.3-0.4 S/m)
@@ -55,10 +52,9 @@ lfp = NeuronGroup(Ne,model='''v : volt
                               z : meter''')
 lfp.x = 7*cm # Off center (to be far from stimulating electrode)
 lfp.y = [1*mm, 2*mm, 4*mm, 8*mm, 16*mm]
-# Synapses are normally executed after state update, so v-previous_v = dv
 S = Synapses(neuron,lfp,model='''w : ohm*meter**2 (constant) # Weight in the LFP calculation
-                                 v_post = w*(Cm_pre*(v_pre-previous_v_pre)/dt-Im_pre) : volt (summed)''')
-S.summed_updaters['v_post'].when = 'after_groups'  # otherwise v and previous_v would be identical
+                                 v_post = w*(Ic_pre-Im_pre) : volt (summed)''')
+S.summed_updaters['v_post'].when = 'after_groups'  # otherwise Ic has not yet been updated for the current time step.
 S.connect()
 S.w = 'area_pre/(4*pi*sigma)/((x_pre-x_post)**2+(y_pre-y_post)**2+(z_pre-z_post)**2)**.5'
 
