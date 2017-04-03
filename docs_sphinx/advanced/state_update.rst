@@ -14,7 +14,7 @@ name, see `Choice of state updaters`_ below.
 Explicit state update
 ---------------------
 Explicit state update schemes can be specified in mathematical notation, using
-the `ExplicitStateUpdater` class. A state updater scheme contains of a series
+the `ExplicitStateUpdater` class. A state updater scheme contains a series
 of statements, defining temporary variables and a final line (starting with
 ``x_new =``), giving the updated value for the state variable. The description
 can make reference to ``t`` (the current time), ``dt`` (the size of the time
@@ -30,7 +30,7 @@ Using this notation, simple forward Euler integration is specified as::
 	x_new = x + dt * f(x, t)
 
 A Runge-Kutta 2 (midpoint) method is specified as::
-	
+
     k = dt * f(x,t)
     x_new = x + dt * f(x +  k/2, t + dt/2)
 
