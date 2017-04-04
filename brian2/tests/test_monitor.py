@@ -3,7 +3,7 @@ import tempfile
 import logging
 
 from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
-from nose import with_setup
+from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 
 from brian2 import *
@@ -136,6 +136,20 @@ def test_spike_monitor_subgroups():
     assert len(spikes_2.t) == 0
     assert_allclose(spikes_3.i, [0, 1])  # recorded spike indices are relative
     assert_allclose(spikes_3.t, [0, 0] * ms)
+
+
+def test_spike_monitor_bug_824():
+    # See github issue #824
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+
+    G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
+    G.do_spike = [True, False, False, True, False, False]
+    spikes_1 = SpikeMonitor(G[:3])
+    spikes_2 = SpikeMonitor(G[3:])
+    run(4*defaultclock.dt)
+    assert_array_equal(spikes_1.count, [4, 0, 0])
+    assert_array_equal(spikes_2.count, [4, 0, 0])
 
 
 @attr('standalone-compatible')
@@ -539,6 +553,10 @@ if __name__ == '__main__':
     test_spike_monitor_indexing()
     test_spike_monitor_get_states()
     test_spike_monitor_subgroups()
+    try:
+        test_spike_monitor_bug_824()
+    except SkipTest:
+        pass
     test_spike_monitor_variables()
     test_event_monitor()
     test_event_monitor_no_record()

@@ -65,6 +65,7 @@ class Subgroup(Group, SpikeSource):
             self.variables.add_reference('i', source)
 
         self.variables.add_constant('N', value=self._N)
+        self.variables.add_constant('_source_N', value=len(source))
         # add references for all variables in the original group
         self.variables.add_references(source, source.variables.keys())
 
