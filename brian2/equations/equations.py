@@ -369,7 +369,7 @@ def parse_string_equations(eqns):
     return equations
 
 
-class SingleEquation(object):
+class SingleEquation(collections.Hashable):
     '''
     Class for internal use, encapsulates a single equation or parameter.
 
@@ -428,6 +428,25 @@ class SingleEquation(object):
     stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
                                                       if variable =='xi' or variable.startswith('xi_')]),
                                     doc='Stochastic variables in the RHS of this equation')
+
+
+    _state_tuple = property(lambda self: (self.type, self.varname,
+                                          self.dim, self.var_type,
+                                          self.expr, tuple(self.flags)),
+                            doc='A tuple representing the full state of this '
+                                'object, used for hashing and equality '
+                                'testing.')
+
+    def __eq__(self, other):
+        if not isinstance(other, SingleEquation):
+            return NotImplemented
+        return self._state_tuple == other._state_tuple
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._state_tuple)
 
     def _latex(self, *args):
         if self.type == DIFFERENTIAL_EQUATION:
@@ -496,7 +515,7 @@ class SingleEquation(object):
         return '$' + sympy.latex(self) + '$'
 
 
-class Equations(collections.Mapping):
+class Equations(collections.Hashable, collections.Mapping):
     """
     Container that stores equations from which models can be created.
     
@@ -619,6 +638,9 @@ class Equations(collections.Mapping):
             return NotImplemented
 
         return Equations(self.values() + other_eqns.values())
+
+    def __hash__(self):
+        return hash(frozenset(self._equations.items()))
 
     #: A set of functions that are used to check identifiers (class attribute).
     #: Functions can be registered with the static method
