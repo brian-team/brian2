@@ -622,6 +622,9 @@ class Equations(collections.Hashable, collections.Mapping):
         # rearrange subexpressions
         self._sort_subexpressions()
 
+        #: Cache for equations with the subexpressions substituted
+        self._substituted_expressions = None
+
     def __iter__(self):
         return iter(self._equations)
 
@@ -724,29 +727,32 @@ class Equations(collections.Hashable, collections.Mapping):
             `CodeString` object with all subexpression variables substituted
             with the respective expression.
         '''
+        if self._substituted_expressions is None:
+            self._substituted_expressions = []
+            substitutions = {}
+            for eq in self.ordered:
+                # Skip parameters
+                if eq.expr is None:
+                    continue
 
-        subst_exprs = []
-        substitutions = {}
-        for eq in self.ordered:
-            # Skip parameters
-            if eq.expr is None:
-                continue
+                new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(substitutions)
+                new_str_expr = sympy_to_str(new_sympy_expr)
+                expr = Expression(new_str_expr)
 
-            new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(substitutions)
-            new_str_expr = sympy_to_str(new_sympy_expr)
-            expr = Expression(new_str_expr)
+                if eq.type == SUBEXPRESSION:
+                    substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
+                    self._substituted_expressions.append((eq.varname, expr))
+                elif eq.type == DIFFERENTIAL_EQUATION:
+                    #  a differential equation that we have to check
+                    self._substituted_expressions.append((eq.varname, expr))
+                else:
+                    raise AssertionError('Unknown equation type %s' % eq.type)
 
-            if eq.type == SUBEXPRESSION:
-                substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
-                if include_subexpressions:
-                    subst_exprs.append((eq.varname, expr))
-            elif eq.type == DIFFERENTIAL_EQUATION:
-                #  a differential equation that we have to check
-                subst_exprs.append((eq.varname, expr))
-            else:
-                raise AssertionError('Unknown equation type %s' % eq.type)
-
-        return subst_exprs
+        if include_subexpressions:
+            return self._substituted_expressions
+        else:
+            return [(name, expr) for name, expr in self._substituted_expressions
+                    if self[name].type == DIFFERENTIAL_EQUATION]
 
     def _get_stochastic_type(self):
         '''
