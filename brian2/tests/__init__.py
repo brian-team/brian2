@@ -270,20 +270,38 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             success.append(nose.run(argv=argv,
                                     addplugins=plugins))
 
+            reset_device()
+
             if test_openmp and test_standalone == 'cpp_standalone':
                 # Run all the standalone compatible tests again with 4 threads
+                set_device(test_standalone, directory=None, # use temp directory
+                           with_output=False, **build_options)
                 prefs.devices.cpp_standalone.openmp_threads = 4
                 prefs._backup()
-                sys.stderr.write('Running standalone-compatible standard tests with OpenMP\n')
+                sys.stderr.write('Running standalone-compatible standard tests with OpenMP (single run statements)\n')
                 exclude_str = ',!long' if not long_tests else ''
+                exclude_str += ',!multiple-runs'
                 argv = make_argv(dirnames,
-                                 'standalone_compatible' + exclude_str)
+                                 'standalone-compatible' + exclude_str)
                 success.append(nose.run(argv=argv,
                                         addplugins=plugins))
+
+                reset_device()
+
+                set_device(test_standalone, directory=None, # use temp directory
+                           with_output=False, build_on_run=False, **build_options)
+                sys.stderr.write('Running standalone-compatible standard tests with OpenMP (multiple run statements)\n')
+                exclude_str = ',!long' if not long_tests else ''
+                exclude_str += ',multiple-runs'
+                argv = make_argv(dirnames,
+                                 'standalone-compatible' + exclude_str)
+                success.append(nose.run(argv=argv,
+                                        addplugins=plugins))
+
                 prefs.devices.cpp_standalone.openmp_threads = 0
                 prefs._backup()
 
-            reset_device()
+                reset_device()
 
             sys.stderr.write('Running standalone-specific tests\n')
             exclude_openmp = ',!openmp' if not test_openmp else ''
