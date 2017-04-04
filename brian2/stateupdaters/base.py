@@ -103,15 +103,13 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         '''
-        variable_types = {varname: variable.__class__.__name__ if not isinstance(variable, Constant) else (variable.get_value(), variable.dim)
-                          for varname, variable in variables.iteritems()}
         if isinstance(method, basestring):
             method_key = method
         elif hasattr(method, '__call__'):
             method_key = method.__class__.__name__
         else:
             method_key = tuple(method)
-        cache_key = (equations, frozenset(variable_types.items()), method_key)
+        cache_key = (equations, frozenset(variables.iteritems()), method_key)
         if cache_key in StateUpdateMethod._cache:
             return StateUpdateMethod._cache[cache_key]
 
@@ -159,7 +157,7 @@ class StateUpdateMethod(object):
                                         timing=timing), 'method_choice')
             # Also store the code for the method that was chosen
             StateUpdateMethod._cache[(equations,
-                                      frozenset(variable_types.items()),
+                                      frozenset(variables.iteritems()),
                                       the_method)] = code
         else:
             if hasattr(method, '__call__'):

@@ -280,7 +280,7 @@ class Variable(object):
 # instantiated.
 # ------------------------------------------------------------------------------
 
-class Constant(Variable):
+class Constant(collections.Hashable, Variable):
     '''
     A scalar constant (e.g. the number of neurons ``N``). Information such as
     the dtype or whether this variable is a boolean are directly derived from
@@ -337,6 +337,21 @@ class Constant(Variable):
 
     def get_value(self):
         return self.value
+
+    # In contrast to other `Variable` objects, `Constant` objects are recreated
+    # for every run, so we cannot simply use their identity to compare them.
+    _state_tuple = property(lambda self: (self.dim, self.name,
+                                          id(self.owner), self.dtype, self.value))
+    def __eq__(self, other):
+        if not isinstance(other, Constant):
+            return NotImplemented
+        return self._state_tuple == other._state_tuple
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._state_tuple)
 
 
 class AuxiliaryVariable(Variable):

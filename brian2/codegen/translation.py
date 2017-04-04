@@ -210,9 +210,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     describing how the statement can be reformulated as a sequence of if/then
     statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
     '''
-    variable_types = {varname: variable.__class__.__name__ if not isinstance(variable, Constant) else (variable.get_value(), variable.dim)
-                      for varname, variable in variables.iteritems()}
-    cache_key = (code, frozenset(variable_types.items()), dtype, optimise, blockname)
+    cache_key = (code, frozenset(variables.iteritems()), dtype, optimise, blockname)
     if cache_key in _make_statements_cache:
         return _make_statements_cache[cache_key]
 
