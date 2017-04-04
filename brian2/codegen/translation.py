@@ -21,15 +21,14 @@ import numpy as np
 import sympy
 
 from brian2.core.preferences import prefs
-from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.core.variables import (Variable, Subexpression, AuxiliaryVariable,
+                                   Constant)
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
 from brian2.utils.topsort import topsort
-from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
 from brian2.parsing.statements import parse_statement
-from brian2.parsing.sympytools import (str_to_sympy, sympy_to_str,
-                                       check_expression_for_multiple_stateful_functions)
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .statements import Statement
 from .optimisation import optimise_statements
@@ -166,7 +165,7 @@ def is_scalar_expression(expr, variables):
                (isinstance(variables[name], Function) and variables[name].stateless)
                for name in identifiers)
 
-
+_make_statements_cache = {}
 def make_statements(code, variables, dtype, optimise=True, blockname=''):
     '''
     Turn a series of abstract code statements into Statement objects, inferring
@@ -211,6 +210,12 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     describing how the statement can be reformulated as a sequence of if/then
     statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
     '''
+    variable_types = {varname: variable.__class__.__name__ if not isinstance(variable, Constant) else (variable.get_value(), variable.dim)
+                      for varname, variable in variables.iteritems()}
+    cache_key = (code, frozenset(variable_types.items()), dtype, optimise, blockname)
+    if cache_key in _make_statements_cache:
+        return _make_statements_cache[cache_key]
+
     code = strip_empty_lines(deindent(code))
     lines = re.split(r'[;\n]', code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
@@ -362,4 +367,5 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                                                                    variables,
                                                                    blockname=blockname)
 
+    _make_statements_cache[cache_key] = (scalar_statements, vector_statements)
     return scalar_statements, vector_statements
