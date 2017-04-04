@@ -8,6 +8,7 @@ from abc import abstractmethod, ABCMeta
 import collections
 import time
 
+from brian2.core.variables import Constant
 from brian2.utils.logger import get_logger
 
 __all__ = ['StateUpdateMethod']
@@ -22,6 +23,8 @@ class StateUpdateMethod(object):
 
     #: A dictionary mapping state updater names to `StateUpdateMethod` objects
     stateupdaters = dict()
+
+    _cache = {}
 
     @abstractmethod
     def __call__(self, equations, variables=None):
@@ -100,6 +103,18 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         '''
+        variable_types = {varname: variable.__class__.__name__ if not isinstance(variable, Constant) else (variable.get_value(), variable.dim)
+                          for varname, variable in variables.iteritems()}
+        if isinstance(method, basestring):
+            method_key = method
+        elif hasattr(method, '__call__'):
+            method_key = method.__class__.__name__
+        else:
+            method_key = tuple(method)
+        cache_key = (equations, frozenset(variable_types.items()), method_key)
+        if cache_key in StateUpdateMethod._cache:
+            return StateUpdateMethod._cache[cache_key]
+
         if (isinstance(method, collections.Iterable) and
                 not isinstance(method, basestring)):
             the_method = None
@@ -142,7 +157,10 @@ class StateUpdateMethod(object):
             logger.info(msg_text.format(group_name=group_name,
                                         method=the_method,
                                         timing=timing), 'method_choice')
-            return code
+            # Also store the code for the method that was chosen
+            StateUpdateMethod._cache[(equations,
+                                      frozenset(variable_types.items()),
+                                      the_method)] = code
         else:
             if hasattr(method, '__call__'):
                 # if this is a standard state updater, i.e. if it has a
@@ -176,4 +194,5 @@ class StateUpdateMethod(object):
                                                    timing=timing),
                              'method_choice')
 
-            return code
+        StateUpdateMethod._cache[cache_key] = code
+        return code
