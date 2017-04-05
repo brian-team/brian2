@@ -28,9 +28,20 @@ logger = get_logger(__name__)
 
 all_devices = {}
 
-
 prefs.register_preferences('devices', 'Device preferences')
 
+
+def _hashable(d):
+    '''Helper function to convert a few data structures to a hasheable
+       frozenset.'''
+    if d is None or isinstance(d, basestring):
+        return d
+    elif isinstance(d, set):
+        return frozenset(d)
+    else:
+        return frozenset((key, frozenset(value.iteritems())
+                               if isinstance(value, dict) else value)
+                         for key, value in d.iteritems())
 
 #: caches the automatically determined code generation target
 _auto_target = None
@@ -250,11 +261,21 @@ class Device(object):
             codeobj_class = get_default_codeobject_class()
         return codeobj_class
 
+    _code_object_cache = {}
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
                     template_kwds=None, override_conditional_write=None):
 
         codeobj_class = self.code_object_class(codeobj_class)
+
+        cache_key = (id(self), id(owner), name, _hashable(abstract_code),
+                     _hashable(variables), template_name,
+                     _hashable(variable_indices), codeobj_class,
+                     _hashable(template_kwds),
+                     _hashable(override_conditional_write))
+        if cache_key in Device._code_object_cache:
+            return Device._code_object_cache[cache_key]
+
         template = getattr(codeobj_class.templater, template_name)
         iterate_all = template.iterate_all
         generator = codeobj_class.generator_class(variables=variables,
@@ -319,6 +340,7 @@ class Device(object):
                                 template_source=template.template_source,
                                 name=name)
         codeobj.compile()
+        Device._code_object_cache[cache_key] = codeobj
         return codeobj
     
     def activate(self, build_on_run=True, **kwargs):
