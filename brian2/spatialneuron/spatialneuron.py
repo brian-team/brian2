@@ -614,7 +614,7 @@ class SpatialStateUpdater(CodeRunner, Group):
                                                           check_units=False,
                                                           additional_variables=self.variables,
                                                           run_namespace=run_namespace)
-        self._prepare_codeobj()
+        self._prepare_codeobj.run_once()
         # Raise a warning if the slow pure numpy version is used
         # For simplicity, we check which CodeObject class the _prepare_codeobj
         # is using, this will be the same as the main state updater
@@ -629,4 +629,4 @@ class SpatialStateUpdater(CodeRunner, Group):
                              'switch to a different code generation target '
                              '(e.g. weave or cython) or install scipy.'),
                             once=True)
-        CodeRunner.before_run(self, run_namespace)
+        super(SpatialStateUpdater, self).before_run(run_namespace)

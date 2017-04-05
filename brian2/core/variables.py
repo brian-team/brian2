@@ -1009,7 +1009,7 @@ class VariableView(object):
                                         check_units=check_units,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
-        codeobj()
+        codeobj.run_once()
 
     @device_override('variableview_set_with_expression_conditional')
     def set_with_expression_conditional(self, cond, code, run_namespace,
@@ -1051,7 +1051,7 @@ class VariableView(object):
                                         check_units=check_units,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
-        codeobj()
+        codeobj.run_once()
 
     @device_override('variableview_get_with_expression')
     def get_with_expression(self, code, run_namespace):
@@ -1096,7 +1096,7 @@ class VariableView(object):
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                         )
-        return codeobj()
+        return codeobj.run_once()
 
     @device_override('variableview_get_with_index_array')
     def get_with_index_array(self, item):
@@ -1164,7 +1164,7 @@ class VariableView(object):
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
         )
-        result = codeobj()
+        result = codeobj.run_once()
         if single_index and not variable.scalar:
             return result[0]
         else:

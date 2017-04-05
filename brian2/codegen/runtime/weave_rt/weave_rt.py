@@ -133,7 +133,6 @@ libraries: {self.libraries}
         '''.format(self=self)
 
         self.python_code_namespace = {'_owner': owner}
-        self.variables_to_namespace()
 
     @classmethod
     def is_available(cls):
@@ -163,7 +162,6 @@ libraries: {self.libraries}
             return False
 
     def variables_to_namespace(self):
-
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -187,8 +185,6 @@ libraries: {self.libraries}
                 self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
                 self.namespace['_num'+name] = var.get_len()
-                # if var.scalar and var.constant:
-                #     self.namespace[name] = value.item()
             else:
                 self.namespace[name] = value
 
@@ -230,7 +226,7 @@ libraries: {self.libraries}
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
-            
+
     def compile(self):
         CodeObject.compile(self)
         if hasattr(self.code, 'python_pre'):
@@ -241,6 +237,9 @@ libraries: {self.libraries}
             self.compiled_python_post = compile(self.code.python_post, '(string)', 'exec')
         else:
             self.compiled_python_post = None
+
+    def before_run(self):
+        self.variables_to_namespace()
 
     def run(self):
         if self.compiled_python_pre is not None:

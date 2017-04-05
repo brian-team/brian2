@@ -97,6 +97,9 @@ class CodeObject(Nameable):
 
         return self.run()
 
+    def before_run(self):
+        pass
+
     def run(self):
         '''
         Runs the code in the namespace.
@@ -108,6 +111,10 @@ class CodeObject(Nameable):
             defined during the call of `CodeGenerator.code_object`.
         '''
         raise NotImplementedError()
+
+    def run_once(self):
+        self.before_run()
+        return self.run()
 
 
 def _error_msg(code, name):

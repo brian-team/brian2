@@ -166,7 +166,8 @@ class BrianObject(Nameable):
 
         TODO
         '''
-        pass
+        for codeobj in self._code_objects:
+            codeobj.before_run()
     
     def after_run(self):
         '''

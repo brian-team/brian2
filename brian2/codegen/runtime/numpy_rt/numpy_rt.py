@@ -163,7 +163,6 @@ class NumpyCodeObject(CodeObject):
                           'logical_not': np.logical_not}
         CodeObject.__init__(self, owner, code, variables, variable_indices,
                             template_name, template_source, name=name)
-        self.variables_to_namespace()
 
     @classmethod
     def is_available(cls):
@@ -227,6 +226,9 @@ class NumpyCodeObject(CodeObject):
     def compile(self):
         super(NumpyCodeObject, self).compile()
         self.compiled_code = compile(self.code, '(string)', 'exec')
+
+    def before_run(self):
+        self.variables_to_namespace()
 
     def run(self):
         try:
