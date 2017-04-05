@@ -33,6 +33,7 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
                                        '"0.0").').format(expr=expr,
                                                          func=identifier))
 
+_str_to_sympy_cache = {}
 def str_to_sympy(expr, variables=None):
     '''
     Parses a string into a sympy expression. There are two reasons for not
@@ -74,11 +75,18 @@ def str_to_sympy(expr, variables=None):
     if variables is None:
         variables = {}
     check_expression_for_multiple_stateful_functions(expr, variables)
+
+    if expr in _str_to_sympy_cache:
+        return _str_to_sympy_cache[expr]
+
     try:
         s_expr = SympyNodeRenderer().render_expr(expr)
     except (TypeError, ValueError, NameError) as ex:
         raise SyntaxError(('Error during evaluation of sympy expression '
                            '"{expr}": {ex}').format(expr=expr, ex=str(ex)))
+
+    _str_to_sympy_cache[expr] = s_expr
+
     return s_expr
 
 
@@ -115,6 +123,7 @@ class CustomSympyPrinter(StrPrinter):
 
 PRINTER = CustomSympyPrinter()
 
+_sympy_to_str_cache = {}
 def sympy_to_str(sympy_expr):
     '''
     Converts a sympy expression into a string. This could be as easy as 
@@ -132,6 +141,10 @@ def sympy_to_str(sympy_expr):
     str_expr : str
         A string representing the sympy expression.
     '''
+    if sympy_expr in _sympy_to_str_cache:
+        return _sympy_to_str_cache[sympy_expr]
+
+    orig_sympy_expr = sympy_expr
 
     # replace the standard functions by our names if necessary
     replacements = dict((f.sympy_func, sympy.Function(name)) for
@@ -150,8 +163,11 @@ def sympy_to_str(sympy_expr):
     for old, new in replacements.iteritems():
         if old in atoms:
             sympy_expr = sympy_expr.subs(old, new)
+    expr = PRINTER.doprint(sympy_expr)
 
-    return PRINTER.doprint(sympy_expr)
+    _sympy_to_str_cache[orig_sympy_expr] = expr
+
+    return expr
 
 
 def replace_constants(sympy_expr, variables=None):
