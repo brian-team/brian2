@@ -33,10 +33,6 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
                                        '"0.0").').format(expr=expr,
                                                          func=identifier))
 
-
-SYMPY_NAMESPACE = None
-
-
 def str_to_sympy(expr, variables=None):
     '''
     Parses a string into a sympy expression. There are two reasons for not
@@ -75,25 +71,14 @@ def str_to_sympy(expr, variables=None):
     names are wrapped in `Symbol(...)` or `Function(...)`. The resulting string
     is then evaluated in the `from sympy import *` namespace.
     '''
-    global SYMPY_NAMESPACE  # We only evaluate the namespace for sympy once
-
     if variables is None:
         variables = {}
     check_expression_for_multiple_stateful_functions(expr, variables)
-    if SYMPY_NAMESPACE is None:
-        SYMPY_NAMESPACE = {}
-        exec 'from sympy import *' in SYMPY_NAMESPACE
-        # also add the log10 function to the namespace
-        SYMPY_NAMESPACE['log10'] = log10
-        SYMPY_NAMESPACE['_vectorisation_idx'] = sympy.Symbol('_vectorisation_idx')
-    rendered = SympyNodeRenderer().render_expr(expr)
-
     try:
-        s_expr = eval(rendered, SYMPY_NAMESPACE)
+        s_expr = SympyNodeRenderer().render_expr(expr)
     except (TypeError, ValueError, NameError) as ex:
-        raise SyntaxError('Error during evaluation of sympy expression: '
-                          + str(ex))
-
+        raise SyntaxError(('Error during evaluation of sympy expression '
+                           '"{expr}": {ex}').format(expr=expr, ex=str(ex)))
     return s_expr
 
 
@@ -130,7 +115,6 @@ class CustomSympyPrinter(StrPrinter):
 
 PRINTER = CustomSympyPrinter()
 
-
 def sympy_to_str(sympy_expr):
     '''
     Converts a sympy expression into a string. This could be as easy as 
@@ -148,7 +132,7 @@ def sympy_to_str(sympy_expr):
     str_expr : str
         A string representing the sympy expression.
     '''
-    
+
     # replace the standard functions by our names if necessary
     replacements = dict((f.sympy_func, sympy.Function(name)) for
                         name, f in DEFAULT_FUNCTIONS.iteritems()
