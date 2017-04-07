@@ -66,7 +66,7 @@ class CodeObject(Nameable):
             pass # if owner was already a weakproxy then this will be the error raised
         self.owner = owner
         self.code = code
-        self.variables = variables
+        self.variables = weakref.WeakValueDictionary(variables)
         self.variable_indices = variable_indices
         self.template_name = template_name
         self.template_source = template_source

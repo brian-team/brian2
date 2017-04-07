@@ -256,7 +256,7 @@ class Device(object):
 
         cache_key = (id(self), id(owner), name, _hashable(abstract_code),
                      _hashable(variables), template_name,
-                     _hashable(variable_indices), codeobj_class,
+                     _hashable(variable_indices), id(codeobj_class),
                      _hashable(template_kwds),
                      _hashable(override_conditional_write))
         if cache_key in Device._code_object_cache:
