@@ -2,18 +2,17 @@
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
-from weakref import WeakKeyDictionary
 import numbers
+from weakref import WeakKeyDictionary
 
 import numpy as np
-
-from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
-from brian2.codegen.targets import codegen_targets
 from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+from brian2.codegen.targets import codegen_targets
+from brian2.core.functions import Function
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
-from brian2.core.variables import ArrayVariable, DynamicArrayVariable
-from brian2.core.functions import Function
+from brian2.core.variables import ArrayVariable, DynamicArrayVariable, _hashable
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.units import ms
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import code_representation, indent
@@ -29,19 +28,6 @@ logger = get_logger(__name__)
 all_devices = {}
 
 prefs.register_preferences('devices', 'Device preferences')
-
-
-def _hashable(d):
-    '''Helper function to convert a few data structures to a hasheable
-       frozenset.'''
-    if d is None or isinstance(d, basestring):
-        return d
-    elif isinstance(d, set):
-        return frozenset(d)
-    else:
-        return frozenset((key, frozenset(value.iteritems())
-                               if isinstance(value, dict) else value)
-                         for key, value in d.iteritems())
 
 #: caches the automatically determined code generation target
 _auto_target = None

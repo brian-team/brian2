@@ -5,6 +5,7 @@ sub-expression.
 import collections
 import functools
 import numbers
+import weakref
 
 import sympy
 import numpy as np
@@ -1862,3 +1863,31 @@ class Variables(collections.Mapping):
         '''
         for name in ['t', 'dt']:
             self.add_reference(prefix+name, clock, name)
+
+
+def _hashable(obj):
+    '''Helper function to make a few data structures hashable (e.g. a
+    dictionary gets converted to a frozenset). The function is specifically
+    tailored to our use case and not generic (e.g. only dictionaries are 
+    processed recursively, other data structures such as sets or lists are
+    expected to only contain hashable values).'''
+    if isinstance(obj, ArrayVariable):
+        # We don't want to keep strong references to `ArrayVariable` and
+        # `DynamicArrayVariable`, since they refer to the numpy arrays
+        # containing the data and would therefore prevent them from getting
+        # garbage collected.
+        return weakref.ref(obj)
+    try:
+        # If the object is already hashable, do nothing
+        hash(obj)
+        return obj
+    except TypeError:
+        pass
+    if isinstance(obj, set):
+        return frozenset(obj)
+    elif isinstance(obj, list):
+        return tuple(obj)
+    else:
+        return frozenset((key, _hashable(value))
+                         for key, value in obj.iteritems())
+
