@@ -8,7 +8,7 @@ from abc import abstractmethod, ABCMeta
 import collections
 import time
 
-from brian2.core.variables import Constant
+from brian2.core.variables import Constant, _hashable
 from brian2.utils.logger import get_logger
 
 __all__ = ['StateUpdateMethod']
@@ -24,7 +24,7 @@ class StateUpdateMethod(object):
     #: A dictionary mapping state updater names to `StateUpdateMethod` objects
     stateupdaters = dict()
 
-    _cache = {}
+    _state_update_cache = {}
 
     @abstractmethod
     def __call__(self, equations, variables=None):
@@ -109,9 +109,9 @@ class StateUpdateMethod(object):
             method_key = method.__class__.__name__
         else:
             method_key = tuple(method)
-        cache_key = (equations, frozenset(variables.iteritems()), method_key)
-        if cache_key in StateUpdateMethod._cache:
-            return StateUpdateMethod._cache[cache_key]
+        cache_key = (equations, _hashable(variables), method_key)
+        if cache_key in StateUpdateMethod._state_update_cache:
+            return StateUpdateMethod._state_update_cache[cache_key]
 
         if (isinstance(method, collections.Iterable) and
                 not isinstance(method, basestring)):
@@ -156,9 +156,9 @@ class StateUpdateMethod(object):
                                         method=the_method,
                                         timing=timing), 'method_choice')
             # Also store the code for the method that was chosen
-            StateUpdateMethod._cache[(equations,
-                                      frozenset(variables.iteritems()),
-                                      the_method)] = code
+            StateUpdateMethod._state_update_cache[(equations,
+                                                   _hashable(variables),
+                                                   the_method)] = code
         else:
             if hasattr(method, '__call__'):
                 # if this is a standard state updater, i.e. if it has a
@@ -192,5 +192,5 @@ class StateUpdateMethod(object):
                                                    timing=timing),
                              'method_choice')
 
-        StateUpdateMethod._cache[cache_key] = code
+        StateUpdateMethod._state_update_cache[cache_key] = code
         return code

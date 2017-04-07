@@ -643,7 +643,7 @@ class Equations(collections.Hashable, collections.Mapping):
         return Equations(self.values() + other_eqns.values())
 
     def __hash__(self):
-        return hash(frozenset(self._equations.items()))
+        return hash(frozenset(self._equations.iteritems()))
 
     #: A set of functions that are used to check identifiers (class attribute).
     #: Functions can be registered with the static method

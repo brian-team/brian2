@@ -1868,9 +1868,7 @@ class Variables(collections.Mapping):
 def _hashable(obj):
     '''Helper function to make a few data structures hashable (e.g. a
     dictionary gets converted to a frozenset). The function is specifically
-    tailored to our use case and not generic (e.g. only dictionaries are 
-    processed recursively, other data structures such as sets or lists are
-    expected to only contain hashable values).'''
+    tailored to our use case and not meant to be generally useful.'''
     if isinstance(obj, ArrayVariable):
         # We don't want to keep strong references to `ArrayVariable` and
         # `DynamicArrayVariable`, since they refer to the numpy arrays
@@ -1884,10 +1882,10 @@ def _hashable(obj):
     except TypeError:
         pass
     if isinstance(obj, set):
-        return frozenset(obj)
+        return frozenset(_hashable(el) for el in obj)
     elif isinstance(obj, list):
-        return tuple(obj)
+        return tuple(_hashable(el) for el in obj)
     else:
-        return frozenset((key, _hashable(value))
+        return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.iteritems())
 

@@ -22,7 +22,7 @@ import sympy
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variable, Subexpression, AuxiliaryVariable,
-                                   Constant)
+                                   Constant, _hashable)
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
@@ -210,7 +210,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     describing how the statement can be reformulated as a sequence of if/then
     statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
     '''
-    cache_key = (code, frozenset(variables.iteritems()), dtype, optimise, blockname)
+    cache_key = (code, _hashable(variables), dtype, optimise, blockname)
     if cache_key in _make_statements_cache:
         return _make_statements_cache[cache_key]
 
