@@ -273,13 +273,6 @@ class NumpyCodeGenerator(CodeGenerator):
             lines.extend(self.vectorise_code(statements, variables,
                                              variable_indices))
 
-        # Make sure we do not use the __call__ function of Function objects but
-        # rather the Python function stored internally. The __call__ function
-        # would otherwise return values with units
-        for varname, var in variables.iteritems():
-            if isinstance(var, Function):
-                variables[varname] = var.implementations[self.codeobj_class].get_code(self.owner)
-
         return lines
 
     def determine_keywords(self):

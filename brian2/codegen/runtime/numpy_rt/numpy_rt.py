@@ -10,6 +10,7 @@ from brian2.core.base import brian_object_exception
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
+from brian2.core.functions import Function
 
 from ...codeobject import CodeObject, constant_or_scalar
 
@@ -188,8 +189,12 @@ class NumpyCodeObject(CodeObject):
                     raise TypeError()
                 value = var.get_value()
             except TypeError:
-                # A dummy Variable without value or a function
-                self.namespace[name] = var
+                # Either a dummy Variable without a value or a Function object
+                if isinstance(var, Function):
+                    impl = var.implementations[self.__class__].get_code(self.owner)
+                    self.namespace[name] = impl
+                else:
+                    self.namespace[name] = var
                 continue
 
             if isinstance(var, ArrayVariable):
