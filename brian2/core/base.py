@@ -175,7 +175,8 @@ class BrianObject(Nameable):
         
         Called by `Network.after_run` after the main simulation loop terminated.
         '''
-        pass
+        for codeobj in self._code_objects:
+            codeobj.after_run()
 
     def run(self):
         for codeobj in self._code_objects:

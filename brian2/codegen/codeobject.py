@@ -112,10 +112,14 @@ class CodeObject(Nameable):
         '''
         raise NotImplementedError()
 
+    def after_run(self):
+        pass
+
     def run_once(self):
         self.before_run()
-        return self.run()
-
+        result = self.run()
+        self.after_run()
+        return result
 
 def _error_msg(code, name):
     '''

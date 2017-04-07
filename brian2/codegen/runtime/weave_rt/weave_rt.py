@@ -4,6 +4,7 @@ Module providing `WeaveCodeObject`.
 import os
 import sys
 import numpy
+import weakref
 
 try:
     from scipy import weave
@@ -81,9 +82,13 @@ class WeaveCodeObject(CodeObject):
     def __init__(self, owner, code, variables, variable_indices,
                  template_name, template_source, name='weave_code_object*'):
         from brian2.devices.device import get_device
-        self.device = get_device()
+        device = get_device()
+        try:
+            self.device = weakref.proxy(device)
+        except TypeError:
+            self.device = device
         self._done_first_run = False
-        self.namespace = {'_owner': owner}
+        self.namespace = None
         super(WeaveCodeObject, self).__init__(owner, code, variables,
                                               variable_indices,
                                               template_name, template_source,
@@ -162,6 +167,7 @@ libraries: {self.libraries}
             return False
 
     def variables_to_namespace(self):
+        self.namespace = {'_owner': self.owner}
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -247,8 +253,8 @@ libraries: {self.libraries}
         if self._done_first_run:
             ret_val = self._compiled_func(self.namespace, {})
         else:
-            self._inline_args = (self.annotated_code, self.namespace.keys())
-            self._inline_kwds = dict(
+            _inline_args = (self.annotated_code, self.namespace.keys())
+            _inline_kwds = dict(
                 local_dict=self.namespace,
                 support_code=self.code.support_code,
                 compiler=self.compiler,
@@ -261,12 +267,18 @@ libraries: {self.libraries}
                 library_dirs=self.library_dirs,
                 verbose=0)
             with std_silent():
-                ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
+                ret_val = weave.inline(*_inline_args, **_inline_kwds)
             self._compiled_func = function_cache[self.annotated_code]
             self._done_first_run = True
         if self.compiled_python_post is not None:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
+
+    def after_run(self):
+        # Clear the namespace, so that garbage collection can free array memory
+        # even if the CodeObject is still cached (we recreate the namespace in
+        # `variables_to_namespace` anyway
+        self.namespace = None
 
 if weave is not None:
     codegen_targets.add(WeaveCodeObject)
