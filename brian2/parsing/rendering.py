@@ -239,7 +239,10 @@ class SympyNodeRenderer(NodeRenderer):
             return sympy.Symbol(node.id, real=True)
 
     def render_NameConstant(self, node):
-        return str(node.value)
+        if node.value in [True, False]:
+            return node.value
+        else:
+            return str(node.value)
 
     def render_Num(self, node):
         return sympy.Float(node.n)
