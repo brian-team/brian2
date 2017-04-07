@@ -286,6 +286,15 @@ if weave is not None:
 
 # Use a special implementation for the randn function that makes use of numpy's
 # randn
+
+# These wrappers are only necessary to avoid problems in the `variables`
+# dictionary of `WeaveCodeObject` -- directly creating a weak reference to
+# ``nummpy.random.randn`` is not allowed.
+def _numpy_randn(*args, **kwds):
+    return numpy.random.randn(*args, **kwds)
+def _numpy_rand(*args, **kwds):
+    return numpy.random.rand(*args, **kwds)
+
 # Give those functions access to a common buffer stored in the runtime device
 device = all_devices['runtime']
 
@@ -330,7 +339,7 @@ randn_code = {'support_code': '''
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
                                                               code=randn_code,
                                                               name='_randn',
-                                                              namespace={'_numpy_randn': numpy.random.randn,
+                                                              namespace={'_numpy_randn': _numpy_randn,
                                                                          '_randn_buffer': device.randn_buffer,
                                                                          '_randn_buffer_index': device.randn_buffer_index})
 
@@ -373,9 +382,10 @@ rand_code = {'support_code': '''
             return number;
         }
         '''}
+
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
                                                              code=rand_code,
-                                                             namespace={'_numpy_rand': numpy.random.rand,
+                                                             namespace={'_numpy_rand': _numpy_rand,
                                                                         '_rand_buffer': device.rand_buffer,
                                                                         '_rand_buffer_index': device.rand_buffer_index},
                                                              name='_rand')
