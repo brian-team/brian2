@@ -6,7 +6,6 @@ import collections
 import functools
 import numbers
 import weakref
-from types import NoneType
 
 import sympy
 import numpy as np
@@ -1876,7 +1875,7 @@ def _hashable(obj):
         # containing the data and would therefore prevent them from getting
         # garbage collected.
         return weakref.ref(obj)
-    elif isinstance(obj, (basestring, NoneType)):
+    elif obj is None or isinstance(obj, basestring):
         return obj
     elif isinstance(obj, collections.Set):
         return frozenset(_hashable(el) for el in obj)
