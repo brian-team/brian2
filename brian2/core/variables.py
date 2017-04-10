@@ -275,13 +275,16 @@ class Variable(object):
                                   constant=repr(self.constant),
                                   read_only=repr(self.read_only))
 
+    _state_tuple = property(lambda self: (self.dim, self.dtype, self.scalar,
+                                          self.constant, self.read_only,
+                                          self.dynamic, self.name))
 
 # ------------------------------------------------------------------------------
 # Concrete classes derived from `Variable` -- these are the only ones ever
 # instantiated.
 # ------------------------------------------------------------------------------
 
-class Constant(collections.Hashable, Variable):
+class Constant(Variable):
     '''
     A scalar constant (e.g. the number of neurons ``N``). Information such as
     the dtype or whether this variable is a boolean are directly derived from
@@ -341,18 +344,8 @@ class Constant(collections.Hashable, Variable):
 
     # In contrast to other `Variable` objects, `Constant` objects are recreated
     # for every run, so we cannot simply use their identity to compare them.
-    _state_tuple = property(lambda self: (self.dim, self.name,
-                                          id(self.owner), self.dtype, self.value))
-    def __eq__(self, other):
-        if not isinstance(other, Constant):
-            return NotImplemented
-        return self._state_tuple == other._state_tuple
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __hash__(self):
-        return hash(self._state_tuple)
+    _state_tuple = property(lambda self: super(Constant, self)._state_tuple +
+                                         (self.value, ))
 
 
 class AuxiliaryVariable(Variable):
@@ -481,6 +474,8 @@ class ArrayVariable(Variable):
         return VariableView(name=name, variable=self, group=group,
                             dimensions=self.dim)
 
+    _state_tuple = property(lambda self: super(ArrayVariable, self)._state_tuple +
+                                         (self.size, self.unique, id(self.device)))
 
 class DynamicArrayVariable(ArrayVariable):
     '''
@@ -590,6 +585,13 @@ class DynamicArrayVariable(ArrayVariable):
 
         self.size = new_size
 
+    # Note that we inherit the state tuple from Variable, *not* from ArrayVariable.
+    # Otherwise the size would be part of the tuple, but of course the size of
+    # a dynamic variable can change.
+    _state_tuple = property(lambda self: super(ArrayVariable, self)._state_tuple +
+                                         (self.unique, id(self.device), self.ndim,
+                                          self.resize_along_first, self.needs_reference_update))
+
 
 class Subexpression(Variable):
     '''
@@ -669,6 +671,8 @@ class Subexpression(Variable):
                                   expr=repr(self.expr),
                                   owner=self.owner.name)
 
+    _state_tuple = property(lambda self: super(Subexpression, self)._state_tuple +
+                                         (self.expr, id(self.device)))
 
 # ------------------------------------------------------------------------------
 # Classes providing views on variables and storing variables information
@@ -1869,12 +1873,8 @@ def _hashable(obj):
     '''Helper function to make a few data structures hashable (e.g. a
     dictionary gets converted to a frozenset). The function is specifically
     tailored to our use case and not meant to be generally useful.'''
-    if isinstance(obj, ArrayVariable):
-        # We don't want to keep strong references to `ArrayVariable` and
-        # `DynamicArrayVariable`, since they refer to the numpy arrays
-        # containing the data and would therefore prevent them from getting
-        # garbage collected.
-        return weakref.ref(obj)
+    if isinstance(obj, Variable):
+        return _hashable(obj._state_tuple)
     try:
         # If the object is already hashable, do nothing
         hash(obj)
@@ -1888,4 +1888,3 @@ def _hashable(obj):
     else:
         return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.iteritems())
-
