@@ -9,6 +9,8 @@ EXPR = CharsNotIn('#').setResultsName('expression')
 COMMENT = CharsNotIn('#').setResultsName('comment')
 STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress('#') + COMMENT)
 
+
+_parse_statement_cache = {}
 def parse_statement(code):
     '''
     Parses a single line of code into "var op expr".
@@ -31,6 +33,8 @@ def parse_statement(code):
     >>> parse_statement('v += dt*(-v/tau)')
     ('v', '+=', 'dt*(-v/tau)', '')
     '''
+    if code in _parse_statement_cache:
+        return _parse_statement_cache[code]
 
     try:
         parsed = STATEMENT.parseString(code, parseAll=True)
@@ -40,7 +44,9 @@ def parse_statement(code):
     if len(parsed['expression'].strip()) == 0:
         raise ValueError(('Empty expression in the RHS of the statement:'
                           '"%s" ') % code)
-    return (parsed['variable'].strip(),
-            parsed['operation'],
-            parsed['expression'].strip(),
-            parsed.get('comment', '').strip())
+    parsed_statement = (parsed['variable'].strip(),
+                        parsed['operation'],
+                        parsed['expression'].strip(),
+                        parsed.get('comment', '').strip())
+    _parse_statement_cache[code] = parsed_statement
+    return parsed_statement
