@@ -313,6 +313,7 @@ def dimensions_and_type_from_string(unit_string):
     return evaluated_unit.dim, FLOAT
 
 
+_parse_string_equations_cache = {}
 def parse_string_equations(eqns):
     """
     Parse a string defining equations.
@@ -329,6 +330,8 @@ def parse_string_equations(eqns):
         A dictionary mapping variable names to
         `~brian2.equations.equations.Equations` objects
     """
+    if eqns in _parse_string_equations_cache:
+        return _parse_string_equations_cache[eqns]
     equations = {}
 
     try:
@@ -366,6 +369,7 @@ def parse_string_equations(eqns):
 
         equations[identifier] = equation
 
+    _parse_string_equations_cache[eqns] = equations
     return equations
 
 
