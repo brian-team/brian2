@@ -106,4 +106,4 @@ class PoissonInput(CodeRunner):
             raise NotImplementedError('The dt used for simulating %s changed '
                                       'after the PoissonInput source was '
                                       'created.' % self.group.name)
-        super(PoissonInput, self).before_run(run_namespace)
+        CodeRunner.before_run(self, run_namespace=run_namespace)

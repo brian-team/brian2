@@ -1010,7 +1010,7 @@ class VariableView(object):
                                         check_units=check_units,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
-        codeobj.run_once()
+        codeobj()
 
     @device_override('variableview_set_with_expression_conditional')
     def set_with_expression_conditional(self, cond, code, run_namespace,
@@ -1052,7 +1052,7 @@ class VariableView(object):
                                         check_units=check_units,
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
-        codeobj.run_once()
+        codeobj()
 
     @device_override('variableview_get_with_expression')
     def get_with_expression(self, code, run_namespace):
@@ -1097,7 +1097,7 @@ class VariableView(object):
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                         )
-        return codeobj.run_once()
+        return codeobj()
 
     @device_override('variableview_get_with_index_array')
     def get_with_index_array(self, item):
@@ -1165,7 +1165,7 @@ class VariableView(object):
                                         run_namespace=run_namespace,
                                         codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
         )
-        result = codeobj.run_once()
+        result = codeobj()
         if single_index and not variable.scalar:
             return result[0]
         else:
@@ -1875,15 +1875,17 @@ def _hashable(obj):
         # containing the data and would therefore prevent them from getting
         # garbage collected.
         return weakref.ref(obj)
-    elif obj is None or isinstance(obj, basestring):
+    try:
+        # If the object is already hashable, do nothing
+        hash(obj)
         return obj
-    elif isinstance(obj, collections.Set):
+    except TypeError:
+        pass
+    if isinstance(obj, set):
         return frozenset(_hashable(el) for el in obj)
-    elif isinstance(obj, collections.Sequence):
+    elif isinstance(obj, list):
         return tuple(_hashable(el) for el in obj)
-    elif isinstance(obj, collections.Mapping):
+    else:
         return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.iteritems())
-    else:
-        return obj
 

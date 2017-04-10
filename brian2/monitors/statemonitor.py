@@ -364,4 +364,4 @@ class StateMonitor(Group, CodeRunner):
         if self.codeobj is None:
             raise TypeError('Can only record a single time step after the '
                             'network has been run once.')
-        self.codeobj.run_once()
+        self.codeobj()

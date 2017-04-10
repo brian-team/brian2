@@ -2,17 +2,18 @@
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
-import numbers
 from weakref import WeakKeyDictionary
+import numbers
 
 import numpy as np
-from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+
+from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 from brian2.codegen.targets import codegen_targets
-from brian2.core.functions import Function
+from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.core.names import find_name
 from brian2.core.preferences import prefs
-from brian2.core.variables import ArrayVariable, DynamicArrayVariable, _hashable
-from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
+from brian2.core.variables import ArrayVariable, DynamicArrayVariable
+from brian2.core.functions import Function
 from brian2.units import ms
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import code_representation, indent
@@ -27,7 +28,9 @@ logger = get_logger(__name__)
 
 all_devices = {}
 
+
 prefs.register_preferences('devices', 'Device preferences')
+
 
 #: caches the automatically determined code generation target
 _auto_target = None
@@ -247,21 +250,11 @@ class Device(object):
             codeobj_class = get_default_codeobject_class()
         return codeobj_class
 
-    _code_object_cache = {}
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
                     template_kwds=None, override_conditional_write=None):
 
         codeobj_class = self.code_object_class(codeobj_class)
-
-        cache_key = (id(self), id(owner), name, _hashable(abstract_code),
-                     _hashable(variables), template_name,
-                     _hashable(variable_indices), id(codeobj_class),
-                     _hashable(template_kwds),
-                     _hashable(override_conditional_write))
-        if cache_key in Device._code_object_cache:
-            return Device._code_object_cache[cache_key]
-
         template = getattr(codeobj_class.templater, template_name)
         iterate_all = template.iterate_all
         generator = codeobj_class.generator_class(variables=variables,
@@ -326,7 +319,6 @@ class Device(object):
                                 template_source=template.template_source,
                                 name=name)
         codeobj.compile()
-        Device._code_object_cache[cache_key] = codeobj
         return codeobj
     
     def activate(self, build_on_run=True, **kwargs):

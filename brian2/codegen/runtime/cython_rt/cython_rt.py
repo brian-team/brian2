@@ -108,14 +108,14 @@ class CythonCodeObject(NumpyCodeObject):
             compiler=self.compiler,
             owner_name=self.owner.name+'_'+self.template_name,
             )
-
+        
     def run(self):
         return self.compiled_code.main(self.namespace)
 
     # the following are copied from WeaveCodeObject
 
     def variables_to_namespace(self):
-        self.namespace = {'_owner': self.owner}
+
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables

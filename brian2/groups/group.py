@@ -291,7 +291,7 @@ class IndexWrapper(object):
                                             additional_variables=variables,
                                             codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
                                             )
-            return codeobj.run_once()
+            return codeobj()
         else:
             return self.indices(item)
 
@@ -1089,5 +1089,3 @@ class CodeRunner(BrianObject):
                                                  codeobj_class=self.codeobj_class
                                                  )
             self.code_objects[:] = [weakref.proxy(self.codeobj)]
-
-        super(CodeRunner, self).before_run(run_namespace)

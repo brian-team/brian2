@@ -271,8 +271,8 @@ class SynapticPathway(CodeRunner, Group):
                                                                    check_units=False,
                                                                    additional_variables=self.variables,
                                                                    run_namespace=run_namespace)
-        self._initialise_queue_codeobj.run_once()
-        super(SynapticPathway, self).before_run(run_namespace)
+        self._initialise_queue_codeobj()
+        CodeRunner.before_run(self, run_namespace)
 
         # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
         if self._pushspikes_codeobj is None:
@@ -296,7 +296,6 @@ class SynapticPathway(CodeRunner, Group):
                                                              run_namespace=run_namespace)
 
         self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
-        self._pushspikes_codeobj.before_run()
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
@@ -1444,7 +1443,7 @@ class Synapses(Group):
                                         needed_variables=needed_variables,
                                         check_units=False,
                                         run_namespace={})
-        codeobj.run_once()
+        codeobj()
 
     def _expression_index_dependence(self, expr, additional_indices=None):
         '''
@@ -1575,7 +1574,7 @@ class Synapses(Group):
                                         needed_variables=needed_variables,
                                         check_units=False,
                                         run_namespace=namespace)
-        codeobj.run_once()
+        codeobj()
 
     def _check_parsed_synapses_generator(self, parsed, namespace):
         """

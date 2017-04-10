@@ -234,32 +234,18 @@ class FunctionImplementation(object):
         self.name = name
         self.dependencies = dependencies
         self._code = code
-        self._dynamic_code = None
         self._namespace = namespace
-        self._dynamic_namespace = None
         self.dynamic = dynamic
 
     def get_code(self, owner):
         if self.dynamic:
-            code = self._code(owner)
-            # We only store the code here to avoid it being garbage collected.
-            # The dynamic code generation will add this code to the variables
-            # attribute of a `CodeObject`, but such objects only store weak
-            # references to their variables. This might lead to the code being
-            # garbage collected even though the `CodeObject` might still need
-            # it for its run.
-            self._dynamic_code = code
-            return code
+            return self._code(owner)
         else:
             return self._code
 
     def get_namespace(self, owner):
         if self.dynamic:
-            namespace = self._namespace(owner)
-            # See comment above why we hold a strong reference to the namespace
-            # here.
-            self._dynamic_namespace = namespace
-            return namespace
+            return self._namespace(owner)
         else:
             return self._namespace
 

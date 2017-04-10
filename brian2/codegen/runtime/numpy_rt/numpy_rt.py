@@ -159,9 +159,12 @@ class NumpyCodeObject(CodeObject):
                  template_name, template_source, name='numpy_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
-        self.namespace = None
+        self.namespace = {'_owner': owner,
+                          # TODO: This should maybe go somewhere else
+                          'logical_not': np.logical_not}
         CodeObject.__init__(self, owner, code, variables, variable_indices,
                             template_name, template_source, name=name)
+        self.variables_to_namespace()
 
     @classmethod
     def is_available(cls):
@@ -169,9 +172,6 @@ class NumpyCodeObject(CodeObject):
         return True
 
     def variables_to_namespace(self):
-        self.namespace = {'_owner': self.owner,
-                          # TODO: This should maybe go somewhere else
-                          'logical_not': np.logical_not}
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -233,9 +233,6 @@ class NumpyCodeObject(CodeObject):
         super(NumpyCodeObject, self).compile()
         self.compiled_code = compile(self.code, '(string)', 'exec')
 
-    def before_run(self):
-        self.variables_to_namespace()
-
     def run(self):
         try:
             exec self.compiled_code in self.namespace
@@ -251,11 +248,5 @@ class NumpyCodeObject(CodeObject):
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
-
-    def after_run(self):
-        # Clear the namespace, so that garbage collection can free array memory
-        # even if the CodeObject is still cached (we recreate the namespace in
-        # `variables_to_namespace` anyway
-        self.namespace = None
 
 codegen_targets.add(NumpyCodeObject)

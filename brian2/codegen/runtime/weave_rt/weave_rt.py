@@ -4,7 +4,6 @@ Module providing `WeaveCodeObject`.
 import os
 import sys
 import numpy
-import weakref
 
 try:
     from scipy import weave
@@ -82,13 +81,9 @@ class WeaveCodeObject(CodeObject):
     def __init__(self, owner, code, variables, variable_indices,
                  template_name, template_source, name='weave_code_object*'):
         from brian2.devices.device import get_device
-        device = get_device()
-        try:
-            self.device = weakref.proxy(device)
-        except TypeError:
-            self.device = device
+        self.device = get_device()
         self._done_first_run = False
-        self.namespace = None
+        self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables,
                                               variable_indices,
                                               template_name, template_source,
@@ -138,6 +133,7 @@ libraries: {self.libraries}
         '''.format(self=self)
 
         self.python_code_namespace = {'_owner': owner}
+        self.variables_to_namespace()
 
     @classmethod
     def is_available(cls):
@@ -167,7 +163,7 @@ libraries: {self.libraries}
             return False
 
     def variables_to_namespace(self):
-        self.namespace = {'_owner': self.owner}
+
         # Variables can refer to values that are either constant (e.g. dt)
         # or change every timestep (e.g. t). We add the values of the
         # constant variables here and add the names of non-constant variables
@@ -191,6 +187,8 @@ libraries: {self.libraries}
                 self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
                 self.namespace['_num'+name] = var.get_len()
+                # if var.scalar and var.constant:
+                #     self.namespace[name] = value.item()
             else:
                 self.namespace[name] = value
 
@@ -232,7 +230,7 @@ libraries: {self.libraries}
         # update the values of the non-constant values in the namespace
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
-
+            
     def compile(self):
         CodeObject.compile(self)
         if hasattr(self.code, 'python_pre'):
@@ -244,17 +242,14 @@ libraries: {self.libraries}
         else:
             self.compiled_python_post = None
 
-    def before_run(self):
-        self.variables_to_namespace()
-
     def run(self):
         if self.compiled_python_pre is not None:
             exec self.compiled_python_pre in self.python_code_namespace
         if self._done_first_run:
             ret_val = self._compiled_func(self.namespace, {})
         else:
-            _inline_args = (self.annotated_code, self.namespace.keys())
-            _inline_kwds = dict(
+            self._inline_args = (self.annotated_code, self.namespace.keys())
+            self._inline_kwds = dict(
                 local_dict=self.namespace,
                 support_code=self.code.support_code,
                 compiler=self.compiler,
@@ -267,18 +262,12 @@ libraries: {self.libraries}
                 library_dirs=self.library_dirs,
                 verbose=0)
             with std_silent():
-                ret_val = weave.inline(*_inline_args, **_inline_kwds)
+                ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
             self._compiled_func = function_cache[self.annotated_code]
             self._done_first_run = True
         if self.compiled_python_post is not None:
             exec self.compiled_python_post in self.python_code_namespace
         return ret_val
-
-    def after_run(self):
-        # Clear the namespace, so that garbage collection can free array memory
-        # even if the CodeObject is still cached (we recreate the namespace in
-        # `variables_to_namespace` anyway
-        self.namespace = None
 
 if weave is not None:
     codegen_targets.add(WeaveCodeObject)
@@ -286,15 +275,6 @@ if weave is not None:
 
 # Use a special implementation for the randn function that makes use of numpy's
 # randn
-
-# These wrappers are only necessary to avoid problems in the `variables`
-# dictionary of `WeaveCodeObject` -- directly creating a weak reference to
-# ``nummpy.random.randn`` is not allowed.
-def _numpy_randn(*args, **kwds):
-    return numpy.random.randn(*args, **kwds)
-def _numpy_rand(*args, **kwds):
-    return numpy.random.rand(*args, **kwds)
-
 # Give those functions access to a common buffer stored in the runtime device
 device = all_devices['runtime']
 
@@ -339,7 +319,7 @@ randn_code = {'support_code': '''
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(WeaveCodeObject,
                                                               code=randn_code,
                                                               name='_randn',
-                                                              namespace={'_numpy_randn': _numpy_randn,
+                                                              namespace={'_numpy_randn': numpy.random.randn,
                                                                          '_randn_buffer': device.randn_buffer,
                                                                          '_randn_buffer_index': device.randn_buffer_index})
 
@@ -382,10 +362,9 @@ rand_code = {'support_code': '''
             return number;
         }
         '''}
-
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(WeaveCodeObject,
                                                              code=rand_code,
-                                                             namespace={'_numpy_rand': _numpy_rand,
+                                                             namespace={'_numpy_rand': numpy.random.rand,
                                                                         '_rand_buffer': device.rand_buffer,
                                                                         '_rand_buffer_index': device.rand_buffer_index},
                                                              name='_rand')

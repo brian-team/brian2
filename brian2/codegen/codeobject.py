@@ -66,7 +66,7 @@ class CodeObject(Nameable):
             pass # if owner was already a weakproxy then this will be the error raised
         self.owner = owner
         self.code = code
-        self.variables = weakref.WeakValueDictionary(variables)
+        self.variables = variables
         self.variable_indices = variable_indices
         self.template_name = template_name
         self.template_source = template_source
@@ -97,9 +97,6 @@ class CodeObject(Nameable):
 
         return self.run()
 
-    def before_run(self):
-        pass
-
     def run(self):
         '''
         Runs the code in the namespace.
@@ -112,14 +109,6 @@ class CodeObject(Nameable):
         '''
         raise NotImplementedError()
 
-    def after_run(self):
-        pass
-
-    def run_once(self):
-        self.before_run()
-        result = self.run()
-        self.after_run()
-        return result
 
 def _error_msg(code, name):
     '''
