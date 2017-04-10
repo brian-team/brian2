@@ -2,7 +2,7 @@
 Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
 '''
-from brian2.core.variables import ArrayVariable
+from brian2.core.variables import ArrayVariable, _hashable
 from brian2.core.functions import Function
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
@@ -215,10 +215,23 @@ class CodeGenerator(object):
                          if index not in ('_idx', '0'))
         return not all_unique
 
+    _translate_cache = {}
     def translate(self, code, dtype):
         '''
         Translates an abstract code block into the target language.
         '''
+        cache_key = _hashable([code, dtype, self.variables,
+                               self.variable_indices,
+                               self.override_conditional_write,
+                               self.allows_scalar_write,
+                               self.iterate_all,
+                               self.template_name,
+                               self.name,
+                               self.owner.name,
+                               self.__class__])
+        if cache_key in CodeGenerator._translate_cache:
+            return CodeGenerator._translate_cache[cache_key]
+
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.iteritems():
@@ -249,6 +262,9 @@ class CodeGenerator(object):
                              'you are sure that the order of operations does not '
                              'matter. ' + error_msg))
 
-        return self.translate_statement_sequence(scalar_statements,
-                                                 vector_statements)
+        translated = self.translate_statement_sequence(scalar_statements,
+                                                       vector_statements)
 
+        CodeGenerator._translate_cache[cache_key] = translated
+
+        return translated
