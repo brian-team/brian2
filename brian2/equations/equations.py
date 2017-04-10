@@ -565,47 +565,7 @@ class Equations(collections.Hashable, collections.Mapping):
                                         eq.varname)
                 self._equations[eq.varname] = eq
 
-        # save these to change the keys of the dictionary later
-        model_var_replacements = []
-        for varname, replacement in kwds.iteritems():
-
-            for eq in self.itervalues():
-                # Replacing the name of a model variable (works only for strings)
-                if eq.varname == varname:
-                    if not isinstance(replacement, basestring):
-                        raise ValueError(('Cannot replace model variable "%s" '
-                                          'with a value') % varname)
-                    if replacement in self:
-                        raise EquationError(('Cannot replace model variable "%s" '
-                                             'with "%s", duplicate definition '
-                                             'of "%s".' % (varname, replacement,
-                                                           replacement)))
-                    # make sure that the replacement is a valid identifier
-                    Equations.check_identifier(replacement)
-                    eq.varname = replacement
-                    model_var_replacements.append((varname, replacement))
-
-                if varname in eq.identifiers:
-                    if isinstance(replacement, basestring):
-                        # replace the name with another name
-                        new_code = re.sub('\\b' + varname + '\\b',
-                                          replacement, eq.expr.code)
-                    else:
-                        # replace the name with a value
-                        new_code = re.sub('\\b' + varname + '\\b',
-                                          '(' + repr(replacement) + ')',
-                                          eq.expr.code)
-                    try:
-                        eq.expr = Expression(new_code)
-                    except ValueError as ex:
-                        raise ValueError(('Replacing "%s" with "%r" failed: %s') %
-                                         (varname, replacement, ex))
-
-        # For change in model variable names, we have already changed the
-        # varname attribute of the SingleEquation object, but not the key of
-        # our dicitionary
-        for varname, replacement in model_var_replacements:
-            self._equations[replacement] = self._equations.pop(varname)
+        self._equations = self._substitute(kwds)
 
         # Check for special symbol xi (stochastic term)
         uses_xi = None
@@ -628,6 +588,65 @@ class Equations(collections.Hashable, collections.Mapping):
 
         #: Cache for equations with the subexpressions substituted
         self._substituted_expressions = None
+
+    def _substitute(self, replacements):
+        if len(replacements) == 0:
+            return self._equations
+
+        new_equations = {}
+        for eq in self.itervalues():
+            # Replace the name of a model variable (works only for strings)
+            if eq.varname in replacements:
+                new_varname = replacements[eq.varname]
+                if not isinstance(new_varname, basestring):
+                    raise ValueError(('Cannot replace model variable "%s" '
+                                      'with a value') % eq.varname)
+                if new_varname in self or new_varname in new_equations:
+                    raise EquationError(
+                        ('Cannot replace model variable "%s" '
+                         'with "%s", duplicate definition '
+                         'of "%s".' % (eq.varname, new_varname,
+                                       new_varname)))
+                # make sure that the replacement is a valid identifier
+                Equations.check_identifier(new_varname)
+            else:
+                new_varname = eq.varname
+
+            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
+                # Replace values in the RHS of the equation
+                new_code = eq.expr.code
+                for to_replace, replacement in replacements.iteritems():
+                    if to_replace in eq.identifiers:
+                        if isinstance(replacement, basestring):
+                            # replace the name with another name
+                            new_code = re.sub('\\b' + to_replace + '\\b',
+                                              replacement, new_code)
+                        else:
+                            # replace the name with a value
+                            new_code = re.sub('\\b' + to_replace + '\\b',
+                                              '(' + repr(replacement) + ')',
+                                              new_code)
+                        try:
+                            eq.expr = Expression(new_code)
+                        except ValueError as ex:
+                            raise ValueError(
+                                ('Replacing "%s" with "%r" failed: %s') %
+                                (to_replace, replacement, ex))
+                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            expr=Expression(new_code),
+                                                            flags=eq.flags)
+            else:
+                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            flags=eq.flags)
+
+        return new_equations
+
+    def substitute(self, **kwds):
+        return Equations(self._substitute(kwds).values())
 
     def __iter__(self):
         return iter(self._equations)

@@ -698,20 +698,15 @@ class Synapses(Group):
                                                'constant over dt')])
 
         # Add the lastupdate variable, needed for event-driven updates
-        if 'lastupdate' in model._equations:
+        if 'lastupdate' in model.names:
             raise SyntaxError('lastupdate is a reserved name.')
-        model._equations['lastupdate'] = SingleEquation(PARAMETER,
-                                                        'lastupdate',
-                                                        second.dim)
+        model = model + Equations('lastupdate : second')
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index
         if multisynaptic_index is not None:
             if not isinstance(multisynaptic_index, basestring):
                 raise TypeError('multisynaptic_index argument has to be a string')
-            model._equations[multisynaptic_index] = SingleEquation(PARAMETER,
-                                                                   multisynaptic_index,
-                                                                   DIMENSIONLESS,
-                                                                   var_type=INTEGER)
+            model = model + Equations('{} : integer'.format(multisynaptic_index))
 
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
