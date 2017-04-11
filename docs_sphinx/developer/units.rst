@@ -6,9 +6,9 @@ Casting rules
 In Brian 1, a distinction is made between scalars and numpy arrays (including
 scalar arrays): Scalars could be multiplied with a unit, resulting in a Quantity
 object whereas the multiplication of an array with a unit resulted in a
-(unitless) array. Accordingly, scalars where considered as dimensionless
+(unitless) array. Accordingly, scalars were considered as dimensionless
 quantities for the purpose of unit checking (e.g.. 1 + 1 * mV raised an error)
-whereas arrays where not (e.g. array(1) + 1 * mV resulted in 1.001 without any
+whereas arrays were not (e.g. array(1) + 1 * mV resulted in 1.001 without any
 errors). Brian 2 no longer makes this distinction and treats both scalars and
 arrays as dimensionless for unit checking and make all operations involving
 quantities return a quantity.::
@@ -66,10 +66,10 @@ appropriate. Most of the methods are overwritten using thin function wrappers:
 **List of methods**
 
 ``all, any, argmax, argmax, argsort, clip, compress, conj, conjugate, copy,
-cumsum, diagonal, dot, dump, dumps, fill, flatten, getfield, item, itemset, max,
-mean, min, newbyteorder, nonzero, prod, ptp, put, ravel, repeat, reshape, round,
-searchsorted, setasflat, setfield, setflags, sort, squeeze, std, sum, take,
-tolist, trace, transpose, var, view``
+cumsum, diagonal, dot, dump, dumps,`` ``fill, flatten, getfield, item, itemset, max,
+mean, min, newbyteorder, nonzero, prod, ptp, put, ravel,`` ``repeat, reshape, round,
+searchsorted, setasflat, setfield, setflags, sort, squeeze, std, sum, take,``
+``tolist, trace, transpose, var, view``
 
 **Notes**
 
@@ -97,9 +97,9 @@ when using operators like ``<`` or ``**``.
 
 *Math operations:*
 	``add, subtract, multiply, divide, logaddexp, logaddexp2,
-	true_divide, floor_divide, negative, power, remainder, mod, fmod, absolute,
-	rint, sign, conj, conjugate, exp, exp2, log, log2, log10, expm1, log1p,
-	sqrt, square, reciprocal, ones_like``
+	true_divide, floor_divide, negative, power,`` ``remainder, mod, fmod, absolute,
+	rint, sign, conj, conjugate, exp, exp2, log, log2, log10, expm1, log1p,``
+	``sqrt, square, reciprocal, ones_like``
 	
 *Trigonometric functions:*
 	``sin, cos, tan, arcsin, arccos, arctan, arctan2,
