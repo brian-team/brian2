@@ -228,8 +228,9 @@ class CodeGenerator(object):
                                self.template_name,
                                self.name,
                                self.owner.name,
-                               self.owner._dependencies,
-                               self.owner.clock.name,
+                               {var.owner.name
+                                for var in self.variables.itervalues()
+                                if getattr(var, 'owner', None) is not None},
                                self.__class__])
         if cache_key in CodeGenerator._translate_cache:
             return CodeGenerator._translate_cache[cache_key]
