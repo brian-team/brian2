@@ -3,6 +3,7 @@ Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
 '''
 from brian2.core.variables import ArrayVariable, _hashable
+from brian2.core.preferences import prefs
 from brian2.core.functions import Function
 from brian2.utils.stringtools import get_identifiers
 from brian2.utils.logger import get_logger
@@ -231,6 +232,7 @@ class CodeGenerator(object):
                                {var.owner.name
                                 for var in self.variables.itervalues()
                                 if getattr(var, 'owner', None) is not None},
+                               prefs,
                                self.__class__])
         if cache_key in CodeGenerator._translate_cache:
             return CodeGenerator._translate_cache[cache_key]
