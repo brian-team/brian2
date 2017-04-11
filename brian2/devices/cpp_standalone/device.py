@@ -825,7 +825,7 @@ class CPPStandaloneDevice(Device):
                     os.remove('winmake.log')
                 with std_silent(debug):
                     if clean:
-                        os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                        os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
                     x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
                                                                                         make_cmd,
                                                                                         make_args))
@@ -836,7 +836,7 @@ class CPPStandaloneDevice(Device):
             else:
                 with std_silent(debug):
                     if clean:
-                        os.system('make clean')
+                        os.system('make clean >/dev/null 2>&1')
                     if debug:
                         x = os.system('make debug')
                     else:
