@@ -6,9 +6,9 @@ Casting rules
 In Brian 1, a distinction is made between scalars and numpy arrays (including
 scalar arrays): Scalars could be multiplied with a unit, resulting in a Quantity
 object whereas the multiplication of an array with a unit resulted in a
-(unitless) array. Accordingly, scalars where considered as dimensionless
+(unitless) array. Accordingly, scalars were considered as dimensionless
 quantities for the purpose of unit checking (e.g.. 1 + 1 * mV raised an error)
-whereas arrays where not (e.g. array(1) + 1 * mV resulted in 1.001 without any
+whereas arrays were not (e.g. array(1) + 1 * mV resulted in 1.001 without any
 errors). Brian 2 no longer makes this distinction and treats both scalars and
 arrays as dimensionless for unit checking and make all operations involving
 quantities return a quantity.::
@@ -65,11 +65,12 @@ appropriate. Most of the methods are overwritten using thin function wrappers:
 
 **List of methods**
 
-``all, any, argmax, argmax, argsort, clip, compress, conj, conjugate, copy,
-cumsum, diagonal, dot, dump, dumps, fill, flatten, getfield, item, itemset, max,
-mean, min, newbyteorder, nonzero, prod, ptp, put, ravel, repeat, reshape, round,
-searchsorted, setasflat, setfield, setflags, sort, squeeze, std, sum, take,
-tolist, trace, transpose, var, view``
+``all``, ``any``, ``argmax``, ``argsort``, ``clip``, ``compress``, ``conj``, ``conjugate``, 
+``copy``, ``cumsum``, ``diagonal``, ``dot``, ``dump``, ``dumps``, ``fill``, ``flatten``, ``getfield``, 
+``item``, ``itemset``, ``max``, ``mean``, ``min``, ``newbyteorder``, ``nonzero``, ``prod``, ``ptp``, 
+``put``, ``ravel``, ``repeat``, ``reshape``, ``round``, ``searchsorted``, ``setasflat``, ``setfield``, 
+``setflags``, ``sort``, ``squeeze``, ``std``, ``sum``, ``take``, ``tolist``, ``trace``, ``transpose``, 
+``var``, ``view``
 
 **Notes**
 
@@ -96,26 +97,29 @@ appropriate arrays. These functions are often called implicitly, for example
 when using operators like ``<`` or ``**``.
 
 *Math operations:*
-	``add, subtract, multiply, divide, logaddexp, logaddexp2,
-	true_divide, floor_divide, negative, power, remainder, mod, fmod, absolute,
-	rint, sign, conj, conjugate, exp, exp2, log, log2, log10, expm1, log1p,
-	sqrt, square, reciprocal, ones_like``
+	``add``, ``subtract``, ``multiply``, ``divide``, ``logaddexp``, ``logaddexp2``, 
+        ``true_divide``, ``floor_divide``, ``negative``, ``power``, ``remainder``, ``mod``, 
+        ``fmod``, ``absolute``, ``rint``, ``sign``, ``conj``, ``conjugate``, ``exp``, ``exp2``, 
+        ``log``, ``log2``, ``log10``, ``expm1``, ``log1p``, ``sqrt``, ``square``, ``reciprocal``, 
+        ``ones_like``
 	
 *Trigonometric functions:*
-	``sin, cos, tan, arcsin, arccos, arctan, arctan2,
-	hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg``
+	``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``arctan2``, ``hypot``, 
+        ``sinh``, ``cosh``, ``tanh``, ``arcsinh``, ``arccosh``, ``arctanh``, ``deg2rad``, ``rad2deg``
 
 *Bitwise functions:*
-	``bitwise_and, bitwise_or, bitwise_xor, invert, left_shift, right_shift``
+	``bitwise_and``, ``bitwise_or``, ``bitwise_xor``, ``invert``, ``left_shift``, ``right_shift``
 
 *Comparison functions:* 
-	``greater, greater_equal, less, less_equal, not_equal,
-	equal, logical_and, logical_or, logical_xor, logical_not, maximum, minimum``
+	``greater``, ``greater_equal``, ``less``, ``less_equal``, ``not_equal``,
+	``equal``, ``logical_and``, ``logical_or``, ``logical_xor``, ``logical_not``, ``maximum``, 
+        ``minimum``
 	
 *Floating functions:*
-	``isreal, iscomplex, isfinite, isinf, isnan, floor, ceil, trunc, fmod``
+	``isreal``, ``iscomplex``, ``isfinite``, ``isinf``, ``isnan``, ``floor``, ``ceil``, ``trunc``, 
+        ``fmod``
 
-Not taken care of yet: ``signbit, copysign, nextafter, modf, ldexp, frexp``
+Not taken care of yet: ``signbit``, ``copysign``, ``nextafter``, ``modf``, ``ldexp``, ``frexp``
 
 **Notes**
 
@@ -150,8 +154,9 @@ which might actually be a bug in numpy): ``trace``, ``diagonal``, ``ravel``,
 These functions are thin wrappers around the numpy functions to correctly check
 for units and return quantities when appropriate:
 
-``log, exp, sin, cos, tan, arcsin, arccos, arctan, sinh, cosh, tanh, arcsinh,
-arccosh, arctanh, diagonal, ravel, trace, dot``
+``log``, ``exp``, ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, ``arctan``, ``sinh``, 
+``cosh``, ``tanh``, ``arcsinh``, ``arccosh``, ``arctanh``, ``diagonal``, ``ravel``, ``trace``, 
+``dot``
          
 **numpy functions that work unchanged**
 
@@ -159,8 +164,8 @@ This includes all functional counterparts of the methods mentioned above (with
 the exceptions mentioned above). Some other functions also work correctly, as
 they are only using functions/methods that work with quantities:
 
-* ``linspace, diff, digitize`` [1]_
-* ``trim_zeros, fliplr, flipud, roll, rot90, shuffle``
+* ``linspace``, ``diff``, ``digitize`` [1]_
+* ``trim_zeros``, ``fliplr``, ``flipud``, ``roll``, ``rot90``, ``shuffle``
 * ``corrcoeff`` [1]_
 
 .. [1] But does not care about the units of its input.
@@ -170,13 +175,13 @@ they are only using functions/methods that work with quantities:
 * ``arange``
 * ``cov``
 * ``random.permutation``
-* ``histogram, histogram2d``
-* ``cross, inner, outer``
+* ``histogram``, ``histogram2d``
+* ``cross``, ``inner``, ``outer``
 * ``where``
 
 **numpy functions that do something wrong**
 
-* ``insert, delete`` (return a quantity array but without units)
+* ``insert``, ``delete`` (return a quantity array but without units)
 * ``correlate`` (returns a quantity with wrong units)
 * ``histogramdd`` (raises a ``DimensionMismatchError``)
 
