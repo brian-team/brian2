@@ -1,6 +1,10 @@
 Brian2
 ======
 
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/brian-team/brian2
+   :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 *A clock-driven simulator for spiking neural networks*
 
 Brian is a free, open source simulator for spiking neural networks. It is written in the Python programming language and is available on almost all platforms. We believe that a simulator should not only save the time of processors, but also the time of scientists. Brian is therefore designed to be easy to learn and use, highly flexible and easily extensible.
