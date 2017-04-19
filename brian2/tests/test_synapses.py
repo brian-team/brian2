@@ -80,6 +80,17 @@ def test_name_clashes():
     assert_raises(ValueError, lambda: Synapses(G1, G2, 'a : 1'))
     assert_raises(ValueError, lambda: Synapses(G1, G2, 'b : 1'))
 
+    # Using _pre or _post as variable names is confusing (even if it is non-
+    # ambiguous in unconnected NeuronGroups)
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_pre : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_post : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_pre = 1 : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_post = 1 : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_pre : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_post : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_pre = 1 : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_post = 1 : 1'))
+
     # this should all be ok
     Synapses(G1, G2, 'c : 1')
     Synapses(G1, G2, 'a_syn : 1')
