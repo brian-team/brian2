@@ -69,18 +69,18 @@ con_ii.connect(p=epsilon)
 
 eqs_stdp_inhib = '''
 w : 1
-dA_pre/dt=-A_pre/tau_stdp : 1 (event-driven)
-dA_post/dt=-A_post/tau_stdp : 1 (event-driven)
+dApre/dt=-Apre/tau_stdp : 1 (event-driven)
+dApost/dt=-Apost/tau_stdp : 1 (event-driven)
 '''
 alpha = 3*Hz*tau_stdp*2  # Target rate parameter
 gmax = 100               # Maximum inhibitory weight
 
 con_ie = Synapses(Pi, Pe, model=eqs_stdp_inhib,
-                  on_pre='''A_pre += 1.
-                         w = clip(w+(A_post-alpha)*eta, 0, gmax)
+                  on_pre='''Apre += 1.
+                         w = clip(w+(Apost-alpha)*eta, 0, gmax)
                          g_gaba += w*nS''',
-                  on_post='''A_post += 1.
-                          w = clip(w+A_pre*eta, 0, gmax)
+                  on_post='''Apost += 1.
+                          w = clip(w+Apre*eta, 0, gmax)
                        ''')
 con_ie.connect(p=epsilon)
 con_ie.w = 1e-10
