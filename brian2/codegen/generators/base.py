@@ -216,27 +216,10 @@ class CodeGenerator(object):
                          if index not in ('_idx', '0'))
         return not all_unique
 
-    _translate_cache = {}
     def translate(self, code, dtype):
         '''
         Translates an abstract code block into the target language.
         '''
-        cache_key = _hashable([code, dtype, self.variables,
-                               self.variable_indices,
-                               self.override_conditional_write,
-                               self.allows_scalar_write,
-                               self.iterate_all,
-                               self.template_name,
-                               self.name,
-                               self.owner.name,
-                               {var.owner.name
-                                for var in self.variables.itervalues()
-                                if getattr(var, 'owner', None) is not None},
-                               prefs,
-                               self.__class__])
-        if cache_key in CodeGenerator._translate_cache:
-            return CodeGenerator._translate_cache[cache_key]
-
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.iteritems():
@@ -269,7 +252,5 @@ class CodeGenerator(object):
 
         translated = self.translate_statement_sequence(scalar_statements,
                                                        vector_statements)
-
-        CodeGenerator._translate_cache[cache_key] = translated
 
         return translated
