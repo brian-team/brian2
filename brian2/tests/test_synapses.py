@@ -312,6 +312,16 @@ def test_connection_random_with_condition():
     S17 = Synapses(G, G, 'w:1', 'v+=w')
     S17.connect('i!=j', p='j*0.1')
 
+    # Forces the use of the "jump algorithm"
+    big_group = NeuronGroup(10000, 'v: 1', threshold='False')
+    S18 = Synapses(big_group, big_group, 'w:1', 'v+=w')
+    S18.connect('i != j', p=0.001)
+
+    # See github issue #835 -- this failed when using numpy
+    S19 = Synapses(big_group, big_group, 'w:1', 'v+=w')
+    S19.connect('i < int(N_post*0.5)', p=0.001)
+
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 

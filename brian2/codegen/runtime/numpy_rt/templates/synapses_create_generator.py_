@@ -52,7 +52,7 @@ except:
                 # however it can't therefore give a jump size of 0, but we could have rand()<p for
                 # for the first array. Therefore we set start to the actual first place we'd like
                 # to see a hit minus one, allowing us to have start as the first hit.
-                jump = _numpy.array(_numpy.ceil(_numpy.log(_np_rand(m))*pconst), dtype=int)
+                jump = _numpy.array(_numpy.ceil(_numpy.log(_np_rand(m))*pconst), dtype=_numpy.int32)
                 jump[0] += start-1
                 samples = _numpy.cumsum(jump)
                 all_samples.append(samples)
