@@ -831,10 +831,17 @@ class CPPStandaloneDevice(Device):
                     x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
                                                                                         make_cmd,
                                                                                         make_args))
-                    if x!=0:
+                    if x != 0:
                         if os.path.exists('winmake.log'):
                             print open('winmake.log', 'r').read()
-                        raise RuntimeError("Project compilation failed")
+                        raise RuntimeError("Project compilation failed. "
+                                           "Note that this can happen when you "
+                                           "repeat the same simulation but "
+                                           "change details of the compilation "
+                                           "(e.g. OpenMP, optimization flags, "
+                                           "...). Use 'clean=True' in the "
+                                           "build or set_device call to "
+                                           "re-compile the full project.")
             else:
                 with std_silent(debug):
                     if clean:
@@ -844,8 +851,15 @@ class CPPStandaloneDevice(Device):
                     else:
                         make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
                         x = os.system('make %s' % (make_args, ))
-                    if x!=0:
-                        raise RuntimeError("Project compilation failed")
+                    if x != 0:
+                        raise RuntimeError("Project compilation failed. "
+                                           "Note that this can happen when you "
+                                           "repeat the same simulation but "
+                                           "change details of the compilation "
+                                           "(e.g. OpenMP, optimization flags, "
+                                           "...). Use 'clean=True' in the "
+                                           "build or set_device call to "
+                                           "re-compile the full project.")
 
     def seed(self, seed=None):
         '''
