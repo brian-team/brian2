@@ -909,7 +909,7 @@ class CPPStandaloneDevice(Device):
 
 
     def build(self, directory='output',
-              compile=True, run=True, debug=False, clean=True,
+              compile=True, run=True, debug=False, clean=False,
               with_output=True, additional_source_files=None,
               run_args=None, direct_call=True, **kwds):
         '''
@@ -939,7 +939,7 @@ class CPPStandaloneDevice(Device):
             Defaults to ``True``.
         clean : bool, optional
             Whether or not to clean the project before building. Defaults to
-            ``True``.
+            ``False``.
         additional_source_files : list of str, optional
             A list of additional ``.cpp`` files to include in the build.
         direct_call : bool, optional
