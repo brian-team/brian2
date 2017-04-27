@@ -75,30 +75,25 @@ void _init_arrays()
 	using namespace brian;
 
     // Arrays initialized to 0
-	{% for var in zero_arrays | sort(attribute='name') %}
-	{% if var in dynamic_array_specs %}
-	{% set varname = '_dynamic'+array_specs[var] %}
-	{% else %}
-	{% set varname = array_specs[var] %}
-	{% endif %}
+	{% for var, varname in zero_arrays | sort(attribute='1') %}
 	{% if varname in dynamic_array_specs.values() %}
 	{{varname}}.resize({{var.size}});
 	{% else %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
 	{% endif %}
-	{{ openmp_pragma('parallel-static') }}
+	{{ openmp_pragma('parallel-static') -}}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = 0;
+
 	{% endfor %}
 
 	// Arrays initialized to an "arange"
-	{% for var, start in arange_arrays %}
-	{% set varname = array_specs[var] %}
+	{% for var, varname, start in arange_arrays | sort(attribute='1')%}
 	{% if varname in dynamic_array_specs.values() %}
 	{{varname}}.resize({{var.size}});
 	{% else %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
 	{% endif %}
-	{{ openmp_pragma('parallel-static') }}
+	{{ openmp_pragma('parallel-static') -}}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
 	{% endfor %}
 

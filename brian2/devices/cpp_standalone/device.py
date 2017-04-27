@@ -140,11 +140,11 @@ class CPPStandaloneDevice(Device):
         #: Dictionary mapping `DynamicArrayVariable` objects with 2 dimensions
         #: to their globally unique name
         self.dynamic_arrays_2d = {}
-        #: List of all arrays to be filled with zeros
+        #: List of all arrays to be filled with zeros (list of (var, varname) )
         self.zero_arrays = []
-        #: Dictionary of all arrays to be filled with numbers (mapping
-        #: `ArrayVariable` objects to start value)
-        self.arange_arrays = {}
+        #: List of all arrays to be filled with numbers (list of
+        #: (var, varname, start) tuples
+        self.arange_arrays = []
 
         #: Whether the simulation has been run
         self.has_been_run = False
@@ -312,11 +312,19 @@ class CPPStandaloneDevice(Device):
             self.arrays[var] = array_name
 
     def init_with_zeros(self, var, dtype):
-        self.zero_arrays.append(var)
+        if isinstance(var, DynamicArrayVariable):
+            varname = '_dynamic' + self.arrays[var]
+        else:
+            varname = self.arrays[var]
+        self.zero_arrays.append((var, varname))
         self.array_cache[var] = np.zeros(var.size, dtype=dtype)
 
     def init_with_arange(self, var, start, dtype):
-        self.arange_arrays[var] = start
+        if isinstance(var, DynamicArrayVariable):
+            varname = '_dynamic' + self.arrays[var]
+        else:
+            varname = self.arrays[var]
+        self.arange_arrays.append((var, varname, start))
         self.array_cache[var] = np.arange(0, var.size, dtype=dtype) + start
 
     def fill_with_array(self, var, arr):
@@ -1012,10 +1020,6 @@ class CPPStandaloneDevice(Device):
 
         self.check_openmp_compatible(nb_threads)
 
-        arange_arrays = sorted([(var, start)
-                                for var, start in self.arange_arrays.iteritems()],
-                               key=lambda (var, start): var.name)
-
         self.write_static_arrays(directory)
         self.find_synapses()
 
@@ -1037,7 +1041,9 @@ class CPPStandaloneDevice(Device):
                              'standalone mode, the following name(s) were used '
                              'more than once: %s' % formatted_names)
 
-        self.generate_objects_source(writer, arange_arrays, self.net_synapses, self.static_array_specs, self.networks)
+        self.generate_objects_source(writer, self.arange_arrays,
+                                     self.net_synapses, self.static_array_specs,
+                                     self.networks)
         self.generate_main_source(writer)
         self.generate_codeobj_source(writer)
         self.generate_network_source(writer, compiler)
