@@ -81,7 +81,7 @@ void _init_arrays()
 	{% else %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
 	{% endif %}
-	{{ openmp_pragma('parallel-static') -}}
+    {{ openmp_pragma('parallel-static')}}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = 0;
 
 	{% endfor %}
@@ -93,8 +93,9 @@ void _init_arrays()
 	{% else %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
 	{% endif %}
-	{{ openmp_pragma('parallel-static') -}}
+    {{ openmp_pragma('parallel-static')}}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
+
 	{% endfor %}
 
 	// static arrays
