@@ -282,7 +282,6 @@ extern Clock {{clock.name}};
 {% endfor %}
 
 //////////////// networks /////////////////
-extern Network magicnetwork;
 {% for net in networks %}
 extern Network {{net.name}};
 {% endfor %}
