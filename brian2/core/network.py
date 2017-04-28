@@ -133,7 +133,8 @@ class ScheduleSummary(object):
                                                 'name', 'active'])
         self.entries = [ScheduleEntry(when=obj.when, order=obj.order,
                                       dt=obj.clock.dt, name=obj.name,
-                                      active=obj.active) for obj in objects]
+                                      active=obj.active) for obj in objects
+                        if not len(obj.contained_objects)]
 
     def __repr__(self):
         desc = []
