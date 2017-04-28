@@ -2118,7 +2118,7 @@ class UnitRegistry(object):
     __getitem__
     """
     def __init__(self):
-        self.units = {}
+        self.units = collections.OrderedDict()
         self.units_for_dimensions = collections.defaultdict(dict)
 
     def add(self, u):

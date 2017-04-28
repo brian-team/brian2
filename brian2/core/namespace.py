@@ -59,7 +59,7 @@ def _get_default_unit_namespace():
     namespace : dict
         The unit namespace
     '''
-    namespace = dict(standard_unit_register.units)
+    namespace = collections.OrderedDict(standard_unit_register.units)
     namespace.update(stdunits)
     # Include all "simple" units from additional_units, i.e. units like mliter
     # but not "newton * metre"

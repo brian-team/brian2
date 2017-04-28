@@ -202,8 +202,8 @@ def check_identifier_constants(identifier):
                          'variable name.' % identifier)
 
 
+_base_units_with_alternatives = None
 _base_units = None
-_single_base_units = None
 def dimensions_and_type_from_string(unit_string):
     '''
     Returns the physical dimensions that results from evaluating a string like
@@ -228,24 +228,30 @@ def dimensions_and_type_from_string(unit_string):
     '''
     # Lazy import to avoid circular dependency
     from brian2.core.namespace import DEFAULT_UNITS
-    global _base_units  # we only want to do this once
-    global _single_base_units
-
-    if _base_units is None:
+    global _base_units_with_alternatives
+    global _base_units
+    if _base_units_with_alternatives is None:
         base_units_for_dims = {}
-        _base_units = collections.OrderedDict()
-        for unit_name, unit in DEFAULT_UNITS.iteritems():
-            if float(unit) == 1.0:
-                _base_units[unit_name] = unit
-        # Go through it a second time -- we only want to display one unit per
-        # dimensionality to the user and don't bother displaying powered units
-        # (meter2, meter3, ...)
-        for unit in _base_units.itervalues():
-            if (unit.dim not in base_units_for_dims and
-                    repr(unit)[-1] not in ['2', '3']):
-                base_units_for_dims[unit.dim] = unit
-        _single_base_units = sorted([repr(unit)
-                                     for unit in base_units_for_dims.itervalues()])
+        for unit_name, unit in reversed(DEFAULT_UNITS.items()):
+            if float(unit) == 1.0 and repr(unit)[-1] not in ['2', '3']:
+                if unit.dim in base_units_for_dims:
+                    if unit_name not in base_units_for_dims[unit.dim]:
+                        base_units_for_dims[unit.dim].append(unit_name)
+                else:
+                    base_units_for_dims[unit.dim] = [repr(unit)]
+                    if unit_name != repr(unit):
+                        base_units_for_dims[unit.dim].append(unit_name)
+        alternatives = sorted([tuple(values) for values in base_units_for_dims.itervalues()])
+        _base_units = dict([(v, DEFAULT_UNITS[v])
+                            for values in alternatives for v in values])
+        # Create a string that lists all allowed base units
+        alternative_strings = []
+        for units in alternatives:
+            string = units[0]
+            if len(units) > 1:
+                string += ' ({other_units})'.format(other_units=', '.join(units[1:]))
+            alternative_strings.append(string)
+        _base_units_with_alternatives = ', '.join(alternative_strings)
 
     unit_string = unit_string.strip()
 
@@ -282,15 +288,12 @@ def dimensions_and_type_from_string(unit_string):
                                                      base_unit=repr(base_unit)))
             else:
                 # Not a known unit
-                allowed = ', '.join(_single_base_units)
                 raise ValueError(('Unit specification refers to '
                                   '"{identifier}", but this is not a base '
                                   'unit. The following base units are '
-                                  'allowed: {allowed_units} (plus some '
-                                  'variants of these, e.g. "Hz" instead of '
-                                  '"hertz", or "meter" instead of '
-                                  '"metre").').format(identifier=identifier,
-                                                      allowed_units=allowed))
+                                  'allowed: '
+                                  '{allowed_units}.').format(identifier=identifier,
+                                                             allowed_units=_base_units_with_alternatives))
     try:
         evaluated_unit = eval(unit_string, _base_units)
     except Exception as ex:
