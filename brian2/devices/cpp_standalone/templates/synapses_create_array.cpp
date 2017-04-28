@@ -34,15 +34,8 @@ for (int _idx=0; _idx<_numsources; _idx++) {
 
 // now we need to resize all registered variables
 const int newsize = {{_dynamic__synaptic_pre}}.size();
-{% set varnames %}
-{%- for variable in owner._registered_variables -%}
-{{ get_array_name(variable, access_data=False) }}
-{% endfor -%}
-{% endset %}
-{% for varname in varnames.split('\n') | sort %}
-{% if varname %}
+{% for varname in owner._registered_variables | variables_to_array_names(access_data=False) | sort %}
 {{varname}}.resize(newsize);
-{% endif %}
 {% endfor %}
 // Also update the total number of synapses
 {{N}} = newsize;
