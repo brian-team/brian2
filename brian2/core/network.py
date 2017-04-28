@@ -130,11 +130,14 @@ class ScheduleSummary(object):
                                           for obj in objects})))
         ScheduleEntry = namedtuple('ScheduleEntry',
                                    field_names=['when', 'order', 'dt',
-                                                'name', 'active'])
+                                                'name', 'active', 'owner_name',
+                                                'owner_type'])
         self.entries = [ScheduleEntry(when=obj.when, order=obj.order,
                                       dt=obj.clock.dt, name=obj.name,
-                                      active=obj.active) for obj in objects
-                        if not len(obj.contained_objects)]
+                                      active=obj.active,
+                                      owner_name=obj.group.name,
+                                      owner_type=obj.group.__class__.__name__)
+                        for obj in objects if not len(obj.contained_objects)]
 
     def __repr__(self):
         desc = []
@@ -146,29 +149,35 @@ class ScheduleSummary(object):
                            len('when')])
         name_length = max([max(len(entry.name) for entry in self.entries),
                           len('name')])
+        group_length = max([max(len(entry.owner_name) + len(entry.owner_type) for entry in self.entries) + 3,
+                          len('belongs to')])
         order_length = len('order')
-        total_length = dt_length + 3 + when_length + 3 + order_length + 3 + name_length + 3
+        total_length = 1 + dt_length + 3 + when_length + 3 + order_length + 3 + name_length + 3 + group_length + 3
         for entry in self.entries:
-            padding = '  '*self.dts[float(entry.dt)]
-            row = ('{padding}{dt:<%d} | {when:<%d} | {order: d}{order_padding:<%d} | {name:<%d}'
-                   ' | {notactive}') % (dt_length-len(padding),
+            dt_padding = '  '*self.dts[float(entry.dt)]
+            row = ('| {dt_padding}{dt:<%d} | {when:<%d} | {order: d}{padding:<%d} | {name:<%d}'
+                   ' | {owner_name} ({owner_type}){padding:<%d} | {notactive}') % (dt_length-len(dt_padding),
                                       when_length,
                                       order_length-2,
-                                      name_length)
-            desc.append(row.format(padding=padding,
+                                      name_length,
+                                      group_length-len(entry.owner_name)-len(entry.owner_type)-3)
+            desc.append(row.format(dt_padding=dt_padding,
                                    dt=entry.dt,
                                    when=entry.when,
                                    order=entry.order,
-                                   order_padding='',
+                                   padding='',
                                    name=entry.name,
+                                   owner_name=entry.owner_name,
+                                   owner_type=entry.owner_type,
                                    notactive='(inactive)'
                                              if not entry.active else ''))
-        header = '{:<%d} | {:<%d} | {:<%d} | {:<%d} |' % (dt_length,
+        header = '| {:<%d} | {:<%d} | {:<%d} | {:<%d} | {:<%d} |' % (dt_length,
                                                         when_length,
                                                         order_length,
-                                                        name_length)
-        header = header.format('Clock dt', 'when', 'order', 'name')
-        return '\n'.join([header] + ['-' * total_length] + desc)
+                                                        name_length,
+                                                        group_length)
+        header = header.format('Clock dt', 'when', 'order', 'name', 'belongs to')
+        return '\n'.join([header, '-' * total_length] + desc + ['-' * total_length])
 
 
 class Network(Nameable):
