@@ -132,9 +132,15 @@
 
 	// now we need to resize all registered variables
 	const int32_t newsize = {{_dynamic__synaptic_pre}}.size();
-	{% for variable in owner._registered_variables | sort(attribute='name') %}
-	{% set varname = get_array_name(variable, access_data=False) %}
+	{% set varnames %}
+	{%- for variable in owner._registered_variables -%}
+	{{ get_array_name(variable, access_data=False) }}
+	{% endfor -%}
+	{% endset %}
+	{% for varname in varnames.split('\n') | sort %}
+	{% if varname %}
 	{{varname}}.resize(newsize);
+	{% endif %}
 	{% endfor %}
 	// Also update the total number of synapses
 	{{N}} = newsize;

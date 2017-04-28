@@ -278,12 +278,12 @@ namespace brian {
 extern std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// clocks ///////////////////
-{% for clock in clocks %}
+{% for clock in clocks | sort(attribute='name') %}
 extern Clock {{clock.name}};
 {% endfor %}
 
 //////////////// networks /////////////////
-{% for net in networks %}
+{% for net in networks | sort(attribute='name') %}
 extern Network {{net.name}};
 {% endfor %}
 
@@ -306,7 +306,7 @@ extern DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
-{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
+{% for (name, dtype_spec, N, filename) in static_array_specs | sort(attribute='0') %}
 {# arrays that are initialized from static data are already declared #}
 {% if not (name in array_specs.values() or name in dynamic_array_specs.values() or name in dynamic_array_2d_specs.values())%}
 extern {{dtype_spec}} *{{name}};

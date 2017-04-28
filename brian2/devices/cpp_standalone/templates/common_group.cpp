@@ -8,7 +8,7 @@
 #include<fstream>
 {% block extra_headers %}
 {% endblock %}
-{% for name in user_headers %}
+{% for name in user_headers | sort %}
 #include {{name}}
 {% endfor %}
 
@@ -21,7 +21,7 @@ namespace {
 {{hashdefine_lines|autoindent}}
 
 void _run_{{codeobj_name}}()
-{	
+{
 	using namespace brian;
 
     {% if openmp_pragma('with_openmp') %}
