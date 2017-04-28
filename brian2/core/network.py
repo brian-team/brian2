@@ -25,7 +25,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.namespace import get_local_namespace
 from .base import device_override
 
-__all__ = ['Network', 'profiling_summary']
+__all__ = ['Network', 'profiling_summary', 'scheduling_summary']
 
 
 logger = get_logger(__name__)
@@ -118,7 +118,7 @@ class TextReport(object):
         self.stream.flush()
 
 
-class ScheduleSummary(object):
+class SchedulingSummary(object):
     '''
     Object representing the schedule that is used to simulate the objects in a
     network. Can also be visualized nicely.
@@ -130,10 +130,11 @@ class ScheduleSummary(object):
                                           for obj in objects})))
         ScheduleEntry = namedtuple('ScheduleEntry',
                                    field_names=['when', 'order', 'dt',
-                                                'name', 'active', 'owner_name',
-                                                'owner_type'])
+                                                'name', 'type', 'active',
+                                                'owner_name', 'owner_type'])
         self.entries = [ScheduleEntry(when=obj.when, order=obj.order,
                                       dt=obj.clock.dt, name=obj.name,
+                                      type=obj.__class__.__name__,
                                       active=obj.active,
                                       owner_name=obj.group.name,
                                       owner_type=obj.group.__class__.__name__)
@@ -147,19 +148,19 @@ class ScheduleSummary(object):
                          len('Clock dt')])
         when_length = max([max(len(entry.when) for entry in self.entries),
                            len('when')])
-        name_length = max([max(len(entry.name) for entry in self.entries),
-                          len('name')])
+        name_length = max([max(len(entry.name) + len(entry.type) for entry in self.entries) + 3,
+                          len('object')])
         group_length = max([max(len(entry.owner_name) + len(entry.owner_type) for entry in self.entries) + 3,
                           len('belongs to')])
         order_length = len('order')
         total_length = 1 + dt_length + 3 + when_length + 3 + order_length + 3 + name_length + 3 + group_length + 3
         for entry in self.entries:
             dt_padding = '  '*self.dts[float(entry.dt)]
-            row = ('| {dt_padding}{dt:<%d} | {when:<%d} | {order: d}{padding:<%d} | {name:<%d}'
+            row = ('| {dt_padding}{dt:<%d} | {when:<%d} | {order: d}{padding:<%d} | {name} ({type}){padding:<%d}'
                    ' | {owner_name} ({owner_type}){padding:<%d} | {notactive}') % (dt_length-len(dt_padding),
                                       when_length,
                                       order_length-2,
-                                      name_length,
+                                      name_length-len(entry.name)-len(entry.type)-3,
                                       group_length-len(entry.owner_name)-len(entry.owner_type)-3)
             desc.append(row.format(dt_padding=dt_padding,
                                    dt=entry.dt,
@@ -167,6 +168,7 @@ class ScheduleSummary(object):
                                    order=entry.order,
                                    padding='',
                                    name=entry.name,
+                                   type=entry.type,
                                    owner_name=entry.owner_name,
                                    owner_type=entry.owner_type,
                                    notactive='(inactive)'
@@ -176,7 +178,7 @@ class ScheduleSummary(object):
                                                         order_length,
                                                         name_length,
                                                         group_length)
-        header = header.format('Clock dt', 'when', 'order', 'name', 'belongs to')
+        header = header.format('Clock dt', 'when', 'order', 'object', 'belongs to')
         return '\n'.join([header, '-' * total_length] + desc + ['-' * total_length])
 
 
@@ -671,9 +673,9 @@ class Network(Nameable):
                                            obj.order,
                                            obj.name))
 
-    def schedule_summary(self):
+    def scheduling_summary(self):
         self._sort_objects()
-        return ScheduleSummary(self.objects)
+        return SchedulingSummary(self.objects)
 
     def check_dependencies(self):
         all_ids = [obj.id for obj in self.objects]
@@ -1066,6 +1068,13 @@ def profiling_summary(net=None, show=None):
         from .magic import magic_network
         net = magic_network
     return ProfilingSummary(net, show)
+
+
+def scheduling_summary(net=None):
+    if net is None:
+        from .magic import collect
+        net = Network(collect(level=1))
+    return net.scheduling_summary()
 
 
 def schedule_propagation_offset(net=None):
