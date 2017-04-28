@@ -834,14 +834,13 @@ class CPPStandaloneDevice(Device):
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             print open('winmake.log', 'r').read()
-                        raise RuntimeError("Project compilation failed. "
-                                           "Note that this can happen when you "
-                                           "repeat the same simulation but "
-                                           "change details of the compilation "
-                                           "(e.g. OpenMP, optimization flags, "
-                                           "...). Use 'clean=True' in the "
-                                           "build or set_device call to "
-                                           "re-compile the full project.")
+                        error_message = ('Project compilation failed (error '
+                                         'code: %u).') % x
+                        if not clean:
+                            error_message += (' Consider running with ' 
+                                             '"clean=True" to force a complete '
+                                              'rebuild.')
+                        raise RuntimeError(error_message)
             else:
                 with std_silent(debug):
                     if clean:
@@ -852,14 +851,13 @@ class CPPStandaloneDevice(Device):
                         make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
                         x = os.system('make %s' % (make_args, ))
                     if x != 0:
-                        raise RuntimeError("Project compilation failed. "
-                                           "Note that this can happen when you "
-                                           "repeat the same simulation but "
-                                           "change details of the compilation "
-                                           "(e.g. OpenMP, optimization flags, "
-                                           "...). Use 'clean=True' in the "
-                                           "build or set_device call to "
-                                           "re-compile the full project.")
+                        error_message = ('Project compilation failed (error '
+                                         'code: %u).') % x
+                        if not clean:
+                            error_message += (' Consider running with ' 
+                                             '"clean=True" to force a complete '
+                                              'rebuild.')
+                        raise RuntimeError(error_message)
 
     def seed(self, seed=None):
         '''
