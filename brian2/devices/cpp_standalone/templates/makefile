@@ -19,7 +19,7 @@ debug: $(PROGRAM)
 
 .PHONY: all debug clean
 
-$(PROGRAM): $(OBJS) $(DEPS)
+$(PROGRAM): $(OBJS) $(DEPS) makefile
 	$(CC) $(OBJS) -o $(PROGRAM) $(LFLAGS)
 
 clean:
@@ -32,5 +32,5 @@ ifneq ($(wildcard $(DEPS)), )
 include $(DEPS)
 endif
 
-%.o : %.cpp
+%.o : %.cpp makefile
 	$(CC) $(CFLAGS) $< -o $@

@@ -5,11 +5,11 @@ clean:
     del *.exe /s
 
 {% for fname, base in zip(source_files, source_bases) %}
-{{base}}.obj:
+{{base}}.obj: win_makefile
     cl /c /EHsc /I. {{compiler_flags}} {{openmp_flag}} {{fname}} /Fo{{base}}.obj
     
 {% endfor %}
 
-main.exe: {% for base in source_bases %}{{base}}.obj {% endfor %}
+main.exe: {% for base in source_bases %}{{base}}.obj {% endfor %} win_makefile
 
     link {% for base in source_bases %}{{base}}.obj {% endfor %} {{linker_flags}} /OUT:main.exe
