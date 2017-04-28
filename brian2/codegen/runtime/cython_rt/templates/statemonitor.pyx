@@ -16,7 +16,7 @@
 
     cdef int _i
 
-    {% for varname, var in _recorded_variables.items() %}
+    {% for varname, var in _recorded_variables | dictsort %}
     {% set c_type = cpp_dtype(variables[varname].dtype) %}
     {% set np_type = numpy_dtype(variables[varname].dtype) %}
     # Resize the recorded variable "{{varname}}" and get the (potentially
