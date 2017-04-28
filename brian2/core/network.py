@@ -10,7 +10,7 @@ Preferences
 import os
 import sys
 import time
-from collections import defaultdict, Sequence, Counter, Mapping
+from collections import defaultdict, Sequence, Counter, Mapping, namedtuple
 import cPickle as pickle
 
 from brian2.utils.logger import get_logger
@@ -116,6 +116,58 @@ class TextReport(object):
 
         # Flush the stream, this is useful if stream is a file
         self.stream.flush()
+
+
+class ScheduleSummary(object):
+    '''
+    Object representing the schedule that is used to simulate the objects in a
+    network. Can also be visualized nicely.
+    '''
+    def __init__(self, objects):
+        # Map each dt to a rank (i.e. smallest dt=0, second smallest=1, etc.)
+        self.dts = dict((dt, rank) for rank, dt in
+                        enumerate(sorted({float(obj.clock.dt)
+                                          for obj in objects})))
+        ScheduleEntry = namedtuple('ScheduleEntry',
+                                   field_names=['when', 'order', 'dt',
+                                                'name', 'active'])
+        self.entries = [ScheduleEntry(when=obj.when, order=obj.order,
+                                      dt=obj.clock.dt, name=obj.name,
+                                      active=obj.active) for obj in objects]
+
+    def __repr__(self):
+        desc = []
+        # Get the lengths of all elements to display proper columns
+        dt_length = max([max(len(str(entry.dt))
+                         for entry in self.entries) + 2*max(self.dts.values()),
+                         len('Clock dt')])
+        when_length = max([max(len(entry.when) for entry in self.entries),
+                           len('when')])
+        name_length = max([max(len(entry.name) for entry in self.entries),
+                          len('name')])
+        order_length = len('order')
+        total_length = dt_length + 3 + when_length + 3 + order_length + 3 + name_length + 3
+        for entry in self.entries:
+            padding = '  '*self.dts[float(entry.dt)]
+            row = ('{padding}{dt:<%d} | {when:<%d} | {order: d}{order_padding:<%d} | {name:<%d}'
+                   ' | {notactive}') % (dt_length-len(padding),
+                                      when_length,
+                                      order_length-2,
+                                      name_length)
+            desc.append(row.format(padding=padding,
+                                   dt=entry.dt,
+                                   when=entry.when,
+                                   order=entry.order,
+                                   order_padding='',
+                                   name=entry.name,
+                                   notactive='(inactive)'
+                                             if not entry.active else ''))
+        header = '{:<%d} | {:<%d} | {:<%d} | {:<%d} |' % (dt_length,
+                                                        when_length,
+                                                        order_length,
+                                                        name_length)
+        header = header.format('Clock dt', 'when', 'order', 'name')
+        return '\n'.join([header] + ['-' * total_length] + desc)
 
 
 class Network(Nameable):
@@ -608,6 +660,10 @@ class Network(Nameable):
         self.objects.sort(key=lambda obj: (when_to_int[obj.when],
                                            obj.order,
                                            obj.name))
+
+    def schedule_summary(self):
+        self._sort_objects()
+        return ScheduleSummary(self.objects)
 
     def check_dependencies(self):
         all_ids = [obj.id for obj in self.objects]
