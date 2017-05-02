@@ -155,17 +155,59 @@ class SchedulingSummary(object):
                                       owner_name=obj.group.name,
                                       owner_type=obj.group.__class__.__name__)
                         for obj in objects if not len(obj.contained_objects)]
+        self.all_dts = sorted({float(entry.dt) for entry in self.entries})
+        # How many steps compared to the fastest clock?
+        self.steps = {float(dt): int(dt / self.all_dts[0]) for dt in self.all_dts}
 
     def __repr__(self):
         return _format_table(['object', 'part of', 'Clock dt', 'when', 'order', 'active'],
                              [['{} ({})'.format(entry.name, entry.type),
                                '{} ({})'.format(entry.owner_name, entry.owner_type),
-                               entry.dt,
+                               '{} (every {})'.format(entry.dt,
+                                                     'step' if self.steps[float(entry.dt)] == 1
+                                                     else '{} steps'.format(self.steps[float(entry.dt)])),
                                entry.when,
                                entry.order,
                                'yes' if entry.active else 'no'] for entry in self.entries],
                              ['{:<{}}', '{:<{}}', '{:<{}}', '{:<{}}', '{:{}d}', '{:^{}}'])
 
+    def _repr_html_(self):
+        rows = ['''\
+        <tr>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: right;">{}</td>
+            <td style="text-align: center;">{}</td>
+        </tr>
+        '''.format('<b>{}</b> (<em>{}</em>)'.format(entry.name, entry.type),
+                   '{} (<em>{}</em>)'.format(entry.owner_name, entry.owner_type),
+                   '{} (every {})'.format(entry.dt,
+                                          'step' if self.steps[float(entry.dt)] == 1
+                                          else '{} steps'.format(self.steps[float(entry.dt)])),
+                   entry.when,
+                   entry.order,
+                   'yes' if entry.active else 'no')
+                for entry in self.entries]
+        html_code = '''
+        <table>
+        <thead>
+        <tr>
+            <th style="text-align: center;">object</th>
+            <th style="text-align: center;">part of</th>
+            <th style="text-align: center;">Clock dt</th>
+            <th style="text-align: center;">when</th>
+            <th style="text-align: center;">order</th>
+            <th style="text-align: center;">active</th>
+        </tr>
+        </thead>
+        <tbody>
+{rows}
+        </tbody>
+        </table>
+        '''.format(rows='\n'.join(rows))
+        return html_code
 
 class Network(Nameable):
     '''
