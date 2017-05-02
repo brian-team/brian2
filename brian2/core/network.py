@@ -118,6 +118,22 @@ class TextReport(object):
         self.stream.flush()
 
 
+def _format_table(header, values, cell_formats):
+    # table = [header] + values
+    table_format = len(values)*[cell_formats]
+    col_widths = [max(len(format.format(cell, 0))
+                      for format, cell in zip(col_format, col))
+                  for col_format, col in zip(zip(*([len(header)*['{}']] + table_format)),
+                                             zip(*([header] + values)))]
+    line = '-+-'.join('-'*width for width in col_widths)
+    content = [' | '.join(format.format(cell, width)
+                          for format, cell, width in zip(row_format, row, col_widths))
+               for row_format, row in zip(table_format, values)]
+    formatted_header = ' | '.join('{:^{}}'.format(h, width) for h, width in zip(header, col_widths))
+
+    return '\n'.join([formatted_header, line] + content)
+
+
 class SchedulingSummary(object):
     '''
     Object representing the schedule that is used to simulate the objects in a
@@ -141,45 +157,14 @@ class SchedulingSummary(object):
                         for obj in objects if not len(obj.contained_objects)]
 
     def __repr__(self):
-        desc = []
-        # Get the lengths of all elements to display proper columns
-        dt_length = max([max(len(str(entry.dt))
-                         for entry in self.entries) + 2*max(self.dts.values()),
-                         len('Clock dt')])
-        when_length = max([max(len(entry.when) for entry in self.entries),
-                           len('when')])
-        name_length = max([max(len(entry.name) + len(entry.type) for entry in self.entries) + 3,
-                          len('object')])
-        group_length = max([max(len(entry.owner_name) + len(entry.owner_type) for entry in self.entries) + 3,
-                          len('belongs to')])
-        order_length = len('order')
-        total_length = 1 + dt_length + 3 + when_length + 3 + order_length + 3 + name_length + 3 + group_length + 3
-        for entry in self.entries:
-            dt_padding = '  '*self.dts[float(entry.dt)]
-            row = ('| {dt_padding}{dt:<%d} | {when:<%d} | {order: d}{padding:<%d} | {name} ({type}){padding:<%d}'
-                   ' | {owner_name} ({owner_type}){padding:<%d} | {notactive}') % (dt_length-len(dt_padding),
-                                      when_length,
-                                      order_length-2,
-                                      name_length-len(entry.name)-len(entry.type)-3,
-                                      group_length-len(entry.owner_name)-len(entry.owner_type)-3)
-            desc.append(row.format(dt_padding=dt_padding,
-                                   dt=entry.dt,
-                                   when=entry.when,
-                                   order=entry.order,
-                                   padding='',
-                                   name=entry.name,
-                                   type=entry.type,
-                                   owner_name=entry.owner_name,
-                                   owner_type=entry.owner_type,
-                                   notactive='(inactive)'
-                                             if not entry.active else ''))
-        header = '| {:<%d} | {:<%d} | {:<%d} | {:<%d} | {:<%d} |' % (dt_length,
-                                                        when_length,
-                                                        order_length,
-                                                        name_length,
-                                                        group_length)
-        header = header.format('Clock dt', 'when', 'order', 'object', 'belongs to')
-        return '\n'.join([header, '-' * total_length] + desc + ['-' * total_length])
+        return _format_table(['object', 'part of', 'Clock dt', 'when', 'order', 'active'],
+                             [['{} ({})'.format(entry.name, entry.type),
+                               '{} ({})'.format(entry.owner_name, entry.owner_type),
+                               entry.dt,
+                               entry.when,
+                               entry.order,
+                               'yes' if entry.active else 'no'] for entry in self.entries],
+                             ['{:<{}}', '{:<{}}', '{:<{}}', '{:<{}}', '{:{}d}', '{:^{}}'])
 
 
 class Network(Nameable):
