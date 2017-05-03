@@ -10,6 +10,8 @@ New features
   few useful abbreviations such as `mM`) have been added as new units (#574).
 * A new module `brian2.units.constants` provides physical constants such as the
   Faraday constants or the gas constant (see :ref:`constants` for details).
+* `SpatialNeuron` now supports non-linear membrane currents (e.g.
+  Goldman–Hodgkin–Katz equations) by linearizing them with respect to v.
 * Anaconda packages for Brian 2 are now available for Python 3.6 (but Python 3.4
   support has been removed).
 
