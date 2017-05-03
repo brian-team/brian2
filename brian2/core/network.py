@@ -1099,8 +1099,9 @@ def profiling_summary(net=None, show=None):
 
 def scheduling_summary(net=None):
     if net is None:
-        from .magic import collect
-        net = Network(collect(level=1))
+        from .magic import magic_network
+        magic_network._update_magic_objects(level=1)
+        net = magic_network
     return net.scheduling_summary()
 
 
