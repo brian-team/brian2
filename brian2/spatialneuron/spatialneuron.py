@@ -307,6 +307,11 @@ class SpatialNeuron(NeuronGroup):
         v_sympy = sp.Symbol('v', real=True)
         diffed = sp.diff(Im_sympy_exp, v_sympy)
 
+        unevaled_derivatives = diffed.atoms(sp.Derivative)
+        if len(unevaled_derivatives):
+            raise TypeError('Cannot take the derivative of "{Im}" with respect '
+                            'to v.'.format(Im=Im_expr.code))
+
         gtot_str = sympy_to_str(sp.simplify(-diffed))
         I0_str = sympy_to_str(sp.simplify(Im_sympy_exp - diffed*v_sympy))
 

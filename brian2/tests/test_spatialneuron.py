@@ -566,6 +566,10 @@ def test_allowed_integration():
     VT = -50.4 * mV
     DeltaT = 2 * mV
     ENMDA = 0. * mV
+
+    @check_units(voltage=volt, result=volt)
+    def user_fun(voltage):
+        return voltage  # could be an arbitrary function and is therefore unsafe
     allowed_eqs = ['Im = gL*(EL-v) : amp/meter**2',
                    '''Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) : amp/meter**2
                       dm/dt = alpham * (1-m) - betam * m : 1
@@ -596,9 +600,11 @@ def test_allowed_integration():
                    I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
                    gNMDA : siemens
                    Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1
-                   '''
+                   ''',
                    ]
     forbidden_eqs = [
+                    '''Im = gl * (El-v + user_fun(v)) : amp/meter**2''',
+                    '''Im = gl * clip(El-v, -100*mV, 100*mV) : amp/meter**2''',
                     ]
     for eqs in allowed_eqs:
         # Should not raise an error
