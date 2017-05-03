@@ -137,7 +137,13 @@ def _format_table(header, values, cell_formats):
 class SchedulingSummary(object):
     '''
     Object representing the schedule that is used to simulate the objects in a
-    network. Can also be visualized nicely.
+    network. Objects of this type are returned by `scheduling_summary`, they
+    should not be created manually by the user.
+    
+    Parameters
+    ----------
+    objects : list of `BrianObject`
+        The sorted list of objects that are simulated by the network.
     '''
     def __init__(self, objects):
         # Map each dt to a rank (i.e. smallest dt=0, second smallest=1, etc.)
@@ -208,6 +214,7 @@ class SchedulingSummary(object):
         </table>
         '''.format(rows='\n'.join(rows))
         return html_code
+
 
 class Network(Nameable):
     '''
@@ -701,6 +708,15 @@ class Network(Nameable):
                                            obj.name))
 
     def scheduling_summary(self):
+        '''
+        Return a `SchedulingSummary` object, representing the scheduling
+        information for all objects included in the network.
+        
+        Returns
+        -------
+        summary : `SchedulingSummary`
+            Object representing the scheduling information.
+        '''
         self._sort_objects()
         return SchedulingSummary(self.objects)
 
@@ -1098,6 +1114,25 @@ def profiling_summary(net=None, show=None):
 
 
 def scheduling_summary(net=None):
+    '''
+    Returns a `SchedulingSummary` object, representing the scheduling
+    information for all objects included in the given `Network` (or the
+    "magic" network, if none is specified). The returned objects can be
+    printed or converted to a string to give an ASCII table representation of
+    the schedule. In a Jupyter notebook, the output can be displayed as a
+    HTML table.
+
+    Parameters
+    ----------
+    net : `Network`, optional
+        The network for which the scheduling information should be displayed.
+        Defaults to the "magic" network.
+
+    Returns
+    -------
+    summary : `SchedulingSummary`
+        An object that represents the scheduling information.
+    '''
     if net is None:
         from .magic import magic_network
         magic_network._update_magic_objects(level=1)
