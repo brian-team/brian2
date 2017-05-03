@@ -10,6 +10,8 @@ New features
   few useful abbreviations such as `mM`) have been added as new units (#574).
 * A new module `brian2.units.constants` provides physical constants such as the
   Faraday constants or the gas constant (see :ref:`constants` for details).
+* A new function `scheduling_summary` that displays information about the
+  scheduling of all objects (see :ref:`scheduling` for details).
 * Anaconda packages for Brian 2 are now available for Python 3.6 (but Python 3.4
   support has been removed).
 
