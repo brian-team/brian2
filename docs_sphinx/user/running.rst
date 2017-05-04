@@ -282,7 +282,7 @@ To see how the objects in a network are scheduled, you can use the
 `scheduling_summary` function::
 
     >>> group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v > 1',
-                            reset='v = 0')
+    ...                     reset='v = 0')
     >>> mon = StateMonitor(group, 'v', record=True, dt=1*ms)
     >>> scheduling_summary()
                     object                  |           part of           |        Clock dt        |    when    | order | active
