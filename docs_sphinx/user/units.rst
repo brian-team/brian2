@@ -119,7 +119,7 @@ absolute temperatures
           temperatures. To avoid confusion and possible misinterpretation,
           the ``celsius`` unit has therefore been removed.
 
-.. _constants::
+.. _constants:
 
 Constants
 ---------

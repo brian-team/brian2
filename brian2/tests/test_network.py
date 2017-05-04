@@ -3,6 +3,7 @@ import copy
 import logging
 import tempfile
 import os
+import uuid
 
 import numpy as np
 from numpy.testing import assert_equal, assert_raises
@@ -18,7 +19,7 @@ from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs, profiling_summary, Quantity)
-from brian2.core.network import schedule_propagation_offset
+from brian2.core.network import schedule_propagation_offset, scheduling_summary
 from brian2.devices.device import (reinit_devices, Device, all_devices,
                                    set_device, get_device, reset_device, device)
 from brian2.utils.logger import catch_logs
@@ -265,6 +266,94 @@ def test_schedule_warning():
         net.run(0*ms)
         assert len(l) == 1 and l[0][1].endswith('schedule_conflict')
     reset_device(previous_device)
+
+
+@attr('codegen-independent')
+def test_scheduling_summary_magic():
+    basename = 'name' + str(uuid.uuid4()).replace('-', '_')
+    group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
+                        reset='v=1', name=basename)
+    group.run_regularly('v = rand()', dt=defaultclock.dt*10, when='end')
+    state_mon = StateMonitor(group, 'v', record=True, name=basename+'_sm')
+    inactive_state_mon = StateMonitor(group, 'v', record=True,
+                                      name=basename+'_sm_ia', when='after_end')
+    inactive_state_mon.active = False
+    summary_before = scheduling_summary()
+    assert [entry.name for entry in summary_before.entries] == [basename+'_sm',
+                                                                basename+'_stateupdater',
+                                                                basename+'_thresholder',
+                                                                basename+'_resetter',
+                                                                basename+'_run_regularly',
+                                                                basename+'_sm_ia']
+    assert [entry.when for entry in summary_before.entries] == ['start',
+                                                                'groups',
+                                                                'thresholds',
+                                                                'resets',
+                                                                'end',
+                                                                'after_end']
+    assert [entry.dt for entry in summary_before.entries] == [defaultclock.dt,
+                                                              defaultclock.dt,
+                                                              defaultclock.dt,
+                                                              defaultclock.dt,
+                                                              defaultclock.dt*10,
+                                                              defaultclock.dt]
+    assert [entry.active for entry in summary_before.entries] == [True,
+                                                                  True,
+                                                                  True,
+                                                                  True,
+                                                                  True,
+                                                                  False]
+    assert len(str(summary_before))
+    assert len(summary_before._repr_html_())
+    run(defaultclock.dt)
+    summary_after = scheduling_summary()
+    assert str(summary_after) == str(summary_before)
+    assert summary_after._repr_html_() == summary_before._repr_html_()
+
+
+@attr('codegen-independent')
+def test_scheduling_summary():
+    basename = 'name' + str(uuid.uuid4()).replace('-', '_')
+    group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
+                        reset='v=1', name=basename)
+    group.run_regularly('v = rand()', dt=defaultclock.dt * 10, when='end')
+    state_mon = StateMonitor(group, 'v', record=True, name=basename + '_sm')
+    inactive_state_mon = StateMonitor(group, 'v', record=True,
+                                      name=basename + '_sm_ia',
+                                      when='after_end')
+    inactive_state_mon.active = False
+    net = Network(group, state_mon, inactive_state_mon)
+    summary_before = scheduling_summary(net)
+    assert [entry.name for entry in summary_before.entries] == [basename+'_sm',
+                                                                basename+'_stateupdater',
+                                                                basename+'_thresholder',
+                                                                basename+'_resetter',
+                                                                basename+'_run_regularly',
+                                                                basename+'_sm_ia']
+    assert [entry.when for entry in summary_before.entries] == ['start',
+                                                                'groups',
+                                                                'thresholds',
+                                                                'resets',
+                                                                'end',
+                                                                'after_end']
+    assert [entry.dt for entry in summary_before.entries] == [defaultclock.dt,
+                                                              defaultclock.dt,
+                                                              defaultclock.dt,
+                                                              defaultclock.dt,
+                                                              defaultclock.dt*10,
+                                                              defaultclock.dt]
+    assert [entry.active for entry in summary_before.entries] == [True,
+                                                                  True,
+                                                                  True,
+                                                                  True,
+                                                                  True,
+                                                                  False]
+    assert len(str(summary_before))
+    assert len(summary_before._repr_html_())
+    run(defaultclock.dt)
+    summary_after = scheduling_summary(net)
+    assert str(summary_after) == str(summary_before)
+    assert summary_after._repr_html_() == summary_before._repr_html_()
 
 
 class Preparer(BrianObject):
@@ -1275,6 +1364,8 @@ if __name__ == '__main__':
             test_network_custom_slots,
             test_network_incorrect_schedule,
             test_schedule_warning,
+            test_scheduling_summary_magic,
+            test_scheduling_summary,
             test_magic_network,
             test_network_stop,
             test_network_operations,
