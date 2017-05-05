@@ -10,7 +10,7 @@ Preferences
 import os
 import sys
 import time
-from collections import defaultdict, Sequence, Counter, Mapping
+from collections import defaultdict, Sequence, Counter, Mapping, namedtuple
 import cPickle as pickle
 
 from brian2.utils.logger import get_logger
@@ -25,7 +25,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.namespace import get_local_namespace
 from .base import device_override
 
-__all__ = ['Network', 'profiling_summary']
+__all__ = ['Network', 'profiling_summary', 'scheduling_summary']
 
 
 logger = get_logger(__name__)
@@ -116,6 +116,104 @@ class TextReport(object):
 
         # Flush the stream, this is useful if stream is a file
         self.stream.flush()
+
+
+def _format_table(header, values, cell_formats):
+    # table = [header] + values
+    table_format = len(values)*[cell_formats]
+    col_widths = [max(len(format.format(cell, 0))
+                      for format, cell in zip(col_format, col))
+                  for col_format, col in zip(zip(*([len(header)*['{}']] + table_format)),
+                                             zip(*([header] + values)))]
+    line = '-+-'.join('-'*width for width in col_widths)
+    content = [' | '.join(format.format(cell, width)
+                          for format, cell, width in zip(row_format, row, col_widths))
+               for row_format, row in zip(table_format, values)]
+    formatted_header = ' | '.join('{:^{}}'.format(h, width) for h, width in zip(header, col_widths))
+
+    return '\n'.join([formatted_header, line] + content)
+
+
+class SchedulingSummary(object):
+    '''
+    Object representing the schedule that is used to simulate the objects in a
+    network. Objects of this type are returned by `scheduling_summary`, they
+    should not be created manually by the user.
+    
+    Parameters
+    ----------
+    objects : list of `BrianObject`
+        The sorted list of objects that are simulated by the network.
+    '''
+    def __init__(self, objects):
+        # Map each dt to a rank (i.e. smallest dt=0, second smallest=1, etc.)
+        self.dts = dict((dt, rank) for rank, dt in
+                        enumerate(sorted({float(obj.clock.dt)
+                                          for obj in objects})))
+        ScheduleEntry = namedtuple('ScheduleEntry',
+                                   field_names=['when', 'order', 'dt',
+                                                'name', 'type', 'active',
+                                                'owner_name', 'owner_type'])
+        self.entries = [ScheduleEntry(when=obj.when, order=obj.order,
+                                      dt=obj.clock.dt, name=obj.name,
+                                      type=obj.__class__.__name__,
+                                      active=obj.active,
+                                      owner_name=obj.group.name,
+                                      owner_type=obj.group.__class__.__name__)
+                        for obj in objects if not len(obj.contained_objects)]
+        self.all_dts = sorted({float(entry.dt) for entry in self.entries})
+        # How many steps compared to the fastest clock?
+        self.steps = {float(dt): int(dt / self.all_dts[0]) for dt in self.all_dts}
+
+    def __repr__(self):
+        return _format_table(['object', 'part of', 'Clock dt', 'when', 'order', 'active'],
+                             [['{} ({})'.format(entry.name, entry.type),
+                               '{} ({})'.format(entry.owner_name, entry.owner_type),
+                               '{} (every {})'.format(entry.dt,
+                                                     'step' if self.steps[float(entry.dt)] == 1
+                                                     else '{} steps'.format(self.steps[float(entry.dt)])),
+                               entry.when,
+                               entry.order,
+                               'yes' if entry.active else 'no'] for entry in self.entries],
+                             ['{:<{}}', '{:<{}}', '{:<{}}', '{:<{}}', '{:{}d}', '{:^{}}'])
+
+    def _repr_html_(self):
+        rows = ['''\
+        <tr>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: left;">{}</td>
+            <td style="text-align: right;">{}</td>
+            <td style="text-align: center;">{}</td>
+        </tr>
+        '''.format('<b>{}</b> (<em>{}</em>)'.format(entry.name, entry.type),
+                   '{} (<em>{}</em>)'.format(entry.owner_name, entry.owner_type),
+                   '{} (every {})'.format(entry.dt,
+                                          'step' if self.steps[float(entry.dt)] == 1
+                                          else '{} steps'.format(self.steps[float(entry.dt)])),
+                   entry.when,
+                   entry.order,
+                   'yes' if entry.active else 'no')
+                for entry in self.entries]
+        html_code = '''
+        <table>
+        <thead>
+        <tr>
+            <th style="text-align: center;">object</th>
+            <th style="text-align: center;">part of</th>
+            <th style="text-align: center;">Clock dt</th>
+            <th style="text-align: center;">when</th>
+            <th style="text-align: center;">order</th>
+            <th style="text-align: center;">active</th>
+        </tr>
+        </thead>
+        <tbody>
+{rows}
+        </tbody>
+        </table>
+        '''.format(rows='\n'.join(rows))
+        return html_code
 
 
 class Network(Nameable):
@@ -609,6 +707,19 @@ class Network(Nameable):
                                            obj.order,
                                            obj.name))
 
+    def scheduling_summary(self):
+        '''
+        Return a `SchedulingSummary` object, representing the scheduling
+        information for all objects included in the network.
+        
+        Returns
+        -------
+        summary : `SchedulingSummary`
+            Object representing the scheduling information.
+        '''
+        self._sort_objects()
+        return SchedulingSummary(self.objects)
+
     def check_dependencies(self):
         all_ids = [obj.id for obj in self.objects]
         for obj in self.objects:
@@ -1000,6 +1111,33 @@ def profiling_summary(net=None, show=None):
         from .magic import magic_network
         net = magic_network
     return ProfilingSummary(net, show)
+
+
+def scheduling_summary(net=None):
+    '''
+    Returns a `SchedulingSummary` object, representing the scheduling
+    information for all objects included in the given `Network` (or the
+    "magic" network, if none is specified). The returned objects can be
+    printed or converted to a string to give an ASCII table representation of
+    the schedule. In a Jupyter notebook, the output can be displayed as a
+    HTML table.
+
+    Parameters
+    ----------
+    net : `Network`, optional
+        The network for which the scheduling information should be displayed.
+        Defaults to the "magic" network.
+
+    Returns
+    -------
+    summary : `SchedulingSummary`
+        An object that represents the scheduling information.
+    '''
+    if net is None:
+        from .magic import magic_network
+        magic_network._update_magic_objects(level=1)
+        net = magic_network
+    return net.scheduling_summary()
 
 
 def schedule_propagation_offset(net=None):

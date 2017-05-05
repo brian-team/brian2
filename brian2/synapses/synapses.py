@@ -23,7 +23,8 @@ from brian2.equations.equations import (Equations, SingleEquation,
                                         check_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
-                                       SubexpressionUpdater)
+                                       SubexpressionUpdater,
+                                       check_identifier_pre_post)
 from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
 from brian2.stateupdaters.exact import linear, independent
@@ -1013,6 +1014,7 @@ class Synapses(Group):
         for eq in equations.itervalues():
             dtype = get_dtype(eq, user_dtype)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
+                check_identifier_pre_post(eq.varname)
                 constant = 'constant' in eq.flags
                 shared = 'shared' in eq.flags
                 if shared:
@@ -1034,6 +1036,7 @@ class Synapses(Group):
                     # target variable
                     varname = '_summed_'+eq.varname
                 else:
+                    check_identifier_pre_post(eq.varname)
                     varname = eq.varname
                 self.variables.add_subexpression(varname, dimensions=eq.dim,
                                                  expr=str(eq.expr),

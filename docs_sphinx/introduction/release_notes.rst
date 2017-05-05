@@ -12,6 +12,8 @@ New features
   Faraday constants or the gas constant (see :ref:`constants` for details).
 * `SpatialNeuron` now supports non-linear membrane currents (e.g.
   Goldman–Hodgkin–Katz equations) by linearizing them with respect to v.
+* A new function `scheduling_summary` that displays information about the
+  scheduling of all objects (see :ref:`scheduling` for details).
 * Anaconda packages for Brian 2 are now available for Python 3.6 (but Python 3.4
   support has been removed).
 

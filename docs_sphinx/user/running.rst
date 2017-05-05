@@ -205,6 +205,13 @@ to change the ``dt`` value of several objects at the same time (but not for all 
 object with the ``clock`` keyword argument (instead of ``dt``). This way, you can later change the ``dt`` for several
 objects at once by assigning a new value to `Clock.dt`.
 
+Note that a change of ``dt`` has to be compatible with the internal representation of
+clocks as an integer value (the number of elapsed time steps). For example, you
+can simulate an object for 100ms with a time step of 0.1ms (i.e. for 1000 steps)
+and then switch to a ``dt`` of 0.5ms, the time will then be internally
+represented as 200 steps. You cannot, however, switch to a dt of 0.3ms, because
+100ms are not an integer multiple of 0.3ms.
+
 .. _profiling:
 
 Profiling
@@ -238,7 +245,10 @@ Every simulated object in Brian has three attributes that can be specified at
 object creation time: ``dt``, ``when``, and ``order``. The time step of the
 simulation is determined by ``dt``, if it is specified, or otherwise by
 ``defaultclock.dt``. Changing this will therefore change the ``dt`` of
-all objects that don't specify one.
+all objects that don't specify one. Alternatively, a ``clock`` object
+can be specified directly, this can be useful if a clock should be shared
+between several objects -- under most circumstances, however, a user should not
+have to deal with the creation of `Clock` objects and just define ``dt``.
 
 During a single time step, objects are updated in an order according first
 to their ``when``
@@ -262,14 +272,36 @@ the same ``when`` and ``order`` attribute then they will be updated in an
 arbitrary but reproducible order (based on the lexicographical order of their
 names).
 
+Note that objects that don't do any computation by themselves but only
+act as a container for other objects (e.g. a `NeuronGroup` which contains a
+`StateUpdater`, a `Resetter` and a `Thresholder`), don't have any value for
+``when``, but pass on the given values for ``dt`` and ``order`` to their
+containing objects.
+
+To see how the objects in a network are scheduled, you can use the
+`scheduling_summary` function::
+
+    >>> group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v > 1',
+    ...                     reset='v = 0')
+    >>> mon = StateMonitor(group, 'v', record=True, dt=1*ms)
+    >>> scheduling_summary()
+                    object                  |           part of           |        Clock dt        |    when    | order | active
+    ----------------------------------------+-----------------------------+------------------------+------------+-------+-------
+    statemonitor (StateMonitor)             | statemonitor (StateMonitor) | 1. ms (every 10 steps) | start      |     0 |  yes
+    neurongroup_stateupdater (StateUpdater) | neurongroup (NeuronGroup)   | 100. us (every step)   | groups     |     0 |  yes
+    neurongroup_thresholder (Thresholder)   | neurongroup (NeuronGroup)   | 100. us (every step)   | thresholds |     0 |  yes
+    neurongroup_resetter (Resetter)         | neurongroup (NeuronGroup)   | 100. us (every step)   | resets     |     0 |  yes
+
+
+As you can see in the output above, the `StateMonitor` will only record the
+membrane potential every 10 time steps, but when it does, it will do it at the
+start of the time step, before the numerical integration, the thresholding, and
+the reset operation takes place.
+
 Every new `Network` starts a simulation at time 0; `Network.t` is a read-only
 attribute, to go back to a previous moment in time (e.g. to do another trial
 of a simulation with a new noise instantiation) use the mechanism described
 below.
-
-For more details, including finer control over the scheduling of operations
-and changing the value of ``dt`` between runs see
-:doc:`../advanced/scheduling`.
 
 Store/restore
 -------------
