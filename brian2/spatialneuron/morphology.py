@@ -1619,7 +1619,7 @@ class Soma(Morphology):
         of the morphology. The `Soma` is most likely the root of the
         morphology, and therefore the `distance` is 0.
         '''
-        dist = self._parent.distance if self._parent else 0*um
+        dist = self._parent.distance[-1:] if self._parent is not None else [0]*um
         return dist
 
     @property
