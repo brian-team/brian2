@@ -17,7 +17,7 @@
 	const int _vectorisation_idx = 1;
 	{{scalar_code|autoindent}}
 
-    {% for varname, var in _recorded_variables.items() %}
+    {% for varname, var in _recorded_variables | dictsort %}
     {%set c_type = c_data_type(variables[varname].dtype) %}
     {
         // Resize the recorded variable "{{varname}}" and get the (potentially

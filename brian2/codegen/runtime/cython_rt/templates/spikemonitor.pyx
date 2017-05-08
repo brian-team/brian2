@@ -9,7 +9,7 @@
 
     cdef int _num_events = {{_eventspace}}[_num{{_eventspace}}-1]
     cdef int _start_idx, _end_idx, _curlen, _newlen, _j
-    {% for varname, var in record_variables.items() %}
+    {% for varname, var in record_variables | dictsort %}
     cdef {{cpp_dtype(var.dtype)}}[:] _{{varname}}_view
     {% endfor %}
     if _num_events > 0:
@@ -37,7 +37,7 @@
             # Resize the arrays
             _owner.resize(_newlen)
             {{N}} = _newlen
-            {% for varname, var in record_variables.items() %}
+            {% for varname, var in record_variables | dictsort %}
             _{{varname}}_view = {{get_array_name(var, access_data=False)}}.data
             {% endfor %}
             # Copy the values across
@@ -45,7 +45,7 @@
                 _idx = {{_eventspace}}[_j]
                 _vectorisation_idx = _idx
                 {{ vector_code|autoindent }}
-                {% for varname in record_variables %}
+                {% for varname in record_variables | sort %}
                 _{{varname}}_view [_curlen + _j - _start_idx] = _to_record_{{varname}}
                 {% endfor %}
                 {{count}}[_idx - _source_start] += 1

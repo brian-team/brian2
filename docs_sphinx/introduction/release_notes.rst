@@ -41,6 +41,15 @@ Backwards-incompatible changes
   Celsius to Kelvin, add the `zero_celsius` constant from
   `brian2.units.constants` (#817).
 
+Changes to default settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* In C++ standalone mode, the ``clean`` argument now defaults to ``False``,
+  meaning that ``make clean`` will not be executed by default before building
+  the simulation. This avoids recompiling all files for unchanged simulations
+  that are executed repeatedly. To return to the previous behaviour, specify
+  ``clean=True`` in the ``device.build`` call (or in ``set_device`` if your
+  script does not have an explicit ``device.build``).
+
 Contributions
 ~~~~~~~~~~~~~
 Code and documentation contributions (ordered by the number of commits):

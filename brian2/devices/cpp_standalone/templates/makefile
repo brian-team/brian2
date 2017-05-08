@@ -10,16 +10,16 @@ CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I. {{ openmp_pragma('compilatio
 LFLAGS = {{ openmp_pragma('compilation') }} {{ linker_flags }}
 DEPS = make.deps
 
-all: executable
+all: $(PROGRAM)
 
 # Adds debug flags
 debug: CFLAGS += $(DEBUG)
 debug: LFLAGS += $(DEBUG)
-debug: executable
+debug: $(PROGRAM)
 
-.PHONY: all debug executable clean
+.PHONY: all debug clean
 
-executable: $(OBJS) $(DEPS)
+$(PROGRAM): $(OBJS) $(DEPS) makefile
 	$(CC) $(OBJS) -o $(PROGRAM) $(LFLAGS)
 
 clean:
@@ -32,5 +32,5 @@ ifneq ($(wildcard $(DEPS)), )
 include $(DEPS)
 endif
 
-%.o : %.cpp
+%.o : %.cpp makefile
 	$(CC) $(CFLAGS) $< -o $@

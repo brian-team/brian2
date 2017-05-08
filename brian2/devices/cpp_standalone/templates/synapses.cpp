@@ -12,7 +12,7 @@
 
 	// This is only needed for the _debugmsg function below	
 	{# USES_VARIABLES { _synaptic_pre } #}	
-	
+
 	// scalar code
 	const int _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}

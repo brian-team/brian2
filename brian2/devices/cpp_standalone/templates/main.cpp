@@ -7,11 +7,11 @@
 #include "brianlib/common_math.h"
 #include "randomkit.h"
 
-{% for codeobj in code_objects %}
+{% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
 {% endfor %}
 
-{% for name in user_headers %}
+{% for name in user_headers | sort %}
 #include {{name}}
 {% endfor %}
 

@@ -38,7 +38,7 @@
                 const int _idx = {{_eventspace}}[_j];
                 const int _vectorisation_idx = _idx;
                 {{vector_code|autoindent}}
-                {% for varname, var in record_variables.items() %}
+                {% for varname, var in record_variables | dictsort %}
                 {{get_array_name(var, access_data=False)}}.push_back(_to_record_{{varname}});
                 {% endfor %}
                 {{count}}[_idx-_source_start]++;

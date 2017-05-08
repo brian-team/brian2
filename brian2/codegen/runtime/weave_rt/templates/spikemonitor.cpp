@@ -42,7 +42,7 @@
             _owner.mcall("resize", _newlen_tuple);
             // Set N explicitly (it is referenced with a restricted pointer)
             {{N}} = _newlen;
-            {% for varname, var in record_variables.items() %}
+            {% for varname, var in record_variables | dictsort %}
             {{c_data_type(var.dtype)}}* _{{varname}}_data = ({{c_data_type(var.dtype)}}*)(((PyArrayObject*)(PyObject*){{get_array_name(var, access_data=False)}}.attr("data"))->data);
             {% endfor %}
             // Copy the values across
