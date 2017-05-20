@@ -718,6 +718,13 @@ class CPPStandaloneDevice(Device):
                 openmp_flag=openmp_flag,
                 )
             writer.write('win_makefile', win_makefile_tmp)
+            # write the list of sources
+            source_list = ' '.join(source_bases)
+            source_list_fname = os.path.join(self.project_dir, 'sourcefiles.txt')
+            if os.path.exists(source_list_fname):
+                if open(source_list_fname, 'r').read() == source_list:
+                    return
+            open(source_list_fname, 'w').write(source_list)
         else:
             # Generate the makefile
             if os.name=='nt':
