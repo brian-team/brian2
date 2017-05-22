@@ -211,12 +211,10 @@ class LinearStateUpdater(StateUpdateMethod):
         abstract_code = []
         for idx, (variable, update) in enumerate(zip(varnames, updates)):
             rhs = update
-
             if len(rhs.atoms(I)) > 0:
                 raise UnsupportedEquationsException('The solution to the linear system '
                                                     'contains complex values '
                                                     'which is currently not implemented.')
-
             for row_idx, varname in enumerate(varnames):
                 rhs = rhs.subs(_S[row_idx, 0], varname)
 
