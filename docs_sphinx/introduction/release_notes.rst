@@ -10,6 +10,10 @@ New features
   few useful abbreviations such as `mM`) have been added as new units (#574).
 * A new module `brian2.units.constants` provides physical constants such as the
   Faraday constants or the gas constant (see :ref:`constants` for details).
+* `SpatialNeuron` now supports non-linear membrane currents (e.g.
+  Goldman–Hodgkin–Katz equations) by linearizing them with respect to v.
+* A new function `scheduling_summary` that displays information about the
+  scheduling of all objects (see :ref:`scheduling` for details).
 * Anaconda packages for Brian 2 are now available for Python 3.6 (but Python 3.4
   support has been removed).
 
@@ -25,6 +29,8 @@ Improvements and bug fixes
 * Better error messages for incorrect unit definitions in equations.
 * Various fixes for the internal representation of physical units and the
   unit registration system.
+* Numpy target: fix an indexing error for a `SpikeMonitor` that records from a
+  subgroup (#824)
 
 Backwards-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,6 +40,15 @@ Backwards-incompatible changes
   replace `celsius` by `kelvin`. To convert an absolute temperature in degree
   Celsius to Kelvin, add the `zero_celsius` constant from
   `brian2.units.constants` (#817).
+
+Changes to default settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* In C++ standalone mode, the ``clean`` argument now defaults to ``False``,
+  meaning that ``make clean`` will not be executed by default before building
+  the simulation. This avoids recompiling all files for unchanged simulations
+  that are executed repeatedly. To return to the previous behaviour, specify
+  ``clean=True`` in the ``device.build`` call (or in ``set_device`` if your
+  script does not have an explicit ``device.build``).
 
 Contributions
 ~~~~~~~~~~~~~

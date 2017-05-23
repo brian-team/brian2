@@ -7,7 +7,7 @@
 #include<fstream>
 {% block extra_headers %}
 {% endblock %}
-{% for name in user_headers %}
+{% for name in user_headers | sort %}
 #include {{name}}
 {% endfor %}
 

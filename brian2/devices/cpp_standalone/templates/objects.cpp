@@ -75,31 +75,27 @@ void _init_arrays()
 	using namespace brian;
 
     // Arrays initialized to 0
-	{% for var in zero_arrays | sort(attribute='name') %}
-	{% if var in dynamic_array_specs %}
-	{% set varname = '_dynamic'+array_specs[var] %}
-	{% else %}
-	{% set varname = array_specs[var] %}
-	{% endif %}
+	{% for var, varname in zero_arrays | sort(attribute='1') %}
 	{% if varname in dynamic_array_specs.values() %}
 	{{varname}}.resize({{var.size}});
 	{% else %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
 	{% endif %}
-	{{ openmp_pragma('parallel-static') }}
+    {{ openmp_pragma('parallel-static')}}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = 0;
+
 	{% endfor %}
 
 	// Arrays initialized to an "arange"
-	{% for var, start in arange_arrays %}
-	{% set varname = array_specs[var] %}
+	{% for var, varname, start in arange_arrays | sort(attribute='1')%}
 	{% if varname in dynamic_array_specs.values() %}
 	{{varname}}.resize({{var.size}});
 	{% else %}
 	{{varname}} = new {{c_data_type(var.dtype)}}[{{var.size}}];
 	{% endif %}
-	{{ openmp_pragma('parallel-static') }}
+    {{ openmp_pragma('parallel-static')}}
 	for(int i=0; i<{{var.size}}; i++) {{varname}}[i] = {{start}} + i;
+
 	{% endfor %}
 
 	// static arrays
@@ -282,13 +278,12 @@ namespace brian {
 extern std::vector< rk_state* > _mersenne_twister_states;
 
 //////////////// clocks ///////////////////
-{% for clock in clocks %}
+{% for clock in clocks | sort(attribute='name') %}
 extern Clock {{clock.name}};
 {% endfor %}
 
 //////////////// networks /////////////////
-extern Network magicnetwork;
-{% for net in networks %}
+{% for net in networks | sort(attribute='name') %}
 extern Network {{net.name}};
 {% endfor %}
 
@@ -311,7 +306,7 @@ extern DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {% endfor %}
 
 /////////////// static arrays /////////////
-{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
+{% for (name, dtype_spec, N, filename) in static_array_specs | sort(attribute='0') %}
 {# arrays that are initialized from static data are already declared #}
 {% if not (name in array_specs.values() or name in dynamic_array_specs.values() or name in dynamic_array_2d_specs.values())%}
 extern {{dtype_spec}} *{{name}};

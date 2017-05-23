@@ -76,6 +76,18 @@ def _guess_membrane_potential(equations):
     return None
 
 
+# Note that we do not register this function with
+# Equations.register_identifier_check, because we do not want this check to
+# apply unconditionally to all equation objects ("x_post = ... : ... (summed)"
+# needs to be allowed)
+def check_identifier_pre_post(identifier):
+    'Do not allow names ending in ``_pre`` or ``_post`` to avoid confusion.'
+    if identifier.endswith('_pre') or identifier.endswith('_post'):
+        raise ValueError('"%s" cannot be used as a variable name, the "_pre" '
+                         'and "_post" suffixes are used to refer to pre- and '
+                         'post-synaptic variables in synapses.' % identifier)
+
+
 class StateUpdater(CodeRunner):
     '''
     The `CodeRunner` that updates the state variables of a `NeuronGroup`
@@ -724,7 +736,7 @@ class NeuronGroup(Group, SpikeSource):
 
         for eq in self.equations.itervalues():
             dtype = get_dtype(eq, user_dtype)
-
+            check_identifier_pre_post(eq.varname)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 if 'linked' in eq.flags:
                     # 'linked' cannot be combined with other flags

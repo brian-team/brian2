@@ -80,6 +80,17 @@ def test_name_clashes():
     assert_raises(ValueError, lambda: Synapses(G1, G2, 'a : 1'))
     assert_raises(ValueError, lambda: Synapses(G1, G2, 'b : 1'))
 
+    # Using _pre or _post as variable names is confusing (even if it is non-
+    # ambiguous in unconnected NeuronGroups)
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_pre : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_post : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_pre = 1 : 1'))
+    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_post = 1 : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_pre : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_post : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_pre = 1 : 1'))
+    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_post = 1 : 1'))
+
     # this should all be ok
     Synapses(G1, G2, 'c : 1')
     Synapses(G1, G2, 'a_syn : 1')
@@ -311,6 +322,16 @@ def test_connection_random_with_condition():
 
     S17 = Synapses(G, G, 'w:1', 'v+=w')
     S17.connect('i!=j', p='j*0.1')
+
+    # Forces the use of the "jump algorithm"
+    big_group = NeuronGroup(10000, 'v: 1', threshold='False')
+    S18 = Synapses(big_group, big_group, 'w:1', 'v+=w')
+    S18.connect('i != j', p=0.001)
+
+    # See github issue #835 -- this failed when using numpy
+    S19 = Synapses(big_group, big_group, 'w:1', 'v+=w')
+    S19.connect('i < int(N_post*0.5)', p=0.001)
+
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone

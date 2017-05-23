@@ -43,6 +43,15 @@ def autoindent_postfilter(code):
         outlines.append(' '*addspaces+line)
     return '\n'.join(outlines)
 
+
+def variables_to_array_names(variables, access_data=True):
+    from brian2.devices.device import get_device
+    device = get_device()
+    names = [device.get_array_name(var, access_data=access_data)
+             for var in variables]
+    return names
+
+
 class LazyTemplateLoader(object):
     '''
     Helper object to load templates only when they are needed.
@@ -98,6 +107,7 @@ class Templater(object):
                                lstrip_blocks=True, undefined=StrictUndefined)
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
+        self.env.filters['variables_to_array_names'] = variables_to_array_names
         if env_globals is not None:
             self.env.globals.update(env_globals)
         else:
