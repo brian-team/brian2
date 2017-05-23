@@ -159,7 +159,8 @@ def sympy_to_str(sympy_expr):
 
     # Replace _vectorisation_idx by an empty symbol
     replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
-    atoms = sympy_expr.atoms()
+    atoms = (sympy_expr.atoms() |
+             {f.func for f in sympy_expr.atoms(sympy.Function)})
     for old, new in replacements.iteritems():
         if old in atoms:
             sympy_expr = sympy_expr.subs(old, new)

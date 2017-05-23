@@ -432,9 +432,11 @@ def test_sympytools():
     # Note that the test below is quite fragile since sympy might rearrange the
     # order of symbols
     expressions = ['randn()',  # argumentless function
-                   'x + sin(2.0*pi*freq*t)', # expression with a constant
-                   'c * userfun(t + x)'
-                  ] # non-sympy function
+                   'x + sin(2.0*pi*freq*t)',  # expression with a constant
+                   'c * userfun(t + x)',  # non-sympy function
+                   'abs(x) + ceil(y)',  # functions with a different name in sympy
+                   'inf',  # constant with a different name in sympy
+                   ]
 
     for expr in expressions:
         expr2 = sympy_to_str(str_to_sympy(expr))
