@@ -16,6 +16,7 @@ from brian2.core.namespace import (DEFAULT_FUNCTIONS,
                                    DEFAULT_UNITS)
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
+                                           get_unit_for_display,
                                            DIMENSIONLESS,
                                            DimensionMismatchError,
                                            get_dimensions, Dimension)
@@ -451,7 +452,7 @@ class SingleEquation(object):
         if not self.expr is None:
             s += ' = ' + str(self.expr)
 
-        s += ' : ' + str(get_unit(self.dim))
+        s += ' : ' + get_unit_for_display(self.dim)
 
         if len(self.flags):
             s += ' (' + ', '.join(self.flags) + ')'
@@ -464,7 +465,7 @@ class SingleEquation(object):
         if not self.expr is None:
             s += ': ' + self.expr.code
 
-        s += ' (Unit: ' + str(get_unit(self.dim))
+        s += ' (Unit: ' + get_unit_for_display(self.dim)
 
         if len(self.flags):
             s += ', flags: ' + ', '.join(self.flags)
