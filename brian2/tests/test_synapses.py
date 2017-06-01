@@ -1161,6 +1161,61 @@ def test_summed_variable_errors():
                   lambda: Synapses(G, G, '''p_post = 3*volt : volt (summed)
                                             p_pre = 3*volt : volt (summed)'''))
 
+@attr('codegen-independent')
+def test_multiple_summed_variables():
+    # See github issue #766
+    source = NeuronGroup(1, '')
+    target = NeuronGroup(10, 'v : 1')
+    syn1 = Synapses(source, target, 'v_post = 1 : 1 (summed)')
+    syn1.connect()
+    syn2 = Synapses(source, target, 'v_post = 1 : 1 (summed)')
+    syn2.connect()
+    net = Network(collect())
+    assert_raises(NotImplementedError, net.run, 0*ms)
+
+@attr('standalone-compatible')
+def test_summed_variables_subgroups():
+    source = NeuronGroup(1, '')
+    target = NeuronGroup(10, 'v : 1')
+    subgroup1 = target[:6]
+    subgroup2 = target[6:]
+    syn1 = Synapses(source, subgroup1, 'v_post = 1 : 1 (summed)')
+    syn1.connect(n=2)
+    syn2 = Synapses(source, subgroup2, 'v_post = 1 : 1 (summed)')
+    syn2.connect()
+    run(defaultclock.dt)
+    assert_equal(target.v[:6], 2*np.ones(6))
+    assert_equal(target.v[6:], 1 * np.ones(4))
+
+@attr('codegen-independent')
+def test_summed_variables_overlapping_subgroups():
+    # See github issue #766
+    source = NeuronGroup(1, '')
+    target = NeuronGroup(10, 'v : 1')
+    # overlapping subgroups
+    subgroup1 = target[:7]
+    subgroup2 = target[6:]
+    syn1 = Synapses(source, subgroup1, 'v_post = 1 : 1 (summed)')
+    syn1.connect(n=2)
+    syn2 = Synapses(source, subgroup2, 'v_post = 1 : 1 (summed)')
+    syn2.connect()
+    net = Network(collect())
+    assert_raises(NotImplementedError, net.run, 0*ms)
+
+@attr('codegen-independent')
+def test_summed_variables_linked_variables():
+    source = NeuronGroup(1, '')
+    target1 = NeuronGroup(10, 'v : 1')
+    target2 = NeuronGroup(10, 'v : 1 (linked)')
+    target2.v = linked_var(target1.v)
+    # Seemingly independent targets, but the variable is the same
+    syn1 = Synapses(source, target1, 'v_post = 1 : 1 (summed)')
+    syn1.connect()
+    syn2 = Synapses(source, target2, 'v_post = 1 : 1 (summed)')
+    syn2.connect()
+    net = Network(collect())
+    assert_raises(NotImplementedError, net.run, 0 * ms)
+
 
 def test_scalar_parameter_access():
     G = NeuronGroup(10, '''v : 1
@@ -2273,6 +2328,10 @@ if __name__ == '__main__':
     test_summed_variable_pre_and_post()
     test_summed_variable_differing_group_size()
     test_summed_variable_errors()
+    test_multiple_summed_variables()
+    test_summed_variables_subgroups()
+    test_summed_variables_overlapping_subgroups()
+    test_summed_variables_linked_variables()
     test_scalar_parameter_access()
     test_scalar_subexpression()
     test_sim_with_scalar_variable()
