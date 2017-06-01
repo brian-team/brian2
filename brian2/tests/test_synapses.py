@@ -1174,6 +1174,7 @@ def test_multiple_summed_variables():
     assert_raises(NotImplementedError, net.run, 0*ms)
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_summed_variables_subgroups():
     source = NeuronGroup(1, '')
     target = NeuronGroup(10, 'v : 1')
