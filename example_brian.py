@@ -12,11 +12,8 @@ prefs.codegen.target = 'cython'
 prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
 prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
 prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
-# for some reason adding the above to library_dirs made the loading of the module hang. I googled this
-# and saw somebody mentioning hanging on multiprocessing, if I turn it of it doens't hang..
-#prefs['codegen.runtime.cython.multiprocess_safe'] = False
 
-n = 1000
+n = 10
 duration = 1*second
 tau = 10*ms
 eqs = '''
@@ -28,7 +25,10 @@ group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
 group.v = 0*mV
 group.v0 = '20*mV * i / (n-1)'
 
+print group.v0
+
 monitor = SpikeMonitor(group)
+mon2 = StateMonitor(group, 'v', record=True)
 
 run(duration)
 plot(group.v0/mV, monitor.count / duration)

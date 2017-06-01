@@ -67,13 +67,11 @@ cdef struct parameters:
 cdef int func (double t, const double y[], double f[], void *params) nogil:
     cdef double v, v0, tau
 
-    tau = (<double *> params)[0]
+    v0 = (<double *> params)[0]
 
-    v = y[0]
-    v0 = y[1]
+    v = y[0]   
 
-    f[0] = (v0 - v)/tau
-    f[1] = 0  
+    f[0] = (v0 - v)/10e-3
 #### END ADDED MANUALLY
 
 
@@ -126,13 +124,12 @@ def main(_namespace):
     _lio_1 = dt / tau
 
     #### ADDED MANUALLY
-    cdef int dimension = 2
-    cdef double y[2]
+    cdef int dimension = 1
+    cdef double y[1]
 
     cdef gsl_odeiv2_system sys
     sys.function = func
     sys.dimension = dimension
-    sys.params = &tau
 
     cdef gsl_odeiv2_driver * d
     d = gsl_odeiv2_driver_alloc_y_new(
@@ -152,11 +149,12 @@ def main(_namespace):
         not_refractory = (t - lastspike) > 0.005
         if not_refractory:
             #### ADDED MANUALLY
+            sys.params = &v0
+
             y[0] = v
-            y[1] = v0
             t1 = t + dt
             status = gsl_odeiv2_driver_apply(d, &t, t1, y)
-            v = y[0]
+            _v = y[0]
             #### END ADDED MANUALLY
             #_v = (_lio_1 * ((- v) + v0)) + v
         else:
