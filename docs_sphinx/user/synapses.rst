@@ -323,22 +323,22 @@ Here, ``Igap`` is the total gap junction current received by the postsynaptic ne
 
 Note that you cannot target the same post-synaptic variable from more than one
 `Synapses` object. To work around this restriction, use multiple post-synaptic
-variables that ar then summed up:
+variables that ar then summed up::
 
     neurons = NeuronGroup(1, model='''dv/dt=(gtot-v)/(10*ms) : 1
                                       gtot = gtot1 + gtot2: 1
                                       gtot1 : 1
                                       gtot2 : 1''')
     S1 = Synapses(input, neurons,
-                  model='''dg/dt=-a*g+b*x*(1-g) : 1
+                  model='''dg/dt=-a1*g+b1*x*(1-g) : 1
                            gtot1_post = g : 1  (summed)
-                           dx/dt=-c*x : 1
+                           dx/dt=-c1*x : 1
                            w : 1 # synaptic weight
                         ''', on_pre='x+=w')
     S2 = Synapses(input, neurons,
-                  model='''dg/dt=-a*g+b*x*(1-g) : 1
+                  model='''dg/dt=-a2*g+b2*x*(1-g) : 1
                            gtot2_post = g : 1  (summed)
-                           dx/dt=-c*x : 1
+                           dx/dt=-c2*x : 1
                            w : 1 # synaptic weight
                         ''', on_pre='x+=w')
 
