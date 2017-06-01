@@ -243,36 +243,17 @@ def _check_multiple_summed_updaters(objects):
                            'instead.'.format(var=obj.target_var.name,
                                              target=obj.target.name))
                     raise NotImplementedError(msg)
-                else:
-                    # Two different targets with the same variable
-                    target1_index = other_target.variables.indices[
-                        obj.target_var]
-                    target2_index = obj.target.variables.indices[
-                        obj.target_var]
-                    if target1_index != target2_index:
-                        # The variables use non-standard indexing (e.g.
-                        # linked variables) -- this is getting too
-                        # complicated to check, so bail out.
-                        msg = ('Multiple "summed variables" target the '
-                               'variable "{var}" in groups "{target1}" and '
-                               '"{target2}" with non-standard indexing (e.g.'
-                               'via linked variables). Use separate '
-                               'variables in the target groups '
-                               'instead.'.format(var=obj.target_var.name,
-                                                 target1=other_target.name,
-                                                 target2=obj.target.name))
-                        raise NotImplementedError(msg)
-                    elif (obj.target.start < other_target.stop and
-                                  other_target.start < obj.target.stop):
-                        # Overlapping subgroups
-                        msg = ('Multiple "summed variables" target the '
-                               'variable "{var}" in overlapping groups '
-                               '"{target1}" and "{target2}". Use separate '
-                               'variables in the target groups '
-                               'instead.'.format(var=obj.target_var.name,
-                                                 target1=other_target.name,
-                                                 target2=obj.target.name))
-                        raise NotImplementedError(msg)
+                elif (obj.target.start < other_target.stop and
+                              other_target.start < obj.target.stop):
+                    # Overlapping subgroups
+                    msg = ('Multiple "summed variables" target the '
+                           'variable "{var}" in overlapping groups '
+                           '"{target1}" and "{target2}". Use separate '
+                           'variables in the target groups '
+                           'instead.'.format(var=obj.target_var.name,
+                                             target1=other_target.name,
+                                             target2=obj.target.name))
+                    raise NotImplementedError(msg)
             summed_targets[obj.target_var] = obj.target
 
 
