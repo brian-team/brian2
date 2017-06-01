@@ -92,7 +92,9 @@ class SummedVariableUpdater(CodeRunner):
         self.target = target
         template_kwds = {'_target_var': self.target_var,
                          '_target_size_name': target_size_name,
-                         '_index_var': synapses.variables[index_var]}
+                         '_index_var': synapses.variables[index_var],
+                         '_target_start': getattr(target, 'start', 0),
+                         '_target_stop': getattr(target, 'stop', -1)}
 
         CodeRunner.__init__(self, group=synapses,
                             template='summed_variable',
