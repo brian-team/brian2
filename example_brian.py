@@ -10,6 +10,7 @@ from brian2 import *
 prefs.codegen.target = 'cython'
 
 prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
+prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
 prefs.codegen.cpp.extra_compile_args_gcc = ['-lgsl', '-lgslcblas']
 prefs.codegen.cpp.extra_link_args = ['-lgsl', '-lgslcblas']
 prefs.codegen.cpp.library_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
