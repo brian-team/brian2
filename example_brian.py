@@ -11,12 +11,10 @@ prefs.codegen.target = 'cython'
 
 prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
 prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
-prefs.codegen.cpp.extra_compile_args_gcc = ['-lgsl', '-lgslcblas']
-prefs.codegen.cpp.extra_link_args = ['-lgsl', '-lgslcblas']
-prefs.codegen.cpp.library_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
+prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
 # for some reason adding the above to library_dirs made the loading of the module hang. I googled this
 # and saw somebody mentioning hanging on multiprocessing, if I turn it of it doens't hang..
-prefs['codegen.runtime.cython.multiprocess_safe'] = False
+#prefs['codegen.runtime.cython.multiprocess_safe'] = False
 
 n = 1000
 duration = 1*second
