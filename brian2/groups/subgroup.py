@@ -32,6 +32,11 @@ class Subgroup(Group, SpikeSource):
         else:
             self.source = weakproxy_with_fallback(source)
 
+        # Store a reference to the source's equations (if any)
+        self.equations = None
+        if hasattr(self.source, 'equations'):
+            self.equations = weakproxy_with_fallback(self.source.equations)
+
         if name is None:
             name = source.name + '_subgroup*'
         # We want to update the spikes attribute after it has been updated

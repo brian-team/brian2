@@ -31,6 +31,8 @@ Improvements and bug fixes
   unit registration system.
 * Numpy target: fix an indexing error for a `SpikeMonitor` that records from a
   subgroup (#824)
+* Summed variables targeting the same post-synaptic variable now raise an error
+  (previously, only the one executed last was taken into account, see #766).
 
 Backwards-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,6 +65,7 @@ anyone we forgot...):
 * Denis Alevi
 * Meng Dong
 * Oleg Strikov
+* Regimantas Jurkus
 * Shailesh Appukuttan
 
 Brian 2.0.1
