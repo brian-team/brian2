@@ -9,7 +9,7 @@ from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, a
 cdef extern from "math.h":
     double M_PI
 # Import the two versions of std::abs
-from libc.stdlib cimport abs  # For integers
+from libc.stdlib cimport abs, malloc, free  # For integers
 from libc.math cimport abs  # For floating point values
 from libcpp cimport bool
 
@@ -36,6 +36,9 @@ cdef extern from "stdint_compat.h":
 
 
 # support code
+###################
+#####################
+#######################
 #### ADDED MANUALLY
 cdef extern from "gsl/gsl_odeiv2.h":
     # gsl_odeiv2_system
@@ -56,7 +59,6 @@ cdef extern from "gsl/gsl_odeiv2.h":
     
     int gsl_odeiv2_driver_apply(gsl_odeiv2_driver *d, double *t, double t1, double y[]) nogil
 
-
     gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
         gsl_odeiv2_system *sys, gsl_odeiv2_step_type *T,
         double hstart, double epsabs, double epsrel) nogil
@@ -64,18 +66,55 @@ cdef extern from "gsl/gsl_odeiv2.h":
 cdef struct parameters:
     double tau
 
+cdef struct statevariables:
+    double v
+    double v0
+
+cdef struct pointer_to_y:
+    double* y
+
+cdef fill_y_vector(_namespace, pointer_to_y* ystruct, int _idx):
+
+    ystruct.y = <double *>malloc(2 * sizeof(double))
+    if not ystruct.y:
+        raise MemoryError()
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']    
+    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
+    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
+
+    cdef double v = _array_neurongroup_v[_idx]
+    cdef double v0 = _array_neurongroup_v0[_idx]
+
+    ystruct.y[0] = v
+    ystruct.y[1] = v0
+
+    return 0
+
+cdef empty_y_vector(_namespace, pointer_to_y* ystruct, int _idx):
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']    
+    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
+    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
+
+    cdef double v = ystruct.y[0]
+    cdef double v0 = ystruct.y[1]
+
+    _array_neurongroup_v[_idx] = v
+    _array_neurongroup_v0[_idx] = v0
+    return 0
+
 cdef int func (double t, const double y[], double f[], void *params) nogil:
     cdef double v, v0, tau
-
     tau = (<double *> params)[0]
-
     v = y[0]
-    v0 = y[1]   
-
+    v0 = y[1]
     f[0] = (v0 - v)/10e-3
     f[1] = 0
 #### END ADDED MANUALLY
-
+###################
+#####################
+#######################
 
 # template-specific support code
 
@@ -125,45 +164,50 @@ def main(_namespace):
     dt = _array_defaultclock_dt[0]
     _lio_1 = dt / tau
 
+    ###################
+    #####################
+    #######################
     #### ADDED MANUALLY
-    cdef int dimension = 2
-    cdef double y[2]
-
+    cdef pointer_to_y *ystruct = <pointer_to_y*>malloc(sizeof(pointer_to_y))
     cdef gsl_odeiv2_system sys
     sys.function = func
-    sys.dimension = dimension
-    sys.params = &tau
+    sys.dimension = 2 # this should in some way be set from a variable in the namespace
+    sys.params = &tau # this should also be set by an externally defined function
 
     cdef gsl_odeiv2_driver * d
     d = gsl_odeiv2_driver_alloc_y_new(
-        &sys, gsl_odeiv2_step_rk2,
+        &sys, gsl_odeiv2_step_rk2, # can also make this a pointer to chosen integrator
         1e-6, 1e-6, 0.0)   
     #### END ADDED MANUALLY
-    
+    ###################
+    #####################
+    #######################
+
     # vector code
     for _idx in range(N):
         _vectorisation_idx = _idx
                 
         v0 = _array_neurongroup_v0[_idx]
         t = _array_defaultclock_t[0]
+        t1 = t + dt
         v = _array_neurongroup_v[_idx]
         lastspike = _array_neurongroup_lastspike[_idx]
         not_refractory = _array_neurongroup_not_refractory[_idx]
         not_refractory = (t - lastspike) > 0.005
         if not_refractory:
+            ###################
+            #####################
+            #######################
             #### ADDED MANUALLY
-            y[0] = v
-            y[1]= v0
-            t1 = t + dt
-            status = gsl_odeiv2_driver_apply(d, &t, t1, y)
-            _v = y[0]
+            fill_y_vector(_namespace, ystruct, _idx)
+            gsl_odeiv2_driver_apply(d, &t, t1, ystruct.y)
+            empty_y_vector(_namespace, ystruct, _idx)
             #### END ADDED MANUALLY
-            #_v = (_lio_1 * ((- v) + v0)) + v
+            ###################
+            #####################
+            #######################
         else:
             _v = v
-        if not_refractory:
-            v = _v
         _array_neurongroup_not_refractory[_idx] = not_refractory
-        _array_neurongroup_v[_idx] = v
 
 
