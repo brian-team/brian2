@@ -57,11 +57,14 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     gsl_odeiv2_step_type *gsl_odeiv2_step_rk2
     
-    int gsl_odeiv2_driver_apply(gsl_odeiv2_driver *d, double *t, double t1, double y[]) nogil
+    int gsl_odeiv2_driver_apply(
+        gsl_odeiv2_driver *d, double *t, double t1, double y[]) nogil
 
     gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
         gsl_odeiv2_system *sys, gsl_odeiv2_step_type *T,
         double hstart, double epsabs, double epsrel) nogil
+
+    int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d) nogil
 
 cdef struct parameters:
     double tau
@@ -72,6 +75,11 @@ cdef struct statevariables:
 
 cdef struct pointer_to_y:
     double* y
+
+cdef fill_odeiv2_system(_namespace, gsl_odeiv2_system *sys):
+    cdef double tau = _namespace["tau"]
+    sys.dimension = 2 
+    sys.params = &tau 
 
 cdef fill_y_vector(_namespace, pointer_to_y* ystruct, int _idx):
 
@@ -170,11 +178,10 @@ def main(_namespace):
     #### ADDED MANUALLY
     cdef pointer_to_y *ystruct = <pointer_to_y*>malloc(sizeof(pointer_to_y))
     cdef gsl_odeiv2_system sys
-    sys.function = func
-    sys.dimension = 2 # this should in some way be set from a variable in the namespace
-    sys.params = &tau # this should also be set by an externally defined function
-
     cdef gsl_odeiv2_driver * d
+    sys.function = func
+    fill_odeiv2_system(_namespace, &sys)
+    
     d = gsl_odeiv2_driver_alloc_y_new(
         &sys, gsl_odeiv2_step_rk2, # can also make this a pointer to chosen integrator
         1e-6, 1e-6, 0.0)   
@@ -209,5 +216,9 @@ def main(_namespace):
         else:
             _v = v
         _array_neurongroup_not_refractory[_idx] = not_refractory
+
+    gsl_odeiv2_driver_free(d)
+    free(ystruct.y)
+    free(ystruct)
 
 
