@@ -34,12 +34,6 @@ cdef extern from "stdint_compat.h":
     cdef int int_(double)
     cdef int int_(long double)
 
-
-# support code
-###################
-#####################
-#######################
-#### ADDED MANUALLY
 cdef extern from "gsl/gsl_odeiv2.h":
     # gsl_odeiv2_system
     ctypedef struct gsl_odeiv2_system:
@@ -69,47 +63,49 @@ cdef extern from "gsl/gsl_odeiv2.h":
 cdef struct parameters:
     double tau
 
-cdef struct statevariables:
-    double v
-    double v0
+cdef struct statevar_container:
+    double* v
+    double* v0
 
-cdef struct pointer_to_y:
-    double* y
+cdef double* assign_memory_y():
+	return <double *>malloc(2 * sizeof(double))
+
+cdef int assign_statevariable_arrays(_namespace, statevar_container* statevariables):
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']    
+    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
+    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
+
+    statevariables.v = _array_neurongroup_v
+    statevariables.v0 = _array_neurongroup_v0
+
+    return 0
+
+cdef int empty_statevariable_arrays(_namespace, statevar_container* statevariables):
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']    
+    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
+    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
+    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
+
+    _array_neurongroup_v = statevariables.v
+    _array_neurongroup_v0 = statevariables.v0
+
+    return 0
+
 
 cdef fill_odeiv2_system(_namespace, gsl_odeiv2_system *sys):
     cdef double tau = _namespace["tau"]
     sys.dimension = 2 
     sys.params = &tau 
 
-cdef fill_y_vector(_namespace, pointer_to_y* ystruct, int _idx):
-
-    ystruct.y = <double *>malloc(2 * sizeof(double))
-    if not ystruct.y:
-        raise MemoryError()
-    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']    
-    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
-    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
-    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
-
-    cdef double v = _array_neurongroup_v[_idx]
-    cdef double v0 = _array_neurongroup_v0[_idx]
-
-    ystruct.y[0] = v
-    ystruct.y[1] = v0
-
+cdef int fill_y_vector(statevar_container* statevariables, double * y, int _idx) nogil:
+    y[0] = statevariables.v[_idx]
+    y[1] = statevariables.v0[_idx]
     return 0
 
-cdef empty_y_vector(_namespace, pointer_to_y* ystruct, int _idx):
-    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']    
-    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
-    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
-    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
-
-    cdef double v = ystruct.y[0]
-    cdef double v0 = ystruct.y[1]
-
-    _array_neurongroup_v[_idx] = v
-    _array_neurongroup_v0[_idx] = v0
+cdef int empty_y_vector(statevar_container* statevariables, double * y, int _idx) nogil:
+    statevariables.v[_idx] = y[0]
+    statevariables.v0[_idx] = y[1]
     return 0
 
 cdef int func (double t, const double y[], double f[], void *params) nogil:
@@ -119,12 +115,6 @@ cdef int func (double t, const double y[], double f[], void *params) nogil:
     v0 = y[1]
     f[0] = (v0 - v)/10e-3
     f[1] = 0
-#### END ADDED MANUALLY
-###################
-#####################
-#######################
-
-# template-specific support code
 
 def main(_namespace):
     cdef int _idx
@@ -135,19 +125,10 @@ def main(_namespace):
     _var_N = _namespace["_var_N"]
     cdef int64_t N = _namespace["N"]
     _var_v0 = _namespace["_var_v0"]
-    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v0 = _namespace['_array_neurongroup_v0']
-    cdef double * _array_neurongroup_v0 = <double *> _buf__array_neurongroup_v0.data
-    cdef int _num_array_neurongroup_v0 = len(_namespace['_array_neurongroup_v0'])
-    cdef double v0
     _var_t = _namespace["_var_t"]
     cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_defaultclock_t = _namespace['_array_defaultclock_t']
     cdef double * _array_defaultclock_t = <double *> _buf__array_defaultclock_t.data
     cdef double t
-    _var_v = _namespace["_var_v"]
-    cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_neurongroup_v = _namespace['_array_neurongroup_v']
-    cdef double * _array_neurongroup_v = <double *> _buf__array_neurongroup_v.data
-    cdef int _num_array_neurongroup_v = len(_namespace['_array_neurongroup_v'])
-    cdef double v
     _var_dt = _namespace["_var_dt"]
     cdef _numpy.ndarray[double, ndim=1, mode='c'] _buf__array_defaultclock_dt = _namespace['_array_defaultclock_dt']
     cdef double * _array_defaultclock_dt = <double *> _buf__array_defaultclock_dt.data
@@ -170,13 +151,10 @@ def main(_namespace):
     _vectorisation_idx = 1
         
     dt = _array_defaultclock_dt[0]
-    _lio_1 = dt / tau
 
-    ###################
-    #####################
-    #######################
-    #### ADDED MANUALLY
-    cdef pointer_to_y *ystruct = <pointer_to_y*>malloc(sizeof(pointer_to_y))
+    cdef double * y = assign_memory_y()
+    cdef statevar_container * statevariables = <statevar_container *>malloc(sizeof(statevar_container))
+    assign_statevariable_arrays(_namespace, statevariables)
     cdef gsl_odeiv2_system sys
     cdef gsl_odeiv2_driver * d
     sys.function = func
@@ -185,40 +163,22 @@ def main(_namespace):
     d = gsl_odeiv2_driver_alloc_y_new(
         &sys, gsl_odeiv2_step_rk2, # can also make this a pointer to chosen integrator
         1e-6, 1e-6, 0.0)   
-    #### END ADDED MANUALLY
-    ###################
-    #####################
-    #######################
 
     # vector code
     for _idx in range(N):
         _vectorisation_idx = _idx
-                
-        v0 = _array_neurongroup_v0[_idx]
         t = _array_defaultclock_t[0]
         t1 = t + dt
-        v = _array_neurongroup_v[_idx]
         lastspike = _array_neurongroup_lastspike[_idx]
         not_refractory = _array_neurongroup_not_refractory[_idx]
         not_refractory = (t - lastspike) > 0.005
         if not_refractory:
-            ###################
-            #####################
-            #######################
-            #### ADDED MANUALLY
-            fill_y_vector(_namespace, ystruct, _idx)
-            gsl_odeiv2_driver_apply(d, &t, t1, ystruct.y)
-            empty_y_vector(_namespace, ystruct, _idx)
-            #### END ADDED MANUALLY
-            ###################
-            #####################
-            #######################
-        else:
-            _v = v
+            fill_y_vector(statevariables, y, _idx)
+            gsl_odeiv2_driver_apply(d, &t, t1, y)
+            empty_y_vector(statevariables, y, _idx)
         _array_neurongroup_not_refractory[_idx] = not_refractory
 
+    empty_statevariable_arrays(_namespace, statevariables)
     gsl_odeiv2_driver_free(d)
-    free(ystruct.y)
-    free(ystruct)
 
 
