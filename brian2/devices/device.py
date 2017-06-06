@@ -314,8 +314,10 @@ class Device(object):
                         **template_kwds)
         logger.diagnostic('%s code:\n%s' % (name, indent(code_representation(code))))
 
-        if 'stateupdater' in name:
-            code = open('cythoncode.pyx', 'r').read()
+        #if 'stateupdater' in name:
+        #    print template_name
+            #print code
+            #code = open('cythoncode2.pyx', 'r').read()
 
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
@@ -431,7 +433,7 @@ class RuntimeDevice(Device):
                                         dtype=dtype)
 
     def fill_with_array(self, var, arr):
-        self.arrays[var][:] = arr
+        self.arrays[var][:] =    arr
 
     def spike_queue(self, source_start, source_end):
         # Use the C++ version of the SpikeQueue when available

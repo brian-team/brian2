@@ -103,7 +103,8 @@ class StateUpdater(CodeRunner):
                             order=group.order,
                             name=group.name + '_stateupdater*',
                             check_units=False,
-                            generate_empty_code=False)
+                            generate_empty_code=False,
+                            needed_variables=['v', 'v0', 'dt', 'tau', 'GSL_functions'])
 
     def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory
