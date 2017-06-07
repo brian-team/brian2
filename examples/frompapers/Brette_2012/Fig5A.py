@@ -57,4 +57,5 @@ for t in S.t:
     v[int(t / defaultclock.dt)] = 50*mV
 
 plot(M.t/ms, v/mV, 'k')
+tight_layout()
 show()
