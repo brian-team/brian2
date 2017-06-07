@@ -52,16 +52,16 @@ Syn_model = '''
 # equations executed only when a presynaptic spike occurs
 Pre_eq = '''
          g_ampa_post += w_ampa*ampa_max_cond                                                             # increment synaptic conductance
-         w_minus = A_LTD*(v_lowpass1_post/mV - Theta_low/mV)*(v_lowpass1_post/mV - Theta_low/mV > 0)     # synaptic depression
+         w_minus = A_LTD*(v_lowpass1_post/mV - Theta_low/mV)*int(v_lowpass1_post/mV - Theta_low/mV > 0)  # synaptic depression
          w_ampa = clip(w_ampa-w_minus,0,w_max)                                                           # hard bounds
          '''
 
 # equations executed only when a postsynaptic spike occurs
 Post_eq = '''
-          v_lowpass1 += 10*mV                                                                                     # mimics the depolarisation by a spike
-          v_lowpass2 += 10*mV                                                                                     # mimics the depolarisation by a spike
-          w_plus = A_LTP*x_trace_pre*(v_lowpass2_post/mV - Theta_low/mV)*(v_lowpass2_post/mV - Theta_low/mV > 0)  # synaptic potentiation
-          w_ampa = clip(w_ampa+w_plus,0,w_max)                                                                    # hard bounds
+          v_lowpass1 += 10*mV                                                                                        # mimics the depolarisation by a spike
+          v_lowpass2 += 10*mV                                                                                        # mimics the depolarisation by a spike
+          w_plus = A_LTP*x_trace_pre*(v_lowpass2_post/mV - Theta_low/mV)*int(v_lowpass2_post/mV - Theta_low/mV > 0)  # synaptic potentiation
+          w_ampa = clip(w_ampa+w_plus,0,w_max)                                                                       # hard bounds
           '''
 
 ################################################################################
