@@ -1,8 +1,8 @@
 Release notes
 =============
 
-Next release
-------------
+Brian 2.0.2
+-----------
 
 New features
 ~~~~~~~~~~~~
@@ -12,27 +12,39 @@ New features
   Faraday constants or the gas constant (see :ref:`constants` for details).
 * `SpatialNeuron` now supports non-linear membrane currents (e.g.
   Goldman–Hodgkin–Katz equations) by linearizing them with respect to v.
+* Multi-compartmental models can access the capacitive current via `Ic` in
+  their equations (#677)
 * A new function `scheduling_summary` that displays information about the
   scheduling of all objects (see :ref:`scheduling` for details).
+* Introduce a new preference to pass arguments to the ``make``/``nmake`` command
+  in C++ standalone mode (`devices.cpp_standalone.extra_make_args_unix` for
+  Linux/OS X and `devices.cpp_standalone.extra_make_args_windows` for Windows).
+  For Linux/OS X, this enables parallel compilation by default.
 * Anaconda packages for Brian 2 are now available for Python 3.6 (but Python 3.4
   support has been removed).
 
-Improvements and bug fixes
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Work around low performance for certain C++ standalone simulations on Linux,
   due to a bug in glibc (see #803). Thanks to Oleg Strikov
   (`@xj8z <https://github.com/xj8z>`_) for debugging this
   issue and providing the workaround that is now in use.
-* Make exact integration of ``event-driven`` synaptic variables use the `linear`
-  numerical integration algorithm (instead of `independent`), fixing rare
-  occasions where integration failed despite the equations being linear (#801).
+* Make exact integration of ``event-driven`` synaptic variables use the
+  ``linear`` numerical integration algorithm (instead of ``independent``),
+  fixing rare occasions where integration failed despite the equations being
+  linear (#801).
 * Better error messages for incorrect unit definitions in equations.
 * Various fixes for the internal representation of physical units and the
   unit registration system.
+* Fix a bug in the assignment of state variables in subtrees of `SpatialNeuron`
+  (#822)
 * Numpy target: fix an indexing error for a `SpikeMonitor` that records from a
   subgroup (#824)
 * Summed variables targeting the same post-synaptic variable now raise an error
   (previously, only the one executed last was taken into account, see #766).
+* Fix bugs in synapse generation affecting Cython (#781) respectively numpy
+  (#835)
+* C++ standalone simulations with many objects no longer fail on Windows (#787)
 
 Backwards-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,6 +54,9 @@ Backwards-incompatible changes
   replace `celsius` by `kelvin`. To convert an absolute temperature in degree
   Celsius to Kelvin, add the `zero_celsius` constant from
   `brian2.units.constants` (#817).
+* State variables are no longer allowed to have names ending in ``_pre`` or
+  ``_post`` to avoid confusion with references to pre- and post-synaptic
+  variables in `Synapses` (#818)
 
 Changes to default settings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,17 +69,32 @@ Changes to default settings
 
 Contributions
 ~~~~~~~~~~~~~
-Code and documentation contributions (ordered by the number of commits):
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
 
-TODO
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Thomas McColgan (`@phreeza <https://github.com/phreeza>`_)
+* Daan Sprenkels (`@dsprenkels <https://github.com/dsprenkels>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+* Oleg Strikov (`@xj8z <https://github.com/xj8z>`_)
+* Charlee Fletterman (`@CharleeSF <https://github.com/CharleeSF>`_)
+* Meng Dong (`@whenov <https://github.com/whenov>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Mihir Vaidya (`@MihirVaidya94 <https://github.com/MihirVaidya94>`_)
+* Adam (`@ffa <https://github.com/ffa>`_)
+* Sourav Singh (`@souravsingh <https://github.com/souravsingh>`_)
+* Nick Hale (`@nik849 <https://github.com/nik849>`_)
+* Cody Greer (`@Cody-G <https://github.com/Cody-G>`_)
+* Jean-Sébastien Dessureault (`@jsdessureault <https://github.com/jsdessureault>`_)
+* Michele Giugliano (`@mgiugliano <https://github.com/mgiugliano>`_)
+* Teo Stocco (`@zifeo <https://github.com/zifeo>`_)
+* Edward Betts (`@EdwardBetts <https://github.com/EdwardBetts>`_)
 
-Testing, suggestions and bug reports (ordered alphabetically, apologies to
+Other contributions outside of github (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Christopher Nolan
-* Denis Alevi
-* Meng Dong
-* Oleg Strikov
 * Regimantas Jurkus
 * Shailesh Appukuttan
 
