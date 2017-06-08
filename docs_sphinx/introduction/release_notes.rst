@@ -1,6 +1,17 @@
 Release notes
 =============
 
+Next release
+------------
+
+TODO
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Flora Bouchacourt
+
+
 Brian 2.0.2
 -----------
 
