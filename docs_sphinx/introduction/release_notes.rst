@@ -1,16 +1,12 @@
 Release notes
 =============
 
-Next release
-------------
+Brian 2.0.2.1
+-------------
 
-TODO
-
-Other contributions outside of github (ordered alphabetically, apologies to
-anyone we forgot...):
-
-* Flora Bouchacourt
-
+Fixes a bug in the tutorials' HMTL rendering on readthedocs.org (code blocks
+were not displayed). Thanks to Flora Bouchacourt for making us aware of this
+problem.
 
 Brian 2.0.2
 -----------
