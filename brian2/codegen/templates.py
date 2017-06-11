@@ -8,7 +8,7 @@ from jinja2 import (Environment, PackageLoader, ChoiceLoader, StrictUndefined,
                     TemplateNotFound)
 
 from brian2.utils.stringtools import (indent, strip_empty_lines,
-                                      get_identifiers)
+                                      get_identifiers, word_substitute)
 
 
 __all__ = ['Templater']
@@ -50,6 +50,204 @@ def variables_to_array_names(variables, access_data=True):
     names = [device.get_array_name(var, access_data=access_data)
              for var in variables]
     return names
+
+def find_datatypes(expressions):
+    datatypes = {}
+
+    for line in expressions.split('\n'):
+        if 'cdef' in line:
+            m = re.match('cdef ([a-z|0-9|_]+) (\*? ?)([a-z|A-Z|0-9|_]+) = (.*)', line)
+            if m:
+                datatypes[m.group(3)] = m.group(1)+m.group(2)
+            else:
+                m = re.match('cdef ([a-z|0-9|_]+) (\*? ?)([a-z|A-Z|0-9|_]+)', line)
+                if m:
+                    datatypes[m.group(3)] = m.group(1)+m.group(2)
+
+    return datatypes
+
+def find_variable_dict(expressions):
+
+    ignore = ['_idx', 't']
+    statevars = {}
+    othervars = {}
+
+    for expr_set in expressions:
+        for expr in expr_set.split('\n'):
+            expr = expr.strip(' ')
+            try:
+                lhs, op, rhs, comment = parse_statement(expr)
+            except ValueError:
+                pass
+            m = re.match('_gsl_(.+?)_([f])([0-9]*)', lhs)
+            if m:
+                statevars[m.group(1)] = m.group(3)
+
+    for expr_set in expressions:
+        for expr in expr_set.split('\n'):
+            expr = expr.strip(' ')
+            try:
+                lhs, op, rhs, comment = parse_statement(expr)
+            except ValueError:
+                pass # ignore if statements
+            if lhs in ignore:
+                continue # don't get t = defaultclock etc.
+            for identifier in get_identifiers(lhs):
+                if not identifier in statevars.keys() \
+                        and not identifier in othervars.keys() \
+                        and not identifier in othervars.values() \
+                        and not identifier in ignore \
+                        and not re.match('_gsl_(.+?)_([f])([0-9]*)', lhs): # ignore statevariable assignment, we do that ourselves with f[ind] = etc
+                    othervars[identifier] = re.sub('\[_idx\]', '', rhs)
+            for identifier in get_identifiers(rhs):
+                if not identifier in statevars.keys() \
+                        and not identifier in othervars.keys() \
+                        and not identifier in othervars.values() \
+                        and not identifier in ignore \
+                        and not re.match('_gsl_(.+?)_([f|y])([0-9]*)', identifier)\
+                        and not identifier+'[_idx]' in othervars.values():
+                    othervars[identifier] = identifier
+    return (statevars, othervars)
+
+
+from brian2.parsing.statements import parse_statement
+def replace_diff(diff_expressions, load_namespace):
+    '''
+    This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
+    It does so based on the statements sent to the Templater, and infers what is needed.
+    '''
+    # TODO: delete code that refers to _gsl_{var}_p, not used anymore
+
+    datatypes = find_datatypes(load_namespace)
+
+    struct_parameters = ['\ncdef struct parameters:',
+                         '\tint _idx']
+    struct_statevars = ['\ncdef struct statevar_container:']
+    func_fill_yvector = ['\ncdef int fill_y_vector(statevar_container* statevariables, double * y, int _idx) nogil:']
+    func_empty_yvector = ['\ncdef int empty_y_vector(statevar_container* statevariables, double * y, int _idx) nogil:']
+    func_begin = ['\ncdef int func(double t, const double y[], double f[], void *params) nogil:',
+            '\tcdef parameters* p = <parameters*>params',
+            '\tcdef int _idx = p._idx']
+    func_end = []
+
+    defined = ['_idx', 't']
+    to_replace_rhs = {} # variables to be replaced (i.e. _gsl__array_neurongroup_v_y0 to y[0]
+    to_replace_lhs = {} # variables to be replaced (i.e. _gsl__array_neurongroup_v_f0 to f[0]
+    parameters = {} # variables we want in parameters statevars
+    statevars = {} # variables we want in struct statevars
+    func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
+
+    # based on the given vector code it is inferred what the GSL code should be
+    for expr_set in diff_expressions:
+        for expr in expr_set.split('\n'):
+            space_count = 0
+            while expr[0] == ' ': # count already existing whitespaces to achieve the right indentation later
+                space_count += 1
+                expr = expr[1:]
+            try:
+                lhs, op, rhs, comment = parse_statement(expr)
+            except ValueError: # an if statement(?)
+                func_end += ['\t'+expr]
+                continue
+            if lhs == 't': # ignore the t = _array_defaultclock_t[0] statement because t is already an argument to func
+                continue
+            for identifier in get_identifiers(lhs):
+                m = re.match('_gsl_(.+?)_([f])([0-9]*)', identifier)
+                if not m:
+                    if 'array' in identifier:
+                        if not identifier in defined:
+                            parameters[identifier] = '\t{datatype} {var}'.format(datatype=datatypes[identifier], var=identifier)
+                        to_replace_lhs[identifier] = 'p.' + identifier
+                    else:
+                        if not identifier in defined: # don't redeclare t, _idx
+                            func_declarations[identifier] = '\tcdef {datatype} {var}'.format(datatype=datatypes[identifier], var=identifier)
+                else:
+                    to_replace_lhs[identifier] = 'f[{ind}]'.format(ind=m.group(3))
+            for identifier in get_identifiers(rhs):
+                m = re.match('_gsl_(.+?)_([y|p])([0-9]*)', identifier)
+                if not m:
+                    if identifier in func_declarations or identifier in defined:
+                        continue
+                    if 'array' in identifier:
+                        parameters[identifier] = '\tdouble* {var}'.format(var=identifier)
+                    else:
+                        parameters[identifier] = '\tdouble {var}'.format(var=identifier)
+                    to_replace_rhs[identifier] = 'p.' + identifier
+                elif m.group(2) == 'y':
+                    statevars[identifier] = '\tdouble* {var}'.format(var=m.group(1))
+                    func_fill_yvector += ['\ty[{ind}] = statevariables.{var}[_idx]'.format(ind=m.group(3),var=m.group(1))]
+                    func_empty_yvector += ['\tstatevariables.{var}[_idx] = y[{ind}]'.format(ind=m.group(3),var=m.group(1))]
+                    to_replace_rhs[identifier] = 'y[{ind}]'.format(ind=m.group(3))
+                elif m.group(2) == 'p':
+                    if 'array' in m.group(1):
+                        parameters[identifier] = '\tdouble* {var}'.format(var=m.group(1))
+                        to_replace_rhs[identifier] = 'p.{var}[_idx]'.format(var=m.group(1))
+                    else:
+                        parameters[identifier] = '\tdouble {var}'.format(var=m.group(1))
+                        to_replace_rhs[identifier] = 'p.{var}'.format(var=m.group(1))
+
+            func_end += ['{spaces}\t'.format(spaces=' '*space_count)+word_substitute(lhs, to_replace_lhs) + ' = ' + word_substitute(rhs, to_replace_rhs)]
+
+    for name in parameters.keys():
+        struct_parameters += [parameters[name]]
+
+    for name in statevars.keys():
+        struct_statevars += [statevars[name]]
+
+    for name in func_declarations.keys():
+        func_begin += [func_declarations[name]]
+
+    return struct_parameters + struct_statevars + func_fill_yvector + func_empty_yvector + func_begin + func_end
+
+def add_GSL_declarations(expressions, vector_code):
+    '''
+    This function writes the initialization of the variables in the params struct, that are needed in func
+    it does so by analyzing the variable declarations brian does already together with the vector_code to see which
+    variables are needed.
+    '''
+
+    # find a dict with ('v' : '_array_neurongroup_v' etc.) based on code generated by brian
+    statevariables, othervariables = find_variable_dict(vector_code)
+
+    new_expressions = []
+    unpack_dict = {}
+
+    for line in expressions.split('\n'):
+        # check all the lines that start with cdef
+        if 'cdef' in line:
+            m = re.match('cdef ([a-z|0-9|_]+) (\*? ?)([a-z|A-Z|0-9|_]+) = (.*)', line)
+            if m:
+                # if this is a statevariable we want it to be in the statevariables struct (TODO: I don't think we need separate structs actually..)
+                if m.group(3) in statevariables.keys():
+                    unpack_dict[m.group(3)] = 'statevariables.{var} = {expr}'.format(var=m.group(3), expr=m.group(4))
+                elif m.group(3) in othervariables.values():
+                    unpack_dict[m.group(3)] = 'p.{var} = {expr}'.format(var=m.group(3), expr=m.group(4))
+        else:
+            new_expressions += [line]
+
+    for name in unpack_dict:
+        new_expressions += [unpack_dict[name]]
+
+    return new_expressions
+
+def add_GSL_declarations_scalar(scalar_code, vector_code):
+
+    statevars, othervars = find_variable_dict(vector_code)
+
+    code = []
+
+    for line in scalar_code:
+        try:
+            var, op, expr, comment = parse_statement(line)
+        except ValueError:
+            code += [line]
+            continue
+        if var in othervars.keys():
+            code += ['p.'+line]
+        else:
+            code += [line]
+
+    return code
 
 
 class LazyTemplateLoader(object):
@@ -108,6 +306,9 @@ class Templater(object):
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
         self.env.filters['variables_to_array_names'] = variables_to_array_names
+        self.env.filters['replace_diff'] = replace_diff
+        self.env.filters['add_GSL_declarations'] = add_GSL_declarations
+        self.env.filters['add_GSL_declarations_scalar'] = add_GSL_declarations_scalar
         if env_globals is not None:
             self.env.globals.update(env_globals)
         else:

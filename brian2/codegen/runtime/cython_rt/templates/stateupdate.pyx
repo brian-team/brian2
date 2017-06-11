@@ -1,5 +1,41 @@
 {% extends 'common.pyx' %}
 
+{% block template_support_code %}
+from libc.stdlib cimport malloc, free
+
+cdef extern from "gsl/gsl_odeiv2.h":
+    # gsl_odeiv2_system
+    ctypedef struct gsl_odeiv2_system:
+        int (* function) (double t,  double y[], double dydt[], void * params) nogil
+        int (* jacobian) (double t,  double y[], double * dfdy, double dfdt[], void * params) nogil
+        size_t dimension
+        void * params
+
+    ctypedef struct gsl_odeiv2_step
+    ctypedef struct gsl_odeiv2_control
+    ctypedef struct gsl_odeiv2_evolve
+    ctypedef struct gsl_odeiv2_driver
+
+    ctypedef struct gsl_odeiv2_step_type
+
+    gsl_odeiv2_step_type *gsl_odeiv2_step_rk2
+
+    int gsl_odeiv2_driver_apply(
+        gsl_odeiv2_driver *d, double *t, double t1, double y[]) nogil
+
+    gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
+        gsl_odeiv2_system *sys, gsl_odeiv2_step_type *T,
+        double hstart, double epsabs, double epsrel) nogil
+
+    int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d) nogil
+
+#temp
+cdef double* assign_memory_y():
+    return <double*>malloc(sizeof(double))
+#endtemp
+{{vector_code|replace_diff(load_namespace)|autoindent}}
+{% endblock %}
+
 {% block maincode %}
     {# ITERATE_ALL { _idx } #}
     {# USES_VARIABLES { N } #}
@@ -8,35 +44,39 @@
     # scalar code
     _vectorisation_idx = 1
 
-    dt = _array_defaultclock_dt[0]
-    {{scalar_code|autoindent}}
-
-    cdef double * y = assign_memory_y()
+    cdef double t1
     cdef statevar_container * statevariables = <statevar_container *>malloc(sizeof(statevar_container))
-    assign_statevariable_arrays(_namespace, statevariables)
+    cdef parameters * p = <parameters *>malloc(sizeof(parameters))
+    {{load_namespace|add_GSL_declarations(vector_code)|autoindent}}
+    {{scalar_code|add_GSL_declarations_scalar(vector_code)|autoindent}}
+    cdef double * y = assign_memory_y()
+    
     cdef gsl_odeiv2_system sys
     cdef gsl_odeiv2_driver * d
     sys.function = func
-    fill_odeiv2_system(_namespace, &sys)
+    sys.dimension = 2
+    sys.params = p
     
     d = gsl_odeiv2_driver_alloc_y_new(
-        &sys, gsl_odeiv2_step_rk2, # can also make this a pointer to chosen integrator
+        &sys, gsl_odeiv2_step_rk2, 
         1e-6, 1e-6, 0.0)       
+
+    print('checkpoint1', _array_defaultclock_t[0])
 
     # vector code
     for _idx in range(N):
         _vectorisation_idx = _idx
-        {{vector_code|autoindent}}
 
         t = _array_defaultclock_t[0]
         t1 = t + dt
-        if not_refractory:
-            fill_y_vector(statevariables, y, _idx)
-            gsl_odeiv2_driver_apply(d, &t, t1, y)
-            empty_y_vector(statevariables, y, _idx)
 
-    empty_statevariable_arrays(_namespace, statevariables)
-
+        p._idx = _idx
+        fill_y_vector(statevariables, y, _idx)
+        print('checkpoint2', t, t1)
+        gsl_odeiv2_driver_apply(d, &t, t1, y)
+        print('checkpoint3')
+        empty_y_vector(statevariables, y, _idx)
+        print('checkpoint4')
 
 {% endblock %}
     

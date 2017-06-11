@@ -29,6 +29,8 @@ from brian2.utils.stringtools import get_identifiers
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
+from brian2.parsing.statements import parse_statement
+import re
 
 __all__ = ['NeuronGroup']
 
@@ -104,7 +106,7 @@ class StateUpdater(CodeRunner):
                             name=group.name + '_stateupdater*',
                             check_units=False,
                             generate_empty_code=False,
-                            needed_variables=['v', 'v0', 'dt', 'tau', 'GSL_functions'])
+                            needed_variables=['dt'])
 
     def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory
@@ -144,6 +146,14 @@ class StateUpdater(CodeRunner):
                                  '"%s" has units %s instead') % (ref, dims))
         return abstract_code
 
+    def make_namespace_variables(self):
+        namespace_variables = {}
+        for line in self.abstract_code.split('\n'):
+            var, op, expr, comment = parse_statement(line)
+            if re.match('_gsl(.*)', expr):
+                namespace_variables[var] = expr
+        return namespace_variables
+
     def update_abstract_code(self, run_namespace):
 
         # Update the not_refractory variable for the refractory period mechanism
@@ -154,7 +164,7 @@ class StateUpdater(CodeRunner):
                                                      recursive=True)
 
         # Get all names used in the equations (and always get "dt")
-        names = self.group.equations.names
+        names = self.group.equations.names                          
         external_names = self.group.equations.identifiers | {'dt'}
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,
@@ -168,6 +178,15 @@ class StateUpdater(CodeRunner):
                                                                        variables,
                                                                        self.method_choice,
                                                                        group_name=self.group.name)
+
+        self.variables = Variables(self)
+        namespace_variables = self.make_namespace_variables()
+        for name in namespace_variables.keys():
+            if not namespace_variables[name] in self.variables:
+                self.variables.add_auxiliary_variable(namespace_variables[name],
+                                                            dimensions=variables[name].dim,
+                                                            scalar=variables[name].scalar)
+            
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
