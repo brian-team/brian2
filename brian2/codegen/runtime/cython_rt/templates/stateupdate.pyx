@@ -33,7 +33,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
 cdef double* assign_memory_y():
     return <double*>malloc(sizeof(double))
 #endtemp
-{{vector_code|replace_diff(load_namespace)|autoindent}}
+{{vector_code|replace_diff(variables)|autoindent}}
 {% endblock %}
 
 {% block maincode %}
@@ -47,7 +47,7 @@ cdef double* assign_memory_y():
     cdef double t1
     cdef statevar_container * statevariables = <statevar_container *>malloc(sizeof(statevar_container))
     cdef parameters * p = <parameters *>malloc(sizeof(parameters))
-    {{load_namespace|add_GSL_declarations(vector_code)|autoindent}}
+    {{add_GSL_declarations(vector_code)|autoindent}}
     {{scalar_code|add_GSL_declarations_scalar(vector_code)|autoindent}}
     cdef double * y = assign_memory_y()
     

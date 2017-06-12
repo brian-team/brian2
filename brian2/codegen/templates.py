@@ -10,6 +10,25 @@ from jinja2 import (Environment, PackageLoader, ChoiceLoader, StrictUndefined,
 from brian2.utils.stringtools import (indent, strip_empty_lines,
                                       get_identifiers, word_substitute)
 
+from brian2.core.variables import ArrayVariable
+
+# for some reason I get an error with importing get_cpp_dtype (ImportError: cannot import name NumpyCodeObject)
+from brian2.core.variables import get_dtype_str
+# from brian2.codegen.generators.cython_generator import data_type_conversion_table, cpp_dtype, get_cpp_dtype
+# so I just redefined it TODO: solve this
+data_type_conversion_table = [
+    # canonical         C++            Numpy
+    ('float32',        'float',       'float32'),
+    ('float64',        'double',      'float64'),
+    ('int32',          'int32_t',     'int32'),
+    ('int64',          'int64_t',     'int64'),
+    ('bool',           'bool',        'bool'),
+    ('uint8',          'char',        'uint8'),
+    ('uint64',         'uint64_t',    'uint64'),
+    ]
+cpp_dtype = dict((canonical, cpp) for canonical, cpp, np in data_type_conversion_table)
+def get_cpp_dtype(obj):
+    return cpp_dtype[get_dtype_str(obj)]
 
 __all__ = ['Templater']
 
@@ -51,155 +70,104 @@ def variables_to_array_names(variables, access_data=True):
              for var in variables]
     return names
 
-def find_datatypes(expressions):
+def find_variable_mapping(variables):
+    variable_mapping = {}
+    to_array = []
+    for key, value in variables.iteritems():
+        if isinstance(value, ArrayVariable):
+            to_array += [key]
+    for var, array_var in zip(to_array, variables_to_array_names([variables[x] for x in to_array])):
+        variable_mapping[var] = array_var
+    return variable_mapping
+
+def find_datatypes(variables):
     datatypes = {}
-
-    for line in expressions.split('\n'):
-        if 'cdef' in line:
-            m = re.match('cdef ([a-z|0-9|_]+) (\*? ?)([a-z|A-Z|0-9|_]+) = (.*)', line)
-            if m:
-                datatypes[m.group(3)] = m.group(1)+m.group(2)
-            else:
-                m = re.match('cdef ([a-z|0-9|_]+) (\*? ?)([a-z|A-Z|0-9|_]+)', line)
-                if m:
-                    datatypes[m.group(3)] = m.group(1)+m.group(2)
-
+    for key, value in variables.iteritems():
+        try:
+            datatypes[key] = get_cpp_dtype(value)
+        except KeyError:
+            pass
     return datatypes
 
-def find_variable_dict(expressions):
-
-    ignore = ['_idx', 't']
-    statevars = {}
-    othervars = {}
-
-    for expr_set in expressions:
+def find_differential_variables(code):
+    diff_vars = {}
+    for expr_set in code:
         for expr in expr_set.split('\n'):
             expr = expr.strip(' ')
-            try:
-                lhs, op, rhs, comment = parse_statement(expr)
-            except ValueError:
-                pass
-            m = re.match('_gsl_(.+?)_([f])([0-9]*)', lhs)
-            if m:
-                statevars[m.group(1)] = m.group(3)
-
-    for expr_set in expressions:
-        for expr in expr_set.split('\n'):
-            expr = expr.strip(' ')
-            try:
-                lhs, op, rhs, comment = parse_statement(expr)
-            except ValueError:
-                pass # ignore if statements
-            if lhs in ignore:
-                continue # don't get t = defaultclock etc.
-            for identifier in get_identifiers(lhs):
-                if not identifier in statevars.keys() \
-                        and not identifier in othervars.keys() \
-                        and not identifier in othervars.values() \
-                        and not identifier in ignore \
-                        and not re.match('_gsl_(.+?)_([f])([0-9]*)', lhs): # ignore statevariable assignment, we do that ourselves with f[ind] = etc
-                    othervars[identifier] = re.sub('\[_idx\]', '', rhs)
-            for identifier in get_identifiers(rhs):
-                if not identifier in statevars.keys() \
-                        and not identifier in othervars.keys() \
-                        and not identifier in othervars.values() \
-                        and not identifier in ignore \
-                        and not re.match('_gsl_(.+?)_([f|y])([0-9]*)', identifier)\
-                        and not identifier+'[_idx]' in othervars.values():
-                    othervars[identifier] = identifier
-    return (statevars, othervars)
-
+        try:
+            lhs, op, rhs, comment = parse_statement(expr)
+        except ValueError:
+            pass
+        m = re.match('_gsl_(.+?)_([f])([0-9]*)', lhs)
+        if m:
+            diff_vars[m.group(1)] = m.group(3)
+    return diff_vars
 
 from brian2.parsing.statements import parse_statement
-def replace_diff(diff_expressions, load_namespace):
+def replace_diff(vector_code, variables):
     '''
     This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
     It does so based on the statements sent to the Templater, and infers what is needed.
     '''
     # TODO: delete code that refers to _gsl_{var}_p, not used anymore
 
-    datatypes = find_datatypes(load_namespace)
+    datatypes = find_datatypes(variables)
+    variable_mapping = find_variable_mapping(variables)
+    diff_vars = find_differential_variables(vector_code)
 
     struct_parameters = ['\ncdef struct parameters:',
                          '\tint _idx']
-    struct_statevars = ['\ncdef struct statevar_container:']
-    func_fill_yvector = ['\ncdef int fill_y_vector(statevar_container* statevariables, double * y, int _idx) nogil:']
-    func_empty_yvector = ['\ncdef int empty_y_vector(statevar_container* statevariables, double * y, int _idx) nogil:']
+    func_fill_yvector = ['\ncdef int fill_y_vector(parameters* p, double * y, int _idx) nogil:']
+    func_empty_yvector = ['\ncdef int empty_y_vector(parameters* p, double * y, int _idx) nogil:']
     func_begin = ['\ncdef int func(double t, const double y[], double f[], void *params) nogil:',
             '\tcdef parameters* p = <parameters*>params',
             '\tcdef int _idx = p._idx']
     func_end = []
 
     defined = ['_idx', 't']
-    to_replace_rhs = {} # variables to be replaced (i.e. _gsl__array_neurongroup_v_y0 to y[0]
-    to_replace_lhs = {} # variables to be replaced (i.e. _gsl__array_neurongroup_v_f0 to f[0]
+    to_replace = {}
     parameters = {} # variables we want in parameters statevars
-    statevars = {} # variables we want in struct statevars
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
-    # based on the given vector code it is inferred what the GSL code should be
-    for expr_set in diff_expressions:
+    for var in variable_mapping:
+        if var in diff_vars:
+            to_replace['_gsl_{var}_f{ind}'.format(var=var, ind=diff_vars[var])] = 'f[{ind}]'.format(ind=diff_vars[var])
+            to_replace['_gsl_{var}_y{ind}'.format(var=var, ind=diff_vars[var])] = 'y[{ind}]'.format(ind=diff_vars[var])
+            func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
+            parameters[var] = '\t{datatype}* {var}'.format(datatype=datatypes[var], var=array_name)
+            func_fill_yvector += ['\ty[{ind}] = p.{var}[_idx]'.format(ind=diff_vars[var], var=var)]
+            func_empty_yvector += ['\tp.{var}[_idx] = y[{ind}]'.format(ind=diff_vars[var], var=var)]
+        elif variable_mapping[var] == '':
+            func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
+        else:
+            array_name = variable_mapping[var]
+            func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
+            parameters[var] = '\t{datatype}* {var}'.format(datatype=datatypes[var], var=array_name)
+            to_replace[array_name] = 'p.'+array_name
+
+    for expr_set in vector_code:
         for expr in expr_set.split('\n'):
-            space_count = 0
-            while expr[0] == ' ': # count already existing whitespaces to achieve the right indentation later
-                space_count += 1
-                expr = expr[1:]
             try:
                 lhs, op, rhs, comment = parse_statement(expr)
-            except ValueError: # an if statement(?)
+            except ValueError: # if statements?
                 func_end += ['\t'+expr]
                 continue
-            if lhs == 't': # ignore the t = _array_defaultclock_t[0] statement because t is already an argument to func
+            if (lhs in diff_vars and rhs == variable_mapping[lhs]) or (rhs in diff_vars and lhs == variable_mapping[rhs]):
+                continue # ignore the v = _array_neurongroup_v[_idx] case we want it to be v = y[0]
+            if lhs in defined: # ignore t = _array_defaultclock_t[0]
                 continue
-            for identifier in get_identifiers(lhs):
-                m = re.match('_gsl_(.+?)_([f])([0-9]*)', identifier)
-                if not m:
-                    if 'array' in identifier:
-                        if not identifier in defined:
-                            parameters[identifier] = '\t{datatype} {var}'.format(datatype=datatypes[identifier], var=identifier)
-                        to_replace_lhs[identifier] = 'p.' + identifier
-                    else:
-                        if not identifier in defined: # don't redeclare t, _idx
-                            func_declarations[identifier] = '\tcdef {datatype} {var}'.format(datatype=datatypes[identifier], var=identifier)
-                else:
-                    to_replace_lhs[identifier] = 'f[{ind}]'.format(ind=m.group(3))
-            for identifier in get_identifiers(rhs):
-                m = re.match('_gsl_(.+?)_([y|p])([0-9]*)', identifier)
-                if not m:
-                    if identifier in func_declarations or identifier in defined:
-                        continue
-                    if 'array' in identifier:
-                        parameters[identifier] = '\tdouble* {var}'.format(var=identifier)
-                    else:
-                        parameters[identifier] = '\tdouble {var}'.format(var=identifier)
-                    to_replace_rhs[identifier] = 'p.' + identifier
-                elif m.group(2) == 'y':
-                    statevars[identifier] = '\tdouble* {var}'.format(var=m.group(1))
-                    func_fill_yvector += ['\ty[{ind}] = statevariables.{var}[_idx]'.format(ind=m.group(3),var=m.group(1))]
-                    func_empty_yvector += ['\tstatevariables.{var}[_idx] = y[{ind}]'.format(ind=m.group(3),var=m.group(1))]
-                    to_replace_rhs[identifier] = 'y[{ind}]'.format(ind=m.group(3))
-                elif m.group(2) == 'p':
-                    if 'array' in m.group(1):
-                        parameters[identifier] = '\tdouble* {var}'.format(var=m.group(1))
-                        to_replace_rhs[identifier] = 'p.{var}[_idx]'.format(var=m.group(1))
-                    else:
-                        parameters[identifier] = '\tdouble {var}'.format(var=m.group(1))
-                        to_replace_rhs[identifier] = 'p.{var}'.format(var=m.group(1))
 
-            func_end += ['{spaces}\t'.format(spaces=' '*space_count)+word_substitute(lhs, to_replace_lhs) + ' = ' + word_substitute(rhs, to_replace_rhs)]
+            func_end += ['\t'+word_substitute(expr, to_replace)]
 
     for name in parameters.keys():
         struct_parameters += [parameters[name]]
 
-    for name in statevars.keys():
-        struct_statevars += [statevars[name]]
-
     for name in func_declarations.keys():
         func_begin += [func_declarations[name]]
 
-    return struct_parameters + struct_statevars + func_fill_yvector + func_empty_yvector + func_begin + func_end
+    return struct_parameters + func_fill_yvector + func_empty_yvector + func_begin + func_end
 
-def add_GSL_declarations(expressions, vector_code):
+def add_GSL_declarations(variables, vector_code):
     '''
     This function writes the initialization of the variables in the params struct, that are needed in func
     it does so by analyzing the variable declarations brian does already together with the vector_code to see which
@@ -207,7 +175,8 @@ def add_GSL_declarations(expressions, vector_code):
     '''
 
     # find a dict with ('v' : '_array_neurongroup_v' etc.) based on code generated by brian
-    statevariables, othervariables = find_variable_dict(vector_code)
+    variable_mapping = find_variable_mapping(variables)
+    diff_vars = find_differential_variables(vector_code)
 
     new_expressions = []
     unpack_dict = {}
