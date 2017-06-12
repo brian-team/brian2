@@ -66,4 +66,5 @@ plot(mon[compartment].v/mV, mon[compartment].v/mV, 'k--')  # Diagonal
 plot(mon[0].v/mV, mon[compartment].v/mV, 'k')
 xlabel('Vs (mV)')
 ylabel('Va (mV)')
+tight_layout()
 show()

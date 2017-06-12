@@ -202,7 +202,6 @@ def clean_up_logging():
         std_silent.close()
 
 
-sys.excepthook = brian_excepthook
 atexit.register(clean_up_logging)
 
 
@@ -584,6 +583,8 @@ class BrianLogger(object):
                        '{name} version is: {version}'.format(name=_name,
                                                              version=str(
                                                                  _version)))
+        # Handle uncaught exceptions
+        sys.excepthook = brian_excepthook
 
 
 def get_logger(module_name='brian2'):

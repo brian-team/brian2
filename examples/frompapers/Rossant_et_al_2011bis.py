@@ -69,7 +69,8 @@ for i in [0, 1]:
     plot(SM.t/ms, val)
     plot(tile(spikes, (2,1)), 
          vstack((val[array(spikes, dtype=int)],
-                 zeros(len(spikes)))), 'b')
+                 zeros(len(spikes)))), 'C0')
     title("%s: %d spikes/second" % (["uncorrelated inputs", "correlated inputs"][i], 
                                     M.count[i]))
+tight_layout()
 show()

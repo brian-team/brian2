@@ -83,5 +83,5 @@ ylim(0, 20)
 xlabel('V (mV)')
 ylabel('dV/dt (V/s)')
 title('Phase plot(zoom)')
-
+tight_layout()
 show()

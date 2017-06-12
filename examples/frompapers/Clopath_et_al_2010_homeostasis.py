@@ -40,26 +40,26 @@ v_target = 12*mV**2     # target depolarisation
 
 #### Plasticity Equations
 
-# equations executed at every timestep
+# equations executed at every timestepC
 Syn_model =   ('''
             w_ampa:1                # synaptic weight (ampa synapse)
             ''')
 
 # equations executed only when a presynaptic spike occurs
 Pre_eq = ('''
-            g_ampa_post += w_ampa*ampa_max_cond                                                             # increment synaptic conductance
-            A_LTD_u = A_LTD*(v_homeo**2/v_target)                                                           # metaplasticity
-            w_minus = A_LTD_u*(v_lowpass1_post/mV - Theta_low/mV)*(v_lowpass1_post/mV - Theta_low/mV > 0)   # synaptic depression
-            w_ampa = clip(w_ampa-w_minus,0,w_max)                                                           # hard bounds
+            g_ampa_post += w_ampa*ampa_max_cond                                                               # increment synaptic conductance
+            A_LTD_u = A_LTD*(v_homeo**2/v_target)                                                             # metaplasticity
+            w_minus = A_LTD_u*(v_lowpass1_post/mV - Theta_low/mV)*int(v_lowpass1_post/mV - Theta_low/mV > 0)  # synaptic depression
+            w_ampa = clip(w_ampa-w_minus, 0, w_max)                                                           # hard bounds
             ''' )
 
 # equations executed only when a postsynaptic spike occurs
 Post_eq = ('''
-            v_lowpass1 += 10*mV                                                                                     # mimics the depolarisation effect due to a spike
-            v_lowpass2 += 10*mV                                                                                     # mimics the depolarisation effect due to a spike
-             v_homeo += 0.1*mV                                                                                      # mimics the depolarisation effect due to a spike
-            w_plus = A_LTP*x_trace_pre*(v_lowpass2_post/mV - Theta_low/mV)*(v_lowpass2_post/mV - Theta_low/mV > 0)  # synaptic potentiation
-            w_ampa = clip(w_ampa+w_plus,0,w_max)                                                                    # hard bounds
+            v_lowpass1 += 10*mV                                                                                        # mimics the depolarisation effect due to a spike
+            v_lowpass2 += 10*mV                                                                                        # mimics the depolarisation effect due to a spike
+            v_homeo += 0.1*mV                                                                                          # mimics the depolarisation effect due to a spike
+            w_plus = A_LTP*x_trace_pre*(v_lowpass2_post/mV - Theta_low/mV)*int(v_lowpass2_post/mV - Theta_low/mV > 0)  # synaptic potentiation
+            w_ampa = clip(w_ampa+w_plus, 0, w_max)                                                                     # hard bounds
             ''' )
 
 ################################################################################
