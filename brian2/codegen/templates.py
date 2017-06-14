@@ -167,11 +167,11 @@ def replace_diff(vector_code, variables):
 
             func_end += ['\t'+word_substitute(expr, to_replace)]
 
-    for name in parameters.keys():
-        struct_parameters += [parameters[name]]
+    for name, expr in parameters.iteritems():
+        struct_parameters += [expr]
 
-    for name in func_declarations.keys():
-        func_begin += [func_declarations[name]]
+    for name, expr in func_declarations.iteritems():
+        func_begin += [expr]
 
     everything = struct_parameters + func_fill_yvector + func_empty_yvector + func_begin + func_end
     print ('\n').join(everything)
