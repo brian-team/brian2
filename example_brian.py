@@ -42,8 +42,7 @@ class GSLStateUpdater(StateUpdateMethod):
         defined = [x[0] for x in equations.eq_expressions] + ['t']
 
         for diff_name, expr in diff_eqs:
-            new_diff_name = device.get_array_name(variables[diff_name])
-            code += ['{var_single} = _gsl_{var}_y{count}'.format(var_single=diff_name, var=new_diff_name, count=count_statevariables)]
+            code += ['{var_single} = _gsl_{var}_y{count}'.format(var_single=diff_name, var=diff_name, count=count_statevariables)]
             counter[diff_name] = count_statevariables
             count_statevariables += 1
 
@@ -54,7 +53,7 @@ class GSLStateUpdater(StateUpdateMethod):
                         or name in defined:
                     continue
 
-        code += ['_gsl_{var}_f{count} = {expr}'.format(var=new_diff_name,
+        code += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
                                                            expr=expr,
                                                            count=counter[name])]
 
@@ -72,6 +71,7 @@ monitor = SpikeMonitor(group)
 mon2 = StateMonitor(group, 'v', record=True)
 
 run(duration)
+print group.state_updater.abstract_code
 print group.state_updater.codeobj.code
 plot(group.v0/mV, monitor.count / duration)
 xlabel('v0 (mV)')

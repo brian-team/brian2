@@ -109,41 +109,46 @@ def replace_diff(vector_code, variables):
     This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
     It does so based on the statements sent to the Templater, and infers what is needed.
     '''
-    # TODO: delete code that refers to _gsl_{var}_p, not used anymore
-
     datatypes = find_datatypes(variables)
     variable_mapping = find_variable_mapping(variables)
     diff_vars = find_differential_variables(vector_code)
 
+    print diff_vars
+    print variable_mapping
+
     struct_parameters = ['\ncdef struct parameters:',
                          '\tint _idx']
-    func_fill_yvector = ['\ncdef int fill_y_vector(parameters* p, double * y, int _idx) nogil:']
-    func_empty_yvector = ['\ncdef int empty_y_vector(parameters* p, double * y, int _idx) nogil:']
-    func_begin = ['\ncdef int func(double t, const double y[], double f[], void *params) nogil:',
-            '\tcdef parameters* p = <parameters*>params',
+    func_fill_yvector = ['\ncdef int fill_y_vector(parameters * p, double * y, int _idx) nogil:']
+    func_empty_yvector = ['\ncdef int empty_y_vector(parameters * p, double * y, int _idx) nogil:']
+    func_begin = ['\ncdef int func(double t, const double y[], double f[], void * params) nogil:',
+            '\tcdef parameters * p = <parameters *>params',
             '\tcdef int _idx = p._idx']
     func_end = []
 
-    defined = ['_idx', 't']
+    defined = ['_idx', 't', 'dt']
     to_replace = {}
     parameters = {} # variables we want in parameters statevars
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
     for var in variable_mapping:
+        if var in defined:
+            continue
         if var in diff_vars:
             to_replace['_gsl_{var}_f{ind}'.format(var=var, ind=diff_vars[var])] = 'f[{ind}]'.format(ind=diff_vars[var])
             to_replace['_gsl_{var}_y{ind}'.format(var=var, ind=diff_vars[var])] = 'y[{ind}]'.format(ind=diff_vars[var])
             func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
-            parameters[var] = '\t{datatype}* {var}'.format(datatype=datatypes[var], var=array_name)
-            func_fill_yvector += ['\ty[{ind}] = p.{var}[_idx]'.format(ind=diff_vars[var], var=var)]
-            func_empty_yvector += ['\tp.{var}[_idx] = y[{ind}]'.format(ind=diff_vars[var], var=var)]
+            parameters[var] = '\t{datatype} * {var}'.format(datatype=datatypes[var], var=variable_mapping[var])
+            func_fill_yvector += ['\ty[{ind}] = p.{var}[_idx]'.format(ind=diff_vars[var], var=variable_mapping[var])]
+            func_empty_yvector += ['\tp.{var}[_idx] = y[{ind}]'.format(ind=diff_vars[var], var=variable_mapping[var])]
         elif variable_mapping[var] == '':
             func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
         else:
             array_name = variable_mapping[var]
             func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
-            parameters[var] = '\t{datatype}* {var}'.format(datatype=datatypes[var], var=array_name)
+            parameters[var] = '\t{datatype} * {var}'.format(datatype=datatypes[var], var=array_name)
             to_replace[array_name] = 'p.'+array_name
+
+    print to_replace
 
     for expr_set in vector_code:
         for expr in expr_set.split('\n'):
@@ -152,10 +157,13 @@ def replace_diff(vector_code, variables):
             except ValueError: # if statements?
                 func_end += ['\t'+expr]
                 continue
-            if (lhs in diff_vars and rhs == variable_mapping[lhs]) or (rhs in diff_vars and lhs == variable_mapping[rhs]):
+            if (lhs in diff_vars and variable_mapping[lhs] in rhs) or (rhs in diff_vars and variable_mapping[rhs] in lhs):
                 continue # ignore the v = _array_neurongroup_v[_idx] case we want it to be v = y[0]
             if lhs in defined: # ignore t = _array_defaultclock_t[0]
                 continue
+            for identifier in get_identifiers(rhs):
+                if identifier not in defined and identifier not in func_declarations and identifier not in to_replace:
+                    to_replace[identifier] = 'p.'+identifier
 
             func_end += ['\t'+word_substitute(expr, to_replace)]
 
@@ -165,9 +173,11 @@ def replace_diff(vector_code, variables):
     for name in func_declarations.keys():
         func_begin += [func_declarations[name]]
 
-    return struct_parameters + func_fill_yvector + func_empty_yvector + func_begin + func_end
+    everything = struct_parameters + func_fill_yvector + func_empty_yvector + func_begin + func_end
+    print ('\n').join(everything)
+    return everything
 
-def add_GSL_declarations(variables, vector_code):
+def add_GSL_declarations(vector_code, variables):
     '''
     This function writes the initialization of the variables in the params struct, that are needed in func
     it does so by analyzing the variable declarations brian does already together with the vector_code to see which
@@ -177,31 +187,18 @@ def add_GSL_declarations(variables, vector_code):
     # find a dict with ('v' : '_array_neurongroup_v' etc.) based on code generated by brian
     variable_mapping = find_variable_mapping(variables)
     diff_vars = find_differential_variables(vector_code)
+    datatypes = find_datatypes(variables)
 
-    new_expressions = []
-    unpack_dict = {}
+    expressions = []
 
-    for line in expressions.split('\n'):
-        # check all the lines that start with cdef
-        if 'cdef' in line:
-            m = re.match('cdef ([a-z|0-9|_]+) (\*? ?)([a-z|A-Z|0-9|_]+) = (.*)', line)
-            if m:
-                # if this is a statevariable we want it to be in the statevariables struct (TODO: I don't think we need separate structs actually..)
-                if m.group(3) in statevariables.keys():
-                    unpack_dict[m.group(3)] = 'statevariables.{var} = {expr}'.format(var=m.group(3), expr=m.group(4))
-                elif m.group(3) in othervariables.values():
-                    unpack_dict[m.group(3)] = 'p.{var} = {expr}'.format(var=m.group(3), expr=m.group(4))
-        else:
-            new_expressions += [line]
+    for var, array_var in variable_mapping.iteritems():
+        if array_var == '' or var in diff_vars:
+            continue
+        expressions += ['p.{var} = <{datatype} *> _buf_{array_name}.data'.
+                        format(var=var, datatype=datatypes[var], array_name=array_var)]
+    return expressions
 
-    for name in unpack_dict:
-        new_expressions += [unpack_dict[name]]
-
-    return new_expressions
-
-def add_GSL_declarations_scalar(scalar_code, vector_code):
-
-    statevars, othervars = find_variable_dict(vector_code)
+def add_GSL_declarations_scalar(scalar_code, variables, elements):
 
     code = []
 
@@ -211,12 +208,10 @@ def add_GSL_declarations_scalar(scalar_code, vector_code):
         except ValueError:
             code += [line]
             continue
-        if var in othervars.keys():
-            code += ['p.'+line]
-        else:
-            code += [line]
+        code += ['p.'+line]
 
     return code
+
 
 
 class LazyTemplateLoader(object):

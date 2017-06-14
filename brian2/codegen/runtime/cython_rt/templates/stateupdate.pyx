@@ -47,8 +47,8 @@ cdef double* assign_memory_y():
     cdef double t1
     cdef statevar_container * statevariables = <statevar_container *>malloc(sizeof(statevar_container))
     cdef parameters * p = <parameters *>malloc(sizeof(parameters))
-    {{add_GSL_declarations(vector_code)|autoindent}}
-    {{scalar_code|add_GSL_declarations_scalar(vector_code)|autoindent}}
+    {{vector_code|add_GSL_declarations(variables)|autoindent}}
+    {{scalar_code|add_GSL_declarations_scalar(variables, load_namespace)|autoindent}}
     cdef double * y = assign_memory_y()
     
     cdef gsl_odeiv2_system sys
