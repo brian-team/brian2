@@ -1822,7 +1822,11 @@ def test_synapses_to_synapses_statevar_access():
     run(0*ms)
     assert_equal(modulator_to_conn.i, np.arange(40))
     assert_equal(modulator_to_conn.j, np.repeat(np.arange(20), 2))
+    assert_equal(modulator_to_conn.i_post, np.repeat(np.arange(10), 4))
+    assert_equal(modulator_to_conn.j_post, np.repeat(np.arange(10), 4))
     assert_equal(conn_to_modulator.i, np.hstack([np.arange(20), np.arange(20)]))
+    assert_equal(conn_to_modulator.i_pre, np.hstack([np.repeat(np.arange(10), 2), np.repeat(np.arange(10), 2)]))
+    assert_equal(conn_to_modulator.j_pre, np.hstack([np.repeat(np.arange(10), 2), np.repeat(np.arange(10), 2)]))
     assert_equal(conn_to_modulator.j, np.arange(40))
 
 
