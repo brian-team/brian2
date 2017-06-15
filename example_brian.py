@@ -59,10 +59,17 @@ class GSLStateUpdater(StateUpdateMethod):
 
         return ('\n').join(code)
 
-group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                    refractory=5*ms, method=GSLStateUpdater())
+GSL_stateupdatemethod = True
+GSL_generator = True
+if GSL_stateupdatemethod:
+    group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                        refractory=5*ms, method=GSLStateUpdater())
+else:
+    group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                        refractory=5*ms, method='exponential_euler')
 
-group.state_updater.codeobj_class = GSLCythonCodeObject
+if GSL_generator:
+    group.state_updater.codeobj_class = GSLCythonCodeObject
 
 group.v = 0*mV
 group.v0 = '20*mV * i / (n-1)'
