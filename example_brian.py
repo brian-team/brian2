@@ -62,6 +62,8 @@ class GSLStateUpdater(StateUpdateMethod):
 group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                     refractory=5*ms, method=GSLStateUpdater())
 
+group.state_updater.codeobj_class = GSLCythonCodeObject
+
 group.v = 0*mV
 group.v0 = '20*mV * i / (n-1)'
 

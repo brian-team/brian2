@@ -14,3 +14,7 @@ try:
     from .cython_rt import *
 except ImportError:
     pass # todo: raise a warning?
+try:
+    from .GSLcython_rt import *
+except ImportError:
+    pass
