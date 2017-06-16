@@ -1808,6 +1808,30 @@ def test_synapses_to_synapses():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_synapses_to_synapses_statevar_access():
+    source = NeuronGroup(10, 'v:1')
+    modulator = NeuronGroup(40, '')
+    target = NeuronGroup(10, 'v:1')
+    conn = Synapses(source, target)
+    conn.connect(j='i', n=2)
+    modulator_to_conn = Synapses(modulator, conn)
+    modulator_to_conn.connect(j='int(i/2)')
+    conn_to_modulator = Synapses(conn, modulator)
+    conn_to_modulator.connect(j='i')
+    conn_to_modulator.connect(j='i + 20')
+    run(0*ms)
+    assert_equal(modulator_to_conn.i, np.arange(40))
+    assert_equal(modulator_to_conn.j, np.repeat(np.arange(20), 2))
+    assert_equal(modulator_to_conn.i_post, np.repeat(np.arange(10), 4))
+    assert_equal(modulator_to_conn.j_post, np.repeat(np.arange(10), 4))
+    assert_equal(conn_to_modulator.i, np.hstack([np.arange(20), np.arange(20)]))
+    assert_equal(conn_to_modulator.i_pre, np.hstack([np.repeat(np.arange(10), 2), np.repeat(np.arange(10), 2)]))
+    assert_equal(conn_to_modulator.j_pre, np.hstack([np.repeat(np.arange(10), 2), np.repeat(np.arange(10), 2)]))
+    assert_equal(conn_to_modulator.j, np.arange(40))
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_synapses_to_synapses_different_sizes():
     prefs.codegen.target = 'numpy'
     source = NeuronGroup(100, 'v : 1', threshold='False')
@@ -2349,6 +2373,7 @@ if __name__ == '__main__':
     test_synaptic_equations()
     test_synapse_with_run_regularly()
     test_synapses_to_synapses()
+    test_synapses_to_synapses_statevar_access()
     test_synapses_to_synapses_different_sizes()
     test_synapses_to_synapses_summed_variable()
     try:
