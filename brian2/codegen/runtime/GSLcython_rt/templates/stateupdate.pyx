@@ -6,8 +6,8 @@ from libc.stdlib cimport malloc, free
 cdef extern from "gsl/gsl_odeiv2.h":
     # gsl_odeiv2_system
     ctypedef struct gsl_odeiv2_system:
-        int (* function) (double t,  double y[], double dydt[], void * params) nogil
-        int (* jacobian) (double t,  double y[], double * dfdy, double dfdt[], void * params) nogil
+        int (* function) (double t,  double y[], double dydt[], void * params)
+        int (* jacobian) (double t,  double y[], double * dfdy, double dfdt[], void * params)
         size_t dimension
         void * params
 
@@ -21,13 +21,13 @@ cdef extern from "gsl/gsl_odeiv2.h":
     gsl_odeiv2_step_type *gsl_odeiv2_step_rk2
 
     int gsl_odeiv2_driver_apply(
-        gsl_odeiv2_driver *d, double *t, double t1, double y[]) nogil
+        gsl_odeiv2_driver *d, double *t, double t1, double y[])
 
     gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
         gsl_odeiv2_system *sys, gsl_odeiv2_step_type *T,
-        double hstart, double epsabs, double epsrel) nogil
+        double hstart, double epsabs, double epsrel)
 
-    int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d) nogil
+    int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d)
 
 #temp
 cdef double* assign_memory_y():

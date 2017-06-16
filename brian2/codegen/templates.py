@@ -119,15 +119,15 @@ def replace_diff(vector_code, variables):
 
     struct_parameters = ['\ncdef struct parameters:',
                          '\tint _idx']
-    func_fill_yvector = ['\ncdef int fill_y_vector(parameters * p, double * y, int _idx) nogil:']
-    func_empty_yvector = ['\ncdef int empty_y_vector(parameters * p, double * y, int _idx) nogil:']
-    func_begin = ['\ncdef int func(double t, const double y[], double f[], void * params) nogil:',
+    func_fill_yvector = ['\ncdef int fill_y_vector(parameters * p, double * y, int _idx):']
+    func_empty_yvector = ['\ncdef int empty_y_vector(parameters * p, double * y, int _idx):']
+    func_begin = ['\ncdef int func(double t, const double y[], double f[], void * params):',
             '\tcdef parameters * p = <parameters *>params',
             '\tcdef int _idx = p._idx']
     func_end = []
 
     defined = ['_idx', 't', 'dt']
-    to_replace = {'int_' : ''} #TODO: This is a temporary hack to solve issue of int_(not_refractory) in non-optimised code
+    to_replace = {} #TODO: This is a temporary hack to solve issue of int_(not_refractory) in non-optimised code
     parameters = {} # variables we want in parameters statevars
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
