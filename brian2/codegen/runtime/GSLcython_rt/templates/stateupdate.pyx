@@ -58,9 +58,7 @@ cdef double* assign_memory_y():
     
     d = gsl_odeiv2_driver_alloc_y_new(
         &sys, gsl_odeiv2_step_rk2, 
-        1e-6, 1e-6, 0.0)       
-
-    print('checkpoint1', _array_defaultclock_t[0])
+        1e-6, 1e-6, 0.0)
 
     # vector code
     for _idx in range(N):
@@ -70,12 +68,8 @@ cdef double* assign_memory_y():
         t1 = t + dt
 
         p._idx = _idx
-        fill_y_vector(statevariables, y, _idx)
-        print('checkpoint2', t, t1)
+        fill_y_vector(p, y, _idx)
         gsl_odeiv2_driver_apply(d, &t, t1, y)
-        print('checkpoint3')
-        empty_y_vector(statevariables, y, _idx)
-        print('checkpoint4')
+        empty_y_vector(p, y, _idx)
 
 {% endblock %}
-    
