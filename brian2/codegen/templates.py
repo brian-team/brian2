@@ -119,6 +119,8 @@ def replace_diff(vector_code, variables):
 
     struct_parameters = ['\ncdef struct parameters:',
                          '\tint _idx']
+    set_dimension = ['\ncdef int set_dimension(size_t * dimension):']
+    allocate_y_vector = ['\ncdef double* assign_memory_y():']
     func_fill_yvector = ['\ncdef int fill_y_vector(parameters * p, double * y, int _idx):']
     func_empty_yvector = ['\ncdef int empty_y_vector(parameters * p, double * y, int _idx):']
     func_begin = ['\ncdef int func(double t, const double y[], double f[], void * params):',
@@ -163,7 +165,7 @@ def replace_diff(vector_code, variables):
                 func_end += ['\t'+expr]
                 continue
             if (lhs in diff_vars and variable_mapping[lhs] in rhs) or (rhs in diff_vars and variable_mapping[rhs] in lhs):
-                continue # ignore the v = _array_neurongroup_v[_idx] case we want it to be v = y[0]
+                continue # ignore the v = _array_neurongroup_v[_idx] cause we want it to be v = y[0]
             if lhs in defined: # ignore t = _array_defaultclock_t[0]
                 continue
 
@@ -175,7 +177,11 @@ def replace_diff(vector_code, variables):
     for name, expr in func_declarations.iteritems():
         func_begin += [expr]
 
-    everything = struct_parameters + func_fill_yvector + func_empty_yvector + func_begin + func_end
+    allocate_y_vector += ['\treturn <double*>malloc({diff_num}*sizeof(double))'.format(diff_num=len(diff_vars.keys()))]
+
+    set_dimension += ['\tdimension[0] = {diff_num}'.format(diff_num=len(diff_vars.keys()))]
+
+    everything = struct_parameters + set_dimension + allocate_y_vector + func_fill_yvector + func_empty_yvector + func_begin + func_end
     print ('\n').join(everything)
     return everything
 

@@ -29,10 +29,6 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d)
 
-#temp
-cdef double* assign_memory_y():
-    return <double*>malloc(sizeof(double))
-#endtemp
 {{vector_code|replace_diff(variables)|autoindent}}
 {% endblock %}
 
@@ -53,7 +49,7 @@ cdef double* assign_memory_y():
     cdef gsl_odeiv2_system sys
     cdef gsl_odeiv2_driver * d
     sys.function = func
-    sys.dimension = 2
+    set_dimension(&sys.dimension)
     sys.params = p
     
     d = gsl_odeiv2_driver_alloc_y_new(
