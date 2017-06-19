@@ -151,7 +151,7 @@ def replace_diff(vector_code, variables):
             func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
             parameters[var] = '\t{datatype} * {var}'.format(datatype=datatypes[var], var=array_name)
             to_replace[array_name] = 'p.'+array_name
-        elif isinstance(value, Constant):
+        elif isinstance(value, Constant) or (isinstance(value, AuxiliaryVariable) and not 'gsl' in var):
             parameters[var] = '\t{datatype} {var}'.format(datatype=datatypes[var], var=var)
             to_replace[var] = 'p.' + var
 

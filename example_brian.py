@@ -13,7 +13,7 @@ import re
 from brian2 import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 
 prefs.codegen.target = 'cython'
-prefs.codegen.loop_invariant_optimisations = False
+prefs.codegen.loop_invariant_optimisations = True
 
 prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
 prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
