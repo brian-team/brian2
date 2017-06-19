@@ -29,7 +29,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d)
 
-{{vector_code|replace_diff(variables)|autoindent}}
+{{vector_code|replace_diff(variables, lio_dic)|autoindent}}
 {% endblock %}
 
 {% block maincode %}
