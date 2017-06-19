@@ -6,9 +6,9 @@ from brian2.codegen.translation import make_statements
 from brian2.codegen.permutation_analysis import (check_for_order_independence,
                                                  OrderDependenceError)
 
-__all__ = ['GSLCythonCodeGenerator']
+__all__ = ['GSLCodeGenerator']
 
-class GSLCythonCodeGenerator(object): #TODO: I don't think it matters it doesn't inherit from CodeGenerator (the base) because it can access this through __getattr__ of the parent anyway?
+class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inherit from CodeGenerator (the base) because it can access this through __getattr__ of the parent anyway?
     def __init__(self, *args, **kwargs):
         self.other_variables = {}
         self.generator = CythonCodeGenerator(*args, **kwargs)

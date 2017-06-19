@@ -3,7 +3,7 @@ import numpy
 from ...codeobject import constant_or_scalar
 from ...templates import Templater
 from ..cython_rt import CythonCodeObject
-from ...generators.GSLcython_generator import GSLCythonCodeGenerator
+from ...generators.GSLcython_generator import GSLCodeGenerator
 from ...generators.cython_generator import get_cpp_dtype, get_numpy_dtype
 
 __all__ = ['GSLCythonCodeObject']
@@ -16,4 +16,4 @@ class GSLCythonCodeObject(CythonCodeObject):
                                        'dtype': numpy.dtype,
                                        'constant_or_scalar': constant_or_scalar})
 
-    generator_class = GSLCythonCodeGenerator
+    generator_class = GSLCodeGenerator
