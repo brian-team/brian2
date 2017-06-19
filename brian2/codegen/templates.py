@@ -105,7 +105,7 @@ def find_differential_variables(code):
     return diff_vars
 
 from brian2.parsing.statements import parse_statement
-def replace_diff(vector_code, variables, lio_dic):
+def replace_diff(vector_code, variables, other_variables):
     '''
     This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
     It does so based on the statements sent to the Templater, and infers what is needed.
@@ -155,9 +155,10 @@ def replace_diff(vector_code, variables, lio_dic):
             parameters[var] = '\t{datatype} {var}'.format(datatype=datatypes[var], var=var)
             to_replace[var] = 'p.' + var
 
-    for var, value in lio_dic.items():
-        parameters[var] = '\t{datatype} {var}'.format(datatype=get_cpp_dtype(value), var=var)
-        to_replace[var] = 'p.' + var
+    for var, value in other_variables.items():
+        if not '_gsl' in var:
+            parameters[var] = '\t{datatype} {var}'.format(datatype=get_cpp_dtype(value), var=var)
+            to_replace[var] = 'p.' + var
 
     print to_replace
 
