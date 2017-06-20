@@ -16,14 +16,29 @@ prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
 
 n = 10
 duration = .1*second
-tau = 10*ms
 
-eqs = '''
-dv/dt = (v1 - v) / tau : volt (unless refractory)
-v1 = v0*multi : volt
-multi = 2 : 1
-v0 : volt
-'''
+# Parameters
+area = 20000*umetre**2
+Cm = 1*ufarad*cm**-2 * area
+gl = 5e-5*siemens*cm**-2 * area
+El = -65*mV
+EK = -90*mV
+ENa = 50*mV
+g_na = 100*msiemens*cm**-2 * area
+g_kd = 30*msiemens*cm**-2 * area
+VT = -63*mV
+
+# The model
+eqs = Equations('''
+dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
+dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
+    (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
+    (exp((v-VT-40.*mV)/(5.*mV))-1.)/ms*m : 1
+dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
+    (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
+dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
+I : amp
+''')
 
 from brian2.units.stdunits import stdunits
 class GSLStateUpdater(StateUpdateMethod):
@@ -32,44 +47,66 @@ class GSLStateUpdater(StateUpdateMethod):
         # be translated to GSL code (i.e. with indexing and pointers)
         diff_eqs = equations.get_substituted_expressions(variables)
 
-        code = []
+        code_begin = []
+        code_end = []
         count_statevariables = 0
         counter = {}
 
         for diff_name, expr in diff_eqs:
-            code += ['{var_single} = _gsl_{var}_y{count}'.format(var_single=diff_name, var=diff_name, count=count_statevariables)]
             counter[diff_name] = count_statevariables
+            code_end += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
+                                                               expr=expr,
+                                                               count=counter[diff_name])]
             count_statevariables += 1
 
-        code += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
-                                                           expr=expr,
-                                                           count=counter[diff_name])]
+        print ('\n').join(code_begin+code_end)
+        return ('\n').join(code_begin+code_end)
 
-        return ('\n').join(code)
-
-GSL = True
-
-if GSL:
-    group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                        refractory=5*ms, method=GSLStateUpdater())
-    group.state_updater.codeobj_class = GSLCythonCodeObject
-else:
-    group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                        refractory=5*ms, method='exponential_euler')
+threshold = 'v > -40*mV'
+refractory = 'v > -40*mV'
+reset = None
 
 
-group.v = 0*mV
-group.v0 = '20*mV * i / (n-1)'
+GSLgroup = NeuronGroup(n, eqs, threshold=threshold, reset=reset,
+                    refractory=refractory, method=GSLStateUpdater())
+GSLgroup.state_updater.codeobj_class = GSLCythonCodeObject
 
-print group.v0
+EEgroup = NeuronGroup(n, eqs, threshold=threshold, reset=reset,
+                        refractory=refractory, method='rk4')
 
-monitor = SpikeMonitor(group)
-mon2 = StateMonitor(group, 'v', record=True)
+GSLgroup.v = El
+GSLgroup.I = [0.7*nA * i for i in range(n)]
+EEgroup.v = GSLgroup.v
+EEgroup.I = GSLgroup.I
 
-run(duration)
-print group.state_updater.abstract_code
-print group.state_updater.codeobj.code
-plot(group.v0/mV, monitor.count / duration)
-xlabel('v0 (mV)')
-ylabel('Firing rate (sp/s)')
+GSL_spikemon = SpikeMonitor(GSLgroup)
+GSL_statemon = StateMonitor(GSLgroup, 'v', record=True)
+EE_spikemon = SpikeMonitor(EEgroup)
+EE_statemon = StateMonitor(EEgroup, 'v', record=True)
+
+GSLnetwork = Network(GSLgroup, GSL_spikemon, GSL_statemon)
+EEnetwork = Network(EEgroup, EE_spikemon, EE_statemon)
+
+defaultclock.dt = .01*ms
+GSLnetwork.run(duration)
+EEnetwork.run(duration)
+
+#print group.state_updater.abstract_code
+#print group.state_updater.codeobj.code
+
+f, ax = subplots(1, 2, figsize=(10, 5))
+ax[0].plot(EEgroup.I/nA, EE_spikemon.count / duration, label='Brian rk4')
+ax[0].plot(GSLgroup.I/nA, GSL_spikemon.count / duration, '--', label='GSL rk4')
+ax[0].set_xlabel('I (nA)')
+ax[0].set_ylabel('Firing rate (sp/s)')
+ax[0].legend()
+ax[0].set_title('IF-plot')
+
+ax[1].plot(EE_statemon.t/ms, EE_statemon.v[8]/mV, label='Brian rk4')
+ax[1].plot(GSL_statemon.t/ms, GSL_statemon.v[8]/mV, '--', label='GSL rk4')
+ax[1].set_xlabel('Time (ms)')
+ax[1].set_ylabel('Membrane potential (mV')
+ax[1].legend()
+ax[1].set_title('Example trace')
+
 show()

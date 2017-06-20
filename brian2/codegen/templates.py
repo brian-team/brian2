@@ -170,7 +170,8 @@ def replace_diff(vector_code, variables, other_variables):
                 func_end += ['\t'+expr]
                 continue
             if (lhs in diff_vars and variable_mapping[lhs] in rhs) or (rhs in diff_vars and variable_mapping[rhs] in lhs):
-                continue # ignore the v = _array_neurongroup_v[_idx] cause we want it to be v = y[0]
+                func_end += ['\t{var} = y[{ind}]'.format(var=lhs, ind=diff_vars[lhs])]
+                continue
             if lhs in defined: # ignore t = _array_defaultclock_t[0]
                 continue
 

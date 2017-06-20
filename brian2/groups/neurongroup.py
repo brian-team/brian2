@@ -106,7 +106,7 @@ class StateUpdater(CodeRunner):
                             name=group.name + '_stateupdater*',
                             check_units=False,
                             generate_empty_code=False,
-                            needed_variables=['dt'])
+                            needed_variables=['dt', 't']) #TODO: This should be told to Brian in some GSL/template specific spot
 
     def _get_refractory_code(self, run_namespace):
         ref = self.group._refractory

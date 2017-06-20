@@ -3,6 +3,9 @@
 {% block template_support_code %}
 from libc.stdlib cimport malloc, free
 
+cdef enum:
+    GSL_SUCCESS = 0
+
 cdef extern from "gsl/gsl_odeiv2.h":
     # gsl_odeiv2_system
     ctypedef struct gsl_odeiv2_system:
@@ -18,10 +21,12 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     ctypedef struct gsl_odeiv2_step_type
 
-    gsl_odeiv2_step_type *gsl_odeiv2_step_rk2
+    gsl_odeiv2_step_type *gsl_odeiv2_step_rk4
 
     int gsl_odeiv2_driver_apply(
         gsl_odeiv2_driver *d, double *t, double t1, double y[])
+    int gsl_odeiv2_driver_reset(
+        gsl_odeiv2_driver *d)
 
     gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
         gsl_odeiv2_system *sys, gsl_odeiv2_step_type *T,
@@ -53,7 +58,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
     sys.params = p
     
     d = gsl_odeiv2_driver_alloc_y_new(
-        &sys, gsl_odeiv2_step_rk2, 
+        &sys, gsl_odeiv2_step_rk4,
         1e-6, 1e-6, 0.0)
 
     # vector code
@@ -65,7 +70,10 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
         p._idx = _idx
         fill_y_vector(p, y, _idx)
-        gsl_odeiv2_driver_apply(d, &t, t1, y)
+        success = gsl_odeiv2_driver_apply(d, &t, t1, y)
+        if not success == GSL_SUCCESS:
+            raise Exception
         empty_y_vector(p, y, _idx)
+        gsl_odeiv2_driver_reset(d)
 
 {% endblock %}
