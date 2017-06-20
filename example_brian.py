@@ -21,13 +21,13 @@ prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
 
 n = 10
 duration = .1*second
+tau = 10*ms
 
 eqs = '''
 dv/dt = (v1 - v) / tau : volt (unless refractory)
 v1 = v0*multi : volt
 multi = 2 : 1
 v0 : volt
-tau = 10*ms : second
 '''
 
 from brian2.units.stdunits import stdunits
@@ -47,30 +47,22 @@ class GSLStateUpdater(StateUpdateMethod):
             counter[diff_name] = count_statevariables
             count_statevariables += 1
 
-            for name in get_identifiers(str(expr)):
-                var = variables[name]
-                if isinstance(var, Function)\
-                        or name in stdunits\
-                        or name in defined:
-                    continue
-
         code += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
                                                            expr=expr,
-                                                           count=counter[name])]
+                                                           count=counter[diff_name])]
 
         return ('\n').join(code)
 
-GSL_stateupdatemethod = True
-GSL_generator = True
-if GSL_stateupdatemethod:
+GSL = True
+
+if GSL:
     group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                         refractory=5*ms, method=GSLStateUpdater())
+    group.state_updater.codeobj_class = GSLCythonCodeObject
 else:
     group = NeuronGroup(n, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                         refractory=5*ms, method='exponential_euler')
 
-if GSL_generator:
-    group.state_updater.codeobj_class = GSLCythonCodeObject
 
 group.v = 0*mV
 group.v0 = '20*mV * i / (n-1)'
