@@ -6,11 +6,6 @@ with an input parameter v0.
 The input is set differently for each neuron.
 '''
 from brian2 import *
-from brian2.core.variables import Variables, ArrayVariable, DynamicArrayVariable
-from brian2.core.functions import Function
-from brian2.utils.stringtools import get_identifiers
-import re
-from brian2 import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 
 prefs.codegen.target = 'cython'
 prefs.codegen.loop_invariant_optimisations = True
@@ -40,7 +35,6 @@ class GSLStateUpdater(StateUpdateMethod):
         code = []
         count_statevariables = 0
         counter = {}
-        defined = [x[0] for x in equations.eq_expressions] + ['t']
 
         for diff_name, expr in diff_eqs:
             code += ['{var_single} = _gsl_{var}_y{count}'.format(var_single=diff_name, var=diff_name, count=count_statevariables)]
