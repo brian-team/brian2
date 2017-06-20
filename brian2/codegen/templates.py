@@ -106,6 +106,7 @@ def find_differential_variables(code):
 
 from brian2.parsing.statements import parse_statement
 def replace_diff(vector_code, variables, other_variables):
+    #TODO: Handle refractoriness differently
     '''
     This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
     It does so based on the statements sent to the Templater, and infers what is needed.
@@ -129,7 +130,7 @@ def replace_diff(vector_code, variables, other_variables):
     func_end = []
 
     defined = ['_idx', 't', 'dt']
-    to_replace = {} #TODO: This is a temporary hack to solve issue of int_(not_refractory) in non-optimised code
+    to_replace = {}
     parameters = {} # variables we want in parameters statevars
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
