@@ -6,6 +6,7 @@ from .base import *
 from .exact import *
 from .explicit import *
 from .exponential_euler import *
+from .GSL import *
 
 # Register the standard state updaters in the order in which they should be
 # chosen
@@ -17,5 +18,6 @@ StateUpdateMethod.register('rk2', rk2)
 StateUpdateMethod.register('rk4', rk4)
 StateUpdateMethod.register('milstein', milstein)
 StateUpdateMethod.register('heun', heun)
+StateUpdateMethod.register('GSL_stateupdater', GSL_stateupdater)
 
 
