@@ -1,6 +1,8 @@
 {% extends 'common.pyx' %}
 
 {% block template_support_code %}
+
+from brian2.codegen.generators.GSLcython_generator import IntegrationError
 from libc.stdlib cimport malloc, free
 
 cdef enum:
@@ -21,10 +23,12 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     ctypedef struct gsl_odeiv2_step_type
 
-    gsl_odeiv2_step_type *gsl_odeiv2_step_rk4
+    gsl_odeiv2_step_type *gsl_odeiv2_step_{{GSL_settings['integrator']}}
 
     int gsl_odeiv2_driver_apply(
         gsl_odeiv2_driver *d, double *t, double t1, double y[])
+    int gsl_odeiv2_driver_apply_fixed_step(
+        gsl_odeiv2_driver *d, double *t, const double h, const unsigned long int n, double y[])
     int gsl_odeiv2_driver_reset(
         gsl_odeiv2_driver *d)
 
@@ -58,7 +62,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
     sys.params = p
     
     d = gsl_odeiv2_driver_alloc_y_new(
-        &sys, gsl_odeiv2_step_rk4,
+        &sys, gsl_odeiv2_step_{{GSL_settings['integrator']}},
         1e-6, 1e-6, 0.0)
 
     # vector code
@@ -70,9 +74,9 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
         p._idx = _idx
         fill_y_vector(p, y, _idx)
-        success = gsl_odeiv2_driver_apply(d, &t, t1, y)
-        if not success == GSL_SUCCESS:
-            raise Exception
+        if not {{'gsl_odeiv2_driver_apply(d, &t, t1, y)' if GSL_settings['adaptable_timestep']
+                    else 'gsl_odeiv2_driver_apply_fixed_step(d, &t, dt, 1, y)'}} == GSL_SUCCESS:
+            raise IntegrationError
         empty_y_vector(p, y, _idx)
         gsl_odeiv2_driver_reset(d)
 

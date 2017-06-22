@@ -6,7 +6,37 @@ from brian2.codegen.translation import make_statements
 from brian2.codegen.permutation_analysis import (check_for_order_independence,
                                                  OrderDependenceError)
 
+from brian2.core.preferences import prefs, BrianPreference
+
 __all__ = ['GSLCodeGenerator']
+
+class IntegrationError(Exception):
+    '''
+    Error used to signify that GSL was unable to complete integration (in Cython file)
+    '''
+    pass
+
+def is_dictionary(obj):
+    '''
+    Used as validator for GSL settings in BrianGlobalPreferences
+    :param obj: object to test
+    :return: True if obj is dictionary
+    '''
+    return isinstance(obj, dict)
+
+#TODO: Change documentation of register_prefernce, the preference keywords should be given without quotation marks!!
+# register GSL.settings preference that can be set to change GSL behavior. This dictionary
+# is sent to the templater as keyword under GSL_settings
+prefs.register_preferences(
+    'GSL',
+    'Code generation preferences for the C language',
+    settings = BrianPreference(
+        validator=is_dictionary,
+        docs='...',
+        default={
+            'integrator' : 'rkf45',
+            'adaptable_timestep' : True #TODO: add other settings such as maximum relative error
+        }))
 
 class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inherit from CodeGenerator (the base) because it can access this through __getattr__ of the parent anyway?
     def __init__(self, *args, **kwargs):
@@ -57,4 +87,5 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
                          self.other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
 
         kwds['other_variables'] = self.other_variables
+        kwds['GSL_settings'] = prefs.GSL.settings
         return scalar_code, vector_code, kwds
