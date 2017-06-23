@@ -4,9 +4,6 @@ A model with adaptive threshold (increases with each spike)
 from brian2 import *
 
 prefs.codegen.target = 'cython'
-prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
-prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
-prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
 
 eqs = '''
 dv/dt = -v/(10*ms) : volt
@@ -38,6 +35,8 @@ M_crossings_GSL = SpikeMonitor(IF_GSL, variables='v')
 
 GSLnet = Network(IF_GSL, PG, C, Mv_GSL, Mvt_GSL, M_crossings_GSL)
 GSLnet.run(2*second, report='text')
+
+print IF_GSL.state_updater.codeobj.code
 
 ### Then without (so we can check if same/similar results
 seed(0)
@@ -76,9 +75,6 @@ title('Histogram GSL')
 
 subplot(1, 3, 3)
 hist(M_crossings_linear.v / mV, bins=np.arange(10, 20, 0.5))
-xlabel('v at threshold\ncrossing (mV)')
+xlabel('v at thresholdcrossing (mV)')
 title('Histogram Brian')
-
-tight_layout()
-
 show()
