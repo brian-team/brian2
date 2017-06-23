@@ -1,6 +1,5 @@
-from .cython_generator import *
-from .base import CodeGenerator
 from brian2.core.variables import AuxiliaryVariable
+from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
 
 from brian2.codegen.permutation_analysis import (check_for_order_independence,
@@ -94,18 +93,24 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
 
         # collect info needed by templater to write GSL code
         kwds['other_variables'] = {}
-        kwds['variables_in_vector_statements'] = []
-        kwds['variables_in_scalar_statements'] = []
-        for tag,dictionary in zip(['scalar_statements', 'vector_statements'], [scalar_statements, vector_statements]):
+        kwds['variables_in_vector_statements'] = set()
+        kwds['variables_in_scalar_statements'] = set()
+        for tag, dictionary in zip(['scalar_statements', 'vector_statements'], [scalar_statements, vector_statements]):
             for key, value in dictionary.items():
                 for statement in value:
-                     var, op, expr, comment = (statement.var, statement.op,
-                                              statement.expr, statement.comment)
-                     if var not in self.variables:
-                         kwds['other_variables'][var] = AuxiliaryVariable(var, dtype=statement.dtype)
-                     for identifier in get_identifiers(expr):
-                         if identifier in self.variables or identifier in kwds['other_variables']:
-                             kwds['variables_in_{tag}'.format(tag=tag)] += [identifier]
+                    var, op, expr, comment = (statement.var, statement.op,
+                                             statement.expr, statement.comment)
+                    if var not in self.variables:
+                        kwds['other_variables'][var] = AuxiliaryVariable(var, dtype=statement.dtype)
+                    for identifier in get_identifiers(expr):
+                        try:
+                            value = self.variables[identifier]
+                        except KeyError:
+                            value = kwds['other_variables'][identifier]
+                        if isinstance(value, Function):
+                            continue
+                        if identifier in self.variables or identifier in kwds['other_variables']:
+                            kwds['variables_in_{tag}'.format(tag=tag)].add(identifier)
 
         print kwds['variables_in_scalar_statements']
         print kwds['variables_in_vector_statements']
