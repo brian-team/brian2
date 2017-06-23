@@ -12,6 +12,7 @@ from brian2.utils.stringtools import (indent, strip_empty_lines,
 
 from brian2.core.variables import ArrayVariable, Constant, AuxiliaryVariable
 from brian2.core.functions import Function
+from brian2.parsing.statements import parse_statement
 
 # for some reason I get an error with importing get_cpp_dtype (ImportError: cannot import name NumpyCodeObject)
 from brian2.core.variables import get_dtype_str
@@ -71,23 +72,25 @@ def variables_to_array_names(variables, access_data=True):
              for var in variables]
     return names
 
-def find_variable_mapping(variables):
+def find_variable_mapping(*variabledicts):
     variable_mapping = {}
-    to_array = []
-    for key, value in variables.iteritems():
-        if isinstance(value, ArrayVariable):
-            to_array += [key]
-    for var, array_var in zip(to_array, variables_to_array_names([variables[x] for x in to_array])):
-        variable_mapping[var] = array_var
+    to_array = {}
+    for variables in variabledicts:
+        for key, value in variables.iteritems():
+            if isinstance(value, ArrayVariable):
+                to_array[key] = value
+        for var, array_var in zip(to_array.keys(), variables_to_array_names(to_array.values())):
+            variable_mapping[var] = array_var
     return variable_mapping
 
-def find_datatypes(variables):
+def find_datatypes(*variabledicts):
     datatypes = {}
-    for key, value in variables.iteritems():
-        try:
-            datatypes[key] = get_cpp_dtype(value)
-        except KeyError:
-            pass
+    for variables in variabledicts:
+        for key, value in variables.iteritems():
+            try:
+                datatypes[key] = get_cpp_dtype(value)
+            except KeyError:
+                pass
     return datatypes
 
 def find_differential_variables(code):
@@ -104,19 +107,16 @@ def find_differential_variables(code):
             diff_vars[m.group(1)] = m.group(3)
     return diff_vars
 
-from brian2.parsing.statements import parse_statement
-def replace_diff(vector_code, variables, other_variables):
+def write_GSL_support_code(vector_code, variables, other_variables, variables_needed):
+    #TODO: another way would be to just rewrite an only vector_code dictionary, if it's not a problem to have double entries to variables?
     #TODO: Handle refractoriness differently
     '''
     This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
     It does so based on the statements sent to the Templater, and infers what is needed.
     '''
-    datatypes = find_datatypes(variables)
+    datatypes = find_datatypes(variables, other_variables)
     variable_mapping = find_variable_mapping(variables)
     diff_vars = find_differential_variables(vector_code)
-
-    print diff_vars
-    print variable_mapping
 
     struct_parameters = ['\ncdef struct parameters:',
                          '\tint _idx']
@@ -129,14 +129,12 @@ def replace_diff(vector_code, variables, other_variables):
             '\tcdef int _idx = p._idx']
     func_end = []
 
-    defined = ['_idx', 't', 'dt']
+    defined = ['t']
     to_replace = {}
     parameters = {} # variables we want in parameters statevars
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
-    for var, value in variables.items():
-        if isinstance(value, Function):
-            continue
+    for var in variables_needed:
         if var in defined:
             continue
         if var in diff_vars:
@@ -152,16 +150,9 @@ def replace_diff(vector_code, variables, other_variables):
             func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
             parameters[var] = '\t{datatype} * {var}'.format(datatype=datatypes[var], var=array_name)
             to_replace[array_name] = 'p.'+array_name
-        elif isinstance(value, Constant):
+        else:
+            to_replace[var] = 'p.' + var
             parameters[var] = '\t{datatype} {var}'.format(datatype=datatypes[var], var=var)
-            to_replace[var] = 'p.' + var
-
-    for var, value in other_variables.items():
-        if not '_gsl' in var:
-            parameters[var] = '\t{datatype} {var}'.format(datatype=get_cpp_dtype(value), var=var)
-            to_replace[var] = 'p.' + var
-
-    print to_replace
 
     for expr_set in vector_code:
         for expr in expr_set.split('\n'):
@@ -192,36 +183,41 @@ def replace_diff(vector_code, variables, other_variables):
     print ('\n').join(everything)
     return everything
 
-def add_GSL_declarations(vector_code, variables):
+def add_GSL_declarations(vector_variables, variables, other_variables, scalar_variables):
     '''
     This function writes the initialization of the variables in the params struct, that are needed in func
     it does so by analyzing the variable declarations brian does already together with the vector_code to see which
     variables are needed.
     '''
-    variable_mapping = find_variable_mapping(variables)
-    datatypes = find_datatypes(variables)
+    variable_mapping = find_variable_mapping(variables, other_variables)
+    datatypes = find_datatypes(variables, other_variables)
 
-    defined = ['t', '_idx', 'dt']
+    defined = ['t', '_idx']
 
     expressions = []
 
-    for var, value in variables.items():
-        if isinstance(value, Function):
-            continue
-        if isinstance(value, AuxiliaryVariable):
-            continue
-        if var in defined:
-            continue
-        if isinstance(value, ArrayVariable):
-            array_name = variable_mapping[var]
-            expressions += ['p.{var} = <{datatype} *> _buf_{array_name}.data'.
-                            format(var=array_name, datatype=datatypes[var], array_name=array_name)]
-        else:
-            expressions += ['p.{var} = _namespace["{var}"]'.format(var=var)]
+    for is_vector, variable_list in zip([True, False], [vector_variables, scalar_variables]):
+        for var in variable_list:
+            try:
+                value = variables[var]
+            except KeyError:
+                value = other_variables[var]
+            if isinstance(value, Function):
+                continue
+            if isinstance(value, AuxiliaryVariable):
+                continue
+            if var in defined:
+                continue
+            if isinstance(value, ArrayVariable):
+                array_name = variable_mapping[var]
+                expressions += ['{struct}{var} = <{datatype} *> _buf_{array_name}.data'.
+                                format(struct='p.'*is_vector,var=array_name, datatype=datatypes[var], array_name=array_name)]
+            else:
+                expressions += ['{struct}{var} = _namespace["{var}"]'.format(struct='p.'*is_vector,var=var)]
 
     return expressions
 
-def add_GSL_declarations_scalar(scalar_code, variables, elements):
+def add_GSL_scalar_code(scalar_code, scalar_variables, vector_variables):
 
     code = []
 
@@ -231,7 +227,12 @@ def add_GSL_declarations_scalar(scalar_code, variables, elements):
         except ValueError:
             code += [line]
             continue
-        code += ['p.'+line]
+        if var in scalar_variables:
+            code += [line]
+        if var in vector_variables:
+            if var == 't': # ignore t = _array_defaultclock_t[0] if t is used func (GSL handles t)
+                continue
+            code += ['p.'+line]
 
     return code
 
@@ -293,9 +294,9 @@ class Templater(object):
         self.env.globals['autoindent'] = autoindent
         self.env.filters['autoindent'] = autoindent
         self.env.filters['variables_to_array_names'] = variables_to_array_names
-        self.env.filters['replace_diff'] = replace_diff
+        self.env.filters['write_GSL_support_code'] = write_GSL_support_code
         self.env.filters['add_GSL_declarations'] = add_GSL_declarations
-        self.env.filters['add_GSL_declarations_scalar'] = add_GSL_declarations_scalar
+        self.env.filters['add_GSL_scalar_code'] = add_GSL_scalar_code
         if env_globals is not None:
             self.env.globals.update(env_globals)
         else:

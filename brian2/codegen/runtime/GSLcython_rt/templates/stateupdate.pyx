@@ -2,7 +2,7 @@
 
 {% block template_support_code %}
 
-from brian2.codegen.generators.GSLcython_generator import IntegrationError
+from brian2.codegen.generators.GSL_generator import IntegrationError
 from libc.stdlib cimport malloc, free
 
 cdef enum:
@@ -38,7 +38,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d)
 
-{{vector_code|replace_diff(variables, other_variables)|autoindent}}
+{{vector_code|write_GSL_support_code(variables, other_variables, variables_in_vector_statements)|autoindent}}
 {% endblock %}
 
 {% block maincode %}
@@ -51,8 +51,10 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     cdef double t1
     cdef parameters * p = <parameters *>malloc(sizeof(parameters))
-    {{vector_code|add_GSL_declarations(variables)|autoindent}}
-    {{scalar_code|add_GSL_declarations_scalar(variables, load_namespace)|autoindent}}
+
+    {{variables_in_vector_statements|add_GSL_declarations(variables, other_variables, variables_in_scalar_statements)|autoindent}}
+    {{scalar_code|add_GSL_scalar_code(variables_in_scalar_statements, variables_in_vector_statements)|autoindent}}
+
     cdef double * y = assign_memory_y()
     
     cdef gsl_odeiv2_system sys
@@ -61,9 +63,11 @@ cdef extern from "gsl/gsl_odeiv2.h":
     set_dimension(&sys.dimension)
     sys.params = p
     
-    d = gsl_odeiv2_driver_alloc_y_new(
-        &sys, gsl_odeiv2_step_{{GSL_settings['integrator']}},
-        1e-6, 1e-6, 0.0)
+    d = gsl_odeiv2_driver_alloc_y_new(&sys,
+                                      gsl_odeiv2_step_{{GSL_settings['integrator']}},
+                                      {{GSL_settings['h_start']}},
+                                      {{GSL_settings['eps_abs']}},
+                                      {{GSL_settings['eps_rel']}})
 
     # vector code
     for _idx in range(N):

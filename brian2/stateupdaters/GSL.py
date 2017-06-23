@@ -4,7 +4,7 @@ from .base import StateUpdateMethod, UnsupportedEquationsException
 
 __all__ = ['GSL_stateupdater']
 
-class GSLStateUpdater(StateUpdateMethod): #TODO: specify GSL integrator?
+class GSLStateUpdater(StateUpdateMethod):
     '''
     A statupdater that rewrites the differential equations so that the GSL templater knows how to write the
     code in the target language.
