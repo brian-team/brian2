@@ -7,6 +7,7 @@ from brian2.codegen.permutation_analysis import (check_for_order_independence,
                                                  OrderDependenceError)
 
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.stringtools import get_identifiers
 
 __all__ = ['GSLCodeGenerator']
 
@@ -35,13 +36,26 @@ prefs.register_preferences(
         docs='...',
         default={
             'integrator' : 'rkf45',
-            'adaptable_timestep' : True #TODO: add other settings such as maximum relative error
+            'adaptable_timestep' : True,
+            'h_start' : 1e-5,
+            'eps_abs' : 1e-6,
+            'eps_rel' : 0.
         }))
 
 class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inherit from CodeGenerator (the base) because it can access this through __getattr__ of the parent anyway?
-    def __init__(self, *args, **kwargs):
-        self.other_variables = {}
-        self.generator = CythonCodeGenerator(*args, **kwargs)
+
+    def __init__(self, variables, variable_indices, owner, iterate_all,
+                 codeobj_class, name, template_name,
+                 override_conditional_write=None,
+                 allows_scalar_write=False):
+
+        prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
+        prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
+        prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
+
+        self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
+                                                                codeobj_class, name, template_name,
+                                                                override_conditional_write, allows_scalar_write)
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -78,14 +92,22 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
         scalar_code, vector_code, kwds = self.generator.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
 
-        for dictionary in [scalar_statements, vector_statements]:
+        # collect info needed by templater to write GSL code
+        kwds['other_variables'] = {}
+        kwds['variables_in_vector_statements'] = []
+        kwds['variables_in_scalar_statements'] = []
+        for tag,dictionary in zip(['scalar_statements', 'vector_statements'], [scalar_statements, vector_statements]):
             for key, value in dictionary.items():
                 for statement in value:
                      var, op, expr, comment = (statement.var, statement.op,
                                               statement.expr, statement.comment)
                      if var not in self.variables:
-                         self.other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
+                         kwds['other_variables'][var] = AuxiliaryVariable(var, dtype=statement.dtype)
+                     for identifier in get_identifiers(expr):
+                         if identifier in self.variables or identifier in kwds['other_variables']:
+                             kwds['variables_in_{tag}'.format(tag=tag)] += [identifier]
 
-        kwds['other_variables'] = self.other_variables
+        print kwds['variables_in_scalar_statements']
+        print kwds['variables_in_vector_statements']
         kwds['GSL_settings'] = prefs.GSL.settings
         return scalar_code, vector_code, kwds

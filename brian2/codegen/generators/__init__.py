@@ -13,7 +13,7 @@ try:
 except ImportError:
     pass # todo: raise a warning?
 try:
-    from .GSLcython_generator import *
+    from .GSL_generator import *
 except ImportError:
     pass
 
