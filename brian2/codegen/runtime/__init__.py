@@ -10,6 +10,7 @@ prefs.register_preferences('codegen.runtime',
 
 from .numpy_rt import *
 from .weave_rt import *
+from .GSLweave_rt import *
 try:
     from .cython_rt import *
 except ImportError:

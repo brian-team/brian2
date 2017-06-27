@@ -315,9 +315,10 @@ class Device(object):
         logger.diagnostic('%s code:\n%s' % (name, indent(code_representation(code))))
 
         if 'stateupdater' in name: # Hack to get manual code into stateupdater
-        #    print code
-            code.main = open('/home/charlee/PycharmProjects/brian2/cppcode.cpp', 'r').read()
-            code.support_code = open('/home/charlee/PycharmProjects/brian2/cppcode_support.cpp', 'r').read()
+            print '############# MAIN \n', code.main
+            print '############# SUPPORT \n', code.support_code
+        #    code.main = open('/home/charlee/PycharmProjects/brian2/cppcode.cpp', 'r').read()
+        #    code.support_code = open('/home/charlee/PycharmProjects/brian2/cppcode_support.cpp', 'r').read()
 
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
