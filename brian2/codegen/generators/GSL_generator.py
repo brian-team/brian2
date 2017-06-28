@@ -49,7 +49,7 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
                  allows_scalar_write=False):
 
         prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
-        prefs.codegen.cpp.headers += ['<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
+        prefs.codegen.cpp.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
         prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
 
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,

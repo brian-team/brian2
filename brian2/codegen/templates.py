@@ -14,6 +14,8 @@ from brian2.core.variables import ArrayVariable, Constant, AuxiliaryVariable
 from brian2.core.functions import Function
 from brian2.parsing.statements import parse_statement
 
+from brian2.core.preferences import prefs
+
 # for some reason I get an error with importing get_cpp_dtype (ImportError: cannot import name NumpyCodeObject)
 from brian2.core.variables import get_dtype_str
 # from brian2.codegen.generators.cython_generator import data_type_conversion_table, cpp_dtype, get_cpp_dtype
@@ -102,12 +104,87 @@ def find_differential_variables(code):
             lhs, op, rhs, comment = parse_statement(expr)
         except ValueError:
             pass
-        m = re.match('_gsl_(.+?)_([f])([0-9]*)', lhs)
+        m = re.match('[const double ]*_gsl_(.+?)_f([0-9]*)', lhs)
         if m:
-            diff_vars[m.group(1)] = m.group(3)
+            diff_vars[m.group(1)] = m.group(2)
     return diff_vars
 
 def write_GSL_support_code(vector_code, variables, other_variables, variables_needed):
+    datatypes = find_datatypes(variables, other_variables)
+    variable_mapping = find_variable_mapping(variables)
+    diff_vars = find_differential_variables(vector_code)
+
+    struct_parameters = ['\nstruct parameters\n{',
+                         '\tint _idx;']
+    set_dimension = ['\nint set_dimension(size_t * dimension)\n{']
+    allocate_y_vector = ['\ndouble * assign_memory_y()\n{']
+    func_fill_yvector = ['\nint fill_y_vector(parameters * p, double * y, int _idx)\n{']
+    func_empty_yvector = ['\nint empty_y_vector(parameters * p, double * y, int _idx)\n{']
+    func_begin = ['\nint func(double t, const double y[], double f[], void * params)\n{',
+            '\tstruct parameters * p = (struct parameters *)params;',
+            '\tint _idx = p->_idx;']
+    func_end = []
+
+    defined = ['t']
+    to_replace = {}
+    parameters = {} # variables we want in parameters statevars
+    func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
+
+    for var in variables_needed:
+        if var in defined:
+            continue
+        if var in diff_vars:
+            array_name = variable_mapping[var]
+            to_replace['const double _gsl_{var}_f{ind}'.format(var=var, ind=diff_vars[var])] = 'f[{ind}]'.format(ind=diff_vars[var])
+            to_replace['const double _gsl_{var}_y{ind}'.format(var=var, ind=diff_vars[var])] = 'y[{ind}]'.format(ind=diff_vars[var])
+            parameters[var] = '\t{datatype} * {var};'.format(datatype=datatypes[var], var=array_name)
+            func_fill_yvector += ['\ty[{ind}] = p->{var}[_idx];'.format(ind=diff_vars[var], var=array_name)]
+            func_empty_yvector += ['\tp->{var}[_idx] = y[{ind}];'.format(ind=diff_vars[var], var=array_name)]
+        elif var in variable_mapping:
+            array_name = variable_mapping[var]
+            func_declarations[var] = '\t{datatype} {var};'.format(datatype=datatypes[var], var=var)
+            parameters[var] = '\t{datatype} * {var};'.format(datatype=datatypes[var], var=array_name)
+            to_replace[array_name] = 'p->'+array_name
+        else:
+            to_replace[var] = 'p->' + var
+            parameters[var] = '\t{datatype} {var};'.format(datatype=datatypes[var], var=var)
+
+    for expr_set in vector_code:
+        for expr in expr_set.split('\n'):
+            try:
+                lhs, op, rhs, comment = parse_statement(expr)
+                lhs = lhs.replace('const double ', '')
+            except ValueError: # if statements?
+                func_end += ['\t'+expr]
+                continue
+            if (lhs in diff_vars and variable_mapping[lhs] in rhs) or (rhs in diff_vars and variable_mapping[rhs] in lhs):
+                func_end += ['\tconst double {var} = y[{ind}];'.format(var=lhs, ind=diff_vars[lhs])]
+                continue
+            if lhs in defined: # ignore t = _array_defaultclock_t[0]
+                continue
+
+            func_end += ['\t'+word_substitute(expr, to_replace)]
+
+    for name, expr in parameters.iteritems():
+        struct_parameters += [expr]
+    struct_parameters += ['};']
+
+    for name, expr in func_declarations.iteritems():
+        func_begin += [expr]
+    func_end += ['\treturn GSL_SUCCESS;\n}']
+
+    func_fill_yvector += ['\treturn GSL_SUCCESS;\n}']
+    func_empty_yvector += ['\treturn GSL_SUCCESS;\n}']
+
+    allocate_y_vector += ['\treturn (double *)malloc({diff_num}*sizeof(double));\n'.format(diff_num=len(diff_vars.keys()))+'}']
+
+    set_dimension += ['\tdimension[0] = {diff_num};\n'.format(diff_num=len(diff_vars.keys()))+'\treturn GSL_SUCCESS;\n}']
+
+    everything = struct_parameters + set_dimension + allocate_y_vector + func_fill_yvector + func_empty_yvector + func_begin + func_end
+    print ('\n').join(everything)
+    return everything
+
+def temp_write_GSL_support_code(vector_code, variables, other_variables, variables_needed):
     #TODO: another way would be to just rewrite an only vector_code dictionary, if it's not a problem to have double entries to variables?
     #TODO: Handle refractoriness differently
     '''
@@ -210,6 +287,42 @@ def add_GSL_declarations(vector_variables, variables, other_variables, scalar_va
                 continue
             if isinstance(value, ArrayVariable):
                 array_name = variable_mapping[var]
+                expressions += ['{struct}{var} = {array_name};'.
+                                format(struct='p.'*is_vector,var=array_name, datatype=datatypes[var], array_name=array_name)]
+            else:
+                if is_vector:
+                    expressions += ['p.{var} = {var};'.format(var=var)]
+
+    return expressions
+
+
+def temp_add_GSL_declarations(vector_variables, variables, other_variables, scalar_variables):
+    '''
+    This function writes the initialization of the variables in the params struct, that are needed in func
+    it does so by analyzing the variable declarations brian does already together with the vector_code to see which
+    variables are needed.
+    '''
+    variable_mapping = find_variable_mapping(variables, other_variables)
+    datatypes = find_datatypes(variables, other_variables)
+
+    defined = ['t', '_idx']
+
+    expressions = []
+
+    for is_vector, variable_list in zip([True, False], [vector_variables, scalar_variables]):
+        for var in variable_list:
+            try:
+                value = variables[var]
+            except KeyError:
+                value = other_variables[var]
+            if isinstance(value, Function):
+                continue
+            if isinstance(value, AuxiliaryVariable):
+                continue
+            if var in defined:
+                continue
+            if isinstance(value, ArrayVariable):
+                array_name = variable_mapping[var]
                 expressions += ['{struct}{var} = <{datatype} *> _buf_{array_name}.data'.
                                 format(struct='p.'*is_vector,var=array_name, datatype=datatypes[var], array_name=array_name)]
             else:
@@ -218,6 +331,27 @@ def add_GSL_declarations(vector_variables, variables, other_variables, scalar_va
     return expressions
 
 def add_GSL_scalar_code(scalar_code, scalar_variables, vector_variables):
+    code = []
+    for line in scalar_code:
+        try:
+            var, op, expr, comment = parse_statement(line)
+        except ValueError:
+            code += [line]
+            continue
+        m = re.search('([a-z|A-Z|0-9|_]+)$', var)
+        actual_var = m.group(1)
+        if actual_var in scalar_variables:
+            code += [line]
+        if actual_var in vector_variables:
+            if var == 't':
+                continue
+            code += ['p.{var} {op} {expr} {comment}'.format(
+                    var=actual_var, op=op, expr=expr, comment=comment)]
+
+    return code
+
+
+def temp_add_GSL_scalar_code(scalar_code, scalar_variables, vector_variables):
 
     code = []
 
