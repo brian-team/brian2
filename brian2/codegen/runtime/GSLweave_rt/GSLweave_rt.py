@@ -1,3 +1,4 @@
+from brian2.core.functions import DEFAULT_FUNCTIONS
 from ..weave_rt import WeaveCodeObject
 from ...generators.GSL_generator import GSLCodeGenerator
 from ..weave_rt import WeaveCodeGenerator
@@ -10,3 +11,11 @@ class GSLWeaveCodeObject(WeaveCodeObject):
 
     original_generator_class = WeaveCodeGenerator
     generator_class = GSLCodeGenerator
+
+# Although searching for implementations with [WeaveCodeObject] gives the right code,
+# it doesn't work properly when searching with GSLWeaveCodeObject (because it doesn't
+# inherit anywhere from CPPCodeGenerator I believe). So it's done manually here..
+for function in DEFAULT_FUNCTIONS.values():
+    function.implementations._implementations[GSLWeaveCodeObject] = \
+        function.implementations[WeaveCodeObject]
+
