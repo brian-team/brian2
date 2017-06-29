@@ -41,7 +41,7 @@ gsl_odeiv2_driver * d =
 		double t = _array_defaultclock_t[0];
 		double t1 = t + dt;
 		fill_y_vector(&p, y, _idx);
-        //temp_func_a(&p, _idx);
+        temp_func_a(&p, _idx);
 		if (gsl_odeiv2_driver_apply(d, &t, t1, y) != GSL_SUCCESS)
 		{
 		    printf("Integration error running stateupdate with GSL\n");

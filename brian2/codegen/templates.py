@@ -192,7 +192,7 @@ def write_GSL_support_code(vector_code, variables, extra_information):
     for name, expr in func_declarations.iteritems():
         func_begin += [expr]
 
-    func_begin += ['\tp->a = p->_ptr_array_neurongroup_a[_idx];']
+    #func_begin += ['\tp->a = p->_ptr_array_neurongroup_a[_idx];']
     func_end += ['\treturn GSL_SUCCESS;\n}']
 
     func_fill_yvector += ['\treturn GSL_SUCCESS;\n}']
