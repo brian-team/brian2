@@ -133,9 +133,9 @@ def write_GSL_support_code(vector_code, variables, extra_information):
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
     temp_func_a = ['''
-    int temp_func_a(parameters * p, int _idx)
+    int temp_func_a(parameters p, int _idx)
     {
-        p->a = p->_ptr_array_neurongroup_a[_idx];
+        p.a = p._ptr_array_neurongroup_a[_idx];
         return GSL_SUCCESS;
     }
     ''']
