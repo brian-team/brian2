@@ -4,7 +4,7 @@
 
 {% block support_code_block %}
     {{ common.support_code() }}
-    {{ vector_code|write_GSL_support_code(variables, other_variables, variables_in_vector_statements)|autoindent }}
+    {{ vector_code|write_GSL_support_code(variables, extra_information)|autoindent }}
 {% endblock %}
 
 {% block maincode %}
@@ -31,16 +31,17 @@ gsl_odeiv2_driver * d =
 	const int _vectorisation_idx = 1;
 	const double dt = _array_defaultclock_dt[0];
 
-    {{variables_in_vector_statements|add_GSL_declarations(variables, other_variables, variables_in_scalar_statements)|autoindent}}
-    {{scalar_code|add_GSL_scalar_code(variables_in_scalar_statements, variables_in_vector_statements)|autoindent}}
+    {{vector_code|add_GSL_declarations(variables, extra_information)|autoindent}}
+    {{scalar_code|add_GSL_scalar_code(extra_information)|autoindent}}
 
 	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
-		const int _vectorisation_idx = _idx;
+	    const int _vectorisation_idx = _idx;
 		double t = _array_defaultclock_t[0];
 		double t1 = t + dt;
 		fill_y_vector(&p, y, _idx);
+        temp_func_a(&p, _idx);
 		if (gsl_odeiv2_driver_apply(d, &t, t1, y) != GSL_SUCCESS)
 		{
 		    printf("Integration error running stateupdate with GSL\n");

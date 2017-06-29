@@ -6,7 +6,8 @@ Phase locking of IF neurons to a periodic input.
 '''
 from brian2 import *
 
-prefs.codegen.target = 'cython'
+prefs.codegen.target = 'weave'
+GSL = True
 
 tau = 20*ms
 n = 100
@@ -17,16 +18,23 @@ eqs = '''
 dv/dt = (-v + a * sin(2 * pi * freq * t) + b) / tau : 1
 a : 1
 '''
-neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
-                      method='GSL_stateupdater')
-neurons.state_updater.codeobj_class = GSLCythonCodeObject
+if GSL:
+    neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
+                          method='GSL_stateupdater')
+    if prefs.codegen.target == 'weave':
+        neurons.state_updater.codeobj_class = GSLWeaveCodeObject
+    else:
+        neurons.state_updater.codeobj_class = GSLCythonCodeObject
+else:
+    neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
+                          method='exponential_euler')
+
 neurons.v = 'rand()'
 neurons.a = '0.05 + 0.7*i/n'
 S = SpikeMonitor(neurons)
 trace = StateMonitor(neurons, 'v', record=50)
 
-run(1000*ms)
-
+run(1*second)
 print neurons.state_updater.codeobj.code
 
 subplot(211)

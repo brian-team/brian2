@@ -1,4 +1,4 @@
-from brian2.core.variables import AuxiliaryVariable
+from brian2.core.variables import AuxiliaryVariable, ArrayVariable
 from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
 
@@ -7,6 +7,7 @@ from brian2.codegen.permutation_analysis import (check_for_order_independence,
 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.stringtools import get_identifiers
+from brian2.core.functions import DEFAULT_FUNCTIONS
 
 __all__ = ['GSLCodeGenerator']
 
@@ -92,27 +93,49 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
                                                  vector_statements)
 
         # collect info needed by templater to write GSL code
-        kwds['other_variables'] = {}
-        kwds['variables_in_vector_statements'] = set()
-        kwds['variables_in_scalar_statements'] = set()
-        for tag, dictionary in zip(['scalar_statements', 'vector_statements'], [scalar_statements, vector_statements]):
+        other_variables = {}
+        variable_mapping = {}
+        variables_in_vector = set()
+        variables_in_scalar = set()
+        read = set()
+        write = set()
+        for is_vector, dictionary in zip([False, True], [scalar_statements, vector_statements]):
             for key, value in dictionary.items():
                 for statement in value:
+                    read_one, write_one, _ = self.generator.array_read_write([statement])
+                    read |= read_one
+                    write |= write_one
                     var, op, expr, comment = (statement.var, statement.op,
                                              statement.expr, statement.comment)
                     if var not in self.variables:
-                        kwds['other_variables'][var] = AuxiliaryVariable(var, dtype=statement.dtype)
+                        other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
                     for identifier in get_identifiers(expr):
+                        if identifier in DEFAULT_FUNCTIONS: #TODO: also DEFAULT_CONSTANTS?
+                            continue
                         try:
                             value = self.variables[identifier]
                         except KeyError:
-                            value = kwds['other_variables'][identifier]
+                            value = other_variables[identifier]
                         if isinstance(value, Function):
                             continue
-                        if identifier in self.variables or identifier in kwds['other_variables']:
-                            kwds['variables_in_{tag}'.format(tag=tag)].add(identifier)
+                        if isinstance(value, ArrayVariable):
+                            variable_mapping[identifier] = {}
+                            variable_mapping[identifier]['actual'] = self.generator.get_array_name(value, access_data=False)
+                            variable_mapping[identifier]['pointer'] = self.generator.get_array_name(value)
+                            variable_mapping[identifier]['restrict'] = ''+(not value.scalar)*self.generator.restrict
+                        if identifier in self.variables or identifier in other_variables:
+                            if is_vector:
+                                variables_in_vector.add(identifier)
+                            else:
+                                variables_in_scalar.add(identifier)
 
-        print kwds['variables_in_scalar_statements']
-        print kwds['variables_in_vector_statements']
         kwds['GSL_settings'] = prefs.GSL.settings
+        kwds['extra_information'] = {
+            'other_variables' : other_variables,
+            'variable_mapping' : variable_mapping,
+            'scalar_variables' : variables_in_scalar,
+            'vector_variables' : variables_in_vector,
+            'read' : read,
+            'write' : write
+        }
         return scalar_code, vector_code, kwds
