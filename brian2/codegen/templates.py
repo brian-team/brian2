@@ -132,18 +132,6 @@ def write_GSL_support_code(vector_code, variables, extra_information):
     parameters = {} # variables we want in parameters statevars
     func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
 
-    temp_func_a = ['''
-    int temp_func_a(parameters p, int _idx)
-    {
-        p.a = p._ptr_array_neurongroup_a[_idx];
-        return GSL_SUCCESS;
-    }
-    ''']
-    temp_defined_a = ['a']
-    struct_parameters += ['\tdouble a;']
-    struct_parameters += ['\tdouble* __restrict _ptr_array_neurongroup_a;']
-    to_replace['a'] = 'p->a'
-
     for var in diff_vars:
         diff_num = diff_vars[var]
         array_name = variable_mapping[var]['pointer']
@@ -153,7 +141,7 @@ def write_GSL_support_code(vector_code, variables, extra_information):
         func_empty_yvector += ['\tp->{var}[_idx] = y[{ind}];'.format(ind=diff_num, var=array_name)]
 
     for var in extra_information['vector_variables']:
-        if var in defined or var in temp_defined_a:
+        if var in defined:
             continue
         if var in variable_mapping:
             array_name = variable_mapping[var]['pointer']
@@ -175,8 +163,6 @@ def write_GSL_support_code(vector_code, variables, extra_information):
             except ValueError: # if statements?
                 func_end += ['\t'+expr]
                 continue
-            if lhs in temp_defined_a:
-                continue
             if (lhs in diff_vars and variable_mapping[lhs]['pointer'] in rhs) or (rhs in diff_vars and variable_mapping[rhs]['pointer'] in lhs):
                 func_end += ['\tconst double {var} = y[{ind}];'.format(var=lhs, ind=diff_vars[lhs])]
                 continue
@@ -192,7 +178,6 @@ def write_GSL_support_code(vector_code, variables, extra_information):
     for name, expr in func_declarations.iteritems():
         func_begin += [expr]
 
-    func_begin += ['\tp->a = p->_ptr_array_neurongroup_a[_idx];']
     func_end += ['\treturn GSL_SUCCESS;\n}']
 
     func_fill_yvector += ['\treturn GSL_SUCCESS;\n}']
@@ -202,7 +187,7 @@ def write_GSL_support_code(vector_code, variables, extra_information):
 
     set_dimension += ['\tdimension[0] = {diff_num};\n'.format(diff_num=len(diff_vars.keys()))+'\treturn GSL_SUCCESS;\n}']
 
-    everything = struct_parameters + set_dimension + allocate_y_vector + temp_func_a +\
+    everything = struct_parameters + set_dimension + allocate_y_vector +\
                  func_fill_yvector + func_empty_yvector + func_begin + func_end
     print ('\n').join(everything)
     return everything
