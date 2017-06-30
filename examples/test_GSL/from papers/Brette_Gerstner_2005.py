@@ -11,7 +11,7 @@ Edit on April 23rd 2017 by Charlee Fletterman: adapted to work with GSL code, ou
 '''
 from brian2 import *
 
-prefs.codegen.target = 'cython'
+prefs.codegen.target = 'weave'
 
 # Parameters
 C = 281 * pF
@@ -35,7 +35,10 @@ I : amp
 
 neuron = NeuronGroup(1, model=eqs, threshold='vm>Vcut',
                      reset="vm=Vr; w+=b", method='GSL_stateupdater')
-neuron.state_updater.codeobj_class = GSLCythonCodeObject
+if prefs.codegen.target == 'cython':
+    neuron.state_updater.codeobj_class = GSLCythonCodeObject
+else:
+    neuron.state_updater.codeobj_class = GSLWeaveCodeObject
 neuron.vm = EL
 trace = StateMonitor(neuron, 'vm', record=0)
 spikes = SpikeMonitor(neuron)

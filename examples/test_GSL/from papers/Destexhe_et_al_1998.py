@@ -39,7 +39,7 @@ from __future__ import print_function
 from brian2 import *
 from brian2.units.constants import (zero_celsius, faraday_constant as F,
                                     gas_constant as R)
-prefs.codegen.target = 'cython'
+prefs.codegen.target = 'weave'
 
 GSL = True
 
@@ -108,7 +108,11 @@ morpho.dend.distal = Cylinder(x=[0, 84.67]*um, diameter=8.5*um)
 if GSL:
     neuron = SpatialNeuron(morpho, eqs, Cm=0.88*uF/cm**2, Ri=173*ohm*cm,
                            method='GSL_stateupdater')
-    neuron.state_updater.codeobj_class = GSLCythonCodeObject
+    if prefs.codegen.target == 'cython':
+        neuron.state_updater.codeobj_class = GSLCythonCodeObject
+    else:
+        neuron.state_updater.codeobj_class = GSLWeaveCodeObject
+
 else:
     neuron = SpatialNeuron(morpho, eqs, Cm=0.88*uF/cm**2, Ri=173*ohm*cm,
                            method='exponential_euler')
