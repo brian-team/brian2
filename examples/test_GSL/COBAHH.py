@@ -73,7 +73,11 @@ seed(0)
 
 P_GSL = NeuronGroup(4000, model=eqs, threshold='v>-20*mV', refractory=3*ms,
                 method='GSL_stateupdater')
-P_GSL.state_updater.codeobj_class = GSLCythonCodeObject
+if prefs.codegen.target == 'cython':
+    P_GSL.state_updater.codeobj_class = GSLCythonCodeObject
+else:
+    P_GSL.state_updater.codeobj_class = GSLWeaveCodeObject
+
 Pe_GSL = P_GSL[:3200]
 Pi_GSL = P_GSL[3200:]
 Ce_GSL = Synapses(Pe_GSL, P_GSL, on_pre='ge+=we')
