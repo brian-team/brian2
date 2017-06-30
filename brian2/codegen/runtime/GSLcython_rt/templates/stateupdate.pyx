@@ -38,7 +38,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d)
 
-{{vector_code|write_GSL_support_code(variables, other_variables, variables_in_vector_statements)|autoindent}}
+    {{ vector_code|write_GSL_support_code(variables, extra_information)|autoindent }}
 {% endblock %}
 
 {% block maincode %}
@@ -52,8 +52,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
     cdef double t1
     cdef parameters * p = <parameters *>malloc(sizeof(parameters))
 
-    {{variables_in_vector_statements|add_GSL_declarations(variables, other_variables, variables_in_scalar_statements)|autoindent}}
-    {{scalar_code|add_GSL_scalar_code(variables_in_scalar_statements, variables_in_vector_statements)|autoindent}}
+    {{scalar_code|add_GSL_scalar_code_and_declarations(variables, extra_information)|autoindent}}
 
     cdef double * y = assign_memory_y()
     

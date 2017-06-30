@@ -122,7 +122,9 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
                             variable_mapping[identifier] = {}
                             variable_mapping[identifier]['actual'] = self.generator.get_array_name(value, access_data=False)
                             variable_mapping[identifier]['pointer'] = self.generator.get_array_name(value)
-                            variable_mapping[identifier]['restrict'] = ''+(not value.scalar)*self.generator.restrict
+                            variable_mapping[identifier]['restrict'] = ''
+                            if not prefs.codegen.target == 'cython' and not value.scalar:
+                                variable_mapping[identifier]['restrict'] += self.generator.restrict
                         if identifier in self.variables or identifier in other_variables:
                             if is_vector:
                                 variables_in_vector.add(identifier)
@@ -136,6 +138,7 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
             'scalar_variables' : variables_in_scalar,
             'vector_variables' : variables_in_vector,
             'read' : read,
-            'write' : write
+            'write' : write,
+            'target' : prefs.codegen.target
         }
         return scalar_code, vector_code, kwds

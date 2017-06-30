@@ -31,8 +31,7 @@ gsl_odeiv2_driver * d =
 	const int _vectorisation_idx = 1;
 	const double dt = _array_defaultclock_dt[0];
 
-    {{vector_code|add_GSL_declarations(variables, extra_information)|autoindent}}
-    {{scalar_code|add_GSL_scalar_code(extra_information)|autoindent}}
+    {{scalar_code|add_GSL_scalar_code_and_declarations(variables, extra_information)|autoindent}}
 
 	for(int _idx=0; _idx<_N; _idx++)
 	{

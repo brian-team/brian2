@@ -104,248 +104,178 @@ def find_differential_variables(code):
             lhs, op, rhs, comment = parse_statement(expr)
         except ValueError:
             pass
-        m = re.match('[const double ]*_gsl_(.+?)_f([0-9]*)', lhs)
+        m = re.search('_gsl_(.+?)_f([0-9]*)$', lhs)
         if m:
             diff_vars[m.group(1)] = m.group(2)
     return diff_vars
 
 def write_GSL_support_code(vector_code, variables, extra_information):
 
+    target = extra_information['target']
+    if target == 'weave' or target == 'cpp':
+        cpp = True
+    else:
+        cpp = False
+
     other_variables = extra_information['other_variables']
     datatypes = find_datatypes(variables, other_variables)
     variable_mapping = extra_information['variable_mapping']
     diff_vars = find_differential_variables(vector_code)
 
-    struct_parameters = ['\nstruct parameters\n{',
-                         '\tint _idx;']
-    set_dimension = ['\nint set_dimension(size_t * dimension)\n{']
-    allocate_y_vector = ['\ndouble * assign_memory_y()\n{']
-    func_fill_yvector = ['\nint fill_y_vector(parameters * p, double * y, int _idx)\n{']
-    func_empty_yvector = ['\nint empty_y_vector(parameters * p, double * y, int _idx)\n{']
-    func_begin = ['\nint func(double t, const double y[], double f[], void * params)\n{',
-            '\tstruct parameters * p = (struct parameters *)params;',
-            '\tint _idx = p->_idx;']
+    struct_parameters = ['\n{cdef}struct parameters{open}',
+                         '\tint _idx{end}']
+    func_fill_yvector = ['\n{cdef}int fill_y_vector(parameters * p, double * y, int _idx){open}']
+    func_empty_yvector = ['\n{cdef}int empty_y_vector(parameters * p, double * y, int _idx){open}']
+    func_begin = ['{cdef}int func(double t, const double y[], double f[], void * params){open}',
+                  '\t{cdef}{struct}parameters * p = {open_cast}parameters *{close_cast}params{end}',
+                  '\t{cdef} int _idx = p{ptr}_idx{end}']
     func_end = []
 
-    defined = ['t', 'dt']
+    defined = ['t']
     to_replace = {}
-    parameters = {} # variables we want in parameters statevars
-    func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
+    parameters = {}
+    func_declarations = {}
 
     for var in diff_vars:
         diff_num = diff_vars[var]
         array_name = variable_mapping[var]['pointer']
-        to_replace['const double _gsl_{var}_f{ind}'.format(var=var, ind=diff_num)] = 'f[{ind}]'.format(ind=diff_num)
-        to_replace['const double _gsl_{var}_y{ind}'.format(var=var, ind=diff_num)] = 'y[{ind}]'.format(ind=diff_num)
-        func_fill_yvector += ['\ty[{ind}] = p->{var}[_idx];'.format(ind=diff_num, var=array_name)]
-        func_empty_yvector += ['\tp->{var}[_idx] = y[{ind}];'.format(ind=diff_num, var=array_name)]
+        to_replace['{cpp_pre}_gsl_{var}_f{ind}'.format(cpp_pre=''+'const double '*cpp,
+                                                       var=var,
+                                                       ind=diff_num)] = 'f[{ind}]'.format(ind=diff_num)
+        to_replace['{cpp_pre}_gsl_{var}_y{ind}'.format(cpp_pre='const double '*cpp,
+                                                       var=var,
+                                                       ind=diff_num)] = 'y[{ind}]'.format(ind=diff_num)
+        func_fill_yvector += ['\ty[{ind}] = p{ptrstr}{var}[_idx]{endstr}'.format(ind=diff_num,
+                                                                                 ptrstr='{ptr}',
+                                                                                 var=array_name,
+                                                                                 endstr='{end}')]
+        func_empty_yvector += ['\tp{ptrstr}{var}[_idx] = y[{ind}]{endstr}'.format(ind=diff_num,
+                                                                                 ptrstr='{ptr}',
+                                                                                 var=array_name,
+                                                                                 endstr='{end}')]
 
     for var in extra_information['vector_variables']:
         if var in defined:
             continue
         if var in variable_mapping:
             array_name = variable_mapping[var]['pointer']
-            parameters[var] = '\t{dt}* {res} {name};'.format(dt=datatypes[var],
-                                                             res=variable_mapping[var]['restrict'],
-                                                             name=array_name)
-            to_replace[array_name] = 'p->' + array_name
-            defined += [var]
+            parameters[var] = '\t{dt}* {res} {name}{endstr}'.format(dt=datatypes[var],
+                                                                    res=variable_mapping[var]['restrict'],
+                                                                    name=array_name,
+                                                                    endstr='{end}')
+            to_replace[array_name] = 'p{ptr}' + array_name
         else:
-            parameters[var] = '\t{datatype} {var};'.format(datatype=datatypes[var], var=var)
-            to_replace[var] = 'p->' + var
-            defined += [var]
+            parameters[var] = '\t{datatype} {var}{endstr}'.format(datatype=datatypes[var],
+                                                                  var=var,
+                                                                  endstr='{end}')
+            to_replace[var] = 'p{ptr}' + var
 
     for expr_set in vector_code:
-        for expr in expr_set.split('\n'):
+        for line in expr_set.split('\n'):
             try:
-                lhs, op, rhs, comment = parse_statement(expr)
-                lhs = lhs.replace('const double ', '')
-            except ValueError: # if statements?
+                var_original, op, expr, comment = parse_statement(line)
+                m = re.search('([a-z|A-Z|0-9|_]+)$', var_original)
+                var = m.group(1)
+            except ValueError:
                 func_end += ['\t'+expr]
                 continue
-            if (lhs in diff_vars and variable_mapping[lhs]['pointer'] in rhs) or (rhs in diff_vars and variable_mapping[rhs]['pointer'] in lhs):
-                func_end += ['\tconst double {var} = y[{ind}];'.format(var=lhs, ind=diff_vars[lhs])]
+            if (var in diff_vars and variable_mapping[var]['pointer'] in expr): # v = _array_etc[_idx] should be set by y
+                func_end += ['\t{var} = y[{ind}]{endstr}'.format(var=var_original,
+                                                                 ind=diff_vars[var],
+                                                                 endstr='{end}')]
                 continue
-            if lhs in ['t', 'dt', 't1']: # ignore t = _array_defaultclock_t[0]
+            if (expr in diff_vars and variable_mapping[expr]['pointer'] in var):
+                continue # ignore _array_etc[_idx] = v-like statements for diff_vars
+            if var in defined: # ignore t = _array_defaultclock_t[0]
                 continue
-
-            func_end += ['\t'+word_substitute(expr, to_replace)]
+            func_end += ['\t'+word_substitute(line, to_replace)]
 
     for name, expr in parameters.iteritems():
         struct_parameters += [expr]
-    struct_parameters += ['};']
+    struct_parameters += ['{struct_end}']
 
     for name, expr in func_declarations.iteritems():
         func_begin += [expr]
 
-    func_end += ['\treturn GSL_SUCCESS;\n}']
-
-    func_fill_yvector += ['\treturn GSL_SUCCESS;\n}']
-    func_empty_yvector += ['\treturn GSL_SUCCESS;\n}']
-
-    allocate_y_vector += ['\treturn (double *)malloc({diff_num}*sizeof(double));\n'.format(diff_num=len(diff_vars.keys()))+'}']
-
-    set_dimension += ['\tdimension[0] = {diff_num};\n'.format(diff_num=len(diff_vars.keys()))+'\treturn GSL_SUCCESS;\n}']
+    func_end += ['\treturn GSL_SUCCESS{end}{close}']
+    func_fill_yvector += ['\treturn GSL_SUCCESS{end}{close}']
+    func_empty_yvector += ['\treturn GSL_SUCCESS{end}{close}']
+    set_dimension = ['\n{cdef}int set_dimension(size_t * dimension){open}']
+    set_dimension += ['\tdimension[0] = {diff_num}{endstr}\n\treturn GSL_SUCCESS{endstr}{closestr}'.format(diff_num=len(diff_vars.keys()),
+                                                                                                          endstr='{end}',
+                                                                                                          closestr='{close}')]
+    allocate_y_vector = ['\n{cdef}double * assign_memory_y(){open}']
+    allocate_y_vector += ['\treturn {ocaststr}double *{ccaststr}malloc({diff_num}*sizeof(double)){endstr}{closestr}'.format(diff_num=len(diff_vars.keys()),
+                                                                                                                            endstr='{end}',
+                                                                                                                            closestr='{close}',
+                                                                                                                            ocaststr='{open_cast}',
+                                                                                                                            ccaststr='{close_cast}')]
 
     everything = struct_parameters + set_dimension + allocate_y_vector +\
                  func_fill_yvector + func_empty_yvector + func_begin + func_end
-    print ('\n').join(everything)
+    everything = ('\n').join(everything)
+
+    if cpp:
+        format_dict = { 'cdef' : '', 'open' : '\n{', 'close' : '\n}\n', 'end' : ';',
+                 'ptr' : '->', 'open_cast' : '(', 'close_cast' : ')', 'struct' : 'struct ',
+                        'struct_end' : '\n};\n'}
+    else:
+        format_dict = { 'cdef' : 'cdef ', 'open' : ':', 'close' : '\n', 'end' : '',
+                 'ptr' : '.', 'open_cast' : '<', 'close_cast' : '>', 'struct' : '',
+                        'struct_end' : ''}
+
+    everything = everything.format(**format_dict)
+
+    print everything
     return everything
 
-def temp_write_GSL_support_code(vector_code, variables, other_variables, variables_needed):
-    #TODO: another way would be to just rewrite an only vector_code dictionary, if it's not a problem to have double entries to variables?
-    #TODO: Handle refractoriness differently
-    '''
-    This function translates the vector_code to GSL code including the definition of the parameter struct and fill_y_vector etc.
-    It does so based on the statements sent to the Templater, and infers what is needed.
-    '''
-    datatypes = find_datatypes(variables, other_variables)
-    variable_mapping = find_variable_mapping(variables)
-    diff_vars = find_differential_variables(vector_code)
+def add_GSL_scalar_code_and_declarations(scalar_code, variables, extra_information):
 
-    struct_parameters = ['\ncdef struct parameters:',
-                         '\tint _idx']
-    set_dimension = ['\ncdef int set_dimension(size_t * dimension):']
-    allocate_y_vector = ['\ncdef double* assign_memory_y():']
-    func_fill_yvector = ['\ncdef int fill_y_vector(parameters * p, double * y, int _idx):']
-    func_empty_yvector = ['\ncdef int empty_y_vector(parameters * p, double * y, int _idx):']
-    func_begin = ['\ncdef int func(double t, const double y[], double f[], void * params):',
-            '\tcdef parameters * p = <parameters *>params',
-            '\tcdef int _idx = p._idx']
-    func_end = []
+    target = extra_information['target']
+    if target == 'weave' or target == 'cpp':
+        cpp = True
+    else:
+        cpp = False
 
-    defined = ['t']
-    to_replace = {}
-    parameters = {} # variables we want in parameters statevars
-    func_declarations = {} # declarations that go in beginning of function (cdef double v, cdef double spike etc.)
-
-    for var in variables_needed:
-        if var in defined:
-            continue
-        if var in diff_vars:
-            array_name = variable_mapping[var]
-            to_replace['_gsl_{var}_f{ind}'.format(var=var, ind=diff_vars[var])] = 'f[{ind}]'.format(ind=diff_vars[var])
-            to_replace['_gsl_{var}_y{ind}'.format(var=var, ind=diff_vars[var])] = 'y[{ind}]'.format(ind=diff_vars[var])
-            func_declarations[var] = '\tcdef {datatype} {var}'.format(datatype=datatypes[var], var=var)
-            parameters[var] = '\t{datatype} * {var}'.format(datatype=datatypes[var], var=array_name)
-            func_fill_yvector += ['\ty[{ind}] = p.{var}[_idx]'.format(ind=diff_vars[var], var=array_name)]
-            func_empty_yvector += ['\tp.{var}[_idx] = y[{ind}]'.format(ind=diff_vars[var], var=array_name)]
-        elif var in variable_mapping:
-            array_name = variable_mapping[var]
-            func_declarations[var] = '\t{datatype} {var}'.format(datatype=datatypes[var], var=var)
-            parameters[var] = '\t{datatype} * {var}'.format(datatype=datatypes[var], var=array_name)
-            to_replace[array_name] = 'p.'+array_name
-        else:
-            to_replace[var] = 'p.' + var
-            parameters[var] = '\t{datatype} {var}'.format(datatype=datatypes[var], var=var)
-
-    for expr_set in vector_code:
-        for expr in expr_set.split('\n'):
-            try:
-                lhs, op, rhs, comment = parse_statement(expr)
-            except ValueError: # if statements?
-                func_end += ['\t'+expr]
-                continue
-            if (lhs in diff_vars and variable_mapping[lhs] in rhs) or (rhs in diff_vars and variable_mapping[rhs] in lhs):
-                func_end += ['\t{var} = y[{ind}]'.format(var=lhs, ind=diff_vars[lhs])]
-                continue
-            if lhs in defined: # ignore t = _array_defaultclock_t[0]
-                continue
-
-            func_end += ['\t'+word_substitute(expr, to_replace)]
-
-    for name, expr in parameters.iteritems():
-        struct_parameters += [expr]
-
-    for name, expr in func_declarations.iteritems():
-        func_begin += [expr]
-
-    allocate_y_vector += ['\treturn <double*>malloc({diff_num}*sizeof(double))'.format(diff_num=len(diff_vars.keys()))]
-
-    set_dimension += ['\tdimension[0] = {diff_num}'.format(diff_num=len(diff_vars.keys()))]
-
-    everything = struct_parameters + set_dimension + allocate_y_vector + func_fill_yvector + func_empty_yvector + func_begin + func_end
-    return everything
-
-def add_GSL_declarations(vector_code, variables, extra_information):
-    '''
-    This function writes the initialization of the variables in the params struct, that are needed in func
-    it does so by analyzing the variable declarations brian does already together with the vector_code to see which
-    variables are needed.
-    '''
     other_variables = extra_information['other_variables']
     scalar_variables = extra_information['scalar_variables']
     vector_variables = extra_information['vector_variables']
     variable_mapping = extra_information['variable_mapping']
     datatypes = find_datatypes(variables, other_variables)
 
-    defined = ['t', 'dt', '_idx']
+    defined = ['t', 'dt']
+    code = []
 
-    expressions = []
-
-    for var in variable_mapping:
-        if var in defined:
-            continue
-        expressions += ['p.{ptr_name} = {array_name};'.format(ptr_name=variable_mapping[var]['pointer'],
-                                                              array_name=variable_mapping[var]['actual'])]
-        defined += [var]
-
-    for var in vector_variables:
-        try:
-            value = variables[var]
-        except KeyError:
-            value = other_variables[var]
-        if isinstance(value, Function):
-            continue
-        if isinstance(value, AuxiliaryVariable):
-            continue
-        if var in defined:
-            continue
-        expressions += ['p.{var} = {var};'.format(var=var)]
-
-    return expressions
-
-
-def temp_add_GSL_declarations(vector_variables, variables, other_variables, scalar_variables):
-    '''
-    This function writes the initialization of the variables in the params struct, that are needed in func
-    it does so by analyzing the variable declarations brian does already together with the vector_code to see which
-    variables are needed.
-    '''
-    variable_mapping = find_variable_mapping(variables, other_variables)
-    datatypes = find_datatypes(variables, other_variables)
-
-    defined = ['t', '_idx']
-
-    expressions = []
-
+    # all declarations and filling in of parameters struct
     for is_vector, variable_list in zip([True, False], [vector_variables, scalar_variables]):
         for var in variable_list:
+            if var in defined:
+                continue
             try:
                 value = variables[var]
             except KeyError:
                 value = other_variables[var]
-            if isinstance(value, Function):
-                continue
-            if isinstance(value, AuxiliaryVariable):
-                continue
-            if var in defined:
+            if isinstance(value, Function) or isinstance(value, AuxiliaryVariable):
                 continue
             if isinstance(value, ArrayVariable):
-                array_name = variable_mapping[var]
-                expressions += ['{struct}{var} = <{datatype} *> _buf_{array_name}.data'.
-                                format(struct='p.'*is_vector,var=array_name, datatype=datatypes[var], array_name=array_name)]
+                array_name = variable_mapping[var]['actual']
+                if cpp:
+                    ptr_name = variable_mapping[var]['pointer']
+                    code += ['p.{ptr_name} = {array_name};'.format(ptr_name=ptr_name,
+                                                                   array_name=array_name)]
+                else:
+                    code += ['p.{var} = <{datatype} *> _buf_{array_name}.data'.format(var=array_name,
+                                                                                      datatype=datatypes[var],
+                                                                                      array_name=array_name)]
             else:
-                expressions += ['{struct}{var} = _namespace["{var}"]'.format(struct='p.'*is_vector,var=var)]
+                if cpp:
+                    if is_vector:
+                        code += ['p.{var} = {var};'.format(var=var)]
+                else:
+                    code += ['{struct}{var} = _namespace["{var}"]'.format(struct='p.'*is_vector,var=var)]
+    code += ['\n']
 
-    return expressions
-
-def add_GSL_scalar_code(scalar_code, extra_information):
-
-    scalar_variables = extra_information['scalar_variables']
-    vector_variables = extra_information['vector_variables']
-
-    code = []
+    # write scalar code
     for line in scalar_code:
         try:
             var, op, expr, comment = parse_statement(line)
@@ -363,28 +293,6 @@ def add_GSL_scalar_code(scalar_code, extra_information):
                     var=actual_var, op=op, expr=expr, comment=comment)]
 
     return code
-
-
-def temp_add_GSL_scalar_code(scalar_code, scalar_variables, vector_variables):
-
-    code = []
-
-    for line in scalar_code:
-        try:
-            var, op, expr, comment = parse_statement(line)
-        except ValueError:
-            code += [line]
-            continue
-        if var in scalar_variables:
-            code += [line]
-        if var in vector_variables:
-            if var == 't': # ignore t = _array_defaultclock_t[0] if t is used func (GSL handles t)
-                continue
-            code += ['p.'+line]
-
-    return code
-
-
 
 class LazyTemplateLoader(object):
     '''
@@ -443,8 +351,7 @@ class Templater(object):
         self.env.filters['autoindent'] = autoindent
         self.env.filters['variables_to_array_names'] = variables_to_array_names
         self.env.filters['write_GSL_support_code'] = write_GSL_support_code
-        self.env.filters['add_GSL_declarations'] = add_GSL_declarations
-        self.env.filters['add_GSL_scalar_code'] = add_GSL_scalar_code
+        self.env.filters['add_GSL_scalar_code_and_declarations'] = add_GSL_scalar_code_and_declarations
         if env_globals is not None:
             self.env.globals.update(env_globals)
         else:
