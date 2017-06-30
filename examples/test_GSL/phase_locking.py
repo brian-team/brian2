@@ -6,7 +6,7 @@ Phase locking of IF neurons to a periodic input.
 '''
 from brian2 import *
 
-prefs.codegen.target = 'weave'
+prefs.codegen.target = 'cython'
 GSL = True
 
 tau = 20*ms
