@@ -17,12 +17,11 @@ sys.function = func;
 set_dimension(&sys.dimension);
 sys.params = &p;
 
-double h = 1e-6;
-double eps_abs = 1e-8;
-double eps_rel = 1e-10;
-
-gsl_odeiv2_driver * d =
-    gsl_odeiv2_driver_alloc_y_new(&sys, gsl_odeiv2_step_rk8pd, h, eps_abs, eps_rel);
+gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new(&sys,
+                                      gsl_odeiv2_step_{{GSL_settings['integrator']}},
+                                      {{GSL_settings['h_start']}},
+                                      {{GSL_settings['eps_abs']}},
+                                      {{GSL_settings['eps_rel']}});
 
     // This allows everything to work correctly for synapses where N is not a
     // constant
@@ -41,7 +40,8 @@ gsl_odeiv2_driver * d =
 		double t1 = t + dt;
 		fill_y_vector(&p, y, _idx);
 		p._idx = _idx;
-		if (gsl_odeiv2_driver_apply(d, &t, t1, y) != GSL_SUCCESS)
+		if ({{'gsl_odeiv2_driver_apply(d, &t, t1, y)' if GSL_settings['adaptable_timestep']
+                    else 'gsl_odeiv2_driver_apply_fixed_step(d, &t, dt, 1, y)'}} != GSL_SUCCESS)
 		{
 		    printf("Integration error running stateupdate with GSL\n");
 		    exit(-1);
