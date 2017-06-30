@@ -142,9 +142,9 @@ def write_GSL_support_code(vector_code, variables, extra_information):
         to_replace['{cpp_pre}_gsl_{var}_f{ind}'.format(cpp_pre=''+'const double '*cpp,
                                                        var=var,
                                                        ind=diff_num)] = 'f[{ind}]'.format(ind=diff_num)
-        to_replace['{cpp_pre}_gsl_{var}_y{ind}'.format(cpp_pre='const double '*cpp,
-                                                       var=var,
-                                                       ind=diff_num)] = 'y[{ind}]'.format(ind=diff_num)
+        #to_replace['{cpp_pre}_gsl_{var}_y{ind}'.format(cpp_pre='const double '*cpp,
+        #                                               var=var,
+        #                                               ind=diff_num)] = 'y[{ind}]'.format(ind=diff_num)
         func_fill_yvector += ['\ty[{ind}] = p{ptrstr}{var}[_idx]{endstr}'.format(ind=diff_num,
                                                                                  ptrstr='{ptr}',
                                                                                  var=array_name,
@@ -153,9 +153,8 @@ def write_GSL_support_code(vector_code, variables, extra_information):
                                                                                  ptrstr='{ptr}',
                                                                                  var=array_name,
                                                                                  endstr='{end}')]
-
-    for var in extra_information['vector_variables']:
-        if var in defined:
+    for var in (extra_information['vector_variables']):
+        if var in defined or '_gsl' in var:
             continue
         if var in variable_mapping:
             array_name = variable_mapping[var]['pointer']
@@ -174,10 +173,10 @@ def write_GSL_support_code(vector_code, variables, extra_information):
         for line in expr_set.split('\n'):
             try:
                 var_original, op, expr, comment = parse_statement(line)
-                m = re.search('([a-z|A-Z|0-9|_]+)$', var_original)
+                m = re.search('([a-z|A-Z|0-9|_|\[|\]]+)$', var_original)
                 var = m.group(1)
             except ValueError:
-                func_end += ['\t'+expr]
+                func_end += ['\t'+line]
                 continue
             if (var in diff_vars and variable_mapping[var]['pointer'] in expr): # v = _array_etc[_idx] should be set by y
                 func_end += ['\t{var} = y[{ind}]{endstr}'.format(var=var_original,

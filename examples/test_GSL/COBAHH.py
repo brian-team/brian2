@@ -22,10 +22,7 @@ from brian2 import *
 
 defaultclock.dt = .1*ms
 
-prefs.codegen.target = 'cython'
-prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
-prefs.codegen.cpp.headers += ['gsl/gsl_odeiv2.h']
-prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
+prefs.codegen.target = 'weave'
 
 # Parameters
 area = 20000*umetre**2

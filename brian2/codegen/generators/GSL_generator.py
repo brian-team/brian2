@@ -109,7 +109,7 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
                                              statement.expr, statement.comment)
                     if var not in self.variables:
                         other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
-                    for identifier in get_identifiers(expr):
+                    for identifier in (set([var])|get_identifiers(expr)):
                         if identifier in DEFAULT_FUNCTIONS: #TODO: also DEFAULT_CONSTANTS?
                             continue
                         try:
