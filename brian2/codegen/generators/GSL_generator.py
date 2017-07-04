@@ -6,8 +6,10 @@ from brian2.codegen.permutation_analysis import (check_for_order_independence,
                                                  OrderDependenceError)
 
 from brian2.core.preferences import prefs, BrianPreference
-from brian2.utils.stringtools import get_identifiers
+from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.parsing.statements import parse_statement
+import re
 
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator']
 
@@ -63,6 +65,20 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
     def add_gsl_pointer(self, var_obj):
         raise NotImplementedError
 
+    def find_differential_variables(self, code):
+        diff_vars = {}
+        for expr_set in code:
+            for expr in expr_set.split('\n'):
+                expr = expr.strip(' ')
+            try:
+                lhs, op, rhs, comment = parse_statement(expr)
+            except ValueError:
+                pass
+            m = re.search('_gsl_(.+?)_f([0-9]*)$', lhs)
+            if m:
+                diff_vars[m.group(1)] = m.group(2)
+        return diff_vars
+
     def translate(self, code, dtype): # TODO: it's not so nice we have to copy the contents of this function..
         '''
         Translates an abstract code block into the target language.
@@ -95,6 +111,53 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
         scalar_code, vector_code, kwds = self.generator.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
 
+        # translate code for GSL
+        vector_variables = []
+        scalar_variables = []
+        defined_vars = ['t']
+        to_replace = {}
+        diff_vars = self.find_differential_variables(code.values())
+        for var, diff_num in diff_vars.items():
+            array_name = self.generator.get_array_name(self.variables[var], access_data=False)
+            to_replace[self.var_declaration(var, diff_num)] = 'f[{ind}]'.format(ind=diff_num)
+            self.func_fill_yvector += ['\ty[{ind}] = p{ptr}{var}[_idx]{end}'.format(ind=diff_num,
+                                                                                     ptr=self.ptrstr,
+                                                                                     var=array_name,
+                                                                                     end=self.endstr)]
+            self.func_empty_yvector += ['\tp{ptr}{var}[_idx] = y[{ind}]{end}'.format(ind=diff_num,
+                                                                                      ptr=self.ptrstr,
+                                                                                      var=array_name,
+                                                                                      end=self.endstr)]
+
+        for expr_set in vector_code[None]:
+            for line in expr_set.split('\n'):
+                try:
+                    var_original, op, expr, comment = parse_statement(line)
+                    m = re.search('([a-z|A-Z|0-9|_|\[|\]]+)$', var_original)
+                    var = m.group(1)
+                except ValueError:
+                    self.func_end += ['\t'+line]
+                    continue
+                if var in diff_vars or expr in diff_vars:
+                    pointer_name = self.generator.get_array_name(self.variables[var], access_data=False)
+                    if pointer_name in expr: # v = _array_etc[_idx] should be set by y instead
+                        self.func_end += ['\t{var} = y[{ind}]'.format(var=var_original,
+                                                                         ind=diff_vars[var])]
+                        continue
+                    elif pointer_name in var: # and e.g. _array_neurongroup_v[_idx] = v should be ignored
+                        continue
+                if var in defined_vars: # ignore t = _array_defaultclock_t[0]
+                    continue
+                self.func_end += ['\t'+word_substitute(line, to_replace)]
+
+        set_dimension = []
+        allocate_y_vector = []
+
+        vector_code['GSL'] = ('\n').join(self.struct_dataholder + set_dimension + allocate_y_vector +\
+                self.func_fill_yvector + self.func_empty_yvector + self.func_begin + self.func_end)
+        print vector_code['GSL']
+        exit(0)
+
         # collect info needed by templater to write GSL code
         other_variables = {}
         variable_mapping = {}
@@ -113,7 +176,7 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
                     if var not in self.variables:
                         other_variables[var] = AuxiliaryVariable(var, dtype=statement.dtype)
                     for identifier in (set([var])|get_identifiers(expr)):
-                        if identifier in DEFAULT_FUNCTIONS: #TODO: also DEFAULT_CONSTANTS?
+                        if identifier in DEFAULT_FUNCTIONS: #TODO: also DEFAULT_CONST   ANTS?
                             continue
                         try:
                             value = self.variables[identifier]
@@ -148,6 +211,19 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):
 
+    #TODO: I don't know if this is the right place to save this, in case we will use the generator for more than one codeobject..
+    struct_dataholder = ['\ncdef struct dataholder:',
+                         '\tint _idx']
+    func_fill_yvector = ['\ncdef int fill_y_vector(parameters * p, double * y, int _idx):']
+    func_empty_yvector = ['\ncdef int empty_y_vector(parameters * p, double * y, int _idx):']
+    func_begin = ['cdef int func(double t, const double y[], double f[], void * params):',
+                  '\tcdef parameters * p = <parameters *> params',
+                  '\tcdef int _idx = p._idx']
+    func_end = []
+
+    ptrstr = '.'
+    endstr = ''
+
     def add_gsl_pointer(self, var_obj):
         array_name = self.generator.get_array_name(var_obj)
         dtype = self.generator.c_data_type(var_obj)
@@ -155,7 +231,23 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
 
 class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
+    struct_dataholder = ['\nstruct dataholder\n{',
+                         '\tint _idx;']
+    func_fill_yvector = ['\nint fill_y_vector(parameters * p, double * y, int _idx)\n{']
+    func_empty_yvector = ['\nint empty_y_vector(parameters * p, double * y, int _idx)\n{']
+    func_begin = ['int func(double t, const double y[], double f[], void * params)\n{',
+                  '\tparameters * p = (parameters *) params;',
+                  '\tint _idx = p._idx;']
+    func_end = []
+
+    ptrstr = '->'
+    endstr = ';'
+
     def add_gsl_pointer(self, var_obj):
         array_name = self.generator.get_array_name(var_obj)
         pointer_name = self.generator.get_array_name(var_obj, access_data=False)
         return 'p.{ptr_name} = {array_name};'.format(ptr_name=pointer_name, array_name=array_name)
+
+    def var_declaration(self, var, ind):
+        #TODO: I don't think const double should be hardcoded, but I think since this will always apply to differnetial variables it will mostly be the case..
+        return 'const double _gsl_{var}_f{ind}'.format(var=var, ind=ind)
