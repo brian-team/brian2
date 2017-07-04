@@ -9,7 +9,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.functions import DEFAULT_FUNCTIONS
 
-__all__ = ['GSLCodeGenerator']
+__all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator']
 
 class IntegrationError(Exception):
     '''
@@ -59,6 +59,9 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
+
+    def add_gsl_pointer(self, var_obj):
+        raise NotImplementedError
 
     def translate(self, code, dtype): # TODO: it's not so nice we have to copy the contents of this function..
         '''
@@ -142,3 +145,17 @@ class GSLCodeGenerator(object): #TODO: I don't think it matters it doesn't inher
             'target' : prefs.codegen.target
         }
         return scalar_code, vector_code, kwds
+
+class GSLCythonCodeGenerator(GSLCodeGenerator):
+
+    def add_gsl_pointer(self, var_obj):
+        array_name = self.generator.get_array_name(var_obj)
+        dtype = self.generator.c_data_type(var_obj)
+        return 'p.{var} = <{datatype} *> _buf_{var}.data'.format(var=array_name, datatype=dtype)
+
+class GSLWeaveCodeGenerator(GSLCodeGenerator):
+
+    def add_gsl_pointer(self, var_obj):
+        array_name = self.generator.get_array_name(var_obj)
+        pointer_name = self.generator.get_array_name(var_obj, access_data=False)
+        return 'p.{ptr_name} = {array_name};'.format(ptr_name=pointer_name, array_name=array_name)
