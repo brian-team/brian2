@@ -4,12 +4,12 @@
 
 {% block support_code_block %}
     {{ common.support_code() }}
-    {{ vector_code|write_GSL_support_code(variables, extra_information)|autoindent }}
+    {{ vector_code['GSL']|autoindent }}
 {% endblock %}
 
 {% block maincode %}
 	//// MAIN CODE ////////////
-struct parameters p;
+struct dataholder p;
 double * y = assign_memory_y();
 
 gsl_odeiv2_system sys;
@@ -30,7 +30,7 @@ gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new(&sys,
 	const int _vectorisation_idx = 1;
 	const double dt = _array_defaultclock_dt[0];
 
-    {{scalar_code|add_GSL_scalar_code_and_declarations(variables, extra_information)|autoindent}}
+    {{scalar_code['GSL']|autoindent}}
 
 	for(int _idx=0; _idx<_N; _idx++)
 	{
