@@ -64,18 +64,9 @@ class GSLCodeGenerator(object):
         return getattr(self.generator, item)
 
     # A series of functions that should be overridden by child class:
-    def diff_var_to_replace(self, diff_vars):
-        raise NotImplementedError
-    def get_dimension_code(self, diff_num):
-        raise NotImplementedError
-    def yvector_code(self, diff_vars):
-        raise NotImplementedError
     def write_dataholder_single(self, var_obj):
         raise NotImplementedError
-    def write_dataholder(self, variables_in_vector):
-        raise NotImplementedError
-    def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
-        raise NotImplementedError
+
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         raise NotImplementedError
 
@@ -93,6 +84,89 @@ class GSLCodeGenerator(object):
             if m:
                 diff_vars[m.group(1)] = m.group(2)
         return diff_vars
+
+    def diff_var_to_replace(self, diff_vars):
+        variables = self.variables
+        to_replace = {}
+        for var, diff_num in diff_vars.items():
+            lhs = self.diff_var_declaration(var, diff_num)
+            to_replace[lhs] = 'f[{ind}]'.format(ind=diff_num)
+            var_obj = variables[var]
+            array_name = self.generator.get_array_name(var_obj, access_data=True)
+            idx_name = '_idx' #TODO: could be dynamic?
+            replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
+            replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
+            to_replace[replace_what] = replace_with
+            replace_what = '{array_name}[{idx_name}] = {var}'.format(array_name=array_name,
+                                                                     idx_name=idx_name,
+                                                                     var=var)
+            replace_with = ''
+            to_replace[replace_what] = replace_with
+        return to_replace
+
+    def get_dimension_code(self, diff_num):
+        start_function = self.get_syntax('start_function')
+        open_function = self.get_syntax('open_function')
+        end_statement = self.get_syntax('end_statement')
+        end_function = self.get_syntax('end_function')
+        code = '\n{start_function}int set_dimension(size_t * dimension){open_function}'.format(start_function=start_function,
+                                                                                            open_function=open_function)
+        code += '\n\tdimension[0] = {diff_num}{end_statement}'.format(diff_num=diff_num, end_statement=end_statement)
+        code += '\n\treturn GSL_SUCCESS{end_statement}\n'.format(end_statement=end_statement)
+        code += end_function
+        return code
+
+    def yvector_code(self, diff_vars):
+        start_function = self.get_syntax('start_function')
+        open_function = self.get_syntax('open_function')
+        end_statement = self.get_syntax('end_statement')
+        end_function = self.get_syntax('end_function')
+        open_cast = self.get_syntax('open_cast')
+        close_cast = self.get_syntax('close_cast')
+        access_pointer = self.get_syntax('access_pointer')
+
+        allocate_yvector = '\n{start_function}double* assign_memory_y(){open_function}'.format(start_function=start_function,
+                                                                                               open_function=open_function)
+        allocate_yvector += '\n\treturn {open_c}double *{close_c} malloc({dnum}*sizeof(double))'.format(open_c=open_cast,
+                                                                                                        close_c=close_cast,
+                                                                                                        dnum=len(diff_vars))
+        allocate_yvector += end_statement + end_function
+
+        fill_yvector = ['\n{start_function}int fill_y_vector(dataholder * p, double * y, int _idx)'.format(start_function=start_function)]
+        fill_yvector[0] += open_function
+        empty_yvector = ['\n{start_function}int empty_y_vector(dataholder * p, double * y, int _idx)'.format(start_function=start_function)]
+        empty_yvector[0] += open_function
+
+        for var, diff_num in diff_vars.items():
+            array_name = self.generator.get_array_name(self.variables[var], access_data=True)
+            fill_yvector += ['\ty[{ind}] = p{access}{var}[_idx]{end_statement}'.format(access=access_pointer,
+                                                                                       ind=diff_num,
+                                                                                       var=array_name,
+                                                                                       end_statement=end_statement)]
+            empty_yvector += ['\tp{access}{var}[_idx] = y[{ind}]{end_statement}'.format(access=access_pointer,
+                                                                                        ind=diff_num,
+                                                                                        var=array_name,
+                                                                                        end_statement=end_statement)]
+        fill_yvector += ['\treturn GSL_SUCCESS{end_statement}{end_function}'.format(end_statement=end_statement,
+                                                                                    end_function=end_function)]
+        empty_yvector += ['\treturn GSL_SUCCESS{end_statement}{end_function}'.format(end_statement=end_statement,
+                                                                                    end_function=end_function)]
+
+        return allocate_yvector + '\n' + ('\n').join(fill_yvector) + '\n' + ('\n').join(empty_yvector)
+
+    def write_dataholder(self, variables_in_vector):
+        end_statement = self.get_syntax('end_statement')
+        open_struct = self.get_syntax('open_struct')
+        end_struct = self.get_syntax('end_struct')
+
+        code = ['\n'+self.declare('struct', 'dataholder') + open_struct]
+        code += ['\n\t'+self.declare('int', '_idx', in_struct=True) + end_statement]
+        for var_obj in variables_in_vector:
+            if var_obj.name == 't' or '_gsl' in var_obj.name:
+                continue
+            code += ['\t'+self.write_dataholder_single(var_obj)]
+        code += [end_struct]
+        return ('\n').join(code)
 
     def find_undefined_variables(self, statements):
         variables = self.variables
@@ -121,6 +195,20 @@ class GSLCodeGenerator(object):
                     continue
                 used_variables.add(var_obj) # save as object because this has all needed info (dtype, name, isarray)
         return used_variables
+
+    def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
+        access_pointer = self.get_syntax('access_pointer')
+        to_replace = {}
+        for var_obj in variables_in_vector:
+            if var_obj.name in ignore or '_gsl' in var_obj.name:
+                continue
+            if isinstance(var_obj, ArrayVariable):
+                pointer_name = self.get_pointer_name(var_obj)
+                to_replace[pointer_name] = 'p' + access_pointer + pointer_name
+            else:
+                var = var_obj.name
+                to_replace[var] = 'p' + access_pointer + var
+        return to_replace
 
     def unpack_namespace(self, variables_in_vector, variables_in_scalar):
         code = []
@@ -244,93 +332,40 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
     def c_data_type(self, dtype):
         return c_data_type(dtype)
 
-    def get_dimension_code(self, diff_num):
-        code = '\ncdef int set_dimension(size_t * dimension):'
-        code += '\n\tdimension[0] = %d'%diff_num
-        code += '\n\treturn GSL_SUCCESS\n'
-        return code
+    def get_syntax(self, type):
+        syntax = {'end_statement' : '',
+                  'access_pointer' : '.',
+                  'start_function' : 'cdef ',
+                  'open_function' : ':',
+                  'open_struct' : ':',
+                  'end_function' : '',
+                  'end_struct' : '',
+                  'open_cast' : '<',
+                  'close_cast' : '>'}
+        return syntax[type]
 
-    def diff_var_to_replace(self, diff_vars):
-        variables = self.variables
-        to_replace = {}
-        for var, diff_num in diff_vars.items():
-            lhs = 'const double _gsl_{var}_f{ind}'.format(var=var, ind=diff_num)
-            to_replace[lhs] = 'f[{ind}]'.format(ind=diff_num)
-            var_obj = variables[var]
-            array_name = self.generator.get_array_name(var_obj, access_data=True)
-            idx_name = '_idx' #TODO: could be dynamic?
-            replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
-            replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
-            to_replace[replace_what] = replace_with
-            replace_what = '{array_name}[{idx_name}] = {var}'.format(array_name=array_name,
-                                                                     idx_name=idx_name,
-                                                                     var=var)
-            replace_with = ''
-            to_replace[replace_what] = replace_with
-        return to_replace
+    def diff_var_declaration(self, var, diff_num):
+        return '_gsl_{var}_f{ind}'.format(var=var, ind=diff_num)
 
-    def diff_var_to_replace(self, diff_vars):
-        variables = self.variables
-        to_replace = {}
-        for var, diff_num in diff_vars.items():
-            lhs = '_gsl_{var}_f{ind}'.format(var=var, ind=diff_num)
-            to_replace[lhs] = 'f[{ind}]'.format(ind=diff_num)
-            var_obj = variables[var]
-            array_name = self.generator.get_array_name(var_obj)
-            idx_name = '_idx' #TODO: could be dynamic?
-            replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
-            replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
-            to_replace[replace_what] = replace_with
-            replace_what = '{array_name}[{idx_name}] = {var}'.format(array_name=array_name,
-                                                                     idx_name=idx_name,
-                                                                     var=var)
-            replace_with = ''
-            to_replace[replace_what] = replace_with
-        return to_replace
+    def declare(self, type, name, in_struct=False):
+        if in_struct:
+            return type + ' ' + name
+        else:
+            return 'cdef ' + type + ' ' + name
 
-    def yvector_code(self, diff_vars):
-        allocate_yvector = '\ncdef double* assign_memory_y():'
-        allocate_yvector += '\n\treturn <double *>malloc(%d*sizeof(double))'%len(diff_vars)
-        fill_yvector = ['\ncdef int fill_y_vector(dataholder * p, double * y, int _idx):']
-        empty_yvector = ['\ncdef int empty_y_vector(dataholder * p, double * y, int _idx):']
-        for var, diff_num in diff_vars.items():
-            array_name = self.generator.get_array_name(self.variables[var])
-            fill_yvector += ['\ty[{ind}] = p.{var}[_idx]'.format(ind=diff_num,
-                                                                   var=array_name)]
-            empty_yvector += ['\tp.{var}[_idx] = y[{ind}]'.format(ind=diff_num,
-                                                                   var=array_name)]
-        fill_yvector += ['\treturn GSL_SUCCESS\n']
-        empty_yvector += ['\treturn GSL_SUCCESS\n']
-        return allocate_yvector + '\n' + ('\n').join(fill_yvector) + '\n' + ('\n').join(empty_yvector)
+    def get_array_name(self, var_obj):
+        return self.generator.get_array_name(var_obj)
+
+    def get_pointer_name(self, var_obj):
+        return self.get_array_name(var_obj)
 
     def write_dataholder_single(self, var_obj):
         dtype = self.c_data_type(var_obj.dtype)
         if isinstance(var_obj, ArrayVariable):
-            array_name = self.generator.get_array_name(var_obj)
+            array_name = self.get_array_name(var_obj)
             return '{dtype}* {var}'.format(dtype=dtype, var=array_name)
         else:
             return '{dtype} {var}'.format(dtype=dtype, var=var_obj.name)
-
-    def write_dataholder(self, variables_in_vector):
-        code = ['\ncdef struct dataholder:\n\tint _idx']
-        for var_obj in variables_in_vector:
-            if var_obj.name == 't' or '_gsl' in var_obj.name:
-                continue
-            code += ['\t'+self.write_dataholder_single(var_obj)]
-        return ('\n').join(code)
-
-    def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
-        to_replace = {}
-        for var_obj in variables_in_vector:
-            if var_obj.name in ignore or '_gsl' in var_obj.name:
-                continue
-            if isinstance(var_obj, ArrayVariable):
-                array_name = self.generator.get_array_name(var_obj)
-                to_replace[array_name] = 'p.' + array_name
-            else:
-                var = var_obj.name
-                to_replace[var] = 'p.' + var
-        return to_replace
 
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         code = []
@@ -355,44 +390,30 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
                   '\tint _idx = p->_idx;'
     func_end = '\treturn GSL_SUCCESS;\n}'
 
-    def diff_var_to_replace(self, diff_vars):
-        variables = self.variables
-        to_replace = {}
-        for var, diff_num in diff_vars.items():
-            lhs = 'const double _gsl_{var}_f{ind}'.format(var=var, ind=diff_num)
-            to_replace[lhs] = 'f[{ind}]'.format(ind=diff_num)
-            var_obj = variables[var]
-            array_name = self.generator.get_array_name(var_obj, access_data=True)
-            idx_name = '_idx' #TODO: could be dynamic?
-            replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
-            replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
-            to_replace[replace_what] = replace_with
-            replace_what = '{array_name}[{idx_name}] = {var}'.format(array_name=array_name,
-                                                                     idx_name=idx_name,
-                                                                     var=var)
-            replace_with = ''
-            to_replace[replace_what] = replace_with
-        return to_replace
+    def get_syntax(self, type):
+        syntax = {'end_statement' : ';',
+                  'access_pointer' : '->',
+                  'start_function' : '',
+                  'open_function' : '\n{',
+                  'open_struct' : '\n{',
+                  'end_function' : '\n}',
+                  'end_struct' : '\n};',
+                  'open_cast' : '(',
+                  'close_cast' : ')'}
+        return syntax[type]
 
-    def get_dimension_code(self, diff_num):
-        return ('\nint set_dimension(size_t * dimension)\n{' +\
-               '\n\tdimension[0] = %d;' +\
-               '\n\treturn GSL_SUCCESS;\n}')%diff_num
+    def declare(self, type, name, in_struct=False):
+        code = '%s %s'%(type, name)
+        return code
 
-    def yvector_code(self, diff_vars):
-        allocate_yvector = '\ndouble* assign_memory_y()\n{'
-        allocate_yvector += '\n\treturn (double *)malloc(%d*sizeof(double));\n}'%len(diff_vars)
-        fill_yvector = ['\nint fill_y_vector(dataholder * p, double * y, int _idx)\n{']
-        empty_yvector = ['\nint empty_y_vector(dataholder * p, double * y, int _idx)\n{']
-        for var, diff_num in diff_vars.items():
-            array_name = self.generator.get_array_name(self.variables[var], access_data=True)
-            fill_yvector += ['\ty[{ind}] = p->{var}[_idx];'.format(ind=diff_num,
-                                                                   var=array_name)]
-            empty_yvector += ['\tp->{var}[_idx] = y[{ind}];'.format(ind=diff_num,
-                                                                   var=array_name)]
-        fill_yvector += ['\treturn GSL_SUCCESS;\n}']
-        empty_yvector += ['\treturn GSL_SUCCESS;\n}']
-        return allocate_yvector + '\n' + ('\n').join(fill_yvector) + '\n' + ('\n').join(empty_yvector)
+    def get_array_name(self, var_obj):
+        return self.generator.get_array_name(var_obj, access_data=False)
+
+    def get_pointer_name(self, var_obj):
+        return self.generator.get_array_name(var_obj, access_data=True)
+
+    def diff_var_declaration(self, var, diff_num):
+        return 'const double _gsl_{var}_f{ind}'.format(var=var, ind=diff_num)
 
     def write_dataholder_single(self, var_obj):
         dtype = self.generator.c_data_type(var_obj.dtype)
@@ -405,32 +426,10 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
         else:
             return '{dtype} {var};'.format(dtype=dtype, var=var_obj.name)
 
-    def write_dataholder(self, variables_in_vector):
-        code = ['\nstruct dataholder\n{\n\tint _idx;']
-        for var_obj in variables_in_vector:
-            if var_obj.name == 't' or '_gsl' in var_obj.name:
-                continue
-            code += ['\t'+self.write_dataholder_single(var_obj)]
-        code += ['\n};']
-        return ('\n').join(code)
-
-    def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
-        to_replace = {}
-        for var_obj in variables_in_vector:
-            if var_obj.name in ignore or '_gsl' in var_obj.name:
-                continue
-            if isinstance(var_obj, ArrayVariable):
-                pointer_name = self.generator.get_array_name(var_obj, access_data=True)
-                to_replace[pointer_name] = 'p->' + pointer_name
-            else:
-                var = var_obj.name
-                to_replace[var] = 'p->' + var
-        return to_replace
-
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         if isinstance(var_obj, ArrayVariable):
-            pointer_name = self.generator.get_array_name(var_obj, access_data=True)
-            array_name = self.generator.get_array_name(var_obj, access_data=False)
+            pointer_name = self.get_pointer_name(var_obj)
+            array_name = self.get_array_name(var_obj)
             if in_vector:
                 return 'p.{ptr} = {array};'.format(ptr=pointer_name, array=array_name)
             else:
