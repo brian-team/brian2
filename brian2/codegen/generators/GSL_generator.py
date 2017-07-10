@@ -87,10 +87,9 @@ class GSLCodeGenerator(object):
 
     def diff_var_to_replace(self, diff_vars):
         variables = self.variables
-        diff_var_declaration = self.get_syntax('diff_var_declaration')
         to_replace = {}
         for var, diff_num in diff_vars.items():
-            lhs = diff_var_declaration + '_gsl_{var}_f{ind}'.format(var=var,ind=diff_num)
+            lhs = self.var_init('_gsl_{var}_f{ind}'.format(var=var,ind=diff_num), 'const double ')
             to_replace[lhs] = 'f[{ind}]'.format(ind=diff_num)
             var_obj = variables[var]
             array_name = self.generator.get_array_name(var_obj, access_data=True)
@@ -162,8 +161,8 @@ class GSLCodeGenerator(object):
 
         code = ['\n'+self.declare('struct', 'dataholder') + open_struct]
         code += ['\n\t'+self.declare('int', '_idx', in_struct=True) + end_statement]
-        for var_obj in variables_in_vector:
-            if var_obj.name == 't' or '_gsl' in var_obj.name:
+        for var, var_obj in variables_in_vector.items():
+            if var == 't' or '_gsl' in var:
                 continue
             code += ['\t'+self.write_dataholder_single(var_obj)]
         code += [end_struct]
@@ -181,7 +180,7 @@ class GSLCodeGenerator(object):
 
     def find_used_variables(self, statements, other_variables):
         variables = self.variables
-        used_variables = set()
+        used_variables = {}
         for statement in statements:
             lhs, op, rhs, comment = (statement.var, statement.op,
                                       statement.expr, statement.comment)
@@ -194,14 +193,21 @@ class GSLCodeGenerator(object):
                     var_obj = other_variables[var]
                 if isinstance(var_obj, Function): # we don't want functions in the dataholder
                     continue
-                used_variables.add(var_obj) # save as object because this has all needed info (dtype, name, isarray)
+                used_variables[var] = var_obj # save as object because this has all needed info (dtype, name, isarray)
+
+        # I don't know a nicer way to do this, the above way misses write variables..
+        read, write, _ = self.array_read_write(statements)
+        for var in (read|write):
+            if var not in used_variables:
+                used_variables[var] = variables[var] # will always be array and thus exist in variables
+
         return used_variables
 
     def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
         access_pointer = self.get_syntax('access_pointer')
         to_replace = {}
         t_in_code = None
-        for var_obj in variables_in_vector:
+        for var, var_obj in variables_in_vector.items():
             if var_obj.name == 't':
                 t_in_code = var_obj
                 continue
@@ -211,12 +217,11 @@ class GSLCodeGenerator(object):
                 pointer_name = self.get_pointer_name(var_obj)
                 to_replace[pointer_name] = 'p' + access_pointer + pointer_name
             else:
-                var = var_obj.name
                 to_replace[var] = 'p' + access_pointer + var
 
         # also make sure t declaration is replaced if in code
         if t_in_code is not None:
-            t_declare = self.declare('const double', 't', in_struct=True)
+            t_declare = self.var_init('t', 'const double ')
             array_name = self.get_pointer_name(t_in_code)
             end_statement = self.get_syntax('end_statement')
             replace_what = '{t_declare} = {array_name}[0]{end_statement}'.format(t_declare=t_declare,
@@ -228,11 +233,11 @@ class GSLCodeGenerator(object):
 
     def unpack_namespace(self, variables_in_vector, variables_in_scalar, ignore=[]):
         code = []
-        for var_obj in self.variables.values():
-            if var_obj.name in ignore:
+        for var, var_obj in self.variables.items():
+            if var in ignore:
                 continue
-            in_vector = var_obj in variables_in_vector
-            in_scalar = var_obj in variables_in_scalar
+            in_vector = var in variables_in_vector
+            in_scalar = var in variables_in_scalar
             code += [self.unpack_namespace_single(var_obj, in_vector, in_scalar)]
         return ('\n').join(code)
 
@@ -263,9 +268,9 @@ class GSLCodeGenerator(object):
                 continue
             m = re.search('([a-z|A-Z|0-9|_]+)$', var)
             actual_var = m.group(1)
-            if actual_var in [var_obj.name for var_obj in variables_in_scalar]:
+            if actual_var in variables_in_scalar.keys():
                 code += [line]
-            if actual_var in [var_obj.name for var_obj in variables_in_vector]:
+            if actual_var in variables_in_vector.keys():
                 if var == 't':
                     continue
                 code += ['p.{var} {op} {expr} {comment}'.format(
@@ -303,7 +308,7 @@ class GSLCodeGenerator(object):
 
         scalar_code, vector_code, kwds = self.generator.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
-        print vector_code; exit(0)
+
         ############ translate code for GSL
 
         # differential variable specific operations
@@ -330,7 +335,7 @@ class GSLCodeGenerator(object):
                                                                          to_replace) + '\n\t' + self.func_end
         # rewrite scalar code, keep variables that are needed in scalar code normal
         # and add variables to dataholder for vector_code
-        GSL_main_code += self.translate_scalar_code(scalar_code[None],
+        GSL_main_code += '\n' + self.translate_scalar_code(scalar_code[None],
                                                     variables_in_scalar,
                                                     variables_in_vector)
 
@@ -362,8 +367,8 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
                   'diff_var_declaration' : ''}
         return syntax[type]
 
-    def var_declaration(self, var, type):
-        return '_gsl_{var}_f{ind}'.format(var=var)
+    def var_init(self, var, type):
+        return var
 
     def declare(self, type, name, in_struct=False):
         if in_struct:
@@ -420,6 +425,9 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
                   'close_cast' : ')',
                   'diff_var_declaration' : 'const double '}
         return syntax[type]
+
+    def var_init(self, var, type):
+        return type + var
 
     def declare(self, type, name, in_struct=False):
         return '%s %s'%(type, name)
