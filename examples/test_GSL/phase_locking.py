@@ -13,7 +13,7 @@ if GSLstandalone:
     from brian2.devices.cpp_standalone import GSLCPPStandaloneCodeObject
     set_device('cpp_standalone', directory='phase_locking_cpp')
 else:
-    prefs.codegen.target = 'cython'
+    prefs.codegen.target = 'weave'
 
 tau = 20*ms
 n = 100
