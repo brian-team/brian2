@@ -6,14 +6,14 @@ Phase locking of IF neurons to a periodic input.
 '''
 from brian2 import *
 
-GSLstandalone = True
+GSLstandalone = False
 GSL = True
 
 if GSLstandalone:
     from brian2.devices.cpp_standalone import GSLCPPStandaloneCodeObject
     set_device('cpp_standalone', directory='phase_locking_cpp')
 else:
-    prefs.codegen.target = 'weave'
+    prefs.codegen.target = 'cython'
 
 tau = 20*ms
 n = 100

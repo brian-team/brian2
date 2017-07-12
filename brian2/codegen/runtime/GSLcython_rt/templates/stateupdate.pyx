@@ -37,8 +37,6 @@ cdef extern from "gsl/gsl_odeiv2.h":
         double hstart, double epsabs, double epsrel)
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *d)
-
-{{ vector_code['GSL']|autoindent }}
 {% endblock %}
 
 {% block maincode %}
