@@ -2,9 +2,11 @@
 A model with adaptive threshold (increases with each spike)
 '''
 from brian2 import *
+from brian2.devices.cpp_standalone import GSLCPPStandaloneCodeObject
 
-prefs.codegen.target = 'weave'
-brian = True
+set_device('cpp_standalone', directory='adaptive_threshold_cpp')
+
+brian = False
 
 eqs = '''
 dv/dt = -v/(10*ms) : volt
@@ -44,11 +46,8 @@ seed(0)
 
 IF_GSL = NeuronGroup(1, model=eqs, reset=reset, threshold='v>vt',
                  method='GSL_stateupdater')
-if prefs.codegen.target == 'cython':
-    IF_GSL.state_updater.codeobj_class = GSLCythonCodeObject
-else:
-    IF_GSL.state_updater.codeobj_class = GSLWeaveCodeObject
-    pass
+
+IF_GSL.state_updater.codeobj_class = GSLCPPStandaloneCodeObject
 IF_GSL.vt = 10*mV
 
 PG = PoissonGroup(1, 500 * Hz)
@@ -64,7 +63,7 @@ M_crossings_GSL = SpikeMonitor(IF_GSL, variables='v')
 GSLnet = Network(IF_GSL, PG, C, Mv_GSL, Mvt_GSL, M_crossings_GSL)
 GSLnet.run(2*second, report='text')
 
-#print IF_GSL.state_updater.codeobj.code
+print IF_GSL.state_updater.codeobj.code
 
 subplot(1, 3, 1)
 plot(Mv_GSL.t / ms, Mv_GSL[0].v / mV, label='GSL (rk4)')

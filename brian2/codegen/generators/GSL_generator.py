@@ -340,8 +340,11 @@ class GSLCodeGenerator(object):
                                                     variables_in_vector)
 
         scalar_code['GSL'] = GSL_main_code
-        vector_code['GSL'] = GSL_support_code
         kwds['GSL_settings'] = prefs.GSL.settings
+        if 'support_code_lines' in kwds: #TODO: this is to make it work with standalone too, but kind of ugly
+            kwds['support_code_lines'] += [GSL_support_code]
+        else:
+            vector_code['GSL'] = GSL_support_code
         return scalar_code, vector_code, kwds
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):

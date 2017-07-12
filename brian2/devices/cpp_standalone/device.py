@@ -31,6 +31,7 @@ from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity
 from brian2.units import second
 from brian2.utils.logger import get_logger, std_silent
+from .GSLcodeobject import GSLCPPStandaloneCodeObject
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
@@ -481,8 +482,11 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        # Ignore the requested codeobj_class
-        return CPPStandaloneCodeObject
+        # Ignore the requested codeobj_class unless GSL
+        if codeobj_class == GSLCPPStandaloneCodeObject:
+            return codeobj_class
+        else:
+            return CPPStandaloneCodeObject
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
