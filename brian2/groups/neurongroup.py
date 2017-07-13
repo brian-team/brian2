@@ -174,10 +174,14 @@ class StateUpdater(CodeRunner):
                                            # be raised in create_runner_codeobj
                                            user_identifiers=set())
         if len(self.group.equations.diff_eq_names) > 0:
-            self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
+            stateupdate_output = StateUpdateMethod.apply_stateupdater(self.group.equations,
                                                                        variables,
                                                                        self.method_choice,
                                                                        group_name=self.group.name)
+            if isinstance(stateupdate_output, str):
+                self.abstract_code += stateupdate_output
+            else: #TODO: do specific check for child of stateupdatemethod?
+                self.abstract_code += stateupdate_output(self)
 
         self.variables = Variables(self)
         namespace_variables = self.make_namespace_variables()
