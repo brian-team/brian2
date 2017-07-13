@@ -1,4 +1,4 @@
-from brian2.core.variables import AuxiliaryVariable, ArrayVariable
+from brian2.core.variables import AuxiliaryVariable, ArrayVariable, Constant
 from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
 
@@ -62,6 +62,19 @@ class GSLCodeGenerator(object):
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
+
+    def is_constant_and_cpp_standalone(self, var_obj):
+        '''
+        This function returns whether var_obj is a Constant and the device is cpp_standalone
+        In this case, Brian replaces the variable with their value in the final cpp-code
+        Since with GSL we add the variables to a struct (e.g. p.b = b), and access them later like
+        p->b this cpp_standalone feature results in code that looks like p.1.2 = 1.2 or p->1.2
+        '''
+        # imports here to avoid circular imports
+        from brian2.devices.device import get_device
+        from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
+        device = get_device()
+        return isinstance(var_obj, Constant) and isinstance(device, CPPStandaloneDevice)
 
     # A series of functions that should be overridden by child class:
     def write_dataholder_single(self, var_obj):
@@ -164,6 +177,8 @@ class GSLCodeGenerator(object):
         for var, var_obj in variables_in_vector.items():
             if var == 't' or '_gsl' in var:
                 continue
+            if self.is_constant_and_cpp_standalone(var_obj):
+                continue
             code += ['\t'+self.write_dataholder_single(var_obj)]
         code += [end_struct]
         return ('\n').join(code)
@@ -211,7 +226,9 @@ class GSLCodeGenerator(object):
             if var_obj.name == 't':
                 t_in_code = var_obj
                 continue
-            if '_gsl' in var_obj.name or var_obj.name in ignore:
+            if '_gsl' in var or var in ignore:
+                continue
+            if self.is_constant_and_cpp_standalone(var_obj):
                 continue
             if isinstance(var_obj, ArrayVariable):
                 pointer_name = self.get_pointer_name(var_obj)
@@ -235,6 +252,8 @@ class GSLCodeGenerator(object):
         code = []
         for var, var_obj in self.variables.items():
             if var in ignore:
+                continue
+            if self.is_constant_and_cpp_standalone(var_obj):
                 continue
             in_vector = var in variables_in_vector
             in_scalar = var in variables_in_scalar
@@ -409,9 +428,9 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
 class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
     func_begin = '\nint func(double t, const double y[], double f[], void * params)\n{' +\
-                  '\tdataholder * p = (dataholder *) params;' +\
-                  '\tint _idx = p->_idx;'
-    func_end = '\treturn GSL_SUCCESS;\n}'
+                  '\n\tdataholder * p = (dataholder *) params;' +\
+                  '\n\tint _idx = p->_idx;\n'
+    func_end = 'return GSL_SUCCESS;\n}'
 
     def get_syntax(self, type):
         syntax = {'end_statement' : ';',

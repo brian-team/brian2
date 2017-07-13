@@ -6,7 +6,7 @@ Phase locking of IF neurons to a periodic input.
 '''
 from brian2 import *
 
-GSLstandalone = False
+GSLstandalone = True
 GSL = True
 
 if GSLstandalone:
@@ -17,13 +17,12 @@ else:
 
 tau = 20*ms
 n = 100
-#b = 1.2 # constant current mean, the modulation varies
+b = 1.2 # constant current mean, the modulation varies
 freq = 10*Hz
 
 eqs = '''
 dv/dt = (-v + a * sin(2 * pi * freq * t) + b) / tau : 1
 a : 1
-b : 1
 '''
 
 if GSL:
@@ -41,7 +40,6 @@ else:
 
 neurons.v = 'rand()'
 neurons.a = '0.05 + 0.7*i/n'
-neurons.b = 1.2
 S = SpikeMonitor(neurons)
 trace = StateMonitor(neurons, 'v', record=50)
 
