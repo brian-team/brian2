@@ -34,7 +34,7 @@ class GSLStateUpdater(StateUpdateMethod):
             raise NotImplementedError
 
     def transfer_codeobj_class(self, obj):
-        obj.codeobj_class = GSL_stateupdater.codeobj_class
+        obj.codeobj_class = self.codeobj_class
         return GSL_stateupdater.abstract_code
 
     def __call__(self, equations, variables=None):
