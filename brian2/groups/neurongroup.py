@@ -95,8 +95,9 @@ class StateUpdater(CodeRunner):
     The `CodeRunner` that updates the state variables of a `NeuronGroup`
     at every timestep.
     '''
-    def __init__(self, group, method):
+    def __init__(self, group, method, method_options=None):
         self.method_choice = method
+        self.method_options = method_options
         CodeRunner.__init__(self, group,
                             'stateupdate',
                             code='',  # will be set in update_abstract_code
@@ -175,9 +176,10 @@ class StateUpdater(CodeRunner):
                                            user_identifiers=set())
         if len(self.group.equations.diff_eq_names) > 0:
             stateupdate_output = StateUpdateMethod.apply_stateupdater(self.group.equations,
-                                                                       variables,
-                                                                       self.method_choice,
-                                                                       group_name=self.group.name)
+                                                                      variables,
+                                                                      self.method_choice,
+                                                                      method_options=self.method_options,
+                                                                      group_name=self.group.name)
             if isinstance(stateupdate_output, str):
                 self.abstract_code += stateupdate_output
             else: #TODO: do specific check for child of stateupdatemethod?
@@ -394,6 +396,7 @@ class NeuronGroup(Group, SpikeSource):
 
     def __init__(self, N, model,
                  method=('linear', 'euler', 'heun'),
+                 method_options=None,
                  threshold=None,
                  reset=None,
                  refractory=False,
@@ -471,6 +474,7 @@ class NeuronGroup(Group, SpikeSource):
 
         #: The state update method selected by the user
         self.method_choice = method
+        self.method_options = method_options
 
         if events is None:
             events = {}
@@ -518,7 +522,7 @@ class NeuronGroup(Group, SpikeSource):
             self.run_on_event('spike', reset, when='resets')
 
         #: Performs numerical integration step
-        self.state_updater = StateUpdater(self, method)
+        self.state_updater = StateUpdater(self, method, method_options)
         self.contained_objects.append(self.state_updater)
 
         #: Update the "constant over a time step" subexpressions

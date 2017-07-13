@@ -24,9 +24,17 @@ dv/dt = (-v + a * sin(2 * pi * freq * t) + b) / tau : 1
 a : 1
 '''
 
+method_options = {
+            'integrator' : 'rkf45',
+            'adaptable_timestep' : False,
+            'h_start' : 1e-5,
+            'eps_abs' : 1e-6,
+            'eps_rel' : 0.
+        }
+
 if GSL:
     neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
-                          method='GSL_stateupdater')
+                          method='GSL_stateupdater', method_options=method_options)
 else:
     neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
                           method='exponential_euler')

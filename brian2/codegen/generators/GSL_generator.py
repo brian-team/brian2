@@ -59,6 +59,7 @@ class GSLCodeGenerator(object):
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
+        self.method_options = codeobj_class.method_options
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -359,7 +360,8 @@ class GSLCodeGenerator(object):
                                                     variables_in_vector)
 
         scalar_code['GSL'] = GSL_main_code
-        kwds['GSL_settings'] = prefs.GSL.settings
+        #kwds['GSL_settings'] = prefs.GSL.settings
+        kwds['GSL_settings'] = self.method_options
         kwds['support_code_lines'] += GSL_support_code.split('\n')
         return scalar_code, vector_code, kwds
 
