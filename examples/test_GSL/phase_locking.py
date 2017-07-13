@@ -10,10 +10,9 @@ GSLstandalone = True
 GSL = True
 
 if GSLstandalone:
-    from brian2.devices.cpp_standalone import GSLCPPStandaloneCodeObject
     set_device('cpp_standalone', directory='phase_locking_cpp')
 else:
-    prefs.codegen.target = 'cython'
+    prefs.codegen.target = 'auto'
 
 tau = 20*ms
 n = 100
@@ -28,12 +27,6 @@ a : 1
 if GSL:
     neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
                           method='GSL_stateupdater')
-    if GSLstandalone:
-        neurons.state_updater.codeobj_class = GSLCPPStandaloneCodeObject
-    elif prefs.codegen.target == 'weave':
-        neurons.state_updater.codeobj_class = GSLWeaveCodeObject
-    else:
-        neurons.state_updater.codeobj_class = GSLCythonCodeObject
 else:
     neurons = NeuronGroup(n, model=eqs, threshold='v > 1', reset='v = 0',
                           method='exponential_euler')
