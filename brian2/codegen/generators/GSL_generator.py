@@ -206,7 +206,10 @@ class GSLCodeGenerator(object):
                 try:
                     var_obj = variables[var]
                 except KeyError:
-                    var_obj = other_variables[var]
+                    try:
+                        var_obj = other_variables[var]
+                    except KeyError:
+                        print('Warning, %s not in variables or other_variables'%var)
                 if isinstance(var_obj, Function): # we don't want functions in the dataholder
                     continue
                 used_variables[var] = var_obj # save as object because this has all needed info (dtype, name, isarray)
