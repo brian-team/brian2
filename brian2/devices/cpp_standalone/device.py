@@ -483,7 +483,7 @@ class CPPStandaloneDevice(Device):
 
     def code_object_class(self, codeobj_class=None):
         # Ignore the requested codeobj_class unless GSL
-        if codeobj_class == GSLCPPStandaloneCodeObject:
+        if codeobj_class == GSLCPPStandaloneCodeObject: #TODO: make this check independent of 'GSL installation'
             return codeobj_class
         else:
             return CPPStandaloneCodeObject
