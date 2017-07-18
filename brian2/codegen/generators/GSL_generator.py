@@ -47,6 +47,15 @@ class GSLCodeGenerator(object):
                 names += [var]
         return names
 
+    def is_cpp_standalone(self):
+        '''
+        Function checks whether we're running with the cpp_standalone device. Knowing this is necessary later.
+        '''
+        from brian2.devices.device import get_device
+        from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
+        device = get_device()
+        return isinstance(device, CPPStandaloneDevice)
+
     def is_constant_and_cpp_standalone(self, var_obj):
         '''
         This function returns whether var_obj is a Constant and the device is cpp_standalone
@@ -55,10 +64,7 @@ class GSLCodeGenerator(object):
         p->b this cpp_standalone feature results in code that looks like p.1.2 = 1.2 or p->1.2
         '''
         # imports here to avoid circular imports
-        from brian2.devices.device import get_device
-        from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
-        device = get_device()
-        return isinstance(var_obj, Constant) and isinstance(device, CPPStandaloneDevice)
+        return isinstance(var_obj, Constant) and self.cpp_standalone
 
     # A series of functions that should be overridden by child class:
     def write_dataholder_single(self, var_obj):
@@ -161,7 +167,8 @@ class GSLCodeGenerator(object):
         for var, var_obj in variables_in_vector.items():
             if var == 't' or '_gsl' in var:
                 continue
-            if self.is_constant_and_cpp_standalone(var_obj):
+            if self.cpp_standalone and isinstance(var_obj, Constant):
+
                 continue
             code += ['\t'+self.write_dataholder_single(var_obj)]
         code += [end_struct]
@@ -316,6 +323,7 @@ class GSLCodeGenerator(object):
                                                  vector_statements)
 
         ############ translate code for GSL
+        self.cpp_standalone = self.is_cpp_standalone()
 
         # differential variable specific operations
         diff_vars = self.find_differential_variables(code.values())
