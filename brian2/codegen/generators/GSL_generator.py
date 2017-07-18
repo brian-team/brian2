@@ -20,31 +20,6 @@ class IntegrationError(Exception):
     '''
     pass
 
-def is_dictionary(obj):
-    '''
-    Used as validator for GSL settings in BrianGlobalPreferences
-    :param obj: object to test
-    :return: True if obj is dictionary
-    '''
-    return isinstance(obj, dict)
-
-#TODO: Change documentation of register_prefernce, the preference keywords should be given without quotation marks!!
-# register GSL.settings preference that can be set to change GSL behavior. This dictionary
-# is sent to the templater as keyword under GSL_settings
-prefs.register_preferences(
-    'GSL',
-    'Code generation preferences for the C language',
-    settings = BrianPreference(
-        validator=is_dictionary,
-        docs='...',
-        default={
-            'integrator' : 'rkf45',
-            'adaptable_timestep' : True,
-            'h_start' : 1e-5,
-            'eps_abs' : 1e-6,
-            'eps_rel' : 0.
-        }))
-
 class GSLCodeGenerator(object):
 
     def __init__(self, variables, variable_indices, owner, iterate_all,
@@ -63,6 +38,14 @@ class GSLCodeGenerator(object):
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
+
+    def find_function_names(self):
+        variables = self.variables
+        names = []
+        for var, var_obj in variables.items():
+            if isinstance(var_obj, Function):
+                names += [var]
+        return names
 
     def is_constant_and_cpp_standalone(self, var_obj):
         '''
@@ -201,17 +184,12 @@ class GSLCodeGenerator(object):
             lhs, op, rhs, comment = (statement.var, statement.op,
                                       statement.expr, statement.comment)
             for var in (get_identifiers(rhs)):
-                if var in DEFAULT_FUNCTIONS: # we don't want functions in the dataholder
+                if var in self.function_names:
                     continue
                 try:
                     var_obj = variables[var]
                 except KeyError:
-                    try:
-                        var_obj = other_variables[var]
-                    except KeyError:
-                        print('Warning, %s not in variables or other_variables'%var)
-                if isinstance(var_obj, Function): # we don't want functions in the dataholder
-                    continue
+                    var_obj = other_variables[var]
                 used_variables[var] = var_obj # save as object because this has all needed info (dtype, name, isarray)
 
         # I don't know a nicer way to do this, the above way misses write variables..
@@ -265,7 +243,7 @@ class GSLCodeGenerator(object):
         return ('\n').join(code)
 
 
-    def translate_vector_code(self, code_lines, to_replace): # TODO: ignore 't'?
+    def translate_vector_code(self, code_lines, to_replace):
         code = []
         for expr_set in code_lines:
             for line in expr_set.split('\n'): # every line seperate to make tabbing correct
@@ -328,6 +306,11 @@ class GSLCodeGenerator(object):
                 else:
                     error_msg = ('%d lines of abstract code, first line is: '
                                  '"%s"\n') % (len(vs), vs[0])
+
+        # save function names because self.generator.translate_statement_sequence deletes these from self.variables
+        # but we need to know which identifiers we can safely ignore (i.e. we can ignore the functions because they are
+        # handled by the original generator)
+        self.function_names = self.find_function_names()
 
         scalar_code, vector_code, kwds = self.generator.translate_statement_sequence(scalar_statements,
                                                  vector_statements)
