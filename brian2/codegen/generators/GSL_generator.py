@@ -23,7 +23,7 @@ class IntegrationError(Exception):
 # default method_options
 default_method_options = {
     'integrator' : 'rkf45',
-    'adaptable_timestep' : False,
+    'adaptable_timestep' : True,
     'h_start' : 1e-5,
     'eps_abs' : 1e-6,
     'eps_rel' : 0.
