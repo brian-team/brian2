@@ -20,6 +20,15 @@ class IntegrationError(Exception):
     '''
     pass
 
+# default method_options
+default_method_options = {
+    'integrator' : 'rkf45',
+    'adaptable_timestep' : False,
+    'h_start' : 1e-5,
+    'eps_abs' : 1e-6,
+    'eps_rel' : 0.
+}
+
 class GSLCodeGenerator(object):
 
     def __init__(self, variables, variable_indices, owner, iterate_all,
@@ -34,7 +43,10 @@ class GSLCodeGenerator(object):
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
-        self.method_options = codeobj_class.method_options
+        if codeobj_class.method_options is not None:
+            self.method_options = codeobj_class.method_options
+        else:
+            self.method_options = default_method_options
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
