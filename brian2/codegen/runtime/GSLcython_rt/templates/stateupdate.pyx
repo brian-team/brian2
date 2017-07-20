@@ -46,6 +46,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     # scalar code
     _vectorisation_idx = 1
+    dt = {{dt_array}}
 
     cdef double t1
     cdef dataholder * p = <dataholder *>malloc(sizeof(dataholder))
@@ -70,7 +71,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
     for _idx in range(N):
         _vectorisation_idx = _idx
 
-        t = _array_defaultclock_t[0]
+        t = {{t_array}}
         t1 = t + dt
 
         p._idx = _idx

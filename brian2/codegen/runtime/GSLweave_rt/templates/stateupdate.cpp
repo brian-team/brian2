@@ -23,7 +23,7 @@ gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new(&sys,
 const int _N = {{constant_or_scalar('N', variables['N'])}};
 // scalar code
 const int _vectorisation_idx = 1;
-const double dt = _array_defaultclock_dt[0];
+const double dt = {{dt_array}};
 
 {{scalar_code['GSL']|autoindent}}
 
@@ -31,7 +31,7 @@ for(int _idx=0; _idx<_N; _idx++)
 {
     // vector code
     const int _vectorisation_idx = _idx;
-    double t = _array_defaultclock_t[0];
+    double t = {{t_array}};
     double t1 = t + dt;
     fill_y_vector(&p, y, _idx);
     p._idx = _idx;

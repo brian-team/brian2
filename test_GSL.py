@@ -69,6 +69,7 @@ def test_GSL_different_clocks():
         neurons = NeuronGroup(1, model=eqs, threshold='v>vt', method=method, dt=.2*ms)
         # for this test just check if it compiles
         run(0*ms)
+        print('.'),
 
 def test_GSL_default_function():
     # phase_locking example
