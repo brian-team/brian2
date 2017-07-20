@@ -4,7 +4,7 @@ from brian2.devices import reinit_devices, reset_device
 max_difference = .1*mV
 
 targets = ['brian2', 'weave', 'cython', 'cpp_standalone']
-#targets = ['cpp_standalone']
+
 setting_dict = {'brian2' : {'device' : 'runtime', # do one without GSL so we can check against this!
                         'stateupdater' : 'exponential_euler',
                         'target' : 'weave'},
@@ -54,6 +54,21 @@ def test_GSL_stateupdater_basic():
         #reset_device()
     assert all([x == spike_container[0] for x in spike_container[1:]]), \
            'GSL_statupdater produced varying results for different target languages'
+
+def test_GSL_different_clocks():
+    vt = 10*mV
+    eqs = 'dv/dt = -v/(10*ms) : volt'
+    for target in targets:
+        if target is 'brian2':
+            continue
+        set_device(setting_dict[target]['device'], build_on_run=False)
+        device.reinit()
+        device.activate()
+        prefs.codegen.target = setting_dict[target]['target']
+        method = setting_dict[target]['stateupdater']
+        neurons = NeuronGroup(1, model=eqs, threshold='v>vt', method=method, dt=.2*ms)
+        # for this test just check if it compiles
+        run(0*ms)
 
 def test_GSL_default_function():
     # phase_locking example
@@ -146,6 +161,7 @@ def test_GSL_user_defined_function():
             'output of GSL stateupdater varies for target languages'
 
 if __name__=='__main__':
+    test_GSL_different_clocks()
     test_GSL_stateupdater_basic()
     test_GSL_default_function()
     test_GSL_user_defined_function()
