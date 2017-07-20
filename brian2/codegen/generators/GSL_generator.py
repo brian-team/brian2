@@ -38,7 +38,7 @@ class GSLCodeGenerator(object):
 
         prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
         prefs.codegen.cpp.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
-        prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/']
+        prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/'] #TODO: obviously this has to be changed
 
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
@@ -120,59 +120,33 @@ class GSLCodeGenerator(object):
         return to_replace
 
     def get_dimension_code(self, diff_num):
-        start_function = self.get_syntax('start_function')
-        open_function = self.get_syntax('open_function')
-        end_statement = self.get_syntax('end_statement')
-        end_function = self.get_syntax('end_function')
-        code = '\n{start_function}int set_dimension(size_t * dimension){open_function}'.format(start_function=start_function,
-                                                                                            open_function=open_function)
-        code += '\n\tdimension[0] = {diff_num}{end_statement}'.format(diff_num=diff_num, end_statement=end_statement)
-        code += '\n\treturn GSL_SUCCESS{end_statement}\n'.format(end_statement=end_statement)
-        code += end_function
-        return code
+        code = ['\n{start_function}int set_dimension(size_t * dimension){open_function}']
+        code += ['\tdimension[0] = %d{end_statement}'%diff_num]
+        code += ['\treturn GSL_SUCCESS{end_statement}']
+        return ('\n').join(code).format(**self.syntax)
 
     def yvector_code(self, diff_vars):
-        start_function = self.get_syntax('start_function')
-        open_function = self.get_syntax('open_function')
-        end_statement = self.get_syntax('end_statement')
-        end_function = self.get_syntax('end_function')
-        open_cast = self.get_syntax('open_cast')
-        close_cast = self.get_syntax('close_cast')
-        access_pointer = self.get_syntax('access_pointer')
+        allocate_y = ['\n{start_function}double* assign_memory_y(){open_function}']
+        allocate_y += ['\treturn {open_cast}double *{close_cast} malloc(%d*sizeof(double))'%len(diff_vars)]
+        allocate_y[-1] += '{end_statement}{end_function}'
 
-        allocate_yvector = '\n{start_function}double* assign_memory_y(){open_function}'.format(start_function=start_function,
-                                                                                               open_function=open_function)
-        allocate_yvector += '\n\treturn {open_c}double *{close_c} malloc({dnum}*sizeof(double))'.format(open_c=open_cast,
-                                                                                                        close_c=close_cast,
-                                                                                                        dnum=len(diff_vars))
-        allocate_yvector += end_statement + end_function
-
-        fill_yvector = ['\n{start_function}int fill_y_vector(dataholder * p, double * y, int _idx)'.format(start_function=start_function)]
-        fill_yvector[0] += open_function
-        empty_yvector = ['\n{start_function}int empty_y_vector(dataholder * p, double * y, int _idx)'.format(start_function=start_function)]
-        empty_yvector[0] += open_function
+        fill_y = ['\n{start_function}int fill_y_vector(dataholder * p, double * y, int _idx){open_function}']
+        empty_y = ['\n{start_function}int empty_y_vector(dataholder * p, double * y, int _idx){open_function}']
 
         for var, diff_num in diff_vars.items():
+            diff_num = int(diff_num)
             array_name = self.generator.get_array_name(self.variables[var], access_data=True)
-            fill_yvector += ['\ty[{ind}] = p{access}{var}[_idx]{end_statement}'.format(access=access_pointer,
-                                                                                       ind=diff_num,
-                                                                                       var=array_name,
-                                                                                       end_statement=end_statement)]
-            empty_yvector += ['\tp{access}{var}[_idx] = y[{ind}]{end_statement}'.format(access=access_pointer,
-                                                                                        ind=diff_num,
-                                                                                        var=array_name,
-                                                                                        end_statement=end_statement)]
-        fill_yvector += ['\treturn GSL_SUCCESS{end_statement}{end_function}'.format(end_statement=end_statement,
-                                                                                    end_function=end_function)]
-        empty_yvector += ['\treturn GSL_SUCCESS{end_statement}{end_function}'.format(end_statement=end_statement,
-                                                                                    end_function=end_function)]
+            fill_y += ['\ty[%d] = p{access_pointer}%s[_idx]{end_statement}'%(diff_num, array_name)]
+            empty_y += ['\tp{access_pointer}%s[_idx] = y[%d]{end_statement}'%(array_name, diff_num)]
 
-        return allocate_yvector + '\n' + ('\n').join(fill_yvector) + '\n' + ('\n').join(empty_yvector)
+        fill_y += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
+        empty_y += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
+        return ('\n').join(allocate_y + fill_y + empty_y).format(**self.syntax)
 
     def write_dataholder(self, variables_in_vector):
-        end_statement = self.get_syntax('end_statement')
-        open_struct = self.get_syntax('open_struct')
-        end_struct = self.get_syntax('end_struct')
+        end_statement = self.syntax['end_statement']
+        open_struct = self.syntax['open_struct']
+        end_struct = self.syntax['end_struct']
 
         code = ['\n'+self.declare('struct', 'dataholder') + open_struct]
         code += ['\n\t'+self.declare('int', '_idx', in_struct=True) + end_statement]
@@ -220,7 +194,7 @@ class GSLCodeGenerator(object):
         return used_variables
 
     def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
-        access_pointer = self.get_syntax('access_pointer')
+        access_pointer = self.syntax['access_pointer']
         to_replace = {}
         t_in_code = None
         for var, var_obj in variables_in_vector.items():
@@ -241,7 +215,7 @@ class GSLCodeGenerator(object):
         if t_in_code is not None:
             t_declare = self.var_init('t', 'const double ')
             array_name = self.get_pointer_name(t_in_code)
-            end_statement = self.get_syntax('end_statement')
+            end_statement = self.syntax['end_statement']
             replace_what = '{t_declare} = {array_name}[0]{end_statement}'.format(t_declare=t_declare,
                                                                                  array_name=array_name,
                                                                                  end_statement=end_statement)
@@ -296,6 +270,15 @@ class GSLCodeGenerator(object):
                 code += ['p.{var} {op} {expr} {comment}'.format(
                         var=actual_var, op=op, expr=expr, comment=comment)]
         return ('\n').join(code)
+
+    def make_function_code(self, lines):
+        code = ['\n']
+        code += ['{start_function}int func(double t, const double y[], double f[], void * params){open_function}']
+        code += ['\t{start_function}dataholder * p = {open_cast}dataholder *{close_cast} params{end_statement}']
+        code += ['\t{start_function}int _idx = p{access_pointer}_idx{end_statement}']
+        code += [lines]
+        code += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
+        return ('\n').join(code).format(**self.syntax)
 
     def translate(self, code, dtype): # TODO: it's not so nice we have to copy the contents of this function..
         '''
@@ -357,8 +340,8 @@ class GSLCodeGenerator(object):
         GSL_main_code = self.unpack_namespace(variables_in_vector, variables_in_scalar, ['t'])
 
         # rewrite actual calculations described by vector_code and put them in func
-        GSL_support_code += self.func_begin + self.translate_vector_code(vector_code[None],
-                                                                         to_replace) + '\n\t' + self.func_end
+        GSL_support_code += self.make_function_code(self.translate_vector_code(vector_code[None], to_replace))
+
         # rewrite scalar code, keep variables that are needed in scalar code normal
         # and add variables to dataholder for vector_code
         GSL_main_code += '\n' + self.translate_scalar_code(scalar_code[None],
@@ -373,26 +356,19 @@ class GSLCodeGenerator(object):
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):
 
-    func_begin = '\ncdef int func(double t, const double y[], double f[], void * params):' +\
-                  '\n\tcdef dataholder * p = <dataholder *> params' +\
-                  '\n\tcdef int _idx = p._idx\n'
-    func_end = 'return GSL_SUCCESS'
+    syntax = {'end_statement' : '',
+              'access_pointer' : '.',
+              'start_function' : 'cdef ',
+              'open_function' : ':',
+              'open_struct' : ':',
+              'end_function' : '',
+              'end_struct' : '',
+              'open_cast' : '<',
+              'close_cast' : '>',
+              'diff_var_declaration' : ''}
 
     def c_data_type(self, dtype):
         return c_data_type(dtype)
-
-    def get_syntax(self, type):
-        syntax = {'end_statement' : '',
-                  'access_pointer' : '.',
-                  'start_function' : 'cdef ',
-                  'open_function' : ':',
-                  'open_struct' : ':',
-                  'end_function' : '',
-                  'end_struct' : '',
-                  'open_cast' : '<',
-                  'close_cast' : '>',
-                  'diff_var_declaration' : ''}
-        return syntax[type]
 
     def var_init(self, var, type):
         return var
@@ -435,23 +411,16 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
 
 class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
-    func_begin = '\nint func(double t, const double y[], double f[], void * params)\n{' +\
-                  '\n\tdataholder * p = (dataholder *) params;' +\
-                  '\n\tint _idx = p->_idx;\n'
-    func_end = 'return GSL_SUCCESS;\n}'
-
-    def get_syntax(self, type):
-        syntax = {'end_statement' : ';',
-                  'access_pointer' : '->',
-                  'start_function' : '',
-                  'open_function' : '\n{',
-                  'open_struct' : '\n{',
-                  'end_function' : '\n}',
-                  'end_struct' : '\n};',
-                  'open_cast' : '(',
-                  'close_cast' : ')',
-                  'diff_var_declaration' : 'const double '}
-        return syntax[type]
+    syntax = {'end_statement' : ';',
+              'access_pointer' : '->',
+              'start_function' : '',
+              'open_function' : '\n{',
+              'open_struct' : '\n{',
+              'end_function' : '\n}',
+              'end_struct' : '\n};',
+              'open_cast' : '(',
+              'close_cast' : ')',
+              'diff_var_declaration' : 'const double '}
 
     def var_init(self, var, type):
         return type + var
