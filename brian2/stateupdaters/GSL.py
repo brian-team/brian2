@@ -35,6 +35,7 @@ class GSLStateUpdater(StateUpdateMethod):
 
     def transfer_codeobj_class(self, obj):
         obj.codeobj_class = self.codeobj_class
+        obj.needed_variables += ['t', 'dt']
         return GSL_stateupdater.abstract_code
 
     def __call__(self, equations, variables=None):
