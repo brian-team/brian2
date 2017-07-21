@@ -10,6 +10,11 @@ class GSLStateUpdater(StateUpdateMethod):
     code in the target language.
     '''
     def get_codeobj_class(self):
+        '''
+        This function chooses which version of the GSLCodeObject is needed based on the target language and device
+        (so it chooses cython weave or cpp_standalone codeobject)
+        :return: GSL{target}CodeObject
+        '''
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
         from brian2.devices.device import get_device
@@ -34,7 +39,15 @@ class GSLStateUpdater(StateUpdateMethod):
             raise NotImplementedError
 
     def transfer_codeobj_class(self, obj):
-        obj.codeobj_class = self.codeobj_class
+        '''
+        The method returned when calling the StateUpdateMethod (before this class only returned abstract code)
+        With GSL this returns a method because more is needed than just the abstract code: the state updater requires
+        its own CodeObject that is different from the other NeuronGroup objects. This method adds this CodeObject to
+        the StateUpdater object (and also adds the variables 't' and 'dt' that are needed in the GSL templates!)
+        :param obj: StateUpdater object
+        :return: abstract code (what the StateUpdateMethod always returned in the past)
+        '''
+        obj.codeobj_class = self.get_codeobj_class()
         obj.needed_variables += ['t', 'dt']
         return GSL_stateupdater.abstract_code
 
@@ -62,7 +75,6 @@ class GSLStateUpdater(StateUpdateMethod):
 
 
         self.abstract_code =  ('\n').join(code)
-        self.codeobj_class = self.get_codeobj_class()
         return self.transfer_codeobj_class
 
 
