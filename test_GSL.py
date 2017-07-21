@@ -161,7 +161,40 @@ def test_GSL_user_defined_function():
     assert sum([all(trace_holder[1]==trace_holder[i]) for i in range(2, len(targets))]) == len(targets)-2,\
             'output of GSL stateupdater varies for target languages'
 
+def test_GSL_fixed_timestep_rk4():
+    '''
+    In this test I run brian2 and GSL with same integration method and (fixed) timestep: results should match!
+    (also tests 'unless refractory' tag)
+    '''
+    tau = 10*ms
+    eqs = '''
+    dv/dt = (v0 - v)/tau : volt (unless refractory)
+    v0 : volt
+    '''
+    defaultclock.dt = .01*ms
+    neuron1 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                         refractory=5*ms, method='rk4')
+    neuron2 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                          refractory=5*ms, method='GSL_stateupdater', method_options={'integrator' : 'rk4',
+                                                                                      'adaptable_timestep' : False,
+                                                                                      'eps_abs' : 1e-2,
+                                                                                      'eps_rel' : 1e-2})
+    neuron1.v = 0*mV
+    neuron2.v = 0*mV
+    neuron1.v0 = 10*mV
+    neuron2.v0 = 10*mV
+    mon1 = StateMonitor(neuron1, 'v', record=True)
+    mon2 = StateMonitor(neuron2, 'v', record=True)
+    net1 = Network(neuron1, mon1)
+    net2 = Network(neuron2, mon2)
+    net1.run(100*msecond, report='text')
+    net2.run(100*msecond, report='text')
+    assert not all(diff(mon1.v[0]/mV) == 0), 'Membrane potential was unchanged'
+    assert all(mon1.v[0] == mon2.v[0]), 'Different results for brian2 and GSL even though method and timestep were the same'
+
+
 if __name__=='__main__':
+    test_GSL_fixed_timestep_rk4()
     test_GSL_different_clocks()
     test_GSL_stateupdater_basic()
     test_GSL_default_function()
