@@ -2,6 +2,7 @@ from brian2 import *
 from brian2.devices import reinit_devices, reset_device
 
 max_difference = .1*mV
+max_difference_same_method = 1*pvolt
 
 targets = ['brian2', 'weave', 'cython', 'cpp_standalone']
 
@@ -172,25 +173,31 @@ def test_GSL_fixed_timestep_rk4():
     v0 : volt
     '''
     defaultclock.dt = .01*ms
-    neuron1 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                         refractory=5*ms, method='rk4')
-    neuron2 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                          refractory=5*ms, method='GSL_stateupdater', method_options={'integrator' : 'rk4',
-                                                                                      'adaptable_timestep' : False,
-                                                                                      'eps_abs' : 1e-2,
-                                                                                      'eps_rel' : 1e-2})
-    neuron1.v = 0*mV
-    neuron2.v = 0*mV
-    neuron1.v0 = 10*mV
-    neuron2.v0 = 10*mV
-    mon1 = StateMonitor(neuron1, 'v', record=True)
-    mon2 = StateMonitor(neuron2, 'v', record=True)
-    net1 = Network(neuron1, mon1)
-    net2 = Network(neuron2, mon2)
-    net1.run(100*msecond, report='text')
-    net2.run(100*msecond, report='text')
-    assert not all(diff(mon1.v[0]/mV) == 0), 'Membrane potential was unchanged'
-    assert all(mon1.v[0] == mon2.v[0]), 'Different results for brian2 and GSL even though method and timestep were the same'
+    trace_holder = []
+    for target in targets:
+        set_device(setting_dict[target]['device'], build_on_run=False)
+        device.reinit()
+        device.activate()
+        prefs.codegen.target = setting_dict[target]['target']
+        if target == 'brian2':
+            neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                                 refractory=5*ms, method='rk4')
+        else:
+            neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                                  refractory=5*ms, method='GSL_stateupdater', method_options={'integrator' : 'rk4',
+                                                                                              'adaptable_timestep' : False,
+                                                                                              'eps_abs' : 1e-2,
+                                                                                              'eps_rel' : 1e-2})
+        neuron.v = 0*mV
+        neuron.v0 = 10*mV
+        mon = StateMonitor(neuron, 'v', record=True, dt=1*ms) # default of statemonitor is different for cpp_standalone!
+        net = Network(neuron, mon)
+        net.run(100*msecond)
+        trace_holder += [mon.v[0]]
+        print('.'),
+    assert not all(diff(trace_holder[0]/mV) == 0), 'Membrane potential was unchanged'
+    # can't check for difference == 0 because doubles (machine precision variability)
+    assert not any([max(trace_holder[0]-trace_holder[i]) < max_difference_same_method for i in range(1,len(targets))]), 'Different results for brian2 and GSL even though method and timestep were the same'
 
 
 if __name__=='__main__':

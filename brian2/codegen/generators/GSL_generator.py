@@ -44,8 +44,9 @@ class GSLCodeGenerator(object):
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
         self.method_options = default_method_options
-        for key, value in codeobj_class.method_options.items():
-            self.method_options[key] = value
+        if not codeobj_class.method_options is None:
+            for key, value in codeobj_class.method_options.items():
+                self.method_options[key] = value
         self.variable_flags = codeobj_class.variable_flags #TODO: temporary solution for sending flags to generator
 
     def __getattr__(self, item):
@@ -159,7 +160,6 @@ class GSLCodeGenerator(object):
             replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
             replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
             to_replace[replace_what] = replace_with
-        print to_replace;
         return to_replace
 
     def get_dimension_code(self, diff_num):
@@ -495,6 +495,9 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
     def c_data_type(self, dtype):
         return c_data_type(dtype)
 
+    def var_replace_diff_var_lhs(self, var, ind):
+        return {'_gsl_{var}_f{ind}'.format(var=var,ind=ind) : 'f[{ind}]'.format(ind=ind)}
+
     def var_init_lhs(self, var, type):
         return var
 
@@ -551,7 +554,7 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
                         'double {f};'.format(f=f) : ''} # in case the replacement of _gsl_var_find to f[ind] happens first
         except KeyError:
             pass
-        return {'const double _gsl_{var}_f{ind}'.format(var=var,ind=ind) : rhs}
+        return {'const double _gsl_{var}_f{ind}'.format(var=var,ind=ind) : f}
 
     def var_init_lhs(self, var, type):
         return type + var
