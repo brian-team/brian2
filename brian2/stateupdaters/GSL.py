@@ -48,6 +48,7 @@ class GSLStateUpdater(StateUpdateMethod):
         :return: abstract code (what the StateUpdateMethod always returned in the past)
         '''
         obj.codeobj_class = self.get_codeobj_class()
+        obj.codeobj_class.variable_flags = self.flags #TODO: temporary solution for sending flags to generator
         obj.needed_variables += ['t', 'dt']
         return GSL_stateupdater.abstract_code
 
@@ -73,8 +74,14 @@ class GSLStateUpdater(StateUpdateMethod):
                                                                count=counter[diff_name])]
             count_statevariables += 1
 
+        # add flags to variables objects because some of them we need in the GSL generator
+        flags = {}
+        for eq_name, eq_obj in equations._equations.items():
+            if len(eq_obj.flags) > 0:
+                flags[eq_name] = eq_obj.flags
 
         self.abstract_code =  ('\n').join(code)
+        self.flags = flags #TODO: temporary solution for sending flags to generator
         return self.transfer_codeobj_class
 
 

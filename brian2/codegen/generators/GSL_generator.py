@@ -46,6 +46,7 @@ class GSLCodeGenerator(object):
         self.method_options = default_method_options
         for key, value in codeobj_class.method_options.items():
             self.method_options[key] = value
+        self.variable_flags = codeobj_class.variable_flags #TODO: temporary solution for sending flags to generator
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -151,14 +152,14 @@ class GSLCodeGenerator(object):
         variables = self.variables
         to_replace = {}
         for var, diff_num in diff_vars.items():
-            lhs = self.var_init_lhs('_gsl_{var}_f{ind}'.format(var=var,ind=diff_num), 'const double ')
-            to_replace[lhs] = 'f[{ind}]'.format(ind=diff_num)
+            to_replace.update(self.var_replace_diff_var_lhs(var, diff_num))
             var_obj = variables[var]
             array_name = self.generator.get_array_name(var_obj, access_data=True)
             idx_name = '_idx' #TODO: could be dynamic?
             replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
             replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
             to_replace[replace_what] = replace_with
+        print to_replace;
         return to_replace
 
     def get_dimension_code(self, diff_num):
@@ -367,6 +368,13 @@ class GSLCodeGenerator(object):
             m = re.search('\[(\w+)\];?$', from_sub)
             if m:
                 code = re.sub(re.sub('\[','\[', from_sub), to_sub, code)
+
+        if '_gsl' in code:
+            print code
+            print('Translation failed, _gsl still in code (should only be tag, and should be replaced)')
+            #TODO: raise nicer error
+            raise Exception
+
         return code
 
     def translate_scalar_code(self, code_lines, variables_in_scalar, variables_in_vector):
@@ -533,6 +541,17 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
     def c_data_type(self, dtype):
         return self.generator.c_data_type(dtype)
+
+    def var_replace_diff_var_lhs(self, var, ind):
+        f = 'f[{ind}]'.format(ind=ind)
+        try:
+            if 'unless refractory' in self.variable_flags[var]:
+                return {'_gsl_{var}_f{ind}'.format(var=var,ind=ind) : f,
+                        'double _gsl_{var}_f{ind};'.format(var=var,ind=ind) : '',
+                        'double {f};'.format(f=f) : ''} # in case the replacement of _gsl_var_find to f[ind] happens first
+        except KeyError:
+            pass
+        return {'const double _gsl_{var}_f{ind}'.format(var=var,ind=ind) : rhs}
 
     def var_init_lhs(self, var, type):
         return type + var
