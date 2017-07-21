@@ -43,10 +43,9 @@ class GSLCodeGenerator(object):
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
-        if codeobj_class.method_options is not None:
-            self.method_options = codeobj_class.method_options
-        else:
-            self.method_options = default_method_options
+        self.method_options = default_method_options
+        for key, value in codeobj_class.method_options.items():
+            self.method_options[key] = value
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -248,7 +247,7 @@ class GSLCodeGenerator(object):
         '''
         Brian does not save the _lio_ variables it uses anywhere. This is problematic for our GSL implementation because
         we save the lio variables in the dataholder struct. For this reason, we check all left hand side variables that
-        occur and add them to a separate dictionary
+        occur and add them to a separate dictionary (could potentially also catch other helper variables)
         :param statements: list of statement objects (need to have the dtype attribute)
         :return: dictionary of variables that are not in self.variables, the objects are defined as 'AuxiliaryVariables'
         and have the correct dtype
@@ -266,7 +265,7 @@ class GSLCodeGenerator(object):
     def find_used_variables(self, statements, other_variables):
         '''
         :param statements:
-        :param other_variables:
+        :param other_variables: dictionary of variables that are not in self.variables
         :return: dictionary of variables that are used in the right hand side of the statements given
         '''
         variables = self.variables
