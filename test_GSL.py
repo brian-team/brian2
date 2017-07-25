@@ -203,8 +203,16 @@ def test_GSL_fixed_timestep_rk4():
     #assert not any([max(trace_holder[0]-trace_holder[i]) < max_difference_same_method for i in range(1,len(targets))]), \
     #    'Different results for brian2 and GSL even though method and timestep were the same'
 
+def test_GSL_x_variable():
+    neurons = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
+                          method='GSL_stateupdater')
+    network = Network(neurons)
+    # just testing compilation
+    network.run(0*ms)
+    print('.')
 
 if __name__=='__main__':
+    test_GSL_x_variable()
     test_GSL_fixed_timestep_rk4()
     test_GSL_different_clocks()
     test_GSL_stateupdater_basic()
