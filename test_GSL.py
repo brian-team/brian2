@@ -53,6 +53,7 @@ def test_GSL_stateupdater_basic():
         spike_container += [SM.num_spikes]
         print('.'),
         #reset_device()
+    assert spike_container[0] > 0, 'simulation should produce spiking, but no spikes monitored'
     assert all([x == spike_container[0] for x in spike_container[1:]]), \
            'GSL_statupdater produced varying results for different target languages'
 
@@ -175,7 +176,7 @@ def test_GSL_fixed_timestep_rk4():
     defaultclock.dt = .01*ms
     trace_holder = []
     for target in targets:
-        set_device(setting_dict[target]['device'], build_on_run=False)
+        set_device(setting_dict[target]['device'], directory='test_GSL_fixed_timestep_rk4', build_on_run=False)
         device.reinit()
         device.activate()
         prefs.codegen.target = setting_dict[target]['target']
@@ -185,10 +186,12 @@ def test_GSL_fixed_timestep_rk4():
         else:
             neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                                   refractory=5*ms, method='GSL_stateupdater', method_options={'integrator' : 'rk4',
-                                                                                              'adaptable_timestep' : False,
+                                                                                              'adaptable_timestep' : True,
                                                                                               'eps_abs' : 1e-2,
                                                                                               'eps_rel' : 1e-2})
         neuron.v = 0*mV
+        neuron.v0 = 13*mV
+        mon = StateMonitor(neuron, 'v', record=True, dt=1*ms, when='start') # default of statemonitor is different for cpp_standalone!
         neuron.v0 = 10*mV
         mon = StateMonitor(neuron, 'v', record=True, dt=1*ms) # default of statemonitor is different for cpp_standalone!
         net = Network(neuron, mon)
@@ -196,8 +199,8 @@ def test_GSL_fixed_timestep_rk4():
         trace_holder += [mon.v[0]]
         print('.'),
     assert not all(diff(trace_holder[0]/mV) == 0), 'Membrane potential was unchanged'
-    # can't check for difference == 0 because doubles (machine precision variability)
-    assert not any([max(trace_holder[0]-trace_holder[i]) < max_difference_same_method for i in range(1,len(targets))]), 'Different results for brian2 and GSL even though method and timestep were the same'
+    assert not any([max(trace_holder[0]-trace_holder[i]) < max_difference_same_method for i in range(1,len(targets))]), \
+        'Different results for brian2 and GSL even though method and timestep were the same'
 
 
 if __name__=='__main__':
