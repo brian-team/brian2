@@ -184,14 +184,6 @@ class StateUpdater(CodeRunner):
             else: #TODO: do specific check for child of stateupdatemethod?
                 self.abstract_code += stateupdate_output(self)
 
-        self.variables = Variables(self)
-        namespace_variables = self.make_namespace_variables()
-        for name in namespace_variables.keys():
-            if not namespace_variables[name] in self.variables:
-                self.variables.add_auxiliary_variable(namespace_variables[name],
-                                                            dimensions=variables[name].dim,
-                                                            scalar=variables[name].scalar)
-            
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
