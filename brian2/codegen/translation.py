@@ -229,12 +229,8 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 defined.add(var)
                 if var not in variables:
                     is_scalar = is_scalar_expression(expr, variables)
-                    if '_gsl' in var: #TODO: remove hack
-                        new_var = AuxiliaryVariable(var, dtype=dtype,
-                                                scalar=False)
-                    else:
-                        new_var = AuxiliaryVariable(var, dtype=dtype,
-                                                    scalar=is_scalar)
+                    new_var = AuxiliaryVariable(var, dtype=dtype,
+                                                scalar=is_scalar)
                     variables[var] = new_var
             elif not variables[var].is_boolean:
                 sympy_expr = str_to_sympy(expr, variables)

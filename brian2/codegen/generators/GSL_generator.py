@@ -404,10 +404,20 @@ class GSLCodeGenerator(object):
                         var=actual_var, op=op, expr=expr, comment=comment)]
         return ('\n').join(code)
 
+    def add_gsl_variables_as_non_scalar(self, diff_vars):
+        for var, ind in diff_vars.items():
+            name = '_gsl_{var}_f{ind}'.format(var=var,ind=ind)
+            self.variables[name] = AuxiliaryVariable(var, scalar=False)
+
     def translate(self, code, dtype): # TODO: it's not so nice we have to copy the contents of this function..
         '''
         Translates an abstract code block into the target language.
         '''
+        # if this is not done, Brian translates the differential expressions in the abstract
+        # code for GSL to scalar statements in the case no non-scalar variables are used in the expression
+        diff_vars = self.find_differential_variables(code.values())
+        self.add_gsl_variables_as_non_scalar(diff_vars)
+
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.iteritems():
@@ -445,7 +455,6 @@ class GSLCodeGenerator(object):
         self.cpp_standalone = self.is_cpp_standalone()
 
         # differential variable specific operations
-        diff_vars = self.find_differential_variables(code.values())
         to_replace = self.diff_var_to_replace(diff_vars)
         GSL_support_code = self.get_dimension_code(len(diff_vars))
         GSL_support_code += self.yvector_code(diff_vars)
@@ -455,6 +464,10 @@ class GSLCodeGenerator(object):
         other_variables = self.find_undefined_variables(scalar_statements[None]+vector_statements[None])
         variables_in_scalar = self.find_used_variables(scalar_statements[None], other_variables)
         variables_in_vector = self.find_used_variables(vector_statements[None], other_variables)
+        # so that dataholder holds diff_vars as well, even if they don't occur in the actual statements
+        for var in diff_vars.keys():
+            if not var in variables_in_vector:
+                variables_in_vector[var] = self.variables[var]
 
         # add code for dataholder struct
         GSL_support_code = self.write_dataholder(variables_in_vector) + GSL_support_code
