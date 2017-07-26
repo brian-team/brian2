@@ -3,6 +3,8 @@ A short cylinder with constant injection at one end.
 '''
 from brian2 import *
 
+set_device('cpp_standalone', build_on_run=False)
+
 defaultclock.dt = 0.01*ms
 
 # Morphology
@@ -22,14 +24,16 @@ I : amp (point current)
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
-                       method='exponential_euler')
+                       method='GSL_stateupdater')
 neuron.v = EL
-
-la = neuron.space_constant[0]
-print("Electrotonic length: %s" % la)
 
 neuron.I[0] = 0.02*nA # injecting at the left end
 run(100*ms, report='text')
+device.build()
+
+# moved this to after run for cpp_standalone
+la = neuron.space_constant[0]
+print("Electrotonic length: %s" % la)
 
 plot(neuron.distance/um, neuron.v/mV, 'kx')
 # Theory

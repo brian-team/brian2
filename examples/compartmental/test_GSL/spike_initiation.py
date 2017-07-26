@@ -3,6 +3,8 @@ Ball and stick with Na and K channels
 '''
 from brian2 import *
 
+set_device('cpp_standalone', build_on_run=False)
+
 defaultclock.dt = 0.025*ms
 
 # Morphology
@@ -34,7 +36,7 @@ gK : siemens/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='GSL_stateupdater')
 neuron.v = -65*mV
 neuron.I = 0*amp
 neuron.axon[30*um:60*um].gNa = 700*gL
@@ -48,6 +50,7 @@ neuron.main.I = 0.15*nA
 run(50*ms)
 neuron.I = 0*amp
 run(95*ms, report='text')
+device.build()
 
 plot(mon.t/ms, mon.v[0]/mV, 'r')
 plot(mon.t/ms, mon.v[20]/mV, 'g')

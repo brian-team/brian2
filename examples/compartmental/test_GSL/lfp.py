@@ -4,6 +4,9 @@ Hodgkin-Huxley equations (1952)
 We calculate the extracellular field potential at various places.
 '''
 from brian2 import *
+
+set_device('cpp_standalone', build_on_run=False)
+
 defaultclock.dt = 0.01*ms
 morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=1000, type='axon')
 
@@ -33,7 +36,7 @@ gNa : siemens/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2,
-                       Ri=35.4*ohm*cm, method="exponential_euler")
+                       Ri=35.4*ohm*cm, method="GSL_stateupdater")
 neuron.v = 0*mV
 neuron.h = 1
 neuron.m = 0
@@ -65,6 +68,8 @@ neuron.I[0] = 1*uA  # current injection at one end
 run(3*ms)
 neuron.I = 0*amp
 run(100*ms, report='text')
+device.build()
+print neuron.state_updater.codeobj.code
 
 subplot(211)
 for i in range(10):

@@ -3,6 +3,8 @@ A cylinder plus two branches, with diameters according to Rall's formula
 '''
 from brian2 import *
 
+set_device('cpp_standalone', build_on_run=False)
+
 defaultclock.dt = 0.01*ms
 
 # Passive channels
@@ -38,11 +40,12 @@ I : amp (point current)
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
-                       method='exponential_euler')
+                       method='GSL_stateupdater')
 neuron.v = EL
 
 neuron.I[0] = 0.02*nA # injecting at the left end
 run(100*ms, report='text')
+device.build()
 
 plot(neuron.main.distance/um, neuron.main.v/mV, 'k')
 plot(neuron.L.distance/um, neuron.L.v/mV, 'k')

@@ -5,6 +5,8 @@ Spikes are recorded along the axon, and then velocity is calculated.
 from brian2 import *
 from scipy import stats
 
+set_device('cpp_standalone', build_on_run=False)
+
 defaultclock.dt = 0.01*ms
 
 morpho = Cylinder(length=10*cm, diameter=2*238*um, n=1000, type='axon')
@@ -51,6 +53,7 @@ neuron.I[0] = 1*uA # current injection at one end
 run(3*ms)
 neuron.I = 0*amp
 run(50*ms, report='text')
+device.build()
 
 print neuron.state_updater.codeobj.code
 

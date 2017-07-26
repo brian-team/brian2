@@ -5,7 +5,7 @@ Second method.
 '''
 from brian2 import *
 
-set_device('cpp_standalone')
+set_device('cpp_standalone', build_on_run=False)
 
 # Morphology
 morpho = Soma(30*um)
@@ -44,6 +44,7 @@ mon_L = StateMonitor(neuron.L, 'v', record=True)
 mon_R = StateMonitor(neuron, 'v', record=morpho.R[99.9*um])
 
 run(50*ms, report='text')
+device.build()
 
 subplot(211)
 plot(mon_L.t/ms, mon_soma[0].v/mV, 'k')

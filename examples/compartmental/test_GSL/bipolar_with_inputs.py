@@ -4,6 +4,8 @@ There are synaptic inputs.
 '''
 from brian2 import *
 
+set_device('cpp_standalone', build_on_run=False)
+
 # Morphology
 morpho = Soma(30*um)
 morpho.L = Cylinder(diameter=1*um, length=100*um, n=50)
@@ -20,7 +22,7 @@ gs : siemens
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='GSL_stateupdater')
 neuron.v = EL
 
 # Regular inputs
@@ -45,6 +47,7 @@ mon_R = StateMonitor(neuron.R, 'v',
                      record=morpho.R[-1])
 
 run(50*ms, report='text')
+device.build()
 
 subplot(211)
 plot(mon_L.t/ms, mon_soma[0].v/mV, 'k')

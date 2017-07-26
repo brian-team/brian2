@@ -3,6 +3,8 @@ An (almost) infinite cable with pulse injection in the middle.
 '''
 from brian2 import *
 
+set_device('cpp_standalone', build_on_run=False)
+
 defaultclock.dt = 0.001*ms
 
 # Morphology
@@ -21,13 +23,11 @@ I : amp (point current)
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
-                       method = 'exponential_euler')
+                       method = 'GSL_stateupdater')
 neuron.v = EL
 
 taum = Cm  /gL  # membrane time constant
 print("Time constant: %s" % taum)
-la = neuron.space_constant[0]
-print("Characteristic length: %s" % la)
 
 # Monitors
 mon = StateMonitor(neuron, 'v', record=range(0, N//2, 20))
@@ -36,6 +36,11 @@ neuron.I[len(neuron) // 2] = 1*nA  # injecting in the middle
 run(0.02*ms)
 neuron.I = 0*amp
 run(10*ms, report='text')
+device.build()
+
+# moved to after run for cpp_standalone
+la = neuron.space_constant[0]
+print("Characteristic length: %s" % la)
 
 t = mon.t
 plot(t/ms, mon.v.T/mV, 'k')
