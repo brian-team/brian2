@@ -49,7 +49,7 @@ class GSLStateUpdater(StateUpdateMethod):
         '''
         obj.codeobj_class = self.get_codeobj_class()
         obj.codeobj_class.variable_flags = self.flags #TODO: temporary solution for sending flags to generator
-        obj.needed_variables += ['t', 'dt']
+        obj.needed_variables += ['t', 'dt'] + self.needed_variables
         return GSL_stateupdater.abstract_code
 
     def __call__(self, equations, variables=None):
@@ -66,8 +66,12 @@ class GSLStateUpdater(StateUpdateMethod):
         code = []
         count_statevariables = 0
         counter = {}
+        self.needed_variables = []
 
         for diff_name, expr in diff_eqs:
+            # if diff_name does not occur in the right hand side of the equation, Brian does not
+            # know to add the variable to the namespace, so we add it to needed_variables
+            self.needed_variables += [diff_name]
             counter[diff_name] = count_statevariables
             code += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
                                                                expr=expr,
