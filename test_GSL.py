@@ -1,5 +1,5 @@
 from brian2 import *
-from brian2.devices import reinit_devices, reset_device
+from brian2.core.preferences import PreferenceError
 
 max_difference = .1*mV
 max_difference_same_method = 1*pvolt
@@ -63,7 +63,7 @@ def test_GSL_different_clocks():
     for target in targets:
         if target is 'brian2':
             continue
-        set_device(setting_dict[target]['device'], build_on_run=False)
+        set_device(setting_dict[target]['device'], build_on_run=False, clean=True)
         device.reinit()
         device.activate()
         prefs.codegen.target = setting_dict[target]['target']
@@ -211,7 +211,20 @@ def test_GSL_x_variable():
     network.run(0*ms)
     print('.')
 
+def test_GSL_failing_directory():
+    try:
+        prefs.GSL.directory = 1
+        raise Exception # shouldn't get here
+    except PreferenceError:
+        pass
+    try:
+        prefs.GSL.directory = '/usr/bla/bla/bla'
+        raise Exception # shouldn't get here
+    except PreferenceError:
+        pass
+
 if __name__=='__main__':
+    test_GSL_failing_directory()
     test_GSL_x_variable()
     test_GSL_fixed_timestep_rk4()
     test_GSL_different_clocks()
