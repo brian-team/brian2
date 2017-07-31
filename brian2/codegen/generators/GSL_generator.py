@@ -14,6 +14,7 @@ import re
 
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
 
+#TODO: move definition of this error to Cython specific file? e.g. GSLcython_rt?
 class IntegrationError(Exception):
     '''
     Error used to signify that GSL was unable to complete integration (in Cython file)
@@ -30,6 +31,18 @@ default_method_options = {
 }
 
 class GSLCodeGenerator(object):
+    '''
+    GSL code generator.
+
+    Notes
+    -----
+    Approach is to first let the already existing code generator for a target language do the bulk of the translating
+    from abstract_code to actual code. This generated code is slightly adapted to render it GSL compatible.
+    The most critical part here is that the vector_code that is normally contained in a loop in the ```main()``` is
+    moved to the function ```func``` that is sent to the GSL integrator. The variables used in the vector_code are added
+    to a struct named ```dataholder``` and their values are set from the Brian namespace just before the scalar
+    code block.
+    '''
 
     def __init__(self, variables, variable_indices, owner, iterate_all,
                  codeobj_class, name, template_name,
@@ -62,8 +75,17 @@ class GSLCodeGenerator(object):
 
     def var_init_lhs(self, var, type):
         '''
-        What does the left hand side of an initializing expression look like? (i.e. for cpp this is const double var = ...
-        while in cython it is just var = ...
+        Get string version of the left hand side of an initializing expression
+
+        Parameters
+        ----------
+        var : str
+        type : str
+
+        Returns
+        -------
+        str
+            For cpp returns type + var, while for cython just var
         '''
         raise NotImplementedError
 
@@ -75,14 +97,17 @@ class GSLCodeGenerator(object):
 
     def get_pointer_name(self, var_obj):
         '''
-        Get the pointer_name used to refer to array object. Only differs for cpp, but function also defined for cython,
-        this just returns the same as get_array_name (for maximum generalizability of the GSL_generator code)
+        Get the pointer_name used to refer to array object.
+
+        Only differs for cpp, but function also defined for cython. In the case of cython this just returns the same
+        as get_array_name (for maximum generalizability of the GSL_generator code)
         '''
         raise NotImplementedError
 
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         '''
         Writes the code necessary to pull single variable out of the Brian namespace into the generated code.
+
         The code created is significantly different between cpp and cython, so I decided to not make this function general
         over all target languages (i.e. in contrast to most other functions that only have syntactical differences)
         '''
@@ -91,7 +116,17 @@ class GSLCodeGenerator(object):
     # GSL functions that are the same for all target languages:
     def find_function_names(self):
         '''
-        :return: list of function names in the self.variables dictionary
+        Return a list of used function names in the self.variables dictionary
+
+        Functions need to be ignored in the GSL translation process, because the brian generator already sufficiently
+        dealt with them. However, the brian generator also removes them from the variables dict, so there is no
+        way to check whether an identifier is a function after the brian translation process. This function is called
+        before this translation process and the list of function names is stored to be used in the GSL translation.
+
+        Returns
+        -------
+        list
+            list of strings that are function names used in the code
         '''
         variables = self.variables
         names = []
@@ -102,8 +137,18 @@ class GSLCodeGenerator(object):
 
     def is_cpp_standalone(self):
         '''
-        Function checks whether we're running with the cpp_standalone device. (see description of is_constant_and_cpp_standalone)
-        :returns boolean whether current device is cpp_standalone
+        Check whether we're running with cpp_standalone.
+
+        Test if `get_device()` is instance `CPPStandaloneDevice`.
+
+        Returns
+        -------
+        bool
+            whether currently using cpp_standalone device
+
+        See Also
+        --------
+        is_constant_and_cpp_standalone : uses the returned value
         '''
         # imports here to avoid circular imports
         from brian2.devices.device import get_device
@@ -112,19 +157,43 @@ class GSLCodeGenerator(object):
         return isinstance(device, CPPStandaloneDevice)
 
     def is_constant_and_cpp_standalone(self, var_obj):
-        '''
-        This function returns whether var_obj is a Constant and the device is cpp_standalone
-        In this case (Constants with cpp_standalone device), Brian replaces the variable with their value in the final cpp-code
-        Since with GSL we add the variables to a struct (e.g. p.b = b), and access them later like
-        p->b this cpp_standalone feature results in code that looks like p.1.2 = 1.2 or p->1.2.
-        :return: boolean describing whether the variable object that was given is Constant and the current device is cpp_standalone
-        '''
+        """Check whether self.cpp_standalone and variable is Constant.
+
+        This check is needed because in the case of using the cpp_standalone device we do not
+        want to apply our GSL variable conversion (var --> p.var), because the cpp_standalone
+        code generation process involves replacing constants with their actual value ('freezing').
+        This results in code that looks like (if for example var = 1.2): p.1.2 = 1.2 and p->1.2.
+        To prevent repetitive calls to get_device() etc. the outcome of is_cpp_standalone is saved.
+
+        Parameters
+        ----------
+        var_obj : `Variable`
+            instance of brian Variable class describing the variable
+
+        Returns
+        -------
+        bool
+            whether the used device is cpp_standalone and the given variable is an instance of Constant
+        """
+        if not hasattr(self, 'cpp_standalone'):
+            self.cpp_standalone = self.is_cpp_standalone()
         return isinstance(var_obj, Constant) and self.cpp_standalone
 
     def find_differential_variables(self, code):
         '''
-        Find the variables that were tagged _gsl_{var}_f{ind} by the GSL StateUpdateMethod (with regular expressions)
-        :return: dictionary with variable name and differential equation index
+        Find the variables that were tagged _gsl_{var}_f{ind} and return var, ind pairs.
+
+        `GSLStateUpdater` tagged differential variables and here we extract the information given in these tags.
+
+        Parameters
+        ----------
+        code : list of strings
+            A list of strings containing gsl tagged variables
+
+        Returns
+        -------
+        dict
+            A dictionary with variable names as keys and differential equation index as value
         '''
         diff_vars = {}
         for expr_set in code:
@@ -141,14 +210,27 @@ class GSLCodeGenerator(object):
 
     def diff_var_to_replace(self, diff_vars):
         '''
+        Add differential variable-related strings that need to be replaced to go from normal brian to GSL code
+
         From the code generated by Brian's 'normal' generators (cpp_generator or cython_generator a few bits of text
         need to be replaced to get GSL compatible code. The bits of text related to differential equation variables
         are put in the replacer dictionary in this function.
-        Examples for for example the variable 'v':
-        _gsl_v_f0 has to be replaced with f[0] (and in the case of cpp the lhs is const double _gsl_v_f0)
-        v = _array_neurongroup_v[_idx] has to be replaced with v = y[0]
-        :param diff_vars: dictionary with mapping between differential equation variable and their index (given by GSL StateUpdateMethod)
-        :return: dictionary with bits of string that should be replaced to change Brian normal code to GSL code
+
+        Parameters
+        ----------
+        diff_vars : dict
+            Dictionary with variables as keys and differential equation index as value
+
+        Returns
+        -------
+        dict
+            A dictionary with strings that need to be replaced as keys and the strings that will replace them as values
+
+        Examples
+        --------
+        >>>diff_var_to_replace({'v' : 0})
+        {'const double _gsl_v_f0' : 'f[0]',
+        'v = _array_neurongroup_v[_idx]' : 'v = y[0]'}
         '''
         variables = self.variables
         to_replace = {}
@@ -164,12 +246,22 @@ class GSLCodeGenerator(object):
 
     def get_dimension_code(self, diff_num):
         '''
-        GSL needs to know how many differential variables there are in the ODE system. Since the current approach is to have
-        the code in the vector loop the same for all simulations, this dimension is set by an external function as well.
+        Generate code for function that sets the dimension of the ODE system.
+
+        GSL needs to know how many differential variables there are in the ODE system. Since the current approach is
+        to have the code in the vector loop the same for all simulations, this dimension is set by an external function.
         The code for this set_dimension functon is written here. It is assumed the code will be the same for each target
         language with the exception of some syntactical differences
-        :param diff_num: number of differential equation variables
-        :return: string with code describing the function that sets the dimension of the ODE system
+
+        Parameters
+        ----------
+        diff_num : int
+            Number of differential variables that describe the ODE system
+
+        Returns
+        -------
+        str
+            The code describing the target language function in a single string
         '''
         code = ['\n{start_declare}int set_dimension(size_t * dimension){open_function}']
         code += ['\tdimension[0] = %d{end_statement}'%diff_num]
@@ -178,11 +270,22 @@ class GSLCodeGenerator(object):
 
     def yvector_code(self, diff_vars):
         '''
+        Generate code for function dealing with GSLs y vector.
+
         The values of differential variables have to be transferred from Brian's namespace to a vector that is given to
-        GSL. The allocation of this vector and the transferring from Brian --> y and back from y --> Brian after integration
-        has happened happens in separate functions. These are written here.
-        :param diff_vars:
-        :return: string with code describing three functions related to the GSL y vector
+        GSL. The allocation of this vector and the transferring from Brian --> y and back from y --> Brian after
+        integration happens in separate functions. The code for these is written here.
+
+        Parameters
+        ----------
+        diff_vars : dictionary
+            Dictionary containing variable names as keys (str) and differential variable index as value
+
+        Returns
+        -------
+        str
+            The code for the three functions (```assign_memory_y```, ```fill_y_vector``` and ```empty_y_vector```)
+            as single string.
         '''
         allocate_y = ['\n{start_declare}double* assign_memory_y(){open_function}']
         allocate_y += ['\treturn {open_cast}double *{close_cast} malloc(%d*sizeof(double))'%len(diff_vars)]
@@ -200,9 +303,21 @@ class GSLCodeGenerator(object):
 
     def make_function_code(self, lines):
         '''
-        Adds nonchanging aspects of GSL func code to lines of code written somewhere else (translate_vector_code).
-        :param lines: string of code decribing the system of equations
-        :return: string with the complete function
+        Add lines of GSL translated vector code to 'non-changing' func code.
+
+        Adds nonchanging aspects of GSL func code to lines of code written somewhere else (`translate_vector_code`).
+        Here these lines are put between the non-changing parts of the code and the target language specific
+        syntax is added.
+
+        Parameters
+        ----------
+        lines : str
+            Code containing GSL version of equations
+
+        Returns
+        -------
+        str
+            Code describing ```func``` that is sent to GSL integrator.
         '''
         code = ['\n']
         code += ['{start_declare}int func(double t, const double y[], double f[], void * params){open_function}']
@@ -214,8 +329,17 @@ class GSLCodeGenerator(object):
 
     def write_dataholder_single(self, var_obj):
         '''
-        :param var_obj: Variable Object
-        :return: string describing this variable object as required for the dataholder struct
+        Return string declaring a single variable in the ```dataholder``` struct.
+
+        Parameters
+        ----------
+        var_obj : `Variable`
+
+        Returns
+        -------
+        str
+            string describing this variable object as required for the ```dataholder``` struct
+            (e.g. ```double* _array_neurongroup_v```)
         '''
         dtype = self.c_data_type(var_obj.dtype)
         if isinstance(var_obj, ArrayVariable):
@@ -232,8 +356,17 @@ class GSLCodeGenerator(object):
 
     def write_dataholder(self, variables_in_vector):
         '''
-        :param variables_in_vector: dictionary mapping between variable names and their Brian objects
-        :return: code decribing the dataholder struct that will contain all data necessary for GSL func
+        Return string with full code for dataholder struct.
+
+        Parameters
+        ----------
+        variables_in_vector : dict
+            dictionary containing variable name as key and `Variable` as value
+
+        Returns
+        -------
+        str
+            Code for dataholder struct
         '''
         code = ['\n{start_declare}struct dataholder{open_struct}']
         code += ['\tint _idx{end_statement}']
@@ -246,14 +379,21 @@ class GSLCodeGenerator(object):
 
     def find_undefined_variables(self, statements):
         '''
+        Find identifiers that are not in self.variables dictionary.
+
         Brian does not save the _lio_ variables it uses anywhere. This is problematic for our GSL implementation because
-        we save the lio variables in the dataholder struct. For this reason, we check all left hand side variables that
-        occur and add them to a separate dictionary (could potentially also catch other helper variables)
-        :param statements: list of statement objects (need to have the dtype attribute)
-        :return: dictionary of variables that are not in self.variables, the objects are defined as 'AuxiliaryVariables'
-        and have the correct dtype
+        we save the lio variables in the dataholder struct (for which we need the datatype of the variables).
+        This function adds the left hand side variables that are used in the vector code to the variable
+        dictionary as `AuxiliaryVariable`s (all we need later is the datatype).
+
+        Parameters
+        ----------
+        statements : list
+            list of statement objects (need to have the dtype attribute)
         '''
         #TODO: not sure if it is necessary to have other_variables separate from self.variables
+        #TODO: once I am finished with the docstrings I want to remove the use of 'other_variables'
+        #and just add the undefined variables to self.variables
         variables = self.variables
         other_variables = {}
         for statement in statements:
@@ -265,10 +405,18 @@ class GSLCodeGenerator(object):
 
     def find_used_variables(self, statements, other_variables):
         '''
-        :param statements:
-        :param other_variables: dictionary of variables that are not in self.variables
-        :return: dictionary of variables that are used in the right hand side of the statements given
+        Find all the variables used in the right hand side of the given expressions.
+
+        Parameters
+        ----------
+        statements : list
+            list of statement objects
+
+        Returns
+        -------
+            Dictionary of variables that are used as variable name (str), `Variable` pairs.
         '''
+        #TODO: if I remove other_variables: rewrite to only use self.variables
         variables = self.variables
         used_variables = {}
         for statement in statements:
@@ -283,7 +431,7 @@ class GSLCodeGenerator(object):
                     var_obj = other_variables[var]
                 used_variables[var] = var_obj # save as object because this has all needed info (dtype, name, isarray)
 
-        # I don't know a nicer way to do this, the above way misses write variables..
+        # I don't know a nicer way to do this, the above way misses write variables (e.g. not_refractory)..
         read, write, _ = self.array_read_write(statements)
         for var in (read|write):
             if var not in used_variables:
@@ -293,12 +441,26 @@ class GSLCodeGenerator(object):
 
     def to_replace_vector_vars(self, variables_in_vector, ignore=[]):
         '''
-        :param variables_in_vector:
-        :param ignore:
-        :return: dictionary with strings that need to be replaced. i.e. _lio_1 will be p._lio_1 (in cython) or p->_lio_1 (cpp)
-         in addition t will always be added because GSL defines its own t
+        Create dictionary containing key, value pairs with to be replaced text to translate from conventional Brian
+        to GSL.
+
+        Parameters
+        ----------
+        variables_in_vector : dict
+            dictionary with variable name (str), `Variable` pairs of variables occurring in vector code
+        ignore : list
+            list of strings with variable names that should be ignored
+
+        Returns
+        -------
+        dict
+            Dictionary with strings that need to be replaced i.e. _lio_1 will be p._lio_1 (in cython) or p->_lio_1 (cpp)
+
+        Notes
+        -----
+        t will always be added because GSL defines its own t.
+        i.e. for cpp: {'const t = _ptr_array_defaultclock_t[0];' : ''}
         '''
-        #TODO: have t work with t's other than defaultclock?
         access_pointer = self.syntax['access_pointer']
         to_replace = {}
         t_in_code = None
@@ -330,13 +492,24 @@ class GSLCodeGenerator(object):
 
     def unpack_namespace(self, variables_in_vector, variables_in_scalar, ignore=[]):
         '''
-        Writes code that unpacks Brian namespace to cython/cpp namespace
+        Write code that unpacks Brian namespace to cython/cpp namespace.
+
         For vector code this means putting variables in dataholder (i.e. p->var or p.var = ...)
         Note that code is written so a variable could occur both in scalar and vector code
-        :param variables_in_vector: dictionary with variables occurring in vector code
-        :param variables_in_scalar: dictionary with variables occurring in scalar code
-        :param ignore: string variable names describing variables that should be ignored
-        :return: string of code fragment
+
+        Parameters
+        ----------
+        variables_in_vector : dict
+            dictionary with variable name (str), `Variable` pairs of variables occurring in vector code
+        variables_in_scalar : dict
+            dictionary with variable name (str), `Variable` pairs of variables occurring in scalar code
+        ignore : list
+            list of string names of variables that should be ignored
+
+        Returns
+        -------
+        str
+            Code fragment unpacking the Brian namespace (setting variables in the dataholder struct in case of vector)
         '''
         code = []
         for var, var_obj in self.variables.items():
@@ -351,10 +524,19 @@ class GSLCodeGenerator(object):
 
     def translate_vector_code(self, code_lines, to_replace):
         '''
-        Vector code is translated to code that will be added to func, by adding tabbing and replacing variables with dataholder form
-        :param code_lines: lines of code describing vector_code
-        :param to_replace: dictionary with to be replaced strings (see to_replace_vector_vars and to_replace_diff_vars)
-        :return: new code
+        Translate vector code to GSL compatible code by substituting fragments of code.
+
+        Parameters
+        ----------
+        code_lines : list
+            list of strings describing the vector_code
+        to_replace: dict
+            dictionary with to be replaced strings (see to_replace_vector_vars and to_replace_diff_vars)
+
+        Returns
+        -------
+        str
+            New code that is now to be added to the function that is sent to the GSL integrator
         '''
         code = []
         for expr_set in code_lines:
@@ -379,12 +561,22 @@ class GSLCodeGenerator(object):
 
     def translate_scalar_code(self, code_lines, variables_in_scalar, variables_in_vector):
         '''
-        Translates scalar code. If calculated variables are used in the vector_code their value is added to the variable
+        Translate scalar code: if calculated variables are used in the vector_code their value is added to the variable
         in the dataholder.
-        :param code_lines: scalar code as a list of strings
-        :param variables_in_scalar: dictionary of variables occurring in scalar code
-        :param variables_in_vector: dictionary of variables occurring in vector code
-        :return: string of code that should occur in the main before the loop
+
+        Parameters
+        ----------
+        code_lines : list
+            list of strings containing scalar code
+        variables_in_vector : dict
+            dictionary with variable name (str), `Variable` pairs of variables occurring in vector code
+        variables_in_scalar : dict
+            dictionary with variable name (str), `Variable` pairs of variables occurring in scalar code
+
+        Returns
+        -------
+        str
+            Code fragment that should be injected in the main before the loop
         '''
         code = []
         for line in code_lines:
@@ -405,6 +597,19 @@ class GSLCodeGenerator(object):
         return ('\n').join(code)
 
     def add_gsl_variables_as_non_scalar(self, diff_vars):
+        '''
+        Add _gsl variables as non-scalar.
+
+        In `GSLStateUpdater` the differential equation variables are substituted with GSL tags that describe the
+        information needed to translate the conventional Brian code to GSL compatible code. This function tells Brian
+        that the variables that contain these tags should always be vector variables. If we don't do this, Brian
+        renders the tag-variables as scalar if no vector variables are used in the right hand side of the expression.
+
+        Parameters
+        ----------
+        diff_vars : dict
+            Dictionary with variables as keys and differential equation index as value
+        '''
         for var, ind in diff_vars.items():
             name = '_gsl_{var}_f{ind}'.format(var=var,ind=ind)
             self.variables[name] = AuxiliaryVariable(var, scalar=False)
@@ -452,8 +657,6 @@ class GSLCodeGenerator(object):
                                                  vector_statements)
 
         ############ translate code for GSL
-        self.cpp_standalone = self.is_cpp_standalone()
-
         # differential variable specific operations
         to_replace = self.diff_var_to_replace(diff_vars)
         GSL_support_code = self.get_dimension_code(len(diff_vars))

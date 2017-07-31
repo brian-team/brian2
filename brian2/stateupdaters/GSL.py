@@ -11,9 +11,14 @@ class GSLStateUpdater(StateUpdateMethod):
     '''
     def get_codeobj_class(self):
         '''
-        This function chooses which version of the GSLCodeObject is needed based on the target language and device
-        (so it chooses cython weave or cpp_standalone codeobject)
-        :return: GSL{target}CodeObject
+        Return codeobject class based on target language and device.
+
+        Choose which version of the GSL `CodeObject` to use. If ```isinstance(device, CPPStandaloneDevice)```, then
+        we want the `GSLCPPStandaloneCodeObject`. Otherwise the return value is based on prefs.codegen.target.
+
+        Returns
+        -------
+        CodeObject : `GSLWeaveCodeObject`, `GSLCythonCodeObject` or `GSLCPPStandaloneCodeObject`.
         '''
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
@@ -40,12 +45,24 @@ class GSLStateUpdater(StateUpdateMethod):
 
     def transfer_codeobj_class(self, obj):
         '''
-        The method returned when calling the StateUpdateMethod (before this class only returned abstract code)
-        With GSL this returns a method because more is needed than just the abstract code: the state updater requires
-        its own CodeObject that is different from the other NeuronGroup objects. This method adds this CodeObject to
-        the StateUpdater object (and also adds the variables 't' and 'dt' that are needed in the GSL templates!)
-        :param obj: StateUpdater object
-        :return: abstract code (what the StateUpdateMethod always returned in the past)
+        Transfer the code object class saved in self to the object sent as an argument.
+
+        This method is returned when calling `GSLStateUpdater`. This class inherits from `StateUpdateMethod` which
+        orignally only returns abstract code. However, with GSL this returns a method because more is needed than just
+        the abstract code: the state updater requires its own CodeObject that is different from the other `NeuronGroup`
+        objects. This method adds this `CodeObject` to the `StateUpdater` object (and also adds the variables 't', 'dt',
+        and other variables that are needed in the `GSLCodeGenerator`.
+
+        Parameters
+        ----------
+        obj : `GSLStateUpdater`
+            the object that the codeobj_class and other variables need to be transferred to
+
+        Returns
+        -------
+        str
+            The abstract code (translated equations), that is returned conventionally by brian and used for later
+            code generation in the `CodeGenerator.translate` method.
         '''
         obj.codeobj_class = self.get_codeobj_class()
         obj.codeobj_class.variable_flags = self.flags #TODO: temporary solution for sending flags to generator
@@ -53,7 +70,22 @@ class GSLStateUpdater(StateUpdateMethod):
         return GSL_stateupdater.abstract_code
 
     def __call__(self, equations, variables=None):
+        '''
+        Translate equations to abstract_code.
 
+        Parameters
+        ----------
+        equations : `Equations`
+            object containing the equations that describe the ODE system
+        variables : dict
+            dictionary containing str, `Variable` pairs
+
+        Returns
+        -------
+        method
+            Method that needs to be called with `StateUpdater` to add CodeObject class and some other variables so
+            these can be sent to the `CodeGenerator`
+        '''
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '
@@ -87,7 +119,6 @@ class GSLStateUpdater(StateUpdateMethod):
         self.abstract_code =  ('\n').join(code)
         self.flags = flags #TODO: temporary solution for sending flags to generator
         return self.transfer_codeobj_class
-
 
     # Copy doc from parent class
     __call__.__doc__ = StateUpdateMethod.__call__.__doc__
