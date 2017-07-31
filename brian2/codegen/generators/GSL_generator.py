@@ -714,11 +714,6 @@ class GSLCodeGenerator(object):
         kwds['support_code_lines'] += GSL_support_code.split('\n')
         kwds['t_array'] = self.get_array_name(self.variables['t']) + '[0]'
         kwds['dt_array'] = self.get_array_name(self.variables['dt']) + '[0]'
-
-        if self.cpp_standalone:
-            print GSL_main_code
-            print GSL_support_code
-
         return scalar_code, vector_code, kwds
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):
