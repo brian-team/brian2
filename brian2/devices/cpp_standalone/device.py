@@ -482,8 +482,9 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        # Ignore the requested codeobj_class unless GSL
-        if codeobj_class == GSLCPPStandaloneCodeObject: #TODO: make this check independent of 'GSL installation'
+        # Ignore the requested codeobj_class unless hasattr original_generator_class (this is a sign of having a method
+        # that uses a separate codeobject and generator for its stateupdater (e.g. GSL_stateupdater)
+        if hasattr(codeobj_class, 'original_generator_class'):
             return codeobj_class
         else:
             return CPPStandaloneCodeObject
