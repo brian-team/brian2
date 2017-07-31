@@ -65,7 +65,7 @@ class GSLStateUpdater(StateUpdateMethod):
             code generation in the `CodeGenerator.translate` method.
         '''
         obj.codeobj_class = self.get_codeobj_class()
-        obj.codeobj_class.variable_flags = self.flags #TODO: temporary solution for sending flags to generator
+        obj.codeobj_class.variable_flags = self.flags
         obj.needed_variables += ['t', 'dt'] + self.needed_variables
         return GSL_stateupdater.abstract_code
 
@@ -117,7 +117,7 @@ class GSLStateUpdater(StateUpdateMethod):
                 flags[eq_name] = eq_obj.flags
 
         self.abstract_code =  ('\n').join(code)
-        self.flags = flags #TODO: temporary solution for sending flags to generator
+        self.flags = flags
         return self.transfer_codeobj_class
 
     # Copy doc from parent class

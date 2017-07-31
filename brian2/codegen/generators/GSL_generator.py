@@ -82,7 +82,7 @@ class GSLCodeGenerator(object):
         if not codeobj_class.method_options is None:
             for key, value in codeobj_class.method_options.items():
                 self.method_options[key] = value
-        self.variable_flags = codeobj_class.variable_flags #TODO: temporary solution for sending flags to generator
+        self.variable_flags = codeobj_class.variable_flags
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -412,10 +412,12 @@ class GSLCodeGenerator(object):
         ----------
         statements : list
             list of statement objects (need to have the dtype attribute)
+
+        Notes
+        -----
+        I keep self.variables and other_variables separate so I can distinguish what variables are in the Brian
+        namespace and which ones are defined in the code itself.
         '''
-        #TODO: not sure if it is necessary to have other_variables separate from self.variables
-        #TODO: once I am finished with the docstrings I want to remove the use of 'other_variables'
-        #and just add the undefined variables to self.variables
         variables = self.variables
         other_variables = {}
         for statement in statements:
@@ -438,7 +440,6 @@ class GSLCodeGenerator(object):
         -------
             Dictionary of variables that are used as variable name (str), `Variable` pairs.
         '''
-        #TODO: if I remove other_variables: rewrite to only use self.variables
         variables = self.variables
         used_variables = {}
         for statement in statements:

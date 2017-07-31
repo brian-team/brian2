@@ -181,7 +181,7 @@ class StateUpdater(CodeRunner):
                                                                       group_name=self.group.name)
             if isinstance(stateupdate_output, str):
                 self.abstract_code += stateupdate_output
-            else: #TODO: do specific check for child of stateupdatemethod?
+            else:
                 self.abstract_code += stateupdate_output(self)
 
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
