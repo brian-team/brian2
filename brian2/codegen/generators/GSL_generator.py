@@ -575,10 +575,8 @@ class GSLCodeGenerator(object):
                 code = re.sub(re.sub('\[','\[', from_sub), to_sub, code)
 
         if '_gsl' in code:
-            print code
-            print('Translation failed, _gsl still in code (should only be tag, and should be replaced)')
-            #TODO: raise nicer error
-            raise Exception
+            raise Exception(('Translation failed, _gsl still in code (should only be tag, and should be replaced.\n'
+                             'Code:\n%s'%code))
 
         return code
 
