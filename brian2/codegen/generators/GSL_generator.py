@@ -14,13 +14,6 @@ import re
 
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
 
-#TODO: move definition of this error to Cython specific file? e.g. GSLcython_rt?
-class IntegrationError(Exception):
-    '''
-    Error used to signify that GSL was unable to complete integration (in Cython file)
-    '''
-    pass
-
 # default method_options
 default_method_options = {
     'integrator' : 'rkf45',

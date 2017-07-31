@@ -2,7 +2,7 @@
 
 {% block template_support_code %}
 
-from brian2.codegen.generators.GSL_generator import IntegrationError
+from brian2.codegen.runtime.GSLcython_rt import IntegrationError
 from libc.stdlib cimport malloc, free
 
 cdef enum:
