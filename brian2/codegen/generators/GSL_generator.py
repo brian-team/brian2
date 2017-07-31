@@ -7,12 +7,40 @@ from brian2.codegen.permutation_analysis import (check_for_order_independence,
 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.stringtools import get_identifiers, word_substitute
-from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.parsing.statements import parse_statement
 from brian2.codegen.generators import c_data_type
 import re
 
+from os.path import isdir, exists
+from brian2.core.preferences import PreferenceError
+
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
+
+def valid_gsl_dir(val):
+    '''
+    Validate given string to be path containing required GSL files.
+    '''
+    if not isinstance(val, (str, unicode)):
+        raise PreferenceError(('Illegal value for GSL directory: %s, has to be str'%(str(val))))
+    if not val[-1] == '/':
+        val += '/'
+    if not isdir(val):
+        raise PreferenceError(('Illegal value for GSL directory: %s, '
+                                'has to be existing directory'%(val)))
+    if not exists(val+'gsl_odeiv2.h') or not exists(val+'gsl_errno.h') or not exists(val+'gsl_matrix.h'):
+        raise PreferenceError(('Illegal value for GSL directory: %s, '
+                               'has to contain gsl_odeiv2.h, gsl_errno.h and gsl_matrix.h'%(val)))
+    return True
+
+prefs.register_preferences(
+    'GSL',
+    'Directory containing gsl code',
+    directory=BrianPreference(
+        validator=valid_gsl_dir,
+        docs='...',
+        default='/usr/local/include/gsl/'
+    )
+)
 
 # default method_options
 default_method_options = {
@@ -44,7 +72,8 @@ class GSLCodeGenerator(object):
 
         prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
         prefs.codegen.cpp.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
-        prefs.codegen.cpp.include_dirs += ['/home/charlee/softwarefolder/gsl-2.3/gsl/'] #TODO: obviously this has to be changed
+        prefs.codegen.cpp.include_dirs += [prefs.GSL.directory]
+        #prefs.codegen.cpp.include_dirs +=[ '/home/charlee/softwarefolder/gsl-2.3/gsl/']
 
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
@@ -686,6 +715,11 @@ class GSLCodeGenerator(object):
         kwds['support_code_lines'] += GSL_support_code.split('\n')
         kwds['t_array'] = self.get_array_name(self.variables['t']) + '[0]'
         kwds['dt_array'] = self.get_array_name(self.variables['dt']) + '[0]'
+
+        if self.cpp_standalone:
+            print GSL_main_code
+            print GSL_support_code
+
         return scalar_code, vector_code, kwds
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):
