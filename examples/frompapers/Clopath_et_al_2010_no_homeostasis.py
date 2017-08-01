@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 '''
+August 1st, 2017: adapted to run with GSL by Charlee Fletterman.
+Tried with: weave, cython and cpp_standalone. For figure looks the same as conventional brian
+For cython I get an error message about the compilation. Also with my master branch that should not contain any of my
+changes. However with my anaconda installed version of Brian it does run properly with cython.
+The file is not runnable with cpp_standalone without changes because the repetitive run calls while accessing data
+in between. Could probably do something with statemonitors..
+==========================
 This code contains an adapted version of the voltage-dependent triplet STDP rule from:
 Clopath et al., Connectivity reflects coding: a model of voltage-based STDP with homeostasis, Nature Neuroscience, 2010
 (http://dx.doi.org/10.1038/nn.2479)
@@ -103,12 +110,12 @@ defaultclock.dt = 100.*us                           # timestep
 Nr_neurons = 2                                      # Number of neurons
 rate_array = [1., 5., 10., 15., 20., 30., 50.]*Hz   # Rates
 init_weight = 0.5                                   # initial synaptic weight
-reps = 15                                           # Number of pairings
+reps = 5                                           # Number of pairings
 
 #### Create neuron objects
 
 Nrns = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
-                   reset='v=V_rest;x_trace+=x_reset/(taux/ms)', method='euler')#
+                   reset='v=V_rest;x_trace+=x_reset/(taux/ms)', method='GSL_stateupdater')#
 
 #### create Synapses
 
@@ -158,7 +165,7 @@ for jj, rate in enumerate(rate_array):
 ################################################################################
 # Plots
 ################################################################################
-
+device.build()
 stitle = 'Pairings'
 scolor = 'k'
 

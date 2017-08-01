@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 '''
+August 1st, 2017: adapted to run with GSL by Charlee Fletterman.
+Tried with: weave, cython and cpp_standalone. Figure looks the same as conventional brian (by eye)
+=============================
 Late Emergence of the Whisker Direction Selectivity Map in the Rat Barrel Cortex.
 Kremer Y, Leger JF, Goodman DF, Brette R, Bourdieu L (2011).
 J Neurosci 31(29):10689-700.
@@ -9,9 +12,9 @@ Whiskers are deflected with random moving bars.
 N.B.: network construction can be long.
 '''
 from brian2 import *
-import time
 
-#prefs.codegen.target = 'cython'
+set_device('cpp_standalone')
+prefs.codegen.target = 'cython'
 
 t1 = time.time()
 
@@ -53,7 +56,7 @@ stim_start_x : 1 (shared) # start position of the stimulus
 stim_start_y : 1 (shared) # start position of the stimulus
 '''
 layer4 = NeuronGroup(N4*Nbarrels, eqs_layer4, threshold='rand() < rate*dt',
-                     method='euler', name='layer4')
+                     method='GSL_stateupdater', name='layer4')
 layer4.barrel_x = '(i / N4) % barrelarraysize + 0.5'
 layer4.barrel_y = 'i / (barrelarraysize*N4) + 0.5'
 layer4.selectivity = '(i%N4)/(1.0*N4)*2*pi'  # for each barrel, selectivity between 0 and 2*pi
@@ -82,7 +85,7 @@ y : 1  # in "barrel width" units
 '''
 layer23 = NeuronGroup(Nbarrels*(N23exc+N23inh), eqs_layer23,
                       threshold='v>vt', reset='v = El; vt += vt_inc',
-                      refractory=2*ms, method='euler', name='layer23')
+                      refractory=2*ms, method='GSL_stateupdater', name='layer23')
 layer23.v = El
 layer23.vt = Vt
 
@@ -143,7 +146,9 @@ if get_device().__class__.__name__=='RuntimeDevice':
     t2 = time.time()
     print("Construction time: %.1fs" % (t2 - t1))
 
-run(5*second, report='text')
+run(.5*second, report='text')
+#print layer4.state_updater.codeobj.code # does not have code? (also not using euler)
+print layer23.state_updater.codeobj.code
 
 # Calculate the preferred direction of each cell in layer23 by doing a
 # vector average of the selectivity of the projecting layer4 cells, weighted

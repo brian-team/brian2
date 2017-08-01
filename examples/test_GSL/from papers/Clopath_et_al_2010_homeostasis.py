@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 '''
+August 1st, 2017: adapted to run with GSL by Charlee Fletterman.
+Tried with: weave, cython and cpp_standalone. For weave and cpp_standalone figure looks the same as conventional brian
+For cython I get an error message about the compilation. Also with my master branch that should not contain any of my
+changes. However with my anaconda installed version of Brian it does run properly with cython.
+=============================
 This code contains an adapted version of the voltage-dependent triplet STDP rule from:
 Clopath et al., Connectivity reflects coding: a model of voltage-based STDP with homeostasis, Nature Neuroscience, 2010
 (http://dx.doi.org/10.1038/nn.2479)
@@ -30,6 +35,7 @@ Invalid use of fused types, type cannot be specialized.
 '''
 from brian2 import *
 
+set_device('cpp_standalone')
 prefs.codegen.target = 'weave'
 
 ################################################################################
@@ -130,10 +136,10 @@ input_time = 100.*ms                             # duration of an input
 
 Nrn_downstream = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
                              reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
-                             method='euler')
+                             method='GSL_stateupdater')
 Nrns_input = NeuronGroup(Nr_inputs, eqs_inputs, threshold='rand()<rates*dt',
                          reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
-                         method='linear')
+                         method='GSL_stateupdater')
 
 #### create Synapses
 
@@ -146,7 +152,7 @@ Syn = Synapses(Nrns_input, Nrn_downstream,
 Syn.connect(i=numpy.arange(Nr_inputs), j=0)
 
 #### Monitors and storage
-W_evolution = StateMonitor(Syn, 'w_ampa', record=True)
+W_evolution = StateMonitor(Syn, 'w_ampa', record=numpy.arange(Nr_inputs))
 
 #### Run
 
