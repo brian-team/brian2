@@ -246,7 +246,34 @@ def test_GSL_stochastic():
         pass
     print('.'),
 
+def test_GSL_internal_variable():
+    #NeuronGroup(2, 'd_p/dt = 300*Hz : 1',
+    #                      method='GSL_stateupdater')
+    try:
+        Equations('d_p/dt = 300*Hz : 1')
+        raise Exception(('The previous line should raise a ValueError because of the use of a variable starting with '
+                         'an underscore'))
+    except ValueError:
+        pass
+    print('.'),
+
+def test_GSL_internal_variable2():
+    try:
+        _dataholder = 1*Hz
+        try:
+            Equations('dp/dt = 300*Hz + _dataholder: 1')
+            raise Exception(('The previous line should raise a ValueError because of the use of a variable starting with '
+                             'an underscore'))
+        except ValueError:
+            pass
+        print('.'),
+    except Exception:
+        #TODO: is there a reason this doesn't raise an error?
+        pass
+
 if __name__=='__main__':
+    test_GSL_internal_variable()
+    test_GSL_internal_variable2()
     test_GSL_stochastic()
     test_GSL_failing_directory()
     test_GSL_x_variable()

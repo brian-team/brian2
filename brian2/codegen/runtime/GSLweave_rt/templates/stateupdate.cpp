@@ -4,15 +4,15 @@
 
 {% block maincode %}
 //// MAIN CODE ////////////
-struct dataholder p;
-double * y = assign_memory_y();
+struct _dataholder _p;
+double * _y = _assign_memory_y();
 
-gsl_odeiv2_system sys;
-sys.function = func;
-set_dimension(&sys.dimension);
-sys.params = &p;
+gsl_odeiv2_system _sys;
+_sys.function = _func;
+set_dimension(&_sys.dimension);
+_sys.params = &_p;
 
-gsl_odeiv2_driver * d = gsl_odeiv2_driver_alloc_y_new(&sys,
+gsl_odeiv2_driver * _d = gsl_odeiv2_driver_alloc_y_new(&_sys,
                                   gsl_odeiv2_step_{{GSL_settings['integrator']}},
                                   {{GSL_settings['h_start']}},
                                   {{GSL_settings['eps_abs']}},
@@ -33,15 +33,15 @@ for(int _idx=0; _idx<_N; _idx++)
     const int _vectorisation_idx = _idx;
     double t = {{t_array}};
     double t1 = t + dt;
-    fill_y_vector(&p, y, _idx);
-    p._idx = _idx;
-    if ({{'gsl_odeiv2_driver_apply(d, &t, t1, y)' if GSL_settings['adaptable_timestep']
-                else 'gsl_odeiv2_driver_apply_fixed_step(d, &t, dt, 1, y)'}} != GSL_SUCCESS)
+    _fill_y_vector(&_p, _y, _idx);
+    _p._idx = _idx;
+    if ({{'gsl_odeiv2_driver_apply(_d, &t, t1, _y)' if GSL_settings['adaptable_timestep']
+                else 'gsl_odeiv2_driver_apply_fixed_step(_d, &t, dt, 1, _y)'}} != GSL_SUCCESS)
     {
         printf("Integration error running stateupdate with GSL\n");
         exit(-1);
     }
-    gsl_odeiv2_driver_reset(d);
-    empty_y_vector(&p, y, _idx);
+    gsl_odeiv2_driver_reset(_d);
+    _empty_y_vector(&_p, _y, _idx);
 }
 {% endblock %}

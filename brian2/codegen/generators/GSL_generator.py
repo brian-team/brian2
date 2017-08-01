@@ -60,7 +60,7 @@ class GSLCodeGenerator(object):
     Approach is to first let the already existing code generator for a target language do the bulk of the translating
     from abstract_code to actual code. This generated code is slightly adapted to render it GSL compatible.
     The most critical part here is that the vector_code that is normally contained in a loop in the ```main()``` is
-    moved to the function ```func``` that is sent to the GSL integrator. The variables used in the vector_code are added
+    moved to the function ```_func``` that is sent to the GSL integrator. The variables used in the vector_code are added
     to a struct named ```dataholder``` and their values are set from the Brian namespace just before the scalar
     code block.
     '''
@@ -182,9 +182,9 @@ class GSLCodeGenerator(object):
         """Check whether self.cpp_standalone and variable is Constant.
 
         This check is needed because in the case of using the cpp_standalone device we do not
-        want to apply our GSL variable conversion (var --> p.var), because the cpp_standalone
+        want to apply our GSL variable conversion (var --> _p.var), because the cpp_standalone
         code generation process involves replacing constants with their actual value ('freezing').
-        This results in code that looks like (if for example var = 1.2): p.1.2 = 1.2 and p->1.2.
+        This results in code that looks like (if for example var = 1.2): _p.1.2 = 1.2 and _p->1.2.
         To prevent repetitive calls to get_device() etc. the outcome of is_cpp_standalone is saved.
 
         Parameters
@@ -262,7 +262,7 @@ class GSLCodeGenerator(object):
             array_name = self.generator.get_array_name(var_obj, access_data=True)
             idx_name = '_idx' #TODO: could be dynamic?
             replace_what = '{var} = {array_name}[{idx_name}]'.format(array_name=array_name, idx_name=idx_name, var=var)
-            replace_with = '{var} = y[{ind}]'.format(ind=diff_num, var=var)
+            replace_with = '{var} = _y[{ind}]'.format(ind=diff_num, var=var)
             to_replace[replace_what] = replace_with
         return to_replace
 
@@ -306,28 +306,28 @@ class GSLCodeGenerator(object):
         Returns
         -------
         str
-            The code for the three functions (```assign_memory_y```, ```fill_y_vector``` and ```empty_y_vector```)
+            The code for the three functions (```_assign_memory_y```, ```_fill_y_vector``` and ```_empty_y_vector```)
             as single string.
         '''
-        allocate_y = ['\n{start_declare}double* assign_memory_y(){open_function}']
+        allocate_y = ['\n{start_declare}double* _assign_memory_y(){open_function}']
         allocate_y += ['\treturn {open_cast}double *{close_cast} malloc(%d*sizeof(double))'%len(diff_vars)]
         allocate_y[-1] += '{end_statement}{end_function}'
-        fill_y = ['\n{start_declare}int fill_y_vector(dataholder * p, double * y, int _idx){open_function}']
-        empty_y = ['\n{start_declare}int empty_y_vector(dataholder * p, double * y, int _idx){open_function}']
+        fill_y = ['\n{start_declare}int _fill_y_vector(_dataholder * _p, double * y, int _idx){open_function}']
+        empty_y = ['\n{start_declare}int _empty_y_vector(_dataholder * _p, double * y, int _idx){open_function}']
         for var, diff_num in diff_vars.items():
             diff_num = int(diff_num)
             array_name = self.generator.get_array_name(self.variables[var], access_data=True)
-            fill_y += ['\ty[%d] = p{access_pointer}%s[_idx]{end_statement}'%(diff_num, array_name)]
-            empty_y += ['\tp{access_pointer}%s[_idx] = y[%d]{end_statement}'%(array_name, diff_num)]
+            fill_y += ['\ty[%d] = _p{access_pointer}%s[_idx]{end_statement}'%(diff_num, array_name)]
+            empty_y += ['\t_p{access_pointer}%s[_idx] = y[%d]{end_statement}'%(array_name, diff_num)]
         fill_y += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
         empty_y += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
         return ('\n').join(allocate_y + fill_y + empty_y).format(**self.syntax)
 
     def make_function_code(self, lines):
         '''
-        Add lines of GSL translated vector code to 'non-changing' func code.
+        Add lines of GSL translated vector code to 'non-changing' _func code.
 
-        Adds nonchanging aspects of GSL func code to lines of code written somewhere else (`translate_vector_code`).
+        Adds nonchanging aspects of GSL _func code to lines of code written somewhere else (`translate_vector_code`).
         Here these lines are put between the non-changing parts of the code and the target language specific
         syntax is added.
 
@@ -339,19 +339,19 @@ class GSLCodeGenerator(object):
         Returns
         -------
         str
-            Code describing ```func``` that is sent to GSL integrator.
+            Code describing ```_func``` that is sent to GSL integrator.
         '''
         code = ['\n']
-        code += ['{start_declare}int func(double t, const double y[], double f[], void * params){open_function}']
-        code += ['\t{start_declare}dataholder * p = {open_cast}dataholder *{close_cast} params{end_statement}']
-        code += ['\t{start_declare}int _idx = p{access_pointer}_idx{end_statement}']
+        code += ['{start_declare}int _func(double t, const double _y[], double f[], void * params){open_function}']
+        code += ['\t{start_declare}_dataholder * _p = {open_cast}_dataholder *{close_cast} params{end_statement}']
+        code += ['\t{start_declare}int _idx = _p{access_pointer}_idx{end_statement}']
         code += [lines]
         code += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
         return ('\n').join(code).format(**self.syntax)
 
     def write_dataholder_single(self, var_obj):
         '''
-        Return string declaring a single variable in the ```dataholder``` struct.
+        Return string declaring a single variable in the ```_dataholder``` struct.
 
         Parameters
         ----------
@@ -360,7 +360,7 @@ class GSLCodeGenerator(object):
         Returns
         -------
         str
-            string describing this variable object as required for the ```dataholder``` struct
+            string describing this variable object as required for the ```_dataholder``` struct
             (e.g. ```double* _array_neurongroup_v```)
         '''
         dtype = self.c_data_type(var_obj.dtype)
@@ -378,7 +378,7 @@ class GSLCodeGenerator(object):
 
     def write_dataholder(self, variables_in_vector):
         '''
-        Return string with full code for dataholder struct.
+        Return string with full code for _dataholder struct.
 
         Parameters
         ----------
@@ -388,9 +388,9 @@ class GSLCodeGenerator(object):
         Returns
         -------
         str
-            Code for dataholder struct
+            Code for _dataholder struct
         '''
-        code = ['\n{start_declare}struct dataholder{open_struct}']
+        code = ['\n{start_declare}struct _dataholder{open_struct}']
         code += ['\tint _idx{end_statement}']
         for var, var_obj in variables_in_vector.items():
             if var == 't' or '_gsl' in var or self.is_constant_and_cpp_standalone(var_obj):
@@ -404,7 +404,7 @@ class GSLCodeGenerator(object):
         Find identifiers that are not in self.variables dictionary.
 
         Brian does not save the _lio_ variables it uses anywhere. This is problematic for our GSL implementation because
-        we save the lio variables in the dataholder struct (for which we need the datatype of the variables).
+        we save the lio variables in the _dataholder struct (for which we need the datatype of the variables).
         This function adds the left hand side variables that are used in the vector code to the variable
         dictionary as `AuxiliaryVariable`s (all we need later is the datatype).
 
@@ -477,7 +477,7 @@ class GSLCodeGenerator(object):
         Returns
         -------
         dict
-            Dictionary with strings that need to be replaced i.e. _lio_1 will be p._lio_1 (in cython) or p->_lio_1 (cpp)
+            Dictionary with strings that need to be replaced i.e. _lio_1 will be _p._lio_1 (in cython) or _p->_lio_1 (cpp)
 
         Notes
         -----
@@ -497,9 +497,9 @@ class GSLCodeGenerator(object):
                 continue
             if isinstance(var_obj, ArrayVariable):
                 pointer_name = self.get_pointer_name(var_obj)
-                to_replace[pointer_name] = 'p' + access_pointer + pointer_name
+                to_replace[pointer_name] = '_p' + access_pointer + pointer_name
             else:
-                to_replace[var] = 'p' + access_pointer + var
+                to_replace[var] = '_p' + access_pointer + var
 
         # also make sure t declaration is replaced if in code
         if t_in_code is not None:
@@ -517,7 +517,7 @@ class GSLCodeGenerator(object):
         '''
         Write code that unpacks Brian namespace to cython/cpp namespace.
 
-        For vector code this means putting variables in dataholder (i.e. p->var or p.var = ...)
+        For vector code this means putting variables in _dataholder (i.e. _p->var or _p.var = ...)
         Note that code is written so a variable could occur both in scalar and vector code
 
         Parameters
@@ -532,7 +532,7 @@ class GSLCodeGenerator(object):
         Returns
         -------
         str
-            Code fragment unpacking the Brian namespace (setting variables in the dataholder struct in case of vector)
+            Code fragment unpacking the Brian namespace (setting variables in the _dataholder struct in case of vector)
         '''
         code = []
         for var, var_obj in self.variables.items():
@@ -583,7 +583,7 @@ class GSLCodeGenerator(object):
     def translate_scalar_code(self, code_lines, variables_in_scalar, variables_in_vector):
         '''
         Translate scalar code: if calculated variables are used in the vector_code their value is added to the variable
-        in the dataholder.
+        in the _dataholder.
 
         Parameters
         ----------
@@ -613,7 +613,7 @@ class GSLCodeGenerator(object):
             if actual_var in variables_in_vector.keys():
                 if var == 't':
                     continue
-                code += ['p.{var} {op} {expr} {comment}'.format(
+                code += ['_p.{var} {op} {expr} {comment}'.format(
                         var=actual_var, op=op, expr=expr, comment=comment)]
         return ('\n').join(code)
 
@@ -639,7 +639,15 @@ class GSLCodeGenerator(object):
         '''
         Translates an abstract code block into the target language.
         '''
-        # if this is not done, Brian translates the differential expressions in the abstract
+        # first check if user code is not using variables that are also used by GSL
+        reserved_variables = ['_dataholder', '_fill_y_vector', '_empty_y_vector', '_p', '_y', '_func']
+        if any([var in self.variables for var in reserved_variables]):
+            # import here to avoid circular import
+            from brian2.stateupdaters.base import UnsupportedEquationsException
+            raise UnsupportedEquationsException(("The variables %s are reserved for the GSL "
+                                                 "internal code."%(str(reserved_variables))))
+
+        # if the following statements are not added, Brian translates the differential expressions in the abstract
         # code for GSL to scalar statements in the case no non-scalar variables are used in the expression
         diff_vars = self.find_differential_variables(code.values())
         self.add_gsl_variables_as_non_scalar(diff_vars)
@@ -688,23 +696,23 @@ class GSLCodeGenerator(object):
         other_variables = self.find_undefined_variables(scalar_statements[None]+vector_statements[None])
         variables_in_scalar = self.find_used_variables(scalar_statements[None], other_variables)
         variables_in_vector = self.find_used_variables(vector_statements[None], other_variables)
-        # so that dataholder holds diff_vars as well, even if they don't occur in the actual statements
+        # so that _dataholder holds diff_vars as well, even if they don't occur in the actual statements
         for var in diff_vars.keys():
             if not var in variables_in_vector:
                 variables_in_vector[var] = self.variables[var]
 
-        # add code for dataholder struct
+        # add code for _dataholder struct
         GSL_support_code = self.write_dataholder(variables_in_vector) + GSL_support_code
-        # add e.g. _lio_1 --> p._lio_1 to replacer
+        # add e.g. _lio_1 --> _p._lio_1 to replacer
         to_replace.update(self.to_replace_vector_vars(variables_in_vector,ignore=diff_vars.keys()))
-        # write statements that unpack (python) namespace to dataholder struct or local namespace
+        # write statements that unpack (python) namespace to _dataholder struct or local namespace
         GSL_main_code = self.unpack_namespace(variables_in_vector, variables_in_scalar, ['t'])
 
-        # rewrite actual calculations described by vector_code and put them in func
+        # rewrite actual calculations described by vector_code and put them in _func
         GSL_support_code += self.make_function_code(self.translate_vector_code(vector_code[None], to_replace))
 
         # rewrite scalar code, keep variables that are needed in scalar code normal
-        # and add variables to dataholder for vector_code
+        # and add variables to _dataholder for vector_code
         GSL_main_code += '\n' + self.translate_scalar_code(scalar_code[None],
                                                     variables_in_scalar,
                                                     variables_in_vector)
@@ -756,12 +764,12 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
             array_name = self.generator.get_array_name(var_obj)
             dtype = self.c_data_type(var_obj.dtype)
             if in_vector:
-                code += ['p.{array} = <{dtype} *> _buf_{array}.data'.format(array=array_name, dtype=dtype)]
+                code += ['_p.{array} = <{dtype} *> _buf_{array}.data'.format(array=array_name, dtype=dtype)]
             if in_scalar:
                 code += ['{array} = <{dtype} *> _buf_{array}.data'.format(array=array_name, dtype=dtype)]
         else:
             if in_vector:
-                code += ['p.{var} = _namespace["{var}"]'.format(var=var_obj.name)]
+                code += ['_p.{var} = _namespace["{var}"]'.format(var=var_obj.name)]
             if in_scalar:
                 code += ['{var} = _namespace["{var}"]'.format(var=var_obj.name)]
         return ('\n').join(code)
@@ -807,11 +815,11 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
             pointer_name = self.get_pointer_name(var_obj)
             array_name = self.get_array_name(var_obj)
             if in_vector:
-                return 'p.{ptr} = {array};'.format(ptr=pointer_name, array=array_name)
+                return '_p.{ptr} = {array};'.format(ptr=pointer_name, array=array_name)
             else:
                 return ''
         else:
             if in_vector:
-                return 'p.{var} = {var};'.format(var=var_obj.name)
+                return '_p.{var} = {var};'.format(var=var_obj.name)
             else:
                 return ''
