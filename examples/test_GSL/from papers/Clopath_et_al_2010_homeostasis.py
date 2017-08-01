@@ -30,7 +30,7 @@ Invalid use of fused types, type cannot be specialized.
 '''
 from brian2 import *
 
-prefs.codegen.target = 'cython'
+prefs.codegen.target = 'weave'
 
 ################################################################################
 # PLASTICITY MODEL

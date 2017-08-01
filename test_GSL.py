@@ -1,5 +1,6 @@
 from brian2 import *
 from brian2.core.preferences import PreferenceError
+from brian2.stateupdaters.base import UnsupportedEquationsException
 
 max_difference = .1*mV
 max_difference_same_method = 1*pvolt
@@ -209,7 +210,7 @@ def test_GSL_x_variable():
     network = Network(neurons)
     # just testing compilation
     network.run(0*ms)
-    print('.')
+    print('.'),
 
 def test_GSL_failing_directory():
     try:
@@ -223,7 +224,30 @@ def test_GSL_failing_directory():
     except PreferenceError:
         pass
 
+def test_GSL_stochastic():
+    Vr = 10*mV
+    theta = 20*mV
+    tau = 20*ms
+    delta = 2*ms
+    taurefr = 2*ms
+    duration = .1*second
+    C = 1000
+    J = .1*mV
+    muext = 25*mV
+    sigmaext = 1*mV
+    eqs = """
+    dV/dt = (-V+muext + sigmaext * sqrt(tau) * xi)/tau : volt
+    """
+    group = NeuronGroup(10, eqs, method='GSL_stateupdater')
+    try:
+        run(0*ms)
+        raise Exception(('The previous line should raise an UnsupportedEquationsException'))
+    except UnsupportedEquationsException:
+        pass
+    print('.'),
+
 if __name__=='__main__':
+    test_GSL_stochastic()
     test_GSL_failing_directory()
     test_GSL_x_variable()
     test_GSL_fixed_timestep_rk4()
