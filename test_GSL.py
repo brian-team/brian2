@@ -271,7 +271,26 @@ def test_GSL_internal_variable2():
         #TODO: is there a reason this doesn't raise an error?
         pass
 
+def test_GSL_method_options_spatialneuron():
+    morpho = Soma(30*um)
+    eqs = '''
+    Im = g * v : amp/meter**2
+    dg/dt = siemens/metre**2/second : siemens/metre**2
+    '''
+    neuron1 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
+                           method='GSL_stateupdater', method_options={'adaptable_timestep':True})
+    neuron2 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
+                           method='GSL_stateupdater', method_options={'adaptable_timestep':False})
+    run(0*ms)
+    assert 'fixed' not in str(neuron1.state_updater.codeobj.code), \
+        'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
+    assert 'fixed' in str(neuron2.state_updater.codeobj.code), \
+        'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
+    print('.'),
+
+
 if __name__=='__main__':
+    test_GSL_method_options_spatialneuron()
     test_GSL_internal_variable()
     test_GSL_internal_variable2()
     test_GSL_stochastic()
