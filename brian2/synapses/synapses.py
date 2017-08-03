@@ -51,8 +51,9 @@ class StateUpdater(CodeRunner):
     The `CodeRunner` that updates the state variables of a `Synapses`
     at every timestep.
     '''
-    def __init__(self, group, method, clock, order):
+    def __init__(self, group, method, clock, order, method_options=None):
         self.method_choice = method
+        self.method_options = method_options
         CodeRunner.__init__(self, group,
                             'stateupdate',
                             clock=clock,
@@ -67,6 +68,7 @@ class StateUpdater(CodeRunner):
             stateupdate_output = StateUpdateMethod.apply_stateupdater(self.group.equations,
                                                                       self.group.variables,
                                                                       self.method_choice,
+                                                                      method_options=self.method_options,
                                                                       group_name=self.group.name)
             if isinstance(stateupdate_output, str):
                 self.abstract_code += stateupdate_output
@@ -641,6 +643,7 @@ class Synapses(Group):
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
                  method=('linear', 'euler', 'heun'),
+                 method_options=None,
                  name='synapses*'):
         if connect is not None:
             raise TypeError('The connect keyword argument is no longer '
@@ -666,6 +669,9 @@ class Synapses(Group):
 
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
+
+        # save method_options in self so they can be used in generator
+        self.method_options = method_options
 
         #: remember whether connect was called to raise an error if an
         #: assignment to a synaptic variable is attempted without a preceding
@@ -832,7 +838,8 @@ class Synapses(Group):
 
         # We only need a state update if we have differential equations
         if len(self.equations.diff_eq_names):
-            self.state_updater = StateUpdater(self, method, clock=self.clock,
+            self.state_updater = StateUpdater(self, method, method_options=method_options,
+                                              clock=self.clock,
                                               order=order)
             self.contained_objects.append(self.state_updater)
 
