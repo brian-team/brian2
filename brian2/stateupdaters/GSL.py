@@ -4,11 +4,11 @@ from ..devices.device import auto_target
 
 __all__ = ['GSL_stateupdater']
 
-class GSLStateUpdater(StateUpdateMethod):
-    '''
-    A statupdater that rewrites the differential equations so that the GSL generator knows how to write the
-    code in the target language.
-    '''
+class TransferClass(object):
+
+    def __init__(self, obj):
+        self.stateupdate_method = obj
+
     def get_codeobj_class(self):
         '''
         Return codeobject class based on target language and device.
@@ -43,6 +43,41 @@ class GSLStateUpdater(StateUpdateMethod):
         else:
             raise NotImplementedError
 
+    def __call__(self, obj):
+        '''
+        Transfer the code object class saved in self to the object sent as an argument.
+
+        This method is returned when calling `GSLStateUpdater`. This class inherits from `StateUpdateMethod` which
+        orignally only returns abstract code. However, with GSL this returns a method because more is needed than just
+        the abstract code: the state updater requires its own CodeObject that is different from the other `NeuronGroup`
+        objects. This method adds this `CodeObject` to the `StateUpdater` object (and also adds the variables 't', 'dt',
+        and other variables that are needed in the `GSLCodeGenerator`.
+
+        Parameters
+        ----------
+        obj : `GSLStateUpdater`
+            the object that the codeobj_class and other variables need to be transferred to
+
+        Returns
+        -------
+        str
+            The abstract code (translated equations), that is returned conventionally by brian and used for later
+            code generation in the `CodeGenerator.translate` method.
+        '''
+        obj.codeobj_class = self.get_codeobj_class()
+        obj.codeobj_class.variable_flags = self.stateupdate_method.flags
+        obj.needed_variables += ['t', 'dt'] + self.stateupdate_method.needed_variables
+        return self.stateupdate_method.abstract_code
+
+    def __len__(self):
+        return len(self.stateupdate_method.abstract_code)
+
+
+class GSLStateUpdater(StateUpdateMethod):
+    '''
+    A statupdater that rewrites the differential equations so that the GSL generator knows how to write the
+    code in the target language.
+    '''
     def transfer_codeobj_class(self, obj):
         '''
         Transfer the code object class saved in self to the object sent as an argument.
@@ -118,7 +153,7 @@ class GSLStateUpdater(StateUpdateMethod):
 
         self.abstract_code =  ('\n').join(code)
         self.flags = flags
-        return self.transfer_codeobj_class
+        return TransferClass(self)
 
     # Copy doc from parent class
     __call__.__doc__ = StateUpdateMethod.__call__.__doc__
