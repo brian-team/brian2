@@ -603,7 +603,7 @@ class GSLCodeGenerator(object):
             if actual_var in variables_in_scalar.keys():
                 code += [line]
             if actual_var in variables_in_vector.keys():
-                if var == 't':
+                if actual_var == 't':
                     continue
                 code += ['_GSL_dataholder.{var} {op} {expr} {comment}'.format(
                         var=actual_var, op=op, expr=expr, comment=comment)]

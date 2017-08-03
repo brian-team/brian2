@@ -288,8 +288,50 @@ def test_GSL_method_options_spatialneuron():
         'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
     print('.'),
 
+def test_GSL_method_options_synapses():
+    N = 1000
+    taum = 10*ms
+    taupre = 20*ms
+    taupost = taupre
+    Ee = 0*mV
+    vt = -54*mV
+    vr = -60*mV
+    El = -74*mV
+    taue = 5*ms
+    F = 15*Hz
+    gmax = .01
+    dApre = .01
+    dApost = -dApre * taupre / taupost * 1.05
+    dApost *= gmax
+    dApre *= gmax
+    eqs_neurons = '''
+    dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
+    dge/dt = -ge / taue : 1
+    '''
+    input = PoissonGroup(N, rates=F)
+    neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
+                          method='GSL_stateupdater')
+    S1 = Synapses(input, neurons,
+                 '''w : 1
+                    dApre/dt = -Apre / taupre : 1 (clock-driven)
+                    dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                 method='GSL_stateupdater',
+                 method_options={'adaptable_timestep':True})
+    S2 = Synapses(input, neurons,
+                 '''w : 1
+                    dApre/dt = -Apre / taupre : 1 (clock-driven)
+                    dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                 method='GSL_stateupdater',
+                 method_options={'adaptable_timestep':False})
+    run(0*ms)
+    assert 'fixed' not in str(S1.state_updater.codeobj.code), \
+        'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
+    assert 'fixed' in str(S2.state_updater.codeobj.code), \
+        'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
+    print('.'),
 
 if __name__=='__main__':
+    test_GSL_method_options_synapses()
     test_GSL_method_options_spatialneuron()
     test_GSL_internal_variable()
     test_GSL_internal_variable2()

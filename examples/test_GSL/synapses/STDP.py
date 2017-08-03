@@ -7,6 +7,7 @@ Spike-timing dependent plasticity
 Adapted from Song, Miller and Abbott (2000) and Song and Abbott (2001)
 '''
 from brian2 import *
+set_device('cpp_standalone')
 prefs.codegen.target='cython'
 seed(0)
 
@@ -33,7 +34,7 @@ dge/dt = -ge / taue : 1
 
 input = PoissonGroup(N, rates=F)
 neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
-                      method='linear')
+                      method='GSL_stateupdater')
 S = Synapses(input, neurons,
              '''w : 1
                 dApre/dt = -Apre / taupre : 1 (clock-driven)
