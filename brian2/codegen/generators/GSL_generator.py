@@ -111,18 +111,11 @@ class GSLCodeGenerator(object):
         '''
         raise NotImplementedError
 
-    def get_array_name(self, var_obj):
+    # I redefined the get_array_name functions because I ran into trouble with inheritance because get_array_name is
+    # called from different 'selfs' (from CodeObject classes, from DynamicArrayVariable class, from CodeGenerator class
+    def get_array_name(self, var_obj, access_data=False):
         '''
         Get the array_name used in Python Brian
-        '''
-        raise NotImplementedError
-
-    def get_pointer_name(self, var_obj):
-        '''
-        Get the pointer_name used to refer to array object.
-
-        Only differs for cpp, but function also defined for cython. In the case of cython this just returns the same
-        as get_array_name (for maximum generalizability of the GSL_generator code)
         '''
         raise NotImplementedError
 
@@ -365,7 +358,7 @@ class GSLCodeGenerator(object):
         '''
         dtype = self.c_data_type(var_obj.dtype)
         if isinstance(var_obj, ArrayVariable):
-            pointer_name = self.get_pointer_name(var_obj)
+            pointer_name = self.get_array_name(var_obj, access_data=True)
             try:
                 restrict = self.generator.restrict
             except AttributeError:
@@ -496,7 +489,7 @@ class GSLCodeGenerator(object):
             if self.is_constant_and_cpp_standalone(var_obj):
                 continue
             if isinstance(var_obj, ArrayVariable):
-                pointer_name = self.get_pointer_name(var_obj)
+                pointer_name = self.get_array_name(var_obj, access_data=True)
                 to_replace[pointer_name] = '_p' + access_pointer + pointer_name
             else:
                 to_replace[var] = '_p' + access_pointer + var
@@ -504,7 +497,7 @@ class GSLCodeGenerator(object):
         # also make sure t declaration is replaced if in code
         if t_in_code is not None:
             t_declare = self.var_init_lhs('t', 'const double ')
-            array_name = self.get_pointer_name(t_in_code)
+            array_name = self.get_array_name(t_in_code, access_data=True)
             end_statement = self.syntax['end_statement']
             replace_what = '{t_declare} = {array_name}[0]{end_statement}'.format(t_declare=t_declare,
                                                                                  array_name=array_name,
@@ -752,12 +745,6 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
         else:
             return 'cdef ' + type + ' ' + name
 
-    def get_array_name(self, var_obj):
-        return self.generator.get_array_name(var_obj)
-
-    def get_pointer_name(self, var_obj):
-        return self.get_array_name(var_obj)
-
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         code = []
         if isinstance(var_obj, ArrayVariable):
@@ -774,7 +761,33 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
                 code += ['{var} = _namespace["{var}"]'.format(var=var_obj.name)]
         return ('\n').join(code)
 
+    @staticmethod
+    def get_array_name(var, access_data=True):
+        '''
+        Get a globally unique name for a `ArrayVariable`.
+
+        Parameters
+        ----------
+        var : `ArrayVariable`
+            The variable for which a name should be found.
+        access_data : bool, optional
+            For `DynamicArrayVariable` objects, specifying `True` here means the
+            name for the underlying data is returned. If specifying `False`,
+            the name of object itself is returned (e.g. to allow resizing).
+        Returns
+        -------
+        name : str
+            A uniqe name for `var`.
+        '''
+        # We have to do the import here to avoid circular import dependencies.
+        from brian2.devices.device import get_device
+        device = get_device()
+        return device.get_array_name(var, access_data=access_data)
+
 class GSLWeaveCodeGenerator(GSLCodeGenerator):
+
+    def __getattr__(self, item):
+        return getattr(self.generator, item)
 
     syntax = {'end_statement' : ';',
               'access_pointer' : '->',
@@ -804,15 +817,9 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
     def var_init_lhs(self, var, type):
         return type + var
 
-    def get_array_name(self, var_obj):
-        return self.generator.get_array_name(var_obj, access_data=False)
-
-    def get_pointer_name(self, var_obj):
-        return self.generator.get_array_name(var_obj, access_data=True)
-
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         if isinstance(var_obj, ArrayVariable):
-            pointer_name = self.get_pointer_name(var_obj)
+            pointer_name = self.get_array_name(var_obj, access_data=True)
             array_name = self.get_array_name(var_obj)
             if in_vector:
                 return '_p.{ptr} = {array};'.format(ptr=pointer_name, array=array_name)
@@ -823,3 +830,13 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
                 return '_p.{var} = {var};'.format(var=var_obj.name)
             else:
                 return ''
+
+    @staticmethod
+    def get_array_name(var, access_data=True):
+        # We have to do the import here to avoid circular import dependencies.
+        from brian2.devices.device import get_device
+        device = get_device()
+        if access_data:
+            return '_ptr' + device.get_array_name(var)
+        else:
+            return device.get_array_name(var, access_data=False)

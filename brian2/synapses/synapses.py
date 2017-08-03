@@ -64,10 +64,14 @@ class StateUpdater(CodeRunner):
     
     def update_abstract_code(self, run_namespace=None, level=0):
         if len(self.group.equations) > 0:
-            self.abstract_code = StateUpdateMethod.apply_stateupdater(self.group.equations,
+            stateupdate_output = StateUpdateMethod.apply_stateupdater(self.group.equations,
                                                                       self.group.variables,
                                                                       self.method_choice,
                                                                       group_name=self.group.name)
+            if isinstance(stateupdate_output, str):
+                self.abstract_code += stateupdate_output
+            else:
+                self.abstract_code += stateupdate_output(self)
         else:
             self.abstract_code = ''
 
