@@ -7,9 +7,19 @@ Compute I/O characteristics of three synapses:
     - synapse + astrocyte in closed-loop configuraton (red)
 
 """
-import matplotlib  # DELETE
-matplotlib.use('agg')  # DELETE
+#import matplotlib  # DELETE
+#matplotlib.use('agg')  # DELETE
 from brian2 import *
+
+GSL=True
+if GSL:
+    neuron_method = 'GSL_stateupdater'
+    synapse_method = 'GSL_stateupdater'
+    astro_method = 'GSL_stateupdater'
+else:
+    neuron_method = None
+    synapse_method = 'linear'
+    astro_method = 'rk4'
 
 # set_device('cpp_standalone', directory='astrocyte_io')  # uncomment for fast simulation
 seed(1929)  # to get identical figures for repeated runs
@@ -127,7 +137,7 @@ Y_S += rho_c * Y_T * r_S
 '''
 synapses = Synapses(source_neurons, target_neurons,
                     model=synapses_eqs, on_pre=synapses_action,
-                    multisynaptic_index='k', method='linear')
+                    multisynaptic_index='k', method=synapse_method)
 # We create three synapses per connection: only the first two are modulated by
 # the astrocyte however
 synapses.connect('i==j', n=N_astro+1)
@@ -181,7 +191,7 @@ astrocyte = NeuronGroup(N_astro*N_neurons, astro_eqs,
                         # is crossed, in Brian terms it can therefore be
                         # considered a "reset"
                         reset=glio_release,
-                        method='rk4')
+                        method=astro_method)
 astrocyte.h = 0.9
 astrocyte.x_A = 1.0
 # Only the second group of N_neurons astrocytes are activated by external stimulation
@@ -189,12 +199,14 @@ astrocyte.I_bias = (np.r_[np.zeros(N_neurons), np.ones(N_neurons)])*1.0*umole
 
 ## Connections
 syn_to_astro = Synapses(synapses, astrocyte,
-                        'Y_S_post = Y_S_pre : mole (summed)')
+                        'Y_S_post = Y_S_pre : mole (summed)',
+                        method=synapse_method)
 ## Connect th first N_neurons synapses to the first N_neurons astrocytes,
 syn_to_astro.connect(j='int(i / 3) for _ in range(1) if i % 3 == 0 ')
 
 astro_to_syn = Synapses(astrocyte, synapses,
-                        'G_A_post = G_A_pre : mole (summed)')
+                        'G_A_post = G_A_pre : mole (summed)',
+                        method=synapse_method)
 ## Connect the first N_neurons astrocytes to the first N_neurons synapses (closed-loop configuration)
 astro_to_syn.connect(j='i*3 for _ in range(1) if i < N_neurons')
 ## Connect the second astrocyte to the second group of N_neurons synapses (open-loop configuration).
@@ -235,5 +247,6 @@ ax[2].errorbar(f_vals/Hz, np.mean(syn_mon[synapses[:, :, 0]].r_S, axis=1),
 ax[2].set(xscale='log', xlabel='input frequency (Hz)', ylabel=r'$\langle r_S \rangle$')
 
 # Save Figure for paper # DELETE
-plt.savefig('../text/figures/results/example_4_rmeans_Figure.png')  # DELETE
+#plt.savefig('../text/figures/results/example_4_rmeans_Figure.png')  # DELETE
+plt.savefig('example_4b_%s.pdf'%('GSL'*GSL+'conventional'*(not GSL)))
 plt.show()
