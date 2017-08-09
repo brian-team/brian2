@@ -47,3 +47,7 @@ def setreleasedate():
     init_py = open('brian2/__init__.py', 'r').read()
     init_py = re.sub("__release_date__\s*=\s*'.*?'", "__release_date__ = '" + releasedate + "'", init_py)
     open('brian2/__init__.py', 'w').write(init_py)
+
+if __name__ == '__main__':
+    version = raw_input('New version: ')
+    setversion(version)

@@ -521,7 +521,8 @@ class BrianLogger(object):
         # Save a copy of the script
         BrianLogger.tmp_script = None
         if prefs['logging.save_script']:
-            if len(sys.argv[0]) and not running_from_ipython():
+            if (len(sys.argv[0]) and not running_from_ipython() and
+                    os.path.isfile(sys.argv[0])):
                 try:
                     tmp_file = tempfile.NamedTemporaryFile(
                         prefix='brian_script_',

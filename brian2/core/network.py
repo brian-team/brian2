@@ -13,6 +13,7 @@ import time
 from collections import defaultdict, Sequence, Counter, Mapping, namedtuple
 import cPickle as pickle
 
+from brian2.synapses.synapses import SummedVariableUpdater
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
@@ -214,6 +215,46 @@ class SchedulingSummary(object):
         </table>
         '''.format(rows='\n'.join(rows))
         return html_code
+
+
+def _check_multiple_summed_updaters(objects):
+    '''
+    Helper function that checks whether multiple `SummedVariableUpdater` target
+    the same target variable. Raises a `NotImplementedError` if this is the
+    case (and problematic, i.e. not when using non-overlapping subgroups).
+
+    Parameters
+    ----------
+    objects : list of `BrianObject`
+        The list of objects in the network.
+    '''
+    summed_targets = {}
+    for obj in objects:
+        if isinstance(obj, SummedVariableUpdater):
+            if obj.target_var in summed_targets:
+                other_target = summed_targets[obj.target_var]
+                if obj.target == other_target:
+                    # We raise an error, even though this could be ok in
+                    # principle (e.g. two Synapses could target different
+                    # subsets of the target groups, without using subgroups)
+                    msg = ('Multiple "summed variables" target the '
+                           'variable "{var}" in group "{target}". Use '
+                           'multiple variables in the target group '
+                           'instead.'.format(var=obj.target_var.name,
+                                             target=obj.target.name))
+                    raise NotImplementedError(msg)
+                elif (obj.target.start < other_target.stop and
+                              other_target.start < obj.target.stop):
+                    # Overlapping subgroups
+                    msg = ('Multiple "summed variables" target the '
+                           'variable "{var}" in overlapping groups '
+                           '"{target1}" and "{target2}". Use separate '
+                           'variables in the target groups '
+                           'instead.'.format(var=obj.target_var.name,
+                                             target1=other_target.name,
+                                             target2=obj.target.name))
+                    raise NotImplementedError(msg)
+            summed_targets[obj.target_var] = obj.target
 
 
 class Network(Nameable):
@@ -760,6 +801,10 @@ class Network(Nameable):
                              'names, the following name(s) were used more than '
                              'once: %s' % formatted_names)
 
+        # Check that there are no SummedVariableUpdaters targeting the same
+        # target variable
+        _check_multiple_summed_updaters(self.objects)
+
         self._stopped = False
         Network._globally_stopped = False
 
@@ -816,7 +861,7 @@ class Network(Nameable):
                         clocknames=', '.join('%s (dt=%s)' % (obj.name, obj.dt)
                                              for obj in self._clocks)),
                      "before_run")
-    
+
     @device_override('network_after_run')
     def after_run(self):
         '''
