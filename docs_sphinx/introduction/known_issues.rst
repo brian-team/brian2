@@ -16,6 +16,13 @@ and modify the line ``msvcr_dbg_success = build_msvcr_library(debug=True)`` to r
 ``msvcr_dbg_success = False`` (you can comment out the existing line and add the new line
 immediately after).
 
+"AttributeError: MSVCCompiler instance has no attribute 'compiler_cxx'"
+-----------------------------------------------------------------------
+
+This may be a bug in some versions of numpy on Windows. The following change may fix the problem.
+Modify line 388 of ``numpy/distutils/ccompiler.py`` from ``elif not self.compiler_cxx:`` to
+``elif not hasattr(self, 'compiler_cxx') or not self.compiler_cxx:``.
+
 "Missing compiler_cxx fix for MSVCCompiler"
 -------------------------------------------
 
