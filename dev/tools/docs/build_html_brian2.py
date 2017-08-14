@@ -1,3 +1,4 @@
+import sphinx_gallery
 import os
 import shutil
 import sphinx

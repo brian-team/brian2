@@ -12,6 +12,7 @@
 # serve to show the default.
 
 import sys, os, shutil
+import sphinx_gallery
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -72,7 +73,8 @@ needs_sphinx = '1.0.1'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
+extensions = ['sphinx_gallery.gen_gallery',
+              'sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.coverage', 'sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
@@ -138,6 +140,28 @@ pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['brian2.']
+
+# Sphinx-Gallery configuration
+sphinx_gallery_conf = {
+    # path to your examples scripts
+    'examples_dirs': '../examples',
+    # path where to save gallery generated examples
+    'gallery_dirs': 'auto_examples',
+    'backreferences_dir': 'gen_modules/backreferences',
+    'reference_url': {
+        # The module you locally document uses a None
+        'brian2': None,
+
+        # External python modules use their documentation websites
+        'matplotlib': 'https://matplotlib.org',
+        'numpy': 'https://docs.scipy.org/doc/numpy'},
+    # Modules for which function level galleries are created.  In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    'doc_module': ('brian2'),
+    'plot_gallery': False,
+    }
+# generate autosummary even if no references
+autosummary_generate = True
 
 
 # -- Options for HTML output ---------------------------------------------------

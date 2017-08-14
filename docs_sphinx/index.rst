@@ -54,6 +54,7 @@ Contents:
    :titlesonly:
 
    examples/index
+   auto_examples/index
    Reference documentation <reference/brian2>
    developer/index
 

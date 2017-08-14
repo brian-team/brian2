@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
+COBA benchmark
+--------------
 This is an implementation of a benchmark described
 in the following review paper:
 

@@ -1,4 +1,6 @@
 '''
+CUBA benchmark
+--------------
 This is a Brian script implementing a benchmark described
 in the following review paper:
 

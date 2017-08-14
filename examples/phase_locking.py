@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 '''
+Phase locking of IF neurons to a periodic input
+-----------------------------------------------
+
 Phase locking of IF neurons to a periodic input.
 '''
 from brian2 import *
