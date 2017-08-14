@@ -12,6 +12,7 @@ from brian2.codegen.generators import c_data_type
 import re
 
 from os.path import isdir, exists
+from sys import executable as python_exec
 from brian2.core.preferences import PreferenceError
 
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
@@ -20,6 +21,8 @@ def valid_gsl_dir(val):
     '''
     Validate given string to be path containing required GSL files.
     '''
+    if val == None: # if GSL is installed through for example conda python knows where to find it
+        return True
     if not isinstance(val, (str, unicode)):
         raise PreferenceError(('Illegal value for GSL directory: %s, has to be str'%(str(val))))
     if not val[-1] == '/':
@@ -38,7 +41,7 @@ prefs.register_preferences(
     directory=BrianPreference(
         validator=valid_gsl_dir,
         docs='...',
-        default='/usr/local/include/gsl/'
+        default=None
     )
 )
 
@@ -72,7 +75,8 @@ class GSLCodeGenerator(object):
 
         prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
         prefs.codegen.cpp.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
-        prefs.codegen.cpp.include_dirs += [prefs.GSL.directory]
+        if prefs.GSL.directory is not None:
+            prefs.codegen.cpp.include_dirs += [prefs.GSL.directory]
 
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
