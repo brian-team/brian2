@@ -993,7 +993,7 @@ class VariableView(object):
                                         additional_variables=variables,
                                         check_units=check_units,
                                         run_namespace=run_namespace,
-                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
+                                        codeobj_class=None)
         codeobj()
 
     @device_override('variableview_set_with_expression_conditional')
@@ -1035,7 +1035,7 @@ class VariableView(object):
                                         additional_variables=variables,
                                         check_units=check_units,
                                         run_namespace=run_namespace,
-                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target'))
+                                        codeobj_class=None)
         codeobj()
 
     @device_override('variableview_get_with_expression')
@@ -1079,7 +1079,7 @@ class VariableView(object):
                                         'group_variable_get_conditional',
                                         additional_variables=variables,
                                         run_namespace=run_namespace,
-                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
+                                        codeobj_class=None
                                         )
         return codeobj()
 
@@ -1147,7 +1147,7 @@ class VariableView(object):
                                         needed_variables=['_group_idx'],
                                         additional_variables=variables,
                                         run_namespace=run_namespace,
-                                        codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
+                                        codeobj_class=None
         )
         result = codeobj()
         if single_index and not variable.scalar:

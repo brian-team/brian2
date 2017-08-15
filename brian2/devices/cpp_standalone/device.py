@@ -481,8 +481,10 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        # Ignore the requested codeobj_class
-        return CPPStandaloneCodeObject
+        if codeobj_class is None:
+            return CPPStandaloneCodeObject
+        else:
+            return codeobj_class
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
