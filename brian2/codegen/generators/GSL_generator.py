@@ -242,12 +242,6 @@ class GSLCodeGenerator(object):
         -------
         dict
             A dictionary with strings that need to be replaced as keys and the strings that will replace them as values
-
-        Examples
-        --------
-        >>>diff_var_to_replace({'v' : 0})
-        {'const double _gsl_v_f0' : 'f[0]',
-        'v = _array_neurongroup_v[_idx]' : 'v = y[0]'}
         '''
         variables = self.variables
         to_replace = {}
