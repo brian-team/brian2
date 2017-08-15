@@ -31,7 +31,6 @@ from brian2.codegen.generators.cpp_generator import c_data_type
 from brian2.units.fundamentalunits import Quantity
 from brian2.units import second
 from brian2.utils.logger import get_logger, std_silent
-from .GSLcodeobject import GSLCPPStandaloneCodeObject
 
 from .codeobject import CPPStandaloneCodeObject, openmp_pragma
 
@@ -482,12 +481,10 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None):
-        # Ignore the requested codeobj_class unless hasattr original_generator_class (this is a sign of having a method
-        # that uses a separate codeobject and generator for its stateupdater (e.g. GSL_stateupdater)
-        if hasattr(codeobj_class, 'original_generator_class'):
-            return codeobj_class
-        else:
+        if codeobj_class is None:
             return CPPStandaloneCodeObject
+        else:
+            return codeobj_class
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,

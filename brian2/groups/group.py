@@ -289,7 +289,7 @@ class IndexWrapper(object):
                                             'group_get_indices',
                                             run_namespace=namespace,
                                             additional_variables=variables,
-                                            codeobj_class=get_default_codeobject_class('codegen.string_expression_target')
+                                            codeobj_class=None
                                             )
             return codeobj()
         else:
