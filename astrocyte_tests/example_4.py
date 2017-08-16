@@ -14,6 +14,16 @@ Show average synaptic release for a 3-step stimulus produced by
 
 from brian2 import *
 
+GSL=False
+if GSL:
+    neuron_method = 'GSL_stateupdater'
+    synapse_method = 'GSL_stateupdater'
+    astro_method = 'GSL_stateupdater'
+else:
+    neuron_method = None
+    synapse_method = 'linear'
+    astro_method = 'rk4'
+
 # set_device('cpp_standalone', directory='synapse_release')  # uncomment for fast simulation
 seed(16283)  # to get identical figures for repeated runs
 
@@ -124,7 +134,7 @@ Y_S += rho_c * Y_T * r_S
 '''
 synapses = Synapses(source_neurons, target_neurons,
                     model=synapses_eqs, on_pre=synapses_action,
-                    multisynaptic_index='k', method='linear')
+                    multisynaptic_index='k', method=synapse_method)
 # We create three synapses per connection: only the first two are modulated by
 # the astrocyte however
 synapses.connect('i==j', n=N_astro+1)
@@ -178,7 +188,7 @@ astrocyte = NeuronGroup(N_astro*N_neurons, astro_eqs,
                         # is crossed, in Brian terms it can therefore be
                         # considered a "reset"
                         reset=glio_release,
-                        method='rk4')
+                        method=astro_method)
 astrocyte.h = 0.9
 astrocyte.x_A = 1.0
 # Only the second group of N_neurons astrocytes are activated by external stimulation
@@ -239,4 +249,5 @@ ax[3].legend(['closed-loop gliotransmission'], loc='upper left')
 
 # Save Figure for paper # DELETE
 #plt.savefig('../text/figures/results/example_4_Figure.png')  # DELETE
+plt.savefig('example_4a_%s.pdf'%('GSL'*GSL+'conventional'*(not GSL)))
 plt.show()

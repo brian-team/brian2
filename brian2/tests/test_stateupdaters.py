@@ -349,7 +349,25 @@ def test_priority():
             if able:
                 raise AssertionError('Should be able to integrate these '
                                      'equations')
-    
+
+    # Equations resulting in complex linear solution (unsupported)
+    eqs = Equations('''dv/dt      = (ge+gi-(v+49*mV))/(20*ms) : volt
+            dge/dt     = -ge/(5*ms) : volt
+            dgi/dt     = Dgi/(5*ms) : volt
+            dDgi/dt    = ((-2./5) * Dgi - (1./5**2)*gi)/(10*ms) : volt''')
+    can_integrate = {linear: False, euler: True, rk2: True, rk4: True,
+                     heun: True, milstein: True}
+    for integrator, able in can_integrate.iteritems():
+        try:
+            integrator(eqs, variables)
+            if not able:
+                raise AssertionError('Should not be able to integrate these '
+                                     'equations')
+        except UnsupportedEquationsException:
+            if able:
+                raise AssertionError('Should be able to integrate these '
+                                     'equations')
+
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
     assert_raises(UnsupportedEquationsException,

@@ -4,7 +4,7 @@ Exact integration for linear equations.
 import itertools
 
 import sympy as sp
-from sympy import Wild, Symbol
+from sympy import Wild, Symbol, I
 
 from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
@@ -211,6 +211,10 @@ class LinearStateUpdater(StateUpdateMethod):
         abstract_code = []
         for idx, (variable, update) in enumerate(zip(varnames, updates)):
             rhs = update
+            if len(rhs.atoms(I)) > 0:
+                raise UnsupportedEquationsException('The solution to the linear system '
+                                                    'contains complex values '
+                                                    'which is currently not implemented.')
             for row_idx, varname in enumerate(varnames):
                 rhs = rhs.subs(_S[row_idx, 0], varname)
 
