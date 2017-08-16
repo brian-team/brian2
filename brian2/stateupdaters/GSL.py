@@ -41,7 +41,11 @@ class TransferClass(object):
         elif target_name == 'weave':
             return GSLWeaveCodeObject
         else:
-            raise NotImplementedError
+            raise NotImplementedError(("Selected stateupdater is GSL stateupdater, while "
+                                       "target language is numpy (either selected or only "
+                                       "one available): GSL was not implemented for numpy."
+                                       "\nSet target language to weave or cython, or device "
+                                       "to cpp_standalone in order to use GSL integration"))
 
     def __call__(self, obj):
         '''
