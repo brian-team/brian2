@@ -36,7 +36,7 @@ cdef extern from "stdint_compat.h":
 
 
 # support code
-{{ support_code | autoindent }}
+{{ support_code_lines | autoindent }}
 
 # template-specific support code
 {% block template_support_code %}
