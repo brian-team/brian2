@@ -18,7 +18,7 @@ requirements:
   run:
     - python
     - numpy x.x
-    - sympy >=0.7.6,<1.1
+    - sympy >=0.7.6,!=1.1.0
     - pyparsing
     - scipy >=0.13.3,<0.19 # [py2k]
     - bsddb # [py2k and not win]
