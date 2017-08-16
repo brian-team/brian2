@@ -56,5 +56,5 @@ xlim(-80, 40)
 xlabel('V (mV)')
 ylabel('dV/dt (V/s)')
 title('Phase plot')
-
+tight_layout()
 show()

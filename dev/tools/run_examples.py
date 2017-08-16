@@ -46,7 +46,7 @@ try:
     # add the files directory to the path so that it can do relative imports
     sys.path.append(os.path.dirname(os.path.realpath(r'{fname}')))
     exec(compile(open(r'{fname}', "rb").read(), r'{fname}', 'exec'))
-    if '{target}'=='numpy':
+    if '{target}'=='cython':
         for fignum in _mpl.pyplot.get_fignums():
             fname = r'{fname}'
             fname = os.path.relpath(fname, '../../examples')
@@ -119,7 +119,7 @@ class SelectFilesPlugin(Plugin):
     def loadTestsFromName(self, name, module=None, discovered=False):
         all_examples = self.find_examples(name)
         all_tests = []
-        for target in ['numpy']:
+        for target in ['cython']:
             for example in all_examples:
                 all_tests.append(RunTestCase(example, target))
         return all_tests
