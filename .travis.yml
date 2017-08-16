@@ -129,7 +129,7 @@ install:
   - source activate travis_conda
   # On Python 2: Install an older version of scipy that still has weave
   - if [ ${PYTHON:0:1} == "2" ]; then
-      travis_retry conda install --yes --quiet scipy==0.18;
+      travis_retry conda install --yes --quiet -c brian-team weave scipy;
       travis_retry conda install --yes --quiet bsddb;
     else
       travis_retry conda install --yes --quiet scipy;
