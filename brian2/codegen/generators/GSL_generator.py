@@ -675,6 +675,18 @@ class GSLCodeGenerator(object):
                                                  vector_statements)
 
         ############ translate code for GSL
+
+        # first check if any indexing other than '_idx' is used (currently not supported)
+        for code_list in scalar_code.values()+vector_code.values():
+            for code in code_list:
+                m = re.search('\[(\w+)\]', code)
+                if m is not None:
+                    if m.group(1)!='0' and m.group(1)!='_idx':
+                        from brian2.stateupdaters.base import UnsupportedEquationsException
+                        raise UnsupportedEquationsException(("Equations result in state updater code with indexing "
+                                                             "other than '_idx', which is currently not supported "
+                                                             "in combination with the GSL stateupdater."))
+
         # differential variable specific operations
         to_replace = self.diff_var_to_replace(diff_vars)
         GSL_support_code = self.get_dimension_code(len(diff_vars))
