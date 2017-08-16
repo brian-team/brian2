@@ -480,7 +480,8 @@ class CPPStandaloneDevice(Device):
                                   'variables with string expressions in '
                                   'standalone scripts.')
 
-    def code_object_class(self, codeobj_class=None):
+    def code_object_class(self, codeobj_class=None, pref=None):
+        # Ignore the requested pref (used for optimization in runtime)
         if codeobj_class is None:
             return CPPStandaloneCodeObject
         else:

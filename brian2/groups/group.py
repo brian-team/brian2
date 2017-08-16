@@ -283,13 +283,14 @@ class IndexWrapper(object):
 
             abstract_code = '_cond = ' + item
             namespace = get_local_namespace(level=1)
-            from brian2.devices.device import get_default_codeobject_class
+            from brian2.devices.device import get_device
+            device = get_device()
             codeobj = create_runner_codeobj(self.group,
                                             abstract_code,
                                             'group_get_indices',
                                             run_namespace=namespace,
                                             additional_variables=variables,
-                                            codeobj_class=None
+                                            codeobj_class=device.code_object_class(pref='codegen.string_expression_target')
                                             )
             return codeobj()
         else:
