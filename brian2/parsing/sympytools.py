@@ -11,6 +11,7 @@ from sympy.printing.str import StrPrinter
 from brian2.core.functions import (DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10,
                                    Function)
 from brian2.parsing.rendering import SympyNodeRenderer
+from brian2.utils.caching import cached
 
 
 def check_expression_for_multiple_stateful_functions(expr, variables):
@@ -33,7 +34,7 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
                                        '"0.0").').format(expr=expr,
                                                          func=identifier))
 
-_str_to_sympy_cache = {}
+
 def str_to_sympy(expr, variables=None):
     '''
     Parses a string into a sympy expression. There are two reasons for not
@@ -63,29 +64,25 @@ def str_to_sympy(expr, variables=None):
     ------
     SyntaxError
         In case of any problems during parsing.
-    
-    Notes
-    -----
-    Parsing is done in two steps: First, the expression is parsed and rendered
-    as a new string by `SympyNodeRenderer`, translating function names (e.g.
-    `ceil` to `ceiling`) and operator names (e.g. `and` to `&`), all unknown
-    names are wrapped in `Symbol(...)` or `Function(...)`. The resulting string
-    is then evaluated in the `from sympy import *` namespace.
     '''
     if variables is None:
         variables = {}
     check_expression_for_multiple_stateful_functions(expr, variables)
 
-    if expr in _str_to_sympy_cache:
-        return _str_to_sympy_cache[expr]
+    # We do the actual transformation in a separate function that is cached
+    # If we cached `str_to_sympy` itself, it would also use the contents of the
+    # variables dictionary as the cache key, while it is only used for the check
+    # above and does not affect the translation to sympy
+    return _str_to_sympy(expr)
 
+
+@cached
+def _str_to_sympy(expr):
     try:
         s_expr = SympyNodeRenderer().render_expr(expr)
     except (TypeError, ValueError, NameError) as ex:
         raise SyntaxError(('Error during evaluation of sympy expression '
                            '"{expr}": {ex}').format(expr=expr, ex=str(ex)))
-
-    _str_to_sympy_cache[expr] = s_expr
 
     return s_expr
 
@@ -123,9 +120,11 @@ class CustomSympyPrinter(StrPrinter):
 
 PRINTER = CustomSympyPrinter()
 
-_sympy_to_str_cache = {}
+@cached
 def sympy_to_str(sympy_expr):
     '''
+    sympy_to_str(sympy_expr)
+
     Converts a sympy expression into a string. This could be as easy as 
     ``str(sympy_exp)`` but it is possible that the sympy expression contains
     functions like ``Abs`` (for example, if an expression such as
@@ -141,9 +140,6 @@ def sympy_to_str(sympy_expr):
     str_expr : str
         A string representing the sympy expression.
     '''
-    if sympy_expr in _sympy_to_str_cache:
-        return _sympy_to_str_cache[sympy_expr]
-
     orig_sympy_expr = sympy_expr
 
     # replace the standard functions by our names if necessary
@@ -165,8 +161,6 @@ def sympy_to_str(sympy_expr):
         if old in atoms:
             sympy_expr = sympy_expr.subs(old, new)
     expr = PRINTER.doprint(sympy_expr)
-
-    _sympy_to_str_cache[orig_sympy_expr] = expr
 
     return expr
 
@@ -234,7 +228,7 @@ def expression_complexity(expr, complexity=None):
         # work around bug with rand() and randn() (TODO: improve this)
         expr = expr.replace('rand()', 'rand(0)')
         expr = expr.replace('randn()', 'randn(0)')
-    subs = {'ADD':1, 'DIV':2, 'MUL':1, 'SUB':1}
+    subs = {'ADD': 1, 'DIV': 2, 'MUL': 1, 'SUB': 1}
     if complexity is not None:
         subs.update(complexity)
     ops = sympy.count_ops(expr, visual=True)

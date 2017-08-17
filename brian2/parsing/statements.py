@@ -1,6 +1,8 @@
 from pyparsing import (CharsNotIn, Optional, Suppress, Word, Regex,
                        ParseException, alphas, nums)
 
+from brian2.utils.caching import cached
+
 VARIABLE = Word(alphas + '_',
                   alphas + nums + '_').setResultsName('variable')
 
@@ -10,9 +12,11 @@ COMMENT = CharsNotIn('#').setResultsName('comment')
 STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress('#') + COMMENT)
 
 
-_parse_statement_cache = {}
+@cached
 def parse_statement(code):
     '''
+    parse_statement(code)
+
     Parses a single line of code into "var op expr".
     
     Parameters
@@ -33,9 +37,6 @@ def parse_statement(code):
     >>> parse_statement('v += dt*(-v/tau)')
     ('v', '+=', 'dt*(-v/tau)', '')
     '''
-    if code in _parse_statement_cache:
-        return _parse_statement_cache[code]
-
     try:
         parsed = STATEMENT.parseString(code, parseAll=True)
     except ParseException as p_exc:
@@ -48,5 +49,5 @@ def parse_statement(code):
                         parsed['operation'],
                         parsed['expression'].strip(),
                         parsed.get('comment', '').strip())
-    _parse_statement_cache[code] = parsed_statement
+
     return parsed_statement

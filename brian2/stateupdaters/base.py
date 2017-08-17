@@ -8,7 +8,7 @@ from abc import abstractmethod, ABCMeta
 import collections
 import time
 
-from brian2.core.variables import Constant, _hashable
+from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
 
 __all__ = ['StateUpdateMethod']
@@ -23,8 +23,6 @@ class StateUpdateMethod(object):
 
     #: A dictionary mapping state updater names to `StateUpdateMethod` objects
     stateupdaters = dict()
-
-    _state_update_cache = {}
 
     @abstractmethod
     def __call__(self, equations, variables=None):
@@ -79,8 +77,11 @@ class StateUpdateMethod(object):
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
+    @cached
     def apply_stateupdater(equations, variables, method, group_name=None):
         '''
+        apply_stateupdater(equations, variables, method, group_name=None)
+
         Applies a given state updater to equations. If a `method` is given, the
         state updater with the given name is used or if is a callable, then it
         is used directly. If a `method` is a list of names, all the
@@ -103,16 +104,6 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         '''
-        if isinstance(method, basestring):
-            method_key = method
-        elif hasattr(method, '__call__'):
-            method_key = method.__class__.__name__
-        else:
-            method_key = tuple(method)
-        cache_key = (equations, _hashable(variables), method_key)
-        if cache_key in StateUpdateMethod._state_update_cache:
-            return StateUpdateMethod._state_update_cache[cache_key]
-
         if (isinstance(method, collections.Iterable) and
                 not isinstance(method, basestring)):
             the_method = None
@@ -155,10 +146,6 @@ class StateUpdateMethod(object):
             logger.info(msg_text.format(group_name=group_name,
                                         method=the_method,
                                         timing=timing), 'method_choice')
-            # Also store the code for the method that was chosen
-            StateUpdateMethod._state_update_cache[(equations,
-                                                   _hashable(variables),
-                                                   the_method)] = code
         else:
             if hasattr(method, '__call__'):
                 # if this is a standard state updater, i.e. if it has a
@@ -192,5 +179,4 @@ class StateUpdateMethod(object):
                                                    timing=timing),
                              'method_choice')
 
-        StateUpdateMethod._state_update_cache[cache_key] = code
         return code

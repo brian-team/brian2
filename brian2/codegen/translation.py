@@ -21,8 +21,8 @@ import numpy as np
 import sympy
 
 from brian2.core.preferences import prefs
-from brian2.core.variables import (Variable, Subexpression, AuxiliaryVariable,
-                                   Constant, _hashable)
+from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.utils.caching import cached
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
@@ -165,9 +165,11 @@ def is_scalar_expression(expr, variables):
                (isinstance(variables[name], Function) and variables[name].stateless)
                for name in identifiers)
 
-_make_statements_cache = {}
+@cached
 def make_statements(code, variables, dtype, optimise=True, blockname=''):
     '''
+    make_statements(code, variables, dtype, optimise=True, blockname='')
+
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
     constant or not, and handling the cacheing of subexpressions.
@@ -210,10 +212,6 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     describing how the statement can be reformulated as a sequence of if/then
     statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
     '''
-    cache_key = (code, _hashable(variables), dtype, optimise, blockname)
-    if cache_key in _make_statements_cache:
-        return _make_statements_cache[cache_key]
-
     code = strip_empty_lines(deindent(code))
     lines = re.split(r'[;\n]', code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
@@ -365,5 +363,4 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                                                                    variables,
                                                                    blockname=blockname)
 
-    _make_statements_cache[cache_key] = (scalar_statements, vector_statements)
     return scalar_statements, vector_statements

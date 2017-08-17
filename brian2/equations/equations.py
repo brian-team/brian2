@@ -26,6 +26,7 @@ from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mo
                                    farad, ohm, siemens, weber, tesla, henry,
                                    lumen, lux, becquerel, gray,
                                    sievert, katal, kgram, kgramme)
+from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
 
@@ -317,9 +318,11 @@ def dimensions_and_type_from_string(unit_string):
     return evaluated_unit.dim, FLOAT
 
 
-_parse_string_equations_cache = {}
+@cached
 def parse_string_equations(eqns):
     """
+    parse_string_equations(eqns)
+
     Parse a string defining equations.
     
     Parameters
@@ -334,8 +337,6 @@ def parse_string_equations(eqns):
         A dictionary mapping variable names to
         `~brian2.equations.equations.Equations` objects
     """
-    if eqns in _parse_string_equations_cache:
-        return _parse_string_equations_cache[eqns]
     equations = {}
 
     try:
@@ -373,7 +374,6 @@ def parse_string_equations(eqns):
 
         equations[identifier] = equation
 
-    _parse_string_equations_cache[eqns] = equations
     return equations
 
 

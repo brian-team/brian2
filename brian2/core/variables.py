@@ -5,16 +5,15 @@ sub-expression.
 import collections
 import functools
 import numbers
-import weakref
 
-import sympy
 import numpy as np
+import sympy
 
-from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
                                            Dimension)
 from brian2.utils.logger import get_logger
+from brian2.utils.stringtools import get_identifiers, word_substitute
 
 from .base import weakproxy_with_fallback, device_override
 from .preferences import prefs
@@ -1380,7 +1379,6 @@ class VariableView(object):
         return self.get_item(slice(None), level=1).dtype
 
 
-
 class Variables(collections.Mapping):
     '''
     A container class for storing `Variable` objects. Instances of this class
@@ -1867,24 +1865,3 @@ class Variables(collections.Mapping):
         '''
         for name in ['t', 'dt']:
             self.add_reference(prefix+name, clock, name)
-
-
-def _hashable(obj):
-    '''Helper function to make a few data structures hashable (e.g. a
-    dictionary gets converted to a frozenset). The function is specifically
-    tailored to our use case and not meant to be generally useful.'''
-    if isinstance(obj, Variable):
-        return _hashable(obj._state_tuple)
-    try:
-        # If the object is already hashable, do nothing
-        hash(obj)
-        return obj
-    except TypeError:
-        pass
-    if isinstance(obj, set):
-        return frozenset(_hashable(el) for el in obj)
-    elif isinstance(obj, list):
-        return tuple(_hashable(el) for el in obj)
-    else:
-        return frozenset((_hashable(key), _hashable(value))
-                         for key, value in obj.iteritems())
