@@ -5,9 +5,11 @@ from ..devices.device import auto_target
 __all__ = ['gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd']
 
 class GSLContainer(object):
-
+    '''
+    Class that contains information (equation- or integrator-related) required for later code generation
+    '''
     def __init__(self, integrator, abstract_code=None, needed_variables=[], variable_flags=[]):
-        self.method_options = {'integrator' : integrator}
+        self.integrator = integrator
         self.abstract_code = abstract_code
         self.needed_variables = needed_variables
         self.variable_flags = variable_flags
@@ -72,12 +74,12 @@ class GSLContainer(object):
             code generation in the `CodeGenerator.translate` method.
         '''
         obj.codeobj_class = self.get_codeobj_class()
-        obj.codeobj_class.variable_flags = self.variable_flags
-        obj.codeobj_class.method_options = self.method_options
+        obj._gsl_variable_flags = self.variable_flags
+        if getattr(obj, 'method_options', None) is None:
+            obj.method_options = {}
+        obj.method_options['integrator'] = self.integrator
         obj.needed_variables += ['t', 'dt'] + self.needed_variables
         return self.abstract_code
-
-
 
 class GSLStateUpdater(StateUpdateMethod):
     '''

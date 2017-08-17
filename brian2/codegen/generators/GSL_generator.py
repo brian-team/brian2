@@ -46,11 +46,10 @@ prefs.register_preferences(
 
 # default method_options
 default_method_options = {
-    'integrator' : 'rkf45',
     'adaptable_timestep' : True,
-    'h_start' : 1e-5,
-    'eps_abs' : 1e-6,
-    'eps_rel' : 0.
+    'dt_start' : 1e-5,
+    'absolute_error' : 1e-6,
+    'relative_error' : 0.
 }
 
 class GSLCodeGenerator(object):
@@ -81,10 +80,9 @@ class GSLCodeGenerator(object):
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
         self.method_options = default_method_options
-        if not codeobj_class.method_options is None:
-            for key, value in codeobj_class.method_options.items():
-                self.method_options[key] = value
-        self.variable_flags = codeobj_class.variable_flags
+        for key, value in owner.state_updater.method_options.items():
+            self.method_options[key] = value
+        self.variable_flags = owner.state_updater._gsl_variable_flags
 
     def __getattr__(self, item):
         return getattr(self.generator, item)

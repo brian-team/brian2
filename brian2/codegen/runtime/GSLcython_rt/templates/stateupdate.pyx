@@ -63,9 +63,9 @@ cdef extern from "gsl/gsl_odeiv2.h":
     
     _GSL_driver = gsl_odeiv2_driver_alloc_y_new(&_sys,
                                       gsl_odeiv2_step_{{GSL_settings['integrator']}},
-                                      {{GSL_settings['h_start']}},
-                                      {{GSL_settings['eps_abs']}},
-                                      {{GSL_settings['eps_rel']}})
+                                      {{GSL_settings['dt_start']}},
+                                      {{GSL_settings['absolute_error']}},
+                                      {{GSL_settings['relative_error']}})
 
     # vector code
     for _idx in range(N):
