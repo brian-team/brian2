@@ -49,7 +49,9 @@ default_method_options = {
     'adaptable_timestep' : True,
     'dt_start' : 1e-5,
     'absolute_error' : 1e-6,
-    'relative_error' : 0.
+    'relative_error' : 0.,
+    'weight_state' : 1.,
+    'weight_derivative' : 0.
 }
 
 class GSLCodeGenerator(object):
@@ -386,6 +388,15 @@ class GSLCodeGenerator(object):
         code += ['{end_struct}']
         return ('\n').join(code).format(**self.syntax)
 
+    def scale_array_code(self, diff_vars, method_options):
+        code = ("\n{start_declare}double * _get_GSL_scale_array(){open_function}"
+                "\n\t{start_declare}double * array = {open_cast}double *{close_cast}malloc(%d*sizeof(double))"
+                "{end_statement}"%len(diff_vars))
+        for i in range(len(diff_vars)):
+            code += '\n\tarray[%d] = 1{end_statement}'%i
+        code += '\n\treturn array{end_statement}{end_function}'
+        return code.format(**self.syntax)
+
     def find_undefined_variables(self, statements):
         '''
         Find identifiers that are not in self.variables dictionary.
@@ -689,6 +700,7 @@ class GSLCodeGenerator(object):
         to_replace = self.diff_var_to_replace(diff_vars)
         GSL_support_code = self.get_dimension_code(len(diff_vars))
         GSL_support_code += self.yvector_code(diff_vars)
+        GSL_support_code += self.scale_array_code(diff_vars, self.method_options)
 
         # analyze all needed variables; if not in self.variables: put in separate dic.
         # also keep track of variables needed for scalar statements and vector statements

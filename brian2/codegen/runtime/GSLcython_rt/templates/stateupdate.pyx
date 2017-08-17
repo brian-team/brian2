@@ -32,9 +32,10 @@ cdef extern from "gsl/gsl_odeiv2.h":
     int gsl_odeiv2_driver_reset(
         gsl_odeiv2_driver *_GSL_driver)
 
-    gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
+    gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_scaled_new(
         gsl_odeiv2_system *_sys, gsl_odeiv2_step_type *T,
-        double hstart, double epsabs, double epsrel)
+        double hstart, double epsabs, double epsrel,
+        double a_y, double a_dydt, double scale[])
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *_GSL_driver)
 {% endblock %}
@@ -54,18 +55,22 @@ cdef extern from "gsl/gsl_odeiv2.h":
     {{scalar_code['GSL']|autoindent}}
 
     cdef double * _GSL_y = _assign_memory_y()
+    cdef double * _GSL_scale_array = _get_GSL_scale_array()
     
     cdef gsl_odeiv2_system _sys
     cdef gsl_odeiv2_driver * _GSL_driver
     _sys.function = _GSL_func
     set_dimension(&_sys.dimension)
     _sys.params = _GSL_dataholder
-    
-    _GSL_driver = gsl_odeiv2_driver_alloc_y_new(&_sys,
-                                      gsl_odeiv2_step_{{GSL_settings['integrator']}},
-                                      {{GSL_settings['dt_start']}},
-                                      {{GSL_settings['absolute_error']}},
-                                      {{GSL_settings['relative_error']}})
+
+    _GSL_driver = gsl_odeiv2_driver_alloc_scaled_new(&_sys,
+                                                     gsl_odeiv2_step_{{GSL_settings['integrator']}},
+                                                     {{GSL_settings['dt_start']}},
+                                                     {{GSL_settings['absolute_error']}},
+                                                     {{GSL_settings['relative_error']}},
+                                                     {{GSL_settings['weight_state']}},
+                                                     {{GSL_settings['weight_derivative']}},
+                                                     _GSL_scale_array)
 
     # vector code
     for _idx in range(N):
