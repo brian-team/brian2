@@ -211,8 +211,11 @@ def create_runner_codeobj(group, code, template_name,
     else:
         codeobj_class = device.code_object_class(codeobj_class)
 
-    if hasattr(group, 'method_options'):
-        codeobj_class.method_options = group.method_options
+    if hasattr(group, 'method_options') and group.method_options is not None:
+        if hasattr(codeobj_class, 'method_options') and codeobj_class.method_options is not None:
+            codeobj_class.method_options.update(group.method_options)
+        else:
+            codeobj_class.method_options = group.method_options
 
     template = getattr(codeobj_class.templater, template_name)
     template_variables = getattr(template, 'variables', None)

@@ -18,6 +18,9 @@ StateUpdateMethod.register('rk2', rk2)
 StateUpdateMethod.register('rk4', rk4)
 StateUpdateMethod.register('milstein', milstein)
 StateUpdateMethod.register('heun', heun)
-StateUpdateMethod.register('GSL_stateupdater', GSL_stateupdater)
-
+StateUpdateMethod.register('gsl_rk2', gsl_rk2)
+StateUpdateMethod.register('gsl_rk4', gsl_rk4)
+StateUpdateMethod.register('gsl_rkf45', gsl_rkf45)
+StateUpdateMethod.register('gsl_rkck', gsl_rkck)
+StateUpdateMethod.register('gsl_rk8pd', gsl_rk8pd)
 

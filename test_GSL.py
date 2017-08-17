@@ -11,13 +11,13 @@ setting_dict = {'brian2' : {'device' : 'runtime', # do one without GSL so we can
                         'stateupdater' : 'exponential_euler',
                         'target' : 'weave'},
                 'weave' : {'device' : 'runtime',
-                           'stateupdater' : 'GSL_stateupdater',
+                           'stateupdater' : 'gsl_rkf45',
                            'target' : 'weave'},
                 'cython' : {'device' : 'runtime',
-                           'stateupdater' : 'GSL_stateupdater',
+                           'stateupdater' : 'gsl_rkf45',
                            'target' : 'cython'},
                 'cpp_standalone' : {'device' : 'cpp_standalone',
-                           'stateupdater' : 'GSL_stateupdater',
+                           'stateupdater' : 'gsl_rkf45',
                            'target' : 'weave'}}
 
 # basic test with each target language
@@ -186,7 +186,7 @@ def test_GSL_fixed_timestep_rk4():
                                  refractory=5*ms, method='rk4')
         else:
             neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                                  refractory=5*ms, method='GSL_stateupdater', method_options={'integrator' : 'rk4',
+                                  refractory=5*ms, method='gsl_rkf45', method_options={'integrator' : 'rk4',
                                                                                               'adaptable_timestep' : True,
                                                                                               'eps_abs' : 1e-2,
                                                                                               'eps_rel' : 1e-2})
@@ -206,7 +206,7 @@ def test_GSL_fixed_timestep_rk4():
 
 def test_GSL_x_variable():
     neurons = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
-                          method='GSL_stateupdater')
+                          method='gsl_rkf45')
     network = Network(neurons)
     # just testing compilation
     network.run(0*ms)
@@ -238,7 +238,7 @@ def test_GSL_stochastic():
     eqs = """
     dV/dt = (-V+muext + sigmaext * sqrt(tau) * xi)/tau : volt
     """
-    group = NeuronGroup(10, eqs, method='GSL_stateupdater')
+    group = NeuronGroup(10, eqs, method='gsl_rkf45')
     try:
         run(0*ms)
         raise Exception(('The previous line should raise an UnsupportedEquationsException'))
@@ -248,7 +248,7 @@ def test_GSL_stochastic():
 
 def test_GSL_internal_variable():
     #NeuronGroup(2, 'd_p/dt = 300*Hz : 1',
-    #                      method='GSL_stateupdater')
+    #                      method='gsl_rkf45')
     try:
         Equations('d_p/dt = 300*Hz : 1')
         raise Exception(('The previous line should raise a ValueError because of the use of a variable starting with '
@@ -278,9 +278,9 @@ def test_GSL_method_options_spatialneuron():
     dg/dt = siemens/metre**2/second : siemens/metre**2
     '''
     neuron1 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
-                           method='GSL_stateupdater', method_options={'adaptable_timestep':True})
+                           method='gsl_rkf45', method_options={'adaptable_timestep':True})
     neuron2 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
-                           method='GSL_stateupdater', method_options={'adaptable_timestep':False})
+                           method='gsl_rkf45', method_options={'adaptable_timestep':False})
     run(0*ms)
     assert 'fixed' not in str(neuron1.state_updater.codeobj.code), \
         'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
@@ -310,18 +310,18 @@ def test_GSL_method_options_synapses():
     '''
     input = PoissonGroup(N, rates=F)
     neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
-                          method='GSL_stateupdater')
+                          method='gsl_rkf45')
     S1 = Synapses(input, neurons,
                  '''w : 1
                     dApre/dt = -Apre / taupre : 1 (clock-driven)
                     dApost/dt = -Apost / taupost : 1 (clock-driven)''',
-                 method='GSL_stateupdater',
+                 method='gsl_rkf45',
                  method_options={'adaptable_timestep':True})
     S2 = Synapses(input, neurons,
                  '''w : 1
                     dApre/dt = -Apre / taupre : 1 (clock-driven)
                     dApost/dt = -Apost / taupost : 1 (clock-driven)''',
-                 method='GSL_stateupdater',
+                 method='gsl_rkf45',
                  method_options={'adaptable_timestep':False})
     run(0*ms)
     assert 'fixed' not in str(S1.state_updater.codeobj.code), \
