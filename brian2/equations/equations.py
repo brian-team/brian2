@@ -426,6 +426,18 @@ class SingleEquation(collections.Hashable):
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
 
+        #: Mark the list of attributes that should not be considered for caching
+        #: of state update code, etc.
+        self._cache_irrelevant_attributes = ['update_order']
+
+    @property
+    def _state_tuple(self):
+        '''A tuple representing the full state of this object, used for
+        hashing and equality testing.'''
+        return tuple(value for key, value in self.__dict__.iteritems()
+                     if key not in (self._cache_irrelevant_attributes +
+                                    ['_cache_irrelevant_attributes']))
+
     unit = property(lambda self: get_unit(self.dim),
                     doc='The `Unit` of this equation.')
 
@@ -436,14 +448,6 @@ class SingleEquation(collections.Hashable):
     stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
                                                       if variable =='xi' or variable.startswith('xi_')]),
                                     doc='Stochastic variables in the RHS of this equation')
-
-
-    _state_tuple = property(lambda self: (self.type, self.varname,
-                                          self.dim, self.var_type,
-                                          self.expr, tuple(self.flags)),
-                            doc='A tuple representing the full state of this '
-                                'object, used for hashing and equality '
-                                'testing.')
 
     def __eq__(self, other):
         if not isinstance(other, SingleEquation):
