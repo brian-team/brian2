@@ -26,7 +26,7 @@ from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mo
                                    farad, ohm, siemens, weber, tesla, henry,
                                    lumen, lux, becquerel, gray,
                                    sievert, katal, kgram, kgramme)
-from brian2.utils.caching import cached
+from brian2.utils.caching import cached, CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
 
@@ -377,7 +377,7 @@ def parse_string_equations(eqns):
     return equations
 
 
-class SingleEquation(collections.Hashable):
+class SingleEquation(collections.Hashable, CacheKey):
     '''
     Class for internal use, encapsulates a single equation or parameter.
 
@@ -402,6 +402,9 @@ class SingleEquation(collections.Hashable):
         What flags are possible depends on the type of the equation and the
         context.
     '''
+
+    _cache_irrelevant_attributes = {'update_order'}
+
     def __init__(self, type, varname, dimensions, var_type=FLOAT, expr=None,
                  flags=None):
         self.type = type
@@ -425,18 +428,6 @@ class SingleEquation(collections.Hashable):
 
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
-
-        #: Mark the list of attributes that should not be considered for caching
-        #: of state update code, etc.
-        self._cache_irrelevant_attributes = ['update_order']
-
-    @property
-    def _state_tuple(self):
-        '''A tuple representing the full state of this object, used for
-        hashing and equality testing.'''
-        return tuple(value for key, value in self.__dict__.iteritems()
-                     if key not in (self._cache_irrelevant_attributes +
-                                    ['_cache_irrelevant_attributes']))
 
     unit = property(lambda self: get_unit(self.dim),
                     doc='The `Unit` of this equation.')

@@ -14,6 +14,7 @@ from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            Dimension)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
+from brian2.utils.caching import CacheKey
 
 from .base import weakproxy_with_fallback, device_override
 from .preferences import prefs
@@ -88,7 +89,8 @@ def variables_by_owner(variables, owner):
     return dict([(varname, var) for varname, var in variables.iteritems()
                  if getattr(var.owner, 'name', None) is owner_name])
 
-class Variable(object):
+
+class Variable(CacheKey):
     '''
     An object providing information about model variables (including implicit
     variables such as ``t`` or ``xi``). This class should never be
@@ -126,6 +128,9 @@ class Variable(object):
         Whether this variable is an array. Allows for simpler check than testing
         ``isinstance(var, ArrayVariable)``. Defaults to ``False``.
     '''
+
+    _cache_irrelevant_attributes = {'owner'}
+
     def __init__(self, name, dimensions=DIMENSIONLESS, owner=None, dtype=None,
                  scalar=False, constant=False, read_only=False, dynamic=False,
                  array=False):
@@ -163,16 +168,6 @@ class Variable(object):
 
         #: Whether the variable is an array
         self.array = array
-
-        #: Mark the list of attributes that should not be considered for caching
-        #: of state update code, etc.
-        self._cache_irrelevant_attributes = ['owner']
-
-    @property
-    def _state_tuple(self):
-        return tuple(value for key, value in self.__dict__.iteritems()
-                     if key not in (self._cache_irrelevant_attributes +
-                                    ['_cache_irrelevant_attributes']))
 
     @property
     def is_boolean(self):
@@ -524,6 +519,10 @@ class DynamicArrayVariable(ArrayVariable):
         corresponding pre- and post-synaptic indices are not). Defaults to
         ``False``.
     '''
+    # The size of a dynamic variable can of course change and changes in
+    # size should not invalidate the cache
+    cache_irrelevant_attributes = (ArrayVariable._cache_irrelevant_attributes |
+                                   {'size'})
 
     def __init__(self, name, owner, size, device, dimensions=DIMENSIONLESS,
                  dtype=None, constant=False, needs_reference_update=False,
@@ -559,9 +558,7 @@ class DynamicArrayVariable(ArrayVariable):
                                                    dynamic=True,
                                                    read_only=read_only,
                                                    unique=unique)
-        # The size of a dynamic variable can of course change and changes in
-        # size should not invalidate the cache
-        self._cache_irrelevant_attributes += ['size']
+
 
     @property
     def dimensions(self):

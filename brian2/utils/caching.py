@@ -8,6 +8,35 @@ import functools
 import collections
 
 
+class CacheKey(object):
+    '''
+    Mixin class for objects that will be used as keys for caching (e.g.
+    `Variable` objects) and have to define a certain "identity" with respect
+    to caching. This "identity" is different from standard Python hashing and
+    equality checking: a `Variable` for example would be considered "identical"
+    for caching purposes regardless which object (e.g. `NeuronGroup`) it belongs
+    to (because this does not matter for parsing, creating abstract code, etc.)
+    but this of course matters for the values it refers to and therefore for
+    comparison of equality to other variables.
+
+    Classes that mix in the `CacheKey` class should re-define the
+    ``_cache_irrelevant_attributes`` attribute to note all the attributes that
+    should be ignored. The property ``_state_tuple`` will refer to a tuple of
+    all attributes that were not excluded in such a way; this tuple will be used
+    as the key for caching purposes.
+    '''
+    #: Set of attributes that should not be considered for caching of state
+    #: update code, etc.
+    _cache_irrelevant_attributes = set()
+
+    @property
+    def _state_tuple(self):
+        '''A tuple with this object's attribute values, defining its identity
+        for caching purposes. See `CacheKey` for details.'''
+        return tuple(value for key, value in sorted(self.__dict__.iteritems())
+                     if key not in self._cache_irrelevant_attributes)
+
+
 class _CacheStatistics(object):
     '''
     Helper class to store cache statistics
