@@ -5,6 +5,9 @@ from distutils.errors import CompileError
 
 __all__ = ['GSLCythonCodeObject', 'IntegrationError']
 
+class GSLCompileError(Exception):
+    pass
+
 class IntegrationError(Exception):
     '''
     Error used to signify that GSL was unable to complete integration (only works for cython)
@@ -22,9 +25,9 @@ class GSLCythonCodeObject(CythonCodeObject):
     def compile(self):
         try:
             super(GSLCythonCodeObject, self).compile()
-        except RuntimeError as err:
-            print('RuntimeErrorrrrrr')
-            raise
         except CompileError as err:
-            print('CompileErrorrrrrr')
-            raise
+            raise GSLCompileError(("\nCompilation of files generated for integration with GSL has failed."
+                                   "\nOne cause for this could be incorrect installation of GSL itself."
+                                   "\nIf GSL is installed but Python cannot find the correct files, it is "
+                                   "also possible to give the gsl directory manually by specifying "
+                                   "prefs.GSL.directory = ..."))

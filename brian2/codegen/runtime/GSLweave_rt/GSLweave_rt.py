@@ -20,5 +20,8 @@ class GSLWeaveCodeObject(WeaveCodeObject):
         try:
             super(GSLWeaveCodeObject, self).run()
         except CompileError as err:
-            print('Errored on CompileError')
-            raise GSLCompileError
+            raise GSLCompileError(("\nCompilation of files generated for integration with GSL has failed."
+                                   "\nOne cause for this could be incorrect installation of GSL itself."
+                                   "\nIf GSL is installed but Python cannot find the correct files, it is "
+                                   "also possible to give the gsl directory manually by specifying "
+                                   "prefs.GSL.directory = ..."))
