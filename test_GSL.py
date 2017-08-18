@@ -331,6 +331,7 @@ def test_GSL_method_options_synapses():
     print('.'),
 
 if __name__=='__main__':
+    test_GSL_stateupdater_basic()
     test_GSL_method_options_synapses()
     test_GSL_method_options_spatialneuron()
     test_GSL_internal_variable()
@@ -340,6 +341,5 @@ if __name__=='__main__':
     test_GSL_x_variable()
     test_GSL_fixed_timestep_rk4()
     test_GSL_different_clocks()
-    test_GSL_stateupdater_basic()
     test_GSL_default_function()
     test_GSL_user_defined_function()

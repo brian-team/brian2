@@ -49,9 +49,7 @@ default_method_options = {
     'adaptable_timestep' : True,
     'dt_start' : 1e-5,
     'absolute_error' : 1e-6,
-    'relative_error' : 0.,
-    'weight_state' : 1.,
-    'weight_derivative' : 0.
+    'absolute_error_per_variable' : None
 }
 
 class GSLCodeGenerator(object):
@@ -83,6 +81,10 @@ class GSLCodeGenerator(object):
                                                                 override_conditional_write, allows_scalar_write)
         self.method_options = default_method_options
         for key, value in owner.state_updater.method_options.items():
+            if not key in self.method_options and not key=='integrator':
+                raise ValueError(("Invalid option for method_options: %s"
+                                  "\nValid options are: %s"%(key, str([key for key in self.method_options\
+                                                                       if not key=='integrator']))))
             self.method_options[key] = value
         self.variable_flags = owner.state_updater._gsl_variable_flags
 
@@ -389,11 +391,29 @@ class GSLCodeGenerator(object):
         return ('\n').join(code).format(**self.syntax)
 
     def scale_array_code(self, diff_vars, method_options):
+
+        abs_per_var = method_options['absolute_error_per_variable']
+        abs_default = method_options['absolute_error']
+
+        if abs_per_var is None:
+            diff_scale = {var: float(abs_default) for var in diff_vars.keys()}
+        elif isinstance(abs_per_var, dict):
+            diff_scale = {}
+            for key, value in abs_per_var.items():
+                diff_scale[key] = float(value)
+            # set the variables that are not mentioned to default value
+            for var in diff_vars.keys():
+                if var not in abs_per_var:
+                    diff_scale[var] = float(abs_per_var)
+        else:
+            raise TypeError(("The absolute_error key in method_options should either be a float or a dictionary "
+                             "containing the error for each individual state variable. Was type %s"%(str(type(eps_abs)))))
+
         code = ("\n{start_declare}double * _get_GSL_scale_array(){open_function}"
                 "\n\t{start_declare}double * array = {open_cast}double *{close_cast}malloc(%d*sizeof(double))"
                 "{end_statement}"%len(diff_vars))
-        for i in range(len(diff_vars)):
-            code += '\n\tarray[%d] = 1{end_statement}'%i
+        for var in diff_vars.keys():
+            code += '\n\tarray[%d] = %f{end_statement}'%(int(diff_vars[var]), diff_scale[var])
         code += '\n\treturn array{end_statement}{end_function}'
         return code.format(**self.syntax)
 
