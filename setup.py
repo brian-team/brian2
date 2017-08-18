@@ -161,7 +161,7 @@ setup(name='Brian2',
                     'brian2': ['default_preferences']
                     },
       install_requires=['numpy>=1.9',
-                        'sympy>=0.7.6',
+                        'sympy>=0.7.6, !=1.1.0',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo>=0.1.6',
