@@ -32,9 +32,10 @@ cdef extern from "gsl/gsl_odeiv2.h":
     int gsl_odeiv2_driver_reset(
         gsl_odeiv2_driver *_GSL_driver)
 
-    gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_y_new(
+    gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_scaled_new(
         gsl_odeiv2_system *_sys, gsl_odeiv2_step_type *T,
-        double hstart, double epsabs, double epsrel)
+        double hstart, double epsabs, double epsrel,
+        double a_y, double a_dydt, double scale[])
 
     int gsl_odeiv2_driver_free(gsl_odeiv2_driver *_GSL_driver)
 {% endblock %}
@@ -54,18 +55,15 @@ cdef extern from "gsl/gsl_odeiv2.h":
     {{scalar_code['GSL']|autoindent}}
 
     cdef double * _GSL_y = _assign_memory_y()
+    cdef double * _GSL_scale_array = _get_GSL_scale_array()
     
     cdef gsl_odeiv2_system _sys
-    cdef gsl_odeiv2_driver * _GSL_driver
     _sys.function = _GSL_func
     set_dimension(&_sys.dimension)
     _sys.params = _GSL_dataholder
-    
-    _GSL_driver = gsl_odeiv2_driver_alloc_y_new(&_sys,
-                                      gsl_odeiv2_step_{{GSL_settings['integrator']}},
-                                      {{GSL_settings['h_start']}},
-                                      {{GSL_settings['eps_abs']}},
-                                      {{GSL_settings['eps_rel']}})
+
+    cdef gsl_odeiv2_driver * _GSL_driver = gsl_odeiv2_driver_alloc_scaled_new(&_sys,gsl_odeiv2_step_{{GSL_settings['integrator']}},
+                                              {{GSL_settings['dt_start']}},1,0,0,0,_GSL_scale_array);
 
     # vector code
     for _idx in range(N):
@@ -78,7 +76,11 @@ cdef extern from "gsl/gsl_odeiv2.h":
         _fill_y_vector(_GSL_dataholder, _GSL_y, _idx)
         if not {{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
                     else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} == GSL_SUCCESS:
-            raise IntegrationError
+            raise IntegrationError(("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
+                                    "\nIf adaptable_timestep is set to False: "
+                                    "\n   the size of the timestep results in an error larger than that set by absolute_error."
+                                    "\nIf adaptable_timestep is set to True:"
+                                    "\n   the desired absolute_error cannot be achieved with current settings."))
         _empty_y_vector(_GSL_dataholder, _GSL_y, _idx)
         gsl_odeiv2_driver_reset(_GSL_driver)
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20001102//EN"
+ "http://www.w3.org/TR/2000/CR-SVG-20001102/DTD/svg-20001102.dtd">
+
+<svg height="3em" viewBox="-5 -5 10 10"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink/">
+
+    <defs>
+      <radialGradient id="blueSphere"
+                      cx="0" cy="0" r="100%" fx="-50%" fy="-50%">
+        <stop offset="0%" stop-color="white" />
+        <stop offset="75%" stop-color="blue" />
+        <stop offset="100%" stop-color="darkblue" />
+      </radialGradient>
+    </defs>
+    <circle fill="url(#blueSphere)" cx="0" cy="0" r="5" />
+
+</svg>

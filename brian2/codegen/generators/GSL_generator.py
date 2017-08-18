@@ -1,3 +1,4 @@
+from brian2.units.fundamentalunits import DimensionMismatchError, DIMENSIONLESS
 from brian2.core.variables import AuxiliaryVariable, ArrayVariable, Constant
 from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
@@ -12,7 +13,6 @@ from brian2.codegen.generators import c_data_type
 import re
 
 from os.path import isdir, exists
-from sys import executable as python_exec
 from brian2.core.preferences import PreferenceError
 
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
@@ -21,7 +21,7 @@ def valid_gsl_dir(val):
     '''
     Validate given string to be path containing required GSL files.
     '''
-    if val == None: # if GSL is installed through for example conda python knows where to find it
+    if val == None:
         return True
     if not isinstance(val, (str, unicode)):
         raise PreferenceError(('Illegal value for GSL directory: %s, has to be str'%(str(val))))
@@ -49,9 +49,9 @@ prefs.register_preferences(
 default_method_options = {
     'integrator' : 'rkf45',
     'adaptable_timestep' : True,
-    'h_start' : 1e-5,
-    'eps_abs' : 1e-6,
-    'eps_rel' : 0.
+    'dt_start' : None,
+    'absolute_error' : 1e-6,
+    'absolute_error_per_variable' : None
 }
 
 class GSLCodeGenerator(object):
@@ -81,11 +81,19 @@ class GSLCodeGenerator(object):
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
-        self.method_options = default_method_options
-        if not codeobj_class.method_options is None:
-            for key, value in codeobj_class.method_options.items():
-                self.method_options[key] = value
-        self.variable_flags = codeobj_class.variable_flags
+
+        # transfer method_options from owner to GSLCodeGenerator
+        self.method_options = {key : value for key, value in default_method_options.items()} # avoid changes to actual default
+        for key, value in owner.state_updater.method_options.items():
+            if not key in self.method_options and not key=='integrator':
+                raise ValueError(("Invalid option for method_options: %s"
+                                  "\nValid options are: %s"%(key, str([key for key in self.method_options\
+                                                                       if not key=='integrator']))))
+            self.method_options[key] = value
+        # default timestep to start with is the timestep of the NeuronGroup itself
+        if self.method_options['dt_start'] is None:
+            self.method_options['dt_start'] = owner.dt.variable.get_value()[0]
+        self.variable_flags = owner.state_updater._gsl_variable_flags
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -114,13 +122,6 @@ class GSLCodeGenerator(object):
         '''
         raise NotImplementedError
 
-    # I redefined the get_array_name functions because I ran into trouble with inheritance because get_array_name is
-    # called from different 'selfs' (from CodeObject classes, from DynamicArrayVariable class, from CodeGenerator class
-    def get_array_name(self, var_obj, access_data=False):
-        '''
-        Get the array_name used in Python Brian
-        '''
-        raise NotImplementedError
 
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         '''
@@ -243,12 +244,6 @@ class GSLCodeGenerator(object):
         -------
         dict
             A dictionary with strings that need to be replaced as keys and the strings that will replace them as values
-
-        Examples
-        --------
-        >>>diff_var_to_replace({'v' : 0})
-        {'const double _gsl_v_f0' : 'f[0]',
-        'v = _array_neurongroup_v[_idx]' : 'v = y[0]'}
         '''
         variables = self.variables
         to_replace = {}
@@ -394,6 +389,70 @@ class GSLCodeGenerator(object):
             code += ['\t'+self.write_dataholder_single(var_obj)]
         code += ['{end_struct}']
         return ('\n').join(code).format(**self.syntax)
+
+    def scale_array_code(self, diff_vars, method_options):
+        '''
+        Return code for function that sets _GSL_scale_array in generated code.
+
+        Parameters
+        ----------
+        diff_vars : dict
+            Dictionary with variable name (str) as key and differnetial variable index (int) as value
+        method_options : dict
+            Dictionary containing integrator settings
+
+        Returns
+        -------
+        code : str
+            Full code describing a function returning a array containg doubles with the absolute errors for
+            each differential variable (according to their assigned index in the GSL StateUpdater)
+        '''
+        # get scale values per variable from method_options
+        abs_per_var = method_options['absolute_error_per_variable']
+        abs_default = method_options['absolute_error']
+
+        if not isinstance(abs_default, float):
+            raise TypeError(("The absolute_error key in method_options should be a float. Was type %s"%(str(type(abs_default)))))
+
+        if abs_per_var is None:
+            diff_scale = {var: float(abs_default) for var in diff_vars.keys()}
+        elif isinstance(abs_per_var, dict):
+            diff_scale = {}
+            for var, error in abs_per_var.items():
+                # first do some checks on input
+                if not var in diff_vars:
+                    if not var in self.variables:
+                        raise KeyError("absolute_error specified for variable that does not exist: %s"%var)
+                    else:
+                        raise KeyError("absolute_error specified for variable that is not being integrated: %s"%var)
+                try:
+                    if not error.has_same_dimensions(self.variables[var]):
+                        raise DimensionMismatchError(("Unit of absolute_error for variable %s does not match unit of "
+                                                      "variable itself"%var), error.dim, self.variables[var].dim)
+                except AttributeError:
+                    # error does not have 'has_same_dimensions' attribute because it is a float
+                    if not isinstance(error, float):
+                        raise
+                    if not self.variables[var].dim is DIMENSIONLESS:
+                        raise DimensionMismatchError(("absolute_error for variable %s is unitless, "
+                                                      "while variable itself is not"%var), self.variables[var].dim)
+                # if all these are passed we can add the value for error in base units
+                diff_scale[var] = float(error)
+            # set the variables that are not mentioned to default value
+            for var in diff_vars.keys():
+                if var not in abs_per_var:
+                    diff_scale[var] = float(abs_per_var)
+        else:
+            raise TypeError(("The absolute_error_per_variable key in method_options should either be None or a dictionary "
+                             "containing the error for each individual state variable. Was type %s"%(str(type(abs_per_var)))))
+        # write code
+        code = ("\n{start_declare}double * _get_GSL_scale_array(){open_function}"
+                "\n\t{start_declare}double * array = {open_cast}double *{close_cast}malloc(%d*sizeof(double))"
+                "{end_statement}"%len(diff_vars))
+        for var in diff_vars.keys():
+            code += '\n\tarray[%d] = %f{end_statement}'%(int(diff_vars[var]), diff_scale[var])
+        code += '\n\treturn array{end_statement}{end_function}'
+        return code.format(**self.syntax)
 
     def find_undefined_variables(self, statements):
         '''
@@ -682,10 +741,23 @@ class GSLCodeGenerator(object):
                                                  vector_statements)
 
         ############ translate code for GSL
+
+        # first check if any indexing other than '_idx' is used (currently not supported)
+        for code_list in scalar_code.values()+vector_code.values():
+            for code in code_list:
+                m = re.search('\[(\w+)\]', code)
+                if m is not None:
+                    if m.group(1)!='0' and m.group(1)!='_idx':
+                        from brian2.stateupdaters.base import UnsupportedEquationsException
+                        raise UnsupportedEquationsException(("Equations result in state updater code with indexing "
+                                                             "other than '_idx', which is currently not supported "
+                                                             "in combination with the GSL stateupdater."))
+
         # differential variable specific operations
         to_replace = self.diff_var_to_replace(diff_vars)
         GSL_support_code = self.get_dimension_code(len(diff_vars))
         GSL_support_code += self.yvector_code(diff_vars)
+        GSL_support_code += self.scale_array_code(diff_vars, self.method_options)
 
         # analyze all needed variables; if not in self.variables: put in separate dic.
         # also keep track of variables needed for scalar statements and vector statements
@@ -718,6 +790,7 @@ class GSLCodeGenerator(object):
         kwds['support_code_lines'] += GSL_support_code.split('\n')
         kwds['t_array'] = self.get_array_name(self.variables['t']) + '[0]'
         kwds['dt_array'] = self.get_array_name(self.variables['dt']) + '[0]'
+        kwds['cpp_standalone'] = self.is_cpp_standalone()
         return scalar_code, vector_code, kwds
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):
@@ -765,27 +838,10 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
         return ('\n').join(code)
 
     @staticmethod
-    def get_array_name(var, access_data=True):
-        '''
-        Get a globally unique name for a `ArrayVariable`.
-
-        Parameters
-        ----------
-        var : `ArrayVariable`
-            The variable for which a name should be found.
-        access_data : bool, optional
-            For `DynamicArrayVariable` objects, specifying `True` here means the
-            name for the underlying data is returned. If specifying `False`,
-            the name of object itself is returned (e.g. to allow resizing).
-        Returns
-        -------
-        name : str
-            A uniqe name for `var`.
-        '''
+    def get_array_name( var, access_data=True):
         # We have to do the import here to avoid circular import dependencies.
-        from brian2.devices.device import get_device
-        device = get_device()
-        return device.get_array_name(var, access_data=access_data)
+        from brian2.codegen.generators.cython_generator import CythonCodeGenerator
+        return CythonCodeGenerator.get_array_name(var, access_data)
 
 class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
@@ -835,11 +891,7 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
                 return ''
 
     @staticmethod
-    def get_array_name(var, access_data=True):
+    def get_array_name( var, access_data=True):
         # We have to do the import here to avoid circular import dependencies.
-        from brian2.devices.device import get_device
-        device = get_device()
-        if access_data:
-            return '_ptr' + device.get_array_name(var)
-        else:
-            return device.get_array_name(var, access_data=False)
+        from brian2.codegen.runtime.weave_rt import WeaveCodeGenerator
+        return WeaveCodeGenerator.get_array_name(var, access_data)

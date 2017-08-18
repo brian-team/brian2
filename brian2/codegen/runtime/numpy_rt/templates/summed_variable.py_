@@ -17,7 +17,19 @@ _vectorisation_idx = LazyArange(N)
 
 # We write to the array, using the name provided as a keyword argument to the
 # template
-
-{{_target_var_array}}[:] = _numpy.bincount({{_index_array}},
-                                 minlength=len({{_target_var_array}}),
-                                 weights=_synaptic_var)
+# Note that for subgroups, we do not want to overwrite the full array
+{% if _target_start > 0 %}
+_indices = {{_index_array}} - {{_target_start}}
+{% else %}
+_indices = {{_index_array}}
+{% endif %}
+{# Handle the situation that the target did not have a stop variable, e.g. for synapses: #}
+{% if _target_stop < 0 %}
+_target_stop = {{constant_or_scalar(_target_size_name, variables[_target_size_name])}}
+{% else %}
+_target_stop = {{_target_stop}}
+{% endif %}
+_length = _target_stop - {{_target_start}}
+{{_target_var_array}}[{{_target_start}}:_target_stop] = _numpy.bincount(_indices,
+                                 minlength=_length,
+                                 weights=_numpy.broadcast_to(_synaptic_var, (N, )))

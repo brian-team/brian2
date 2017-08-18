@@ -2,7 +2,7 @@ from brian2 import *
 from brian2.core.preferences import PreferenceError
 from brian2.stateupdaters.base import UnsupportedEquationsException
 
-max_difference = .1*mV
+max_difference = .001*mV
 max_difference_same_method = 1*pvolt
 
 targets = ['brian2', 'weave', 'cython', 'cpp_standalone']
@@ -11,13 +11,13 @@ setting_dict = {'brian2' : {'device' : 'runtime', # do one without GSL so we can
                         'stateupdater' : 'exponential_euler',
                         'target' : 'weave'},
                 'weave' : {'device' : 'runtime',
-                           'stateupdater' : 'GSL_stateupdater',
+                           'stateupdater' : 'gsl_rkf45',
                            'target' : 'weave'},
                 'cython' : {'device' : 'runtime',
-                           'stateupdater' : 'GSL_stateupdater',
+                           'stateupdater' : 'gsl_rkf45',
                            'target' : 'cython'},
                 'cpp_standalone' : {'device' : 'cpp_standalone',
-                           'stateupdater' : 'GSL_stateupdater',
+                           'stateupdater' : 'gsl_rkf45',
                            'target' : 'weave'}}
 
 # basic test with each target language
@@ -186,10 +186,8 @@ def test_GSL_fixed_timestep_rk4():
                                  refractory=5*ms, method='rk4')
         else:
             neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
-                                  refractory=5*ms, method='GSL_stateupdater', method_options={'integrator' : 'rk4',
-                                                                                              'adaptable_timestep' : True,
-                                                                                              'eps_abs' : 1e-2,
-                                                                                              'eps_rel' : 1e-2})
+                                  refractory=5*ms, method='gsl_rkf45', method_options={'integrator' : 'rk4',
+                                                                                       'adaptable_timestep' : False})
         neuron.v = 0*mV
         neuron.v0 = 13*mV
         mon = StateMonitor(neuron, 'v', record=True, dt=1*ms, when='start') # default of statemonitor is different for cpp_standalone!
@@ -206,7 +204,7 @@ def test_GSL_fixed_timestep_rk4():
 
 def test_GSL_x_variable():
     neurons = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
-                          method='GSL_stateupdater')
+                          method='gsl_rkf45')
     network = Network(neurons)
     # just testing compilation
     network.run(0*ms)
@@ -238,7 +236,7 @@ def test_GSL_stochastic():
     eqs = """
     dV/dt = (-V+muext + sigmaext * sqrt(tau) * xi)/tau : volt
     """
-    group = NeuronGroup(10, eqs, method='GSL_stateupdater')
+    group = NeuronGroup(10, eqs, method='gsl_rkf45')
     try:
         run(0*ms)
         raise Exception(('The previous line should raise an UnsupportedEquationsException'))
@@ -248,7 +246,7 @@ def test_GSL_stochastic():
 
 def test_GSL_internal_variable():
     #NeuronGroup(2, 'd_p/dt = 300*Hz : 1',
-    #                      method='GSL_stateupdater')
+    #                      method='gsl_rkf45')
     try:
         Equations('d_p/dt = 300*Hz : 1')
         raise Exception(('The previous line should raise a ValueError because of the use of a variable starting with '
@@ -278,9 +276,9 @@ def test_GSL_method_options_spatialneuron():
     dg/dt = siemens/metre**2/second : siemens/metre**2
     '''
     neuron1 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
-                           method='GSL_stateupdater', method_options={'adaptable_timestep':True})
+                           method='gsl_rkf45', method_options={'adaptable_timestep':True})
     neuron2 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
-                           method='GSL_stateupdater', method_options={'adaptable_timestep':False})
+                           method='gsl_rkf45', method_options={'adaptable_timestep':False})
     run(0*ms)
     assert 'fixed' not in str(neuron1.state_updater.codeobj.code), \
         'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
@@ -289,6 +287,7 @@ def test_GSL_method_options_spatialneuron():
     print('.'),
 
 def test_GSL_method_options_synapses():
+    set_device('runtime')
     N = 1000
     taum = 10*ms
     taupre = 20*ms
@@ -310,18 +309,18 @@ def test_GSL_method_options_synapses():
     '''
     input = PoissonGroup(N, rates=F)
     neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
-                          method='GSL_stateupdater')
+                          method='gsl_rkf45')
     S1 = Synapses(input, neurons,
                  '''w : 1
                     dApre/dt = -Apre / taupre : 1 (clock-driven)
                     dApost/dt = -Apost / taupost : 1 (clock-driven)''',
-                 method='GSL_stateupdater',
+                 method='gsl_rkf45',
                  method_options={'adaptable_timestep':True})
     S2 = Synapses(input, neurons,
                  '''w : 1
                     dApre/dt = -Apre / taupre : 1 (clock-driven)
                     dApost/dt = -Apost / taupost : 1 (clock-driven)''',
-                 method='GSL_stateupdater',
+                 method='gsl_rkf45',
                  method_options={'adaptable_timestep':False})
     run(0*ms)
     assert 'fixed' not in str(S1.state_updater.codeobj.code), \
@@ -330,7 +329,134 @@ def test_GSL_method_options_synapses():
         'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
     print('.'),
 
+HH_namespace = {
+    'Cm' : 1*ufarad*cm**-2,
+    'gl' : 5e-5*siemens*cm**-2,
+    'El' : -65*mV,
+    'EK' : -90*mV,
+    'ENa' : 50*mV,
+    'g_na' : 100*msiemens*cm**-2,
+    'g_kd' : 30*msiemens*cm**-2,
+    'VT' : -63*mV
+}
+
+HH_eqs = Equations('''
+dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
+dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
+    (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
+    (exp((v-VT-40.*mV)/(5.*mV))-1.)/ms*m : 1
+dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
+    (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
+dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
+I : amp/metre**2
+''')
+
+def test_GSL_fixed_timestep_big_dt_small_error():
+    set_device('cpp_standalone')
+    prefs.codegen.target = 'weave'
+    # should raise integration error
+    neuron = NeuronGroup(1, model=HH_eqs,threshold='v > -40*mV',refractory='v > -40*mV',method='gsl',
+                         method_options={'adaptable_timestep' : False, 'absolute_error' : 1e-12},
+                         dt=.001*ms, namespace=HH_namespace)
+    neuron.I = 0.7*nA/(20000*umetre**2)
+    neuron.v = HH_namespace['El']
+    try:
+        run(10*ms)
+        raise Exception # should not get here, run should raise RuntimeError
+    except RuntimeError:
+        pass
+    print('.'),
+
+def test_GSL_error_dimension_mismatch_unit():
+    tau = 10*ms
+    eqs = '''
+    dv/dt = (v0 - v)/tau : volt
+    v0 : volt
+    '''
+    options = {'absolute_error_per_variable' : {'v' : 1*nS}}
+    neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+    try:
+        run(0*ms)
+        raise Exception # should not get here because run should raise error
+    except DimensionMismatchError as err:
+        #print err
+        pass
+    print('.'),
+
+def test_GSL_error_dimension_mismatch_dimensionless1():
+    tau = 10*ms
+    eqs = '''
+    dv/dt = (v0 - v)/tau : 1
+    v0 : 1
+    '''
+    options = {'absolute_error_per_variable' : {'v' : 1*mV}}
+    neuron = NeuronGroup(1, eqs, threshold='v > 10', reset='v = 0', method='gsl', method_options=options)
+    try:
+        run(0*ms)
+        raise Exception # should not get here because run should raise error
+    except DimensionMismatchError as err:
+        #print err
+        pass
+    print('.'),
+
+def test_GSL_error_dimension_mismatch_dimensionless2():
+    tau = 10*ms
+    eqs = '''
+    dv/dt = (v0 - v)/tau : volt
+    v0 : volt
+    '''
+    options = {'absolute_error_per_variable' : {'v' : 1e-3}}
+    neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+    try:
+        run(0*ms)
+        raise Exception # should not get here because run should raise error
+    except DimensionMismatchError as err:
+        #print err
+        pass
+    print('.'),
+
+def test_GSL_error_nonexisting_variable():
+    tau = 10*ms
+    eqs = '''
+    dv/dt = (v0 - v)/tau : volt
+    v0 : volt
+    '''
+    options = {'absolute_error_per_variable' : {'dummy' : 1e-3*mV}}
+    neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+    try:
+        run(0*ms)
+        raise Exception # should not get here because run should raise error
+    except KeyError as err:
+        print err
+        pass
+    print('.'),
+
+def test_GSL_error_nonODE_variable():
+    tau = 10*ms
+    eqs = '''
+    dv/dt = (v0 - v)/tau : volt
+    v0 : volt
+    '''
+    options = {'absolute_error_per_variable' : {'v0' : 1e-3*mV}}
+    neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+    try:
+        run(0*ms)
+        raise Exception # should not get here because run should raise error
+    except KeyError as err:
+        print err
+        pass
+    print('.'),
+
 if __name__=='__main__':
+    test_GSL_fixed_timestep_big_dt_small_error()
+    exit(0)
+    test_GSL_error_nonexisting_variable()
+    test_GSL_error_nonODE_variable()
+    test_GSL_error_dimension_mismatch_unit()
+    test_GSL_error_dimension_mismatch_dimensionless1()
+    test_GSL_error_dimension_mismatch_dimensionless2()
+    test_GSL_fixed_timestep_rk4()
+    test_GSL_stateupdater_basic()
     test_GSL_method_options_synapses()
     test_GSL_method_options_spatialneuron()
     test_GSL_internal_variable()
@@ -338,8 +464,6 @@ if __name__=='__main__':
     test_GSL_stochastic()
     test_GSL_failing_directory()
     test_GSL_x_variable()
-    test_GSL_fixed_timestep_rk4()
     test_GSL_different_clocks()
-    test_GSL_stateupdater_basic()
     test_GSL_default_function()
     test_GSL_user_defined_function()
