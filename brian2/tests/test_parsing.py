@@ -436,7 +436,8 @@ def test_sympytools():
                    'c * userfun(t + x)',  # non-sympy function
                    'abs(x) + ceil(y)',  # functions with a different name in sympy
                    'inf',  # constant with a different name in sympy
-                   ]
+                   'not(b)'  # boolean expression
+                  ]
 
     for expr in expressions:
         expr2 = sympy_to_str(str_to_sympy(expr))
@@ -447,7 +448,8 @@ def test_error_messages():
     nr = NodeRenderer()
     expr_expected = [('3^2', '^', '**'),
                      ('int(not_refractory | (v > 30))', '|', 'or'),
-                     ('int((v > 30) & (w < 20))', '&', 'and')]
+                     ('int((v > 30) & (w < 20))', '&', 'and'),
+                     ('x +* 3', '', '')]
     for expr, expected_1, expected_2 in expr_expected:
         try:
             nr.render_expr(expr)
