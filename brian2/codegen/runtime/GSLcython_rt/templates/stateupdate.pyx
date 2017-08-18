@@ -62,8 +62,7 @@ cdef extern from "gsl/gsl_odeiv2.h":
     set_dimension(&_sys.dimension)
     _sys.params = _GSL_dataholder
 
-    cdef gsl_odeiv2_driver * _GSL_driver =
-            gsl_odeiv2_driver_alloc_scaled_new(&_sys,gsl_odeiv2_step_{{GSL_settings['integrator']}},
+    cdef gsl_odeiv2_driver * _GSL_driver = gsl_odeiv2_driver_alloc_scaled_new(&_sys,gsl_odeiv2_step_{{GSL_settings['integrator']}},
                                               {{GSL_settings['dt_start']}},1,0,0,0,_GSL_scale_array);
 
     # vector code

@@ -47,7 +47,7 @@ prefs.register_preferences(
 # default method_options
 default_method_options = {
     'adaptable_timestep' : True,
-    'dt_start' : 1e-5,
+    'dt_start' : None,
     'absolute_error' : 1e-6,
     'absolute_error_per_variable' : None
 }
@@ -79,6 +79,8 @@ class GSLCodeGenerator(object):
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,
                                                                 override_conditional_write, allows_scalar_write)
+
+        # transfer method_options from owner to GSLCodeGenerator
         self.method_options = default_method_options
         for key, value in owner.state_updater.method_options.items():
             if not key in self.method_options and not key=='integrator':
@@ -86,6 +88,9 @@ class GSLCodeGenerator(object):
                                   "\nValid options are: %s"%(key, str([key for key in self.method_options\
                                                                        if not key=='integrator']))))
             self.method_options[key] = value
+        # default timestep to start with is the timestep of the NeuronGroup itself
+        if self.method_options['dt_start'] is None:
+            self.method_options['dt_start'] = owner.dt.variable.get_value()[0]
         self.variable_flags = owner.state_updater._gsl_variable_flags
 
     def __getattr__(self, item):
@@ -391,9 +396,28 @@ class GSLCodeGenerator(object):
         return ('\n').join(code).format(**self.syntax)
 
     def scale_array_code(self, diff_vars, method_options):
+        '''
+        Return code for function that sets _GSL_scale_array in generated code.
 
+        Parameters
+        ----------
+        diff_vars : dict
+            Dictionary with variable name (str) as key and differnetial variable index (int) as value
+        method_options : dict
+            Dictionary containing integrator settings
+
+        Returns
+        -------
+        code : str
+            Full code describing a function returning a array containg doubles with the absolute errors for
+            each differential variable (according to their assigned index in the GSL StateUpdater)
+        '''
+        # get scale values per variable from method_options
         abs_per_var = method_options['absolute_error_per_variable']
         abs_default = method_options['absolute_error']
+
+        if not isinstance(abs_default, float):
+            raise TypeError(("The absolute_error key in method_options should be a float. Was type %s"%(str(type(abs_default)))))
 
         if abs_per_var is None:
             diff_scale = {var: float(abs_default) for var in diff_vars.keys()}
@@ -406,9 +430,9 @@ class GSLCodeGenerator(object):
                 if var not in abs_per_var:
                     diff_scale[var] = float(abs_per_var)
         else:
-            raise TypeError(("The absolute_error key in method_options should either be a float or a dictionary "
-                             "containing the error for each individual state variable. Was type %s"%(str(type(eps_abs)))))
-
+            raise TypeError(("The absolute_error_per_variable key in method_options should either be None or a dictionary "
+                             "containing the error for each individual state variable. Was type %s"%(str(type(abs_per_var)))))
+        # write code
         code = ("\n{start_declare}double * _get_GSL_scale_array(){open_function}"
                 "\n\t{start_declare}double * array = {open_cast}double *{close_cast}malloc(%d*sizeof(double))"
                 "{end_statement}"%len(diff_vars))
