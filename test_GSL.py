@@ -352,14 +352,19 @@ I : amp/metre**2
 ''')
 
 def test_GSL_fixed_timestep_big_dt_small_error():
-    prefs.codegen.target = 'cython'
+    set_device('cpp_standalone')
+    prefs.codegen.target = 'weave'
     # should raise integration error
     neuron = NeuronGroup(1, model=HH_eqs,threshold='v > -40*mV',refractory='v > -40*mV',method='gsl',
                          method_options={'adaptable_timestep' : False, 'absolute_error' : 1e-12},
-                         dt=1*ms, namespace=HH_namespace)
+                         dt=.001*ms, namespace=HH_namespace)
     neuron.I = 0.7*nA/(20000*umetre**2)
     neuron.v = HH_namespace['El']
-    run(10*ms)
+    try:
+        run(10*ms)
+        raise Exception # should not get here, run should raise RuntimeError
+    except RuntimeError:
+        pass
     print('.'),
 
 def test_GSL_error_dimension_mismatch_unit():
@@ -443,13 +448,13 @@ def test_GSL_error_nonODE_variable():
     print('.'),
 
 if __name__=='__main__':
+    test_GSL_fixed_timestep_big_dt_small_error()
+    exit(0)
     test_GSL_error_nonexisting_variable()
     test_GSL_error_nonODE_variable()
     test_GSL_error_dimension_mismatch_unit()
     test_GSL_error_dimension_mismatch_dimensionless1()
     test_GSL_error_dimension_mismatch_dimensionless2()
-    test_GSL_fixed_timestep_big_dt_small_error()
-    exit(0)
     test_GSL_fixed_timestep_rk4()
     test_GSL_stateupdater_basic()
     test_GSL_method_options_synapses()

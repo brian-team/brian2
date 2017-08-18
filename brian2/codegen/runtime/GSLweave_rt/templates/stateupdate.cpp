@@ -37,8 +37,21 @@ for(int _idx=0; _idx<_N; _idx++)
     if ({{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
                 else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} != GSL_SUCCESS)
     {
-        printf("Integration error running stateupdate with GSL\n");
-        exit(-1);
+        {% if cpp_standalone %}
+        printf("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
+               "\nIf adaptable_timestep is set to False: "
+               "\n   the size of the timestep results in an error larger than that set by absolute_error."
+               "\nIf adaptable_timestep is set to True:"
+               "\n   the desired absolute_error cannot be achieved with current settings.\n");
+        exit(1);
+        {% else %}
+        PyErr_SetString(PyExc_RuntimeError, ("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
+                                           "\nIf adaptable_timestep is set to False: "
+                                           "\n   the size of the timestep results in an error larger than that set by absolute_error."
+                                           "\nIf adaptable_timestep is set to True:"
+                                           "\n   the desired absolute_error cannot be achieved with current settings."));
+        throw 1;
+        {% endif %}
     }
     gsl_odeiv2_driver_reset(_GSL_driver);
     _empty_y_vector(&_GSL_dataholder, _GSL_y, _idx);
