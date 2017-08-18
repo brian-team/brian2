@@ -37,7 +37,7 @@ s_mon = SpikeMonitor(P)
 
 run(1 * second)
 
-plot(s_mon.t/ms, s_mon.i, '.k')
+plot(s_mon.t/ms, s_mon.i, ',k')
 xlabel('Time (ms)')
 ylabel('Neuron index')
 show()

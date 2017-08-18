@@ -30,7 +30,7 @@ S = SpikeMonitor(neurons)
 run(5*second, report='text')
 
 i, t = S.it
-plot((t % tau)/tau, neurons.a[i], '.')
+plot((t % tau)/tau, neurons.a[i], ',')
 xlabel('Spike phase')
 ylabel('Parameter a')
 show()

@@ -294,7 +294,7 @@ class CythonCodeGenerator(CodeGenerator):
                 self.variables.update(func_namespace)
 
         return {'load_namespace': '\n'.join(load_namespace),
-                'support_code': '\n'.join(support_code)}
+                'support_code_lines': support_code}
 
 ###############################################################################
 # Implement functions

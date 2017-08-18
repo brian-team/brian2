@@ -299,15 +299,13 @@ Summed variables
 In many cases, the postsynaptic neuron has a variable that represents a sum of variables over all
 its synapses. This is called a "summed variable". An example is nonlinear synapses (e.g. NMDA)::
 
-	neurons = NeuronGroup(1, model="""dv/dt=(gtot-v)/(10*ms) : 1
-	                                  gtot : 1""")
-	S=Synapses(input,neurons,
-	           model='''dg/dt=-a*g+b*x*(1-g) : 1
-	                    gtot_post = g : 1  (summed)
-	                    dx/dt=-c*x : 1
-	                    w : 1 # synaptic weight
-	                 ''',
-	           on_pre='x+=w')
+    neurons = NeuronGroup(1, model='''dv/dt=(gtot-v)/(10*ms) : 1
+                                      gtot : 1''')
+    S = Synapses(input, neurons,
+                 model='''dg/dt=-a*g+b*x*(1-g) : 1
+                          gtot_post = g : 1  (summed)
+                          dx/dt=-c*x : 1
+                          w : 1 # synaptic weight''', on_pre='x+=w')
 
 Here, each synapse has a conductance ``g`` with nonlinear dynamics. The neuron's total conductance
 is ``gtot``. The line stating ``gtot_post = g : 1  (summed)`` specifies the link
@@ -322,6 +320,27 @@ result is copied to the variable ``gtot``. Another example is gap junctions::
                                 Igap_post = w*(v_pre-v_post): 1 (summed)''')
 
 Here, ``Igap`` is the total gap junction current received by the postsynaptic neuron.
+
+Note that you cannot target the same post-synaptic variable from more than one
+`Synapses` object. To work around this restriction, use multiple post-synaptic
+variables that ar then summed up::
+
+    neurons = NeuronGroup(1, model='''dv/dt=(gtot-v)/(10*ms) : 1
+                                      gtot = gtot1 + gtot2: 1
+                                      gtot1 : 1
+                                      gtot2 : 1''')
+    S1 = Synapses(input, neurons,
+                  model='''dg/dt=-a1*g+b1*x*(1-g) : 1
+                           gtot1_post = g : 1  (summed)
+                           dx/dt=-c1*x : 1
+                           w : 1 # synaptic weight
+                        ''', on_pre='x+=w')
+    S2 = Synapses(input, neurons,
+                  model='''dg/dt=-a2*g+b2*x*(1-g) : 1
+                           gtot2_post = g : 1  (summed)
+                           dx/dt=-c2*x : 1
+                           w : 1 # synaptic weight
+                        ''', on_pre='x+=w')
 
 Creating multi-synapses
 -----------------------

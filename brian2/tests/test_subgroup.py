@@ -429,17 +429,19 @@ def test_synapses_access_subgroups_problematic():
     S = Synapses(G1, G2, 'w:1')
     S.connect()
 
+    # Note that "j" is not ambiguous, because the equivalent in the target group
+    # is called "i" (this previously raised a warning)
     tests = [
         ((SG1, slice(None)), 'i', 1),
         ((SG1, slice(None)), 'i + N_pre', 2),
         ((SG1, slice(None)), 'N_pre', 1),
-        ((slice(None), SG2), 'j', 1),
+        ((slice(None), SG2), 'j', 0),
         ((slice(None), SG2), 'N_post', 1),
         ((slice(None), SG2), 'N', 1),
         ((SG1, SG2), 'i', 1),
-        ((SG1, SG2), 'i + j', 2),
+        ((SG1, SG2), 'i + j', 1),
         ((SG1, SG2), 'N_pre', 1),
-        ((SG1, SG2), 'j', 1),
+        ((SG1, SG2), 'j', 0),
         ((SG1, SG2), 'N_post', 1),
         ((SG1, SG2), 'N', 1),
         # These should not raise a warning

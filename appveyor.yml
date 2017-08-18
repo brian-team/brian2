@@ -101,9 +101,9 @@ install:
   - 'python -c "import struct; print(struct.calcsize(''P'') * 8)"'
 
   # Install the build dependencies of the project via conda
-  - 'appveyor-retry conda install --yes --quiet numpy nose sphinx sympy pyparsing jinja2 ipython setuptools cython'
+  - 'appveyor-retry conda install --yes --quiet numpy nose sphinx "sympy!=1.1.0" pyparsing jinja2 ipython setuptools cython'
   # Install an older version of scipy (which still has weave) on Python 2
-  - 'if "%PYTHON_VERSION:~0,1%" == "2" appveyor-retry conda install --yes --quiet scipy==0.18'
+  - 'if "%PYTHON_VERSION:~0,1%" == "2" appveyor-retry conda install --yes --quiet -c brian-team weave scipy'
   - 'if "%PYTHON_VERSION:~0,1%" == "3" appveyor-retry conda install --yes --quiet scipy'
   - 'appveyor-retry conda install --yes --quiet -c brian-team py-cpuinfo'
   # For faster tests, only build conda packages for the master branch or pull requests
@@ -127,9 +127,10 @@ after_test:
           cd %SRC_DIR% &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst &&
-          %appveyor-retry CMD_IN_ENV% conda install --yes --quiet conda-build anaconda-client pip &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.11 &&
-          %CMD_IN_ENV% conda build --quiet -c brian-team dev\conda-recipe --numpy 1.12 &&
+          %appveyor-retry CMD_IN_ENV% conda install --yes --quiet -c conda-forge conda-build anaconda-client pip &&
+          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe --numpy 1.11 &&
+          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe --numpy 1.12 &&
+          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe --numpy 1.13 &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
           if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'

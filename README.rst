@@ -23,6 +23,9 @@ If you use Brian for your published research, we suggest that you cite one of ou
 .. image:: https://anaconda.org/brian-team/brian2/badges/version.svg
         :target: https://anaconda.org/brian-team/brian2
 
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg
+        :target: https://doi.org/10.5281/zenodo.654861
+
 .. image:: https://badges.gitter.im/Join%20Chat.svg
    :alt: Join the chat at https://gitter.im/brian-team/brian2
    :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
