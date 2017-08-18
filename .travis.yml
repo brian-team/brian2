@@ -124,12 +124,12 @@ install:
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
     travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.9 scipy==0.14 libgfortran==1 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy nose sphinx ipython sympy pyparsing jinja2 setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy nose sphinx ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
   # On Python 2: Install an older version of scipy that still has weave
   - if [ ${PYTHON:0:1} == "2" ]; then
-      travis_retry conda install --yes --quiet scipy==0.18;
+      travis_retry conda install --yes --quiet -c brian-team weave scipy;
       travis_retry conda install --yes --quiet bsddb;
     else
       travis_retry conda install --yes --quiet scipy;
@@ -147,8 +147,8 @@ install:
 script:
 - if [[ $CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    for NUMPY_VERSION in 1.10 1.11 1.12; do
-      conda build --quiet -c brian-team dev/conda-recipe --numpy $NUMPY_VERSION;
+    for NUMPY_VERSION in 1.10 1.11 1.12 1.13; do
+      conda build --quiet -c conda-forge dev/conda-recipe --numpy $NUMPY_VERSION;
     done;
     source activate travis_conda;
   fi

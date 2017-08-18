@@ -968,10 +968,6 @@ class Synapses(Group):
                                          dtype=np.int32)
         self.variables.add_dynamic_array('_synaptic_post', size=0,
                                          dtype=np.int32)
-        self.variables.add_reference('i', self.source, 'i',
-                                     index='_presynaptic_idx')
-        self.variables.add_reference('j', self.target, 'i',
-                                     index='_postsynaptic_idx')
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         if '_offset' in self.target.variables:
@@ -1005,6 +1001,30 @@ class Synapses(Group):
         self.variables.add_reference('_postsynaptic_idx',
                                      self,
                                      '_synaptic_post')
+
+        # Except for subgroups (which potentially add an offset), the "i" and
+        # "j" variables are simply equivalent to `_synaptic_pre` and
+        # `_synaptic_post`
+        if getattr(self.source, 'start', 0) == 0:
+            self.variables.add_reference('i', self, '_synaptic_pre')
+        else:
+            self.variables.add_reference('_source_i', self.source.source, 'i',
+                                         index='_presynaptic_idx')
+            self.variables.add_reference('_source_offset', self.source, '_offset')
+            self.variables.add_subexpression('i',
+                                             dtype=self.source.source.variables['i'].dtype,
+                                             expr='_source_i - _source_offset',
+                                             index='_presynaptic_idx')
+        if getattr(self.target, 'start', 0) == 0:
+            self.variables.add_reference('j', self, '_synaptic_post')
+        else:
+            self.variables.add_reference('_target_j', self.target.source, 'i',
+                                         index='_postsynaptic_idx')
+            self.variables.add_reference('_target_offset', self.target, '_offset')
+            self.variables.add_subexpression('j',
+                                             dtype=self.target.source.variables['i'].dtype,
+                                             expr='_target_j - _target_offset',
+                                             index='_postsynaptic_idx')
 
         # Add the standard variables
         self.variables.add_array('N',  dtype=np.int32, size=1, scalar=True,
@@ -1457,7 +1477,14 @@ class Synapses(Group):
         if additional_indices is None:
             additional_indices = {}
         for varname in get_identifiers_recursively([expr], self.variables):
-            if varname in additional_indices:
+            # Special handling of i and j -- they do not actually use pre-/
+            # postsynaptic indices (except for subgroups), they *are* the
+            # pre-/postsynaptic indices
+            if varname == 'i':
+                deps.add('_presynaptic_idx')
+            elif varname == 'j':
+                deps.add('_postsynaptic_idx')
+            elif varname in additional_indices:
                 deps.add(additional_indices[varname])
             else:
                 deps.add(self.variables.indices[varname])
@@ -1561,6 +1588,13 @@ class Synapses(Group):
                 variable_indices[varname] = '_raw_pre_idx'
             elif self.variables.indices[varname] == '_postsynaptic_idx':
                 variable_indices[varname] = '_raw_post_idx'
+
+        if self.variables['i'] is self.variables['_synaptic_pre']:
+            variables.add_subexpression('i', '_i',
+                                        dtype=self.variables['i'].dtype)
+        if self.variables['j'] is self.variables['_synaptic_post']:
+            variables.add_subexpression('j', '_j',
+                                        dtype=self.variables['j'].dtype)
 
         logger.debug(("Creating synapses from group '%s' to group '%s', "
                       "using generator '%s'") % (self.source.name,

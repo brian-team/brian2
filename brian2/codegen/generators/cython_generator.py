@@ -286,7 +286,7 @@ class CythonCodeGenerator(CodeGenerator):
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
 
         return {'load_namespace': '\n'.join(load_namespace),
-                'support_code': '\n'.join(support_code)}
+                'support_code_lines': support_code}
 
 ###############################################################################
 # Implement functions
