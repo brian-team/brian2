@@ -290,7 +290,7 @@ class IndexWrapper(object):
                                             'group_get_indices',
                                             run_namespace=namespace,
                                             additional_variables=variables,
-                                            codeobj_class=device.code_object_class(pref='codegen.string_expression_target')
+                                            codeobj_class=device.code_object_class(fallback_pref='codegen.string_expression_target')
                                             )
             return codeobj()
         else:

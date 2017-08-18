@@ -481,6 +481,21 @@ class CPPStandaloneDevice(Device):
                                   'standalone scripts.')
 
     def code_object_class(self, codeobj_class=None, pref=None):
+        '''
+        Return `CodeObject` class (either `CPPStandaloneCodeObject` class or input)
+
+        Parameters
+        ----------
+        codeobj_class : None or a CodeObject class.
+            If this is keyword is set to None or no arguments are given, this method will return
+            the default (`CPPStandaloneCodeObject` class).
+        fallback_pref : str
+            For the cpp_standalone device this option is ignored.
+
+        Returns
+        -------
+        `CodeObject` class
+        '''
         # Ignore the requested pref (used for optimization in runtime)
         if codeobj_class is None:
             return CPPStandaloneCodeObject
