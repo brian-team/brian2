@@ -88,7 +88,6 @@ def variables_by_owner(variables, owner):
     return dict([(varname, var) for varname, var in variables.iteritems()
                  if getattr(var.owner, 'name', None) is owner_name])
 
-
 class Variable(object):
     '''
     An object providing information about model variables (including implicit
@@ -164,6 +163,16 @@ class Variable(object):
 
         #: Whether the variable is an array
         self.array = array
+
+        #: Mark the list of attributes that should not be considered for caching
+        #: of state update code, etc.
+        self._cache_irrelevant_attributes = ['owner']
+
+    @property
+    def _state_tuple(self):
+        return tuple(value for key, value in self.__dict__.iteritems()
+                     if key not in (self._cache_irrelevant_attributes +
+                                    ['_cache_irrelevant_attributes']))
 
     @property
     def is_boolean(self):
@@ -274,9 +283,7 @@ class Variable(object):
                                   constant=repr(self.constant),
                                   read_only=repr(self.read_only))
 
-    _state_tuple = property(lambda self: (self.dim, self.dtype, self.scalar,
-                                          self.constant, self.read_only,
-                                          self.dynamic, self.name))
+
 
 # ------------------------------------------------------------------------------
 # Concrete classes derived from `Variable` -- these are the only ones ever
@@ -340,11 +347,6 @@ class Constant(Variable):
 
     def get_value(self):
         return self.value
-
-    # In contrast to other `Variable` objects, `Constant` objects are recreated
-    # for every run, so we cannot simply use their identity to compare them.
-    _state_tuple = property(lambda self: super(Constant, self)._state_tuple +
-                                         (self.value, ))
 
 
 class AuxiliaryVariable(Variable):
@@ -473,8 +475,6 @@ class ArrayVariable(Variable):
         return VariableView(name=name, variable=self, group=group,
                             dimensions=self.dim)
 
-    _state_tuple = property(lambda self: super(ArrayVariable, self)._state_tuple +
-                                         (self.size, self.unique, id(self.device)))
 
 class DynamicArrayVariable(ArrayVariable):
     '''
@@ -559,6 +559,9 @@ class DynamicArrayVariable(ArrayVariable):
                                                    dynamic=True,
                                                    read_only=read_only,
                                                    unique=unique)
+        # The size of a dynamic variable can of course change and changes in
+        # size should not invalidate the cache
+        self._cache_irrelevant_attributes += ['size']
 
     @property
     def dimensions(self):
@@ -583,13 +586,6 @@ class DynamicArrayVariable(ArrayVariable):
             self.device.resize(self, new_size)
 
         self.size = new_size
-
-    # Note that we inherit the state tuple from Variable, *not* from ArrayVariable.
-    # Otherwise the size would be part of the tuple, but of course the size of
-    # a dynamic variable can change.
-    _state_tuple = property(lambda self: super(ArrayVariable, self)._state_tuple +
-                                         (self.unique, id(self.device), self.ndim,
-                                          self.resize_along_first, self.needs_reference_update))
 
 
 class Subexpression(Variable):
@@ -669,9 +665,6 @@ class Subexpression(Variable):
                                   dtype=repr(self.dtype),
                                   expr=repr(self.expr),
                                   owner=self.owner.name)
-
-    _state_tuple = property(lambda self: super(Subexpression, self)._state_tuple +
-                                         (self.expr, id(self.device)))
 
 # ------------------------------------------------------------------------------
 # Classes providing views on variables and storing variables information

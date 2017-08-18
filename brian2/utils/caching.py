@@ -82,7 +82,7 @@ def _hashable(obj):
 
     if isinstance(obj, set):
         return frozenset(_hashable(el) for el in obj)
-    elif isinstance(obj, list):
+    elif isinstance(obj, collections.Sequence):
         return tuple(_hashable(el) for el in obj)
     elif isinstance(obj, collections.Mapping):
         return frozenset((_hashable(key), _hashable(value))
