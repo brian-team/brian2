@@ -1,3 +1,4 @@
+from brian2.units.fundamentalunits import DimensionMismatchError, DIMENSIONLESS
 from brian2.core.variables import AuxiliaryVariable, ArrayVariable, Constant
 from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
@@ -81,7 +82,7 @@ class GSLCodeGenerator(object):
                                                                 override_conditional_write, allows_scalar_write)
 
         # transfer method_options from owner to GSLCodeGenerator
-        self.method_options = default_method_options
+        self.method_options = {key : value for key, value in default_method_options.items()} # avoid changes to actual default
         for key, value in owner.state_updater.method_options.items():
             if not key in self.method_options and not key=='integrator':
                 raise ValueError(("Invalid option for method_options: %s"
@@ -423,8 +424,26 @@ class GSLCodeGenerator(object):
             diff_scale = {var: float(abs_default) for var in diff_vars.keys()}
         elif isinstance(abs_per_var, dict):
             diff_scale = {}
-            for key, value in abs_per_var.items():
-                diff_scale[key] = float(value)
+            for var, error in abs_per_var.items():
+                # first do some checks on input
+                if not var in diff_vars:
+                    if not var in self.variables:
+                        raise KeyError("absolute_error specified for variable that does not exist: %s"%var)
+                    else:
+                        raise KeyError("absolute_error specified for variable that is not being integrated: %s"%var)
+                try:
+                    if not error.has_same_dimensions(self.variables[var]):
+                        raise DimensionMismatchError(("Unit of absolute_error for variable %s does not match unit of "
+                                                      "variable itself"%var), error.dim, self.variables[var].dim)
+                except AttributeError:
+                    # error does not have 'has_same_dimensions' attribute because it is a float
+                    if not isinstance(error, float):
+                        raise
+                    if not self.variables[var].dim is DIMENSIONLESS:
+                        raise DimensionMismatchError(("absolute_error for variable %s is unitless, "
+                                                      "while variable itself is not"%var), self.variables[var].dim)
+                # if all these are passed we can add the value for error in base units
+                diff_scale[var] = float(error)
             # set the variables that are not mentioned to default value
             for var in diff_vars.keys():
                 if var not in abs_per_var:
