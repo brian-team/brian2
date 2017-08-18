@@ -47,6 +47,7 @@ prefs.register_preferences(
 
 # default method_options
 default_method_options = {
+    'integrator' : 'rkf45',
     'adaptable_timestep' : True,
     'dt_start' : None,
     'absolute_error' : 1e-6,
@@ -121,13 +122,6 @@ class GSLCodeGenerator(object):
         '''
         raise NotImplementedError
 
-    # I redefined the get_array_name functions because I ran into trouble with inheritance because get_array_name is
-    # called from different 'selfs' (from CodeObject classes, from DynamicArrayVariable class, from CodeGenerator class
-    def get_array_name(self, var_obj, access_data=False):
-        '''
-        Get the array_name used in Python Brian
-        '''
-        raise NotImplementedError
 
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         '''
@@ -844,27 +838,10 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
         return ('\n').join(code)
 
     @staticmethod
-    def get_array_name(var, access_data=True):
-        '''
-        Get a globally unique name for a `ArrayVariable`.
-
-        Parameters
-        ----------
-        var : `ArrayVariable`
-            The variable for which a name should be found.
-        access_data : bool, optional
-            For `DynamicArrayVariable` objects, specifying `True` here means the
-            name for the underlying data is returned. If specifying `False`,
-            the name of object itself is returned (e.g. to allow resizing).
-        Returns
-        -------
-        name : str
-            A uniqe name for `var`.
-        '''
+    def get_array_name( var, access_data=True):
         # We have to do the import here to avoid circular import dependencies.
-        from brian2.devices.device import get_device
-        device = get_device()
-        return device.get_array_name(var, access_data=access_data)
+        from brian2.codegen.generators.cython_generator import CythonCodeGenerator
+        return CythonCodeGenerator.get_array_name(var, access_data)
 
 class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
@@ -914,11 +891,7 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
                 return ''
 
     @staticmethod
-    def get_array_name(var, access_data=True):
+    def get_array_name( var, access_data=True):
         # We have to do the import here to avoid circular import dependencies.
-        from brian2.devices.device import get_device
-        device = get_device()
-        if access_data:
-            return '_ptr' + device.get_array_name(var)
-        else:
-            return device.get_array_name(var, access_data=False)
+        from brian2.codegen.runtime.weave_rt import WeaveCodeGenerator
+        return WeaveCodeGenerator.get_array_name(var, access_data)
