@@ -486,15 +486,16 @@ class CPPStandaloneDevice(Device):
 
         Parameters
         ----------
-        codeobj_class : None or a CodeObject class.
+        codeobj_class : a `CodeObject` class, optional
             If this is keyword is set to None or no arguments are given, this method will return
             the default (`CPPStandaloneCodeObject` class).
-        fallback_pref : str
+        fallback_pref : str, optional
             For the cpp_standalone device this option is ignored.
 
         Returns
         -------
-        `CodeObject` class
+        codeobj_class : class
+            The `CodeObject` class that should be used
         '''
         # Ignore the requested pref (used for optimization in runtime)
         if codeobj_class is None:

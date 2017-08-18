@@ -230,17 +230,18 @@ class Device(object):
 
         Parameters
         ----------
-        codeobj_class : None or a CodeObject class.
+        codeobj_class : a `CodeObject` class, optional
             If this is keyword is set to None or no arguments are given, this method will return
             the default.
-        fallback_pref : str
+        fallback_pref : str, optional
             String describing which attribute of prefs to access to retrieve the 'default' target.
             Usually this is codegen.target, but in some cases we want to use object-specific targets
             such as codegen.string_expression_target.
 
         Returns
         -------
-        `CodeObject` class
+        codeobj_class : class
+            The `CodeObject` class that should be used
         '''
         if isinstance(codeobj_class, str):
             raise TypeError("codeobj_class argument given to code_object_class device method "
