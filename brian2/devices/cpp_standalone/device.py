@@ -480,7 +480,7 @@ class CPPStandaloneDevice(Device):
                                   'variables with string expressions in '
                                   'standalone scripts.')
 
-    def code_object_class(self, codeobj_class=None, pref=None):
+    def code_object_class(self, codeobj_class=None, fallback_pref=None):
         '''
         Return `CodeObject` class (either `CPPStandaloneCodeObject` class or input)
 
