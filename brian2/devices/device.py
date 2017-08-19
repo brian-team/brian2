@@ -73,27 +73,6 @@ def auto_target():
 
     return _auto_target
 
-
-def get_default_codeobject_class(pref='codegen.target'):
-    '''
-    Returns the default `CodeObject` class from the preferences.
-    '''
-    codeobj_class = prefs[pref]
-    if isinstance(codeobj_class, str):
-        if codeobj_class == 'auto':
-            return auto_target()
-        for target in codegen_targets:
-            if target.class_name == codeobj_class:
-                return target
-        # No target found
-        targets = ['auto'] + [target.class_name
-                              for target in codegen_targets
-                              if target.class_name]
-        raise ValueError("Unknown code generation target: %s, should be "
-                         " one of %s" % (codeobj_class, targets))
-    return codeobj_class
-
-
 class Device(object):
     '''
     Base Device object.
@@ -245,10 +224,46 @@ class Device(object):
         '''
         raise NotImplementedError()
 
-    def code_object_class(self, codeobj_class=None):
+    def code_object_class(self, codeobj_class=None, fallback_pref='codegen.target'):
+        '''
+        Return `CodeObject` class according to input/default settings
+
+        Parameters
+        ----------
+        codeobj_class : a `CodeObject` class, optional
+            If this is keyword is set to None or no arguments are given, this method will return
+            the default.
+        fallback_pref : str, optional
+            String describing which attribute of prefs to access to retrieve the 'default' target.
+            Usually this is codegen.target, but in some cases we want to use object-specific targets
+            such as codegen.string_expression_target.
+
+        Returns
+        -------
+        codeobj_class : class
+            The `CodeObject` class that should be used
+        '''
+        if isinstance(codeobj_class, str):
+            raise TypeError("codeobj_class argument given to code_object_class device method "
+                            "should be a CodeObject class, not a string. You can, however, "
+                            "send a string description of the target desired for the CodeObject "
+                            "under the keyword fallback_pref")
         if codeobj_class is None:
-            codeobj_class = get_default_codeobject_class()
-        return codeobj_class
+            codeobj_class = prefs[fallback_pref]
+            if isinstance(codeobj_class, str):
+                if codeobj_class == 'auto':
+                    return auto_target()
+                for target in codegen_targets:
+                    if target.class_name == codeobj_class:
+                        return target
+                # No target found
+                targets = ['auto'] + [target.class_name
+                                      for target in codegen_targets
+                                      if target.class_name]
+                raise ValueError("Unknown code generation target: %s, should be "
+                                 " one of %s" % (codeobj_class, targets))
+        else:
+            return codeobj_class
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,

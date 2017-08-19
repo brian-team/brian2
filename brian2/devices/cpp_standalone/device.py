@@ -480,9 +480,28 @@ class CPPStandaloneDevice(Device):
                                   'variables with string expressions in '
                                   'standalone scripts.')
 
-    def code_object_class(self, codeobj_class=None):
-        # Ignore the requested codeobj_class
-        return CPPStandaloneCodeObject
+    def code_object_class(self, codeobj_class=None, fallback_pref=None):
+        '''
+        Return `CodeObject` class (either `CPPStandaloneCodeObject` class or input)
+
+        Parameters
+        ----------
+        codeobj_class : a `CodeObject` class, optional
+            If this is keyword is set to None or no arguments are given, this method will return
+            the default (`CPPStandaloneCodeObject` class).
+        fallback_pref : str, optional
+            For the cpp_standalone device this option is ignored.
+
+        Returns
+        -------
+        codeobj_class : class
+            The `CodeObject` class that should be used
+        '''
+        # Ignore the requested pref (used for optimization in runtime)
+        if codeobj_class is None:
+            return CPPStandaloneCodeObject
+        else:
+            return codeobj_class
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
