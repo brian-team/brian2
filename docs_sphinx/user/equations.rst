@@ -14,13 +14,6 @@ Equations are used both in `NeuronGroup` and `Synapses` to:
 * define state variables
 * define continuous-updates on these variables, through differential equations
 
-.. note::
-
-    Brian models are defined by systems of first order ordinary differential
-    equations, but you might see the integrated form of synapses in some textbooks
-    and papers. See :doc:`converting_from_integrated_form` for details on how
-    to convert between these representations.
-
 Equations are defined by multiline strings.
 
 An Equation is a set of single lines in a string:

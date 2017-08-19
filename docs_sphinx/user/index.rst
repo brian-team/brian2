@@ -16,4 +16,3 @@ User's guide
    running
    multicompartmental
    computation
-   converting_from_integrated_form
