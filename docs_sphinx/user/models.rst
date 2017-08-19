@@ -47,6 +47,9 @@ be used::
     G = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                            I_leak = g_L*(E_L - v) : amp''')
 
+For a list of some standard model equations, see
+:doc:`../introduction/brian1_to_2/neurongroup`.
+
 Noise
 -----
 
