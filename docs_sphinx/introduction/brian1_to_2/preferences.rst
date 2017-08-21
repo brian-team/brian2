@@ -12,12 +12,12 @@ somewhere on the Python path called ``brian_global_config.py``.
 Setting preferences
 -------------------
 
-There is now no function ``set_global_preferences``. Instead, importing from ``brian2`` gives you a variable
-`prefs` that can be used to set preferences. For example, in Brian 1 you would write:
+The function ``set_global_preferences`` no longer exists in Brian 2. Instead, importing from ``brian2`` gives you a
+variable `prefs` that can be used to set preferences. For example, in Brian 1 you would write::
 
     set_global_preferences(weavecompiler='gcc')
 
-In Brian 2 you would write:
+In Brian 2 you would write::
 
     prefs.codegen.cpp.compiler = 'gcc'
 
@@ -26,12 +26,12 @@ Configuration file
 
 The module ``brian_global_config.py`` is not used by Brian 2, instead we search for configuration files in the
 current directory, user directory or installation directory. In Brian you would have a configuration file that looks
-like this:
+like this::
 
     from brian.globalprefs import *
     set_global_preferences(weavecompiler='gcc')
 
-In Brian 2 you would have a file like this:
+In Brian 2 you would have a file like this::
 
     codegen.cpp.compiler = 'gcc'
 
@@ -40,10 +40,10 @@ Preference name changes
 
 * ``defaultclock``: removed because it led to unclear behaviour of scripts.
 * ``useweave_linear_diffeq``: removed because it was no longer relevant.
-* ``useweave``: now replaced by ``codegen.target = 'weave'``.
-* ``weavecompiler``: now replaced by ``codegen.cpp.compiler``.
-* ``gcc_options``: now replaced by ``codegen.cpp.extra_compile_args_gcc``.
-* ``openmp``: now replaced by ``devices.cpp_standalone.openmp_threads``.
+* ``useweave``: now replaced by `codegen.target`.
+* ``weavecompiler``: now replaced by `codegen.cpp.compiler`.
+* ``gcc_options``: now replaced by `codegen.cpp.extra_compile_args_gcc`.
+* ``openmp``: now replaced by `devices.cpp_standalone.openmp_threads`.
 * ``usecodegen*``: removed because it was no longer relevant.
 * ``usenewpropagate``: removed because it was no longer relevant.
 * ``usecstdp``: removed because it was no longer relevant.

@@ -25,7 +25,9 @@ are `Synapses` connected, it causes the ``on_pre`` on ``on_post``
 code to run (depending if the `NeuronGroup` is presynaptic or
 postsynaptic for those `Synapses`).
 
-In the diagram though, we have three additional event types. Let's start
+In the diagram though, we have three additional event types. We've
+included several event types here to make it clearer, but you could
+use the same event for different purposes. Let's start
 with the first one, ``evt_other``. To understand this, we need to look at
 the `Synapses` object in a bit more detail. A `Synapses` object has
 multiple *pathways* associated to it. By default, there are just two,
@@ -66,8 +68,9 @@ the ``events`` keyword in the `NeuronGroup` initializer::
 
 In this example, we define an event with the name ``custom_event`` that is
 triggered when the ``x`` variable crosses the threshold ``x_th``. Note
-that you can define any number of custom events. The dictionary argument
-is a sequence of ``(event_name, condition)`` pairs.
+that you can define any number of custom events. Each event is defined
+by its name as the key, and its condition as the value of the
+dictionary.
 
 Recording events
 ~~~~~~~~~~~~~~~~
@@ -80,7 +83,7 @@ Such an `EventMonitor` can be used in the same way as a `SpikeMonitor` -- in
 fact, creating the `SpikeMonitor` is basically identical to recording the
 ``spike`` event with an `EventMonitor`. An `EventMonitor` is not limited to
 record the event time/neuron index, it can also record other variables of the
-model::
+model at the time of the event::
 
     event_mon = EventMonitor(group, 'custom_event', variables['var1', 'var2'])
 
@@ -134,6 +137,6 @@ By default, custom events are checked after the spiking threshold (in the
 ``after_thresholds`` slots) and statements are executed after the reset (in
 the ``after_resets`` slots). The slot for the execution of custom
 event-triggered statements can be changed when it is added with the usual
-``when`` and ``order`` keyword arguments (see :doc:`scheduling` for details).
+``when`` and ``order`` keyword arguments (see :ref:`scheduling` for details).
 To change the time when the condition is checked, use
 `NeuronGroup.set_event_schedule`.
