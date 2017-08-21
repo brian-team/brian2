@@ -427,7 +427,7 @@ def test_GSL_error_nonexisting_variable():
         run(0*ms)
         raise Exception # should not get here because run should raise error
     except KeyError as err:
-        print err
+        #print err
         pass
     print('.'),
 
@@ -443,13 +443,63 @@ def test_GSL_error_nonODE_variable():
         run(0*ms)
         raise Exception # should not get here because run should raise error
     except KeyError as err:
-        print err
+        #print err
         pass
     print('.'),
 
+def test_GSL_error_bounds():
+    runtime = 50*ms
+    error1 = 1e-2*volt
+    error2 = 1e-4*volt
+    eqs = '''
+    dv/dt = (stimulus(t) + -v)/(.1*ms) : volt
+    '''
+    stimulus = TimedArray(rand(int(runtime/(10*ms)))*3*volt, dt=5*ms)
+    neuron1 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
+                                 method='gsl',
+                                 method_options={'absolute_error_per_variable':{'v':error1}}, dt=1*ms)
+    neuron2 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
+                                 method='gsl',
+                                 method_options={'absolute_error_per_variable':{'v':error2}}, dt=1*ms)
+    neuron_control = NeuronGroup(1, model=eqs, method='linear', dt=1*ms)
+    mon1 = StateMonitor(neuron1, 'v', record=True)
+    mon2 = StateMonitor(neuron2, 'v', record=True)
+    mon_control = StateMonitor(neuron_control, 'v', record=True)
+    run(runtime)
+    err1 = abs(mon1.v[0] - mon_control.v[0])
+    err2 = abs(mon2.v[0] - mon_control.v[0])
+    assert max(err1) < error1, ("Error bound exceeded")
+    assert max(err2) < error2, ("Error bound exceeded")
+    assert max(err1) > max(err2), ("The simulation with smaller error bound produced a bigger maximum error")
+    print('.'),
+
+def test_GSL_save_failed_steps():
+    eqs = '''
+    dv/dt = -v/(.1*ms) : volt
+    '''
+    neuron = NeuronGroup(1, model=eqs, method='gsl', method_options={'save_failed_steps' : True})
+    run(0*ms)
+    mon = StateMonitor(neuron, '_failed_steps', record=True)
+    run(10*ms)
+    arr = mon._failed_steps[0]
+    print('.'),
+
+def test_GSL_save_step_count():
+    eqs = '''
+    dv/dt = -v/(.1*ms) : volt
+    '''
+    neuron = NeuronGroup(1, model=eqs, method='gsl', method_options={'save_step_count' : True})
+    run(0*ms)
+    mon = StateMonitor(neuron, '_step_count', record=True)
+    run(10*ms)
+    arr = mon._step_count[0]
+    print('.'),
+
 if __name__=='__main__':
+    test_GSL_save_step_count()
+    test_GSL_save_failed_steps()
+    test_GSL_error_bounds()
     test_GSL_fixed_timestep_big_dt_small_error()
-    exit(0)
     test_GSL_error_nonexisting_variable()
     test_GSL_error_nonODE_variable()
     test_GSL_error_dimension_mismatch_unit()

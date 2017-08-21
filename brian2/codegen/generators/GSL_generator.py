@@ -11,6 +11,7 @@ from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.parsing.statements import parse_statement
 from brian2.codegen.generators import c_data_type
 import re
+import numpy as np
 
 from os.path import isdir, exists
 from brian2.core.preferences import PreferenceError
@@ -30,7 +31,7 @@ def valid_gsl_dir(val):
     if not isdir(val):
         raise PreferenceError(('Illegal value for GSL directory: %s, '
                                 'has to be existing directory'%(val)))
-    if not exists(val+'gsl_odeiv2.h') or not exists(val+'gsl_errno.h') or not exists(val+'gsl_matrix.h'):
+    if not exists(val+'gsl/gsl_odeiv2.h') or not exists(val+'gsl/gsl_errno.h') or not exists(val+'gsl/gsl_matrix.h'):
         raise PreferenceError(('Illegal value for GSL directory: %s, '
                                'has to contain gsl_odeiv2.h, gsl_errno.h and gsl_matrix.h'%(val)))
     return True
@@ -51,7 +52,10 @@ default_method_options = {
     'adaptable_timestep' : True,
     'dt_start' : None,
     'absolute_error' : 1e-6,
-    'absolute_error_per_variable' : None
+    'absolute_error_per_variable' : None,
+    'use_last_timestep' : True,
+    'save_failed_steps' : False,
+    'save_step_count' : False
 }
 
 class GSLCodeGenerator(object):
@@ -690,6 +694,48 @@ class GSLCodeGenerator(object):
             name = '_gsl_{var}_f{ind}'.format(var=var,ind=ind)
             self.variables[name] = AuxiliaryVariable(var, scalar=False)
 
+    def add_meta_variables(self, options):
+        if options['use_last_timestep']:
+            try:
+                N = self.variables['N'].get_value()
+                self.owner.variables.add_array('_last_timestep', size=N,
+                                               values=np.array([options['dt_start'] for i in range(N)]))
+            except KeyError:
+                # has already been run
+                pass
+            self.variables['_last_timestep'] = self.owner.variables.get('_last_timestep')
+            pointer_last_timestep = self.get_array_name(self.variables['_last_timestep']) + '[_idx]'
+        else:
+            pointer_last_timestep = None
+
+        if options['save_failed_steps']:
+            N = self.variables['N'].get_value()
+            try:
+                self.owner.variables.add_array('_failed_steps', size=N, dtype=np.int32)
+            except KeyError:
+                # has already been run
+                pass
+            self.variables['_failed_steps'] = self.owner.variables.get('_failed_steps')
+            pointer_failed_steps = self.get_array_name(self.variables['_failed_steps']) + '[_idx]'
+        else:
+            pointer_failed_steps = None
+
+        if options['save_step_count']:
+            N = self.variables['N'].get_value()
+            try:
+                self.owner.variables.add_array('_step_count', size=N, dtype=np.int32)
+            except KeyError:
+                # has already been run
+                pass
+            self.variables['_step_count'] = self.owner.variables.get('_step_count')
+            pointer_step_count = self.get_array_name(self.variables['_step_count']) + '[_idx]'
+        else:
+            pointer_step_count = None
+
+        return {'pointer_last_timestep' : pointer_last_timestep,
+                'pointer_failed_steps' : pointer_failed_steps,
+                'pointer_step_count' : pointer_step_count}
+
     def translate(self, code, dtype): # TODO: it's not so nice we have to copy the contents of this function..
         '''
         Translates an abstract code block into the target language.
@@ -707,6 +753,10 @@ class GSLCodeGenerator(object):
         diff_vars = self.find_differential_variables(code.values())
         self.add_gsl_variables_as_non_scalar(diff_vars)
 
+        # add arrays we want to use in generated code before self.generator.translate() so
+        # brian does namespace unpacking for us
+        pointer_names = self.add_meta_variables(self.method_options)
+
         scalar_statements = {}
         vector_statements = {}
         for ac_name, ac_code in code.iteritems():
@@ -720,7 +770,7 @@ class GSLCodeGenerator(object):
             # Check that the statements are meaningful independent on the order of
             # execution (e.g. for synapses)
             try:
-                if self.has_repeated_indices(vs):  # only do order dependence if there are repeated indices
+                if self.has_repeated_indices(vs):     # only do order dependence if there are repeated indices
                     check_for_order_independence(vs,
                                                  self.generator.variables,
                                                  self.generator.variable_indices)
@@ -791,6 +841,8 @@ class GSLCodeGenerator(object):
         kwds['t_array'] = self.get_array_name(self.variables['t']) + '[0]'
         kwds['dt_array'] = self.get_array_name(self.variables['dt']) + '[0]'
         kwds['cpp_standalone'] = self.is_cpp_standalone()
+        for key, value in pointer_names.items():
+            kwds[key] = value
         return scalar_code, vector_code, kwds
 
 class GSLCythonCodeGenerator(GSLCodeGenerator):

@@ -34,26 +34,32 @@ for(int _idx=0; _idx<_N; _idx++)
     double t1 = t + dt;
     _fill_y_vector(&_GSL_dataholder, _GSL_y, _idx);
     _GSL_dataholder._idx = _idx;
+    {%if GSL_settings['use_last_timestep']%}
+    gsl_odeiv2_driver_reset_hstart(_GSL_driver, {{pointer_last_timestep}});
+    {% endif %}
     if ({{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
                 else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} != GSL_SUCCESS)
     {
         {% if cpp_standalone %}
-        printf("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
-               "\nIf adaptable_timestep is set to False: "
-               "\n   the size of the timestep results in an error larger than that set by absolute_error."
-               "\nIf adaptable_timestep is set to True:"
-               "\n   the desired absolute_error cannot be achieved with current settings.\n");
         exit(1);
         {% else %}
         PyErr_SetString(PyExc_RuntimeError, ("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
                                            "\nIf adaptable_timestep is set to False: "
                                            "\n   the size of the timestep results in an error larger than that set by absolute_error."
                                            "\nIf adaptable_timestep is set to True:"
-                                           "\n   the desired absolute_error cannot be achieved with current settings."));
+                                           "\n   the desired absolute_error cannot be achieved with current settings, try bigger error?."));
         throw 1;
         {% endif %}
     }
-    gsl_odeiv2_driver_reset(_GSL_driver);
+    {%if GSL_settings['use_last_timestep']%}
+    {{pointer_last_timestep}} = _GSL_driver->h;
+    {% endif %}
+    {%if GSL_settings['save_failed_steps']%}
+    {{pointer_failed_steps}} = _GSL_driver->e->failed_steps;
+    {% endif %}
+    {%if GSL_settings['save_step_count']%}
+    {{pointer_step_count}} = _GSL_driver->n;
+    {% endif %}
     _empty_y_vector(&_GSL_dataholder, _GSL_y, _idx);
 }
 {% endblock %}

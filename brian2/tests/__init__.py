@@ -329,4 +329,4 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
 
 if __name__ == '__main__':
-    run()
+    run(['weave', 'cython'], test_standalone='cpp_standalone', test_codegen_independent=True)
