@@ -327,14 +327,12 @@ class Device(object):
                         variable_indices=variable_indices,
                         get_array_name=generator.get_array_name,
                         **template_kwds)
-
         logger.diagnostic('%s code:\n%s' % (name, indent(code_representation(code))))
 
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
                                 template_source=template.template_source,
                                 name=name)
-
         codeobj.compile()
         return codeobj
     
@@ -445,7 +443,7 @@ class RuntimeDevice(Device):
                                         dtype=dtype)
 
     def fill_with_array(self, var, arr):
-        self.arrays[var][:] =    arr
+        self.arrays[var][:] = arr
 
     def spike_queue(self, source_start, source_end):
         # Use the C++ version of the SpikeQueue when available

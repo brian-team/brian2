@@ -22,12 +22,12 @@ dgs/dt = -gs/taus : siemens
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs,
-                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='GSL_stateupdater')
+                       Cm=1*uF/cm**2, Ri=100*ohm*cm, method='exponential_euler')
 neuron.v = EL
 
 # Regular inputs
 stimulation = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
-                          method='GSL_stateupdater')
+                          method='euler')
 stimulation.x = [0, 0.5] # Asynchronous
 
 # Synapses

@@ -1,10 +1,8 @@
 from pyparsing import (CharsNotIn, Optional, Suppress, Word, Regex,
                        ParseException, alphas, nums)
 
-# added '[' and ']' to variable to allow y[0] needed for gsl integrator
-# added '.' and ' ' so cython variables are accepted.
 VARIABLE = Word(alphas + '_',
-                  alphas + nums + '_' + '[' + ']' + '.' + ' ').setResultsName('variable')
+                                    alphas + nums + '_').setResultsName('variable')
 
 OP = Regex(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=').setResultsName('operation')
 EXPR = CharsNotIn('#').setResultsName('expression')

@@ -9,7 +9,7 @@ G1.v = 1.2
 G2 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                  threshold='v > 1', reset='v=0', method='linear')
  
-syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1 (clock-driven)', on_pre='v += w', method='GSL_stateupdater')
+syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1 (event-driven)', on_pre='v += w')
 
 syn.connect('i == j', p=0.75)
 
@@ -20,8 +20,6 @@ syn.w = 1
 
 mon = StateMonitor(G2, 'v', record=True)
 run(20*ms)
-print getattr(syn.state_updater.codeobj, 'code', None)
-
 plot(mon.t/ms, mon.v.T)
 xlabel('Time (ms)')
 ylabel('v')

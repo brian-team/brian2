@@ -29,9 +29,6 @@ from brian2.utils.stringtools import get_identifiers
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
-from brian2.parsing.statements import parse_statement
-import re
-
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
@@ -146,14 +143,6 @@ class StateUpdater(CodeRunner):
                                  '"%s" has units %s instead') % (ref, dims))
         return abstract_code
 
-    def make_namespace_variables(self):
-        namespace_variables = {}
-        for line in self.abstract_code.split('\n'):
-            var, op, expr, comment = parse_statement(line)
-            if re.match('_gsl(.*)', expr):
-                namespace_variables[var] = expr
-        return namespace_variables
-
     def update_abstract_code(self, run_namespace):
 
         # Update the not_refractory variable for the refractory period mechanism
@@ -164,7 +153,7 @@ class StateUpdater(CodeRunner):
                                                      recursive=True)
 
         # Get all names used in the equations (and always get "dt")
-        names = self.group.equations.names                          
+        names = self.group.equations.names
         external_names = self.group.equations.identifiers | {'dt'}
 
         variables = self.group.resolve_all(used_known | unknown | names | external_names,

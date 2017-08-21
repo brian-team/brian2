@@ -3,8 +3,6 @@ Hodgkin-Huxley equations (1952).
 '''
 from brian2 import *
 
-prefs.codegen.target = 'weave'
-
 morpho = Cylinder(length=10*cm, diameter=2*238*um, n=1000, type='axon')
 
 El = 10.613*mV
@@ -33,7 +31,7 @@ gNa : siemens/meter**2
 '''
 
 neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2,
-                       Ri=35.4*ohm*cm, method="GSL_stateupdater")
+                       Ri=35.4*ohm*cm, method="exponential_euler")
 neuron.v = 0*mV
 neuron.h = 1
 neuron.m = 0
@@ -48,8 +46,6 @@ neuron.I[0] = 1*uA  # current injection at one end
 run(3*ms)
 neuron.I = 0*amp
 run(100*ms, report='text')
-print neuron.state_updater.codeobj.code
-
 for i in range(75, 125, 1):
     plot(cumsum(neuron.length)/cm, i+(1./60)*M.v[:, i*5]/mV, 'k')
 yticks([])

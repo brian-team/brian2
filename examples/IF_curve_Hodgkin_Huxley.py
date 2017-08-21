@@ -32,28 +32,11 @@ dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
 dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
 I : amp
 ''')
-
-method_options = {
-            'adaptable_timestep' : True,
-            'dt_start' : 1e-5,
-            'absolute_error_per_variable' : {'v' : 1e-3*mV,
-                                'm' : 1e-6,
-                                'n' : 1e-6,
-                                'h' : 1e-6}
-        }
-
-method_options = {
-            'adaptable_timestep' : True,
-            'dt_start' : 1e-5,
-            'absolute_error' : 1e-6
-        }
-
 # Threshold and refractoriness are only used for spike counting
 group = NeuronGroup(num_neurons, eqs,
                     threshold='v > -40*mV',
                     refractory='v > -40*mV',
-                    method='gsl',
-                    method_options=None)
+                    method='exponential_euler')
 group.v = El
 group.I = '0.7*nA * i / num_neurons'
 

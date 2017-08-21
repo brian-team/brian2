@@ -1,4 +1,0 @@
-lines.linewidth : 2
-lines.markersize : 2
-legend.frameon : False
-axes.prop_cycle : cycler(color=['black', 'darkgreen','red'])
