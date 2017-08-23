@@ -77,10 +77,16 @@ class GSLCodeGenerator(object):
                  override_conditional_write=None,
                  allows_scalar_write=False):
 
-        prefs.codegen.cpp.libraries += ['gsl', 'gslcblas']
-        prefs.codegen.cpp.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
-        if prefs.GSL.directory is not None:
-            prefs.codegen.cpp.include_dirs += [prefs.GSL.directory]
+        from brian2.devices.device import get_device, RuntimeDevice
+        device = get_device()
+        if not isinstance(device, RuntimeDevice):
+            # Add the GSL library if it has not yet been added
+            if 'gsl' not in device.libraries:
+                device.libraries += ['gsl', 'gslcblas']
+                device.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>',
+                                   '<gsl/gsl_errno.h>', '<gsl/gsl_matrix.h>']
+                if prefs.GSL.directory is not None:
+                    device.include_dirs += [prefs.GSL.directory]
 
         self.generator = codeobj_class.original_generator_class(variables, variable_indices, owner, iterate_all,
                                                                 codeobj_class, name, template_name,

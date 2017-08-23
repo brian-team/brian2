@@ -174,6 +174,7 @@ class CPPStandaloneDevice(Device):
         self.compiler = compiler
         self.extra_compile_args = list(extra_compile_args)
         self.define_macros = list(prefs['codegen.cpp.define_macros'])
+        self.headers = list(prefs['codegen.cpp.headers'])
         self.include_dirs = (prefs['codegen.cpp.include_dirs'] +
                              ['brianlib/randomkit', sys.prefix + '/include'])
         self.library_dirs = (prefs['codegen.cpp.library_dirs'] +
@@ -525,7 +526,7 @@ class CPPStandaloneDevice(Device):
             template_kwds = dict()
         else:
             template_kwds = dict(template_kwds)
-        template_kwds['user_headers'] = prefs['codegen.cpp.headers']
+        template_kwds['user_headers'] = self.headers
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
@@ -671,7 +672,7 @@ class CPPStandaloneDevice(Device):
                                                           code_objects=self.code_objects.values(),
                                                           report_func=self.report_func,
                                                           dt=float(self.defaultclock.dt),
-                                                          user_headers=prefs['codegen.cpp.headers']
+                                                          user_headers=self.headers
                                                           )
         writer.write('main.cpp', main_tmp)
         
@@ -729,7 +730,7 @@ class CPPStandaloneDevice(Device):
     def generate_run_source(self, writer):
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=self.runfuncs,
                                                         code_objects=self.code_objects.values(),
-                                                        user_headers=prefs['codegen.cpp.headers'],
+                                                        user_headers=self.headers,
                                                         array_specs=self.arrays,
                                                         clocks=self.clocks
                                                         )
