@@ -135,6 +135,7 @@ install:
       travis_retry conda install --yes --quiet scipy;
     fi
   - travis_retry conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
+  - travis_retry conda install --yes --quiet -c conda-forge "gsl>1.15"  # install gsl from conda-forge
   - if [[ $CYTHON == 'yes' ]]; then travis_retry conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry pip install -q coveralls; fi
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
