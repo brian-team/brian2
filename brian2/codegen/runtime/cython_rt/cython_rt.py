@@ -67,6 +67,7 @@ class CythonCodeObject(NumpyCodeObject):
                                                name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
+        self.headers = []  # not actually used
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])

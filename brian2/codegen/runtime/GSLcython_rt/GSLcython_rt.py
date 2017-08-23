@@ -1,3 +1,5 @@
+from brian2.core.preferences import prefs
+
 from ..cython_rt import CythonCodeObject
 from ...generators.GSL_generator import GSLCythonCodeGenerator
 from ...generators.cython_generator import CythonCodeGenerator
@@ -23,6 +25,10 @@ class GSLCythonCodeObject(CythonCodeObject):
     generator_class = GSLCythonCodeGenerator
 
     def compile(self):
+        self.libraries += ['gsl', 'gslcblas']
+        self.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
+        if prefs.GSL.directory is not None:
+            self.include_dirs += [prefs.GSL.directory]
         try:
             super(GSLCythonCodeObject, self).compile()
         except CompileError as err:
