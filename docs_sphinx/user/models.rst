@@ -22,7 +22,12 @@ form of equations::
 This defines a group of 10 leaky integrators. The model description can be
 directly given as a (possibly multi-line) string as above, or as an
 `Equations` object. For more details on the form of equations, see
-:doc:`equations`. Note that model descriptions can make reference to physical
+:doc:`equations`. Brian needs the model to be given in the form of differential
+equations, but you might see the integrated form of synapses in some textbooks
+and papers. See :doc:`converting_from_integrated_form` for details on how
+to convert between these representations.
+
+Note that model descriptions can make reference to physical
 units, but also to scalar variables declared outside of the model description
 itself::
 
@@ -41,6 +46,9 @@ be used::
 
     G = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                            I_leak = g_L*(E_L - v) : amp''')
+
+For a list of some standard model equations, see
+:doc:`../introduction/brian1_to_2/neurongroup`.
 
 Noise
 -----
