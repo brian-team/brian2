@@ -168,7 +168,22 @@ class CPPStandaloneDevice(Device):
         self.synapses = []
         
         self.clocks = set([])
-        
+
+        # Determine compiler flags and directories
+        compiler, extra_compile_args = get_compiler_and_args()
+        self.compiler = compiler
+        self.extra_compile_args = list(extra_compile_args)
+        self.define_macros = list(prefs['codegen.cpp.define_macros'])
+        self.include_dirs = (prefs['codegen.cpp.include_dirs'] +
+                             ['brianlib/randomkit', sys.prefix + '/include'])
+        self.library_dirs = (prefs['codegen.cpp.library_dirs'] +
+                             ['brianlib/randomkit', sys.prefix+'/lib'])
+        self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
+        self.libraries = list(prefs['codegen.cpp.libraries'])
+        if sys.platform == 'win32':
+            self.libraries += ['advapi32']
+        self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
+
     def reinit(self):
         # Remember the build_on_run setting and its options -- important during
         # testing
@@ -1022,24 +1037,15 @@ class CPPStandaloneDevice(Device):
         self.project_dir = directory
         ensure_directory(directory)
 
-        compiler, extra_compile_args = get_compiler_and_args()
-        compiler_obj = ccompiler.new_compiler(compiler=compiler)
-        compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
-                                                           prefs['codegen.cpp.include_dirs'] +
-                                                           ['brianlib/randomkit'] +
-                                                           [sys.prefix+'/include']) +
-                          extra_compile_args)
-        if sys.platform == 'win32':
-            wincrypt = ['advapi32']
-        else:
-            wincrypt = []
+        compiler_obj = ccompiler.new_compiler(compiler=self.compiler)
+        compiler_flags = (ccompiler.gen_preprocess_options(self.define_macros,
+                                                           self.include_dirs) +
+                          self.extra_compile_args)
         linker_flags = (ccompiler.gen_lib_options(compiler_obj,
-                                                  library_dirs=prefs['codegen.cpp.library_dirs'] +
-                                                               ['brianlib/randomkit'] +
-                                                               [sys.prefix+'/lib'],
-                                                  runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
-                                                  libraries=prefs['codegen.cpp.libraries']+wincrypt) +
-                        prefs['codegen.cpp.extra_link_args'])
+                                                  library_dirs=self.library_dirs,
+                                                  runtime_library_dirs=self.runtime_library_dirs,
+                                                  libraries=self.libraries) +
+                        self.extra_link_args)
 
         additional_source_files.append('brianlib/randomkit/randomkit.c')
 
@@ -1084,20 +1090,20 @@ class CPPStandaloneDevice(Device):
                                      self.networks)
         self.generate_main_source(writer)
         self.generate_codeobj_source(writer)
-        self.generate_network_source(writer, compiler)
+        self.generate_network_source(writer, self.compiler)
         self.generate_synapses_classes_source(writer)
         self.generate_run_source(writer)
         self.copy_source_files(writer, directory)
 
         writer.source_files.extend(additional_source_files)
 
-        self.generate_makefile(writer, compiler,
+        self.generate_makefile(writer, self.compiler,
                                compiler_flags=' '.join(compiler_flags),
                                linker_flags=' '.join(linker_flags),
                                nb_threads=nb_threads)
 
         if compile:
-            self.compile_source(directory, compiler, debug, clean)
+            self.compile_source(directory, self.compiler, debug, clean)
             if run:
                 self.run(directory, with_output, run_args)
 
