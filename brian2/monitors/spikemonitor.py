@@ -65,6 +65,9 @@ class EventMonitor(Group, CodeRunner):
         self.source = source
         #: Whether to record times and indices of events
         self.record = record
+        #: The array of event counts (length = size of target group)
+        self.count = None
+        del self.count # this is handled by the Variable mechanism
 
         if when is None:
             if order is not None:
@@ -394,6 +397,9 @@ class SpikeMonitor(EventMonitor):
     '''
     def __init__(self, source, variables=None, record=True, when=None,
                  order=None, name='spikemonitor*', codeobj_class=None):
+        #: The array of spike counts (length = size of target group)
+        self.count = None
+        del self.count # this is handled by the Variable mechanism
         super(SpikeMonitor, self).__init__(source, event='spike',
                                            variables=variables, record=record,
                                            when=when, order=order, name=name,

@@ -122,9 +122,9 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.9 scipy==0.14 libgfortran==1 nose sphinx ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.9 scipy==0.14 libgfortran==1 nose "sphinx<1.6.3" ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy nose sphinx ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy nose "sphinx<1.6.3" ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
   # On Python 2: Install an older version of scipy that still has weave

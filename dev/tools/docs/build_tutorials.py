@@ -36,7 +36,8 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     # Execute the notebook
     preprocessor = ExecutePreprocessor()
     preprocessor.allow_errors = True
-    notebook, _ = preprocessor.preprocess(notebook, {})
+    notebook, _ = preprocessor.preprocess(notebook,
+                                          {'metadata': {'path': src_dir}})
 
     print 'Saving notebook and converting to RST'
     exporter = NotebookExporter()
