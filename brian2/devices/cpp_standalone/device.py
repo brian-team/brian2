@@ -178,8 +178,9 @@ class CPPStandaloneDevice(Device):
         self.include_dirs = (prefs['codegen.cpp.include_dirs'] +
                              ['brianlib/randomkit', sys.prefix + '/include'])
         self.library_dirs = (prefs['codegen.cpp.library_dirs'] +
-                             ['brianlib/randomkit', sys.prefix+'/lib'])
-        self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
+                             ['brianlib/randomkit', sys.prefix + '/lib'])
+        self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']) +
+                                     [sys.prefix + '/lib'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
             self.libraries += ['advapi32']
