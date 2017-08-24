@@ -3,10 +3,14 @@ from brian2.core.preferences import prefs
 from ..weave_rt import WeaveCodeObject
 from ...generators.GSL_generator import GSLWeaveCodeGenerator
 from ..weave_rt import WeaveCodeGenerator
+
 try:
     from scipy.weave.build_tools import CompileError
 except ImportError:
-    from weave.build_tools import CompileError
+    try:
+        from weave.build_tools import CompileError
+    except ImportError:
+        CompileError = None  # weave is not available
 
 __all__ = ['GSLWeaveCodeObject']
 
@@ -21,6 +25,8 @@ class GSLWeaveCodeObject(WeaveCodeObject):
     generator_class = GSLWeaveCodeGenerator
 
     def run(self):
+        if CompileError is None:
+            raise ImportError('weave is not available')
         self.libraries += ['gsl', 'gslcblas']
         self.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
         if prefs.GSL.directory is not None:
