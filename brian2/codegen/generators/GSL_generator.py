@@ -77,6 +77,14 @@ class GSLCodeGenerator(object):
                  override_conditional_write=None,
                  allows_scalar_write=False):
 
+        # In runtime mode (i.e. weave and Cython), the compiler settings are
+        # added for each `CodeObject` (only the files that use the GSL are
+        # linked to the GSL). However, in C++ standalone mode, there are global
+        # compiler settings that are used for all files (stored in the
+        # `CPPStandaloneDevice`). Furthermore, header file includes are directly
+        # inserted into the template instead of added during the compilation
+        # phase (as done in weave). Therefore, we have to add the options here
+        # instead of in `GSLCPPStandaloneCodeObject`
         from brian2.devices.device import get_device, RuntimeDevice
         device = get_device()
         if not isinstance(device, RuntimeDevice):
