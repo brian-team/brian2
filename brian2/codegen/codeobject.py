@@ -211,6 +211,10 @@ def create_runner_codeobj(group, code, template_name,
     else:
         codeobj_class = device.code_object_class(codeobj_class)
 
+    if hasattr(group, 'method_options'):
+        # this makes the method_options available to the generator
+        codeobj_class.method_options = group.method_options
+
     template = getattr(codeobj_class.templater, template_name)
     template_variables = getattr(template, 'variables', None)
 

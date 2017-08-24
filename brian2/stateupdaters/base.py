@@ -76,7 +76,7 @@ class StateUpdateMethod(object):
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
-    def apply_stateupdater(equations, variables, method, group_name=None):
+    def apply_stateupdater(equations, variables, method, method_options=None, group_name=None):
         '''
         Applies a given state updater to equations. If a `method` is given, the
         state updater with the given name is used or if is a callable, then it
@@ -161,6 +161,8 @@ class StateUpdateMethod(object):
                                  'callable, or an iterable of such objects. '
                                  'Got %s') % type(method))
             start_time = time.time()
+            # make method_options available to the stateupdater without changing arguments
+            stateupdater.method_options = method_options
             code = stateupdater(equations, variables)
             method_time = time.time() - start_time
             timing = 'took %.2fs' % method_time
