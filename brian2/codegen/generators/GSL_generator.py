@@ -1,19 +1,21 @@
+from os.path import isdir, exists
+import re
+import sys
+
+import numpy as np
+
 from brian2.units.fundamentalunits import DimensionMismatchError, DIMENSIONLESS
 from brian2.core.variables import AuxiliaryVariable, ArrayVariable, Constant
 from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
-
 from brian2.codegen.permutation_analysis import (check_for_order_independence,
                                                  OrderDependenceError)
-
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.parsing.statements import parse_statement
 from brian2.codegen.generators import c_data_type
-import re
-import numpy as np
 
-from os.path import isdir, exists
+
 from brian2.core.preferences import PreferenceError
 
 __all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
@@ -93,6 +95,8 @@ class GSLCodeGenerator(object):
                 device.libraries += ['gsl', 'gslcblas']
                 device.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>',
                                    '<gsl/gsl_errno.h>', '<gsl/gsl_matrix.h>']
+                if sys.platform == 'win32':
+                    device.define_macros += [('WIN32', '1'), ('GSL_DLL', '1')]
                 if prefs.GSL.directory is not None:
                     device.include_dirs += [prefs.GSL.directory]
 
