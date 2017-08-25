@@ -98,14 +98,20 @@ class WeaveCodeObject(CodeObject):
             ])
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
-        self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        if sys.platform == 'win32':
+            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
+        else:
+            self.include_dirs += [os.path.join(sys.prefix, 'include')]
         # TODO: We should probably have a special folder just for header
         # files that are shared between different codegen targets
         import brian2.synapses as synapses
         synapses_dir = os.path.dirname(synapses.__file__)
         self.include_dirs.append(synapses_dir)
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
-        self.library_dirs += [os.path.join(sys.prefix, 'lib')]
+        if sys.platform == 'win32':
+            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
+        else:
+            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         update_for_cross_compilation(self.library_dirs,
                                      self.extra_compile_args,
                                      self.extra_link_args, logger=logger)

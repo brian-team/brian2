@@ -69,8 +69,15 @@ class CythonCodeObject(NumpyCodeObject):
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
         self.headers = []  # not actually used
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
-        self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        if sys.platform == 'win32':
+            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
+        else:
+            self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        if sys.platform == 'win32':
+            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
+        else:
+            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
 
