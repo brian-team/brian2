@@ -109,6 +109,7 @@ class CythonCodeObject(NumpyCodeObject):
     def compile(self):
         self.compiled_code = cython_extension_manager.create_extension(
             self.code,
+            define_macros=self.define_macros,
             libraries=self.libraries,
             extra_compile_args=self.extra_compile_args,
             extra_link_args=self.extra_link_args,
