@@ -45,44 +45,92 @@ The complete list of available methods is the following:
   differential equations with non-diagonal multiplicative noise.
 * ``'milstein'``: derivative-free Milstein method for solving stochastic
   differential equations with diagonal multiplicative noise
-* ``'GSL_stateupdater'``: selecting this as a method invokes a code generation
-  process that calls an ODE solver from the GNU Scientific Library. For more
-  information on this option see the section below.
+* ``'gsl'``: default integrator when choosing to integrate equations with
+  the GNU Scientific Library ODE solver: the rkf45 method. Uses an adaptable
+  time step by default.
+* ``'gsl_rkf45'``: Runge-Kutta-Fehlberg method.
+  A good general-purpose integrator according to the GSL documentation. Uses an
+  adaptable time step by default.
+* ``'gsl_rk2'``: Second order Runge-Kutta method using GSL. Uses an adaptable
+  time step by default.
+* ``'gsl_rk4'``: Fourth order Runge-Kutta method using GSL. Uses an adaptable
+  time step by default.
+* ``'gsl_rkck'``: Runge-Kutta Cash-Karp method using GSL. Uses an adaptable
+  time step by default.
+* ``'gsl_rk8pd'``: Runge-Kutta Prince-Dormand method using GSL. Uses an adaptable
+  time step by default.
 
-GSL Stateupdater
-----------------
-All available algorithms that can be selected for integration when using the GSL
-stateupdater can be found on the GNU website_. Set the algorithm by specifying
-the ``'integrator'`` key in a dictionary sent as the method_options key upon
-initialization of the object using the integrator (`NeuronGroup`, `Synapses` or
-`SpatialNeuron`). By default the algorithm used is ``'rkf45'``, referring to
-the explicit embedded Runge-Kutta-Fehlberg method,  which is a good general-purpose
-integrator.
+GSL stateupdaters
+-----------------
+The stateupdaters preceded with the gsl tag use ODE solvers defined in the GNU
+Scientific Library. The benefit of using these integrators over the ones written
+by Brian internally, is that they are implemented with an adaptable timestep.
+Integrating with an adaptable timestep comes with two advantages:
 
-Other options that can be specified for GSL integration through the method_options
-key are:
+* These methods check whether the estimated error of the solutions returned fall
+  within a certain error bound. For the non-gsl integrators there is currently no
+  such check.
+* Systems no longer need to be simulated with just one time step. That is, a bigger
+  timestep can be chosen and the integrator will reduce the timestep when increased
+  accuracy is required. This is particularly useful for systems where both slow and
+  fast time constants coexist, as is the case with for example (networks of neurons
+  with) Hodgkin-Huxley equations.
 
-* ``'eps_abs'``: absolute error that is allowed, default is 1e-6
-* ``'eps_rel'``: relative error that is allowed, default is 0
-* ``'h_start'``: starting step size for ODE solver, default is 1e-5
-* ``'adaptable_timestep'``: if this option is set to False, integration will be
-  performed with fixed timestep, namely ``dt``. If set to True (default),
-  the GSL integrator chooses an appropriate timestep that keeps the solution within
-  the given error bounds. Note that when adaptable timestep is set to False an
-  integration error will result if the set value for ``dt`` results in a solution
-  that exceeds the set error boundaries.
+In addition to a choice between different integration methods, there is a few more
+options that can be specified when using GSL. These options can be specified by
+sending a dictionary as the method_options key upon initialization of the object
+using the integrator (`NeuronGroup`, `Synapses` or `SpatialNeuron`).
+The available method options are:
 
-In general, running simulations with the GSL stateupdater will be slower than when
-they are run with any of the other methods available in Brian. However, the option
-of an adaptable timestep allows larger timesteps for the overhead in Brian itself
-while the error for the numerical integration is assured to remain within the
-error bounderies set. This is especially beneficial when integrating Hodgkin-Huxley
-type equations.
+* ``'adaptable_timestep'``: whether or not to let GSL reduce the timestep to
+  achieve the accuracy defined with the ``'absolute_error'`` and
+  ``'absolute_error_per_variable'`` options described below. If this is set to False,
+  the timestep defined under the option ``'dt_start'`` is used. If the resulted
+  estimated error exceeds the set error bounds, the simulation is aborted. When using
+  cython or weave this is reported with an `IntegrationError`.
+  Defaults to True.
+* ``'dt_start'``: what timestep to use as default. In the case that ``'adaptable_timestep'``
+  is set to False, this is the timestep used for each integration step. Otherwise, it
+  is given to the GSL ODE solver as an initial guess of what would be a good time step.
+  if ``'use_last_timestep'`` is set to True, this only affects the time step suggested
+  at the very start. Otherwise, this is the suggested timestep for each Brian time step.
+  Defaults to the dt set for the object using the integrator.
+* ``'absolute_error'``: each of the methods has a way of estimating the error that
+  is the result of using numerical integration. You can specify the maximum size of this
+  error to be allowed for any of the to-be-integrated variables in base units with this
+  keyword. Note that giving very small values makes the simulation slow and might result
+  in unsuccessful integration. In the case of using the ``'absolute_error_per_variable'``
+  option, this is the error for variables that were not specified individually.
+  Defaults to 1e-6.
+* ``'absolute_error_per_variable'``: specify the absolute error per variable in its own
+  units. Variables for which the error is not specified use the error set with the
+  ``'absolute_error'`` option.
+  Defaults to None.
+* ``'use_last_timestep'``: with the ``'adaptable_timestep'`` option set to True, GSL tries
+  different time steps to find a solution that satisfies the set error bounds.
+  It is likely that for Brian's next time step the GSL time step
+  will be somewhat similar per neuron (e.g. active neurons will have a shorter GSL time step
+  than inactive neurons). With this option set to True, the time step GSL found to satisfy
+  the set error bounds is saved per neuron and given to GSL again in Brian's next time step.
+  This also means that the final time steps are saved in Brian's memory and can thus
+  be recorded with the `StateMonitor`: it can be accessed under ``'_last_timestep'``.
+  Note that some extra memory is required to keep track of the last time steps.
+  Defauls to True.
+* ``'save_failed_steps'``: if ``'adaptable_timestep'`` is set to True,
+  each time GSL tries a time step and it results in an estimated
+  error that exceeds the set bounds, one is added to the ``'_failed_steps'`` variable. For
+  purposes of investigating what happens within GSL during an integration step, we offer
+  the optionality of saving this variable.
+  Defaults to False.
+* ``'save_step_count'``: the same goes for the total number of GSL steps taken in a single
+  Brian time step: this is optionally saved in the ``'_step_count'`` variable.
+  Defaults to False.
 
-There is currently no support for the algorithms that require the Jacobian and/or
-access to the driver.
+Note that at the moment recording ``'_last_timestep'``, ``'_failed_steps'``, or ``'_step_count'``
+requires a call to `run` (e.g. with 0 ms) to trigger the code generation process, before the
+call to `StateMonitor`.
 
-.. _website: https://www.gnu.org/software/gsl/manual/html_node/Stepping-Functions.html#Stepping-Functions
+More information on the GSL ODE solver itself can be found in its documentation.
 
 .. admonition:: The following topics are not essential for beginners.
 
