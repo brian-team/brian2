@@ -188,7 +188,7 @@ class CPPStandaloneDevice(Device):
         else:
             self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
-        if sys.platform != 'win32':
+        if sys.platform.startswith('linux'):
             self.runtime_library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
