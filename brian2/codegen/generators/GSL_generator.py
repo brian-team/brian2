@@ -571,6 +571,8 @@ class GSLCodeGenerator(object):
             if '_gsl' in var or var in ignore:
                 continue
             if self.is_constant_and_cpp_standalone(var_obj):
+                # does not have to be processed by GSL generator
+                self.variables_to_be_processed.remove(var_obj.name)
                 continue
             if isinstance(var_obj, ArrayVariable):
                 pointer_name = self.get_array_name(var_obj, access_data=True)
@@ -587,6 +589,7 @@ class GSLCodeGenerator(object):
                                                                                  array_name=array_name,
                                                                                  end_statement=end_statement)
             to_replace[replace_what] = ''
+            self.variables_to_be_processed.remove('t')
 
         return to_replace
 
@@ -619,6 +622,8 @@ class GSLCodeGenerator(object):
                 continue
             in_vector = var in variables_in_vector
             in_scalar = var in variables_in_scalar
+            if in_vector:
+                self.variables_to_be_processed.remove(var)
             code += [self.unpack_namespace_single(var_obj, in_vector, in_scalar)]
         return ('\n').join(code)
 
@@ -678,20 +683,25 @@ class GSLCodeGenerator(object):
         '''
         code = []
         for line in code_lines:
+            m = re.search('(\w+ = .*)', line)
             try:
-                var, op, expr, comment = parse_statement(line)
+                new_line = m.group(1)
+                var, op, expr, comment = parse_statement(new_line)
             except ValueError:
                 code += [line]
                 continue
-            m = re.search('([a-z|A-Z|0-9|_]+)$', var)
-            actual_var = m.group(1)
-            if actual_var in variables_in_scalar.keys():
+            if var in variables_in_scalar.keys():
                 code += [line]
-            if actual_var in variables_in_vector.keys():
-                if actual_var == 't':
+            if var in variables_in_vector.keys():
+                if var == 't':
                     continue
+                try:
+                    self.variables_to_be_processed.remove(var)
+                except KeyError:
+                    raise Exception(("Trying to process variable named %s by putting its value in the _GSL_dataholder "
+                                     "based on scalar code, but the variable has been processed already."%var))
                 code += ['_GSL_dataholder.{var} {op} {expr} {comment}'.format(
-                        var=actual_var, op=op, expr=expr, comment=comment)]
+                        var=var, op=op, expr=expr, comment=comment)]
         return ('\n').join(code)
 
     def add_gsl_variables_as_non_scalar(self, diff_vars):
@@ -793,7 +803,7 @@ class GSLCodeGenerator(object):
                                                  self.generator.variables,
                                                  self.generator.variable_indices)
             except OrderDependenceError:
-                # If the abstract code is only one line, display it in full
+                # If the abstract code is only one line, display it in ful   l
                 if len(vs) <= 1:
                     error_msg = 'Abstract code: "%s"\n' % vs[0]
                 else:
@@ -836,6 +846,8 @@ class GSLCodeGenerator(object):
         for var in diff_vars.keys():
             if not var in variables_in_vector:
                 variables_in_vector[var] = self.variables[var]
+        # lets keep track of the variables that eventually need to be added to the _GSL_dataholder somehow
+        self.variables_to_be_processed = variables_in_vector.keys()
 
         # add code for _dataholder struct
         GSL_support_code = self.write_dataholder(variables_in_vector) + GSL_support_code
@@ -852,6 +864,11 @@ class GSLCodeGenerator(object):
         GSL_main_code += '\n' + self.translate_scalar_code(scalar_code[None],
                                                     variables_in_scalar,
                                                     variables_in_vector)
+        if len(self.variables_to_be_processed) > 0:
+            raise Exception(("Not all variables that will be used in the vector code have been added to "
+                             "the _GSL_dataholder. This might mean that the _GSL_func is using unitialized "
+                             "variables."
+                             "\nThe unprocessed variables are: %s"%(str(self.variables_to_be_processed))))
 
         scalar_code['GSL'] = GSL_main_code
         kwds['GSL_settings'] = self.method_options
