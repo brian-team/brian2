@@ -51,6 +51,8 @@ cdef extern from "gsl/gsl_odeiv2.h":
         gsl_odeiv2_driver *_GSL_driver, double *t, const double h, const unsigned long int n, double _GSL_y[])
     int gsl_odeiv2_driver_reset_hstart(
         gsl_odeiv2_driver *_GSL_driver, const double hstart)
+    int gsl_odeiv2_driver_reset(
+        gsl_odeiv2_driver *GSL_driver)
 
     gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_scaled_new(
         gsl_odeiv2_system *_sys, gsl_odeiv2_step_type *T,
@@ -96,9 +98,11 @@ cdef extern from "gsl/gsl_odeiv2.h":
         _fill_y_vector(_GSL_dataholder, _GSL_y, _idx)
         {%if GSL_settings['use_last_timestep']%}
         gsl_odeiv2_driver_reset_hstart(_GSL_driver, {{pointer_last_timestep}})
+        {% else %}
+        gsl_odeiv2_driver_reset(_GSL_driver)
         {% endif %}
-        if not {{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
-                    else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} == GSL_SUCCESS:
+        if ({{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
+                    else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} != GSL_SUCCESS):
             raise IntegrationError(("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
                                     "\nIf adaptable_timestep is set to False: "
                                     "\n   the size of the timestep results in an error larger than that set by absolute_error."
