@@ -10,6 +10,12 @@ environment:
     secure: mP9XvwSNUqxq7cFK4V0wM2rNmvlGUYecSlZvkYjRtdGotr9ueS2IycSDvvNGlSdK
 
   matrix:
+    - PYTHON: "C:\\Miniconda"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "TRUE"
+
     - PYTHON: "C:\\Miniconda35"
       PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "32"
@@ -79,12 +85,6 @@ environment:
       STANDALONE: "FALSE"
       CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
-
-    - PYTHON: "C:\\Miniconda"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "TRUE"
 
     - PYTHON: "C:\\Miniconda-x64"
       PYTHON_VERSION: "2.7"
