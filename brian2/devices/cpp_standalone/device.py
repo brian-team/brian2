@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 import inspect
-import platform
+import struct
 from collections import defaultdict, Counter
 import numbers
 import tempfile
@@ -873,8 +873,8 @@ class CPPStandaloneDevice(Device):
                 # TODO: copy vcvars and make replacements for 64 bit automatically
                 arch_name = prefs['codegen.cpp.msvc_architecture']
                 if arch_name == '':
-                    mach = platform.machine()
-                    if mach == 'AMD64':
+                    bits = struct.calcsize('P') * 8
+                    if bits == 64:
                         arch_name = 'x86_amd64'
                     else:
                         arch_name = 'x86'
