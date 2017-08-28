@@ -36,6 +36,8 @@ for(int _idx=0; _idx<_N; _idx++)
     _GSL_dataholder._idx = _idx;
     {%if GSL_settings['use_last_timestep']%}
     gsl_odeiv2_driver_reset_hstart(_GSL_driver, {{pointer_last_timestep}});
+    {% else %}
+    gsl_odeiv2_driver_reset(_GSL_driver);
     {% endif %}
     if ({{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
                 else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} != GSL_SUCCESS)
