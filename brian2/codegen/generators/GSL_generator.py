@@ -772,9 +772,8 @@ class GSLCodeGenerator(object):
         reserved_variables = ['_dataholder', '_fill_y_vector', '_empty_y_vector', '_GSL_dataholder', '_GSL_y', '_GSL_func']
         if any([var in self.variables for var in reserved_variables]):
             # import here to avoid circular import
-            from brian2.stateupdaters.base import UnsupportedEquationsException
-            raise UnsupportedEquationsException(("The variables %s are reserved for the GSL "
-                                                 "internal code."%(str(reserved_variables))))
+            raise ValueError(("The variables %s are reserved for the GSL "
+                              "internal code."%(str(reserved_variables))))
 
         # if the following statements are not added, Brian translates the differential expressions in the abstract
         # code for GSL to scalar statements in the case no non-scalar variables are used in the expression
