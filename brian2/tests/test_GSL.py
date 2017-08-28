@@ -177,9 +177,168 @@ def test_GSL_stochastic():
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
+@attr('standalone-compatible')
+def test_GSL_error_dimension_mismatch_unit():
+    try:
+        tau = 10*ms
+        eqs = '''
+        dv/dt = (v0 - v)/tau : volt
+        v0 : volt
+        '''
+        options = {'absolute_error_per_variable' : {'v' : 1*nS}}
+        neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+        try:
+            run(0*ms)
+            raise Exception("should not get here because run should raise error")
+        except DimensionMismatchError as err:
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_error_dimension_mismatch_dimensionless1():
+    try:
+        tau = 10*ms
+        eqs = '''
+        dv/dt = (v0 - v)/tau : 1
+        v0 : 1
+        '''
+        options = {'absolute_error_per_variable' : {'v' : 1*mV}}
+        neuron = NeuronGroup(1, eqs, threshold='v > 10', reset='v = 0', method='gsl', method_options=options)
+        try:
+            run(0*ms)
+            raise Exception("should not get here because run should raise error")
+        except DimensionMismatchError as err:
+            #print err
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_error_dimension_mismatch_dimensionless2():
+    try:
+        tau = 10*ms
+        eqs = '''
+        dv/dt = (v0 - v)/tau : volt
+        v0 : volt
+        '''
+        options = {'absolute_error_per_variable' : {'v' : 1e-3}}
+        neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+        try:
+            run(0*ms)
+            raise Exception("should not get here because run should raise error")
+        except DimensionMismatchError as err:
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_error_nonexisting_variable():
+    try:
+        tau = 10*ms
+        eqs = '''
+        dv/dt = (v0 - v)/tau : volt
+        v0 : volt
+        '''
+        options = {'absolute_error_per_variable' : {'dummy' : 1e-3*mV}}
+        neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+        try:
+            run(0*ms)
+            raise Exception("should not get here because run should raise error")
+        except KeyError as err:
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_error_nonODE_variable():
+    try:
+        tau = 10*ms
+        eqs = '''
+        dv/dt = (v0 - v)/tau : volt
+        v0 : volt
+        '''
+        options = {'absolute_error_per_variable' : {'v0' : 1e-3*mV}}
+        neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV', method='gsl', method_options=options)
+        try:
+            run(0*ms)
+            raise Exception("should not get here because run should raise error")
+        except KeyError as err:
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_error_bounds():
+    try:
+        runtime = 50*ms
+        error1 = 1e-2*volt
+        error2 = 1e-4*volt
+        eqs = '''
+        dv/dt = (stimulus(t) + -v)/(.1*ms) : volt
+        '''
+        stimulus = TimedArray(rand(int(runtime/(10*ms)))*3*volt, dt=5*ms)
+        neuron1 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
+                                     method='gsl',
+                                     method_options={'absolute_error_per_variable':{'v':error1}}, dt=1*ms)
+        neuron2 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
+                                     method='gsl',
+                                     method_options={'absolute_error_per_variable':{'v':error2}}, dt=1*ms)
+        neuron_control = NeuronGroup(1, model=eqs, method='linear', dt=1*ms)
+        mon1 = StateMonitor(neuron1, 'v', record=True)
+        mon2 = StateMonitor(neuron2, 'v', record=True)
+        mon_control = StateMonitor(neuron_control, 'v', record=True)
+        run(runtime)
+        err1 = abs(mon1.v[0] - mon_control.v[0])
+        err2 = abs(mon2.v[0] - mon_control.v[0])
+        assert max(err1) < error1, ("Error bound exceeded, error bound: %e, obtained error: %e"%(error1, max(err1)))
+        assert max(err2) < error2, ("Error bound exceeded")
+        assert max(err1) > max(err2), ("The simulation with smaller error bound produced a bigger maximum error")
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+def test_GSL_save_step_count():
+    try:
+        eqs = '''
+        dv/dt = -v/(.1*ms) : volt
+        '''
+        neuron = NeuronGroup(1, model=eqs, method='gsl',
+                             method_options={'save_step_count' : True}, dt=1*ms)
+        run(0*ms)
+        mon = StateMonitor(neuron, '_step_count', record=True, when='end')
+        run(10*ms)
+        assert mon._step_count[0][0] > 0, "Monitor did not save GSL step count"
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
 if __name__ == '__main__':
+    test_GSL_save_step_count()
+    print('passed test_GSL_save_step_count()')
+    test_GSL_error_bounds()
+    print('passed test_GSL_error_bounds()')
+    test_GSL_error_dimension_mismatch_unit()
+    print('passed test_GSL_error_dimension_mismatch_unit()')
+    test_GSL_fixed_timestep_big_dt_small_error()
+    print('passed test_GSL_fixed_timestep_big_dt_small_error()')
+    test_GSL_method_options_synapses()
+    print('passed test_GSL_method_options_synapses()')
+    test_GSL_method_options_neurongroup()
+    print('passed test_GSL_method_options_neurongroup')
+    test_GSL_method_options_spatialneuron()
+    print('passed test_GSL_method_options_spatialneuron()')
+    test_GSL_internal_variable()
+    print('passed test_GSL_internal_variable()')
+    test_GSL_internal_variable2()
+    print('passed test_GSL_internal_variable2()')
+    test_GSL_stochastic()
+    print('passed test_GSL_stochastic()')
     test_GSL_stateupdater_basic()
+    print('passed test_GSL_stateupdater_basic()')
     test_GSL_different_clocks()
-    test_GSL_default_function()
+    print('passed test_GSL_different_clocks()')
     test_GSL_user_defined_function()
+    print('passed test_GSL_user_defined_function()')
+    test_GSL_default_function()
+    print('passed test_GSL_default_function()')
     test_GSL_x_variable()
+    print('passed test_GSL_x_variable()')
