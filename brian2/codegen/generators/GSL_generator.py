@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 
-from brian2.units.fundamentalunits import DimensionMismatchError, DIMENSIONLESS
+from brian2.units.fundamentalunits import fail_for_dimension_mismatch
 from brian2.core.variables import AuxiliaryVariable, ArrayVariable, Constant
 from brian2.core.functions import Function
 from brian2.codegen.translation import make_statements
@@ -49,7 +49,9 @@ prefs.register_preferences(
     'Directory containing gsl code',
     directory=BrianPreference(
         validator=valid_gsl_dir,
-        docs='...',
+        docs=("Set path to directory containing GSL header files (gsl_odeiv2.h etc.)"
+              "\nIf this directory is already in Python's include (e.g. because of "
+              "conda installation), this path can be set to None"),
         default=None
     )
 )
@@ -154,7 +156,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        code : str
             For cpp returns type + var, while for cython just var
         '''
         raise NotImplementedError
@@ -188,15 +190,11 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        list
+        function_names : list
             list of strings that are function names used in the code
         '''
         variables = self.variables
-        names = []
-        for var, var_obj in variables.items():
-            if isinstance(var_obj, Function):
-                names += [var]
-        return names
+        return [var for var, var_obj in variables.iteritems() if isinstance(var_obj, Function)]
 
     def is_cpp_standalone(self):
         '''
@@ -206,7 +204,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        bool
+        is_cpp_standalone : bool
             whether currently using cpp_standalone device
 
         See Also
@@ -235,7 +233,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        bool
+        is_cpp_standalone : bool
             whether the used device is cpp_standalone and the given variable is an instance of Constant
         """
         if not hasattr(self, 'cpp_standalone'):
@@ -255,7 +253,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        dict
+        diff_vars : dict
             A dictionary with variable names as keys and differential equation index as value
         '''
         diff_vars = {}
@@ -288,7 +286,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        dict
+        to_replace : dict
             dictionary with strings that need to be replaced as keys and the
             strings that will replace them as values
         '''
@@ -322,7 +320,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        set_dimension_code : str
             The code describing the target language function in a single string
         '''
         code = ['\n{start_declare}int set_dimension(size_t * dimension){open_function}']
@@ -348,7 +346,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        yvector_code : str
             The code for the three functions (```_assign_memory_y```,
             ```_fill_y_vector``` and ```_empty_y_vector```) as single string.
         '''
@@ -390,8 +388,8 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
-            Code describing ```_GSL_func``` that is sent to GSL integrator.
+        function_code : str
+            code describing ```_GSL_func``` that is sent to GSL integrator.
         '''
         code = [("\n{start_declare}int _GSL_func(double t, const double "
                 "_GSL_y[], double f[], void * params){open_function}"
@@ -413,7 +411,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        code : str
             string describing this variable object as required for the ```_dataholder``` struct
             (e.g. ```double* _array_neurongroup_v```)
         '''
@@ -441,7 +439,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        code : str
             code for _dataholder struct
         '''
         code = ['\n{start_declare}struct _dataholder{open_struct}']
@@ -493,22 +491,10 @@ class GSLCodeGenerator(object):
                     else:
                         raise KeyError("absolute_error specified for variable "
                                        "that is not being integrated: %s"%var)
-                try:
-                    if not error.has_same_dimensions(self.variables[var]):
-                        raise DimensionMismatchError(("Unit of absolute_error "
-                                                      "for variable %s does not "
-                                                      "match unit of "
-                                                      "variable itself"%var),
-                                                     error.dim, self.variables[var].dim)
-                except AttributeError:
-                    # error does not have 'has_same_dimensions' attribute because it is a float
-                    if not isinstance(error, float):
-                        raise
-                    if not self.variables[var].dim is DIMENSIONLESS:
-                        raise DimensionMismatchError(("absolute_error for variable "
-                                                      "%s is unitless, "
-                                                      "while variable itself is "
-                                                      "not"%var), self.variables[var].dim)
+                fail_for_dimension_mismatch(error, self.variables[var],
+                                            ("Unit of absolute_error_per_variable "
+                                             "for variable %s does not match "
+                                             "unit of varialbe itself"%var))
                 # if all these are passed we can add the value for error in base units
                 diff_scale[var] = float(error)
             # set the variables that are not mentioned to default value
@@ -571,7 +557,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        dict
+        used_variables : dict
             dictionary of variables that are used as variable name (str),
             `Variable` pairs.
         '''
@@ -615,7 +601,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        dict
+        to_replace : dict
             dictionary with strings that need to be replaced i.e. _lio_1 will be
             _GSL_dataholder._lio_1 (in cython) or _GSL_dataholder->_lio_1 (cpp)
 
@@ -679,7 +665,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        unpack_namespace_code : str
             code fragment unpacking the Brian namespace (setting variables in
             the _dataholder struct in case of vector)
         '''
@@ -711,7 +697,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        vector_code : str
             New code that is now to be added to the function that is sent to the
             GSL integrator
         '''
@@ -754,7 +740,7 @@ class GSLCodeGenerator(object):
 
         Returns
         -------
-        str
+        scalar_code : str
             code fragment that should be injected in the main before the loop
         '''
         code = []

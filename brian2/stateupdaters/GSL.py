@@ -57,10 +57,11 @@ class GSLContainer(object):
             return GSLWeaveCodeObject
         else:
             raise NotImplementedError(("Selected stateupdater is GSL stateupdater, while "
-                                       "target language is numpy (either selected or only "
-                                       "one available): GSL was not implemented for numpy."
+                                       "target language is {language} (either selected or only "
+                                       "one available): GSL was not implemented for {language}."
                                        "\nSet target language to weave or cython, or device "
-                                       "to cpp_standalone in order to use GSL integration"))
+                                       "to cpp_standalone in order to use GSL "
+                                       "integration").format(language=prefs.codegen.target))
 
     def __call__(self, obj):
         '''
@@ -106,7 +107,7 @@ class GSLStateUpdater(StateUpdateMethod):
         Translate equations to abstract_code.
 
         Parameters
-        ----------a
+        ----------
         equations : `Equations`
             object containing the equations that describe the ODE systemTransferClass(self)
         variables : dict
@@ -122,7 +123,7 @@ class GSLStateUpdater(StateUpdateMethod):
 
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
-                                                'equations with this state '
+                                                'equations with the GSL state '
                                                 'updater.')
 
         # the approach is to 'tag' the differential equation variables so they can
@@ -140,8 +141,8 @@ class GSLStateUpdater(StateUpdateMethod):
             diff_vars += [diff_name]
             counter[diff_name] = count_statevariables
             code += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
-                                                               expr=expr,
-                                                               count=counter[diff_name])]
+                                                           expr=expr,
+                                                           count=counter[diff_name])]
             count_statevariables += 1
 
         # add flags to variables objects because some of them we need in the GSL generator
@@ -154,9 +155,6 @@ class GSLStateUpdater(StateUpdateMethod):
                             abstract_code=('\n').join(code),
                             needed_variables=diff_vars,
                             variable_flags=flags)
-
-    # Copy doc from parent class
-    __call__.__doc__ = StateUpdateMethod.__call__.__doc__
 
 gsl_rk2 = GSLStateUpdater('rk2')
 gsl_rk4 = GSLStateUpdater('rk4')

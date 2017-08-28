@@ -2,7 +2,7 @@ from pyparsing import (CharsNotIn, Optional, Suppress, Word, Regex,
                        ParseException, alphas, nums)
 
 VARIABLE = Word(alphas + '_',
-                                    alphas + nums + '_').setResultsName('variable')
+                  alphas + nums + '_').setResultsName('variable')
 
 OP = Regex(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=').setResultsName('operation')
 EXPR = CharsNotIn('#').setResultsName('expression')
