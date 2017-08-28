@@ -1,5 +1,6 @@
 '''
-Module containg the StateUpdateMethod for integration using the ODE solver provided in the GNU Scientific Library (GSL)
+Module containg the StateUpdateMethod for integration using the ODE solver
+provided in the GNU Scientific Library (GSL)
 '''
 from .base import StateUpdateMethod, UnsupportedEquationsException
 from ..core.preferences import prefs
@@ -12,7 +13,8 @@ __all__ = ['gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd']
 
 class GSLContainer(object):
     '''
-    Class that contains information (equation- or integrator-related) required for later code generation
+    Class that contains information (equation- or integrator-related) required
+    for later code generation
     '''
     def __init__(self, integrator, abstract_code=None, needed_variables=[], variable_flags=[]):
         self.integrator = integrator
@@ -24,8 +26,10 @@ class GSLContainer(object):
         '''
         Return codeobject class based on target language and device.
 
-        Choose which version of the GSL `CodeObject` to use. If ```isinstance(device, CPPStandaloneDevice)```, then
-        we want the `GSLCPPStandaloneCodeObject`. Otherwise the return value is based on prefs.codegen.target.
+        Choose which version of the GSL `CodeObject` to use. If
+        ```isinstance(device, CPPStandaloneDevice)```, then
+        we want the `GSLCPPStandaloneCodeObject`. Otherwise the return value is
+        based on prefs.codegen.target.
 
         Returns
         -------
@@ -62,11 +66,13 @@ class GSLContainer(object):
         '''
         Transfer the code object class saved in self to the object sent as an argument.
 
-        This method is returned when calling `GSLStateUpdater`. This class inherits from `StateUpdateMethod` which
-        orignally only returns abstract code. However, with GSL this returns a method because more is needed than just
-        the abstract code: the state updater requires its own CodeObject that is different from the other `NeuronGroup`
-        objects. This method adds this `CodeObject` to the `StateUpdater` object (and also adds the variables 't', 'dt',
-        and other variables that are needed in the `GSLCodeGenerator`.
+        This method is returned when calling `GSLStateUpdater`. This class inherits
+        from `StateUpdateMethod` which orignally only returns abstract code.
+        However, with GSL this returns a method because more is needed than just
+        the abstract code: the state updater requires its own CodeObject that is
+        different from the other `NeuronGroup` objects. This method adds this
+        `CodeObject` to the `StateUpdater` object (and also adds the variables
+        't', 'dt', and other variables that are needed in the `GSLCodeGenerator`.
 
         Parameters
         ----------
@@ -76,8 +82,8 @@ class GSLContainer(object):
         Returns
         -------
         str
-            The abstract code (translated equations), that is returned conventionally by brian and used for later
-            code generation in the `CodeGenerator.translate` method.
+            The abstract code (translated equations), that is returned conventionally
+            by brian and used for later code generation in the `CodeGenerator.translate` method.
         '''
         obj.codeobj_class = self.get_codeobj_class()
         obj._gsl_variable_flags = self.variable_flags
@@ -89,8 +95,8 @@ class GSLContainer(object):
 
 class GSLStateUpdater(StateUpdateMethod):
     '''
-    A statupdater that rewrites the differential equations so that the GSL generator knows how to write the
-    code in the target language.
+    A statupdater that rewrites the differential equations so that the GSL generator
+    knows how to write the code in the target language.
     '''
     def __init__(self, integrator):
         self.integrator = integrator
@@ -109,8 +115,8 @@ class GSLStateUpdater(StateUpdateMethod):
         Returns
         -------
         method
-            Method that needs to be called with `StateUpdater` to add CodeObject class and some other variables so
-            these can be sent to the `CodeGenerator`
+            Method that needs to be called with `StateUpdater` to add CodeObject
+            class and some other variables so these can be sent to the `CodeGenerator`
         '''
         logger.warn("Integrating equations with GSL is still considered experimental", once=True)
 
