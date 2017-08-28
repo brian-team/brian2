@@ -1,6 +1,12 @@
+'''
+Module containg the StateUpdateMethod for integration using the ODE solver provided in the GNU Scientific Library (GSL)
+'''
 from .base import StateUpdateMethod, UnsupportedEquationsException
 from ..core.preferences import prefs
 from ..devices.device import auto_target
+from brian2.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = ['gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd']
 
@@ -106,6 +112,8 @@ class GSLStateUpdater(StateUpdateMethod):
             Method that needs to be called with `StateUpdater` to add CodeObject class and some other variables so
             these can be sent to the `CodeGenerator`
         '''
+        logger.warn("Integrating equations with GSL is still considered experimental", once=True)
+
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '

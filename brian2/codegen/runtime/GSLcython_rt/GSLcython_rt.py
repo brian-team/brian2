@@ -1,3 +1,7 @@
+'''
+Module containing the Cython CodeObject for code generation for integration using the ODE solver provided in the
+GNU Scientific Library (GSL)
+'''
 import sys
 from distutils.errors import CompileError
 

@@ -1,3 +1,6 @@
+'''
+GSLCodeGenerators for code that uses the ODE solver provided by the GNU Scientific Library (GSL)
+'''
 from os.path import isdir, exists
 import re
 import sys
