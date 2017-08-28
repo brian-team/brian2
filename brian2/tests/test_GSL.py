@@ -311,6 +311,139 @@ def test_GSL_save_step_count():
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
+
+HH_namespace = {
+    'Cm' : 1*ufarad*cm**-2,
+    'gl' : 5e-5*siemens*cm**-2,
+    'El' : -65*mV,
+    'EK' : -90*mV,
+    'ENa' : 50*mV,
+    'g_na' : 100*msiemens*cm**-2,
+    'g_kd' : 30*msiemens*cm**-2,
+    'VT' : -63*mV
+}
+
+HH_eqs = Equations('''
+dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
+dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
+    (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
+    (exp((v-VT-40.*mV)/(5.*mV))-1.)/ms*m : 1
+dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
+    (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
+dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
+I : amp/metre**2
+''')
+
+@attr('standalone-compatible')
+def test_GSL_fixed_timestep_big_dt_small_error():
+    try:
+        # should raise integration error
+        neuron = NeuronGroup(1, model=HH_eqs,threshold='v > -40*mV',
+                             refractory='v > -40*mV',method='gsl',
+                             method_options={'adaptable_timestep' : False,
+                                             'absolute_error' : 1e-12},
+                             dt=.001*ms, namespace=HH_namespace)
+        neuron.I = 0.7*nA/(20000*umetre**2)
+        neuron.v = HH_namespace['El']
+        try:
+            run(10*ms)
+            raise Exception # should not get here, run should raise RuntimeError
+        except RuntimeError:
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('codegen-independent')
+def test_GSL_internal_variable():
+    try:
+        try:
+            Equations('d_p/dt = 300*Hz : 1')
+            raise Exception(('The previous line should raise a ValueError because '
+                             'of the use of a variable starting with '
+                             'an underscore'))
+        except ValueError:
+            pass
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_method_options_neurongroup():
+    try:
+        neuron1 = NeuronGroup(1, model='dp/dt = 300*Hz : 1', method='gsl',
+                              method_options={'adaptable_timestep':True})
+        neuron2 = NeuronGroup(1, model='dp/dt = 300*Hz : 1', method='gsl',
+                              method_options={'adaptable_timestep':False})
+        run(0*ms)
+        assert 'fixed' not in str(neuron1.state_updater.codeobj.code), \
+            'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
+        assert 'fixed' in str(neuron2.state_updater.codeobj.code), \
+            'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_method_options_spatialneuron():
+    try:
+        morpho = Soma(30*um)
+        eqs = '''
+        Im = g * v : amp/meter**2
+        dg/dt = siemens/metre**2/second : siemens/metre**2
+        '''
+        neuron1 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
+                               method='gsl_rkf45', method_options={'adaptable_timestep':True})
+        neuron2 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
+                               method='gsl_rkf45', method_options={'adaptable_timestep':False})
+        run(0*ms)
+        assert 'if (gsl_odeiv2_driver_apply_fixed_step' not in str(neuron1.state_updater.codeobj.code), \
+            'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
+        assert 'if (gsl_odeiv2_driver_apply_fixed_step' in str(neuron2.state_updater.codeobj.code), \
+            'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+@attr('standalone-compatible')
+def test_GSL_method_options_synapses():
+    set_device('runtime')
+    N = 1000
+    taum = 10*ms
+    taupre = 20*ms
+    taupost = taupre
+    Ee = 0*mV
+    vt = -54*mV
+    vr = -60*mV
+    El = -74*mV
+    taue = 5*ms
+    F = 15*Hz
+    gmax = .01
+    dApre = .01
+    dApost = -dApre * taupre / taupost * 1.05
+    dApost *= gmax
+    dApre *= gmax
+    eqs_neurons = '''
+    dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
+    dge/dt = -ge / taue : 1
+    '''
+    input = PoissonGroup(N, rates=F)
+    neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
+                          method='gsl_rkf45')
+    S1 = Synapses(input, neurons,
+                 '''w : 1
+                    dApre/dt = -Apre / taupre : 1 (clock-driven)
+                    dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                 method='gsl_rkf45',
+                 method_options={'adaptable_timestep':True})
+    S2 = Synapses(input, neurons,
+                 '''w : 1
+                    dApre/dt = -Apre / taupre : 1 (clock-driven)
+                    dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                 method='gsl_rkf45',
+                 method_options={'adaptable_timestep':False})
+    run(0*ms)
+    assert 'if (gsl_odeiv2_driver_apply_fixed_step' not in str(S1.state_updater.codeobj.code), \
+        'This state_updater should not call gsl_odeiv2_driver_apply_fixed_step()'
+    assert 'if (gsl_odeiv2_driver_apply_fixed_step' in str(S2.state_updater.codeobj.code), \
+        'This state_updater should call gsl_odeiv2_driver_apply_fixed_step()'
+
 if __name__ == '__main__':
     test_GSL_save_step_count()
     print('passed test_GSL_save_step_count()')
@@ -322,14 +455,10 @@ if __name__ == '__main__':
     print('passed test_GSL_fixed_timestep_big_dt_small_error()')
     test_GSL_method_options_synapses()
     print('passed test_GSL_method_options_synapses()')
-    test_GSL_method_options_neurongroup()
-    print('passed test_GSL_method_options_neurongroup')
     test_GSL_method_options_spatialneuron()
     print('passed test_GSL_method_options_spatialneuron()')
     test_GSL_internal_variable()
     print('passed test_GSL_internal_variable()')
-    test_GSL_internal_variable2()
-    print('passed test_GSL_internal_variable2()')
     test_GSL_stochastic()
     print('passed test_GSL_stochastic()')
     test_GSL_stateupdater_basic()
