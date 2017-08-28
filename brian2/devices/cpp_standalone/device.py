@@ -877,6 +877,8 @@ class CPPStandaloneDevice(Device):
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
                 if os.path.exists('winmake.log'):
                     os.remove('winmake.log')
+                with open('winmake.log', 'w') as f:
+                    f.write(vcvars_cmd + '\n')
                 with std_silent(debug):
                     if clean:
                         os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
