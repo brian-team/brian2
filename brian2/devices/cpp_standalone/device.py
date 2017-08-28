@@ -190,6 +190,14 @@ class CPPStandaloneDevice(Device):
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         if sys.platform.startswith('linux'):
             self.runtime_library_dirs += [os.path.join(sys.prefix, 'lib')]
+        self.run_environment_variables = dict(prefs.devices.cpp_standalone.run_environment_variables)
+        if sys.platform.startswith('darwin'):
+            if 'DYLD_LIBRARY_PATH' in os.environ:
+                dyld_library_path = (os.environ['DYLD_LIBRARY_PATH'] + ':' +
+                                     os.path.join(sys.prefix, 'lib'))
+            else:
+                dyld_library_path = os.path.join(sys.prefix, 'lib')
+            self.run_environment_variables['DYLD_LIBRARY_PATH'] = dyld_library_path
         self.libraries = list(prefs['codegen.cpp.libraries'])
         if sys.platform == 'win32':
             self.libraries += ['advapi32']
@@ -928,7 +936,7 @@ class CPPStandaloneDevice(Device):
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
             # Set environment variables
-            for key, value in prefs.devices.cpp_standalone.run_environment_variables.iteritems():
+            for key, value in self.run_environment_variables.iteritems():
                 if key in os.environ and os.environ[key] != value:
                     logger.info('Overwriting environment variable '
                                 '"{key}"'.format(key=key),
