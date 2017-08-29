@@ -2,7 +2,7 @@
 Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
 '''
-from .base import StateUpdateMethod, UnsupportedEquationsException
+from .base import (StateUpdateMethod, UnsupportedEquationsException, extract_method_options)
 from ..core.preferences import prefs
 from ..devices.device import auto_target
 from brian2.utils.logger import get_logger
@@ -16,7 +16,9 @@ class GSLContainer(object):
     Class that contains information (equation- or integrator-related) required
     for later code generation
     '''
-    def __init__(self, integrator, abstract_code=None, needed_variables=[], variable_flags=[]):
+    def __init__(self, method_options, integrator, abstract_code=None,
+                 needed_variables=[], variable_flags=[]):
+        self.method_options = method_options
         self.integrator = integrator
         self.abstract_code = abstract_code
         self.needed_variables = needed_variables
@@ -88,11 +90,11 @@ class GSLContainer(object):
         '''
         obj.codeobj_class = self.get_codeobj_class()
         obj._gsl_variable_flags = self.variable_flags
-        if getattr(obj, 'method_options', None) is None:
-            obj.method_options = {}
-        obj.method_options['integrator'] = self.integrator
-        obj.needed_variables += ['t', 'dt'] + self.needed_variables
+        obj.method_options = self.method_options
+        obj.integrator = self.integrator
+        obj.needed_variables = ['t', 'dt'] + self.needed_variables
         return self.abstract_code
+
 
 class GSLStateUpdater(StateUpdateMethod):
     '''
@@ -102,7 +104,7 @@ class GSLStateUpdater(StateUpdateMethod):
     def __init__(self, integrator):
         self.integrator = integrator
 
-    def __call__(self, equations, variables=None):
+    def __call__(self, equations, variables=None, method_options=None):
         '''
         Translate equations to abstract_code.
 
@@ -120,6 +122,17 @@ class GSLStateUpdater(StateUpdateMethod):
             class and some other variables so these can be sent to the `CodeGenerator`
         '''
         logger.warn("Integrating equations with GSL is still considered experimental", once=True)
+        default_method_options = {
+            'adaptable_timestep': True,
+            'dt_start': None,
+            'absolute_error': 1e-6,
+            'absolute_error_per_variable': None,
+            'use_last_timestep': True,
+            'save_failed_steps': False,
+            'save_step_count': False
+        }
+        method_options = extract_method_options(method_options,
+                                                default_method_options)
 
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
@@ -151,7 +164,8 @@ class GSLStateUpdater(StateUpdateMethod):
             if len(eq_obj.flags) > 0:
                 flags[eq_name] = eq_obj.flags
 
-        return GSLContainer(self.integrator,
+        return GSLContainer(method_options=method_options,
+                            integrator=self.integrator,
                             abstract_code=('\n').join(code),
                             needed_variables=diff_vars,
                             variable_flags=flags)
