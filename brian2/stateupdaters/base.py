@@ -17,6 +17,65 @@ logger = get_logger(__name__)
 class UnsupportedEquationsException(Exception):
     pass
 
+
+def extract_method_options(method_options, default_options):
+    '''
+    Helper function to check ``method_options`` against options understood by
+    this state updater, and setting default values for all unspecified options.
+
+    Parameters
+    ----------
+    method_options : dict or None
+        The options that the user specified for the state update.
+    default_options : dict
+        The default option values for this state updater (each admissible option
+        needs to be present in this dictionary). To specify that a state updater
+        does not take any options, provide an empty dictionary as the argument.
+
+    Returns
+    -------
+    options : dict
+        The final dictionary with all the options either at their default or at
+        the user-specified value.
+
+    Raises
+    ------
+    KeyError
+        If the user specifies an option that is not understood by this state
+        updater.
+
+    Examples
+    --------
+    >>> options = extract_method_options({'a': True}, default_options={'b': False, 'c': False})  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    KeyError: 'method_options specifies "a", but this is not an option for this state updater. Avalaible options are: "b", "c".'
+    >>> options = extract_method_options({'a': True}, default_options={})  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    KeyError: 'method_options specifies "a", but this is not an option for this state updater. This state updater does not accept any options.'
+    >>> options = extract_method_options({'a': True}, default_options={'a': False, 'b': False})
+    >>> sorted(options.items())
+    [('a', True), ('b', False)]
+    '''
+    if method_options is None:
+        method_options = {}
+    for key in method_options:
+        if key not in default_options:
+            if len(default_options):
+                keys = sorted(default_options.iterkeys())
+                options = ('Avalaible options are: ' +
+                           ', '.join('"%s"' % key for key in keys) + '.')
+            else:
+                options = 'This state updater does not accept any options.'
+            raise KeyError('method_options specifies "{key}", but this '
+                           'is not an option for this state updater. '
+                           '{options}'.format(key=key, options=options))
+    filled_options = dict(default_options)
+    filled_options.update(method_options)
+    return filled_options
+
+
 class StateUpdateMethod(object):
     __metaclass__ = ABCMeta
 
@@ -24,7 +83,7 @@ class StateUpdateMethod(object):
     stateupdaters = dict()
 
     @abstractmethod
-    def __call__(self, equations, variables=None):
+    def __call__(self, equations, variables=None, method_options=None):
         '''
         Generate abstract code from equations. The method also gets the
         the variables because some state updaters have to check whether
@@ -40,7 +99,8 @@ class StateUpdateMethod(object):
             The model equations.
         variables : dict, optional
             The `Variable` objects for the model variables.
-        
+        method_options : dict, optional
+            Additional options specific to the state updater.
         Returns
         -------
         code : str
@@ -161,8 +221,7 @@ class StateUpdateMethod(object):
                                  'callable, or an iterable of such objects. '
                                  'Got %s') % type(method))
             start_time = time.time()
-            stateupdater.method_options = method_options
-            code = stateupdater(equations, variables)
+            code = stateupdater(equations, variables, method_options)
             method_time = time.time() - start_time
             timing = 'took %.2fs' % method_time
             if group_name is not None:
