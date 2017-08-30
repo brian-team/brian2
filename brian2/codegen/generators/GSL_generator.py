@@ -770,10 +770,9 @@ class GSLCodeGenerator(object):
     def add_meta_variables(self, options):
         if options['use_last_timestep']:
             try:
-                N = self.variables['N'].get_value()
+                N = int(self.variables['N'].get_value())
                 self.owner.variables.add_array('_last_timestep', size=N,
-                                               values=np.array([options['dt_start']
-                                                                for i in range(N)]))
+                                               values=np.ones(N)*options['dt_start'])
             except KeyError:
                 # has already been run
                 pass
@@ -783,7 +782,7 @@ class GSLCodeGenerator(object):
             pointer_last_timestep = None
 
         if options['save_failed_steps']:
-            N = self.variables['N'].get_value()
+            N = int(self.variables['N'].get_value())
             try:
                 self.owner.variables.add_array('_failed_steps', size=N, dtype=np.int32)
             except KeyError:
@@ -795,7 +794,7 @@ class GSLCodeGenerator(object):
             pointer_failed_steps = None
 
         if options['save_step_count']:
-            N = self.variables['N'].get_value()
+            N = int(self.variables['N'].get_value())
             try:
                 self.owner.variables.add_array('_step_count', size=N, dtype=np.int32)
             except KeyError:
