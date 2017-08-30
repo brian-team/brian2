@@ -2063,6 +2063,13 @@ def test_synapse_generator_deterministic():
     expected_offdiagonal[np.arange(len(G2)-1), np.arange(len(G2)-1)+1] = 1
     expected_offdiagonal[np.arange(len(G2)-1)+1, np.arange(len(G2)-1)] = 1
 
+    # Converging connection pattern with restriction
+    S14 = Synapses(G, G2, 'w:1', 'v+=w')
+    S14.connect(j='int(i/4) if i % 2 == 0')
+    expected_converging_restricted = np.zeros((len(G), len(G2)), dtype=np.int32)
+    for target in xrange(4):
+        expected_converging_restricted[np.arange(4, step=2) + target * 4, target] = 1
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -2079,7 +2086,7 @@ def test_synapse_generator_deterministic():
     _compare(S11, expected_diverging)
     _compare(S12, expected_converging)
     _compare(S13, expected_offdiagonal)
-
+    _compare(S14, expected_converging_restricted)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)

@@ -172,6 +172,12 @@ simplest way to give a 1-to-1 connection would be::
 
     S.connect(j='i')
 
+This mapping can also use a restricting condition with ``if``, e.g. to connect
+neurons 0, 2, 4, 6, ... to neurons 0, 1, 2, 3, ... you could write::
+
+    S.connect(j='int(i/2) if i % 2 == 0')
+
+
 Accessing synaptic variables
 ----------------------------
 Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
@@ -247,9 +253,6 @@ the synapses have not yet been created at this point, so Brian cannot calculate
 the indices.
 
 .. admonition:: The following topics are not essential for beginners.
-
-    |
-
 
 Creating synapses with the generator syntax
 -------------------------------------------

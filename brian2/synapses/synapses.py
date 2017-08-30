@@ -1305,8 +1305,18 @@ class Synapses(Group):
                     raise ValueError("Generator syntax cannot be combined with "
                                      "p argument")
                 if not re.search(r'\bfor\b', j):
-                    j = '{j} for _ in range(1)'.format(j=j)
-                # will now call standard generator syntax (see below)
+                    if_split = j.split(' if ')
+                    if len(if_split) == 1:
+                        j = '{j} for _ in range(1)'.format(j=j)
+                    elif len(if_split) == 2:
+                        j = '{target} for _ in range(1) if {cond}'.format(target=if_split[0],
+                                                                          cond=if_split[1])
+                    else:
+                        raise SyntaxError("Error parsing expression '{j}'. "
+                                          "Expression must have generator "
+                                          "syntax, for example 'k for k in "
+                                          "range(i-10, i+10)'".format(j=j))
+                    # will now call standard generator syntax (see below)
             else:
                 raise ValueError("Must specify at least one of condition, i or "
                                  "j arguments")
