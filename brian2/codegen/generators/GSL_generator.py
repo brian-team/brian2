@@ -749,7 +749,7 @@ class GSLCodeGenerator(object):
             try:
                 new_line = m.group(1)
                 var, op, expr, comment = parse_statement(new_line)
-            except ValueError:
+            except (ValueError, AttributeError):
                 code += [line]
                 continue
             if var in variables_in_scalar.keys():
