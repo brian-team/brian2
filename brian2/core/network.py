@@ -885,7 +885,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=True, level=0):
+            namespace=None, profile=False, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
