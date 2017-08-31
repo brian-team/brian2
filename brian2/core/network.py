@@ -18,7 +18,7 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock, defaultclock
-from brian2.devices.device import device
+from brian2.devices.device import get_device, all_devices
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
@@ -786,8 +786,6 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
-        from brian2.devices.device import get_device, all_devices
-
         prefs.check_all_validated()
 
         # Check names in the network for uniqueness
@@ -926,6 +924,7 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
+        device = get_device()  # Do not use the ProxyDevice -- slightly faster
         self._clocks = set([obj.clock for obj in self.objects])
         single_clock = len(self._clocks) == 1
 
@@ -1240,7 +1239,6 @@ def schedule_propagation_offset(net=None):
     This function always returns ``0*ms`` or ``defaultclock.dt`` -- no attempt
     is made to deal with other clocks.
     '''
-    from brian2.devices.device import get_device
     from brian2.core.magic import magic_network
 
     device = get_device()

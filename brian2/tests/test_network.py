@@ -1343,6 +1343,7 @@ def test_long_run_dt_change():
     group = NeuronGroup(1, '')  # does nothing...
     defaultclock.dt = 0.1*ms
     run(100*second)
+    # print profiling_summary()
     defaultclock.dt = 0.01*ms
     run(1*second)
 
