@@ -912,7 +912,7 @@ class Network(Nameable):
             and globals around the run function will be used.
         profile : bool, optional
             Whether to record profiling information (see
-            `Network.profiling_info`). Defaults to ``True``.
+            `Network.profiling_info`). Defaults to ``False``.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
