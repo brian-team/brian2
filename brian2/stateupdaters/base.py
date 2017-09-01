@@ -139,9 +139,14 @@ class StateUpdateMethod(object):
             else:
                 msg_text = ("No numerical integration method specified, "
                             "using method '{method}' ({timing}).")
-            logger.info(msg_text.format(group_name=group_name,
-                                        method=the_method,
-                                        timing=timing), 'method_choice')
+            logfunc = logger.info
+            # Don't need to inform the user about method choice if it took a short amount of time to compute
+            # and the method is linear as this is the best possible method.
+            if the_method=='linear' and one_method_time<2.0:
+                logfunc = logger.debug
+            logfunc(msg_text.format(group_name=group_name,
+                                    method=the_method,
+                                    timing=timing), 'method_choice')
             return code
         else:
             if hasattr(method, '__call__'):
