@@ -301,7 +301,7 @@ def test_rallpack2():
     '''
     Rallpack 2
     '''
-    defaultclock.dt = 0.05*ms
+    defaultclock.dt = 0.1*ms
 
     # Morphology
     diameter = 32*um
@@ -332,22 +332,24 @@ def test_rallpack2():
     Im = gL*(EL - v) : amp/meter**2
     I : amp (point current, constant)
     '''
-    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
+    neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
+                           method='rk4')
     neuron.v = EL
 
     neuron.I[0] = 0.1*nA  # injecting at the origin
 
     endpoint_indices = [endpoint.indices[0] for endpoint in endpoints]
     mon = StateMonitor(neuron, 'v', record=[0] + endpoint_indices,
-                       when='start', dt=0.05*ms)
+                       when='start', dt=0.1*ms)
 
     run(250*ms + defaultclock.dt)
 
     # Load the theoretical results
     basedir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'rallpack_data')
-    data_0 = np.loadtxt(os.path.join(basedir, 'ref_branch.0'))
-    data_x = np.loadtxt(os.path.join(basedir, 'ref_branch.x'))
+    # Only use very second time step, since we run with 0.1ms instead of 0.05ms
+    data_0 = np.loadtxt(os.path.join(basedir, 'ref_branch.0'))[::2]
+    data_x = np.loadtxt(os.path.join(basedir, 'ref_branch.x'))[::2]
 
     # sanity check: times are the same
     assert_allclose(mon.t/second, data_0[:, 0])
@@ -784,7 +786,7 @@ def test_spatialneuron_capacitive_currents():
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2,
                            Ri=35.4*ohm*cm, method="exponential_euler")
-    mon = StateMonitor(neuron,['Im','Ic'],record=True, when='end')
+    mon = StateMonitor(neuron, ['Im', 'Ic'], record=True, when='end')
     run(10*ms)
     neuron.I[0] = 1*uA  # current injection at one end
     run(3*ms)

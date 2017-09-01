@@ -18,7 +18,7 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock, defaultclock
-from brian2.devices.device import device
+from brian2.devices.device import get_device, all_devices
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
@@ -786,8 +786,6 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
-        from brian2.devices.device import get_device, all_devices
-
         prefs.check_all_validated()
 
         # Check names in the network for uniqueness
@@ -885,7 +883,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=True, level=0):
+            namespace=None, profile=False, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -914,7 +912,7 @@ class Network(Nameable):
             and globals around the run function will be used.
         profile : bool, optional
             Whether to record profiling information (see
-            `Network.profiling_info`). Defaults to ``True``.
+            `Network.profiling_info`). Defaults to ``False``.
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -926,17 +924,25 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
+        device = get_device()  # Do not use the ProxyDevice -- slightly faster
         self._clocks = set([obj.clock for obj in self.objects])
-        # We get direct references to the underlying variables for all clocks
-        # to avoid expensive access during the run loop
-        self._clock_variables = {c : (c.variables['timestep'].get_value(),
-                                      c.variables['t'].get_value(),
-                                      c.variables['dt'].get_value())
-                                 for c in self._clocks}
+        single_clock = len(self._clocks) == 1
+
         t_start = self.t
-        t_end = self.t+duration
-        for clock in self._clocks:
+        t_end = self.t + duration
+
+        if single_clock:
+            clock = list(self._clocks)[0]
             clock.set_interval(self.t, t_end)
+        else:
+            # We get direct references to the underlying variables for all clocks
+            # to avoid expensive access during the run loop
+            self._clock_variables = {c : (c.variables['timestep'].get_value(),
+                                          c.variables['t'].get_value(),
+                                          c.variables['dt'].get_value())
+                                     for c in self._clocks}
+            for clock in self._clocks:
+                clock.set_interval(self.t, t_end)
 
         # Get the local namespace
         if namespace is None:
@@ -947,8 +953,6 @@ class Network(Nameable):
         if len(self.objects)==0:
             return  # TODO: raise an error? warning?
 
-        # Find the first clock to be updated (see note below)
-        clock, curclocks = self._nextclocks()
         start_time = time.time()
 
         logger.debug("Simulating network '%s' from time %s to %s." % (self.name,
@@ -977,10 +981,22 @@ class Network(Nameable):
 
         profiling_info = defaultdict(float)
 
-        timestep, _, _ = self._clock_variables[clock]
+        if single_clock:
+            timestep, t, dt = (clock.variables['timestep'].get_value(),
+                               clock.variables['t'].get_value(),
+                               clock.variables['dt'].get_value())
+        else:
+            # Find the first clock to be updated (see note below)
+            clock, curclocks = self._nextclocks()
+            timestep, _, _ = self._clock_variables[clock]
+
         running = timestep[0] < clock._i_end
+
+        active_objects = [obj for obj in self.objects if obj.active]
+
         while running and not self._stopped and not Network._globally_stopped:
-            timestep, t, dt = self._clock_variables[clock]
+            if not single_clock:
+                timestep, t, dt = self._clock_variables[clock]
             # update the network time to this clock's time
             self.t_ = t[0]
             if report is not None:
@@ -990,33 +1006,47 @@ class Network(Nameable):
                                     (self.t_ - float(t_start))/float(t_end),
                                     t_start, duration)
                     next_report_time = current + report_period
-                # update the objects with this clock
-            for obj in self.objects:
-                if obj._clock in curclocks and obj.active:
-                    if profile:
+
+            # update the objects and tick forward the clock(s)
+            if single_clock:
+                if profile:
+                    for obj in active_objects:
                         obj_time = time.time()
                         obj.run()
                         profiling_info[obj.name] += (time.time() - obj_time)
-                    else:
+                else:
+                    for obj in active_objects:
                         obj.run()
 
-            # tick the clock forward one time step
-            for c in curclocks:
-                timestep, t, dt = self._clock_variables[c]
                 timestep[0] += 1
                 t[0] = timestep[0] * dt[0]
+            else:
+                if profile:
+                    for obj in active_objects:
+                        if obj._clock in curclocks:
+                            obj_time = time.time()
+                            obj.run()
+                            profiling_info[obj.name] += (time.time() - obj_time)
+                else:
+                    for obj in active_objects:
+                        if obj._clock in curclocks:
+                            obj.run()
 
-            # find the next clocks to be updated. The < operator for Clock
-            # determines that the first clock to be updated should be the one
-            # with the smallest t value, unless there are several with the 
-            # same t value in which case we update all of them
-            clock, curclocks = self._nextclocks()
+                for c in curclocks:
+                    timestep, t, dt = self._clock_variables[c]
+                    timestep[0] += 1
+                    t[0] = timestep[0] * dt[0]
+                # find the next clocks to be updated. The < operator for Clock
+                # determines that the first clock to be updated should be the one
+                # with the smallest t value, unless there are several with the
+                # same t value in which case we update all of them
+                clock, curclocks = self._nextclocks()
+                timestep, _, _ = self._clock_variables[clock]
 
             if device._maximum_run_time is not None and time.time()-start_time>float(device._maximum_run_time):
                 self._stopped = True
             else:
-                timestep, _, _ = self._clock_variables[clock]
-                running = timestep < clock._i_end
+                running = timestep[0] < clock._i_end
 
         end_time = time.time()
         if self._stopped or Network._globally_stopped:
@@ -1209,7 +1239,6 @@ def schedule_propagation_offset(net=None):
     This function always returns ``0*ms`` or ``defaultclock.dt`` -- no attempt
     is made to deal with other clocks.
     '''
-    from brian2.devices.device import get_device
     from brian2.core.magic import magic_network
 
     device = get_device()
