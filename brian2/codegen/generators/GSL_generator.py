@@ -56,18 +56,6 @@ prefs.register_preferences(
     )
 )
 
-# default method_options
-default_method_options = {
-    'integrator' : 'rkf45',
-    'adaptable_timestep' : True,
-    'dt_start' : None,
-    'absolute_error' : 1e-6,
-    'absolute_error_per_variable' : None,
-    'use_last_timestep' : True,
-    'save_failed_steps' : False,
-    'save_step_count' : False
-}
-
 class GSLCodeGenerator(object):
     '''
     GSL code generator.
@@ -117,17 +105,8 @@ class GSLCodeGenerator(object):
                                                                 template_name,
                                                                 override_conditional_write,
                                                                 allows_scalar_write)
-
-        # transfer method_options from owner to GSLCodeGenerator
-        self.method_options = {key : value for key, value
-                               in default_method_options.items()} # avoid changes to actual default
-        for key, value in owner.state_updater.method_options.items():
-            if not key in self.method_options and not key=='integrator':
-                raise ValueError(("Invalid option for method_options: %s"
-                                  "\nValid options "
-                                  "are: %s"%(key, str([key for key in self.method_options
-                                                       if not key=='integrator']))))
-            self.method_options[key] = value
+        self.method_options = dict(owner.state_updater.method_options)
+        self.integrator = owner.state_updater.integrator
         # default timestep to start with is the timestep of the NeuronGroup itself
         if self.method_options['dt_start'] is None:
             self.method_options['dt_start'] = owner.dt.variable.get_value()[0]
@@ -791,10 +770,9 @@ class GSLCodeGenerator(object):
     def add_meta_variables(self, options):
         if options['use_last_timestep']:
             try:
-                N = self.variables['N'].get_value()
+                N = int(self.variables['N'].get_value())
                 self.owner.variables.add_array('_last_timestep', size=N,
-                                               values=np.array([options['dt_start']
-                                                                for i in range(N)]))
+                                               values=np.ones(N)*options['dt_start'])
             except KeyError:
                 # has already been run
                 pass
@@ -804,7 +782,7 @@ class GSLCodeGenerator(object):
             pointer_last_timestep = None
 
         if options['save_failed_steps']:
-            N = self.variables['N'].get_value()
+            N = int(self.variables['N'].get_value())
             try:
                 self.owner.variables.add_array('_failed_steps', size=N, dtype=np.int32)
             except KeyError:
@@ -816,7 +794,7 @@ class GSLCodeGenerator(object):
             pointer_failed_steps = None
 
         if options['save_step_count']:
-            N = self.variables['N'].get_value()
+            N = int(self.variables['N'].get_value())
             try:
                 self.owner.variables.add_array('_step_count', size=N, dtype=np.int32)
             except KeyError:
@@ -953,7 +931,8 @@ class GSLCodeGenerator(object):
                              "are: %s"%(str(self.variables_to_be_processed))))
 
         scalar_code['GSL'] = GSL_main_code
-        kwds['GSL_settings'] = self.method_options
+        kwds['GSL_settings'] = dict(self.method_options)
+        kwds['GSL_settings']['integrator'] = self.integrator
         kwds['support_code_lines'] += GSL_support_code.split('\n')
         kwds['t_array'] = self.get_array_name(self.variables['t']) + '[0]'
         kwds['dt_array'] = self.get_array_name(self.variables['dt']) + '[0]'

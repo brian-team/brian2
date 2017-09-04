@@ -185,6 +185,7 @@ def test_GSL_stochastic():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_dimension_mismatch_unit():
     try:
         tau = 10*ms
@@ -203,6 +204,7 @@ def test_GSL_error_dimension_mismatch_unit():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_dimension_mismatch_dimensionless1():
     try:
         tau = 10*ms
@@ -222,6 +224,7 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_dimension_mismatch_dimensionless2():
     try:
         tau = 10*ms
@@ -240,6 +243,7 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_nonexisting_variable():
     try:
         tau = 10*ms
@@ -258,6 +262,7 @@ def test_GSL_error_nonexisting_variable():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_nonODE_variable():
     try:
         tau = 10*ms
@@ -276,6 +281,7 @@ def test_GSL_error_nonODE_variable():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_bounds():
     try:
         runtime = 50*ms
@@ -341,6 +347,8 @@ dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*
 I : amp/metre**2
 ''')
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_fixed_timestep_big_dt_small_error():
     try:
         # should raise integration error
@@ -367,6 +375,7 @@ def test_GSL_internal_variable():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_method_options_neurongroup():
     try:
         neuron1 = NeuronGroup(1, model='dp/dt = 300*Hz : 1', method='gsl',
@@ -382,6 +391,7 @@ def test_GSL_method_options_neurongroup():
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_method_options_spatialneuron():
     try:
         morpho = Soma(30*um)

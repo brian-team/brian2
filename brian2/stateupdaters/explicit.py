@@ -11,7 +11,8 @@ from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
-from .base import StateUpdateMethod, UnsupportedEquationsException
+from .base import (StateUpdateMethod, UnsupportedEquationsException,
+                   extract_method_options)
 
 __all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 
@@ -544,7 +545,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
         return sympy_to_str(RHS)
 
-    def __call__(self, eqs, variables=None):
+    def __call__(self, eqs, variables=None, method_options=None):
         '''
         Apply a state updater description to model equations.
         
@@ -552,12 +553,13 @@ class ExplicitStateUpdater(StateUpdateMethod):
         ----------
         eqs : `Equations`
             The equations describing the model
-
-        
         variables: dict-like, optional
             The `Variable` objects for the model. Ignored by the explicit
             state updater.
-        
+        method_options : dict, optional
+            Additional options to the state updater (not used at the moment
+            for the explicit state updaters).
+
         Examples
         --------
         >>> from brian2 import *
@@ -573,6 +575,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         _v = 0.166666666666667*__k_1_v + 0.333333333333333*__k_2_v + 0.333333333333333*__k_3_v + 0.166666666666667*__k_4_v + v
         v = _v
         '''
+        method_options = extract_method_options(method_options, {})
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if eqs.is_stochastic:

@@ -2,7 +2,8 @@ import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 
-from .base import StateUpdateMethod, UnsupportedEquationsException
+from .base import (StateUpdateMethod, UnsupportedEquationsException,
+                   extract_method_options)
 
 __all__ = ['exponential_euler']
 
@@ -70,7 +71,8 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
     GENESIS simulator, for example.
     '''
     
-    def __call__(self, equations, variables=None):
+    def __call__(self, equations, variables=None, method_options=None):
+        method_options = extract_method_options(method_options, {})
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '
