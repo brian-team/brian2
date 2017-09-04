@@ -17,3 +17,4 @@ interest to others wishing to better understand how Brian works internally.
    codegen
    devices
    openmp
+   GSL
