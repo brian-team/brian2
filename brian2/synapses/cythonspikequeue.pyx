@@ -45,6 +45,8 @@ cdef class SpikeQueue:
     def _full_state(self):
         return self.thisptr._full_state()
 
+    cdef object __weakref__  # Allows weak references to the SpikeQueue
+
     def _restore_from_full_state(self, state):
         cdef vector[vector[int32_t]] empty_queue
         cdef state_pair empty_state

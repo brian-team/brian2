@@ -18,7 +18,7 @@ from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     SpikeGeneratorGroup,
                     PopulationRateMonitor, MagicNetwork, magic_network,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
-                    start_scope, prefs, profiling_summary, Quantity)
+                    start_scope, prefs, profiling_summary, Quantity, TimedArray)
 from brian2.core.network import schedule_propagation_offset, scheduling_summary
 from brian2.devices.device import (reinit_devices, Device, all_devices,
                                    set_device, get_device, reset_device, device)
@@ -1347,6 +1347,30 @@ def test_long_run_dt_change():
     defaultclock.dt = 0.01*ms
     run(1*second)
 
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
+def test_multiple_runs_constant_change():
+    const_v = 1
+    group = NeuronGroup(1, 'v = const_v : 1')
+    mon = StateMonitor(group, 'v', record=0)
+    run(defaultclock.dt)
+    const_v = 2
+    run(defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    assert_equal(mon.v[0], [1, 2])
+
+
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
+def test_multiple_runs_function_change():
+    inp = TimedArray([1, 2], dt=defaultclock.dt)
+    group = NeuronGroup(1, 'v = inp(t) : 1')
+    mon = StateMonitor(group, 'v', record=0)
+    run(2*defaultclock.dt)
+    inp = TimedArray([0, 0, 3, 4], dt=defaultclock.dt)
+    run(2*defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    assert_equal(mon.v[0], [1, 2, 3, 4])
 
 if __name__ == '__main__':
     BrianLogger.log_level_warn()
@@ -1408,6 +1432,8 @@ if __name__ == '__main__':
             test_runtime_rounding,
             test_small_runs,
             test_long_run_dt_change,
+            test_multiple_runs_constant_change,
+            test_multiple_runs_function_change
             ]:
         set_device(all_devices['runtime'])
         t()

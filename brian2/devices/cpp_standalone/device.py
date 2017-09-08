@@ -19,6 +19,7 @@ import brian2
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
+from brian2.core.functions import Function
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.groups.group import Group
@@ -785,18 +786,23 @@ class CPPStandaloneDevice(Device):
                                   'random', 'randomkit', 'randomkit.h'),
                      os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.h'))
 
+    def _insert_func_namespace(self, func, code_object, namespace):
+        impl = func.implementations[CPPStandaloneCodeObject]
+        func_namespace = impl.get_namespace(code_object.owner)
+        if func_namespace is not None:
+            namespace.update(func_namespace)
+        if impl.dependencies is not None:
+            for dep in impl.dependencies.itervalues():
+                self._insert_func_namespace(dep, code_object, namespace)
+
     def write_static_arrays(self, directory):
-        # # Find np arrays in the namespaces and convert them into static
-        # # arrays. Hopefully they are correctly used in the code: For example,
-        # # this works for the namespaces for functions with C++ (e.g. TimedArray
-        # # treats it as a C array) but does not work in places that are
-        # # implicitly vectorized (state updaters, resets, etc.). But arrays
-        # # shouldn't be used there anyway.
+        # Write Function namespaces as static arrays
         for code_object in self.code_objects.itervalues():
-            for name, value in code_object.variables.iteritems():
-                if isinstance(value, np.ndarray):
-                    self.static_arrays[name] = value
-                    
+            for var in code_object.variables.itervalues():
+                if isinstance(var, Function):
+                    self._insert_func_namespace(var, code_object,
+                                                self.static_arrays)
+
         logger.diagnostic("static arrays: "+str(sorted(self.static_arrays.keys())))
         
         static_array_specs = []
@@ -853,7 +859,7 @@ class CPPStandaloneDevice(Device):
                     os.remove('winmake.log')
                 with std_silent(debug):
                     if clean:
-                        os.system('%s >>winmake.log 2>&1 && %s clean >>winmake.log 2>&1' % (vcvars_cmd, make_cmd))
+                        os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
                     x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
                                                                                         make_cmd,
                                                                                         make_args))
@@ -870,7 +876,7 @@ class CPPStandaloneDevice(Device):
             else:
                 with std_silent(debug):
                     if clean:
-                        os.system('make clean')
+                        os.system('make clean >/dev/null 2>&1')
                     if debug:
                         x = os.system('make debug')
                     else:

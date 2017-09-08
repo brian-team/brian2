@@ -11,6 +11,7 @@ from sympy.printing.str import StrPrinter
 from brian2.core.functions import (DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10,
                                    Function)
 from brian2.parsing.rendering import SympyNodeRenderer
+from brian2.utils.caching import cached
 
 
 def check_expression_for_multiple_stateful_functions(expr, variables):
@@ -32,9 +33,6 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
                                        ' simplified to '
                                        '"0.0").').format(expr=expr,
                                                          func=identifier))
-
-
-SYMPY_NAMESPACE = None
 
 
 def str_to_sympy(expr, variables=None):
@@ -66,33 +64,25 @@ def str_to_sympy(expr, variables=None):
     ------
     SyntaxError
         In case of any problems during parsing.
-    
-    Notes
-    -----
-    Parsing is done in two steps: First, the expression is parsed and rendered
-    as a new string by `SympyNodeRenderer`, translating function names (e.g.
-    `ceil` to `ceiling`) and operator names (e.g. `and` to `&`), all unknown
-    names are wrapped in `Symbol(...)` or `Function(...)`. The resulting string
-    is then evaluated in the `from sympy import *` namespace.
     '''
-    global SYMPY_NAMESPACE  # We only evaluate the namespace for sympy once
-
     if variables is None:
         variables = {}
     check_expression_for_multiple_stateful_functions(expr, variables)
-    if SYMPY_NAMESPACE is None:
-        SYMPY_NAMESPACE = {}
-        exec 'from sympy import *' in SYMPY_NAMESPACE
-        # also add the log10 function to the namespace
-        SYMPY_NAMESPACE['log10'] = log10
-        SYMPY_NAMESPACE['_vectorisation_idx'] = sympy.Symbol('_vectorisation_idx')
-    rendered = SympyNodeRenderer().render_expr(expr)
 
+    # We do the actual transformation in a separate function that is cached
+    # If we cached `str_to_sympy` itself, it would also use the contents of the
+    # variables dictionary as the cache key, while it is only used for the check
+    # above and does not affect the translation to sympy
+    return _str_to_sympy(expr)
+
+
+@cached
+def _str_to_sympy(expr):
     try:
-        s_expr = eval(rendered, SYMPY_NAMESPACE)
+        s_expr = SympyNodeRenderer().render_expr(expr)
     except (TypeError, ValueError, NameError) as ex:
-        raise SyntaxError('Error during evaluation of sympy expression: '
-                          + str(ex))
+        raise SyntaxError(('Error during evaluation of sympy expression '
+                           '"{expr}": {ex}').format(expr=expr, ex=str(ex)))
 
     return s_expr
 
@@ -130,9 +120,11 @@ class CustomSympyPrinter(StrPrinter):
 
 PRINTER = CustomSympyPrinter()
 
-
+@cached
 def sympy_to_str(sympy_expr):
     '''
+    sympy_to_str(sympy_expr)
+
     Converts a sympy expression into a string. This could be as easy as 
     ``str(sympy_exp)`` but it is possible that the sympy expression contains
     functions like ``Abs`` (for example, if an expression such as
@@ -148,7 +140,8 @@ def sympy_to_str(sympy_expr):
     str_expr : str
         A string representing the sympy expression.
     '''
-    
+    orig_sympy_expr = sympy_expr
+
     # replace the standard functions by our names if necessary
     replacements = dict((f.sympy_func, sympy.Function(name)) for
                         name, f in DEFAULT_FUNCTIONS.iteritems()
@@ -162,45 +155,14 @@ def sympy_to_str(sympy_expr):
 
     # Replace _vectorisation_idx by an empty symbol
     replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
+    atoms = (sympy_expr.atoms() |
+             {f.func for f in sympy_expr.atoms(sympy.Function)})
     for old, new in replacements.iteritems():
-        if sympy_expr.has(old):
+        if old in atoms:
             sympy_expr = sympy_expr.subs(old, new)
+    expr = PRINTER.doprint(sympy_expr)
 
-    return PRINTER.doprint(sympy_expr)
-
-
-def replace_constants(sympy_expr, variables=None):
-    '''
-    Replace constant values in a sympy expression with their numerical value.
-
-    Parameters
-    ----------
-    sympy_expr : `sympy.Expr`
-        The expression
-    variables : dict-like, optional
-        Dictionary of `Variable` objects
-
-    Returns
-    -------
-    new_expr : `sympy.Expr`
-        Expressions with all constants replaced
-    '''
-    if variables is None:
-        return sympy_expr
-
-    symbols = set([symbol for symbol in sympy_expr.atoms()
-                   if isinstance(symbol, sympy.Symbol)])
-    for symbol in symbols:
-        symbol_str = str(symbol)
-        if symbol_str in variables:
-            var = variables[symbol_str]
-            if (getattr(var, 'scalar', False) and
-                    getattr(var, 'constant', False)):
-                # TODO: We should handle variables of other data types better
-                float_val = var.get_value()
-                sympy_expr = sympy_expr.xreplace({symbol: sympy.Float(float_val)})
-
-    return sympy_expr
+    return expr
 
 
 def expression_complexity(expr, complexity=None):
@@ -232,7 +194,7 @@ def expression_complexity(expr, complexity=None):
         # work around bug with rand() and randn() (TODO: improve this)
         expr = expr.replace('rand()', 'rand(0)')
         expr = expr.replace('randn()', 'randn(0)')
-    subs = {'ADD':1, 'DIV':2, 'MUL':1, 'SUB':1}
+    subs = {'ADD': 1, 'DIV': 2, 'MUL': 1, 'SUB': 1}
     if complexity is not None:
         subs.update(complexity)
     ops = sympy.count_ops(expr, visual=True)

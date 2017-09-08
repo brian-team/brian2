@@ -181,52 +181,102 @@ class NumpyNodeRenderer(NodeRenderer):
     
 
 class SympyNodeRenderer(NodeRenderer):
-    expression_ops = NodeRenderer.expression_ops.copy()
-    expression_ops.update({
-          # Compare
-          'Eq': 'Eq',
-          'NotEq': 'Ne',
-          # Unary ops
-          'Not': '~',
-          # Bool ops
-          'And': '&',
-          'Or': '|',
-          })
+    expression_ops = {
+      'Add': sympy.Add,
+      'Mult': sympy.Mul,
+      'Pow': sympy.Pow,
+      'Mod': sympy.Mod,
+      # Compare
+      'Lt': sympy.StrictLessThan,
+      'LtE': sympy.LessThan,
+      'Gt': sympy.StrictGreaterThan,
+      'GtE': sympy.GreaterThan,
+      'Eq': sympy.Eq,
+      'NotEq': sympy.Ne,
+      # Unary ops are handled manually
+      # Bool ops
+      'And': sympy.And,
+      'Or': sympy.Or}
 
     def render_func(self, node):
         if node.id in DEFAULT_FUNCTIONS:
             f = DEFAULT_FUNCTIONS[node.id]
             if f.sympy_func is not None and isinstance(f.sympy_func,
                                                        sympy.FunctionClass):
-                return '%s' % str(f.sympy_func)
+                return f.sympy_func
         # special workaround for the "int" function
         if node.id == 'int':
-            return 'Function("int_")'
+            return sympy.Function("int_")
         else:
-            return 'Function("%s")' % node.id
+            return sympy.Function(node.id)
+
+    def render_Call(self, node):
+        if len(node.keywords):
+            raise ValueError("Keyword arguments not supported.")
+        elif getattr(node, 'starargs', None) is not None:
+            raise ValueError("Variable number of arguments not supported")
+        elif getattr(node, 'kwargs', None) is not None:
+            raise ValueError("Keyword arguments not supported")
+        elif len(node.args) == 0:
+            return self.render_func(node.func)(sympy.Symbol('_vectorisation_idx'))
+        else:
+            return self.render_func(node.func)(*(self.render_node(arg)
+                                                 for arg in node.args))
 
     def render_Compare(self, node):
         if len(node.comparators)>1:
             raise SyntaxError("Can only handle single comparisons like a<b not a<b<c")
         op = node.ops[0]
-        if op.__class__.__name__ in ('Eq', 'NotEq'):
-            return '%s(%s, %s)' % (self.expression_ops[op.__class__.__name__],
-                                   self.render_node(node.left),
-                                   self.render_node(node.comparators[0]))
-        else:
-            return NodeRenderer.render_Compare(self, node)
+        return self.expression_ops[op.__class__.__name__](self.render_node(node.left), self.render_node(node.comparators[0]))
 
     def render_Name(self, node):
         if node.id in DEFAULT_CONSTANTS:
             c = DEFAULT_CONSTANTS[node.id]
-            return '%s' % str(c.sympy_obj)
+            return c.sympy_obj
         elif node.id in ['t', 'dt']:
-            return 'Symbol("%s", real=True, positive=True)' % node.id
+            return sympy.Symbol(node.id, real=True, positive=True)
         else:
-            return 'Symbol("%s", real=True)' % node.id
+            return sympy.Symbol(node.id, real=True)
+
+    def render_NameConstant(self, node):
+        if node.value in [True, False]:
+            return node.value
+        else:
+            return str(node.value)
 
     def render_Num(self, node):
-        return 'Float(%s)' % node.n
+        return sympy.Float(node.n)
+
+    def render_BinOp(self, node):
+        op_name = node.op.__class__.__name__
+        # Sympy implements division and subtraction as multiplication/addition
+        if op_name == 'Div':
+            op = self.expression_ops['Mult']
+            return op(self.render_node(node.left),
+                      1 / self.render_node(node.right))
+        elif op_name == 'Sub':
+            op = self.expression_ops['Add']
+            return op(self.render_node(node.left),
+                      -self.render_node(node.right))
+        else:
+            op = self.expression_ops[op_name]
+            return op(self.render_node(node.left), self.render_node(node.right))
+
+    def render_BoolOp(self, node):
+        op = self.expression_ops[node.op.__class__.__name__]
+        return op(*(self.render_node(value) for value in node.values))
+
+    def render_UnaryOp(self, node):
+        op_name = node.op.__class__.__name__
+        if op_name == 'UAdd':
+            # Nothing to do
+            return self.render_node(node.operand)
+        elif op_name == 'USub':
+            return -self.render_node(node.operand)
+        elif op_name == 'Not':
+            return sympy.Not(self.render_node(node.operand))
+        else:
+            raise ValueError('Unknown unary operator: ' + op_name)
 
 
 class CPPNodeRenderer(NodeRenderer):

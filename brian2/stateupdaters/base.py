@@ -8,6 +8,7 @@ from abc import abstractmethod, ABCMeta
 import collections
 import time
 
+from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
 
 __all__ = ['StateUpdateMethod']
@@ -76,8 +77,11 @@ class StateUpdateMethod(object):
         StateUpdateMethod.stateupdaters[name] = stateupdater
 
     @staticmethod
+    @cached
     def apply_stateupdater(equations, variables, method, group_name=None):
         '''
+        apply_stateupdater(equations, variables, method, group_name=None)
+
         Applies a given state updater to equations. If a `method` is given, the
         state updater with the given name is used or if is a callable, then it
         is used directly. If a `method` is a list of names, all the
@@ -142,7 +146,6 @@ class StateUpdateMethod(object):
             logger.info(msg_text.format(group_name=group_name,
                                         method=the_method,
                                         timing=timing), 'method_choice')
-            return code
         else:
             if hasattr(method, '__call__'):
                 # if this is a standard state updater, i.e. if it has a
@@ -176,4 +179,4 @@ class StateUpdateMethod(object):
                                                    timing=timing),
                              'method_choice')
 
-            return code
+        return code

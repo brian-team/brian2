@@ -285,14 +285,6 @@ class CythonCodeGenerator(CodeGenerator):
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
 
-        # delete the user-defined functions from the namespace and add the
-        # function namespaces (if any)
-        for funcname, func in user_functions:
-            del self.variables[funcname]
-            func_namespace = func.implementations[self.codeobj_class].get_namespace(self.owner)
-            if func_namespace is not None:
-                self.variables.update(func_namespace)
-
         return {'load_namespace': '\n'.join(load_namespace),
                 'support_code_lines': support_code}
 

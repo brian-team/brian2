@@ -5,6 +5,7 @@ import numpy
 
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
+from brian2.core.functions import Function
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
@@ -114,6 +115,15 @@ class CythonCodeObject(NumpyCodeObject):
 
     # the following are copied from WeaveCodeObject
 
+    def _insert_func_namespace(self, func):
+        impl = func.implementations[self]
+        func_namespace = impl.get_namespace(self.owner)
+        if func_namespace is not None:
+            self.namespace.update(func_namespace)
+        if impl.dependencies is not None:
+            for dep in impl.dependencies.itervalues():
+                self._insert_func_namespace(dep)
+
     def variables_to_namespace(self):
 
         # Variables can refer to values that are either constant (e.g. dt)
@@ -125,6 +135,8 @@ class CythonCodeObject(NumpyCodeObject):
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
+            if isinstance(var, Function):
+                self._insert_func_namespace(var)
             if isinstance(var, (AuxiliaryVariable, Subexpression)):
                 continue
             try:

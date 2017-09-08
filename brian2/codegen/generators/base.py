@@ -249,6 +249,7 @@ class CodeGenerator(object):
                              'you are sure that the order of operations does not '
                              'matter. ' + error_msg))
 
-        return self.translate_statement_sequence(scalar_statements,
-                                                 vector_statements)
+        translated = self.translate_statement_sequence(scalar_statements,
+                                                       vector_statements)
 
+        return translated

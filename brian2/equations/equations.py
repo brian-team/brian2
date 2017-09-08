@@ -26,6 +26,7 @@ from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mo
                                    farad, ohm, siemens, weber, tesla, henry,
                                    lumen, lux, becquerel, gray,
                                    sievert, katal, kgram, kgramme)
+from brian2.utils.caching import cached, CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
 
@@ -317,8 +318,11 @@ def dimensions_and_type_from_string(unit_string):
     return evaluated_unit.dim, FLOAT
 
 
+@cached
 def parse_string_equations(eqns):
     """
+    parse_string_equations(eqns)
+
     Parse a string defining equations.
     
     Parameters
@@ -373,7 +377,7 @@ def parse_string_equations(eqns):
     return equations
 
 
-class SingleEquation(object):
+class SingleEquation(collections.Hashable, CacheKey):
     '''
     Class for internal use, encapsulates a single equation or parameter.
 
@@ -398,6 +402,9 @@ class SingleEquation(object):
         What flags are possible depends on the type of the equation and the
         context.
     '''
+
+    _cache_irrelevant_attributes = {'update_order'}
+
     def __init__(self, type, varname, dimensions, var_type=FLOAT, expr=None,
                  flags=None):
         self.type = type
@@ -432,6 +439,17 @@ class SingleEquation(object):
     stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
                                                       if variable =='xi' or variable.startswith('xi_')]),
                                     doc='Stochastic variables in the RHS of this equation')
+
+    def __eq__(self, other):
+        if not isinstance(other, SingleEquation):
+            return NotImplemented
+        return self._state_tuple == other._state_tuple
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._state_tuple)
 
     def _latex(self, *args):
         if self.type == DIFFERENTIAL_EQUATION:
@@ -500,7 +518,7 @@ class SingleEquation(object):
         return '$' + sympy.latex(self) + '$'
 
 
-class Equations(collections.Mapping):
+class Equations(collections.Hashable, collections.Mapping):
     """
     Container that stores equations from which models can be created.
     
@@ -546,47 +564,7 @@ class Equations(collections.Mapping):
                                         eq.varname)
                 self._equations[eq.varname] = eq
 
-        # save these to change the keys of the dictionary later
-        model_var_replacements = []
-        for varname, replacement in kwds.iteritems():
-
-            for eq in self.itervalues():
-                # Replacing the name of a model variable (works only for strings)
-                if eq.varname == varname:
-                    if not isinstance(replacement, basestring):
-                        raise ValueError(('Cannot replace model variable "%s" '
-                                          'with a value') % varname)
-                    if replacement in self:
-                        raise EquationError(('Cannot replace model variable "%s" '
-                                             'with "%s", duplicate definition '
-                                             'of "%s".' % (varname, replacement,
-                                                           replacement)))
-                    # make sure that the replacement is a valid identifier
-                    Equations.check_identifier(replacement)
-                    eq.varname = replacement
-                    model_var_replacements.append((varname, replacement))
-
-                if varname in eq.identifiers:
-                    if isinstance(replacement, basestring):
-                        # replace the name with another name
-                        new_code = re.sub('\\b' + varname + '\\b',
-                                          replacement, eq.expr.code)
-                    else:
-                        # replace the name with a value
-                        new_code = re.sub('\\b' + varname + '\\b',
-                                          '(' + repr(replacement) + ')',
-                                          eq.expr.code)
-                    try:
-                        eq.expr = Expression(new_code)
-                    except ValueError as ex:
-                        raise ValueError(('Replacing "%s" with "%r" failed: %s') %
-                                         (varname, replacement, ex))
-
-        # For change in model variable names, we have already changed the
-        # varname attribute of the SingleEquation object, but not the key of
-        # our dicitionary
-        for varname, replacement in model_var_replacements:
-            self._equations[replacement] = self._equations.pop(varname)
+        self._equations = self._substitute(kwds)
 
         # Check for special symbol xi (stochastic term)
         uses_xi = None
@@ -607,6 +585,68 @@ class Equations(collections.Mapping):
         # rearrange subexpressions
         self._sort_subexpressions()
 
+        #: Cache for equations with the subexpressions substituted
+        self._substituted_expressions = None
+
+    def _substitute(self, replacements):
+        if len(replacements) == 0:
+            return self._equations
+
+        new_equations = {}
+        for eq in self.itervalues():
+            # Replace the name of a model variable (works only for strings)
+            if eq.varname in replacements:
+                new_varname = replacements[eq.varname]
+                if not isinstance(new_varname, basestring):
+                    raise ValueError(('Cannot replace model variable "%s" '
+                                      'with a value') % eq.varname)
+                if new_varname in self or new_varname in new_equations:
+                    raise EquationError(
+                        ('Cannot replace model variable "%s" '
+                         'with "%s", duplicate definition '
+                         'of "%s".' % (eq.varname, new_varname,
+                                       new_varname)))
+                # make sure that the replacement is a valid identifier
+                Equations.check_identifier(new_varname)
+            else:
+                new_varname = eq.varname
+
+            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
+                # Replace values in the RHS of the equation
+                new_code = eq.expr.code
+                for to_replace, replacement in replacements.iteritems():
+                    if to_replace in eq.identifiers:
+                        if isinstance(replacement, basestring):
+                            # replace the name with another name
+                            new_code = re.sub('\\b' + to_replace + '\\b',
+                                              replacement, new_code)
+                        else:
+                            # replace the name with a value
+                            new_code = re.sub('\\b' + to_replace + '\\b',
+                                              '(' + repr(replacement) + ')',
+                                              new_code)
+                        try:
+                            eq.expr = Expression(new_code)
+                        except ValueError as ex:
+                            raise ValueError(
+                                ('Replacing "%s" with "%r" failed: %s') %
+                                (to_replace, replacement, ex))
+                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            expr=Expression(new_code),
+                                                            flags=eq.flags)
+            else:
+                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            flags=eq.flags)
+
+        return new_equations
+
+    def substitute(self, **kwds):
+        return Equations(self._substitute(kwds).values())
+
     def __iter__(self):
         return iter(self._equations)
 
@@ -623,6 +663,9 @@ class Equations(collections.Mapping):
             return NotImplemented
 
         return Equations(self.values() + other_eqns.values())
+
+    def __hash__(self):
+        return hash(frozenset(self._equations.iteritems()))
 
     #: A set of functions that are used to check identifiers (class attribute).
     #: Functions can be registered with the static method
@@ -706,29 +749,32 @@ class Equations(collections.Mapping):
             `CodeString` object with all subexpression variables substituted
             with the respective expression.
         '''
+        if self._substituted_expressions is None:
+            self._substituted_expressions = []
+            substitutions = {}
+            for eq in self.ordered:
+                # Skip parameters
+                if eq.expr is None:
+                    continue
 
-        subst_exprs = []
-        substitutions = {}
-        for eq in self.ordered:
-            # Skip parameters
-            if eq.expr is None:
-                continue
+                new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(substitutions)
+                new_str_expr = sympy_to_str(new_sympy_expr)
+                expr = Expression(new_str_expr)
 
-            new_sympy_expr = str_to_sympy(eq.expr.code, variables).xreplace(substitutions)
-            new_str_expr = sympy_to_str(new_sympy_expr)
-            expr = Expression(new_str_expr)
+                if eq.type == SUBEXPRESSION:
+                    substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
+                    self._substituted_expressions.append((eq.varname, expr))
+                elif eq.type == DIFFERENTIAL_EQUATION:
+                    #  a differential equation that we have to check
+                    self._substituted_expressions.append((eq.varname, expr))
+                else:
+                    raise AssertionError('Unknown equation type %s' % eq.type)
 
-            if eq.type == SUBEXPRESSION:
-                substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
-                if include_subexpressions:
-                    subst_exprs.append((eq.varname, expr))
-            elif eq.type == DIFFERENTIAL_EQUATION:
-                #  a differential equation that we have to check
-                subst_exprs.append((eq.varname, expr))
-            else:
-                raise AssertionError('Unknown equation type %s' % eq.type)
-
-        return subst_exprs
+        if include_subexpressions:
+            return self._substituted_expressions
+        else:
+            return [(name, expr) for name, expr in self._substituted_expressions
+                    if self[name].type == DIFFERENTIAL_EQUATION]
 
     def _get_stochastic_type(self):
         '''
