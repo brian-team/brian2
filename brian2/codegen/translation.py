@@ -22,14 +22,13 @@ import sympy
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.utils.caching import cached
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
                                       get_identifiers)
 from brian2.utils.topsort import topsort
-from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
 from brian2.parsing.statements import parse_statement
-from brian2.parsing.sympytools import (str_to_sympy, sympy_to_str,
-                                       check_expression_for_multiple_stateful_functions)
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 from .statements import Statement
 from .optimisation import optimise_statements
@@ -166,9 +165,11 @@ def is_scalar_expression(expr, variables):
                (isinstance(variables[name], Function) and variables[name].stateless)
                for name in identifiers)
 
-
+@cached
 def make_statements(code, variables, dtype, optimise=True, blockname=''):
     '''
+    make_statements(code, variables, dtype, optimise=True, blockname='')
+
     Turn a series of abstract code statements into Statement objects, inferring
     whether each line is a set/declare operation, whether the variables are
     constant or not, and handling the cacheing of subexpressions.

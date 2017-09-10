@@ -225,7 +225,7 @@ class MagicNetwork(Network):
         gc.collect()  # Make sure that all unused objects are cleared
 
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=True, level=0):
+            namespace=None, profile=False, level=0):
         self._update_magic_objects(level=level+1)
         Network.run(self, duration, report=report, report_period=report_period,
                     namespace=namespace, profile=profile, level=level+1)
@@ -307,7 +307,7 @@ def collect(level=0):
 
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=10*second, namespace=None,
-        profile=True, level=0):
+        profile=False, level=0):
     '''
     run(duration, report=None, report_period=10*second, namespace=None, level=0)
     

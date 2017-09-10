@@ -168,6 +168,15 @@ libraries: {self.libraries}
                         'failed_compile_test')
             return False
 
+    def _insert_func_namespace(self, func):
+        impl = func.implementations[self]
+        func_namespace = impl.get_namespace(self.owner)
+        if func_namespace is not None:
+            self.namespace.update(func_namespace)
+        if impl.dependencies is not None:
+            for dep in impl.dependencies.itervalues():
+                self._insert_func_namespace(dep)
+
     def variables_to_namespace(self):
 
         # Variables can refer to values that are either constant (e.g. dt)
@@ -179,7 +188,11 @@ libraries: {self.libraries}
         self.nonconstant_values = []
 
         for name, var in self.variables.iteritems():
-            if isinstance(var, (AuxiliaryVariable, Subexpression, Function)):
+            if isinstance(var, Function):
+                self._insert_func_namespace(var)
+                continue  # Everything else has already been dealt with in the
+                          # CodeGenerator (support code, renaming, etc.)
+            elif isinstance(var, (AuxiliaryVariable, Subexpression)):
                 continue
             try:
                 value = var.get_value()

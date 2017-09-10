@@ -8,12 +8,7 @@ requirements:
     - python
     - cython >=0.18
     - setuptools >=6.0
-    - markupsafe
     - numpy x.x
-    - sympy >=0.7.6
-    - pyparsing
-    - jinja2 >=2.7
-    - py-cpuinfo >=0.1.6
 
   run:
     - python

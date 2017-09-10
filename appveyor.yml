@@ -115,7 +115,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 test_script:
   # Run the test suite
   - '%CMD_IN_ENV% python -c "import sys; print(sys.executable)"'
-  - '%CMD_IN_ENV% python setup.py install'
+  - '%CMD_IN_ENV% python setup.py install --single-version-externally-managed --record=record.txt'
   - 'set SRC_DIR=%CD%'
   - 'cd \'
   # Since "CMD_IN_ENV" assumes we are in the source directory we cannot use it

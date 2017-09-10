@@ -268,7 +268,7 @@ class Device(object):
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
                     template_kwds=None, override_conditional_write=None):
-
+        name = find_name(name)
         codeobj_class = self.code_object_class(codeobj_class)
         template = getattr(codeobj_class.templater, template_name)
         iterate_all = template.iterate_all
@@ -319,8 +319,6 @@ class Device(object):
         template_kwds.update(kwds)
         logger.diagnostic('%s snippet (scalar):\n%s' % (name, indent(code_representation(scalar_code))))
         logger.diagnostic('%s snippet (vector):\n%s' % (name, indent(code_representation(vector_code))))
-
-        name = find_name(name)
 
         code = template(scalar_code, vector_code,
                         owner=owner, variables=variables, codeobj_name=name,

@@ -3,6 +3,8 @@ Module defining `CodeString`, a class for a string of code together with
 information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
+import collections
+
 import sympy
 
 from brian2.utils.logger import get_logger
@@ -14,7 +16,7 @@ __all__ = ['Expression', 'Statements']
 logger = get_logger(__name__)
 
 
-class CodeString(object):
+class CodeString(collections.Hashable):
     '''
     A class for representing "code strings", i.e. a single Python expression
     or a sequence of Python statements.
@@ -29,17 +31,30 @@ class CodeString(object):
 
     def __init__(self, code):
 
-        # : The code string
-        self.code = code
+        self._code = code
 
         # : Set of identifiers in the code string
         self.identifiers = get_identifiers(code)
+
+    code = property(lambda self: self._code,
+                    doc='The code string')
 
     def __str__(self):
         return self.code
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self.code)
+
+    def __eq__(self, other):
+        if not isinstance(other, CodeString):
+            return NotImplemented
+        return self.code == other.code
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self.code)
 
 
 class Statements(CodeString):
