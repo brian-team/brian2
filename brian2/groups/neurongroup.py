@@ -168,7 +168,7 @@ class StateUpdater(CodeRunner):
                                                                       self.method_choice,
                                                                       method_options=self.method_options,
                                                                       group_name=self.group.name)
-            if isinstance(stateupdate_output, str):
+            if isinstance(stateupdate_output, basestring):
                 self.abstract_code += stateupdate_output
             else:
                 # Note that the reason to send self along with this method is so the StateUpdater
@@ -457,7 +457,6 @@ class NeuronGroup(Group, SpikeSource):
 
         #: The state update method selected by the user
         self.method_choice = method
-        self.method_options = method_options
 
         if events is None:
             events = {}

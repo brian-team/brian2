@@ -11,6 +11,15 @@ logger = get_logger(__name__)
 
 __all__ = ['gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd']
 
+default_method_options = {
+    'adaptable_timestep': True,
+    'absolute_error': 1e-6,
+    'absolute_error_per_variable': None,
+    'use_last_timestep': True,
+    'save_failed_steps': False,
+    'save_step_count': False
+}
+
 class GSLContainer(object):
     '''
     Class that contains information (equation- or integrator-related) required
@@ -122,15 +131,7 @@ class GSLStateUpdater(StateUpdateMethod):
             class and some other variables so these can be sent to the `CodeGenerator`
         '''
         logger.warn("Integrating equations with GSL is still considered experimental", once=True)
-        default_method_options = {
-            'adaptable_timestep': True,
-            'dt_start': None,
-            'absolute_error': 1e-6,
-            'absolute_error_per_variable': None,
-            'use_last_timestep': True,
-            'save_failed_steps': False,
-            'save_step_count': False
-        }
+
         method_options = extract_method_options(method_options,
                                                 default_method_options)
 

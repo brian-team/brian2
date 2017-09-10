@@ -108,8 +108,7 @@ class GSLCodeGenerator(object):
         self.method_options = dict(owner.state_updater.method_options)
         self.integrator = owner.state_updater.integrator
         # default timestep to start with is the timestep of the NeuronGroup itself
-        if self.method_options['dt_start'] is None:
-            self.method_options['dt_start'] = owner.dt.variable.get_value()[0]
+        self.method_options['dt_start'] = owner.dt.variable.get_value()[0]
         self.variable_flags = owner.state_updater._gsl_variable_flags
 
     def __getattr__(self, item):

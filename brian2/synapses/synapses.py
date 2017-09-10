@@ -70,7 +70,7 @@ class StateUpdater(CodeRunner):
                                                                       self.method_choice,
                                                                       method_options=self.method_options,
                                                                       group_name=self.group.name)
-            if isinstance(stateupdate_output, str):
+            if isinstance(stateupdate_output, basestring):
                 self.abstract_code += stateupdate_output
             else:
                 # Note that the reason to send self along with this method is so the StateUpdater
@@ -676,9 +676,6 @@ class Synapses(Group):
 
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
-
-        # save method_options in self so they can be used in generator
-        self.method_options = method_options
 
         #: remember whether connect was called to raise an error if an
         #: assignment to a synaptic variable is attempted without a preceding

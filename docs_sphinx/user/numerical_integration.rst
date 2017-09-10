@@ -60,6 +60,21 @@ The complete list of available methods is the following:
 * ``'gsl_rk8pd'``: Runge-Kutta Prince-Dormand method using GSL. Uses an adaptable
   time step by default.
 
+.. admonition:: The following topics are not essential for beginners.
+
+    |
+
+Technical notes
+---------------
+
+Each class defines its own list of algorithms it tries to
+apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
+the methods ``'linear'``, ``'euler'`` and ``'heun'`` while `SpatialNeuron`
+objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
+
+You can also define your own numerical integrators, see
+:doc:`../advanced/state_update` for details.
+
 GSL stateupdaters
 -----------------
 The stateupdaters preceded with the gsl tag use ODE solvers defined in the GNU
@@ -74,7 +89,11 @@ Integrating with an adaptable timestep comes with two advantages:
   timestep can be chosen and the integrator will reduce the timestep when increased
   accuracy is required. This is particularly useful for systems where both slow and
   fast time constants coexist, as is the case with for example (networks of neurons
-  with) Hodgkin-Huxley equations.
+  with) Hodgkin-Huxley equations. Note that Brian's timestep still determines the
+  resolution for monitors, spike timing, spike propgation etc. Hence, in a network,
+  the simulation error will therefore still be on the order of ``dt``. The benefit
+  is that short time constants occurring in equations no longer dictate the network
+  time step.
 
 In addition to a choice between different integration methods, there is a few more
 options that can be specified when using GSL. These options can be specified by
@@ -89,12 +108,6 @@ The available method options are:
   estimated error exceeds the set error bounds, the simulation is aborted. When using
   cython or weave this is reported with an `IntegrationError`.
   Defaults to True.
-* ``'dt_start'``: what timestep to use as default. In the case that ``'adaptable_timestep'``
-  is set to False, this is the timestep used for each integration step. Otherwise, it
-  is given to the GSL ODE solver as an initial guess of what would be a good time step.
-  if ``'use_last_timestep'`` is set to True, this only affects the time step suggested
-  at the very start. Otherwise, this is the suggested timestep for each Brian time step.
-  Defaults to the dt set for the object using the integrator.
 * ``'absolute_error'``: each of the methods has a way of estimating the error that
   is the result of using numerical integration. You can specify the maximum size of this
   error to be allowed for any of the to-be-integrated variables in base units with this
@@ -131,18 +144,3 @@ requires a call to `run` (e.g. with 0 ms) to trigger the code generation process
 call to `StateMonitor`.
 
 More information on the GSL ODE solver itself can be found in its documentation.
-
-.. admonition:: The following topics are not essential for beginners.
-
-    |
-
-Technical notes
----------------
-
-Each class defines its own list of algorithms it tries to
-apply, `NeuronGroup` and `Synapses` will use the first suitable method out of
-the methods ``'linear'``, ``'euler'`` and ``'heun'`` while `SpatialNeuron`
-objects will use ``'linear'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
-
-You can also define your own numerical integrators, see
-:doc:`../advanced/state_update` for details.
