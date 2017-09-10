@@ -139,8 +139,6 @@ class StateUpdateMethod(object):
     @staticmethod
     def apply_stateupdater(equations, variables, method, method_options=None, group_name=None):
         '''
-        apply_stateupdater(equations, variables, method, group_name=None)
-
         Applies a given state updater to equations. If a `method` is given, the
         state updater with the given name is used or if is a callable, then it
         is used directly. If a `method` is a list of names, all the
