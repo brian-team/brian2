@@ -224,6 +224,11 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         statement = None
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
+        if var in variables and isinstance(variables[var], Subexpression):
+            raise SyntaxError("Illegal line '{line}' in abstract code. "
+                              "Cannot write to subexpression "
+                              "'{var}'.".format(line=line.code,
+                                                var=var))
         if op == '=':
             if var not in defined:
                 op = ':='

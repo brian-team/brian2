@@ -1,6 +1,7 @@
 from collections import namedtuple
 
 import numpy as np
+from numpy.testing.utils import assert_raises
 from nose.plugins.attrib import attr
 
 from brian2.codegen.optimisation import optimise_statements
@@ -64,6 +65,20 @@ def test_get_identifiers_recursively():
     identifiers = get_identifiers_recursively(['_x = sub1 + x'],
                                               variables)
     assert identifiers == {'x', '_x', 'y', 'z', 'sub1', 'sub2'}
+
+
+@attr('codegen-independent')
+def test_write_to_subexpression():
+    variables = {
+        'a': Subexpression(name='a', dtype=np.float32,
+                           owner=FakeGroup(variables={}), device=None,
+                           expr='2*z'),
+        'z': Variable(name='z')
+    }
+
+    # Writing to a subexpression is not allowed
+    code = 'a = z'
+    assert_raises(SyntaxError, make_statements, code, variables, np.float32)
 
 
 @attr('codegen-independent')
@@ -397,6 +412,7 @@ if __name__ == '__main__':
     test_auto_target()
     test_analyse_identifiers()
     test_get_identifiers_recursively()
+    test_write_to_subexpression()
     test_repeated_subexpressions()
     test_nested_subexpressions()
     test_apply_loop_invariant_optimisation()
