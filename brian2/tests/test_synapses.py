@@ -2049,6 +2049,14 @@ def test_synapse_generator_deterministic():
     for source in xrange(4):
         expected_diverging[source, np.arange(4) + source*4] = 1
 
+    # Diverging connection pattern within population (no self-connections)
+    S11b = Synapses(G2, G2, 'w:1', 'v+=w')
+    S11b.connect(j='k for k in range(i-3, i+4) if i!=k', skip_if_invalid=True)
+    expected_diverging_b = np.zeros((len(G2), len(G2)), dtype=np.int32)
+    for source in xrange(len(G2)):
+        expected_diverging_b[source, np.clip(np.arange(-3, 4) + source, 0, len(G2)-1)] = 1
+        expected_diverging_b[source, source] = 0
+
     # Converging connection pattern
     S12 = Synapses(G, G2, 'w:1', 'v+=w')
     S12.connect(j='int(i/4)')
@@ -2084,6 +2092,7 @@ def test_synapse_generator_deterministic():
     _compare(S9, expected_one_to_one)
     _compare(S10, expected_ring)
     _compare(S11, expected_diverging)
+    _compare(S11b, expected_diverging_b)
     _compare(S12, expected_converging)
     _compare(S13, expected_offdiagonal)
     _compare(S14, expected_converging_restricted)
