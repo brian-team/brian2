@@ -33,9 +33,9 @@ the wrong module.
 In addition to the reference, all the examples in the examples folder are
 automatically included in the documentation.
 
-Note that you can directly link to github issues using ``#issuenumber``, e.g.
-writing ``#33`` links to a github issue about running benchmarks for Brian 2:
-#33. This feature should rarely be used in the main documentation, reserve its
+Note that you can directly link to github issues using ``:issue:`issue number```, e.g.
+writing ``:issue:`33``` links to a github issue about running benchmarks for Brian 2:
+:issue:`33`. This feature should rarely be used in the main documentation, reserve its
 use for release notes and important known bugs.
 
 Docstrings

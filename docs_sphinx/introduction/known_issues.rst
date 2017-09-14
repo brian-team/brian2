@@ -71,7 +71,7 @@ Slow standalone simulations
 
 Some versions of the GNU standard library (in particular those used by recent
 Ubuntu versions) have a bug that can dramatically slow down simulations in
-C++ standalone mode on modern hardware (see #803). As a workaround, Brian will
+C++ standalone mode on modern hardware (see :issue:`803`). As a workaround, Brian will
 set an environment variable ``LD_BIND_NOW`` during the execution of standalone
 stimulations which changes the way the library is linked so that it does not
 suffer from this problem. If this environment variable leads to unwanted

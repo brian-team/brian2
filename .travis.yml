@@ -139,7 +139,6 @@ install:
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry pip install -q coveralls; fi
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
-      travis_retry pip install -q sphinxcontrib-issuetracker;
       python setup.py sdist;
     fi;
 
