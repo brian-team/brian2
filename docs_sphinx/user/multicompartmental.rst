@@ -385,3 +385,4 @@ Again the location of the threshold can be specified with spatial position::
     neuron = SpatialNeuron(morphology=morpho, model=eqs, threshold='m > 0.5',
                            threshold_location=morpho.axon[30*um],
                            refractory='m > 0.4')
+
