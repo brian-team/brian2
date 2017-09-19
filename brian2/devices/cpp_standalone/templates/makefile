@@ -1,23 +1,18 @@
 PROGRAM = main
+
 SRCS = {{source_files}}
 H_SRCS = {{header_files}}
 OBJS = ${SRCS:.cpp=.o}
 OBJS := ${OBJS:.c=.o}
 CC = @g++
-DEBUG = -g
 OPTIMISATIONS = {{ compiler_flags }}
-CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I. {{ openmp_pragma('compilation') }}
-LFLAGS = {{ openmp_pragma('compilation') }} {{ linker_flags }}
+CFLAGS = -c -Wno-write-strings $(OPTIMISATIONS) -I. {{ openmp_pragma('compilation') }} {{ compiler_debug_flags }}
+LFLAGS = {{ openmp_pragma('compilation') }} {{ linker_flags }} {{ linker_debug_flags }}
 DEPS = make.deps
 
 all: $(PROGRAM)
 
-# Adds debug flags
-debug: CFLAGS += $(DEBUG)
-debug: LFLAGS += $(DEBUG)
-debug: $(PROGRAM)
-
-.PHONY: all debug clean
+.PHONY: all clean
 
 $(PROGRAM): $(OBJS) $(DEPS) makefile
 	$(CC) $(OBJS) -o $(PROGRAM) $(LFLAGS)
