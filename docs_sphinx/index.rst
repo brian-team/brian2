@@ -11,12 +11,14 @@ To get an idea of what writing a simulation in Brian looks like, take a look
 at :doc:`a simple example </examples/CUBA>`, or run our
 `interactive demo <http://mybinder.org/repo/brian-team/brian2-binder/notebooks/demo.ipynb>`_.
 
-You can actually edit and run the examples in the browser without having to
-install Brian, using the Binder service (note: sometimes this service is down
-or running slowly):
+.. only:: html
 
-.. image:: http://mybinder.org/badge.svg
-    :target: http://mybinder.org/repo/brian-team/brian2-binder
+    You can actually edit and run the examples in the browser without having to
+    install Brian, using the Binder service (note: sometimes this service is down
+    or running slowly):
+
+    .. image:: http://mybinder.org/badge.svg
+        :target: http://mybinder.org/repo/brian-team/brian2-binder
 
 Once you have a feel for what is involved in using Brian, we recommend you
 start by following the

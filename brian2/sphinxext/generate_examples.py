@@ -114,14 +114,17 @@ def main(rootpath, destdir):
         output += '.. ' + basename + ':\n\n'
         output += title + '\n' + '=' * len(title) + '\n\n'
         note = '''
-        .. |launchbinder| image:: http://mybinder.org/badge.svg
-        .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/examples/{exname}.ipynb
+        .. only:: html
 
-        .. note::
-           You can launch an interactive, editable version of this
-           example without installing any local files
-           using the Binder service (although note that at some times this
-           may be slow or fail to open): |launchbinder|_
+            .. |launchbinder| image:: http://mybinder.org/badge.svg
+            .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/examples/{exname}.ipynb
+
+            .. note::
+               You can launch an interactive, editable version of this
+               example without installing any local files
+               using the Binder service (although note that at some times this
+               may be slow or fail to open): |launchbinder|_
+
         '''.format(exname=exname.replace('.', '/'))
         output += note + '\n\n'
         output += docs + '\n\n::\n\n'

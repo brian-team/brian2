@@ -8,7 +8,7 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.exporters.notebook import NotebookExporter
 from nbconvert.exporters.rst import RSTExporter
 
-from brian2.utils.stringtools import deindent
+from brian2.utils.stringtools import deindent, indent
 
 
 src_dir = os.path.abspath('../../../tutorials')
@@ -46,19 +46,22 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
 
     # Insert a note about ipython notebooks with a download link
     note = deindent(u'''
-    .. |launchbinder| image:: http://mybinder.org/badge.svg
-    .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+    .. only:: html
 
-    .. note::
-       This tutorial is a static non-editable version. You can launch an
-       interactive, editable version without installing any local files
-       using the Binder service (although note that at some times this
-       may be slow or fail to open): |launchbinder|_
+        .. |launchbinder| image:: http://mybinder.org/badge.svg
+        .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+    
+        .. note::
+           This tutorial is a static non-editable version. You can launch an
+           interactive, editable version without installing any local files
+           using the Binder service (although note that at some times this
+           may be slow or fail to open): |launchbinder|_
+    
+           Alternatively, you can download a copy of the notebook file
+           to use locally: :download:`{tutorial}.ipynb`
+    
+           See the :doc:`tutorial overview page <index>` for more details.
 
-       Alternatively, you can download a copy of the notebook file
-       to use locally: :download:`{tutorial}.ipynb`
-
-       See the :doc:`tutorial overview page <index>` for more details.
     '''.format(tutorial=basename))
     notebook.cells.insert(1, {
         u'cell_type': u'raw',
@@ -84,15 +87,18 @@ text = '''
 Tutorials
 =========
 
-The tutorial consists of a series of `Jupyter Notebooks`_ [#]_. You can quickly
-view these using the first links below. To use them interactively - allowing you
-to edit and run the code - there are two options. The easiest option is to click
-on the "Launch Binder" link, which will open up an interactive version in the
-browser without having to install Brian locally. This uses the
-Binder service provided by the
-`Freeman lab <https://www.janelia.org/lab/freeman-lab>`_. Occasionally, this
-service will be down or running slowly. The other option is to download the
-notebook file and run it locally, which requires you to have Brian installed.
+The tutorial consists of a series of `Jupyter Notebooks`_ [#]_.
+
+.. only:: html
+
+    You can quickly view these using the first links below. To use them interactively - allowing you
+    to edit and run the code - there are two options. The easiest option is to click
+    on the "Launch Binder" link, which will open up an interactive version in the
+    browser without having to install Brian locally. This uses the
+    Binder service provided by the
+    `Freeman lab <https://www.janelia.org/lab/freeman-lab>`_. Occasionally, this
+    service will be down or running slowly. The other option is to download the
+    notebook file and run it locally, which requires you to have Brian installed.
 
 For more information about how to use Jupyter Notebooks, see the
 `Jupyter Notebook documentation`_.
@@ -105,19 +111,20 @@ For more information about how to use Jupyter Notebooks, see the
 for tutorial, _ in tutorials:
     text += '   ' + tutorial + '\n'
 text += '''
+.. only:: html
 
-Interactive notebooks and files
--------------------------------
+    Interactive notebooks and files
+    -------------------------------
 '''
 for tutorial, _ in tutorials:
-    text += deindent('''
+    text += indent(deindent('''
     .. |launchbinder{tutid}| image:: http://mybinder.org/badge.svg
     .. _launchbinder{tutid}: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
 
-    '''.format(tutorial=tutorial, tutid=tutorial.replace('-', '')))
+    '''.format(tutorial=tutorial, tutid=tutorial.replace('-', ''))))
 
 for tutorial, title in tutorials:
-    text += '* |launchbinder{tutid}|_ :download:`{title} <{tutorial}.ipynb>`\n'.format(title=title,
+    text += '    * |launchbinder{tutid}|_ :download:`{title} <{tutorial}.ipynb>`\n'.format(title=title,
                                                 tutorial=tutorial, tutid=tutorial.replace('-', ''))
 text += '''
 

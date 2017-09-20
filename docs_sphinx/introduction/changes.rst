@@ -87,7 +87,7 @@ Brian 1                         Brian 2                           More details
 =============================== ================================= ================================================================
 ``AdEx``	                    [`Equations`]	                  :doc:`brian1_to_2/library`
 ``aEIF``	                    [`Equations`]	                  :doc:`brian1_to_2/library`
-``AERSpikeMonitor``	            #298	                          :doc:`brian1_to_2/monitors`
+``AERSpikeMonitor``	            :issue:`298`                      :doc:`brian1_to_2/monitors`
 ``alpha_conductance``	        [`Equations`]	                  :doc:`brian1_to_2/library`
 ``alpha_current``	            [`Equations`]	                  :doc:`brian1_to_2/library`
 ``alpha_synapse``	            [`Equations`]	                  :doc:`brian1_to_2/library`
@@ -98,9 +98,9 @@ Brian 1                         Brian 2                           More details
 ``Brette_Gerstner``	            [`Equations`]	                  :doc:`brian1_to_2/library`
 ``CoincidenceCounter``          [`SpikeMonitor`]                  :doc:`brian1_to_2/monitors`
 ``CoincidenceMatrixCounter``    [`SpikeMonitor`]                  :doc:`brian1_to_2/monitors`
-``Compartments``	            #443	                          :doc:`brian1_to_2/multicompartmental`
+``Compartments``	            :issue:`443`                      :doc:`brian1_to_2/multicompartmental`
 ``Connection``	                `Synapses`	                      :doc:`brian1_to_2/synapses`
-``Current``	                    #443	                          :doc:`brian1_to_2/multicompartmental`
+``Current``	                    :issue:`443`                      :doc:`brian1_to_2/multicompartmental`
 ``CustomRefractoriness``	    [string expression]	              :doc:`brian1_to_2/neurongroup`
 ``DefaultClock``	            `Clock`	                          :doc:`brian1_to_2/networks_and_clocks`
 ``EmpiricalThreshold``	        string	expression	              :doc:`brian1_to_2/neurongroup`
@@ -109,20 +109,20 @@ Brian 1                         Brian 2                           More details
 ``exp_current``	                [`Equations`]	                  :doc:`brian1_to_2/library`
 ``exp_IF``	                    [`Equations`]	                  :doc:`brian1_to_2/library`
 ``exp_synapse``	                [`Equations`]	                  :doc:`brian1_to_2/library`
-``FileSpikeMonitor``	        #298	                          :doc:`brian1_to_2/monitors`
+``FileSpikeMonitor``	        :issue:`298`                      :doc:`brian1_to_2/monitors`
 ``FloatClock``	                `Clock`	                          :doc:`brian1_to_2/networks_and_clocks`
 ``FunReset``	                [string	expression]	              :doc:`brian1_to_2/neurongroup`
 ``FunThreshold``	            [string	expression]	              :doc:`brian1_to_2/neurongroup`
 ``hist_plot``                   no equivalent                     --
 ``HomogeneousPoissonThreshold``	string	expression	              :doc:`brian1_to_2/neurongroup`
 ``IdentityConnection``	        `Synapses`	                      :doc:`brian1_to_2/synapses`
-``IonicCurrent``	            #443	                          :doc:`brian1_to_2/multicompartmental`
+``IonicCurrent``	            :issue:`443`                      :doc:`brian1_to_2/multicompartmental`
 ``ISIHistogramMonitor``         [`SpikeMonitor`]                  :doc:`brian1_to_2/monitors`
 ``Izhikevich``	                [`Equations`]	                  :doc:`brian1_to_2/library`
 ``K_current_HH``	            [`Equations`]	                  :doc:`brian1_to_2/library`
 ``leak_current``	            [`Equations`]	                  :doc:`brian1_to_2/library`
 ``leaky_IF``	                [`Equations`]	                  :doc:`brian1_to_2/library`
-``MembraneEquation``	        #443	                          :doc:`brian1_to_2/multicompartmental`
+``MembraneEquation``	        :issue:`443`                      :doc:`brian1_to_2/multicompartmental`
 ``MultiStateMonitor``	        `StateMonitor`	                  :doc:`brian1_to_2/monitors`
 ``Na_current_HH``	            [`Equations`]	                  :doc:`brian1_to_2/library`
 ``NaiveClock``	                `Clock`	                          :doc:`brian1_to_2/networks_and_clocks`

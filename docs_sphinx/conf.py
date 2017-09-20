@@ -68,7 +68,7 @@ if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.0.1'
+needs_sphinx = '1.5'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -78,7 +78,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
               'sphinx.ext.viewcode',
               'brian2.sphinxext.briandoc',
               'sphinx.ext.autosummary',
-              'sphinxcontrib.issuetracker']
+              'sphinx.ext.extlinks']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -317,5 +317,5 @@ doctest_global_setup = 'from brian2 import *'
 highlight_language = 'python'  # instead of python3 (default for sphinx>=1.4)
 
 # Configure linking to github
-issuetracker = 'github'
-issuetracker_project = 'brian-team/brian2'
+extlinks = {'issue': ('https://github.com/brian-team/brian2/issues/%s',
+                      '#')}

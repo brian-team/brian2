@@ -589,7 +589,7 @@ class Morphology(object):
                              section_randomness=0.0,
                              compartment_randomness=0.0,
                              overwrite_existing=False):
-        '''
+        r'''
         Create a new `Morphology`, with coordinates filled in place where the
         previous morphology did not have any. This is mostly useful for
         plotting a morphology, it does not affect its electrical properties.
