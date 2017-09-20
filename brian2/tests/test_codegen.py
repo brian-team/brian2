@@ -1,6 +1,7 @@
 from collections import namedtuple
 
 import numpy as np
+from numpy.testing.utils import assert_raises
 from nose.plugins.attrib import attr
 
 from brian2.codegen.optimisation import optimise_statements
@@ -64,6 +65,66 @@ def test_get_identifiers_recursively():
     identifiers = get_identifiers_recursively(['_x = sub1 + x'],
                                               variables)
     assert identifiers == {'x', '_x', 'y', 'z', 'sub1', 'sub2'}
+
+
+@attr('codegen-independent')
+def test_write_to_subexpression():
+    variables = {
+        'a': Subexpression(name='a', dtype=np.float32,
+                           owner=FakeGroup(variables={}), device=None,
+                           expr='2*z'),
+        'z': Variable(name='z')
+    }
+
+    # Writing to a subexpression is not allowed
+    code = 'a = z'
+    assert_raises(SyntaxError, make_statements, code, variables, np.float32)
+
+
+@attr('codegen-independent')
+def test_repeated_subexpressions():
+    variables = {
+        'a': Subexpression(name='a', dtype=np.float32,
+                           owner=FakeGroup(variables={}), device=None,
+                           expr='2*z'),
+        'x': Variable(name='x'),
+        'y': Variable(name='y'),
+        'z': Variable(name='z')
+    }
+    # subexpression a (referring to z) is used twice, but can be reused the
+    # second time (no change to z)
+    code = '''
+    x = a
+    y = a
+    '''
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
+    assert len(scalar_stmts) == 0
+    assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'y']
+    assert vector_stmts[0].constant
+
+    code = '''
+    x = a
+    z *= 2
+    '''
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
+    assert len(scalar_stmts) == 0
+    assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'z']
+    # Note that we currently do not mark the subexpression as constant in this
+    # case, because its use after the "z *=2" line would actually redefine it.
+    # Our algorithm is currently not smart enough to detect that it is actually
+    # not used afterwards
+
+    # a refers to z, therefore we have to redefine a after z changed, and a
+    # cannot be constant
+    code = '''
+    x = a
+    z *= 2
+    y = a
+    '''
+    scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
+    assert len(scalar_stmts) == 0
+    assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'z', 'a', 'y']
+    assert not any(stmt.constant for stmt in vector_stmts)
 
 
 @attr('codegen-independent')
@@ -351,6 +412,8 @@ if __name__ == '__main__':
     test_auto_target()
     test_analyse_identifiers()
     test_get_identifiers_recursively()
+    test_write_to_subexpression()
+    test_repeated_subexpressions()
     test_nested_subexpressions()
     test_apply_loop_invariant_optimisation()
     test_apply_loop_invariant_optimisation_integer()
