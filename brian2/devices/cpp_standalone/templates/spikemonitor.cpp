@@ -65,5 +65,7 @@ void _debugmsg_{{codeobj_name}}();
 {% endblock %}
 
 {% macro main_finalise() %}
+#ifdef DEBUG
 _debugmsg_{{codeobj_name}}();
+#endif
 {% endmacro %}

@@ -314,6 +314,21 @@ def test_array_cache():
     assert_allclose(G.i, np.arange(10))
     assert_allclose(S.weight, 7)
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_run_with_debug():
+    # We just want to make sure that it works for now (i.e. not fails with a
+    # compilation or runtime error), capturing the output is actually
+    # a bit involved to get right.
+    set_device('cpp_standalone', build_on_run=True, debug=True,
+               directory=None)
+    group = NeuronGroup(1, 'v: 1', threshold='False')
+    syn = Synapses(group, group, on_pre='v += 1')
+    syn.connect()
+    mon = SpikeMonitor(group)
+    run(defaultclock.dt)
+
+
 
 if __name__=='__main__':
     for t in [
@@ -325,6 +340,7 @@ if __name__=='__main__':
              test_openmp_scalar_writes,
              test_time_after_run,
              test_array_cache,
+             test_run_with_debug
              ]:
         t()
         reinit_devices()
