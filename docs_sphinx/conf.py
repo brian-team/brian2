@@ -38,8 +38,7 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['scipy', 'brian', 'brian.hears',   # mock Brian1 for the bridge
-                'Cython', 'Cython.Compiler', 'Cython.Build']
+MOCK_MODULES = ['brian', 'brian.hears']   # mock Brian1 for the bridge]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
