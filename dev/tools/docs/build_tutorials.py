@@ -120,9 +120,9 @@ for tutorial, _ in tutorials:
     text += indent(deindent('''
     .. |launchbinder{tutid}| image:: http://mybinder.org/badge.svg
     .. _launchbinder{tutid}: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
-
     '''.format(tutorial=tutorial, tutid=tutorial.replace('-', ''))))
 
+text += '\n'
 for tutorial, title in tutorials:
     text += '    * |launchbinder{tutid}|_ :download:`{title} <{tutorial}.ipynb>`\n'.format(title=title,
                                                 tutorial=tutorial, tutid=tutorial.replace('-', ''))
