@@ -61,7 +61,4 @@ dependencies:
 - bsddb=1.0=py27_1
 - db=5.3.28=1
 - libgfortran=3.0.0=1
-- pip:
-  - sphinx-rtd-theme==0.2.4
-  - stencila==0.27.0
-  - werkzeug==0.12.2
+
