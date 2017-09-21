@@ -54,17 +54,24 @@ def _display_value(obj):
     value : str
         A string representation of the object
     '''
-    try:
-        return repr(obj.get_value())
-    except AttributeError:
-        pass
-    try:
-        return repr(obj.value)
-    except AttributeError:
-        pass
     if isinstance(obj, Function):
         return '<Function>'
-    return repr(obj)
+    try:
+        obj = obj.get_value()
+    except AttributeError:
+        pass
+    try:
+        obj = obj.value
+    except AttributeError:
+        pass
+
+    # We (temporarily) set numpy's print options so that array with more than
+    # 10 elements are only shown in an abbreviated way
+    old_options = np.get_printoptions()
+    np.set_printoptions(threshold=10)
+    str_repr = repr(obj)
+    np.set_printoptions(**old_options)
+    return str_repr
 
 def _conflict_warning(message, resolutions):
     '''
