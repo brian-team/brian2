@@ -69,8 +69,12 @@ def _display_value(obj):
     # 10 elements are only shown in an abbreviated way
     old_options = np.get_printoptions()
     np.set_printoptions(threshold=10)
-    str_repr = repr(obj)
-    np.set_printoptions(**old_options)
+    try:
+        str_repr = repr(obj)
+    except Exception:
+        str_repr = '<object of type %s>' % type(obj)
+    finally:
+        np.set_printoptions(**old_options)
     return str_repr
 
 def _conflict_warning(message, resolutions):
