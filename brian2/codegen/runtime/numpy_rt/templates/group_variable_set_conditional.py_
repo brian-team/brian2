@@ -38,7 +38,7 @@ if _cond is True or _cond is numpy_True:
     _vectorisation_idx = LazyArange(N)
 elif _cond is False or _cond is numpy_False:
     _idx = []
-    _vectorisation_idx = np.array([], dtype=np.int32)
+    _vectorisation_idx = _numpy.array([], dtype=_numpy.int32)
 else:
     _vectorisation_idx = _idx = _numpy.nonzero(_cond)[0]
 

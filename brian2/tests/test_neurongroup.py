@@ -912,8 +912,12 @@ def test_state_variable_set_strings():
                            v5  : volt
                            v6  : volt
                            v7  : volt
+                           v7b : volt
+                           v7c : volt
                            v8  : volt
                            v9  : volt
+                           v9b : volt
+                           v9c : volt
                            v10 : volt
                            v11 : volt
                            dv_ref/dt = -v_ref/(10*ms) : 1 (unless refractory)''',
@@ -952,6 +956,14 @@ def test_state_variable_set_strings():
     # String index referring to i and setting to a scalar value
     G.v7['i>=5'] = 0*mV
 
+    G.v7b = np.arange(10) * volt
+    # String index referring to i and setting to a scalar value (no effect)
+    G.v7b['i>=10'] = 0*mV
+
+    G.v7c = np.arange(10) * volt
+    # String index referring to i and setting to a scalar value (no effect)
+    G.v7c['False'] = 0*mV
+
     G.v8[:5] = np.arange(5) * volt
     # String index referring to a state variable
     G.v8['v8<3*volt'] = 0*mV
@@ -962,7 +974,15 @@ def test_state_variable_set_strings():
     G.v9 = np.arange(10) * volt
     # Strings for both condition and values
     G.v9['i>=5'] = 'v9*2'
-    G.v9['v9>=5*volt'] = 'i*volt'
+    G.v9['v9<5*volt'] = '3*i*volt'
+
+    G.v9b = np.arange(10) * volt
+    # Strings for both condition and values (no effect)
+    G.v9b['i<0'] = 'v9 + 100*volt'
+
+    G.v9c = np.arange(10) * volt
+    # Strings for both condition and values (no effect)
+    G.v9c['False'] = 'v9 + 100*volt'
 
     G.v10 = np.arange(10)*volt
     G.v10['i<=5'] = '(100 + rand())*volt'
@@ -974,18 +994,19 @@ def test_state_variable_set_strings():
     G.v11[3] = 'inf*volt'
     G.v11[4] = 'rand()*volt'
     run(0*ms)
-    assert_equal(G.v1[:],
-                 np.array([0, 3, 6, 9, 12, 10, 12, 14, 16, 18])*volt)
+    assert_equal(G.v1[:], [0, 3, 6, 9, 12, 10, 12, 14, 16, 18]*volt)
     assert_equal(G.v_ref[:], 2 * np.arange(10))
-    assert_equal(G.v2[:],
-                 np.array([0, 4, 8, 12, 16, 10, 12, 14, 16, 18])*volt)
+    assert_equal(G.v2[:], [0, 4, 8, 12, 16, 10, 12, 14, 16, 18]*volt)
     assert_equal(G.v3[:], 2 * np.arange(10) * volt + 15 * volt)
-    assert_equal(G.v4[:],
-                 np.array([15, 17, 19, 21, 23, 5, 6, 7, 8, 9])*volt)
+    assert_equal(G.v4[:], [15, 17, 19, 21, 23, 5, 6, 7, 8, 9]*volt)
     assert_equal(G.v6[:], np.zeros(10) * volt)
-    assert_equal(G.v7[:], np.array([0, 1, 2, 3, 4, 0, 0, 0, 0, 0]) * volt)
-    assert_equal(G.v8[:], np.array([0, 0, 0, 3, 0, 0, 0, 0, 0, 0]) * volt)
-    assert_equal(G.v9[:], np.arange(10) * volt)
+    assert_equal(G.v7[:], [0, 1, 2, 3, 4, 0, 0, 0, 0, 0]*volt)
+    assert_equal(G.v7b[:], np.arange(10)*volt)
+    assert_equal(G.v7c[:], np.arange(10) * volt)
+    assert_equal(G.v8[:], [0, 0, 0, 3, 0, 0, 0, 0, 0, 0]*volt)
+    assert_equal(G.v9[:], [0, 3, 6, 9, 12, 10, 12, 14, 16, 18]*volt)
+    assert_equal(G.v9b[:], np.arange(10)*volt)
+    assert_equal(G.v9c[:], np.arange(10) * volt)
     assert_equal(G.v10[6:], np.arange(4)*volt + 6*volt)  # unchanged
     assert all(G.v10[:6] >= 100*volt)
     assert all(G.v10[:6] <= 101*volt)
