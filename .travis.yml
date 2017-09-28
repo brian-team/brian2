@@ -137,6 +137,7 @@ install:
   - travis_retry conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
   - if [[ $CYTHON == 'yes' ]]; then travis_retry conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry pip install -q coveralls; fi
+  - python -c 'import sysconfig, pprint; pprint.pprint(sysconfig.get_config_vars())'
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       python setup.py sdist;
