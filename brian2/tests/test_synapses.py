@@ -983,6 +983,24 @@ def test_transmission_scalar_delay_different_clocks():
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_transmission_boolean_variable():
+    source = SpikeGeneratorGroup(4, [0, 1, 2, 3], [2, 1, 2, 1] * ms)
+    target = NeuronGroup(4, 'v : 1')
+    syn = Synapses(source, target, 'use : boolean (constant)', on_pre='v += int(use)')
+    syn.connect(j='i')
+    syn.use = 'i<2'
+    mon = StateMonitor(target, 'v', record=True, when='end')
+    run(2.5*ms)
+    offset = schedule_propagation_offset()
+    assert_equal(mon[0].v[mon.t<2*ms+offset], 0.)
+    assert_equal(mon[0].v[mon.t>=2*ms+offset], 1.)
+    assert_equal(mon[1].v[mon.t<1*ms+offset], 0.)
+    assert_equal(mon[1].v[mon.t>=1*ms+offset], 1.)
+    assert_equal(mon[2].v, 0.)
+    assert_equal(mon[3].v, 0.)
+
 
 @attr('codegen-independent')
 def test_clocks():
@@ -2361,6 +2379,7 @@ if __name__ == '__main__':
     test_transmission_one_to_all_heterogeneous_delays()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
+    test_transmission_boolean_variable()
     test_clocks()
     test_changed_dt_spikes_in_queue()
     test_no_synapses()
