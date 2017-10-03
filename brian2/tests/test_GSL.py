@@ -11,6 +11,7 @@ from brian2.stateupdaters.base import UnsupportedEquationsException
 
 max_difference = .1*mV
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_GSL_stateupdater_basic():
@@ -49,6 +50,7 @@ def test_GSL_stateupdater_basic():
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_GSL_different_clocks():
@@ -61,6 +63,7 @@ def test_GSL_different_clocks():
         run(0*ms)
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -96,6 +99,7 @@ def test_GSL_default_function():
                 ('output of GSL stateupdater is exactly the same as Brians stateupdater (unlikely to be right)')
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -147,6 +151,7 @@ def test_GSL_user_defined_function():
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_GSL_x_variable():
@@ -158,6 +163,7 @@ def test_GSL_x_variable():
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
+
 @attr('codegen-independent')
 def test_GSL_failing_directory():
     def set_dir(arg):
@@ -165,6 +171,7 @@ def test_GSL_failing_directory():
     assert_raises(PreferenceError, set_dir, 1)
     assert_raises(PreferenceError, set_dir, '/usr/')
     assert_raises(PreferenceError, set_dir, '/usr/blablabla/')
+
 
 @attr('codegen-independent')
 def test_GSL_stochastic():
@@ -255,6 +262,24 @@ def test_GSL_error_nonexisting_variable():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_GSL_error_incorrect_error_format():
+    try:
+        tau = 10*ms
+        eqs = '''
+        dv/dt = (v0 - v)/tau : volt
+        v0 : volt
+        '''
+        options = {'absolute_error_per_variable': object()}
+        neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                             method='gsl', method_options=options)
+        net = Network(neuron)
+        assert_raises(TypeError, net.run, 0*ms, level=2)
+    except NotImplementedError:
+        raise SkipTest('GSL support for numpy has not been implemented yet')
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_GSL_error_nonODE_variable():
     try:
         tau = 10*ms
@@ -269,6 +294,7 @@ def test_GSL_error_nonODE_variable():
         assert_raises(KeyError, net.run, 0*ms, level=2)
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -299,6 +325,7 @@ def test_GSL_error_bounds():
         assert max(err1) > max(err2), ("The simulation with smaller error bound produced a bigger maximum error")
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
+
 
 def test_GSL_save_step_count():
     try:
@@ -457,6 +484,7 @@ if __name__ == '__main__':
               test_GSL_error_dimension_mismatch_dimensionless1,
               test_GSL_error_dimension_mismatch_dimensionless2,
               test_GSL_error_nonexisting_variable,
+              test_GSL_error_incorrect_error_format,
               test_GSL_error_nonODE_variable,
               test_GSL_error_bounds,
               test_GSL_save_step_count,
