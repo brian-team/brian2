@@ -14,13 +14,13 @@ Brian 2.0.2
 New features
 ~~~~~~~~~~~~
 * `molar` and `liter` (as well as `litre`, scaled versions of the former, and a
-  few useful abbreviations such as `mM`) have been added as new units (#574).
+  few useful abbreviations such as `mM`) have been added as new units (:issue:`574`).
 * A new module `brian2.units.constants` provides physical constants such as the
   Faraday constants or the gas constant (see :ref:`constants` for details).
 * `SpatialNeuron` now supports non-linear membrane currents (e.g.
   Goldman–Hodgkin–Katz equations) by linearizing them with respect to v.
 * Multi-compartmental models can access the capacitive current via `Ic` in
-  their equations (#677)
+  their equations (:issue:`677`)
 * A new function `scheduling_summary` that displays information about the
   scheduling of all objects (see :ref:`scheduling` for details).
 * Introduce a new preference to pass arguments to the ``make``/``nmake`` command
@@ -33,25 +33,25 @@ New features
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Work around low performance for certain C++ standalone simulations on Linux,
-  due to a bug in glibc (see #803). Thanks to Oleg Strikov
+  due to a bug in glibc (see :issue:`803`). Thanks to Oleg Strikov
   (`@xj8z <https://github.com/xj8z>`_) for debugging this
   issue and providing the workaround that is now in use.
 * Make exact integration of ``event-driven`` synaptic variables use the
   ``linear`` numerical integration algorithm (instead of ``independent``),
   fixing rare occasions where integration failed despite the equations being
-  linear (#801).
+  linear (:issue:`801`).
 * Better error messages for incorrect unit definitions in equations.
 * Various fixes for the internal representation of physical units and the
   unit registration system.
 * Fix a bug in the assignment of state variables in subtrees of `SpatialNeuron`
-  (#822)
+  (:issue:`822`)
 * Numpy target: fix an indexing error for a `SpikeMonitor` that records from a
-  subgroup (#824)
+  subgroup (:issue:`824`)
 * Summed variables targeting the same post-synaptic variable now raise an error
-  (previously, only the one executed last was taken into account, see #766).
-* Fix bugs in synapse generation affecting Cython (#781) respectively numpy
-  (#835)
-* C++ standalone simulations with many objects no longer fail on Windows (#787)
+  (previously, only the one executed last was taken into account, see :issue:`766`).
+* Fix bugs in synapse generation affecting Cython (:issue:`781`) respectively numpy
+  (:issue:`835`)
+* C++ standalone simulations with many objects no longer fail on Windows (:issue:`787`)
 
 Backwards-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,10 +60,10 @@ Backwards-incompatible changes
   not a temperature difference). For temperature differences, you can directly
   replace `celsius` by `kelvin`. To convert an absolute temperature in degree
   Celsius to Kelvin, add the `zero_celsius` constant from
-  `brian2.units.constants` (#817).
+  `brian2.units.constants` (:issue:`817`).
 * State variables are no longer allowed to have names ending in ``_pre`` or
   ``_post`` to avoid confusion with references to pre- and post-synaptic
-  variables in `Synapses` (#818)
+  variables in `Synapses` (:issue:`818`)
 
 Changes to default settings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,8 +117,8 @@ mailing list (brian-development@googlegroups.com).
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-* Fix `PopulationRateMonitor` for recordings from subgroups (#772)
-* Fix `SpikeMonitor` for recordings from subgroups (#777)
+* Fix `PopulationRateMonitor` for recordings from subgroups (:issue:`772`)
+* Fix `SpikeMonitor` for recordings from subgroups (:issue:`777`)
 * Check that string expressions provided as the ``rates`` argument for
   `PoissonGroup` have correct units.
 * Fix compilation errors when multiple run statements with different ``report``
@@ -288,26 +288,26 @@ New features
 * A new flag ``constant over dt`` can be applied to subexpressions to have them
   only evaluated once per timestep (see :doc:`../user/models`). This flag is
   mandatory for stateful subexpressions, e.g. expressions using ``rand()`` or
-  ``randn()``. (#720, #721)
+  ``randn()``. (:issue:`720`, :issue:`721`)
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Fix `EventMonitor.values` and `SpikeMonitor.spike_trains` to always return
-  sorted spike/event times (#725).
-* Respect the ``active`` attribute in C++ standalone mode (#718).
-* More consistent check of compatible time and dt values (#730).
+  sorted spike/event times (:issue:`725`).
+* Respect the ``active`` attribute in C++ standalone mode (:issue:`718`).
+* More consistent check of compatible time and dt values (:issue:`730`).
 * Attempting to set a synaptic variable or to start a simulation with synapses
-  without any preceding connect call now raises an error (#737).
+  without any preceding connect call now raises an error (:issue:`737`).
 * Improve the performance of coordinate calculation for `Morphology` objects,
-  which previously made plotting very slow for complex morphologies (#741).
+  which previously made plotting very slow for complex morphologies (:issue:`741`).
 * Fix a bug in `SpatialNeuron` where it did not detect non-linear dependencies
-  on v, introduced via point currents (#743).
+  on v, introduced via point currents (:issue:`743`).
 
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * An interactive demo, tutorials, and examples can now be run in an interactive
   jupyter notebook on the `mybinder <http://mybinder.org/>`_ platform, without
-  any need for a local Brian installation (#736). Thanks to Ben Evans for the
+  any need for a local Brian installation (:issue:`736`). Thanks to Ben Evans for the
   idea and help with the implementation.
 * A new extensive guide for converting Brian 1 simulations to Brian 2 user
   coming from Brian 1: :doc:`changes`
@@ -349,23 +349,23 @@ New features
   targets and in runtime and standalone mode. See :doc:`../advanced/random` for details.
 * Brian can now export/import state variables of a group or a full network to/from a
   `pandas <http://pandas.pydata.org>`_ ``DataFrame`` and comes with a mechanism to extend
-  this to other formats. Thanks to Dominik Krzemiński for this contribution (see #306).
+  this to other formats. Thanks to Dominik Krzemiński for this contribution (see :issue:`306`).
 
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Use a Mersenne-Twister pseudorandom number generator in C++ standalone mode, replacing the
-  previously used low-quality random number generator from the C standard library (see #222,
-  #671 and #706).
+  previously used low-quality random number generator from the C standard library (see :issue:`222`,
+  :issue:`671` and :issue:`706`).
 * Fix a memory leak in code running with the weave code generation target, and a smaller
   memory leak related to units stored repetitively in the `~brian2.units.fundamentalunits.UnitRegistry`.
 * Fix a difference of one timestep in the number of simulated timesteps between
-  runtime and standalone that could arise for very specific values of dt and t (see #695).
+  runtime and standalone that could arise for very specific values of dt and t (see :issue:`695`).
 * Fix standalone compilation failures with the most recent gcc version which defaults to
-  C++14 mode (see #701)
+  C++14 mode (see :issue:`701`)
 * Fix incorrect summation in synapses when using the ``(summed)`` flag and writing to
-  *pre*-synaptic variables (see #704)
+  *pre*-synaptic variables (see :issue:`704`)
 * Make synaptic pathways work when connecting groups that define nested subexpressions,
-  instead of failing with a cryptic error message (see #707).
+  instead of failing with a cryptic error message (see :issue:`707`).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -400,12 +400,12 @@ for more information.
 Improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Fix a regression from 2.0b4: stochastic differential equations without any non-stochastic
-  part (e.g. ``dx/dt = xi/sqrt(ms)```) were not integrated correctly (see #686).
-* Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see #681).
-* Fix an issue that made `PoissonInput` refuse to run after a change of dt (see #684).
+  part (e.g. ``dx/dt = xi/sqrt(ms)```) were not integrated correctly (see :issue:`686`).
+* Repeatedly calling `restore` (or `Network.restore`) no longer raises an error (see :issue:`681`).
+* Fix an issue that made `PoissonInput` refuse to run after a change of dt (see :issue:`684`).
 * If the ``rates`` argument of `PoissonGroup` is a string, it will now be evaluated at
   every time step instead of once at construction time. This makes time-dependent rate
-  expressions work as expected (see #660).
+  expressions work as expected (see :issue:`660`).
 
 Contributions
 ~~~~~~~~~~~~~
@@ -635,14 +635,14 @@ Improvements
 Important bug fixes
 ~~~~~~~~~~~~~~~~~~~
 * Fix `SpikeGeneratorGroup` which did not emit all the spikes under certain
-  conditions for some code generation targets (#429)
+  conditions for some code generation targets (:issue:`429`)
 * Fix an incorrect update of pre-synaptic variables in synaptic statements for
-  the ``numpy`` code generation target (#435).
+  the ``numpy`` code generation target (:issue:`435`).
 * Fix the possibility of an incorrect memory access when recording a subgroup
-  with `SpikeMonitor` (#454).
+  with `SpikeMonitor` (:issue:`454`).
 * Fix the storing of results on disk for C++ standalone on Windows -- variables
   that had the same name when ignoring case (e.g. ``i`` and ``I``) where
-  overwriting each other (#455).
+  overwriting each other (:issue:`455`).
 
 Infrastructure improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -732,8 +732,8 @@ Important bug fixes
 ~~~~~~~~~~~~~~~~~~~
 * The preparation time for complicated equations has been significantly reduced.
 * The string representation of small physical quantities has been corrected
-  (#361)
-* Linking variables from a group of size 1 now works correctly (#383)
+  (:issue:`361`)
+* Linking variables from a group of size 1 now works correctly (:issue:`383`)
 
 Contributions
 ~~~~~~~~~~~~~

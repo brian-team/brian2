@@ -983,6 +983,24 @@ def test_transmission_scalar_delay_different_clocks():
     assert_equal(mon[1].v[mon.t<1.5*ms], 0)
     assert_equal(mon[1].v[mon.t>=1.5*ms], 1)
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_transmission_boolean_variable():
+    source = SpikeGeneratorGroup(4, [0, 1, 2, 3], [2, 1, 2, 1] * ms)
+    target = NeuronGroup(4, 'v : 1')
+    syn = Synapses(source, target, 'use : boolean (constant)', on_pre='v += int(use)')
+    syn.connect(j='i')
+    syn.use = 'i<2'
+    mon = StateMonitor(target, 'v', record=True, when='end')
+    run(2.5*ms)
+    offset = schedule_propagation_offset()
+    assert_equal(mon[0].v[mon.t<2*ms+offset], 0.)
+    assert_equal(mon[0].v[mon.t>=2*ms+offset], 1.)
+    assert_equal(mon[1].v[mon.t<1*ms+offset], 0.)
+    assert_equal(mon[1].v[mon.t>=1*ms+offset], 1.)
+    assert_equal(mon[2].v, 0.)
+    assert_equal(mon[3].v, 0.)
+
 
 @attr('codegen-independent')
 def test_clocks():
@@ -2049,6 +2067,14 @@ def test_synapse_generator_deterministic():
     for source in xrange(4):
         expected_diverging[source, np.arange(4) + source*4] = 1
 
+    # Diverging connection pattern within population (no self-connections)
+    S11b = Synapses(G2, G2, 'w:1', 'v+=w')
+    S11b.connect(j='k for k in range(i-3, i+4) if i!=k', skip_if_invalid=True)
+    expected_diverging_b = np.zeros((len(G2), len(G2)), dtype=np.int32)
+    for source in xrange(len(G2)):
+        expected_diverging_b[source, np.clip(np.arange(-3, 4) + source, 0, len(G2)-1)] = 1
+        expected_diverging_b[source, source] = 0
+
     # Converging connection pattern
     S12 = Synapses(G, G2, 'w:1', 'v+=w')
     S12.connect(j='int(i/4)')
@@ -2084,6 +2110,7 @@ def test_synapse_generator_deterministic():
     _compare(S9, expected_one_to_one)
     _compare(S10, expected_ring)
     _compare(S11, expected_diverging)
+    _compare(S11b, expected_diverging_b)
     _compare(S12, expected_converging)
     _compare(S13, expected_offdiagonal)
     _compare(S14, expected_converging_restricted)
@@ -2352,6 +2379,7 @@ if __name__ == '__main__':
     test_transmission_one_to_all_heterogeneous_delays()
     test_transmission_scalar_delay()
     test_transmission_scalar_delay_different_clocks()
+    test_transmission_boolean_variable()
     test_clocks()
     test_changed_dt_spikes_in_queue()
     test_no_synapses()

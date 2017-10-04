@@ -13,7 +13,7 @@ Sometimes, it can be useful to define additional events, e.g. when an ion
 concentration in the cell crosses a certain threshold. This can be done
 with the custom events system in Brian, which is illustrated in this diagram.
 
-.. image:: custom_events.svg
+.. image:: custom_events.*
 
 You can see in this diagram that the source `NeuronGroup` has four types
 of events, called ``spike``, ``evt_other``, ``evt_mon`` and ``evt_run``.

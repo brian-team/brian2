@@ -7,20 +7,20 @@
 
 This module defines the following short unit names:
 
-mV, mA, uA (micro_amp), nA, pA, mF, uF, nF, mS, uS, ms,
+mV, mA, uA (micro_amp), nA, pA, mF, uF, nF, nS, mS, uS, ms,
 Hz, kHz, MHz, cm, cm2, cm3, mm, mm2, mm3, um, um2, um3
 """
 
 from .allunits import (mvolt, mamp, uamp, namp, pamp, pfarad, ufarad, nfarad,
-                       nsiemens, usiemens, msecond, usecond, hertz, khertz,
-                       Mhertz, cmetre, cmetre2, cmetre3, mmetre, mmetre2,
-                       mmetre3, umetre, umetre2, umetre3, mmolar, umolar,
-                       nmolar)
+                       nsiemens, usiemens, msiemens, msecond, usecond, hertz,
+                       khertz, Mhertz, cmetre, cmetre2, cmetre3, mmetre,
+                       mmetre2, mmetre3, umetre, umetre2, umetre3, mmolar,
+                       umolar, nmolar)
 from .allunits import all_units
 
-__all__ = ['mV', 'mA', 'uA', 'nA', 'pA', 'pF', 'uF', 'nF', 'nS', 'uS', 'ms',
-           'us', 'Hz', 'kHz', 'MHz', 'cm', 'cm2', 'cm3', 'mm', 'mm2', 'mm3',
-           'um', 'um2', 'um3', 'mM', 'uM', 'nM']
+__all__ = ['mV', 'mA', 'uA', 'nA', 'pA', 'pF', 'uF', 'nF', 'nS', 'uS', 'mS',
+           'ms', 'us', 'Hz', 'kHz', 'MHz', 'cm', 'cm2', 'cm3', 'mm', 'mm2',
+           'mm3', 'um', 'um2', 'um3', 'mM', 'uM', 'nM']
 mV = mvolt
 
 mA = mamp
@@ -34,6 +34,7 @@ nF = nfarad
 
 nS = nsiemens
 uS = usiemens
+mS = msiemens
 
 ms = msecond
 us = usecond

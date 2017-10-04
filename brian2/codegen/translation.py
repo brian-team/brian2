@@ -224,6 +224,11 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         statement = None
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
+        if var in variables and isinstance(variables[var], Subexpression):
+            raise SyntaxError("Illegal line '{line}' in abstract code. "
+                              "Cannot write to subexpression "
+                              "'{var}'.".format(line=line.code,
+                                                var=var))
         if op == '=':
             if var not in defined:
                 op = ':='
@@ -309,7 +314,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     statements = []
 
     # none are yet defined (or declared)
-    subdefined = dict((name, False) for name in subexpressions.keys())
+    subdefined = dict((name, None) for name in subexpressions.keys())
     for line in lines:
         stmt = line.statement
         read = line.read
@@ -323,18 +328,17 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
 
             subexpression = subexpressions[var]
             # if already defined/declared
-            if subdefined[var]:
+            if subdefined[var] == 'constant':
+                continue
+            elif subdefined[var] == 'variable':
                 op = '='
                 constant = False
             else:
                 op = ':='
-                subdefined[var] = True
-                # set to constant only if we will not write to it again
-                constant = var not in will_write
-                # check all subvariables are not written to again as well
-                if constant:
-                    ids = subexpression.identifiers
-                    constant = all(v not in will_write for v in ids)
+                # check if the referred variables ever change
+                ids = subexpression.identifiers
+                constant = all(v not in will_write for v in ids)
+                subdefined[var] = 'constant' if constant else 'variable'
 
             statement = Statement(var, op, subexpression.expr, comment='',
                                   dtype=variables[var].dtype,

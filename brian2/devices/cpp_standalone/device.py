@@ -755,12 +755,18 @@ class CPPStandaloneDevice(Device):
                                                         )
         writer.write('run.*', run_tmp)
         
-    def generate_makefile(self, writer, compiler, compiler_flags, linker_flags, nb_threads):
-        if compiler=='msvc':
+    def generate_makefile(self, writer, compiler, compiler_flags, linker_flags, nb_threads, debug):
+        if compiler == 'msvc':
             if nb_threads>1:
                 openmp_flag = '/openmp'
             else:
                 openmp_flag = ''
+            if debug:
+                compiler_debug_flags = '/DEBUG /DDEBUG'
+                linker_debug_flags = '/DEBUG'
+            else:
+                compiler_debug_flags = ''
+                linker_debug_flags = ''
             # Generate the visual studio makefile
             source_bases = [fname.replace('.cpp', '').replace('.c', '').replace('/', '\\') for fname in writer.source_files]
             win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
@@ -768,7 +774,9 @@ class CPPStandaloneDevice(Device):
                 source_files=writer.source_files,
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
+                compiler_debug_flags=compiler_debug_flags,
                 linker_flags=linker_flags,
+                linker_debug_flags=linker_debug_flags,
                 openmp_flag=openmp_flag,
                 )
             writer.write('win_makefile', win_makefile_tmp)
@@ -785,10 +793,18 @@ class CPPStandaloneDevice(Device):
                 rm_cmd = 'del *.o /s\n\tdel main.exe $(DEPS)'
             else:
                 rm_cmd = 'rm $(OBJS) $(PROGRAM) $(DEPS)'
+            if debug:
+                compiler_debug_flags = '-g -DDEBUG'
+                linker_debug_flags = '-g'
+            else:
+                compiler_debug_flags = ''
+                linker_debug_flags = ''
             makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
                 source_files=' '.join(writer.source_files),
                 header_files=' '.join(writer.header_files),
                 compiler_flags=compiler_flags,
+                compiler_debug_flags=compiler_debug_flags,
+                linker_debug_flags=linker_debug_flags,
                 linker_flags=linker_flags,
                 rm_cmd=rm_cmd)
             writer.write('makefile', makefile_tmp)
@@ -861,9 +877,6 @@ class CPPStandaloneDevice(Device):
         with in_directory(directory):
             if compiler == 'msvc':
                 from distutils import msvc9compiler
-                # TODO: handle debug
-                if debug:
-                    logger.warn('Debug flag currently ignored for MSVC', once=True)
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
                 if vcvars_loc == '':
                     for version in xrange(16, 8, -1):
@@ -913,11 +926,8 @@ class CPPStandaloneDevice(Device):
                 with std_silent(debug):
                     if clean:
                         os.system('make clean >/dev/null 2>&1')
-                    if debug:
-                        x = os.system('make debug')
-                    else:
-                        make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
-                        x = os.system('make %s' % (make_args, ))
+                    make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
+                    x = os.system('make %s' % (make_args, ))
                     if x != 0:
                         error_message = ('Project compilation failed (error '
                                          'code: %u).') % x
@@ -952,7 +962,7 @@ class CPPStandaloneDevice(Device):
                 stdout = open('results/stdout.txt', 'w')
             else:
                 stdout = None
-            if os.name=='nt':
+            if os.name == 'nt':
                 x = subprocess.call(['main'] + run_args, stdout=stdout)
             else:
                 x = subprocess.call(['./main'] + run_args, stdout=stdout)
@@ -1127,7 +1137,8 @@ class CPPStandaloneDevice(Device):
         self.generate_makefile(writer, self.compiler,
                                compiler_flags=' '.join(compiler_flags),
                                linker_flags=' '.join(linker_flags),
-                               nb_threads=nb_threads)
+                               nb_threads=nb_threads,
+                               debug=debug)
 
         if compile:
             self.compile_source(directory, self.compiler, debug, clean)
