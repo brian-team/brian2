@@ -176,7 +176,6 @@ def test_GSL_failing_directory():
 @attr('codegen-independent')
 def test_GSL_stochastic():
     try:
-        N = 25
         tau = 20*ms
         sigma = .015
         eqs = '''
@@ -184,7 +183,9 @@ def test_GSL_stochastic():
         '''
         neuron = NeuronGroup(1, eqs, method='gsl')
         net = Network(neuron)
-        assert_raises(UnsupportedEquationsException, net.run, 0*ms, level=2)
+        assert_raises(UnsupportedEquationsException,
+                      net.run, 0*ms, namespace={'tau': tau,
+                                                'sigma': sigma})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -192,16 +193,15 @@ def test_GSL_stochastic():
 @with_setup(teardown=reinit_devices)
 def test_GSL_error_dimension_mismatch_unit():
     try:
-        tau = 10*ms
         eqs = '''
-        dv/dt = (v0 - v)/tau : volt
+        dv/dt = (v0 - v)/(10*ms) : volt
         v0 : volt
         '''
         options = {'absolute_error_per_variable' : {'v' : 1*nS}}
         neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                              method='gsl', method_options=options)
         net = Network(neuron)
-        assert_raises(DimensionMismatchError, net.run, 0*ms, level=2)
+        assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -210,16 +210,15 @@ def test_GSL_error_dimension_mismatch_unit():
 @with_setup(teardown=reinit_devices)
 def test_GSL_error_dimension_mismatch_dimensionless1():
     try:
-        tau = 10*ms
         eqs = '''
-        dv/dt = (v0 - v)/tau : 1
+        dv/dt = (v0 - v)/(10*ms) : 1
         v0 : 1
         '''
         options = {'absolute_error_per_variable' : {'v' : 1*mV}}
         neuron = NeuronGroup(1, eqs, threshold='v > 10', reset='v = 0',
                              method='gsl', method_options=options)
         net = Network(neuron)
-        assert_raises(DimensionMismatchError, net.run, 0*ms, level=2)
+        assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -228,16 +227,15 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
 @with_setup(teardown=reinit_devices)
 def test_GSL_error_dimension_mismatch_dimensionless2():
     try:
-        tau = 10*ms
         eqs = '''
-        dv/dt = (v0 - v)/tau : volt
+        dv/dt = (v0 - v)/(10*ms) : volt
         v0 : volt
         '''
-        options = {'absolute_error_per_variable' : {'v' : 1e-3}}
+        options = {'absolute_error_per_variable': {'v': 1e-3}}
         neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                              method='gsl', method_options=options)
         net = Network(neuron)
-        assert_raises(DimensionMismatchError, net.run, 0*ms, level=2)
+        assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -246,16 +244,15 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
 @with_setup(teardown=reinit_devices)
 def test_GSL_error_nonexisting_variable():
     try:
-        tau = 10*ms
         eqs = '''
-        dv/dt = (v0 - v)/tau : volt
+        dv/dt = (v0 - v)/(10*ms) : volt
         v0 : volt
         '''
         options = {'absolute_error_per_variable' : {'dummy' : 1e-3*mV}}
         neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                              method='gsl', method_options=options)
         net = Network(neuron)
-        assert_raises(KeyError, net.run, 0*ms, level=2)
+        assert_raises(KeyError, net.run, 0*ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -264,16 +261,15 @@ def test_GSL_error_nonexisting_variable():
 @with_setup(teardown=reinit_devices)
 def test_GSL_error_incorrect_error_format():
     try:
-        tau = 10*ms
         eqs = '''
-        dv/dt = (v0 - v)/tau : volt
+        dv/dt = (v0 - v)/(10*ms) : volt
         v0 : volt
         '''
         options = {'absolute_error_per_variable': object()}
         neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                              method='gsl', method_options=options)
         net = Network(neuron)
-        assert_raises(TypeError, net.run, 0*ms, level=2)
+        assert_raises(TypeError, net.run, 0*ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -282,16 +278,15 @@ def test_GSL_error_incorrect_error_format():
 @with_setup(teardown=reinit_devices)
 def test_GSL_error_nonODE_variable():
     try:
-        tau = 10*ms
         eqs = '''
-        dv/dt = (v0 - v)/tau : volt
+        dv/dt = (v0 - v)/(10*ms) : volt
         v0 : volt
         '''
-        options = {'absolute_error_per_variable' : {'v0' : 1e-3*mV}}
+        options = {'absolute_error_per_variable': {'v0': 1e-3*mV}}
         neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                              method='gsl', method_options=options)
         net = Network(neuron)
-        assert_raises(KeyError, net.run, 0*ms, level=2)
+        assert_raises(KeyError, net.run, 0*ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -308,11 +303,11 @@ def test_GSL_error_bounds():
         '''
         stimulus = TimedArray(rand(int(runtime/(10*ms)))*3*volt, dt=5*ms)
         neuron1 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
-                                     method='gsl',
-                                     method_options={'absolute_error_per_variable':{'v':error1}}, dt=1*ms)
+                              method='gsl',
+                              method_options={'absolute_error_per_variable': {'v': error1}}, dt=1*ms)
         neuron2 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
-                                     method='gsl',
-                                     method_options={'absolute_error_per_variable':{'v':error2}}, dt=1*ms)
+                              method='gsl',
+                              method_options={'absolute_error_per_variable': {'v': error2}}, dt=1*ms)
         neuron_control = NeuronGroup(1, model=eqs, method='linear', dt=1*ms)
         mon1 = StateMonitor(neuron1, 'v', record=True)
         mon2 = StateMonitor(neuron2, 'v', record=True)
@@ -333,7 +328,7 @@ def test_GSL_save_step_count():
         dv/dt = -v/(.1*ms) : volt
         '''
         neuron = NeuronGroup(1, model=eqs, method='gsl',
-                             method_options={'save_step_count' : True}, dt=1*ms)
+                             method_options={'save_step_count': True}, dt=1*ms)
         run(0*ms)
         mon = StateMonitor(neuron, '_step_count', record=True, when='end')
         run(10*ms)
@@ -369,10 +364,10 @@ I : amp/metre**2
 def test_GSL_fixed_timestep_big_dt_small_error():
     try:
         # should raise integration error
-        neuron = NeuronGroup(1, model=HH_eqs,threshold='v > -40*mV',
-                             refractory='v > -40*mV',method='gsl',
-                             method_options={'adaptable_timestep' : False,
-                                             'absolute_error' : 1e-12},
+        neuron = NeuronGroup(1, model=HH_eqs, threshold='v > -40*mV',
+                             refractory='v > -40*mV', method='gsl',
+                             method_options={'adaptable_timestep': False,
+                                             'absolute_error': 1e-12},
                              dt=.001*ms, namespace=HH_namespace)
         neuron.I = 0.7*nA/(20000*umetre**2)
         neuron.v = HH_namespace['El']
@@ -416,9 +411,9 @@ def test_GSL_method_options_spatialneuron():
         dg/dt = siemens/metre**2/second : siemens/metre**2
         '''
         neuron1 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
-                               method='gsl_rkf45', method_options={'adaptable_timestep':True})
+                                method='gsl_rkf45', method_options={'adaptable_timestep': True})
         neuron2 = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2, Ri=100*ohm*cm,
-                               method='gsl_rkf45', method_options={'adaptable_timestep':False})
+                                method='gsl_rkf45', method_options={'adaptable_timestep': False})
         run(0*ms)
         assert 'if (gsl_odeiv2_driver_apply_fixed_step' not in str(neuron1.state_updater.codeobj.code), \
             'This neuron should not call gsl_odeiv2_driver_apply_fixed_step()'
@@ -426,6 +421,7 @@ def test_GSL_method_options_spatialneuron():
             'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
+
 
 def test_GSL_method_options_synapses():
     try:
@@ -452,17 +448,17 @@ def test_GSL_method_options_synapses():
         neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
                               method='gsl_rkf45')
         S1 = Synapses(input, neurons,
-                     '''w : 1
-                        dApre/dt = -Apre / taupre : 1 (clock-driven)
-                        dApost/dt = -Apost / taupost : 1 (clock-driven)''',
-                     method='gsl_rkf45',
-                     method_options={'adaptable_timestep':True})
+                      '''w : 1
+                         dApre/dt = -Apre / taupre : 1 (clock-driven)
+                         dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                      method='gsl_rkf45',
+                      method_options={'adaptable_timestep':True})
         S2 = Synapses(input, neurons,
-                     '''w : 1
-                        dApre/dt = -Apre / taupre : 1 (clock-driven)
-                        dApost/dt = -Apost / taupost : 1 (clock-driven)''',
-                     method='gsl_rkf45',
-                     method_options={'adaptable_timestep':False})
+                      '''w : 1
+                         dApre/dt = -Apre / taupre : 1 (clock-driven)
+                         dApost/dt = -Apost / taupost : 1 (clock-driven)''',
+                      method='gsl_rkf45',
+                      method_options={'adaptable_timestep':False})
         run(0*ms)
         assert 'if (gsl_odeiv2_driver_apply_fixed_step' not in str(S1.state_updater.codeobj.code), \
             'This state_updater should not call gsl_odeiv2_driver_apply_fixed_step()'
