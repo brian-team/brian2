@@ -113,7 +113,7 @@ before_install:
 
 # command to install dependencies
 install:
-  - conda update --yes conda
+  - conda update --yes conda python
   # For faster tests, only build conda packages for the master branch or pull requests
   - if [[ $TRAVIS_PULL_REQUEST == 'false' ]] && [[ $TRAVIS_BRANCH != 'master' ]]; then
        CONDA_BUILD='no';
