@@ -10,6 +10,7 @@ requirements:
     - setuptools >=6.0
     - numpy x.x
     - {{ compiler('cxx') }}
+    - libgcc # [not win]
 
   run:
     - python
@@ -20,6 +21,7 @@ requirements:
     - weave # [py2k]
     - bsddb # [py2k and not win]
     - {{ compiler('cxx') }}
+    - libgcc # [not win]
     - gsl >1.15
     - cython >=0.18
     - jinja2 >=2.7
