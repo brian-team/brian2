@@ -1,0 +1,9 @@
+axes.linewidth : 1
+xtick.labelsize : 8
+ytick.labelsize : 8
+axes.labelsize : 8
+lines.linewidth : 1
+lines.markersize : 2
+legend.frameon : False
+legend.fontsize : 8
+axes.prop_cycle : cycler(color=['e41a1c', '377eb8', '4daf4a', '984ea3', 'ff7f00', 'ffff33'])
