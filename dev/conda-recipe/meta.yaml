@@ -9,7 +9,6 @@ requirements:
     - cython >=0.18
     - setuptools >=6.0
     - numpy x.x
-    - {{ compiler('cxx') }}
 
   run:
     - python
@@ -19,7 +18,6 @@ requirements:
     - scipy >=0.13.3
     - weave # [py2k]
     - bsddb # [py2k and not win]
-    - {{ compiler('cxx') }}
     - gsl >1.15
     - cython >=0.18
     - jinja2 >=2.7
