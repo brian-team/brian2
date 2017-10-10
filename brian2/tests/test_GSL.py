@@ -269,7 +269,12 @@ def test_GSL_error_incorrect_error_format():
         neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                              method='gsl', method_options=options)
         net = Network(neuron)
+        options2 = {'absolute_error': 'not a float'}
+        neuron2 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
+                             method='gsl', method_options=options2)
+        net2 = Network(neuron2)
         assert_raises(TypeError, net.run, 0*ms, namespace={})
+        assert_raises(TypeError, net2.run, 0 * ms, namespace={})
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
 
@@ -298,6 +303,7 @@ def test_GSL_error_bounds():
         runtime = 50*ms
         error1 = 1e-2*volt
         error2 = 1e-4*volt
+        error3 = 1e-6*volt  # default error
         eqs = '''
         dv/dt = (stimulus(t) + -v)/(.1*ms) : volt
         '''
@@ -308,18 +314,68 @@ def test_GSL_error_bounds():
         neuron2 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
                               method='gsl',
                               method_options={'absolute_error_per_variable': {'v': error2}}, dt=1*ms)
+        neuron3 = NeuronGroup(1, model=eqs, reset='v=0*mV', threshold='v>10*volt',
+                              method='gsl',
+                              method_options={'absolute_error_per_variable': {}}, dt=1*ms)  # Uses default error
         neuron_control = NeuronGroup(1, model=eqs, method='linear', dt=1*ms)
         mon1 = StateMonitor(neuron1, 'v', record=True)
         mon2 = StateMonitor(neuron2, 'v', record=True)
+        mon3 = StateMonitor(neuron3, 'v', record=True)
         mon_control = StateMonitor(neuron_control, 'v', record=True)
         run(runtime)
         err1 = abs(mon1.v[0] - mon_control.v[0])
         err2 = abs(mon2.v[0] - mon_control.v[0])
+        err3 = abs(mon3.v[0] - mon_control.v[0])
         assert max(err1) < error1, ("Error bound exceeded, error bound: %e, obtained error: %e"%(error1, max(err1)))
         assert max(err2) < error2, ("Error bound exceeded")
+        assert max(err3) < error3, ("Error bound exceeded")
         assert max(err1) > max(err2), ("The simulation with smaller error bound produced a bigger maximum error")
+        assert max(err2) > max(err3), ("The simulation with smaller error bound produced a bigger maximum error")
     except NotImplementedError:
         raise SkipTest('GSL support for numpy has not been implemented yet')
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_GSL_non_autonomous():
+    eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
+             freq : Hz'''
+    neuron = NeuronGroup(10, eqs, method='gsl')
+    neuron.freq = 'i*10*Hz + 10*Hz'
+    neuron2 = NeuronGroup(10, eqs, method='euler')
+    neuron2.freq = 'i*10*Hz + 10*Hz'
+    mon = StateMonitor(neuron, 'v', record=True)
+    mon2 = StateMonitor(neuron2, 'v', record=True)
+    run(20*ms)
+    abs_err = np.abs(mon.v.T - mon2.v.T)
+    assert np.max(abs_err) < 1e-12
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_GSL_non_autonomous():
+    eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
+             freq : Hz'''
+    neuron = NeuronGroup(10, eqs, method='gsl')
+    neuron.freq = 'i*10*Hz + 10*Hz'
+    neuron2 = NeuronGroup(10, eqs, method='euler')
+    neuron2.freq = 'i*10*Hz + 10*Hz'
+    mon = StateMonitor(neuron, 'v', record=True)
+    mon2 = StateMonitor(neuron2, 'v', record=True)
+    run(20*ms)
+    abs_err = np.abs(mon.v.T - mon2.v.T)
+    assert np.max(abs_err) < 1e-12
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_GSL_refractory():
+    eqs = '''dv/dt = 100*Hz : 1 (unless refractory)'''
+    neuron = NeuronGroup(1, eqs, method='gsl', threshold='v>1', reset='v=0', refractory=3*ms)
+    neuron2 = NeuronGroup(1, eqs, method='euler', threshold='v>1', reset='v=0', refractory=3*ms)
+    mon = SpikeMonitor(neuron, 'v')
+    mon2 = SpikeMonitor(neuron2, 'v')
+    run(20*ms)
+    assert mon.count[0] == mon2.count[0]
 
 
 def test_GSL_save_step_count():
@@ -483,6 +539,8 @@ if __name__ == '__main__':
               test_GSL_error_incorrect_error_format,
               test_GSL_error_nonODE_variable,
               test_GSL_error_bounds,
+              test_GSL_non_autonomous,
+              test_GSL_refractory,
               test_GSL_save_step_count,
               test_GSL_fixed_timestep_big_dt_small_error,
               test_GSL_method_options_neurongroup,

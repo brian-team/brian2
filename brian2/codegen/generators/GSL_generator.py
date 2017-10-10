@@ -455,7 +455,7 @@ class GSLCodeGenerator(object):
 
         if not isinstance(abs_default, float):
             raise TypeError(("The absolute_error key in method_options should be "
-                             "a float. Was type %s"%(str(type(abs_default)))))
+                             "a float. Was type %s" % (str(type(abs_default)))))
 
         if abs_per_var is None:
             diff_scale = {var: float(abs_default) for var in diff_vars.keys()}
@@ -479,7 +479,7 @@ class GSLCodeGenerator(object):
             # set the variables that are not mentioned to default value
             for var in diff_vars.keys():
                 if var not in abs_per_var:
-                    diff_scale[var] = float(abs_per_var)
+                    diff_scale[var] = float(abs_default)
         else:
             raise TypeError(("The absolute_error_per_variable key in method_options "
                              "should either be None or a dictionary "
@@ -698,9 +698,9 @@ class GSLCodeGenerator(object):
                 code = re.sub(re.sub('\[','\[', from_sub), to_sub, code)
 
         if '_gsl' in code:
-            raise Exception(('Translation failed, _gsl still in code (should only '
+            raise AssertionError(('Translation failed, _gsl still in code (should only '
                              'be tag, and should be replaced.\n'
-                             'Code:\n%s'%code))
+                             'Code:\n%s' % code))
 
         return code
 
@@ -743,13 +743,13 @@ class GSLCodeGenerator(object):
                 try:
                     self.variables_to_be_processed.remove(var)
                 except KeyError:
-                    raise Exception(("Trying to process variable named %s by "
-                                     "putting its value in the _GSL_dataholder "
-                                     "based on scalar code, but the variable "
-                                     "has been processed already."%var))
+                    raise AssertionError(("Trying to process variable named %s by "
+                                          "putting its value in the _GSL_dataholder "
+                                          "based on scalar code, but the variable "
+                                          "has been processed already." % var))
                 code += ['_GSL_dataholder.{var} {op} {expr} {comment}'.format(
                         var=var, op=op, expr=expr, comment=comment)]
-        return ('\n').join(code)
+        return '\n'.join(code)
 
     def add_gsl_variables_as_non_scalar(self, diff_vars):
         '''
@@ -929,12 +929,12 @@ class GSLCodeGenerator(object):
                                                     variables_in_scalar,
                                                     variables_in_vector)
         if len(self.variables_to_be_processed) > 0:
-            raise Exception(("Not all variables that will be used in the vector "
-                             "code have been added to the _GSL_dataholder. This "
-                             "might mean that the _GSL_func is using unitialized "
-                             "variables."
-                             "\nThe unprocessed variables "
-                             "are: %s"%(str(self.variables_to_be_processed))))
+            raise AssertionError(("Not all variables that will be used in the vector "
+                                  "code have been added to the _GSL_dataholder. This "
+                                  "might mean that the _GSL_func is using unitialized "
+                                  "variables."
+                                  "\nThe unprocessed variables "
+                                  "are: %s" % (str(self.variables_to_be_processed))))
 
         scalar_code['GSL'] = GSL_main_code
         kwds['GSL_settings'] = dict(self.method_options)
@@ -970,12 +970,6 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
 
     def var_init_lhs(self, var, type):
         return var
-
-    def var_declare(self, type, name, in_struct=False):
-        if in_struct:
-            return type + ' ' + name
-        else:
-            return 'cdef ' + type + ' ' + name
 
     def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
         code = []
