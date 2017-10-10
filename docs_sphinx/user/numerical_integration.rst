@@ -97,17 +97,17 @@ Integrating with an adaptable timestep comes with two advantages:
 
 In addition to a choice between different integration methods, there is a few more
 options that can be specified when using GSL. These options can be specified by
-sending a dictionary as the method_options key upon initialization of the object
+sending a dictionary as the ``method_options`` key upon initialization of the object
 using the integrator (`NeuronGroup`, `Synapses` or `SpatialNeuron`).
 The available method options are:
 
 * ``'adaptable_timestep'``: whether or not to let GSL reduce the timestep to
   achieve the accuracy defined with the ``'absolute_error'`` and
-  ``'absolute_error_per_variable'`` options described below. If this is set to False,
-  the timestep defined under the option ``'dt_start'`` is used. If the resulted
-  estimated error exceeds the set error bounds, the simulation is aborted. When using
-  cython or weave this is reported with an `IntegrationError`.
-  Defaults to True.
+  ``'absolute_error_per_variable'`` options described below. If this is set to ``False``,
+  the timestep is determined by Brian (i.e. the ``dt`` of the respective clock is used, see :ref:`scheduling`).
+  If the resulted estimated error exceeds the set error bounds, the simulation
+  is aborted. When using cython or weave this is reported with an `IntegrationError`.
+  Defaults to ``True``.
 * ``'absolute_error'``: each of the methods has a way of estimating the error that
   is the result of using numerical integration. You can specify the maximum size of this
   error to be allowed for any of the to-be-integrated variables in base units with this
@@ -143,4 +143,5 @@ Note that at the moment recording ``'_last_timestep'``, ``'_failed_steps'``, or 
 requires a call to `run` (e.g. with 0 ms) to trigger the code generation process, before the
 call to `StateMonitor`.
 
-More information on the GSL ODE solver itself can be found in its documentation.
+More information on the GSL ODE solver itself can be found in its
+`documentation <https://www.gnu.org/software/gsl/manual/html_node/Ordinary-Differential-Equations.html>`_.
