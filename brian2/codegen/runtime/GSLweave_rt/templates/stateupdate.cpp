@@ -46,11 +46,14 @@ for(int _idx=0; _idx<_N; _idx++)
         {% if cpp_standalone %}
         exit(1);
         {% else %}
-        PyErr_SetString(PyExc_RuntimeError, ("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
-                                           "\nIf adaptable_timestep is set to False: "
-                                           "\n   the size of the timestep results in an error larger than that set by absolute_error."
-                                           "\nIf adaptable_timestep is set to True:"
-                                           "\n   the desired absolute_error cannot be achieved with current settings, try bigger error?."));
+        PyErr_SetString(PyExc_RuntimeError, ("GSL integrator failed to integrate the equations."
+            {% if GSL_settings['adaptable_timestep'] %}
+                                           "\nThis means that the desired error cannot be achieved with the given maximum number of steps. "
+                                           "Try using a larger error or a larger number of steps."
+            {% else %}
+                                           "\n This means that the size of the timestep results in an error larger than that set by absolute_error."
+            {% endif %}
+                                           ));
         throw 1;
         {% endif %}
     }

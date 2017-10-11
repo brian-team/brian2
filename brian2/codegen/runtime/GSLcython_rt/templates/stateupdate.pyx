@@ -108,11 +108,14 @@ cdef extern from "gsl/gsl_odeiv2.h":
         {% endif %}
         if ({{'gsl_odeiv2_driver_apply(_GSL_driver, &t, t1, _GSL_y)' if GSL_settings['adaptable_timestep']
                     else 'gsl_odeiv2_driver_apply_fixed_step(_GSL_driver, &t, dt, 1, _GSL_y)'}} != GSL_SUCCESS):
-            raise IntegrationError(("GSL integrator returned integration error. Reasons for this (amongst others) could be:"
-                                    "\nIf adaptable_timestep is set to False: "
-                                    "\n   the size of the timestep results in an error larger than that set by absolute_error."
-                                    "\nIf adaptable_timestep is set to True:"
-                                    "\n   the desired absolute_error cannot be achieved with current settings."))
+            raise IntegrationError(("GSL integrator failed to integrate the equations."
+            {% if GSL_settings['adaptable_timestep'] %}
+                                           "\nThis means that the desired error cannot be achieved with the given maximum number of steps. "
+                                           "Try using a larger error or a larger number of steps."
+            {% else %}
+                                           "\n This means that the size of the timestep results in an error larger than that set by absolute_error."
+            {% endif %}
+                                           ))
         _empty_y_vector(_GSL_dataholder, _GSL_y, _idx)
         {%if GSL_settings['use_last_timestep']%}
         {{pointer_last_timestep}} = _GSL_driver.h
