@@ -53,6 +53,10 @@ cdef extern from "gsl/gsl_odeiv2.h":
         gsl_odeiv2_driver *_GSL_driver, const double hstart)
     int gsl_odeiv2_driver_reset(
         gsl_odeiv2_driver *GSL_driver)
+    int gsl_odeiv2_driver_set_nmax(
+        gsl_odeiv2_driver *GSL_driver, const unsigned long int nmax)
+    int gsl_odeiv2_driver_set_hmax(
+        gsl_odeiv2_driver *GSL_driver, const double hmax)
 
     gsl_odeiv2_driver *gsl_odeiv2_driver_alloc_scaled_new(
         gsl_odeiv2_system *_sys, gsl_odeiv2_step_type *T,
@@ -85,8 +89,9 @@ cdef extern from "gsl/gsl_odeiv2.h":
     _sys.params = _GSL_dataholder
 
     cdef gsl_odeiv2_driver * _GSL_driver = gsl_odeiv2_driver_alloc_scaled_new(&_sys,gsl_odeiv2_step_{{GSL_settings['integrator']}},
-                                              {{GSL_settings['dt_start']}},1,0,0,0,_GSL_scale_array);
-
+                                              {{GSL_settings['dt_start']}},1, 0, 0, 0, _GSL_scale_array)
+    gsl_odeiv2_driver_set_nmax(_GSL_driver, {{GSL_settings['max_steps']}})
+    gsl_odeiv2_driver_set_hmax(_GSL_driver, {{GSL_settings['dt_start']}})
     # vector code
     for _idx in range(N):
         _vectorisation_idx = _idx

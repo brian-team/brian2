@@ -15,6 +15,7 @@ default_method_options = {
     'adaptable_timestep': True,
     'absolute_error': 1e-6,
     'absolute_error_per_variable': None,
+    'max_steps': 100,
     'use_last_timestep': True,
     'save_failed_steps': False,
     'save_step_count': False

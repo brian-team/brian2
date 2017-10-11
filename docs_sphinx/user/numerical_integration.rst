@@ -119,6 +119,12 @@ The available method options are:
   units. Variables for which the error is not specified use the error set with the
   ``'absolute_error'`` option.
   Defaults to None.
+* ``'max_steps'``: The maximal number of steps that the integrator will take within a
+  single "Brian timestep" in order to reach the given error criterion. Can be set to
+  0 to not set any limits. Note that without limits, it can take a very long time
+  until the integrator figures out that it cannot reach the desired error level. This
+  will manifest as a simulation that appears to be stuck.
+  Defaults to 100.
 * ``'use_last_timestep'``: with the ``'adaptable_timestep'`` option set to True, GSL tries
   different time steps to find a solution that satisfies the set error bounds.
   It is likely that for Brian's next time step the GSL time step
