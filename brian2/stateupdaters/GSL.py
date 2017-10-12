@@ -21,6 +21,7 @@ default_method_options = {
     'save_step_count': False
 }
 
+
 class GSLContainer(object):
     '''
     Class that contains information (equation- or integrator-related) required
@@ -45,7 +46,9 @@ class GSLContainer(object):
 
         Returns
         -------
-        CodeObject : `GSLWeaveCodeObject`, `GSLCythonCodeObject` or `GSLCPPStandaloneCodeObject`.
+        code_object : class
+            The respective `CodeObject` class (i.e. either `GSLWeaveCodeObject`,
+            `GSLCythonCodeObject`, or `GSLCPPStandaloneCodeObject`).
         '''
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
@@ -94,7 +97,7 @@ class GSLContainer(object):
 
         Returns
         -------
-        str
+        abstract_code : str
             The abstract code (translated equations), that is returned conventionally
             by brian and used for later code generation in the `CodeGenerator.translate` method.
         '''
@@ -127,7 +130,7 @@ class GSLStateUpdater(StateUpdateMethod):
 
         Returns
         -------
-        method
+        method : callable
             Method that needs to be called with `StateUpdater` to add CodeObject
             class and some other variables so these can be sent to the `CodeGenerator`
         '''
