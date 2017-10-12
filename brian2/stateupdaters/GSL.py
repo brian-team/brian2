@@ -2,6 +2,8 @@
 Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
 '''
+import sys
+
 from .base import (StateUpdateMethod, UnsupportedEquationsException, extract_method_options)
 from ..core.preferences import prefs
 from ..devices.device import auto_target
@@ -59,6 +61,26 @@ class GSLContainer(object):
         device = get_device()
         if isinstance(device, CPPStandaloneDevice):
             from ..devices.cpp_standalone.GSLcodeobject import GSLCPPStandaloneCodeObject
+            # In runtime mode (i.e. weave and Cython), the compiler settings are
+            # added for each `CodeObject` (only the files that use the GSL are
+            # linked to the GSL). However, in C++ standalone mode, there are global
+            # compiler settings that are used for all files (stored in the
+            # `CPPStandaloneDevice`). Furthermore, header file includes are directly
+            # inserted into the template instead of added during the compilation
+            # phase (as done in weave). Therefore, we have to add the options here
+            # instead of in `GSLCPPStandaloneCodeObject`
+            # Add the GSL library if it has not yet been added
+            if 'gsl' not in device.libraries:
+                device.libraries += ['gsl', 'gslcblas']
+                device.headers += ['<stdio.h>', '<stdlib.h>',
+                                   '<gsl/gsl_odeiv2.h>',
+                                   '<gsl/gsl_errno.h>',
+                                   '<gsl/gsl_matrix.h>']
+                if sys.platform == 'win32':
+                    device.define_macros += [('WIN32', '1'),
+                                             ('GSL_DLL', '1')]
+                if prefs.GSL.directory is not None:
+                    device.include_dirs += [prefs.GSL.directory]
             return GSLCPPStandaloneCodeObject
 
         if prefs.codegen.target == 'auto':
