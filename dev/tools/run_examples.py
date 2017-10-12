@@ -43,9 +43,13 @@ try:
     from brian2 import prefs
     from brian2.utils.filetools import ensure_directory_of_file
     prefs.codegen.target = '{target}'
-    # add the files directory to the path so that it can do relative imports
-    sys.path.append(os.path.dirname(os.path.realpath(r'{fname}')))
-    exec(compile(open(r'{fname}', "rb").read(), r'{fname}', 'exec'))
+    # Move to the file's directory for the run, so that it can do relative
+    # imports and load files (e.g. figure style files)
+    curdir = os.getcwd()
+    os.chdir(os.path.dirname(r'{fname}'))
+    rel_fname = os.path.basename(r'{fname}')
+    exec(compile(open(rel_fname, "rb").read(), rel_fname, 'exec'))
+    os.chdir(curdir)
     if '{target}'=='cython':
         for fignum in _mpl.pyplot.get_fignums():
             fname = r'{fname}'
@@ -111,7 +115,7 @@ class SelectFilesPlugin(Plugin):
             for subname in os.listdir(name):
                 examples.extend(self.find_examples(os.path.join(name, subname)))
             return examples
-        elif name.endswith('.py'):  # only execute Python scripts
+        elif name.endswith('.py') and os.path.basename(name).startswith('example'):  # only execute Python scripts
             return [name]
         else:
             return []
