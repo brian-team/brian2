@@ -33,8 +33,6 @@ the ``method`` keyword for `NeuronGroup`, `Synapses`, or `SpatialNeuron`.
 The complete list of available methods is the following:
 
 * ``'exact'``: exact integration for linear equations (alternative name: ``'linear'``)
-* ``'independent'``: exact integration for a system of independent equations,
-  where all the equations can be analytically solved independently
 * ``'exponential_euler'``: exponential Euler integration for conditionally
   linear equations
 * ``'euler'``: forward Euler integration (for additive stochastic
@@ -45,6 +43,13 @@ The complete list of available methods is the following:
   differential equations with non-diagonal multiplicative noise.
 * ``'milstein'``: derivative-free Milstein method for solving stochastic
   differential equations with diagonal multiplicative noise
+
+.. note::
+
+  The ``'independent'`` integration method (exact integration for a system of
+  independent equations, where all the equations can be analytically solved
+  independently) should no longer be used and might be removed in future
+  versions of Brian.
 
 .. admonition:: The following topics are not essential for beginners.
 
