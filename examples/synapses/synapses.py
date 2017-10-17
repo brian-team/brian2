@@ -4,10 +4,10 @@ A simple example of using `Synapses`.
 from brian2 import *
 
 G1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
-                 threshold='v > 1', reset='v=0.', method='linear')
+                 threshold='v > 1', reset='v=0.', method='exact')
 G1.v = 1.2
 G2 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
-                 threshold='v > 1', reset='v=0', method='linear')
+                 threshold='v > 1', reset='v=0', method='exact')
  
 syn = Synapses(G1, G2, 'dw/dt = -w / (50*ms): 1 (event-driven)', on_pre='v += w')
 

@@ -163,12 +163,12 @@ Y_S += rho_c * Y_T * r_S
 '''
 exc_syn = Synapses(exc_neurons, neurons, model=synapses_eqs,
                    on_pre=synapses_action+'g_e_post += w_e*r_S',
-                   method='linear')
+                   method='exact')
 exc_syn.connect(True, p=0.05)
 exc_syn.x_S = 1.0
 inh_syn = Synapses(inh_neurons, neurons, model=synapses_eqs,
                    on_pre=synapses_action+'g_i_post += w_i*r_S',
-                   method='linear')
+                   method='exact')
 inh_syn.connect(True, p=0.2)
 inh_syn.x_S = 1.0
 # Connect excitatory synapses to an astrocyte depending on the position of the

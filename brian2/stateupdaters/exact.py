@@ -12,9 +12,10 @@ from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
 from brian2.utils.logger import get_logger
 
-__all__ = ['linear', 'independent']
+__all__ = ['linear', 'exact', 'independent']
 
 logger = get_logger(__name__)
+
 
 def get_linear_system(eqs, variables):
     '''
@@ -232,3 +233,4 @@ class LinearStateUpdater(StateUpdateMethod):
 
 independent = IndependentStateUpdater()
 linear = LinearStateUpdater()
+exact = linear

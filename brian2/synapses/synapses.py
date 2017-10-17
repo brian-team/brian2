@@ -640,7 +640,7 @@ class Synapses(Group):
                  namespace=None, dtype=None,
                  codeobj_class=None,
                  dt=None, clock=None, order=0,
-                 method=('linear', 'euler', 'heun'),
+                 method=('exact', 'euler', 'heun'),
                  name='synapses*'):
         if connect is not None:
             raise TypeError('The connect keyword argument is no longer '

@@ -114,7 +114,7 @@ Y_S += rho_c * Y_T * r_S
 '''
 synapses = Synapses(source_neurons, target_neurons,
                     model=synapses_eqs, on_pre=synapses_action,
-                    method='linear')
+                    method='exact')
 # We create three synapses, only the second and third ones are modulated by astrocytes
 synapses.connect(True, n=3)
 

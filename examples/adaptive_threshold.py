@@ -14,7 +14,7 @@ vt += 3*mV
 '''
 
 IF = NeuronGroup(1, model=eqs, reset=reset, threshold='v>vt',
-                 method='linear')
+                 method='exact')
 IF.vt = 10*mV
 PG = PoissonGroup(1, 500 * Hz)
 

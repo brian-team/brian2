@@ -121,7 +121,7 @@ Nrn_downstream = NeuronGroup(Nr_neurons, eqs_neurons, threshold='v>V_thresh',
                              method='euler')
 Nrns_input = NeuronGroup(Nr_inputs, eqs_inputs, threshold='rand()<rates*dt',
                          reset='v=V_rest;x_trace+=x_reset/(taux/ms)',
-                         method='linear')
+                         method='exact')
 
 #### create Synapses
 

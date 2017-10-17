@@ -1142,7 +1142,7 @@ def test_scalar_subexpression():
 @with_setup(teardown=reinit_devices)
 def test_sim_with_scalar_variable():
     G = NeuronGroup(10, '''tau : second (shared)
-                           dv/dt = -v/tau : 1''', method='linear')
+                           dv/dt = -v/tau : 1''', method='exact')
     G.tau = 10*ms
     G.v = '1.0*i/N'
     run(1*ms)
@@ -1153,7 +1153,7 @@ def test_sim_with_scalar_variable():
 @with_setup(teardown=reinit_devices)
 def test_sim_with_scalar_subexpression():
     G = NeuronGroup(10, '''tau = 10*ms : second (shared)
-                           dv/dt = -v/tau : 1''', method='linear')
+                           dv/dt = -v/tau : 1''', method='exact')
     G.v = '1.0*i/N'
     run(1*ms)
     assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
