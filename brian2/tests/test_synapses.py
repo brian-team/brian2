@@ -590,6 +590,7 @@ def test_state_variable_indexing():
     assert len(S.w[:]) == len(S.w[0:])
     assert len(S.w[[0, 1]]) == len(S.w[3:5]) == 2
     assert len(S.w[:]) == len(S.w[np.arange(len(G1)*len(G2)*2)])
+    assert S.w[3] == S.w[np.int32(3)] == S.w[np.int64(3)]  # See issue #888
 
     #Array-indexing (not yet supported for synapse index)
     assert_equal(S.w[:, 0:3], S.w[:, [0, 1, 2]])
@@ -605,6 +606,7 @@ def test_state_variable_indexing():
     #invalid indices
     assert_raises(IndexError, lambda: S.w.__getitem__((1, 2, 3, 4)))
     assert_raises(IndexError, lambda: S.w.__getitem__(object()))
+    assert_raises(IndexError, lambda: S.w.__getitem__(1.5))
 
 
 def test_indices():

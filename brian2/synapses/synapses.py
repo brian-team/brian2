@@ -478,7 +478,7 @@ class SynapticIndexing(object):
             index = slice(None)
 
         if (not isinstance(index, (tuple, basestring)) and
-                (isinstance(index, (int, np.ndarray, slice,
+                (isinstance(index, (numbers.Integral, np.ndarray, slice,
                                    collections.Sequence))
                  or hasattr(index, '_indices'))):
             if hasattr(index, '_indices'):
@@ -526,7 +526,7 @@ class SynapticIndexing(object):
                                      'to switch on the calculation of the '
                                      '"multisynaptic_index" when you create '
                                      'the Synapses object.')
-                if isinstance(K, (int, slice)):
+                if isinstance(K, (numbers.Integral, slice)):
                     test_k = slice_to_test(K)
                 else:
                     raise NotImplementedError(('Indexing synapses with arrays not'
