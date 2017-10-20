@@ -124,7 +124,7 @@ Y_S += rho_c * Y_T * r_S
 '''
 synapses = Synapses(source_neurons, target_neurons,
                     model=synapses_eqs, on_pre=synapses_action,
-                    method='linear')
+                    method='exact')
 # We create three synapses per connection: only the first two are modulated by
 # the astrocyte however. Note that we could also create three synapses per
 # connection with a single connect call by using connect(j='i', n=3), but this

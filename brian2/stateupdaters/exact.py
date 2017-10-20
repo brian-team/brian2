@@ -12,9 +12,10 @@ from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
 from brian2.utils.logger import get_logger
 
-__all__ = ['linear', 'independent']
+__all__ = ['linear', 'exact', 'independent']
 
 logger = get_logger(__name__)
+
 
 def get_linear_system(eqs, variables):
     '''
@@ -77,9 +78,15 @@ class IndependentStateUpdater(StateUpdateMethod):
     A state update for equations that do not depend on other state variables,
     i.e. 1-dimensional differential equations. The individual equations are
     solved by sympy.
+
+    .. deprecated:: 2.1
+        This method might be removed from future versions of Brian.
     '''
 
     def __call__(self, equations, variables=None):
+        logger.warn("The 'independent' state updater is deprecated and might be "
+                    "removed in future versions of Brian.",
+                    'deprecated_independent', once=True)
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '
@@ -92,9 +99,6 @@ class IndependentStateUpdater(StateUpdateMethod):
         t = Symbol('t', real=True, positive=True)
         dt = Symbol('dt', real=True, positive=True)
         t0 = Symbol('t0', real=True, positive=True)
-        f0 = Symbol('f0', real=True)
-        # TODO: Shortcut for simple linear equations? Is all this effort really
-        #       worth it?
 
         code = []
         for name, expression in diff_eqs:
@@ -230,5 +234,7 @@ class LinearStateUpdater(StateUpdateMethod):
     def __repr__(self):
         return '%s()' % self.__class__.__name__
 
+
 independent = IndependentStateUpdater()
 linear = LinearStateUpdater()
+exact = linear

@@ -233,7 +233,7 @@ class STDP(SpeedTest):
 
         input = PoissonGroup(N, rates=F)
         neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
-                              method='linear')
+                              method='exact')
         S = Synapses(input, neurons,
                      '''w : 1
                         dApre/dt = -Apre / taupre : 1 (event-driven)

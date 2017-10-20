@@ -43,7 +43,7 @@ wi = (vmean-El-lambdae*ne*we*taue)/(lambdae*ni*taui)
 # NeuronGroup definition
 group = NeuronGroup(N=2, model=eqs, reset='v = El',
                     threshold='v>theta',
-                    refractory=5*ms, method='linear')
+                    refractory=5*ms, method='exact')
 group.v = El
 group.ge = group.gi = 0
 

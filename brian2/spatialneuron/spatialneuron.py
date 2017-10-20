@@ -226,7 +226,7 @@ class SpatialNeuron(NeuronGroup):
                  threshold_location=None,
                  dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
                  name='spatialneuron*', dtype=None, namespace=None,
-                 method=('linear', 'exponential_euler', 'rk2', 'heun')):
+                 method=('exact', 'exponential_euler', 'rk2', 'heun')):
 
         # #### Prepare and validate equations
         if isinstance(model, basestring):

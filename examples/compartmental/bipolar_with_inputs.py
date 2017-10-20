@@ -33,7 +33,7 @@ taus = 1*ms
 w = 20*nS
 S = Synapses(stimulation, neuron, model='''dg/dt = -g/taus : siemens (clock-driven)
                                            gs_post = g : siemens (summed)''',
-             on_pre='g += w', method='linear')
+             on_pre='g += w', method='exact')
 
 S.connect(i=0, j=morpho.L[-1])
 S.connect(i=1, j=morpho.R[-1])

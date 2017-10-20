@@ -147,7 +147,7 @@ install:
 script:
 - if [[ $CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    for NUMPY_VERSION in 1.10 1.11 1.12 1.13; do
+    for NUMPY_VERSION in 1.12 1.13; do
       conda build --quiet -c conda-forge dev/conda-recipe --numpy $NUMPY_VERSION;
     done;
     source activate travis_conda;

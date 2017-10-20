@@ -477,7 +477,7 @@ def test_determination():
     
     # Specification with names
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
-    for name, integrator in [('linear', linear), ('euler', euler),
+    for name, integrator in [('exact', exact), ('linear', linear), ('euler', euler),
                              #('independent', independent), #TODO: Removed "independent" here due to the issue in sympy 0.7.4
                              ('exponential_euler', exponential_euler),
                              ('rk2', rk2), ('rk4', rk4),
@@ -490,7 +490,7 @@ def test_determination():
 
     # Now all except heun and milstein should refuse to work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
-    for name in ['linear', 'independent', 'euler', 'exponential_euler',
+    for name in ['linear', 'exact', 'independent', 'euler', 'exponential_euler',
                  'rk2', 'rk4']:
         assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs,
                                                                                 variables,
@@ -516,12 +516,12 @@ def test_determination():
     # additive noise, heun for equations with multiplicative noise
     # Because it is somewhat fragile, the "independent" state updater is not
     # included in this list
-    all_methods = ['linear', 'exponential_euler', 'euler', 'heun', 'milstein']
+    all_methods = ['linear', 'exact', 'exponential_euler', 'euler', 'heun', 'milstein']
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     with catch_logs(log_level=logging.INFO) as logs:
         apply_stateupdater(eqs, variables, all_methods)
         assert len(logs) == 1
-        assert 'linear' in logs[0][2]
+        assert ('linear' in logs[0][2]) or ('exact' in logs[0][2])
     
     # This is conditionally linear
     eqs = Equations('''dv/dt = -(v + w**2)/ (10*ms) : 1
@@ -614,7 +614,7 @@ def test_locally_constant_check():
     for ta_func, ok in zip([ta0, ta1, ta2, ta3], [True, True, False, False]):
         # additive
         G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + ta(t)*Hz : 1',
-                        method='linear', namespace={'ta': ta_func})
+                        method='exact', namespace={'ta': ta_func})
         net = Network(G)
         if ok:
             # This should work
@@ -626,7 +626,7 @@ def test_locally_constant_check():
 
         # multiplicative
         G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
-                        method='linear', namespace={'ta': ta_func})
+                        method='exact', namespace={'ta': ta_func})
         net = Network(G)
         if ok:
             # This should work
@@ -639,30 +639,30 @@ def test_locally_constant_check():
     # If the argument is more than just "t", we cannot guarantee that it is
     # actually locally constant
     G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
-                        method='linear', namespace={'ta': ta0})
+                        method='exact', namespace={'ta': ta0})
     net = Network(G)
     assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
-                    method='linear')
+                    method='exact')
     net = Network(G)
     assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # Stateful functions aren't either
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
-                    method='linear')
+                    method='exact')
     net = Network(G)
     assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # Neither is "t" itself
-    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='linear')
+    G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='exact')
     net = Network(G)
     assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
-                    method='linear')
+                    method='exact')
     net = Network(G)
     net.run(0*ms)
 
@@ -672,7 +672,7 @@ def test_refractory():
     # refractory period and therefore the results should be exactly identical
     # with and without (unless refractory)
     eqs_base = 'dv/dt = -v/(10*ms) : 1'
-    for method in ['linear', 'independent', 'euler', 'exponential_euler', 'rk2', 'rk4']:
+    for method in ['linear', 'exact', 'independent', 'euler', 'exponential_euler', 'rk2', 'rk4']:
         G_no_ref = NeuronGroup(10, eqs_base, method=method)
         G_no_ref.v = '(i+1)/11.'
         G_ref = NeuronGroup(10, eqs_base + '(unless refractory)',
@@ -718,7 +718,7 @@ def test_check_for_invalid_values_linear_integrator():
     dx/dt = a * x + b * y : 1
     dy/dt = c * x + d * y : 1
     '''
-    G = NeuronGroup(1, eqs, threshold='x > 100', reset='x = 0', method='linear')
+    G = NeuronGroup(1, eqs, threshold='x > 100', reset='x = 0', method='exact')
     G.x = 1
     BrianLogger._log_messages.clear() # because the log message is set to be shown only once
     with catch_logs() as clog:
