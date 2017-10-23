@@ -135,6 +135,8 @@ class GSLStateUpdater(StateUpdateMethod):
     '''
     A statupdater that rewrites the differential equations so that the GSL generator
     knows how to write the code in the target language.
+
+    .. versionadded:: 2.1
     '''
     def __init__(self, integrator):
         self.integrator = integrator
