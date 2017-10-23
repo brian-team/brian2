@@ -111,9 +111,11 @@ class CPPWriter(object):
             return
         fullfilename = os.path.join(self.project_dir, filename)
         if os.path.exists(fullfilename):
-            if open(fullfilename, 'r').read()==contents:
-                return
-        open(fullfilename, 'w').write(contents)
+            with open(fullfilename, 'r') as f:
+                if f.read()==contents:
+                    return
+        with open(fullfilename, 'w') as f:
+            f.write(contents)
 
 
 def invert_dict(x):
@@ -939,7 +941,8 @@ class CPPStandaloneDevice(Device):
                                    "%s)" % os.path.abspath(directory))
             self.has_been_run = True
             if os.path.isfile('results/last_run_info.txt'):
-                last_run_info = open('results/last_run_info.txt', 'r').read()
+                with open('results/last_run_info.txt', 'r') as f:
+                    last_run_info = f.read()
                 self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
 
         # Make sure that integration did not create NaN or very large values
