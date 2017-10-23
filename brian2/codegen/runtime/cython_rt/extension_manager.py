@@ -185,9 +185,10 @@ class CythonExtensionManager(object):
             pyx_file = os.path.join(lib_dir, module_name + '.pyx')
             # ignore Python 3 unicode stuff for the moment
             #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
-            #with io.open(pyx_file, 'w') as f:#, encoding='utf-8') as f:
+            #with io.open(pyx_file, 'w', encoding='utf-8') as f:
             #    f.write(code)
-            open(pyx_file, 'w').write(code)
+            with open(pyx_file, 'w') as f:
+                f.write(code)
 
             update_for_cross_compilation(library_dirs,
                                          extra_compile_args,
