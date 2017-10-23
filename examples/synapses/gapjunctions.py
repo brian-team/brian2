@@ -14,7 +14,7 @@ Igap : 1 # gap junction current
 '''
 
 neurons = NeuronGroup(n, eqs, threshold='v > 1', reset='v = 0',
-                      method='linear')
+                      method='exact')
 neurons.v = 'i * 1.0 / (n-1)'
 trace = StateMonitor(neurons, 'v', record=[0, 5])
 

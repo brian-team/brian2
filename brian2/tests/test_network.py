@@ -6,10 +6,9 @@ import os
 import uuid
 
 import numpy as np
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal, assert_raises, assert_allclose
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_allclose
 
 from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
@@ -1332,8 +1331,8 @@ def test_small_runs():
         if net_2.t >= 1*second:
             break
 
-    assert_equal(mon_1.t_[:], mon_2.t_[:])
-    assert_equal(mon_1.v_[:], mon_2.v_[:])
+    assert_allclose(mon_1.t_[:], mon_2.t_[:])
+    assert_allclose(mon_1.v_[:], mon_2.v_[:])
 
 
 @attr('codegen-independent')

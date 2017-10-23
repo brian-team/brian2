@@ -8,9 +8,8 @@ from .explicit import *
 from .exponential_euler import *
 from .GSL import *
 
-# Register the standard state updaters in the order in which they should be
-# chosen
 StateUpdateMethod.register('linear', linear)
+StateUpdateMethod.register('exact', exact)
 StateUpdateMethod.register('independent', independent)
 StateUpdateMethod.register('exponential_euler', exponential_euler)
 StateUpdateMethod.register('euler', euler)

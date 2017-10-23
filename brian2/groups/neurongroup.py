@@ -378,7 +378,7 @@ class NeuronGroup(Group, SpikeSource):
     add_to_magic_network = True
 
     def __init__(self, N, model,
-                 method=('linear', 'euler', 'heun'),
+                 method=('exact', 'euler', 'heun'),
                  method_options=None,
                  threshold=None,
                  reset=None,
