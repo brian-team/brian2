@@ -45,6 +45,10 @@ The complete list of available methods is the following:
   differential equations with non-diagonal multiplicative noise.
 * ``'milstein'``: derivative-free Milstein method for solving stochastic
   differential equations with diagonal multiplicative noise
+
+.. note:: The following methods are still considered experimental
+
+
 * ``'gsl'``: default integrator when choosing to integrate equations with
   the GNU Scientific Library ODE solver: the rkf45 method. Uses an adaptable
   time step by default.
@@ -90,12 +94,12 @@ Integrating with an adaptable timestep comes with two advantages:
   accuracy is required. This is particularly useful for systems where both slow and
   fast time constants coexist, as is the case with for example (networks of neurons
   with) Hodgkin-Huxley equations. Note that Brian's timestep still determines the
-  resolution for monitors, spike timing, spike propgation etc. Hence, in a network,
+  resolution for monitors, spike timing, spike propagation etc. Hence, in a network,
   the simulation error will therefore still be on the order of ``dt``. The benefit
   is that short time constants occurring in equations no longer dictate the network
   time step.
 
-In addition to a choice between different integration methods, there is a few more
+In addition to a choice between different integration methods, there are a few more
 options that can be specified when using GSL. These options can be specified by
 sending a dictionary as the ``method_options`` key upon initialization of the object
 using the integrator (`NeuronGroup`, `Synapses` or `SpatialNeuron`).
@@ -134,12 +138,12 @@ The available method options are:
   This also means that the final time steps are saved in Brian's memory and can thus
   be recorded with the `StateMonitor`: it can be accessed under ``'_last_timestep'``.
   Note that some extra memory is required to keep track of the last time steps.
-  Defauls to True.
+  Defaults to True.
 * ``'save_failed_steps'``: if ``'adaptable_timestep'`` is set to True,
   each time GSL tries a time step and it results in an estimated
   error that exceeds the set bounds, one is added to the ``'_failed_steps'`` variable. For
   purposes of investigating what happens within GSL during an integration step, we offer
-  the optionality of saving this variable.
+  the option of saving this variable.
   Defaults to False.
 * ``'save_step_count'``: the same goes for the total number of GSL steps taken in a single
   Brian time step: this is optionally saved in the ``'_step_count'`` variable.

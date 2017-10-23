@@ -2,11 +2,11 @@ Solving differential equations with the GNU Scientific Library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Conventionally, Brian generates its own code performing :doc:`../user/numerical_integration`
-according to the chosen alogrithm (see the section on :doc:`codegen`).
+according to the chosen algorithm (see the section on :doc:`codegen`).
 Another option is to let the differential equation solvers defined in the
 `GNU Scientific Library (GSL) <https://www.gnu.org/software/gsl/manual/html_node/Ordinary-Differential-Equations.html>`_
 solve the given equations. In addition to offering a few extra integration methods,
-the GSL integrator comes with the optio of having an adaptable timestep. The
+the GSL integrator comes with the option of having an adaptable timestep. The
 latter functionality can have benefits for the speed with which large simulations
 can be run. This is because it allows the use of larger timesteps for the overhead
 loops in Python, without losing the accuracy of the numerical integration at points
@@ -21,7 +21,7 @@ StateUpdateMethod
 Translation of equations to abstract code
 +++++++++++++++++++++++++++++++++++++++++
 
-The first part of Brian's codegeneration is the translation of equations to what we
+The first part of Brian's code generation is the translation of equations to what we
 call 'abstract code'. In the case of Brian's stateupdaters so far, this abstract
 code describes the calculations that need to be done to update differential variables
 depending on their equations as is explained in the section on :doc:`../advanced/state_update`.
@@ -51,7 +51,7 @@ Each differential variable gets an index. Its value at any time is saved in the
 However, doing this translation in the stateupdater would mean that Brian has to
 deal with variable descriptions that contain array accessing: something that for
 example sympy doesn't do. Because we still want to use Brian's existing parsing
-and checking mechanisms, we needed to find a way to describe the abstact code with
+and checking mechanisms, we needed to find a way to describe the abstract code with
 only 'normal' variable names.
 Our solution is to replace the ``y[0]``, ``f[0]``, etc. with a 'normal' variable name
 that is later replaced just before the final code generation (in the `GSLCodeGenerator`).
@@ -70,7 +70,7 @@ In the `GSLCodeGenerator` these tags get replaced by the actual accessing of the
 Return value of the StateUpdateMethod
 +++++++++++++++++++++++++++++++++++++
 
-So far, forch each code generation language (numpy, weave, cython) there was just
+So far, for each each code generation language (numpy, weave, cython) there was just
 one set of rules of how to translate abstract code to real code, described in
 its respective `CodeObject` and `CodeGenerator`. If the target language is set
 to weave, the stateupdater will use the `WeaveCodeObject`, just like other
@@ -103,7 +103,7 @@ to the already existing code object:
 
 This defining of GSL-specific code objects also  allowed us to catch compilation
 errors so we can give the user some information on that it might be GSL-related
-(overwrriting the ``compile()``
+(overwriting the ``compile()``
 method in the case of cython and the ``run()`` method for weave). In the case of
 the C++ `CodeObject` such overriding wasn't really possible so compilation
 errors in this case might be quite undescriptive.
@@ -220,7 +220,7 @@ Stateupdate templates
 There is many extra things that need to be done for each simulation when using GSL
 compared to conventional Brian stateupdaters. These are summarized in this section.
 
-Thigs that need to be done for every type of simulation (either before, in or after main()):
+Things that need to be done for every type of simulation (either before, in or after ``main()``):
 
 * Cython-only: define the structs and functions that we will be using in cython language (for weave these definitions already sit in GSL's own header files that are included).
 * Prepare the ``gsl_odeiv2_system``: give function pointer, set dimension, give pointer to ``_GSL_dataholder`` as params.
