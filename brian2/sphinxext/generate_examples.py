@@ -61,8 +61,10 @@ def main(rootpath, destdir):
         relativepaths.append(relpath)
         outnames.append(exname)
     # We assume all files are encoded as UTF-8
-    examplescode = [codecs.open(fname, 'rU', encoding='utf-8').read()
-                    for fname in examplesfnames]
+    examplescode = []
+    for fname in examplesfnames:
+        with codecs.open(fname, 'rU', encoding='utf-8') as f:
+            examplescode.append(f.read())
     examplesdocs = []
     examplesafterdoccode = []
     examplesdocumentablenames = []
@@ -138,7 +140,8 @@ def main(rootpath, destdir):
             print 'Found example image file', image
             output += '.. image:: ../resources/examples_images/%s\n\n' % image
 
-        codecs.open(os.path.join(destdir, exname + '.rst'), 'w', 'utf-8').write(output)
+        with codecs.open(os.path.join(destdir, exname + '.rst'), 'w', 'utf-8') as f:
+            f.write(output)
     
     mainpage_text = 'Examples\n'
     mainpage_text += '========\n\n'
@@ -157,8 +160,9 @@ def main(rootpath, destdir):
     for category in sorted(categories.keys()):
         if category:
             mainpage_text = insert_category(category, mainpage_text)
-            
-    open(os.path.join(destdir, 'index.rst'), 'w').write(mainpage_text)
+
+    with open(os.path.join(destdir, 'index.rst'), 'w') as f:
+        f.write(mainpage_text)
     
 
 if __name__=='__main__':

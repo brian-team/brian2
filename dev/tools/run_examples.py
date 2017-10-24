@@ -48,7 +48,8 @@ try:
     curdir = os.getcwd()
     os.chdir(os.path.dirname(r'{fname}'))
     rel_fname = os.path.basename(r'{fname}')
-    exec(compile(open(rel_fname, "rb").read(), rel_fname, 'exec'))
+    with open(rel_fname, "rb") as f:
+        exec(compile(f.read(), rel_fname, 'exec'))
     os.chdir(curdir)
     if '{target}'=='cython':
         for fignum in _mpl.pyplot.get_fignums():
@@ -83,8 +84,8 @@ except Exception as ex:
 
         # Re-raise any exception that occured
         if os.path.exists(tempfilename):
-            f = open(tempfilename, 'rb')
-            ex = pickle.load(f)
+            with open(tempfilename, 'rb') as f:
+                ex = pickle.load(f)
             self.successful = False
             raise ex
         else:

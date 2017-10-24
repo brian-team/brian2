@@ -20,22 +20,30 @@ def setversion(version):
     os.chdir(pathname)
     os.chdir('../../../')
     # update setup.py
-    setup_py = open('setup.py', 'r').read()
+    with open('setup.py', 'r') as f:
+        setup_py = f.read()
     setup_py = re.sub("version\s*=\s*'.*?'", "version='" + version + "'", setup_py)
-    open('setup.py', 'w').write(setup_py)
+    with open('setup.py', 'w') as f:
+        f.write(setup_py)
     # update __init__.py
-    init_py = open('brian2/__init__.py', 'r').read()
+    with open('brian2/__init__.py', 'r') as f:
+        init_py = f.read()
     init_py = re.sub("__version__\s*=\s*'.*?'", "__version__ = '" + version + "'", init_py)
-    open('brian2/__init__.py', 'w').write(init_py)
+    with open('brian2/__init__.py', 'w') as f:
+        f.write(init_py)
     # update sphinx docs
-    conf_py = open('docs_sphinx/conf.py', 'r').read()
+    with open('docs_sphinx/conf.py', 'r') as f:
+        conf_py = f.read()
     conf_py = re.sub("version\s*=\s*'.*?'", "version = '" + docs_version + "'", conf_py)
     conf_py = re.sub("release\s*=\s*'.*?'", "release = '" + docs_release + "'", conf_py)
-    open('docs_sphinx/conf.py', 'w').write(conf_py)
+    with open('docs_sphinx/conf.py', 'w') as f:
+        f.write(conf_py)
     # update conda recipe
-    meta_yaml = open('dev/conda-recipe/meta.yaml', 'r').read()
+    with open('dev/conda-recipe/meta.yaml', 'r') as f:
+        meta_yaml = f.read()
     meta_yaml = re.sub('version\s*:\s*".*?"', 'version: "' + version + '"', meta_yaml)
-    open('dev/conda-recipe/meta.yaml', 'w').write(meta_yaml)
+    with open('dev/conda-recipe/meta.yaml', 'w') as f:
+        f.write(meta_yaml)
 
 
 def setreleasedate():
@@ -44,9 +52,12 @@ def setreleasedate():
     os.chdir(pathname)
     os.chdir('../../../')
     # update __init__.py
-    init_py = open('brian2/__init__.py', 'r').read()
+    with open('brian2/__init__.py', 'r'):
+        init_py = f.read()
     init_py = re.sub("__release_date__\s*=\s*'.*?'", "__release_date__ = '" + releasedate + "'", init_py)
-    open('brian2/__init__.py', 'w').write(init_py)
+    with open('brian2/__init__.py', 'w') as f:
+        f.write(init_py)
+
 
 if __name__ == '__main__':
     version = raw_input('New version: ')

@@ -26,7 +26,8 @@ def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
     shortfnames = [os.path.relpath(fname, rootdir) for fname in fnames]
     exnames = [fname.replace('/', '.').replace('\\', '.').replace(pattern, '') for fname in shortfnames]
     for fname, shortfname, exname in zip(fnames, shortfnames, exnames):
-        ex = open(fname, 'r').read()
+        with open(fname, 'r') as f:
+            ex = f.read()
         ids = get_identifiers(ex)
         for id in ids:
             the_map[id].append((shortfname.replace('\\', '/'), exname))

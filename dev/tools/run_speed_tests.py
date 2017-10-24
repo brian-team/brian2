@@ -8,7 +8,8 @@ import os, pickle
 use_cached_results = True
 
 if use_cached_results and os.path.exists('cached_speed_test_results.pkl'):
-    res = pickle.load(open('cached_speed_test_results.pkl', 'rb'))
+    with open('cached_speed_test_results.pkl', 'rb') as f:
+        res = pickle.load(f)
 else:
     # Full testing
     # res = run_speed_tests()
@@ -40,7 +41,8 @@ else:
                           maximum_run_time=1*second,
                           )
 
-    pickle.dump(res, open('cached_speed_test_results.pkl', 'wb'), -1)
+    with open('cached_speed_test_results.pkl', 'wb') as f:
+        pickle.dump(res, f, -1)
 
 res.plot_all_tests()
 # res.plot_all_tests(profiling_minimum=0.15)

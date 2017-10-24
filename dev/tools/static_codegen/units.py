@@ -121,7 +121,8 @@ def to_definition(name, x):
 # Note that for presentation purposes, the `UnitRegistry` uses the *last*
 # defined unit for a given scale. Therefore, we reserve the order of the units
 # so that the standard units come first.
-template = open('units_template.py').read()
+with open('units_template.py') as f:
+    template = f.read()
 units_str = template.format(
     derived=derived, all=all, definitions=definitions,
     base_units=to_definition('base_units', base_units[::-1]),
@@ -131,4 +132,5 @@ units_str = template.format(
     additional_units=additional_units,
     )
 
-open(units_fname, 'w').write(units_str)
+with open(units_fname, 'w') as f:
+    f.write(units_str)

@@ -97,8 +97,9 @@ def runit(code, standalone):
     pool = multiprocessing.Pool(1)
     return pool.map(dorunit, [(code, standalone)])[0]
 
-if __name__=='__main__':    
-    lines = open(os.path.join(basepath, example), 'r').read().split('\n')
+if __name__=='__main__':
+    with open(os.path.join(basepath, example), 'r') as f:
+        lines = f.read().split('\n')
     runtime_lines = []
     standalone_lines = []
     for line in lines:
