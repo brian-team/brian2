@@ -9,8 +9,8 @@ results['duration'] = []
 for t in threads:
     start = time.time()
     os.system('python %s 1 %d' %(filename, t))
-    file = open('%s_%d/speed.txt' %(datapath, t), 'r')
-    results['duration'] += [float(file.read())]
+    with open('%s_%d/speed.txt' %(datapath, t), 'r') as f:
+        results['duration'] += [float(f.read())]
 
 
 for t in threads:

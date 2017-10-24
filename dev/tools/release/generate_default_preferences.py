@@ -9,4 +9,5 @@ import brian2
 base, _ = os.path.split(brian2.__file__)
 fname = os.path.join(base, 'default_preferences')
 
-open(fname, 'w').write(brian2.prefs.as_file)
+with open(fname, 'w') as f:
+    f.write(brian2.prefs.as_file)

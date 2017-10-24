@@ -27,7 +27,8 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     output_rst_fname = os.path.join(target_dir, basename + '.rst')
 
     print 'Running', fname
-    notebook = reads(open(os.path.join(src_dir, fname), 'r').read())
+    with open(os.path.join(src_dir, fname), 'r') as f:
+        notebook = reads(f.read())
 
     # The first line of the tutorial file should give the title
     title = notebook.cells[0]['source'].split('\n')[0].strip('# ')
@@ -42,7 +43,8 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     print 'Saving notebook and converting to RST'
     exporter = NotebookExporter()
     output, _ = exporter.from_notebook_node(notebook)
-    codecs.open(output_ipynb_fname, 'w', encoding='utf-8').write(output)
+    with codecs.open(output_ipynb_fname, 'w', encoding='utf-8') as f:
+        f.write(output)
 
     # Insert a note about ipython notebooks with a download link
     note = deindent(u'''
@@ -72,10 +74,12 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     exporter = RSTExporter()
     output, resources = exporter.from_notebook_node(notebook,
                                                     resources={'unique_key': basename+'_image'})
-    codecs.open(output_rst_fname, 'w', encoding='utf-8').write(output)
+    with codecs.open(output_rst_fname, 'w', encoding='utf-8') as f:
+        f.write(output)
 
     for image_name, image_data in resources['outputs'].iteritems():
-        open(os.path.join(target_dir, image_name), 'wb').write(image_data)
+        with open(os.path.join(target_dir, image_name), 'wb') as f:
+            f.write(image_data)
 
 print 'Generating index.rst'
 
@@ -134,4 +138,5 @@ text += '''
 
 .. [#] Formerly known as "IPython Notebooks".
 '''
-open(os.path.join(target_dir, 'index.rst'), 'w').write(text)
+with open(os.path.join(target_dir, 'index.rst'), 'w') as f:
+    f.write(text)

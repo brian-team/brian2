@@ -287,8 +287,8 @@ except Exception, ex:
     stdout, stderr = p.communicate()
     #sys.stdout.write(stdout)
     #sys.stderr.write(stderr)
-    f = open(tempfilename, 'rb')
-    tb, res, runtime, profiling_info = pickle.load(f)
+    with open(tempfilename, 'rb') as f:
+        tb, res, runtime, profiling_info = pickle.load(f)
     return tb, res, runtime, profiling_info
     
 

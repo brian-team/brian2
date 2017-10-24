@@ -752,9 +752,11 @@ class CPPStandaloneDevice(Device):
             source_list = ' '.join(source_bases)
             source_list_fname = os.path.join(self.project_dir, 'sourcefiles.txt')
             if os.path.exists(source_list_fname):
-                if open(source_list_fname, 'r').read() == source_list:
-                    return
-            open(source_list_fname, 'w').write(source_list)
+                with open(source_list_fname, 'r') as f:
+                    if f.read() == source_list:
+                        return
+            with open(source_list_fname, 'w') as f:
+                f.write(source_list)
         else:
             # Generate the makefile
             if os.name=='nt':
@@ -880,7 +882,8 @@ class CPPStandaloneDevice(Device):
                                                                                         make_args))
                     if x != 0:
                         if os.path.exists('winmake.log'):
-                            print open('winmake.log', 'r').read()
+                            with open('winmake.log', 'r') as f:
+                                print f.read()
                         error_message = ('Project compilation failed (error '
                                          'code: %u).') % x
                         if not clean:
@@ -936,7 +939,8 @@ class CPPStandaloneDevice(Device):
                 if stdout is not None:
                     stdout.close()
                 if os.path.exists('results/stdout.txt'):
-                    print open('results/stdout.txt', 'r').read()
+                    with open('results/stdout.txt', 'r') as f:
+                        print f.read()
                 raise RuntimeError("Project run failed (project directory: "
                                    "%s)" % os.path.abspath(directory))
             self.has_been_run = True
