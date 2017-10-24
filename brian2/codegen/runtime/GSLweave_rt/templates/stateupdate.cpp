@@ -6,7 +6,7 @@
 //// MAIN CODE ////////////
 struct _dataholder _GSL_dataholder;
 double * _GSL_y = _assign_memory_y();
-double * _GSL_scale_array = _get_GSL_scale_array();
+{{define_GSL_scale_array}}
 
 gsl_odeiv2_system _sys;
 _sys.function = _GSL_func;

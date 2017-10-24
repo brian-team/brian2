@@ -103,6 +103,26 @@ class GSLCodeGenerator(object):
         '''
         return NotImplementedError
 
+    def initialize_array(self, varname, values):
+        '''
+        Initialize a static array with given floating point values. E.g. in C++,
+        when called with arguments ``array`` and ``[1.0, 3.0, 2.0]``, this
+        method should return ``double array[] = {1.0, 3.0, 2.0}``.
+
+        Parameters
+        ----------
+        varname : str
+            The name of the array variable that should be initialized
+        values : list of float
+            The values that should be assigned to the array
+
+        Returns
+        -------
+        code : str
+            One or more lines of array initialization code.
+        '''
+        raise NotImplementedError
+
     def var_init_lhs(self, var, type):
         '''
         Get string version of the left hand side of an initializing expression
@@ -411,7 +431,7 @@ class GSLCodeGenerator(object):
 
     def scale_array_code(self, diff_vars, method_options):
         '''
-        Return code for function that sets _GSL_scale_array in generated code.
+        Return code for definition of ``_GSL_scale_array`` in generated code.
 
         Parameters
         ----------
@@ -465,14 +485,7 @@ class GSLCodeGenerator(object):
                              "containing the error for each individual state variable. "
                              "Was type %s"%(str(type(abs_per_var)))))
         # write code
-        code = ("\n{start_declare}double * _get_GSL_scale_array(){open_function}"
-                "\n\t{start_declare}double * array = {open_cast}double *{close_cast}"
-                "malloc(%d*sizeof(double))"
-                "{end_statement}"%len(diff_vars))
-        for var in diff_vars.keys():
-            code += '\n\tarray[%d] = %f{end_statement}'%(int(diff_vars[var]), diff_scale[var])
-        code += '\n\treturn array{end_statement}{end_function}'
-        return code.format(**self.syntax)
+        return self.initialize_array('_GSL_scale_array', [diff_scale[var] for var in sorted(diff_vars)])
 
     def find_undefined_variables(self, statements):
         '''
@@ -870,7 +883,6 @@ class GSLCodeGenerator(object):
         to_replace = self.diff_var_to_replace(diff_vars)
         GSL_support_code = self.get_dimension_code(len(diff_vars))
         GSL_support_code += self.yvector_code(diff_vars)
-        GSL_support_code += self.scale_array_code(diff_vars, self.method_options)
 
         # analyze all needed variables; if not in self.variables: put in separate dic.
         # also keep track of variables needed for scalar statements and vector statements
@@ -916,6 +928,8 @@ class GSLCodeGenerator(object):
                                   "are: %s" % (str(self.variables_to_be_processed))))
 
         scalar_code['GSL'] = GSL_main_code
+        kwds['define_GSL_scale_array'] = self.scale_array_code(diff_vars,
+                                                               self.method_options)
         kwds['GSL_settings'] = dict(self.method_options)
         kwds['GSL_settings']['integrator'] = self.integrator
         kwds['support_code_lines'] += GSL_support_code.split('\n')
@@ -942,6 +956,13 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
 
     def c_data_type(self, dtype):
         return c_data_type(dtype)
+
+    def initialize_array(self, varname, values):
+        value_list = ', '.join(repr(v) for v in values)
+        code = 'cdef double {varname}[{n_values}]\n'
+        code += '{varname}[:] = [{value_list}]'
+        return code.format(varname=varname, value_list=value_list,
+                           n_values=len(values))
 
     def var_replace_diff_var_lhs(self, var, ind):
         return {'_gsl_{var}_f{ind}'.format(var=var, ind=ind):
@@ -993,6 +1014,10 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
 
     def c_data_type(self, dtype):
         return self.generator.c_data_type(dtype)
+
+    def initialize_array(self, varname, values):
+        value_list = ', '.join(repr(v) for v in values)
+        return 'double const %s[] = {%s};' % (varname, value_list)
 
     def var_replace_diff_var_lhs(self, var, ind):
         f = 'f[{ind}]'.format(ind=ind)
