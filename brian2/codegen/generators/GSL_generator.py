@@ -311,10 +311,9 @@ class GSLCodeGenerator(object):
         Generate code for function dealing with GSLs y vector.
 
         The values of differential variables have to be transferred from
-        Brian's namespace to a vector that is given to GSL. The allocation of this
-        vector and the transferring from Brian --> y and back from y --> Brian
-        after integration happens in separate functions. The code for these is
-        written here.
+        Brian's namespace to a vector that is given to GSL. The transferring
+        from Brian --> y and back from y --> Brian after integration happens in
+        separate functions. The code for these is written here.
 
         Parameters
         ----------
@@ -325,14 +324,9 @@ class GSLCodeGenerator(object):
         Returns
         -------
         yvector_code : str
-            The code for the three functions (``_assign_memory_y``,
-            ``_fill_y_vector`` and ``_empty_y_vector``) as single string.
+            The code for the two functions (``_fill_y_vector`` and
+            ``_empty_y_vector``) as single string.
         '''
-        allocate_y = [("\n{start_declare}double* _assign_memory_y(){"
-                       "open_function}"
-                      "\n\treturn {open_cast}double *{close_cast} "
-                      "malloc(%d*sizeof(double)){end_statement}"
-                      "{end_function}"%len(diff_vars))]
         fill_y = [("\n{start_declare}int _fill_y_vector(_dataholder *"
                   "_GSL_dataholder, double * _GSL_y, int _idx){open_function}")]
         empty_y = [("\n{start_declare}int _empty_y_vector(_dataholder * "
@@ -348,7 +342,7 @@ class GSLCodeGenerator(object):
                         "%d]{end_statement}"%(array_name, diff_num))]
         fill_y += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
         empty_y += ['\treturn GSL_SUCCESS{end_statement}{end_function}']
-        return ('\n').join(allocate_y + fill_y + empty_y).format(**self.syntax)
+        return ('\n').join(fill_y + empty_y).format(**self.syntax)
 
     def make_function_code(self, lines):
         '''
@@ -930,6 +924,7 @@ class GSLCodeGenerator(object):
         scalar_code['GSL'] = GSL_main_code
         kwds['define_GSL_scale_array'] = self.scale_array_code(diff_vars,
                                                                self.method_options)
+        kwds['n_diff_vars'] = len(diff_vars)
         kwds['GSL_settings'] = dict(self.method_options)
         kwds['GSL_settings']['integrator'] = self.integrator
         kwds['support_code_lines'] += GSL_support_code.split('\n')
