@@ -68,4 +68,5 @@ for(int _idx=0; _idx<_N; _idx++)
     {% endif %}
     _empty_y_vector(&_GSL_dataholder, _GSL_y, _idx);
 }
+gsl_odeiv2_driver_free(_GSL_driver);
 {% endblock %}

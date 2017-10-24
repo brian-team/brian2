@@ -126,5 +126,6 @@ cdef extern from "gsl/gsl_odeiv2.h":
         {%if GSL_settings['save_step_count']%}
         {{pointer_step_count}} = _GSL_driver.n
         {% endif %}
+    gsl_odeiv2_driver_free(_GSL_driver)
 
 {% endblock %}
