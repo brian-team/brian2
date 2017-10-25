@@ -21,3 +21,4 @@ The basic principles of developing Brian are:
    documentation
    logging
    testing
+   release
