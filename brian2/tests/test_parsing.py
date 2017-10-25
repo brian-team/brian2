@@ -1,6 +1,7 @@
 '''
 Tests the brian2.parsing package
 '''
+import sys
 from collections import namedtuple
 
 from nose.plugins.attrib import attr
@@ -21,6 +22,7 @@ from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
                                       )
 from brian2.parsing.dependencies import abstract_code_dependencies
 from brian2.parsing.expressions import (is_boolean_expression,
+                                        is_integer_expression,
                                         parse_expression_dimensions,
                                         _get_value_from_expression)
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
@@ -260,7 +262,76 @@ def test_is_boolean_expression():
                   variables)
     assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
                   variables)
-    
+
+
+@attr('codegen-independent')
+def test_is_integer_expression():
+    # dummy "Variable" class
+    class Var(object):
+        def __init__(self, dtype):
+            self.dtype = dtype
+
+        @property
+        def is_integer(self):
+            return np.issubdtype(self.dtype, np.integer)
+
+    # dummy function object
+    class Func(object):
+        def __init__(self, return_type='float'):
+            self._return_type = return_type
+
+    # variables / functions
+    a = Constant('a', value=2)
+    b = Constant('b', value=True)
+    c = Constant('c', value=5.5)
+    f = Func(return_type='integer')
+    g = Func(return_type='float')
+    v1 = Var(dtype=np.int32)
+    v2 = Var(dtype=int)
+    v3 = Var(dtype=np.float64)
+
+    variables = {'a': a, 'b': b, 'c': c, 'f': f, 'g': g,
+                 'v1': v1, 'v2': v2, 'v3': v3}
+
+    EVF = [
+        (True, 'a'),
+        (True, 'a + a'),
+        (True, '2 * a'),
+        (True, 'v1'),
+        (True, 'v2'),
+        (True, 'v1 + a'),
+        (True, 'v2 + v1'),
+        (True, '3 + v1 + a + v2'),
+        (False, 'v1**v2'),  # v2 could be negative!
+        (True, 'v1**a'),
+        (sys.version_info.major == 2, 'a / 2'),
+        (True, 'a**2'),
+        (False, 'b'),
+        (False, 'c'),
+        (False, 'v3'),
+        (False, 'a + c'),
+        (False, '2.5*a'),
+        (False, 'c*a'),
+        (False, 'c/a'),
+        (False, 'a**2.5'),
+        (False, 'a**-1'),
+        (True, 'f(c)'),
+        (False, 'g(v1)'),
+        (False, 'a > 5'),
+        (True, '3'),
+        (True, 'v1 + (v2 * 5)**a'),
+        (False, 'v3 + (v2 * 5)**a'),
+        ]
+    for expect, expr in EVF:
+        ret_val = is_integer_expression(expr, variables)
+        if expect != ret_val:
+            raise AssertionError(('is_integer_expression(%r) returned %s, '
+                                  'but was supposed to return %s') % (expr,
+                                                                      ret_val,
+                                                                      expect))
+    assert_raises(SyntaxError, is_integer_expression, 'v1 = a',  # typo
+                  variables)
+
 
 @attr('codegen-independent')
 def test_parse_expression_unit():
@@ -471,6 +542,7 @@ if __name__=='__main__':
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()
     test_is_boolean_expression()
+    test_is_integer_expression()
     test_parse_expression_unit()
     test_value_from_expression()
     test_abstract_code_from_function()

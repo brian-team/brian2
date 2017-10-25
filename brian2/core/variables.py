@@ -174,6 +174,10 @@ class Variable(CacheKey):
         return np.issubdtype(np.bool, self.dtype)
 
     @property
+    def is_integer(self):
+        return np.issubdtype(self.dtype, np.integer)
+
+    @property
     def dtype_str(self):
         '''
         String representation of the numpy dtype

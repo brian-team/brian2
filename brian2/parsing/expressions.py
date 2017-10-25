@@ -1,8 +1,9 @@
 '''
 AST parsing based analysis of expressions
 '''
-
+import sys
 import ast
+import numbers
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer
@@ -94,6 +95,85 @@ def is_boolean_expression(expr, variables):
         return expr.op.__class__.__name__ == 'Not'
     else:
         return False
+
+
+def is_integer_expression(expr, variables):
+    '''
+    Determines if an expression is of integer type or not
+
+    Parameters
+    ----------
+
+    expr : str
+        The expression to test
+    variables : dict-like of `Variable`
+        The variables used in the expression.
+
+    Returns
+    -------
+    is_integer : bool
+        Whether or not the expression results in an integer value.
+    '''
+
+    # If we are working on a string, convert to the top level node
+    if isinstance(expr, str):
+        mod = ast.parse(expr, mode='eval')
+        expr = mod.body
+
+    if expr.__class__ is ast.BoolOp:
+        return False
+    elif expr.__class__ is getattr(ast, 'NameConstant', None):
+        value = expr.value
+        if isinstance(value, numbers.Integral):
+            return True
+        else:
+            return False
+    elif expr.__class__ is ast.Name:
+        name = expr.id
+        if name in variables:
+            return variables[name].is_integer
+        else:
+            return False
+    elif expr.__class__ is ast.Call:
+        name = expr.func.id
+        return (name in variables and
+                getattr(variables[name], '_return_type', None) == 'integer')
+    elif expr.__class__ is ast.Compare:
+        return False
+    elif expr.__class__ is ast.UnaryOp:
+        if expr.op.__class__.__name__ in ['UAdd', 'USub']:
+            return is_integer_expression(expr.operand, variables)
+        else:
+            return False
+    elif expr.__class__ is ast.BinOp:
+        if expr.op.__class__.__name__ in ['Add', 'Sub', 'Mult', 'Mod']:
+            return (is_integer_expression(expr.left, variables) and
+                    is_integer_expression(expr.right, variables))
+        elif expr.op.__class__.__name__ == 'Div':
+            if sys.version_info.major == 3:
+                return False  # Python 3: floating point divison
+            else:
+                # Python 2: Integer division if both operands are integers
+                return (is_integer_expression(expr.left, variables) and
+                        is_integer_expression(expr.right, variables))
+        elif expr.op.__class__.__name__ == 'Pow':
+            if (is_integer_expression(expr.left, variables) and
+                    is_integer_expression(expr.right, variables)):
+                try:
+                    value = _get_value_from_expression(expr.right, variables)
+                    return value >= 0
+                except SyntaxError:
+                    # cannot determine the value of the expression, it might
+                    # therefore be negative
+                    return False
+            else:
+                return False
+        else:
+            raise AssertionError('Unknown binary operation: %s' % expr.op.__class__.__name__)
+    elif expr.__class__ is ast.Num:
+        return isinstance(expr.n, numbers.Integral)
+    else:
+        raise AssertionError('Unknown expression node: %s' % type(expr))
 
 
 def _get_value_from_expression(expr, variables):
