@@ -304,7 +304,7 @@ def test_is_integer_expression():
         (True, '3 + v1 + a + v2'),
         (False, 'v1**v2'),  # v2 could be negative!
         (True, 'v1**a'),
-        (sys.version_info.major == 2, 'a / 2'),
+        (True, 'a / 2'),  # integer division
         (True, 'a**2'),
         (False, 'b'),
         (False, 'c'),

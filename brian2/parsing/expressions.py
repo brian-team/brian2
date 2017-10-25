@@ -146,16 +146,10 @@ def is_integer_expression(expr, variables):
         else:
             return False
     elif expr.__class__ is ast.BinOp:
-        if expr.op.__class__.__name__ in ['Add', 'Sub', 'Mult', 'Mod']:
+        if expr.op.__class__.__name__ in ['Add', 'Sub', 'Mult', 'Div', 'Mod']:
+            # Note that this means C (and Python 2) semantics for division:
             return (is_integer_expression(expr.left, variables) and
                     is_integer_expression(expr.right, variables))
-        elif expr.op.__class__.__name__ == 'Div':
-            if sys.version_info.major == 3:
-                return False  # Python 3: floating point divison
-            else:
-                # Python 2: Integer division if both operands are integers
-                return (is_integer_expression(expr.left, variables) and
-                        is_integer_expression(expr.right, variables))
         elif expr.op.__class__.__name__ == 'Pow':
             if (is_integer_expression(expr.left, variables) and
                     is_integer_expression(expr.right, variables)):
