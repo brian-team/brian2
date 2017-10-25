@@ -46,6 +46,7 @@ class CythonExtensionManager(object):
         self._code_cache = {}
         
     def create_extension(self, code, force=False, name=None,
+                         define_macros=None,
                          include_dirs=None,
                          library_dirs=None,
                          runtime_library_dirs=None,
@@ -104,16 +105,33 @@ class CythonExtensionManager(object):
                                    os.stat(lock_file).st_size)
                 else:
                     fcntl.flock(f, fcntl.LOCK_EX)
-                return self._load_module(module_path, include_dirs,
-                                         library_dirs,
-                                         extra_compile_args, extra_link_args,
-                                         libraries, code, lib_dir, module_name,
-                                         runtime_library_dirs, compiler, key)
+                return self._load_module(module_path,
+                                         define_macros=define_macros,
+                                         include_dirs=include_dirs,
+                                         library_dirs=library_dirs,
+                                         extra_compile_args=extra_compile_args,
+                                         extra_link_args=extra_link_args,
+                                         libraries=libraries,
+                                         code=code,
+                                         lib_dir=lib_dir,
+                                         module_name=module_name,
+                                         runtime_library_dirs=runtime_library_dirs,
+                                         compiler=compiler,
+                                         key=key)
         else:
-            return self._load_module(module_path, include_dirs, library_dirs,
-                                     extra_compile_args, extra_link_args,
-                                     libraries, code, lib_dir, module_name,
-                                     runtime_library_dirs, compiler, key)
+            return self._load_module(module_path,
+                                     define_macros=define_macros,
+                                     include_dirs=include_dirs,
+                                     library_dirs=library_dirs,
+                                     extra_compile_args=extra_compile_args,
+                                     extra_link_args=extra_link_args,
+                                     libraries=libraries,
+                                     code=code,
+                                     lib_dir=lib_dir,
+                                     module_name=module_name,
+                                     runtime_library_dirs=runtime_library_dirs,
+                                     compiler=compiler,
+                                     key=key)
 
     @property
     def so_ext(self):
@@ -153,13 +171,15 @@ class CythonExtensionManager(object):
         return build_extension
 
     
-    def _load_module(self, module_path, include_dirs, library_dirs,
+    def _load_module(self, module_path, define_macros, include_dirs, library_dirs,
                      extra_compile_args, extra_link_args, libraries, code,
                      lib_dir, module_name, runtime_library_dirs, compiler,
                      key):
         have_module = os.path.isfile(module_path)
 
         if not have_module:
+            if define_macros is None:
+                define_macros = []
             if include_dirs is None:
                 include_dirs = []
             if library_dirs is None:
@@ -197,6 +217,7 @@ class CythonExtensionManager(object):
             extension = Extension(
                 name=module_name,
                 sources=[pyx_file],
+                define_macros=define_macros,
                 include_dirs=c_include_dirs,
                 library_dirs=library_dirs,
                 runtime_library_dirs=runtime_library_dirs,

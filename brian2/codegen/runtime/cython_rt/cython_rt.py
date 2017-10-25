@@ -67,10 +67,19 @@ class CythonCodeObject(NumpyCodeObject):
                                                template_name, template_source,
                                                name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
+        self.define_macros = list(prefs['codegen.cpp.define_macros'])
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
+        self.headers = []  # not actually used
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
-        self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        if sys.platform == 'win32':
+            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
+        else:
+            self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        if sys.platform == 'win32':
+            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
+        else:
+            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
 
@@ -101,6 +110,7 @@ class CythonCodeObject(NumpyCodeObject):
     def compile(self):
         self.compiled_code = cython_extension_manager.create_extension(
             self.code,
+            define_macros=self.define_macros,
             libraries=self.libraries,
             extra_compile_args=self.extra_compile_args,
             extra_link_args=self.extra_link_args,

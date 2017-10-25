@@ -6,6 +6,7 @@ from .base import *
 from .exact import *
 from .explicit import *
 from .exponential_euler import *
+from .GSL import *
 
 StateUpdateMethod.register('linear', linear)
 StateUpdateMethod.register('exact', exact)
@@ -16,3 +17,11 @@ StateUpdateMethod.register('rk2', rk2)
 StateUpdateMethod.register('rk4', rk4)
 StateUpdateMethod.register('milstein', milstein)
 StateUpdateMethod.register('heun', heun)
+StateUpdateMethod.register('gsl_rk2', gsl_rk2)
+StateUpdateMethod.register('gsl_rk4', gsl_rk4)
+StateUpdateMethod.register('gsl_rkf45', gsl_rkf45)
+StateUpdateMethod.register('gsl_rkck', gsl_rkck)
+StateUpdateMethod.register('gsl_rk8pd', gsl_rk8pd)
+# as we consider rkf45 the default we also register it under 'gsl'
+StateUpdateMethod.register('gsl', gsl_rkf45)
+

@@ -116,7 +116,7 @@ class SelectFilesPlugin(Plugin):
             for subname in os.listdir(name):
                 examples.extend(self.find_examples(os.path.join(name, subname)))
             return examples
-        elif name.endswith('.py') and os.path.basename(name).startswith('example'):  # only execute Python scripts
+        elif name.endswith('.py'):  # only execute Python scripts
             return [name]
         else:
             return []

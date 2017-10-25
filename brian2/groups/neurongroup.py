@@ -29,7 +29,6 @@ from brian2.utils.stringtools import get_identifiers
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
-
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
@@ -93,8 +92,9 @@ class StateUpdater(CodeRunner):
     The `CodeRunner` that updates the state variables of a `NeuronGroup`
     at every timestep.
     '''
-    def __init__(self, group, method):
+    def __init__(self, group, method, method_options=None):
         self.method_choice = method
+        self.method_options = method_options
         CodeRunner.__init__(self, group,
                             'stateupdate',
                             code='',  # will be set in update_abstract_code
@@ -163,10 +163,19 @@ class StateUpdater(CodeRunner):
                                            # be raised in create_runner_codeobj
                                            user_identifiers=set())
         if len(self.group.equations.diff_eq_names) > 0:
-            self.abstract_code += StateUpdateMethod.apply_stateupdater(self.group.equations,
-                                                                       variables,
-                                                                       self.method_choice,
-                                                                       group_name=self.group.name)
+            stateupdate_output = StateUpdateMethod.apply_stateupdater(self.group.equations,
+                                                                      variables,
+                                                                      self.method_choice,
+                                                                      method_options=self.method_options,
+                                                                      group_name=self.group.name)
+            if isinstance(stateupdate_output, basestring):
+                self.abstract_code += stateupdate_output
+            else:
+                # Note that the reason to send self along with this method is so the StateUpdater
+                # can be modified! i.e. in GSL StateUpdateMethod a custom CodeObject gets added
+                # to the StateUpdater together with some auxiliary information
+                self.abstract_code += stateupdate_output(self)
+
         user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
@@ -370,6 +379,7 @@ class NeuronGroup(Group, SpikeSource):
 
     def __init__(self, N, model,
                  method=('exact', 'euler', 'heun'),
+                 method_options=None,
                  threshold=None,
                  reset=None,
                  refractory=False,
@@ -494,7 +504,7 @@ class NeuronGroup(Group, SpikeSource):
             self.run_on_event('spike', reset, when='resets')
 
         #: Performs numerical integration step
-        self.state_updater = StateUpdater(self, method)
+        self.state_updater = StateUpdater(self, method, method_options)
         self.contained_objects.append(self.state_updater)
 
         #: Update the "constant over a time step" subexpressions

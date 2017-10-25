@@ -9,7 +9,8 @@ from sympy import Wild, Symbol, I
 from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.stateupdaters.base import (StateUpdateMethod,
-                                       UnsupportedEquationsException)
+                                       UnsupportedEquationsException,
+                                       extract_method_options)
 from brian2.utils.logger import get_logger
 
 __all__ = ['linear', 'exact', 'independent']
@@ -83,10 +84,11 @@ class IndependentStateUpdater(StateUpdateMethod):
         This method might be removed from future versions of Brian.
     '''
 
-    def __call__(self, equations, variables=None):
+    def __call__(self, equations, variables=None, method_options=None):
         logger.warn("The 'independent' state updater is deprecated and might be "
                     "removed in future versions of Brian.",
                     'deprecated_independent', once=True)
+        method_options = extract_method_options(method_options, {})
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '
@@ -153,7 +155,10 @@ class LinearStateUpdater(StateUpdateMethod):
     analytical solution given by sympy. Uses the matrix exponential (which is
     only implemented for diagonalizable matrices in sympy).
     '''
-    def __call__(self, equations, variables=None, simplify=True):
+    def __call__(self, equations, variables=None, method_options=None):
+        method_options = extract_method_options(method_options,
+                                                {'simplify': True})
+
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '
@@ -202,7 +207,7 @@ class LinearStateUpdater(StateUpdateMethod):
             raise UnsupportedEquationsException('Cannot solve the given '
                                                 'equations with this '
                                                 'stateupdater.')
-        if simplify:
+        if method_options['simplify']:
             A = A.applyfunc(lambda x:
                             sp.factor_terms(sp.cancel(sp.signsimp(x))))
         C = sp.ImmutableMatrix([A.dot(b)]) - b

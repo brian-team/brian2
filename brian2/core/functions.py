@@ -279,8 +279,10 @@ class FunctionImplementationContainer(collections.Mapping):
             An implementation suitable for `key`.
         '''
         fallback = getattr(key, 'generator_class', None)
+        # in some cases we do the code generation with original_generator_class instead (e.g. GSL)
+        fallback_parent = getattr(key, 'original_generator_class', None)
 
-        for K in [key, fallback]:
+        for K in [key, fallback, fallback_parent]:
             name = getattr(K, 'class_name',
                            'no class name for key')
             for impl_key, impl in self._implementations.iteritems():

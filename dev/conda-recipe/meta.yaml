@@ -18,6 +18,7 @@ requirements:
     - scipy >=0.13.3
     - weave # [py2k]
     - bsddb # [py2k and not win]
+    - gsl >1.15
     - cython >=0.18
     - jinja2 >=2.7
     - setuptools >=6.0

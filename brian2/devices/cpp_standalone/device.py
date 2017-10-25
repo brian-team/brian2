@@ -6,8 +6,9 @@ import shutil
 import subprocess
 import sys
 import inspect
-import platform
+import struct
 from collections import defaultdict, Counter
+import itertools
 import numbers
 import tempfile
 from distutils import ccompiler
@@ -171,7 +172,36 @@ class CPPStandaloneDevice(Device):
         self.synapses = []
         
         self.clocks = set([])
-        
+
+        self.extra_compile_args = []
+        self.define_macros = []
+        self.headers = []
+        self.include_dirs = ['brianlib/randomkit']
+        if sys.platform == 'win32':
+            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
+        else:
+            self.include_dirs += [os.path.join(sys.prefix, 'include')]
+        self.library_dirs = ['brianlib/randomkit']
+        if sys.platform == 'win32':
+            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'Lib')]
+        else:
+            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
+        self.runtime_library_dirs = []
+        if sys.platform.startswith('linux'):
+            self.runtime_library_dirs += [os.path.join(sys.prefix, 'lib')]
+        self.run_environment_variables = {}
+        if sys.platform.startswith('darwin'):
+            if 'DYLD_LIBRARY_PATH' in os.environ:
+                dyld_library_path = (os.environ['DYLD_LIBRARY_PATH'] + ':' +
+                                     os.path.join(sys.prefix, 'lib'))
+            else:
+                dyld_library_path = os.path.join(sys.prefix, 'lib')
+            self.run_environment_variables['DYLD_LIBRARY_PATH'] = dyld_library_path
+        self.libraries = []
+        if sys.platform == 'win32':
+            self.libraries += ['advapi32']
+        self.extra_link_args = []
+
     def reinit(self):
         # Remember the build_on_run setting and its options -- important during
         # testing
@@ -513,7 +543,7 @@ class CPPStandaloneDevice(Device):
             template_kwds = dict()
         else:
             template_kwds = dict(template_kwds)
-        template_kwds['user_headers'] = prefs['codegen.cpp.headers']
+        template_kwds['user_headers'] = self.headers + prefs['codegen.cpp.headers']
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
@@ -659,7 +689,7 @@ class CPPStandaloneDevice(Device):
                                                           code_objects=self.code_objects.values(),
                                                           report_func=self.report_func,
                                                           dt=float(self.defaultclock.dt),
-                                                          user_headers=prefs['codegen.cpp.headers']
+                                                          user_headers=self.headers
                                                           )
         writer.write('main.cpp', main_tmp)
         
@@ -717,7 +747,7 @@ class CPPStandaloneDevice(Device):
     def generate_run_source(self, writer):
         run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=self.runfuncs,
                                                         code_objects=self.code_objects.values(),
-                                                        user_headers=prefs['codegen.cpp.headers'],
+                                                        user_headers=self.headers,
                                                         array_specs=self.arrays,
                                                         clocks=self.clocks
                                                         )
@@ -862,8 +892,8 @@ class CPPStandaloneDevice(Device):
                 # TODO: copy vcvars and make replacements for 64 bit automatically
                 arch_name = prefs['codegen.cpp.msvc_architecture']
                 if arch_name == '':
-                    mach = platform.machine()
-                    if mach == 'AMD64':
+                    bits = struct.calcsize('P') * 8
+                    if bits == 64:
                         arch_name = 'x86_amd64'
                     else:
                         arch_name = 'x86'
@@ -874,6 +904,8 @@ class CPPStandaloneDevice(Device):
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
                 if os.path.exists('winmake.log'):
                     os.remove('winmake.log')
+                with open('winmake.log', 'w') as f:
+                    f.write(vcvars_cmd + '\n')
                 with std_silent(debug):
                     if clean:
                         os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
@@ -921,7 +953,9 @@ class CPPStandaloneDevice(Device):
     def run(self, directory, with_output, run_args):
         with in_directory(directory):
             # Set environment variables
-            for key, value in prefs.devices.cpp_standalone.run_environment_variables.iteritems():
+
+            for key, value in itertools.chain(prefs['devices.cpp_standalone.run_environment_variables'].iteritems(),
+                                              self.run_environment_variables.iteritems()):
                 if key in os.environ and os.environ[key] != value:
                     logger.info('Overwriting environment variable '
                                 '"{key}"'.format(key=key),
@@ -1045,24 +1079,25 @@ class CPPStandaloneDevice(Device):
         self.project_dir = directory
         ensure_directory(directory)
 
-        compiler, extra_compile_args = get_compiler_and_args()
+        # Determine compiler flags and directories
+        compiler, default_extra_compile_args = get_compiler_and_args()
+        extra_compile_args = self.extra_compile_args + default_extra_compile_args
+        extra_link_args = self.extra_link_args + prefs['codegen.cpp.extra_link_args']
+        define_macros = self.define_macros + prefs['codegen.cpp.define_macros']
+        include_dirs = self.include_dirs + prefs['codegen.cpp.include_dirs']
+        library_dirs = self.library_dirs + prefs['codegen.cpp.library_dirs']
+        runtime_library_dirs = self.runtime_library_dirs + prefs['codegen.cpp.runtime_library_dirs']
+        libraries = self.libraries + prefs['codegen.cpp.libraries']
+
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
-        compiler_flags = (ccompiler.gen_preprocess_options(prefs['codegen.cpp.define_macros'],
-                                                           prefs['codegen.cpp.include_dirs'] +
-                                                           ['brianlib/randomkit'] +
-                                                           [sys.prefix+'/include']) +
+        compiler_flags = (ccompiler.gen_preprocess_options(define_macros,
+                                                           include_dirs) +
                           extra_compile_args)
-        if sys.platform == 'win32':
-            wincrypt = ['advapi32']
-        else:
-            wincrypt = []
         linker_flags = (ccompiler.gen_lib_options(compiler_obj,
-                                                  library_dirs=prefs['codegen.cpp.library_dirs'] +
-                                                               ['brianlib/randomkit'] +
-                                                               [sys.prefix+'/lib'],
-                                                  runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'],
-                                                  libraries=prefs['codegen.cpp.libraries']+wincrypt) +
-                        prefs['codegen.cpp.extra_link_args'])
+                                                  library_dirs=library_dirs,
+                                                  runtime_library_dirs=runtime_library_dirs,
+                                                  libraries=libraries) +
+                        extra_link_args)
 
         additional_source_files.append('brianlib/randomkit/randomkit.c')
 

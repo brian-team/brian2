@@ -468,7 +468,7 @@ def test_determination():
     
     # Arbitrary functions (converting equations into abstract code) should
     # always work
-    my_stateupdater = lambda eqs, vars: 'x_new = x'
+    my_stateupdater = lambda eqs, vars, options: 'x_new = x'
     with catch_logs() as logs:
         returned = apply_stateupdater(eqs, variables, method=my_stateupdater)
         # No warning here

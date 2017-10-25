@@ -12,4 +12,8 @@ try:
     from .cython_generator import *
 except ImportError:
     pass # todo: raise a warning?
+try:
+    from .GSL_generator import *
+except ImportError:
+    pass
 
