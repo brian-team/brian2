@@ -22,7 +22,7 @@ import sympy
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
-from brian2.parsing.expressions import is_boolean_expression, is_integer_expression
+from brian2.parsing.bast import brian_ast
 from brian2.utils.caching import cached
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
@@ -234,12 +234,11 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 op = ':='
                 defined.add(var)
                 if var not in variables:
-                    is_scalar = is_scalar_expression(expr, variables)
-                    is_bool = is_boolean_expression(expr, variables)
-                    is_integer = is_integer_expression(expr, variables)
-                    if is_bool:
+                    annotated_ast = brian_ast(expr, variables)
+                    is_scalar = annotated_ast.scalar
+                    if annotated_ast.dtype == 'boolean':
                         use_dtype = bool
-                    elif is_integer:
+                    elif annotated_ast.dtype == 'integer':
                         use_dtype = int
                     else:
                         use_dtype = dtype

@@ -69,8 +69,7 @@ def check_units_statements(code, variables):
     variables = dict(variables)
     # Avoid a circular import
     from brian2.codegen.translation import analyse_identifiers
-    known = set(variables.keys())
-    newly_defined, _, unknown = analyse_identifiers(code, known)
+    newly_defined, _, unknown = analyse_identifiers(code, variables)
     
     if len(unknown):
         raise AssertionError(('Encountered unknown identifiers, this should '
