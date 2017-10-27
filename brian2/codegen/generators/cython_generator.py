@@ -59,6 +59,10 @@ class CythonCodeGenerator(CodeGenerator):
 
     class_name = 'cython'
 
+    def __init__(self, *args, **kwds):
+        self.temporary_vars = set()
+        super(CythonCodeGenerator, self).__init__(*args, **kwds)
+
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
         return CythonNodeRenderer().render_expr(expr, self.variables).strip()
@@ -120,10 +124,9 @@ class CythonCodeGenerator(CodeGenerator):
                                                              index=index)
             lines.append(line)
         # the actual code
-        created_vars = set([])
         for stmt in statements:
-            if stmt.op==':=':
-                created_vars.add(stmt.var)
+            if stmt.op == ':=' and not stmt.var in variables:
+                self.temporary_vars.add((stmt.var, stmt.dtype))
             line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
                 subs = {}
@@ -222,7 +225,7 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         user_functions = []
-        for varname, var in self.variables.items():
+        for varname, var in sorted(self.variables.items()):
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
             if isinstance(var, AuxiliaryVariable):
@@ -284,6 +287,12 @@ class CythonCodeGenerator(CodeGenerator):
             else:
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
+
+        for varname, dtype in sorted(self.temporary_vars):
+            cpp_dtype = get_cpp_dtype(dtype)
+            line = "cdef {cpp_dtype} {varname}".format(cpp_dtype=cpp_dtype,
+                                                       varname=varname)
+            load_namespace.append(line)
 
         return {'load_namespace': '\n'.join(load_namespace),
                 'support_code_lines': support_code}

@@ -22,6 +22,7 @@ import sympy
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import Variable, Subexpression, AuxiliaryVariable
+from brian2.parsing.bast import brian_ast
 from brian2.utils.caching import cached
 from brian2.core.functions import Function
 from brian2.utils.stringtools import (deindent, strip_empty_lines,
@@ -35,7 +36,6 @@ from .optimisation import optimise_statements
 
 __all__ = ['make_statements', 'analyse_identifiers',
            'get_identifiers_recursively']
-
 
 
 class LineInfo(object):
@@ -234,8 +234,15 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 op = ':='
                 defined.add(var)
                 if var not in variables:
-                    is_scalar = is_scalar_expression(expr, variables)
-                    new_var = AuxiliaryVariable(var, dtype=dtype,
+                    annotated_ast = brian_ast(expr, variables)
+                    is_scalar = annotated_ast.scalar
+                    if annotated_ast.dtype == 'boolean':
+                        use_dtype = bool
+                    elif annotated_ast.dtype == 'integer':
+                        use_dtype = int
+                    else:
+                        use_dtype = dtype
+                    new_var = AuxiliaryVariable(var, dtype=use_dtype,
                                                 scalar=is_scalar)
                     variables[var] = new_var
             elif not variables[var].is_boolean:

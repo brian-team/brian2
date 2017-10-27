@@ -1,6 +1,7 @@
 '''
 Tests the brian2.parsing package
 '''
+import sys
 from collections import namedtuple
 
 from nose.plugins.attrib import attr
@@ -260,7 +261,7 @@ def test_is_boolean_expression():
                   variables)
     assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
                   variables)
-    
+
 
 @attr('codegen-independent')
 def test_parse_expression_unit():

@@ -1,8 +1,9 @@
 '''
 AST parsing based analysis of expressions
 '''
-
+import sys
 import ast
+import numbers
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer
@@ -14,8 +15,7 @@ from brian2.units.fundamentalunits import (Unit,
                                            fail_for_dimension_mismatch,
                                            get_unit)
 
-__all__ = ['is_boolean_expression',
-           'parse_expression_dimensions', ]
+__all__ = ['parse_expression_dimensions']
 
 
 def is_boolean_expression(expr, variables):
