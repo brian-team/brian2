@@ -6,7 +6,7 @@ import sys
 
 from .base import (StateUpdateMethod, UnsupportedEquationsException, extract_method_options)
 from ..core.preferences import prefs
-from ..devices.device import auto_target
+from ..devices.device import auto_target, all_devices, RuntimeDevice
 from brian2.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -59,7 +59,7 @@ class GSLContainer(object):
         from ..codegen.runtime.GSLcython_rt import GSLCythonCodeObject
 
         device = get_device()
-        if isinstance(device, CPPStandaloneDevice):
+        if device.__class__ is CPPStandaloneDevice:  # We do not want to accept subclasses here
             from ..devices.cpp_standalone.GSLcodeobject import GSLCPPStandaloneCodeObject
             # In runtime mode (i.e. weave and Cython), the compiler settings are
             # added for each `CodeObject` (only the files that use the GSL are
@@ -83,22 +83,32 @@ class GSLContainer(object):
                     device.include_dirs += [prefs.GSL.directory]
             return GSLCPPStandaloneCodeObject
 
-        if prefs.codegen.target == 'auto':
-            target_name = auto_target().class_name
-        else:
-            target_name = prefs.codegen.target
+        elif isinstance(device, RuntimeDevice):
+            if prefs.codegen.target == 'auto':
+                target_name = auto_target().class_name
+            else:
+                target_name = prefs.codegen.target
 
-        if target_name == 'cython':
-            return GSLCythonCodeObject
-        elif target_name == 'weave':
-            return GSLWeaveCodeObject
+            if target_name == 'cython':
+                return GSLCythonCodeObject
+            elif target_name == 'weave':
+                return GSLWeaveCodeObject
+            raise NotImplementedError(("GSL integration has not been implemented for "
+                                       "for the '{target_name}' code generation target."
+                                       "\nUse either the 'weave' or 'cython' code "
+                                       "generation target, or switch to the "
+                                       "'cpp_standalone' device."
+                                       ).format(target_name=target_name))
         else:
-            raise NotImplementedError(("Selected stateupdater is GSL stateupdater, while "
-                                       "target language is {language} (either selected or only "
-                                       "one available): GSL was not implemented for {language}."
-                                       "\nSet target language to weave or cython, or device "
-                                       "to cpp_standalone in order to use GSL "
-                                       "integration").format(language=prefs.codegen.target))
+            device_name = [name for name, dev in all_devices.iteritems()
+                           if dev is device]
+            assert len(device_name) == 1
+            raise NotImplementedError(("GSL integration has not been implemented for "
+                                       "for the '{device}' device."
+                                       "\nUse either the 'cpp_standalone' device, "
+                                       "or the runtime device with target language "
+                                       "'weave' or 'cython'."
+                                       ).format(device=device_name[0]))
 
     def __call__(self, obj):
         '''
