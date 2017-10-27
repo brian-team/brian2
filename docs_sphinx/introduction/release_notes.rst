@@ -1,6 +1,82 @@
 Release notes
 =============
 
+Next Brian release
+------------------
+This release introduces two main new features: a new "GSL integration" mode for
+differential equation that offers to integrate equations with variable-timestep
+methods provided by the GNU Scientific Library, and caching for the run
+preparation phase that can significantly speed up simulations. It also comes
+with a newly written tutorial, as well as additional documentation and examples.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development
+mailing list (brian-development@googlegroups.com).
+
+New features
+~~~~~~~~~~~~
+* New numerical integration methods with variable time-step integration, based
+  on the GNU Scientific Library (see :ref:`numerical_integration`). Contributed
+  by `Charlee Fletterman <https://github.com/CharleeSF>`_, supported by 2017's
+  `Google Summer of Code <https://summerofcode.withgoogle.com>`_ program.
+* New caching mechanism for the code generation stage (application of numerical
+  integration algorithms, analysis of equations and statements, etc.), reducing
+  the preparation time before the actual run, in particular for simulations with
+  multiple `run` statements.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix a rare problem in Cython code generation caused by missing type information (:issue:`893`)
+* Fix warnings about improperly closed files on Python 3.6 (:issue:`892`;
+  reported and fixed by `Teo Stocco <https://github.com/zifeo>`_)
+* Fix an error when using numpy integer types for synaptic indexing (:issue:`888`)
+* Fix an error in numpy codegen target, triggered when assigning to a variable with an unfulfilled condition (:issue:`887`)
+* Fix an error when repeatedly referring to subexpressions in multiline statements (:issue:`880`)
+* Shorten long arrays in warning messages (:issue:`874`)
+* Enable the use of ``if`` in the shorthand generator syntax for `Synapses.connect` (:issue:`873`)
+* Fix the meaning of ``i`` and ``j`` in synapses connecting to/from other synapses (:issue:`854`)
+
+Backward-incompatible changes and deprecations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* In C++ standalone mode, information about the number of synapses and spikes
+  will now only be displayed when built with ``debug=True`` (:issue:`882`).
+* The ``linear`` state updater has been renamed to ``exact`` to avoid confusion
+  (:issue:`877`). Users are encouraged to use ``exact``, but the name ``linear``
+  is still available and does not raise any warning or error for now.
+* The ``independent`` state updater has been marked as deprecated and might be
+  removed in future versions.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* A new, more advanced, :doc:`tutorial <../resources/tutorials/3-intro-to-brian-simulations>` "about
+  managing the slightly more complicated tasks that crop up in research
+  problems, rather than the toy examples we’ve been looking at so far."
+* Additional documentation on :doc:`../advanced/custom_events` and
+  :doc:`../user/converting_from_integrated_form` (including example code for
+  typical synapse models).
+* New example code reproducing published findings (:doc:`Platkiewicz and Brette, 2011 <../examples/frompapers.Platkiewicz_Brette_2011>`;
+  :ref:`Stimberg et al., 2018 <frompapers.stimberg_et_al_2018>`)
+* Fixes to the sphinx documentation creation process, the documentation can be downloaded as a PDF once again (705 pages!)
+* Conda packages now have support for numpy 1.13 (but support for numpy 1.10 and 1.11 has been removed)
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Charlee Fletterman (`@CharleeSF <https://github.com/CharleeSF/>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Teo Stocco (`@zifeo <https://github.com/zifeo>`_)
+* `@k47h4 <https://github.com/k47h4>`_
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Chaofei Hong
+* Lucas ("lucascdst")
+
+
 Brian 2.0.2.1
 -------------
 
