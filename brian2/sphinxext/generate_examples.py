@@ -148,6 +148,8 @@ def main(rootpath, destdir):
     
     def insert_category(category, mainpage_text):
         if category:
+            label = category.lower().replace(' ', '-').replace('/', '.')
+            mainpage_text += '\n.. _{label}:\n\n'.format(label=label)
             mainpage_text += '\n'+category+'\n'+'-'*len(category)+'\n\n'
         mainpage_text += '.. toctree::\n'
         mainpage_text += '   :maxdepth: 1\n\n'
