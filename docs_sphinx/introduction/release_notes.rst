@@ -1,8 +1,8 @@
 Release notes
 =============
 
-Next Brian release
-------------------
+Brian 2.1
+---------
 This release introduces two main new features: a new "GSL integration" mode for
 differential equation that offers to integrate equations with variable-timestep
 methods provided by the GNU Scientific Library, and caching for the run
