@@ -52,7 +52,7 @@ def setreleasedate():
     os.chdir(pathname)
     os.chdir('../../../')
     # update __init__.py
-    with open('brian2/__init__.py', 'r'):
+    with open('brian2/__init__.py', 'r') as f:
         init_py = f.read()
     init_py = re.sub("__release_date__\s*=\s*'.*?'", "__release_date__ = '" + releasedate + "'", init_py)
     with open('brian2/__init__.py', 'w') as f:
