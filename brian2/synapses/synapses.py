@@ -71,12 +71,12 @@ class StateUpdater(CodeRunner):
                                                                       method_options=self.method_options,
                                                                       group_name=self.group.name)
             if isinstance(stateupdate_output, basestring):
-                self.abstract_code += stateupdate_output
+                self.abstract_code = stateupdate_output
             else:
                 # Note that the reason to send self along with this method is so the StateUpdater
                 # can be modified! i.e. in GSL StateUpdateMethod a custom CodeObject gets added
                 # to the StateUpdater together with some auxiliary information
-                self.abstract_code += stateupdate_output(self)
+                self.abstract_code = stateupdate_output(self)
         else:
             self.abstract_code = ''
 
