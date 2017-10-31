@@ -1,6 +1,6 @@
 package:
   name: brian2
-  version: "2.1"
+  version: "2.1.1+git"
 
 # Note: specifying a minimal version for numyp leads to incorrect build strings
 requirements:
