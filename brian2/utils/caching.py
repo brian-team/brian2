@@ -116,6 +116,9 @@ def _hashable(obj):
     elif isinstance(obj, collections.Mapping):
         return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.iteritems())
+    elif hasattr(obj, 'dim') and getattr(obj, 'shape', None) == ():
+        # Scalar Quantity object
+        return float(obj), obj.dim
     else:
         raise AssertionError('Do not know how to handle object of type '
                              '%s' % type(obj))
