@@ -1,6 +1,11 @@
 Release notes
 =============
 
+Brian 2.1.1
+-----------
+This is a bug fix release that re-activates parts of the caching mechanism for
+code generation that had been erroneously deactivated in the previous release.
+
 Brian 2.1
 ---------
 This release introduces two main new features: a new "GSL integration" mode for
