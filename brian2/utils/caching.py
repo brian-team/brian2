@@ -82,9 +82,17 @@ def cached(func):
 
     @functools.wraps(func)
     def cached_func(*args, **kwds):
-        cache_key = tuple([_hashable(arg) for arg in args] +
-                          [(key, _hashable(value))
-                           for key, value in sorted(kwds.iteritems())])
+        try:
+            cache_key = tuple([_hashable(arg) for arg in args] +
+                              [(key, _hashable(value))
+                               for key, value in sorted(kwds.iteritems())])
+        except TypeError:
+            # If we cannot handle a type here, that most likely means that the
+            # user provided an argument of a type we don't handle. This will
+            # lead to an error message later that is most likely more meaningful
+            # to the user than an error message by the caching system
+            # complaining about an unsupported type.
+            return func(*args, **kwds)
         if cache_key in func._cache:
             func._cache_statistics.hits += 1
         else:
@@ -116,6 +124,9 @@ def _hashable(obj):
     elif isinstance(obj, collections.Mapping):
         return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.iteritems())
+    elif hasattr(obj, 'dim') and getattr(obj, 'shape', None) == ():
+        # Scalar Quantity object
+        return float(obj), obj.dim
     else:
-        raise AssertionError('Do not know how to handle object of type '
-                             '%s' % type(obj))
+        raise TypeError('Do not know how to handle object of type '
+                        '%s' % type(obj))
