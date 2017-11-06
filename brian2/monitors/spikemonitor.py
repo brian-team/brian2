@@ -239,14 +239,14 @@ class EventMonitor(Group, CodeRunner):
         >>> from brian2 import *
         >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
         ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.5, 1]
+        >>> G.v_th = [0.499, 0.999]
         >>> mon = EventMonitor(G, event='spike', variables='v')
         >>> run(20*ms)
         >>> v_values = mon.values('v')
-        >>> v_values[0]
-        array([ 0.5,  0.5,  0.5,  0.5])
-        >>> v_values[1]
-        array([ 1.,  1.])
+        >>> print(v_values[0])
+        [ 0.5  0.5  0.5  0.5]
+        >>> print(v_values[1])
+        [ 1.  1.]
         '''
         if not self.record:
             raise AttributeError('Indices and times have not been recorded.'
@@ -280,14 +280,15 @@ class EventMonitor(Group, CodeRunner):
         >>> from brian2 import *
         >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
         ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.5, 1]
+        >>> G.v_th = [0.499, 0.999]
         >>> mon = EventMonitor(G, event='spike', variables='v')
         >>> run(20*ms)
         >>> all_values = mon.all_values()
-        >>> all_values['t'][0]
-        array([  4.9,   9.9,  14.9,  19.9]) * msecond
-        >>> all_values['v'][0]
-        array([ 0.5,  0.5,  0.5,  0.5])
+        >>> np.set_printoptions(precision=4)
+        >>> print(all_values['t'][0])
+        [  4.9   9.9  14.9  19.9] ms
+        >>> print(all_values['v'][0])
+        [ 0.5  0.5  0.5  0.5]
         '''
         if not self.record:
             raise AttributeError('Indices and times have not been recorded.'
@@ -390,10 +391,11 @@ class SpikeMonitor(EventMonitor):
     >>> crossings = SpikeMonitor(G, variables='v', name='crossings')
     >>> net = Network(G, crossings)
     >>> net.run(10*ms)
-    >>> crossings.t
-    <crossings.t: array([ 0. ,  1.4,  4.6,  9.7]) * msecond>
-    >>> crossings.v
-    <crossings.v: array([ 0.00995017,  0.13064176,  0.27385096,  0.39950442])>
+    >>> np.set_printoptions(precision=4)
+    >>> print(crossings.t[:])
+    [ 0.   1.4  4.6  9.7] ms
+    >>> print(crossings.v[:])
+    [ 0.01    0.1306  0.2739  0.3995]
     '''
     def __init__(self, source, variables=None, record=True, when=None,
                  order=None, name='spikemonitor*', codeobj_class=None):
@@ -459,14 +461,14 @@ class SpikeMonitor(EventMonitor):
         >>> from brian2 import *
         >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
         ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.5, 1]
+        >>> G.v_th = [0.499, 0.999]
         >>> mon = SpikeMonitor(G, variables='v')
         >>> run(20*ms)
         >>> v_values = mon.values('v')
-        >>> v_values[0]
-        array([ 0.5,  0.5,  0.5,  0.5])
-        >>> v_values[1]
-        array([ 1.,  1.])
+        >>> print(v_values[0])
+        [ 0.5  0.5  0.5  0.5]
+        >>> print(v_values[1])
+        [ 1.  1.]
         '''
         return super(SpikeMonitor, self).values(var)
 
@@ -490,14 +492,14 @@ class SpikeMonitor(EventMonitor):
         >>> from brian2 import *
         >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
         ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.5, 1]
+        >>> G.v_th = [0.499, 0.999]
         >>> mon = SpikeMonitor(G, variables='v')
         >>> run(20*ms)
         >>> all_values = mon.all_values()
-        >>> all_values['t'][0]
-        array([  4.9,   9.9,  14.9,  19.9]) * msecond
-        >>> all_values['v'][0]
-        array([ 0.5,  0.5,  0.5,  0.5])
+        >>> print(all_values['t'][0])
+        [  4.9   9.9  14.9  19.9] ms
+        >>> print(all_values['v'][0])
+        [ 0.5  0.5  0.5  0.5]
         '''
         return super(SpikeMonitor, self).all_values()
 
