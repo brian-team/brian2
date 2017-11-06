@@ -114,7 +114,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         # standard variables
         self.variables.add_constant('N', value=N)
         self.variables.add_array('period', dimensions=second.dim, size=1,
-                                 constant=True, read_only=True, scalar=True)
+                                 constant=True, read_only=True, scalar=True,
+                                 dtype=self._clock.variables['t'].dtype)
         self.variables.add_arange('i', N)
         self.variables.add_dynamic_array('spike_number',
                                          values=np.arange(len(indices)),
@@ -128,7 +129,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                          read_only=True, constant=True)
         self.variables.add_dynamic_array('spike_time', values=times, size=len(times),
                                          dimensions=second.dim, index='spike_number',
-                                         read_only=True, constant=True)
+                                         read_only=True, constant=True,
+                                         dtype=self._clock.variables['t'].dtype)
         self.variables.add_array('_spikespace', size=N+1, dtype=np.int32)
         self.variables.add_array('_lastindex', size=1, values=0, dtype=np.int32,
                                  read_only=True, scalar=True)
