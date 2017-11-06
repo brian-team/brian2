@@ -12,25 +12,20 @@
 
 #include "brianlib/spikequeue.h"
 
-template<class scalar> class SynapticPathway;
-
-template <class scalar>
 class SynapticPathway
 {
 public:
 	int Nsource, Ntarget, _nb_threads;
-	std::vector<scalar> &delay;
 	std::vector<int> &sources;
 	std::vector<int> all_peek;
-	std::vector< CSpikeQueue<scalar> * > queue;
-	SynapticPathway(std::vector<scalar>& _delay, std::vector<int> &_sources,
-					int _spikes_start, int _spikes_stop)
-		: delay(_delay), sources(_sources)
+	std::vector< CSpikeQueue * > queue;
+	SynapticPathway(std::vector<int> &_sources, int _spikes_start, int _spikes_stop)
+		: sources(_sources)
 	{
 	   _nb_threads = {{ openmp_pragma('get_num_threads') }};
 
 	   for (int _idx=0; _idx < _nb_threads; _idx++)
-	       queue.push_back(new CSpikeQueue<scalar>(_spikes_start, _spikes_stop));
+	       queue.push_back(new CSpikeQueue(_spikes_start, _spikes_stop));
     };
 
 	~SynapticPathway()
@@ -65,7 +60,7 @@ public:
     	return &all_peek;
     }
 
-    void prepare(int n_source, int n_target, scalar *real_delays, int n_delays,
+    template <typename scalar> void prepare(int n_source, int n_target, scalar *real_delays, int n_delays,
                  int *sources, int n_synapses, double _dt)
     {
         Nsource = n_source;
@@ -86,7 +81,7 @@ public:
     		else if (n_delays == 1)
     		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(&real_delays[0], 1, &sources[padding], length, _dt);
     		else  // no synapses
-    		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare(NULL, 0, &sources[padding], length, _dt);
+    		    queue[{{ openmp_pragma('get_thread_num') }}]->prepare((scalar *)NULL, 0, &sources[padding], length, _dt);
     	}
     }
 

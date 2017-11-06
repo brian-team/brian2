@@ -22,10 +22,14 @@ cdef extern from "stdint_compat.h":
 
 ctypedef pair[int, vector[vector[int32_t]]] state_pair
 
+ctypedef fused float_array:
+    np.ndarray[double, ndim=1, mode='c']
+    np.ndarray[float, ndim=1, mode='c']
+
 cdef extern from "cspikequeue.cpp":
-    cdef cppclass CSpikeQueue[T]:
+    cdef cppclass CSpikeQueue:
         CSpikeQueue(int, int) except +
-        void prepare(T*, int, int32_t*, int, double)
+        void prepare[scalar](scalar*, int, int32_t*, int, double)
         void push(int32_t *, int)
         state_pair _full_state()
         void _restore_from_full_state(state_pair)
@@ -34,11 +38,11 @@ cdef extern from "cspikequeue.cpp":
 
 cdef class SpikeQueue:
     # TODO: Currently, the data type for dt and delays is fixed
-    cdef CSpikeQueue[double] *thisptr
+    cdef CSpikeQueue *thisptr
     cdef readonly tuple _state_tuple
 
     def __cinit__(self, int source_start, int source_end):
-        self.thisptr = new CSpikeQueue[double](source_start, source_end)
+        self.thisptr = new CSpikeQueue(source_start, source_end)
 
     def __init__(self, source_start, source_end):
         self._state_tuple = (source_start, source_end, np.int32)
@@ -61,13 +65,19 @@ cdef class SpikeQueue:
             empty_state = (0, empty_queue)
             self.thisptr._restore_from_full_state(empty_state)
 
-    def prepare(self, np.ndarray[double, ndim=1, mode='c'] real_delays,
+    def prepare(self, float_array real_delays,
                 double dt,
                 np.ndarray[int32_t, ndim=1, mode='c'] sources):
-        self.thisptr.prepare(<double*>real_delays.data,
-                             real_delays.shape[0],
-                             <int32_t*>sources.data,
-                             sources.shape[0], dt)
+        if real_delays.dtype == np.float32:
+            self.thisptr.prepare(<float*>real_delays.data,
+                                 real_delays.shape[0],
+                                 <int32_t*>sources.data,
+                                 sources.shape[0], dt)
+        else:
+            self.thisptr.prepare(<double*>real_delays.data,
+                                 real_delays.shape[0],
+                                 <int32_t*>sources.data,
+                                 sources.shape[0], dt)
 
     def push(self, np.ndarray[int32_t, ndim=1, mode='c'] spikes):
         self.thisptr.push(<int32_t*>spikes.data, spikes.shape[0])
