@@ -205,7 +205,7 @@ class StateMonitor(Group, CodeRunner):
             record = np.array([record], dtype=np.int32)
         else:
             record = np.asarray(record, dtype=np.int32)
-            
+
         #: The array of recorded indices
         self.record = record
         self.n_indices = len(record)
@@ -230,7 +230,8 @@ class StateMonitor(Group, CodeRunner):
         self.variables = Variables(self)
 
         self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
-                                         constant=False)
+                                         constant=False,
+                                         dtype=self._clock.variables['t'].dtype)
         self.variables.add_array('N', dtype=np.int32, size=1, scalar=True,
                                  read_only=True)
         self.variables.add_array('_indices', size=len(self.record),

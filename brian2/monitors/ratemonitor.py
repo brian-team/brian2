@@ -26,7 +26,9 @@ class PopulationRateMonitor(Group, CodeRunner):
         ``source.name+'_ratemonitor_0'``, etc.
     codeobj_class : class, optional
         The `CodeObject` class to run code with.
-
+    dtype : dtype, optional
+        The dtype to use to store the ``rate`` variable. Defaults to
+        `~numpy.float64`, i.e. double precision.
     Notes
     -----
     Currently, this monitor can only monitor the instantaneous firing rates at
@@ -35,8 +37,8 @@ class PopulationRateMonitor(Group, CodeRunner):
     '''
     invalidates_magic_network = False
     add_to_magic_network = True
-    def __init__(self, source, name='ratemonitor*',
-                 codeobj_class=None):
+    def __init__(self, source, name='ratemonitor*', codeobj_class=None,
+                 dtype=np.float64):
 
         #: The group we are recording from
         self.source = source
@@ -55,9 +57,10 @@ class PopulationRateMonitor(Group, CodeRunner):
         self.variables.add_constant('_source_stop', stop)
         self.variables.add_reference('_spikespace', source)
         self.variables.add_dynamic_array('rate', size=0, dimensions=hertz.dim,
-                                         read_only=True)
+                                         read_only=True, dtype=dtype)
         self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
-                                         read_only=True)
+                                         read_only=True,
+                                         dtype=self._clock.variables['t'].dtype)
         self.variables.add_reference('_num_source_neurons', source, 'N')
         self.variables.add_array('N', dtype=np.int32, size=1,
                                  scalar=True, read_only=True)
