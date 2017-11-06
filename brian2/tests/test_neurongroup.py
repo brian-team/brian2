@@ -67,7 +67,7 @@ def test_integer_variables_and_mod():
     run(1*ms)
     assert_equal(G.j[:], G.i[:]%n)
     assert_equal(G.k[:], G.i[:]/n)
-    assert_equal(G.a[:], G.v[:]%(G.i[:]+1))
+    assert_allclose(G.a[:], G.v[:]%(G.i[:]+1))
 
 @attr('codegen-independent')
 def test_variables():
@@ -107,9 +107,9 @@ def test_variableview_calculations():
     assert_allclose(2 + G.x, 2 + np.arange(10))
     assert_allclose(2*mV + G.y, 2*mV + np.arange(10)[::-1]*mV)
     assert_allclose(G.x - 2, np.arange(10) - 2)
-    assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV)
+    assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV, rtol=1e-6)
     assert_allclose(2 - G.x, 2 - np.arange(10))
-    assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV)
+    assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV, rtol=1e-6)
 
     # incorrect units
     assert_raises(DimensionMismatchError, lambda: G.x + G.y)
@@ -194,7 +194,7 @@ def test_linked_variable_correct():
     mon1 = StateMonitor(G1, 'v', record=True)
     mon2 = StateMonitor(G2, 'v', record=True)
     run(10*ms)
-    assert_equal(mon1.v[:, :], mon2.v[:, :])
+    assert_allclose(mon1.v[:, :], mon2.v[:, :])
     # Make sure that printing the variable values works
     assert len(str(G2.v)) > 0
     assert len(repr(G2.v)) > 0
@@ -262,7 +262,7 @@ def test_linked_variable_indexed():
     G.x = np.arange(10)*0.1
     G.y = linked_var(G.x, index=np.arange(10)[::-1])
     # G.y should refer to an inverted version of G.x
-    assert_equal(G.y[:], np.arange(10)[::-1]*0.1)
+    assert_allclose(G.y[:], np.arange(10)[::-1]*0.1)
 
 @attr('codegen-independent')
 def test_linked_variable_repeat():
@@ -273,7 +273,7 @@ def test_linked_variable_repeat():
     G2 = NeuronGroup(10, 'v : 1 (linked)')
     G2.v = linked_var(G1.w, index=np.arange(5).repeat(2))
     G1.w = np.arange(5) * 0.1
-    assert_equal(G2.v[:], np.arange(5).repeat(2) * 0.1)
+    assert_allclose(G2.v[:], np.arange(5).repeat(2) * 0.1)
 
 @attr('codegen-independent')
 def test_linked_double_linked1():
@@ -287,7 +287,7 @@ def test_linked_double_linked1():
     G3.z = linked_var(G2.y)
 
     G1.x = np.arange(10)
-    assert_equal(G3.z[:], np.arange(10))
+    assert_allclose(G3.z[:], np.arange(10))
 
 @attr('codegen-independent')
 def test_linked_double_linked2():
@@ -302,7 +302,7 @@ def test_linked_double_linked2():
     G3.z = linked_var(G2.y, index=np.arange(5).repeat(2))
 
     G1.x = np.arange(5)*0.1
-    assert_equal(G3.z[:], np.arange(5).repeat(2)*0.1)
+    assert_allclose(G3.z[:], np.arange(5).repeat(2)*0.1)
 
 @attr('codegen-independent')
 def test_linked_double_linked3():
@@ -316,7 +316,7 @@ def test_linked_double_linked3():
     G3.z = linked_var(G2.y)
 
     G1.x = np.arange(5)*0.1
-    assert_equal(G3.z[:], np.arange(5).repeat(2)*0.1)
+    assert_allclose(G3.z[:], np.arange(5).repeat(2)*0.1)
 
 @attr('codegen-independent')
 def test_linked_double_linked4():
@@ -330,7 +330,7 @@ def test_linked_double_linked4():
     G3.z = linked_var(G2.y, index=np.arange(10)[::-1])
 
     G1.x = np.arange(5)*0.1
-    assert_equal(G3.z[:], np.arange(5).repeat(2)[::-1]*0.1)
+    assert_allclose(G3.z[:], np.arange(5).repeat(2)[::-1]*0.1)
 
 @attr('codegen-independent')
 def test_linked_triple_linked():
@@ -349,7 +349,7 @@ def test_linked_triple_linked():
     G4.d = linked_var(G3.c, index=np.arange(4).repeat(2))
 
     G1.a = np.arange(2)*0.1
-    assert_equal(G4.d[:], np.arange(2).repeat(2)[::-1].repeat(2)*0.1)
+    assert_allclose(G4.d[:], np.arange(2).repeat(2)[::-1].repeat(2)*0.1)
 
 @attr('codegen-independent')
 def test_linked_subgroup():
@@ -362,7 +362,7 @@ def test_linked_subgroup():
     G3 = NeuronGroup(5, 'y:1 (linked)')
     G3.y = linked_var(G2.x)
 
-    assert_equal(G3.y[:], (np.arange(5)+3)*0.1)
+    assert_allclose(G3.y[:], (np.arange(5)+3)*0.1)
 
 @attr('codegen-independent')
 def test_linked_subgroup2():
@@ -375,7 +375,7 @@ def test_linked_subgroup2():
     G3 = NeuronGroup(10, 'y:1 (linked)')
     G3.y = linked_var(G2.x, index=np.arange(5).repeat(2))
 
-    assert_equal(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
+    assert_allclose(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -512,7 +512,7 @@ def test_linked_var_in_reset():
     # In this context, x_linked should not be considered as a scalar variable
     # and therefore the reset statement should be allowed
     run(3*defaultclock.dt)
-    assert_equal(G1.x[:], [0, 1, 0])
+    assert_allclose(G1.x[:], [0, 1, 0])
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -526,7 +526,7 @@ def test_linked_var_in_reset_size_1():
     # In this context, x_linked should not be considered as a scalar variable
     # and therefore the reset statement should be allowed
     run(3*defaultclock.dt)
-    assert_equal(G1.x[:], 1)
+    assert_allclose(G1.x[:], 1)
 
 @attr('codegen-independent')
 def test_linked_var_in_reset_incorrect():
@@ -654,7 +654,7 @@ def test_threshold_reset():
                     threshold='v > 1', reset='v=0.5')
     G.v = np.array([0, 1, 2])
     run(defaultclock.dt)
-    assert_equal(G.v[:], np.array([0, 1, 0.5]))
+    assert_allclose(G.v[:], np.array([0, 1, 0.5]))
 
 @attr('codegen-independent')
 def test_unit_errors_threshold_reset():
@@ -830,8 +830,8 @@ def test_state_variables():
     assert all(G.v + G.v == 2*G.v)
     assert all(G.v / 2.0 == 0.5*G.v)
     assert all(1.0 / G.v == 1.0 / G.v[:])
-    assert_equal((-G.v)[:], -G.v[:])
-    assert_equal((+G.v)[:], G.v[:])
+    assert_allclose((-G.v)[:], -G.v[:])
+    assert_allclose((+G.v)[:], G.v[:])
     #Without units
     assert all(G.v_ - G.v_ == 0)
     assert all(G.v_ - G.v_[:] == 0)
@@ -841,8 +841,8 @@ def test_state_variables():
     assert all(G.v_ + G.v_ == 2*G.v_)
     assert all(G.v_ / 2.0 == 0.5*G.v_)
     assert all(1.0 / G.v_ == 1.0 / G.v_[:])
-    assert_equal((-G.v)[:], -G.v[:])
-    assert_equal((+G.v)[:], G.v[:])
+    assert_allclose((-G.v)[:], -G.v[:])
+    assert_allclose((+G.v)[:], G.v[:])
 
     # And in-place modification should work as well
     G.v += 10*mV
@@ -867,16 +867,16 @@ def test_state_variable_access():
     G = NeuronGroup(10, 'v:volt')
     G.v = np.arange(10) * volt
 
-    assert_equal(np.asarray(G.v[:]), np.arange(10))
+    assert_allclose(np.asarray(G.v[:]), np.arange(10))
     assert have_same_dimensions(G.v[:], volt)
-    assert_equal(np.asarray(G.v[:]), G.v_[:])
+    assert_allclose(np.asarray(G.v[:]), G.v_[:])
     # Accessing single elements, slices and arrays
     assert G.v[5] == 5 * volt
     assert G.v_[5] == 5
-    assert_equal(G.v[:5], np.arange(5) * volt)
-    assert_equal(G.v_[:5], np.arange(5))
-    assert_equal(G.v[[0, 5]], [0, 5] * volt)
-    assert_equal(G.v_[[0, 5]], np.array([0, 5]))
+    assert_allclose(G.v[:5], np.arange(5) * volt)
+    assert_allclose(G.v_[:5], np.arange(5))
+    assert_allclose(G.v[[0, 5]], [0, 5] * volt)
+    assert_allclose(G.v_[[0, 5]], np.array([0, 5]))
 
     # Illegal indexing
     assert_raises(IndexError, lambda: G.v[0, 0])
@@ -899,8 +899,8 @@ def test_state_variable_access_strings():
     # Indexing with strings
     assert G.v['i==2'] == G.v[2]
     assert G.v_['i==2'] == G.v_[2]
-    assert_equal(G.v['v >= 3*volt'], G.v[3:])
-    assert_equal(G.v_['v >= 3*volt'], G.v_[3:])
+    assert_allclose(G.v['v >= 3*volt'], G.v[3:])
+    assert_allclose(G.v_['v >= 3*volt'], G.v_[3:])
     # Should also check for units
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
     assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
@@ -1001,24 +1001,24 @@ def test_state_variable_set_strings():
     G.v11[3] = 'inf*volt'
     G.v11[4] = 'rand()*volt'
     run(0*ms)
-    assert_equal(G.v1[:], [0, 3, 6, 9, 12, 10, 12, 14, 16, 18]*volt)
-    assert_equal(G.v_ref[:], 2 * np.arange(10))
-    assert_equal(G.v2[:], [0, 4, 8, 12, 16, 10, 12, 14, 16, 18]*volt)
-    assert_equal(G.v3[:], 2 * np.arange(10) * volt + 15 * volt)
-    assert_equal(G.v4[:], [15, 17, 19, 21, 23, 5, 6, 7, 8, 9]*volt)
-    assert_equal(G.v6[:], np.zeros(10) * volt)
-    assert_equal(G.v7[:], [0, 1, 2, 3, 4, 0, 0, 0, 0, 0]*volt)
-    assert_equal(G.v7b[:], np.arange(10)*volt)
-    assert_equal(G.v7c[:], np.arange(10) * volt)
-    assert_equal(G.v8[:], [0, 0, 0, 3, 0, 0, 0, 0, 0, 0]*volt)
-    assert_equal(G.v9[:], [0, 3, 6, 9, 12, 10, 12, 14, 16, 18]*volt)
-    assert_equal(G.v9b[:], np.arange(10)*volt)
-    assert_equal(G.v9c[:], np.arange(10) * volt)
-    assert_equal(G.v10[6:], np.arange(4)*volt + 6*volt)  # unchanged
+    assert_allclose(G.v1[:], [0, 3, 6, 9, 12, 10, 12, 14, 16, 18]*volt)
+    assert_allclose(G.v_ref[:], 2 * np.arange(10))
+    assert_allclose(G.v2[:], [0, 4, 8, 12, 16, 10, 12, 14, 16, 18]*volt)
+    assert_allclose(G.v3[:], 2 * np.arange(10) * volt + 15 * volt)
+    assert_allclose(G.v4[:], [15, 17, 19, 21, 23, 5, 6, 7, 8, 9]*volt)
+    assert_allclose(G.v6[:], np.zeros(10) * volt)
+    assert_allclose(G.v7[:], [0, 1, 2, 3, 4, 0, 0, 0, 0, 0]*volt)
+    assert_allclose(G.v7b[:], np.arange(10)*volt)
+    assert_allclose(G.v7c[:], np.arange(10) * volt)
+    assert_allclose(G.v8[:], [0, 0, 0, 3, 0, 0, 0, 0, 0, 0]*volt)
+    assert_allclose(G.v9[:], [0, 3, 6, 9, 12, 10, 12, 14, 16, 18]*volt)
+    assert_allclose(G.v9b[:], np.arange(10)*volt)
+    assert_allclose(G.v9c[:], np.arange(10) * volt)
+    assert_allclose(G.v10[6:], np.arange(4)*volt + 6*volt)  # unchanged
     assert all(G.v10[:6] >= 100*volt)
     assert all(G.v10[:6] <= 101*volt)
     assert np.var(G.v10_[:6]) > 0
-    assert_equal(G.v11[:3], [1, 2, 3]*volt)
+    assert_allclose(G.v11[:3], [1, 2, 3]*volt)
     assert np.isinf(G.v11_[3])
 
 @attr('codegen-independent')
@@ -1045,7 +1045,7 @@ def test_subexpression():
                            expr = 2*freq + array*Hz : Hz''')
     G.freq = '10*i*Hz'
     G.array = 5
-    assert_equal(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
+    assert_allclose(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
 
 @attr('codegen-independent')
 def test_subexpression_with_constant():
@@ -1053,7 +1053,7 @@ def test_subexpression_with_constant():
         G = NeuronGroup(1, '''x : 1
                               I = x*g : 1''')
         G.x = 1
-        assert_equal(G.I[:], np.array([2]))
+        assert_allclose(G.I[:], np.array([2]))
         # Subexpressions that refer to external variables are tricky, see github
         # issue #313 for details
 
@@ -1086,7 +1086,7 @@ def test_subexpression_with_constant():
         assert_raises(KeyError, lambda: np.array(G.I))
         assert_raises(KeyError, lambda: np.mean(G.I))
         # But these should
-        assert_equal(np.array(G.I[:]), G.I[:])
+        assert_allclose(np.array(G.I[:]), G.I[:])
         assert np.mean(G.I[:]) == 2
 
         # This will work but display a text, advising to use G.I[:] instead of
@@ -1103,16 +1103,16 @@ def test_scalar_parameter_access():
 
     # Try setting a scalar variable
     G.freq = 100*Hz
-    assert_equal(G.freq[:], 100*Hz)
+    assert_allclose(G.freq[:], 100*Hz)
     G.freq[:] = 200*Hz
-    assert_equal(G.freq[:], 200*Hz)
+    assert_allclose(G.freq[:], 200*Hz)
     G.freq = 'freq - 50*Hz + number*Hz'
-    assert_equal(G.freq[:], 150*Hz)
+    assert_allclose(G.freq[:], 150*Hz)
     G.freq[:] = '50*Hz'
-    assert_equal(G.freq[:], 50*Hz)
+    assert_allclose(G.freq[:], 50*Hz)
 
     # Check the second method of accessing that works
-    assert_equal(np.asanyarray(G.freq), 50*Hz)
+    assert_allclose(np.asanyarray(G.freq), 50*Hz)
 
     # Check error messages
     assert_raises(IndexError, lambda: G.freq[0])
@@ -1153,7 +1153,8 @@ def test_sim_with_scalar_variable():
     G.tau = 10*ms
     G.v = '1.0*i/N'
     run(1*ms)
-    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
+    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False),
+                    rtol=1e-6)
 
 
 @attr('standalone-compatible')
@@ -1163,7 +1164,8 @@ def test_sim_with_scalar_subexpression():
                            dv/dt = -v/tau : 1''', method='exact')
     G.v = '1.0*i/N'
     run(1*ms)
-    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
+    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False),
+                    rtol=1e-6)
 
 
 @attr('standalone-compatible')
@@ -1250,10 +1252,10 @@ def test_indices():
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
     ext_var = 5
-    assert_equal(G.indices[:], G.i[:])
-    assert_equal(G.indices[5:], G.indices['i >= 5'])
-    assert_equal(G.indices[5:], G.indices['i >= ext_var'])
-    assert_equal(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
+    assert_allclose(G.indices[:], G.i[:])
+    assert_allclose(G.indices[5:], G.indices['i >= 5'])
+    assert_allclose(G.indices[5:], G.indices['i >= ext_var'])
+    assert_allclose(G.indices['v >= 5'], np.nonzero(G.v >= 5)[0])
 
     # We should not accept "None" as an index, because in numpy this stands for
     # "new axis". In fact, x[0, None] is used in matplotlib to check whether
@@ -1320,8 +1322,8 @@ def test_aliasing_in_statements():
     g.run_regularly(runner_code)
     net = Network(g)
     net.run(defaultclock.dt)
-    assert_equal(g.x_0_[:], np.array([-1]))
-    assert_equal(g.x_1_[:], np.array([0]))
+    assert_allclose(g.x_0_[:], np.array([-1]))
+    assert_allclose(g.x_1_[:], np.array([0]))
 
 
 @attr('codegen-independent')
@@ -1336,14 +1338,14 @@ def test_get_states():
     states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False)
 
     assert len(states_units.keys()) == len(states.keys()) == 4
-    assert_equal(states_units['v'], np.arange(10)*volt)
-    assert_equal(states_units['x'], 10*np.arange(10))
-    assert_equal(states_units['subexpr'], 11*np.arange(10))
-    assert_equal(states_units['subexpr2'], 11*np.arange(10)*volt)
-    assert_equal(states['v'], np.arange(10))
-    assert_equal(states['x'], 10*np.arange(10))
-    assert_equal(states['subexpr'], 11*np.arange(10))
-    assert_equal(states['subexpr2'], 11*np.arange(10))
+    assert_allclose(states_units['v'], np.arange(10)*volt)
+    assert_allclose(states_units['x'], 10*np.arange(10))
+    assert_allclose(states_units['subexpr'], 11*np.arange(10))
+    assert_allclose(states_units['subexpr2'], 11*np.arange(10)*volt)
+    assert_allclose(states['v'], np.arange(10))
+    assert_allclose(states['x'], 10*np.arange(10))
+    assert_allclose(states['subexpr'], 11*np.arange(10))
+    assert_allclose(states['subexpr2'], 11*np.arange(10))
 
     all_states = G.get_states(units=True)
     assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i'}
@@ -1366,13 +1368,13 @@ def test_set_states():
     assert_raises(DimensionMismatchError, lambda: G.set_states({'x': np.arange(2, 12)*volt}, units=True))
     assert_raises(DimensionMismatchError, lambda: G.set_states({'v': np.arange(2, 12)}, units=True))
     G.set_states({'v': np.arange(2, 12)}, units=False)
-    assert_equal(G.v, np.arange(2, 12)*volt)
+    assert_allclose(G.v, np.arange(2, 12)*volt)
     G.set_states({'v': np.arange(2, 12)*volt}, units=True)
-    assert_equal(G.v, np.arange(2, 12)*volt)
+    assert_allclose(G.v, np.arange(2, 12)*volt)
     G.set_states({'x': np.arange(2, 12)}, units=False)
-    assert_equal(G.x, np.arange(2, 12))
+    assert_allclose(G.x, np.arange(2, 12))
     G.set_states({'x': np.arange(2, 12)}, units=True)
-    assert_equal(G.x, np.arange(2, 12))
+    assert_allclose(G.x, np.arange(2, 12))
 
 
 @attr('codegen-independent')
@@ -1389,10 +1391,10 @@ def test_get_states_pandas():
     G.x = '10*i'
     assert_raises(NotImplementedError, lambda: G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True, format='pandas'))
     states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False, format='pandas')
-    assert_equal(states['v'].values, np.arange(10))
-    assert_equal(states['x'].values, 10*np.arange(10))
-    assert_equal(states['subexpr'].values, 11*np.arange(10))
-    assert_equal(states['subexpr2'].values, 11*np.arange(10))
+    assert_allclose(states['v'].values, np.arange(10))
+    assert_allclose(states['x'].values, 10*np.arange(10))
+    assert_allclose(states['subexpr'].values, 11*np.arange(10))
+    assert_allclose(states['subexpr2'].values, 11*np.arange(10))
 
     all_states = G.get_states(units=False, format='pandas')
     assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i'}
@@ -1422,8 +1424,8 @@ def test_set_states_pandas():
     df = pd.DataFrame(np.vstack((np.arange(2, 12), np.arange(2, 12))).T)
     df.columns = ['v', 'x']
     G.set_states(df, units=False, format='pandas')
-    assert_equal(G.v, np.arange(2, 12)*volt)
-    assert_equal(G.x, np.arange(2, 12))
+    assert_allclose(G.v, np.arange(2, 12)*volt)
+    assert_allclose(G.x, np.arange(2, 12))
 
 
 def test_random_vector_values():
@@ -1467,7 +1469,7 @@ def test_random_values_fixed_seed():
     run(0*ms)  # for standalone
     assert np.var(G.v1[:]) > 0
     assert np.var(G.v2[:]) > 0
-    assert_equal(G.v1[:], G.v2[:])
+    assert_allclose(G.v1[:], G.v2[:])
 
 
 def test_random_values_fixed_and_random():
@@ -1487,7 +1489,7 @@ def test_random_values_fixed_and_random():
     run(2*defaultclock.dt)
 
     # First time step should be identical
-    assert_equal(first_run_values[:, 0], mon.v[:, 0])
+    assert_allclose(first_run_values[:, 0], mon.v[:, 0])
     # Second should be different
     assert np.var(first_run_values[:, 1] - mon.v[:, 1]) > 0
 
@@ -1530,7 +1532,7 @@ def test_run_regularly_dt():
     M = StateMonitor(G, 'v', record=0, when='end')
     run(10 * defaultclock.dt)
     assert_allclose(G.v[:], 5)
-    assert_equal(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
+    assert_allclose(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
 
 
 if __name__ == '__main__':

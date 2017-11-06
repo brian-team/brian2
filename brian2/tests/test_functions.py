@@ -113,8 +113,8 @@ def test_clip():
     run(defaultclock.dt)
     assert_equal(s_mon.clipexpr1.flatten(), [0, 1, 0, 1])
     assert_equal(s_mon.clipexpr2.flatten(), [0, 1, 0, 1])
-    assert_equal(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
-    assert_equal(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
+    assert_allclose(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
+    assert_allclose(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
 
 
 @attr('standalone-compatible')
@@ -160,7 +160,7 @@ def test_user_defined_function():
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
     run(default_dt)
-    assert_equal(np.sin(test_array), mon.func_.flatten())
+    assert_allclose(np.sin(test_array), mon.func_.flatten())
 
 
 @with_setup(teardown=reinit_devices)
@@ -220,7 +220,7 @@ def test_simple_user_defined_function():
     net = Network(G, mon)
     net.run(default_dt)
 
-    assert_equal(np.sin(test_array), mon.func_.flatten())
+    assert_allclose(np.sin(test_array), mon.func_.flatten())
 
     # Check that it raises an error for C++
     try:

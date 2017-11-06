@@ -1,4 +1,4 @@
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_allclose, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -22,8 +22,8 @@ def test_timedarray_direct_use():
     assert ta2d(0*ms, 0) == 0*amp
     assert ta2d(0*ms, 1) == 1*amp
     assert ta2d(1*ms, 1) == 4*amp
-    assert_equal(ta2d(1*ms, [0, 1, 2]), [3, 4, 5]*amp)
-    assert_equal(ta2d(15*ms, [0, 1, 2]), [9, 10, 11]*amp)
+    assert_allclose(ta2d(1*ms, [0, 1, 2]), [3, 4, 5]*amp)
+    assert_allclose(ta2d(15*ms, [0, 1, 2]), [9, 10, 11]*amp)
 
 
 @attr('standalone-compatible')
@@ -35,8 +35,8 @@ def test_timedarray_semantics():
     G = NeuronGroup(1, 'value = ta(t) : 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=0)
     run(0.8*ms)
-    assert_equal(mon[0].value, [0, 0, 0, 0, 1, 1, 1, 1])
-    assert_equal(mon[0].value, ta(mon.t))
+    assert_allclose(mon[0].value, [0, 0, 0, 0, 1, 1, 1, 1])
+    assert_allclose(mon[0].value, ta(mon.t))
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -45,7 +45,7 @@ def test_timedarray_no_units():
     G = NeuronGroup(1, 'value = ta(t) + 1: 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
     run(1.1*ms)
-    assert_equal(mon[0].value_, np.clip(np.arange(len(mon[0].t)), 0, 9) + 1)
+    assert_allclose(mon[0].value_, np.clip(np.arange(len(mon[0].t)), 0, 9) + 1)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -54,7 +54,7 @@ def test_timedarray_with_units():
     G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
     run(1.1*ms)
-    assert_equal(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
+    assert_allclose(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -64,9 +64,9 @@ def test_timedarray_2d():
     G = NeuronGroup(3, 'value = ta2d(t, i) + 1: 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=0.1*ms)
     run(0.5*ms)
-    assert_equal(mon[0].value_, np.array([0, 3, 6, 9, 9]) + 1)
-    assert_equal(mon[1].value_, np.array([1, 4, 7, 10, 10]) + 1)
-    assert_equal(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
+    assert_allclose(mon[0].value_, np.array([0, 3, 6, 9, 9]) + 1)
+    assert_allclose(mon[1].value_, np.array([1, 4, 7, 10, 10]) + 1)
+    assert_allclose(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
 
 
 @attr('codegen-independent')
@@ -91,7 +91,7 @@ def test_timedarray_no_upsampling():
     G = NeuronGroup(1, 'value = ta(t): 1', dt=0.1*ms)
     mon = StateMonitor(G, 'value', record=True, dt=1*ms)
     run(2.1*ms)
-    assert_equal(mon[0].value, [0, 9, 9])
+    assert_allclose(mon[0].value, [0, 9, 9])
 
 
 #@attr('standalone-compatible')  # see FIXME comment below
@@ -109,8 +109,8 @@ def test_long_timedarray():
     # FIXME: setting the time like this does not work for standalone
     net.t_ = float(16384*second - 5*ms)
     net.run(10*ms)
-    assert_equal(mon[0].value[mon.t < 16384*second], 16383)
-    assert_equal(mon[0].value[mon.t >= 16384*second], 16384)
+    assert_allclose(mon[0].value[mon.t < 16384*second], 16383)
+    assert_allclose(mon[0].value[mon.t >= 16384*second], 16384)
 
 
 if __name__ == '__main__':

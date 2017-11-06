@@ -507,9 +507,9 @@ def test_rall():
     run(100*ms)
 
     # Check space constant calculation
-    assert_allclose(la, neuron.space_constant[0])
-    assert_allclose(l1, neuron.L.space_constant[0])
-    assert_allclose(l2, neuron.R.space_constant[0])
+    assert_allclose(la, neuron.space_constant[0], rtol=1e-6)
+    assert_allclose(l1, neuron.L.space_constant[0], rtol=1e-6)
+    assert_allclose(l2, neuron.R.space_constant[0], rtol=1e-6)
 
     # Theory
     x = neuron.main.distance
@@ -794,7 +794,7 @@ def test_spatialneuron_capacitive_currents():
     neuron.I = 0*amp
     run(10*ms)
     device.build(direct_call=False, **device.build_options)
-    assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230), atol=1e-10)
+    assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230), atol=1e-6)
 
 if __name__ == '__main__':
     test_custom_events()

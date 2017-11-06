@@ -78,7 +78,8 @@ def test_active_flag():
     # Monitor should start recording at 1ms
     # Neurongroup should not integrate after 1ms (but should have integrated before)
     assert_allclose(mon[0].t[0], 1*ms)
-    assert_allclose(mon[0].v, 1.0)
+    assert_allclose(mon[0].v, 1.0, rtol=1e-6)
+
 
 if __name__=='__main__':
     test_base()

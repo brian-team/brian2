@@ -174,9 +174,9 @@ def test_multiple_noise_variables_deterministic_noise():
                 mon = StateMonitor(G, ['x', 'y'], record=True)
                 net = Network(G, mon)
                 net.run(10*ms)
-            assert_allclose(mon.x[:], no_noise_x,
+            assert_allclose(mon.x[:], no_noise_x, rtol=1e-6,
                             err_msg='Method %s gave incorrect results' % method_name)
-            assert_allclose(mon.y[:], no_noise_y,
+            assert_allclose(mon.y[:], no_noise_y, rtol=1e-6,
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
@@ -682,7 +682,8 @@ def test_refractory():
         net.run(10*ms)
         assert_allclose(G_no_ref.v[:], G_ref.v[:],
                         err_msg=('Results with and without refractoriness '
-                                 'differ for method %s.') % method)
+                                 'differ for method %s.') % method,
+                        rtol=1e-6)
 
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_refractory_stochastic():

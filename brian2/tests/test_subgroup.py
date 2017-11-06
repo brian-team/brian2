@@ -89,12 +89,12 @@ def test_state_variables_string_indices():
     assert len(SG.v['i>3']) == 1
 
     G.v = np.arange(10) * mV
-    assert len(SG.v['v>7*mV']) == 1
+    assert len(SG.v['v>7.5*mV']) == 1
 
     # Combined string indexing and assignment
     SG.v['i > 3'] = 'i*10*mV'
 
-    assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
+    assert_allclose(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
 
 @attr('codegen-independent')
 def test_state_variables_group_as_index():
@@ -133,9 +133,9 @@ def test_state_monitor():
     mon_0 = StateMonitor(SG, 'v', record=0)
     run(defaultclock.dt)
 
-    assert_equal(mon_0[0].v, mon_all[0].v)
-    assert_equal(mon_0[0].v, np.array([5]) * volt)
-    assert_equal(mon_all.v.flatten(), np.arange(5, 10) * volt)
+    assert_allclose(mon_0[0].v, mon_all[0].v)
+    assert_allclose(mon_0[0].v, np.array([5]) * volt)
+    assert_allclose(mon_all.v.flatten(), np.arange(5, 10) * volt)
 
     assert_raises(IndexError, lambda: mon_all[5])
 

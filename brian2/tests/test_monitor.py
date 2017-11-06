@@ -311,9 +311,10 @@ def test_state_monitor():
 
     # Check v recording
     assert_allclose(v_mon.v.T,
-                    np.exp(np.tile(-v_mon.t, (2, 1)).T / (10*ms)))
+                    np.exp(np.tile(-v_mon.t, (2, 1)).T / (10*ms)), rtol=1e-5)
     assert_allclose(v_mon.v_.T,
-                    np.exp(np.tile(-v_mon.t_, (2, 1)).T / float(10*ms)))
+                    np.exp(np.tile(-v_mon.t_, (2, 1)).T / float(10*ms)),
+                    rtol=1e-5)
     assert_array_equal(v_mon.v, multi_mon.v)
     assert_array_equal(v_mon.v_, multi_mon.v_)
     assert_array_equal(v_mon.v, all_mon.v)
@@ -520,15 +521,15 @@ def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
     G = NeuronGroup(4, '''dv/dt = rate : 1
-                          rate : Hz''', threshold='v>1', reset='v=0')
+                          rate : Hz''', threshold='v>0.999', reset='v=0')
     G.rate = [100, 200, 400, 800] * Hz
     rate_all = PopulationRateMonitor(G)
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:])
-    run(10*ms)
-    assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]))
-    assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]))
-    assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]))
+    run(1*second)
+    assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]), atol=.1*Hz, rtol=0)
+    assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]), atol=.1*Hz, rtol=0)
+    assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]), atol=.1*Hz, rtol=0)
 
     defaultclock.dt = old_dt
 
