@@ -686,6 +686,11 @@ class Synapses(Group):
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
 
+        if dtype is None:
+            dtype = {}
+        if isinstance(dtype, collections.MutableMapping):
+            dtype['lastupdate'] = self._clock.variables['t'].dtype
+
         #: remember whether connect was called to raise an error if an
         #: assignment to a synaptic variable is attempted without a preceding
         #: connect.

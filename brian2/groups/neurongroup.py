@@ -1,6 +1,7 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
+import collections
 import string
 
 import numpy as np
@@ -393,6 +394,10 @@ class NeuronGroup(Group, SpikeSource):
                  codeobj_class=None):
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
                        name=name)
+        if dtype is None:
+            dtype = {}
+        if isinstance(dtype, collections.MutableMapping):
+            dtype['lastspike'] = self._clock.variables['t'].dtype
 
         self.codeobj_class = codeobj_class
 
