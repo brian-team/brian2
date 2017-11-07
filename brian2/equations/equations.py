@@ -626,7 +626,7 @@ class Equations(collections.Hashable, collections.Mapping):
                                               '(' + repr(replacement) + ')',
                                               new_code)
                         try:
-                            eq.expr = Expression(new_code)
+                            Expression(new_code)
                         except ValueError as ex:
                             raise ValueError(
                                 ('Replacing "%s" with "%r" failed: %s') %
