@@ -30,8 +30,7 @@ class CodeString(collections.Hashable):
     '''
 
     def __init__(self, code):
-
-        self._code = code
+        self._code = code.strip()
 
         # : Set of identifiers in the code string
         self.identifiers = get_identifiers(code)
@@ -181,6 +180,17 @@ class Expression(CodeString):
             raise AssertionError('Cyclical call of CodeString._repr_pretty')
         # Make use of sympy's pretty printing
         p.pretty(str_to_sympy(self.code))
+
+    def __eq__(self, other):
+        if not isinstance(other, Expression):
+            return NotImplemented
+        return self.code == other.code
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.code)
 
 
 def is_constant_over_dt(expression, variables, dt_value):
