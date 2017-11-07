@@ -3,7 +3,6 @@ Module to support caching of function results to memory (used to cache results
 of parsing, generation of state update code, etc.). Provides the `cached`
 decorator.
 '''
-import copy
 import functools
 import collections
 
@@ -98,7 +97,7 @@ def cached(func):
         else:
             func._cache_statistics.misses += 1
             func._cache[cache_key] = func(*args, **kwds)
-        return copy.deepcopy(func._cache[cache_key])
+        return func._cache[cache_key]
 
     return cached_func
 
