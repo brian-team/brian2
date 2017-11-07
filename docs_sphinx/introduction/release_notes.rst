@@ -1,6 +1,11 @@
 Release notes
 =============
 
+Brian 2.1.2
+-----------
+This is another bug fix release that fixes a major bug in `Equations`'
+substitution mechanism (#896). Thanks to Teo Stocco for reporting this issue.
+
 Brian 2.1.1
 -----------
 This is a bug fix release that re-activates parts of the caching mechanism for

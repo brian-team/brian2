@@ -479,6 +479,11 @@ class Dimension(object):
     def __setstate__(self, state):
         self._dims = state
 
+    ### Dimension objects are singletons and deepcopy is therefore not necessary
+    def __deepcopy__(self, memodict):
+        return self
+
+
 #: The singleton object for dimensionless Dimensions.
 DIMENSIONLESS = Dimension((0, 0, 0, 0, 0, 0, 0))
 

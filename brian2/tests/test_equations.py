@@ -216,6 +216,22 @@ def test_wrong_replacements():
 
 
 @attr('codegen-independent')
+def test_substitute():
+    # Check that Equations.substitute returns an independent copy
+    eqs = Equations('dx/dt = x : 1')
+    eqs2 = eqs.substitute(x='y')
+
+    # First equation should be unaffected
+    assert len(eqs) == 1 and 'x' in eqs
+    assert eqs['x'].expr == Expression('x')
+
+    # Second equation should have x substituted by y
+    assert len(eqs2) == 1 and 'y' in eqs2
+    assert eqs2['y'].expr == Expression('y')
+
+
+
+@attr('codegen-independent')
 def test_construction_errors():
     '''
     Test that the Equations constructor raises errors correctly
@@ -433,6 +449,18 @@ def test_extract_subexpressions():
 
 
 @attr('codegen-independent')
+def test_repeated_construction():
+    eqs1 = Equations('dx/dt = x : 1')
+    eqs2 = Equations('dx/dt = x : 1', x='y')
+    assert len(eqs1) == 1
+    assert 'x' in eqs1
+    assert eqs1['x'].expr == Expression('x')
+    assert len(eqs2) == 1
+    assert 'y' in eqs2
+    assert eqs2['y'].expr == Expression('y')
+
+
+@attr('codegen-independent')
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
@@ -471,10 +499,12 @@ if __name__ == '__main__':
     test_identifier_checks()
     test_parse_equations()
     test_correct_replacements()
+    test_substitute()
     test_wrong_replacements()
     test_construction_errors()
     test_concatenation()
     test_unit_checking()
     test_properties()
     test_extract_subexpressions()
+    test_repeated_construction()
     test_str_repr()
