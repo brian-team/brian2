@@ -4,7 +4,7 @@ Release notes
 Brian 2.1.2
 -----------
 This is another bug fix release that fixes a major bug in `Equations`'
-substitution mechanism (#896). Thanks to Teo Stocco for reporting this issue.
+substitution mechanism (:issue:`896`). Thanks to Teo Stocco for reporting this issue.
 
 Brian 2.1.1
 -----------
