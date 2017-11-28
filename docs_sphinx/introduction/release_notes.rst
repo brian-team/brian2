@@ -75,7 +75,7 @@ Github code, documentation, and issue contributions (ordered by the number of
 contributions):
 
 * Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
-* Charlee Fletterman (`@CharleeSF <https://github.com/CharleeSF/>`_)
+* Charlee Fletterman (`@CharleeSF <https://github.com/CharleeSF>`_)
 * Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
 * Teo Stocco (`@zifeo <https://github.com/zifeo>`_)
 * `@k47h4 <https://github.com/k47h4>`_
