@@ -483,14 +483,14 @@ class GSLCodeGenerator(object):
 
     def find_undefined_variables(self, statements):
         '''
-        Find identifiers that are not in self.variables dictionary.
+        Find identifiers that are not in ``self.variables`` dictionary.
 
-        Brian does not save the _lio_ variables it uses anywhere. This is
+        Brian does not save the ``_lio_`` variables it uses anywhere. This is
         problematic for our GSL implementation because we save the lio variables
-        in the _dataholder struct (for which we need the datatype of the
+        in the ``_dataholder`` struct (for which we need the datatype of the
         variables). This function adds the left hand side variables that are
         used in the vector code to the variable dictionary as
-        `AuxiliaryVariable`s (all we need later is the datatype).
+        `AuxiliaryVariable`\ s (all we need later is the datatype).
 
         Parameters
         ----------
@@ -499,9 +499,9 @@ class GSLCodeGenerator(object):
 
         Notes
         -----
-        I keep self.variables and other_variables separate so I can distinguish
-        what variables are in the Brian namespace and which ones are defined in
-        the code itself.
+        I keep ``self.variables`` and ``other_variables`` separate so I can
+        distinguish what variables are in the Brian namespace and which ones are
+        defined in the code itself.
         '''
         variables = self.variables
         other_variables = {}

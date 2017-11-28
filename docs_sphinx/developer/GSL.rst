@@ -121,6 +121,7 @@ call to ``translate``, which in the case of GSL brings us to
 the `GSLCodeGenerator.translate()`. This method is built up as follows:
 
 * Some GSL-specific preparatory work:
+
   - Check whether the equations contain variable names that are reserved for
     the GSL code.
   - Add the 'gsl tags' (see section on StateUpdateMethod) to the
@@ -135,6 +136,7 @@ the `GSLCodeGenerator.translate()`. This method is built up as follows:
     from the variables dictionary once they are processed. However, we need to
     know later in the GSL part of the code generation whether a certain encountered
     variable name refers to a function or not.
+
 * Brian's general preparatory work. This piece of code is directly copied from
   the base CodeGenerator and is thus similar to what is done normally.
 * A call to ``original_generator.translate()`` to get the abstract code translated
