@@ -261,6 +261,18 @@ def test_connection_string_deterministic():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_connection_string_deterministic_multiple_and():
+    # In Brian versions 2.1.0-2.1.2, this fails on the numpy target
+    # See github issue 900
+    group = NeuronGroup(10, '')
+    synapses = Synapses(group, group)
+    synapses.connect('i>=5 and i<10 and j>=5')
+    run(0*ms)  # for standalone
+    assert len(synapses) == 25
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_connection_random_with_condition():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -2355,6 +2367,7 @@ if __name__ == '__main__':
     test_name_clashes()
     test_incoming_outgoing()
     test_connection_string_deterministic()
+    test_connection_string_deterministic_multiple_and()
     test_connection_random_with_condition()
     test_connection_random_without_condition()
     test_connection_random_with_indices()
