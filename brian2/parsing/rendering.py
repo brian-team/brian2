@@ -145,17 +145,17 @@ class NodeRenderer(object):
         if len(node.comparators)>1:
             raise SyntaxError("Can only handle single comparisons like a<b not a<b<c")
         return self.render_BinOp_parentheses(node.left, node.comparators[0], node.ops[0])
-        
+
     def render_UnaryOp(self, node):
         return '%s %s' % (self.expression_ops[node.op.__class__.__name__],
                           self.render_element_parentheses(node.operand))
-                
+
     def render_Assign(self, node):
         if len(node.targets)>1:
             raise SyntaxError("Only support syntax like a=b not a=b=c")
         return '%s = %s' % (self.render_node(node.targets[0]),
                             self.render_node(node.value))
-        
+
     def render_AugAssign(self, node):
         target = node.target.id
         rhs = self.render_node(node.value)
@@ -163,14 +163,14 @@ class NodeRenderer(object):
         return '%s %s %s' % (target, op, rhs)
 
 
-class NumpyNodeRenderer(NodeRenderer):           
+class NumpyNodeRenderer(NodeRenderer):
     expression_ops = NodeRenderer.expression_ops.copy()
     expression_ops.update({
           # Unary ops
           # We'll handle "not" explicitly below
           # Bool ops
-          'And': '*',
-          'Or': '+',
+          'And': '&',
+          'Or': '|',
           })
 
     def render_UnaryOp(self, node):
