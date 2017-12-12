@@ -33,7 +33,7 @@ def _find_K(group_dt, dt):
 
 class TimedArray(Function, Nameable):
     '''
-    TimedArray(values, dt, name=None)
+    TimedArray(values, dt, name=None, tOffset=0*second)
 
     A function of time built from an array of values. The returned object can
     be used as a function, including in model equations etc. The resulting
@@ -51,6 +51,9 @@ class TimedArray(Function, Nameable):
     name : str, optional
         A unique name for this object, see `Nameable` for details. Defaults
         to ``'_timedarray*'``.
+    tOffset : float, optional
+        A temporal offset at which the data in the TimedArray should begin. Prior to
+        t = tOffset, the first element of the array will be used
 
     Notes
     -----
@@ -76,14 +79,14 @@ class TimedArray(Function, Nameable):
     >>> net = Network(G, mon)
     >>> net.run(0.2*ms)  # doctest: +ELLIPSIS
     ...
-    >>> print mon.v[:]
+    >>> print(mon.v[:])
     [[ 1.  3.]
      [ 2.  4.]
      [ 1.  3.]
      [ 2.  4.]] mV
     '''
-    @check_units(dt=second)
-    def __init__(self, values, dt, name=None):
+    @check_units(dt=second, tOffset=second)
+    def __init__(self, values, dt, name=None, tOffset = 0*second):
         if name is None:
             name = '_timedarray*'
         Nameable.__init__(self, name)
@@ -93,6 +96,7 @@ class TimedArray(Function, Nameable):
         self.values = values
         dt = float(dt)
         self.dt = dt
+        self.tOffset = tOffset
         if values.ndim == 1:
             self._init_1d()
         elif values.ndim == 2:
@@ -106,11 +110,13 @@ class TimedArray(Function, Nameable):
         unit = get_unit(dimensions)
         values = self.values
         dt = self.dt
+        tOffset = self.tOffset
 
         # Python implementation (with units), used when calling the TimedArray
         # directly, outside of a simulation
         @check_units(t=second, result=unit)
         def timed_array_func(t):
+            t -= tOffset
             # We round according to the current defaultclock.dt
             K = _find_K(float(defaultclock.dt), dt)
             epsilon = dt / K
@@ -129,6 +135,7 @@ class TimedArray(Function, Nameable):
             n_values = len(values)
             epsilon = dt / K
             def unitless_timed_array_func(t):
+                t = t - tOffset
                 timestep = np.clip(np.int_(np.round(t/epsilon) / K),
                                    0, n_values-1)
                 return values[timestep]
@@ -148,14 +155,14 @@ class TimedArray(Function, Nameable):
             inline double %NAME%(const double t)
             {
                 const double epsilon = %DT% / %K%;
-                int i = (int)((t/epsilon + 0.5)/%K%);
+                int i = (int)(((t-%OFFSET%)/epsilon + 0.5)/%K%);
                 if(i < 0)
                    i = 0;
                 if(i >= %NUM_VALUES%)
                     i = %NUM_VALUES%-1;
                 return _namespace%NAME%_values[i];
             }
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values)))
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values))).replace('%OFFSET%', str(np.asarray(tOffset)))
             cpp_code = {'support_code': support_code}
 
             return cpp_code
@@ -174,13 +181,13 @@ class TimedArray(Function, Nameable):
             cdef double %NAME%(const double t):
                 global _namespace%NAME%_values
                 cdef double epsilon = %DT% / %K%
-                cdef int i = (int)((t/epsilon + 0.5)/%K%)
+                cdef int i = (int)(((t-%OFFSET%)/epsilon + 0.5)/%K%)
                 if i < 0:
                    i = 0
                 if i >= %NUM_VALUES%:
                     i = %NUM_VALUES% - 1
                 return _namespace%NAME%_values[i]
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values)))
+            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values))).replace('%OFFSET%', str(np.asarray(tOffset)))
 
             return code
 
@@ -198,11 +205,13 @@ class TimedArray(Function, Nameable):
         unit = get_unit(dimensions)
         values = self.values
         dt = self.dt
+        tOffset = self.tOffset
 
         # Python implementation (with units), used when calling the TimedArray
         # directly, outside of a simulation
         @check_units(i=1, t=second, result=unit)
         def timed_array_func(t, i):
+            t -= tOffset
             # We round according to the current defaultclock.dt
             K = _find_K(float(defaultclock.dt), dt)
             epsilon = dt / K
@@ -221,6 +230,7 @@ class TimedArray(Function, Nameable):
             n_values = len(values)
             epsilon = dt / K
             def unitless_timed_array_func(t, i):
+                t -= tOffset
                 timestep = np.clip(np.int_(np.round(t/epsilon) / K),
                                    0, n_values-1)
                 return values[timestep, i]
@@ -243,7 +253,7 @@ class TimedArray(Function, Nameable):
                 const double epsilon = %DT% / %K%;
                 if (i < 0 || i >= %COLS%)
                     return NAN;
-                int timestep = (int)((t/epsilon + 0.5)/%K%);
+                int timestep = (int)(((t-%OFFSET%)/epsilon + 0.5)/%K%);
                 if(timestep < 0)
                    timestep = 0;
                 else if(timestep >= %ROWS%)
@@ -255,7 +265,8 @@ class TimedArray(Function, Nameable):
                                                   '%DT%': '%.18f' % dt,
                                                   '%K%': str(K),
                                                   '%COLS%': str(self.values.shape[1]),
-                                                  '%ROWS%': str(self.values.shape[0])})
+                                                  '%ROWS%': str(self.values.shape[0]),
+                                                  '%OFFSET%': str(np.asarray(tOffset))})
             cpp_code = {'support_code': support_code}
 
             return cpp_code
@@ -279,7 +290,7 @@ class TimedArray(Function, Nameable):
                 cdef double epsilon = %DT% / %K%
                 if i < 0 or i >= %COLS%:
                     return _numpy.nan
-                cdef int timestep = (int)((t/epsilon + 0.5)/%K%)
+                cdef int timestep = (int)(((t-%OFFSET%)/epsilon + 0.5)/%K%)
                 if timestep < 0:
                    timestep = 0
                 elif timestep >= %ROWS%:
@@ -290,7 +301,8 @@ class TimedArray(Function, Nameable):
                                   '%DT%': '%.18f' % dt,
                                   '%K%': str(K),
                                   '%COLS%': str(self.values.shape[1]),
-                                  '%ROWS%': str(self.values.shape[0])})
+                                  '%ROWS%': str(self.values.shape[0]),
+                                  '%OFFSET%': str(np.asarray(tOffset))})
 
             return code
 
