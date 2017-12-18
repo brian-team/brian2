@@ -18,7 +18,7 @@ at :doc:`a simple example </examples/CUBA>`, or run our
     or running slowly):
 
     .. image:: http://mybinder.org/badge.svg
-        :target: http://mybinder.org/repo/brian-team/brian2-binder
+        :target: http://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=index.ipynb
 
 Once you have a feel for what is involved in using Brian, we recommend you
 start by following the
