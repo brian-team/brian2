@@ -32,7 +32,9 @@ If you use Brian for your published research, we suggest that you cite one of ou
 
 Quickstart
 ----------
-Try out Brian on the `mybinder <https://mybinder.org/>`_ service: [![Binder](http://mybinder.org/badge.svg)](http://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=index.ipynb)
+Try out Brian on the `mybinder <https://mybinder.org/>`_ service:
+.. image:: http://mybinder.org/badge.svg
+    :target: http://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=index.ipynb
 
 Testing status for master branch
 --------------------------------
