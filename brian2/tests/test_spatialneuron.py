@@ -757,6 +757,7 @@ def test_spatialneuron_morphology_assignment():
 @attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
 def test_spatialneuron_capacitive_currents():
+    defaultclock.dt = 0.1*ms
     morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=200, type='axon')
 
     El = 10.613* mV

@@ -372,10 +372,7 @@ class SpatialNeuron(NeuronGroup):
         self.variables.add_arrays(['_ab_star0', '_ab_star1', '_ab_star2',
                                    '_b_plus', '_b_minus',
                                    '_v_star', '_u_plus', '_u_minus',
-                                   '_v_previous',
-                                   # The following three are for solving the
-                                   # three tridiag systems in parallel
-                                   '_c1', '_c2', '_c3',
+                                   '_v_previous', '_c',
                                    # The following two are only necessary for
                                    # C code where we cannot deal with scalars
                                    # and arrays interchangeably:

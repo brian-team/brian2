@@ -3,7 +3,7 @@
                   _v_star, _u_plus, _u_minus,
                   _v_previous,
                   _gtot_all, _I0_all,
-                  _c1, _c2, _c3,
+                  _c,
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
@@ -51,69 +51,31 @@
         _j_start = {{_starts}}[_i]
         _j_end = {{_ends}}[_i]
 
-        # upper triangularization of tridiagonal system for _v_star
+        # upper triangularization of tridiagonal system for _v_star, _u_plus, and _u_minus
         for _j in range(_j_start, _j_end):
             {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j] # RHS -> _v_star (solution)
-            _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j] # main diagonal
-            if _j < N-1:
-                {{_c1}}[_j]={{_ab_star0}}[_j+1] # superdiagonal
-            if _j > 0:
-                _ai={{_ab_star2}}[_j-1] # subdiagonal
-                _m=1.0/(_bi-_ai*{{_c1}}[_j-1])
-                {{_c1}}[_j]={{_c1}}[_j]*_m
-                {{_v_star}}[_j]=({{_v_star}}[_j] - _ai*{{_v_star}}[_j-1])*_m
-            else:
-                {{_c1}}[0]={{_c1}}[0]/_bi
-                {{_v_star}}[0]={{_v_star}}[0]/_bi
-        # backwards substitution of the upper triangularized system for _v_star
-        for _j in range(_j_end-2, _j_start-1, -1):
-            {{_v_star}}[_j]={{_v_star}}[_j] - {{_c1}}[_j]*{{_v_star}}[_j+1]
-
-    for _i in range(0, _num{{_B}} - 1):
-        # first and last index of the i-th section
-        _j_start = {{_starts}}[_i]
-        _j_end = {{_ends}}[_i]
-
-        # upper triangularization of tridiagonal system for _u_plus
-        for _j in range(_j_start, _j_end):
             {{_u_plus}}[_j]={{_b_plus}}[_j] # RHS -> _u_plus (solution)
-            _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j] # main diagonal
-            if _j < N-1:
-                {{_c2}}[_j]={{_ab_star0}}[_j+1] # superdiagonal
-            if _j > 0:
-                _ai={{_ab_star2}}[_j-1] # subdiagonal
-                _m=1.0/(_bi-_ai*{{_c2}}[_j-1])
-                {{_c2}}[_j]={{_c2}}[_j]*_m
-                {{_u_plus}}[_j]=({{_u_plus}}[_j] - _ai*{{_u_plus}}[_j-1])*_m
-            else:
-                {{_c2}}[0]={{_c2}}[0]/_bi
-                {{_u_plus}}[0]={{_u_plus}}[0]/_bi
-        # backwards substitution of the upper triangularized system for _u_plus
-        for _j in range(_j_end-2, _j_start-1, -1):
-            {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c2}}[_j]*{{_u_plus}}[_j+1]
-
-    for _i in range(0, _num{{_B}} - 1):
-        # first and last index of the i-th section
-        _j_start = {{_starts}}[_i]
-        _j_end = {{_ends}}[_i]
-
-        # upper triangularization of tridiagonal system for _u_minus
-        for _j in range(_j_start, _j_end):
             {{_u_minus}}[_j]={{_b_minus}}[_j] # RHS -> _u_minus (solution)
             _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j] # main diagonal
             if _j < N-1:
-                {{_c3}}[_j]={{_ab_star0}}[_j+1] # superdiagonal
+                {{_c}}[_j]={{_ab_star0}}[_j+1] # superdiagonal
             if _j > 0:
                 _ai={{_ab_star2}}[_j-1] # subdiagonal
-                _m=1.0/(_bi-_ai*{{_c3}}[_j-1])
-                {{_c3}}[_j]={{_c3}}[_j]*_m
+                _m=1.0/(_bi-_ai*{{_c}}[_j-1])
+                {{_c}}[_j]={{_c}}[_j]*_m
+                {{_v_star}}[_j]=({{_v_star}}[_j] - _ai*{{_v_star}}[_j-1])*_m
+                {{_u_plus}}[_j]=({{_u_plus}}[_j] - _ai*{{_u_plus}}[_j-1])*_m
                 {{_u_minus}}[_j]=({{_u_minus}}[_j] - _ai*{{_u_minus}}[_j-1])*_m
             else:
-                {{_c3}}[0]={{_c3}}[0]/_bi
+                {{_c}}[0]={{_c}}[0]/_bi
+                {{_v_star}}[0]={{_v_star}}[0]/_bi
+                {{_u_plus}}[0]={{_u_plus}}[0]/_bi
                 {{_u_minus}}[0]={{_u_minus}}[0]/_bi
-        # backwards substitution of the upper triangularized system for _u_minus
+        # backwards substitution of the upper triangularized system for _v_star
         for _j in range(_j_end-2, _j_start-1, -1):
-            {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c3}}[_j]*{{_u_minus}}[_j+1]
+            {{_v_star}}[_j]={{_v_star}}[_j] - {{_c}}[_j]*{{_v_star}}[_j+1]
+            {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c}}[_j]*{{_u_plus}}[_j+1]
+            {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c}}[_j]*{{_u_minus}}[_j+1]
 
     # STEP 3: solve the coupling system
 
