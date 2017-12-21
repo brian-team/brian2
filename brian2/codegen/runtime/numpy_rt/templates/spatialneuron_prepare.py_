@@ -1,7 +1,5 @@
 {# USES_VARIABLES { _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
                     _ab_star0, _ab_star1, _ab_star2,
-                    _a_plus0, _a_plus1, _a_plus2,
-                    _a_minus0, _a_minus1, _a_minus2,
                     _starts, _ends, _invr0, _invrn, _b_plus, _b_minus } #}
 import numpy as _numpy
 from numpy import pi
@@ -20,13 +18,6 @@ for _first in {{_starts}}:
 {{_ab_star2}}[:-1] = {{_invr}}[1:] / {{area}}[1:]
 {{_ab_star1}}[:] = (-({{Cm}} / {{dt}}) - {{_invr}} / {{area}})
 {{_ab_star1}}[:-1] -= {{_invr}}[1:] / {{area}}[:-1]
-# Homogeneous solutions
-{{_a_plus0}}[:] = {{_ab_star0}}
-{{_a_minus0}}[:] = {{_ab_star0}}
-{{_a_plus1}}[:] = {{_ab_star1}}
-{{_a_minus1}}[:] = {{_ab_star1}}
-{{_a_plus2}}[:] = {{_ab_star2}}
-{{_a_minus2}}[:] = {{_ab_star2}}
 
 # Set the boundary conditions
 for _counter, (_first, _last) in enumerate(zip({{_starts}},
@@ -38,10 +29,6 @@ for _counter, (_first, _last) in enumerate(zip({{_starts}},
     # Correction for boundary conditions
     {{_ab_star1}}[_first] -= (_invr0 / {{area}}[_first])
     {{_ab_star1}}[_last] -= (_invrn / {{area}}[_last])
-    {{_a_plus1}}[_first] -= (_invr0 / {{area}}[_first])
-    {{_a_plus1}}[_last] -= (_invrn / {{area}}[_last])
-    {{_a_minus1}}[_first] -= (_invr0 / {{area}}[_first])
-    {{_a_minus1}}[_last] -= (_invrn / {{area}}[_last])
     # RHS for homogeneous solutions
     {{_b_plus}}[_last] = -(_invrn / {{area}}[_last])
     {{_b_minus}}[_first] = -(_invr0 / {{area}}[_first])

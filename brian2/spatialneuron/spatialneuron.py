@@ -370,8 +370,6 @@ class SpatialNeuron(NeuronGroup):
         # since these variables should never be used in user code, we don't
         # assign them any units
         self.variables.add_arrays(['_ab_star0', '_ab_star1', '_ab_star2',
-                                   '_a_minus0', '_a_minus1', '_a_minus2',
-                                   '_a_plus0', '_a_plus1', '_a_plus2',
                                    '_b_plus', '_b_minus',
                                    '_v_star', '_u_plus', '_u_minus',
                                    '_v_previous',

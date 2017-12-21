@@ -2,9 +2,8 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {# USES_VARIABLES { Cm, dt, v, N, Ic,
-                  _ab_star0, _ab_star1, _ab_star2, _b_plus,
-                  _a_plus0, _a_plus1, _a_plus2, _b_minus,
-                  _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _ab_star0, _ab_star1, _ab_star2, _b_plus, _b_minus,
+                  _v_star, _u_plus, _u_minus,
                   _v_previous,
                   _gtot_all, _I0_all,
                   _c1, _c2, _c3,
@@ -109,12 +108,12 @@
             for(int _j=_j_start; _j<_j_end; _j++)
             {
                 {{_u_plus}}[_j]={{_b_plus}}[_j]; // RHS -> _u_plus (solution)
-                _bi={{_a_plus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
+                _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
                 if (_j<N-1)
-                    {{_c2}}[_j]={{_a_plus0}}[_j+1]; // superdiagonal
+                    {{_c2}}[_j]={{_ab_star0}}[_j+1]; // superdiagonal
                 if (_j>0)
                 {
-                    _ai={{_a_plus2}}[_j-1]; // subdiagonal
+                    _ai={{_ab_star2}}[_j-1]; // subdiagonal
                     _m=1.0/(_bi-_ai*{{_c2}}[_j-1]);
                     {{_c2}}[_j]={{_c2}}[_j]*_m;
                     {{_u_plus}}[_j]=({{_u_plus}}[_j] - _ai*{{_u_plus}}[_j-1])*_m;
@@ -147,12 +146,12 @@
             for(int _j=_j_start; _j<_j_end; _j++)
             {
                 {{_u_minus}}[_j]={{_b_minus}}[_j]; // RHS -> _u_minus (solution)
-                _bi={{_a_minus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
+                _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
                 if (_j<N-1)
-                    {{_c3}}[_j]={{_a_minus0}}[_j+1]; // superdiagonal
+                    {{_c3}}[_j]={{_ab_star0}}[_j+1]; // superdiagonal
                 if (_j>0)
                 {
-                    _ai={{_a_minus2}}[_j-1]; // subdiagonal
+                    _ai={{_ab_star2}}[_j-1]; // subdiagonal
                     _m=1.0/(_bi-_ai*{{_c3}}[_j-1]);
                     {{_c3}}[_j]={{_c3}}[_j]*_m;
                     {{_u_minus}}[_j]=({{_u_minus}}[_j] - _ai*{{_u_minus}}[_j-1])*_m;
