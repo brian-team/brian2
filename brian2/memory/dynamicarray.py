@@ -5,8 +5,13 @@ from numpy import *
 
 __all__ = ['DynamicArray', 'DynamicArray1D']
 
-def getslices(shape):
-    return tuple(slice(0, x) for x in shape)
+
+def getslices(shape, from_start=True):
+    if from_start:
+        return tuple(slice(0, x) for x in shape)
+    else:
+        return tuple(slice(x, None) for x in shape)
+
 
 class DynamicArray(object):
     '''
@@ -116,7 +121,10 @@ class DynamicArray(object):
                 slices = getslices(self._data.shape)
                 newdata[slices] = self._data
                 self._data = newdata
-        self.data = self._data[getslices(newshape)]
+        # If we reduced the size, set the no longer used memory to 0
+        self._data[getslices(newshape, from_start=False)] = 0
+        # Reduce our view to the requested size if necessary
+        self.data = self._data[getslices(newshape, from_start=True)]
         self.shape = self.data.shape
 
     def resize_along_first(self, newshape):
@@ -134,7 +142,10 @@ class DynamicArray(object):
                 slices = getslices(self._data.shape)
                 newdata[slices] = self._data
                 self._data = newdata
-        self. data = self._data[slice(0, new_dimension)]
+        # If we reduced the size, set the no longer used memory to 0
+        self._data[new_dimension:] = 0
+        # Reduce our view to the requested size if necessary
+        self. data = self._data[:new_dimension]
         self.shape = newshape
 
     def shrink(self, newshape):
@@ -196,10 +207,13 @@ class DynamicArray1D(DynamicArray):
                 newdata = zeros(newdatashape, dtype=self.dtype)
                 newdata[:shape] = self.data
                 self._data = newdata
+        # If we reduced the size, set the no longer used memory to 0
+        self._data[newshape:] = 0
+        # Reduce our view to the requested size if necessary
         self.data = self._data[:newshape]
         self.shape = (newshape,)
-    
-            
+
+
 if __name__=='__main__':
     if 1:
         x = DynamicArray1D(2, use_numpy_resize=True)
