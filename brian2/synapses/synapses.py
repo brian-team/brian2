@@ -1285,7 +1285,7 @@ class Synapses(Group):
                 if hasattr(i, '_indices'):
                     i = i._indices()
                 i = np.asarray(i)
-                if not np.issubdtype(i.dtype, np.int):
+                if not np.issubdtype(i.dtype, np.signedinteger):
                     raise TypeError(('Presynaptic indices have to be given as '
                                      'integers, are type %s '
                                      'instead.') % i.dtype)
@@ -1293,7 +1293,7 @@ class Synapses(Group):
                 if hasattr(j, '_indices'):
                     j = j._indices()
                 j = np.asarray(j)
-                if not np.issubdtype(j.dtype, np.int):
+                if not np.issubdtype(j.dtype, np.signedinteger):
                     raise TypeError(('Presynaptic indices can only be combined '
                                      'with postsynaptic integer indices))'))
                 if isinstance(n, basestring):
