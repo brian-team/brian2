@@ -71,7 +71,7 @@ Brian. These include: matplotlib_ (for plotting), nose_ (for running the test
 suite), ipython_ and jupyter_-notebook (for an interactive console). To install
 them from anaconda, simply do::
 
-    conda install matplotlib nose ipython jupyter-notebook
+    conda install matplotlib nose ipython jupyter
 
 You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
