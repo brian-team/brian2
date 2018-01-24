@@ -29,6 +29,7 @@ from brian2.utils.stringtools import get_identifiers
 from ...codeobject import CodeObject, constant_or_scalar, sys_info
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
+from ...generators.base import get_numpy_ABI_version
 from ...targets import codegen_targets
 from ...cpp_prefs import get_compiler_and_args, update_for_cross_compilation
 
@@ -62,7 +63,6 @@ class WeaveCodeGenerator(CPPCodeGenerator):
         super(WeaveCodeGenerator, self).__init__(*args, **kwds)
         self.c_data_type = weave_data_type
 
-
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -77,6 +77,7 @@ class WeaveCodeObject(CodeObject):
                                        'constant_or_scalar': constant_or_scalar})
     generator_class = WeaveCodeGenerator
     class_name = 'weave'
+    numpy_ABI_version = get_numpy_ABI_version()
 
     def __init__(self, owner, code, variables, variable_indices,
                  template_name, template_source, name='weave_code_object*'):
@@ -135,6 +136,8 @@ include_dirs: {self.include_dirs}
 library_dirs: {self.library_dirs}
 runtime_library_dirs: {self.runtime_library_dirs}
 libraries: {self.libraries}
+
+numpy ABI version: {self.numpy_ABI_version}
 */
         '''.format(self=self)
 
