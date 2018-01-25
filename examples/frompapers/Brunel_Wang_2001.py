@@ -108,9 +108,9 @@ I_GABA_rec = g_GABA_I * (v - V_I) * s_GABA : amp
 ds_GABA / dt = - s_GABA / tau_GABA : 1
 '''
 
-P_E = NeuronGroup(N_E, eqs_E, threshold='v > V_thr', reset='v = V_reset', refractory=tau_rp_E)
+P_E = NeuronGroup(N_E, eqs_E, threshold='v > V_thr', reset='v = V_reset', refractory=tau_rp_E, method='euler')
 P_E.v = V_L
-P_I = NeuronGroup(N_I, eqs_I, threshold='v > V_thr', reset='v = V_reset', refractory=tau_rp_I)
+P_I = NeuronGroup(N_I, eqs_I, threshold='v > V_thr', reset='v = V_reset', refractory=tau_rp_I, method='euler')
 P_I.v = V_L
 
 eqs_glut = '''
@@ -134,7 +134,7 @@ s_AMPA_ext += 1
 '''
 
 # E to E
-C_E_E = Synapses(P_E, P_E, model=eqs_glut, on_pre=eqs_pre_glut)
+C_E_E = Synapses(P_E, P_E, model=eqs_glut, on_pre=eqs_pre_glut, method='euler')
 C_E_E.connect('i != j')
 C_E_E.w[:] = 1
 
@@ -147,16 +147,16 @@ for pi in range(N_non, N_non + p * N_sub, N_sub):
     C_E_E.w[C_E_E.indices[pi:pi + N_sub, pi:pi + N_sub]] = w_plus
 
 # E to I
-C_E_I = Synapses(P_E, P_I, model=eqs_glut, on_pre=eqs_pre_glut)
+C_E_I = Synapses(P_E, P_I, model=eqs_glut, on_pre=eqs_pre_glut, method='euler')
 C_E_I.connect()
 C_E_I.w[:] = 1
 
 # I to I
-C_I_I = Synapses(P_I, P_I, on_pre=eqs_pre_gaba)
+C_I_I = Synapses(P_I, P_I, on_pre=eqs_pre_gaba, method='euler')
 C_I_I.connect('i != j')
 
 # I to E
-C_I_E = Synapses(P_I, P_E, on_pre=eqs_pre_gaba)
+C_I_E = Synapses(P_I, P_E, on_pre=eqs_pre_gaba, method='euler')
 C_I_E.connect()
 
 # external noise
@@ -206,7 +206,7 @@ for i, r_E_sel in enumerate(r_E_sels[::-1]):
     plot(r_E_sel.t / ms, r_E_sel.smooth_rate(width=25 * ms) / Hz, label='selective {}'.format(p - i))
 
 legend()
-show()
+figure()
 
 title('Population activities ({} neurons/pop)'.format(N_activity_plot))
 xlabel('ms')
