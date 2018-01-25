@@ -20,24 +20,6 @@ __all__ = ['CodeGenerator']
 logger = get_logger(__name__)
 
 
-def get_numpy_ABI_version():
-    # I don't see a way to get numpy's ABI version from Python,
-    # so we look it up in the numpy header file that we are using
-    # later...
-    header_name = os.path.join(numpy.get_include(), 'numpy', '_numpyconfig.h')
-    if os.path.exists(header_name):
-        with open(header_name, 'r') as f:
-            for line in f.readlines():
-                if line.startswith('#define NPY_ABI_VERSION'):
-                    elements = line.split(' ')
-                    if len(elements) == 3 and elements[2].startswith('0x'):
-                        return elements[2]
-
-    # Something went wrong, we don't want to raise an error because
-    # it might be that we'll never actually use this information
-    return 'Unknown'
-
-
 class CodeGenerator(object):
     '''
     Base class for all languages.

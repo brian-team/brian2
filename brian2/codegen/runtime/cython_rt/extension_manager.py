@@ -23,6 +23,7 @@ except ImportError:
 from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
 
+import numpy
 try:
     import Cython
     import Cython.Compiler as Cython_Compiler
@@ -32,7 +33,6 @@ except ImportError:
     Cython = None
 
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
-from brian2.codegen.generators.base import get_numpy_ABI_version
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.core.preferences import prefs
@@ -45,7 +45,6 @@ logger = get_logger(__name__)
 class CythonExtensionManager(object):
     def __init__(self):
         self._code_cache = {}
-        self.numpy_ABI_version = get_numpy_ABI_version()
         
     def create_extension(self, code, force=False, name=None,
                          define_macros=None,
@@ -78,7 +77,8 @@ class CythonExtensionManager(object):
                 raise IOError("Couldn't create Cython cache directory '%s', try setting the "
                               "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
 
-        key = code, sys.version_info, sys.executable, Cython.__version__, self.numpy_ABI_version
+        numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
+        key = code, sys.version_info, sys.executable, Cython.__version__, numpy_version
             
         if force:
             # Force a new module name by adding the current time to the

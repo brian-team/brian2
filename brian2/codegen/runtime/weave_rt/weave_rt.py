@@ -29,7 +29,6 @@ from brian2.utils.stringtools import get_identifiers
 from ...codeobject import CodeObject, constant_or_scalar, sys_info
 from ...templates import Templater
 from ...generators.cpp_generator import CPPCodeGenerator
-from ...generators.base import get_numpy_ABI_version
 from ...targets import codegen_targets
 from ...cpp_prefs import get_compiler_and_args, update_for_cross_compilation
 
@@ -77,7 +76,6 @@ class WeaveCodeObject(CodeObject):
                                        'constant_or_scalar': constant_or_scalar})
     generator_class = WeaveCodeGenerator
     class_name = 'weave'
-    numpy_ABI_version = get_numpy_ABI_version()
 
     def __init__(self, owner, code, variables, variable_indices,
                  template_name, template_source, name='weave_code_object*'):
@@ -119,6 +117,7 @@ class WeaveCodeObject(CodeObject):
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
+        self.numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
         self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
@@ -137,7 +136,7 @@ library_dirs: {self.library_dirs}
 runtime_library_dirs: {self.runtime_library_dirs}
 libraries: {self.libraries}
 
-numpy ABI version: {self.numpy_ABI_version}
+numpy version: {self.numpy_version}
 */
         '''.format(self=self)
 
