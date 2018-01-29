@@ -62,7 +62,6 @@ class WeaveCodeGenerator(CPPCodeGenerator):
         super(WeaveCodeGenerator, self).__init__(*args, **kwds)
         self.c_data_type = weave_data_type
 
-
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -118,6 +117,7 @@ class WeaveCodeObject(CodeObject):
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
         self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
+        self.numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
         self.annotated_code = self.code.main+'''
 /*
 The following code is just compiler options for the call to weave.inline.
@@ -135,6 +135,8 @@ include_dirs: {self.include_dirs}
 library_dirs: {self.library_dirs}
 runtime_library_dirs: {self.runtime_library_dirs}
 libraries: {self.libraries}
+
+numpy version: {self.numpy_version}
 */
         '''.format(self=self)
 
