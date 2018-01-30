@@ -23,6 +23,7 @@ except ImportError:
 from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
 
+import numpy
 try:
     import Cython
     import Cython.Compiler as Cython_Compiler
@@ -76,7 +77,8 @@ class CythonExtensionManager(object):
                 raise IOError("Couldn't create Cython cache directory '%s', try setting the "
                               "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
 
-        key = code, sys.version_info, sys.executable, Cython.__version__
+        numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
+        key = code, sys.version_info, sys.executable, Cython.__version__, numpy_version
             
         if force:
             # Force a new module name by adding the current time to the

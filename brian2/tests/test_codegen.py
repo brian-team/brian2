@@ -169,7 +169,7 @@ def test_apply_loop_invariant_optimisation():
     scalar, vector = optimise_statements([], statements, variables)
     # The optimisation should pull out at least exp(-dt / tau)
     assert len(scalar) >= 1
-    assert np.issubdtype(scalar[0].dtype, (np.floating, float))
+    assert np.issubdtype(scalar[0].dtype, np.floating)
     assert scalar[0].var == '_lio_1'
     assert len(vector) == 2
     assert all('_lio_' in stmt.expr for stmt in vector)
@@ -192,15 +192,15 @@ def test_apply_loop_invariant_optimisation_integer():
                   ]
     scalar, vector = optimise_statements([], statements, variables)
     assert len(scalar) == 3
-    assert np.issubdtype(scalar[0].dtype, (np.integer, int))
+    assert np.issubdtype(scalar[0].dtype, np.signedinteger)
     assert scalar[0].var == '_lio_1'
     expr = scalar[0].expr.replace(' ', '')
     assert expr=='6*N' or expr=='N*6'
-    assert np.issubdtype(scalar[1].dtype, (np.integer, int))
+    assert np.issubdtype(scalar[1].dtype, np.signedinteger)
     assert scalar[1].var == '_lio_2'
     expr = scalar[1].expr.replace(' ', '')
     assert expr=='b/(c/d)'
-    assert np.issubdtype(scalar[2].dtype, (np.float, float))
+    assert np.issubdtype(scalar[2].dtype, np.floating)
     assert scalar[2].var == '_lio_3'
     expr = scalar[2].expr.replace(' ', '')
     assert expr=='(y*w)/z' or expr=='(w*y)/z'

@@ -255,7 +255,7 @@ class Indexing(object):
                 index_array = np.asarray(item)
                 if index_array.dtype == np.bool:
                     index_array = np.nonzero(index_array)[0]
-                elif not np.issubdtype(index_array.dtype, np.int):
+                elif not np.issubdtype(index_array.dtype, np.signedinteger):
                     raise TypeError(('Indexing is only supported for integer '
                                      'and boolean arrays, not for type '
                                      '%s' % index_array.dtype))

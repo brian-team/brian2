@@ -171,11 +171,11 @@ class Variable(CacheKey):
 
     @property
     def is_boolean(self):
-        return np.issubdtype(np.bool, self.dtype)
+        return np.issubdtype(self.dtype, np.bool_)
 
     @property
     def is_integer(self):
-        return np.issubdtype(self.dtype, np.integer)
+        return np.issubdtype(self.dtype, np.signedinteger)
 
     @property
     def dtype_str(self):

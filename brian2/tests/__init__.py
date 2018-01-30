@@ -219,6 +219,13 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             # Some doctests do actually use code generation, use numpy for that
             prefs.codegen.target = 'numpy'
             prefs._backup()
+            # Print output changed in numpy 1.14, stick with the old format to
+            # avoid doctest failures
+            import numpy as np
+            try:
+                np.set_printoptions(legacy='1.13')
+            except TypeError:
+                pass  # using a numpy version < 1.14
             argv = make_argv(dirnames, "codegen-independent", doctests=True)
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)

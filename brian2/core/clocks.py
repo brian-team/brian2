@@ -55,9 +55,9 @@ def check_dt(new_dt, old_dt, target_t):
     if abs(new_t - old_t)/new_dt > Clock.epsilon_dt:
         raise ValueError(('Cannot set dt from {old} to {new}, the '
                           'time {t} is not a multiple of '
-                          '{new}').format(old=old_dt * second,
-                                          new=new_dt * second,
-                                          t=error_t * second))
+                          '{new}').format(old=str(old_dt * second),
+                                          new=str(new_dt * second),
+                                          t=str(error_t * second)))
 
 
 class Clock(VariableOwner):

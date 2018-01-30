@@ -72,7 +72,7 @@ def main(rootpath, destdir):
         codesplit = code.split('\n')
         comment_lines = 0
         for line in codesplit:
-            if line.startswith('#'):
+            if line.startswith('#') or len(line) == 0:
                 comment_lines += 1
             else:
                 break

@@ -54,7 +54,7 @@ class StateMonitorView(object):
         '''
         dtype = get_dtype(item)
         # scalar value
-        if np.issubdtype(dtype, np.int) and not isinstance(item, np.ndarray):
+        if np.issubdtype(dtype, np.signedinteger) and not isinstance(item, np.ndarray):
             indices = np.nonzero(self.monitor.record == item)[0]
             if len(indices) == 0:
                 raise IndexError('Index number %d has not been recorded' % item)
@@ -284,11 +284,11 @@ class StateMonitor(Group, CodeRunner):
 
     def __getitem__(self, item):
         dtype = get_dtype(item)
-        if np.issubdtype(dtype, np.int):
+        if np.issubdtype(dtype, np.signedinteger):
             return StateMonitorView(self, item)
         elif isinstance(item, collections.Sequence):
             index_array = np.array(item)
-            if not np.issubdtype(index_array.dtype, np.int):
+            if not np.issubdtype(index_array.dtype, np.signedinteger):
                 raise TypeError('Index has to be an integer or a sequence '
                                 'of integers')
             return StateMonitorView(self, item)
