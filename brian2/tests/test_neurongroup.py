@@ -237,12 +237,19 @@ def test_linked_variable_scalar():
     mon = StateMonitor(G2, 'y', record=True)
     # We don't test anything for now, except that it runs without raising an
     # error
-    run(10*ms)
+    run(defaultclock.dt)
     # Make sure that printing the variable values works
     assert len(str(G2.x)) > 0
     assert len(repr(G2.x)) > 0
     assert len(str(G2.x[:])) > 0
     assert len(repr(G2.x[:])) > 0
+    assert np.isscalar(G2.x[:])
+    # Check that subgroups work correctly (see github issue #916)
+    sg1 = G2[:5]
+    sg2 = G2[5:]
+    assert sg1.x == G2.x
+    assert sg2.x == G2.x
+
 
 @attr('codegen-independent')
 def test_linked_variable_indexed():

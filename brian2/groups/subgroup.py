@@ -82,8 +82,13 @@ class Subgroup(Group, SpikeSource):
         # special indexing for subgroups
         self._indices = Indexing(self, self.variables['_sub_idx'])
 
+        # Deal with special indices
         for key, value in self.source.variables.indices.iteritems():
-            if value not in ('_idx', '0'):
+            if value == '0':
+                self.variables.indices[key] = '0'
+            elif value == '_idx':
+                continue  # nothing to do, already uses _sub_idx correctly
+            else:
                 raise ValueError(('Do not know how to deal with variable %s '
                                   'using  index %s in a subgroup') % (key,
                                                                       value))
