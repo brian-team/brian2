@@ -564,7 +564,7 @@ class CPPStandaloneDevice(Device):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
             logger.diagnostic("Using OpenMP with %d threads " % nb_threads)
-            if prefs.devices.cpp_standalone.openmp_spatialneuron_strategy != None:
+            if prefs.devices.cpp_standalone.openmp_spatialneuron_strategy is not None:
                 logger.warn("The devices.cpp_standalone.openmp_spatialneuron_strategy "
                             "preference is no longer used and will be removed in "
                             "future versions of Brian.", "openmp_spatialneuron_strategy",
