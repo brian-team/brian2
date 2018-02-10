@@ -58,17 +58,9 @@ prefs.register_preferences(
         default=None,
         validator=lambda val: val in [None, 'branches', 'systems'],
         docs='''
-        Which strategy to chose for solving the three tridiagonal systems with
-        OpenMP: `'branches'` means to solve the three systems sequentially, but
-        for all the branches in parallel, `'systems'` means to solve the three
-        systems in parallel, but all the branches within each system
-        sequentially. The `'branches'` approach is usually better for
-        morphologies with many branches and a large number of threads, while the
-        `'systems'` strategy should be better for morphologies with few
-        branches (e.g. cables) and/or simulations with no more than three
-        threads. If not specified (the default), the `'systems'` strategy will
-        be used when using no more than three threads or when the morphology
-        has less than three branches in total.
+        DEPRECATED. Previously used to chose the strategy to parallelize the
+        solution of the three tridiagonal systems for multicompartmental
+        neurons. Now, its value is ignored.
         '''
         ),
     extra_make_args_unix=BrianPreference(
@@ -572,7 +564,12 @@ class CPPStandaloneDevice(Device):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
             logger.diagnostic("Using OpenMP with %d threads " % nb_threads)
-    
+            if prefs.devices.cpp_standalone.openmp_spatialneuron_strategy is not None:
+                logger.warn("The devices.cpp_standalone.openmp_spatialneuron_strategy "
+                            "preference is no longer used and will be removed in "
+                            "future versions of Brian.", "openmp_spatialneuron_strategy",
+                            once=True)
+
     def generate_objects_source(self, writer, arange_arrays, synapses, static_array_specs, networks):
         arr_tmp = CPPStandaloneCodeObject.templater.objects(
                         None, None,

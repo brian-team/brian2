@@ -1,10 +1,9 @@
 {# USES_VARIABLES { Cm, dt, v, N, Ic,
-                  _ab_star0, _ab_star1, _ab_star2, _b_plus,
-                  _a_plus0, _a_plus1, _a_plus2, _b_minus,
-                  _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _ab_star0, _ab_star1, _ab_star2, _b_plus, _b_minus,
+                  _v_star, _u_plus, _u_minus,
                   _v_previous,
                   _gtot_all, _I0_all, v
-                  _c1, _c2, _c3,
+                  _c,
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
@@ -35,22 +34,19 @@ from scipy.linalg import solve_banded
 _b=-({{Cm}}/{{dt}}*{{v}})-_I0
 _ab = zeros((3,N))
 _ab[0,:] = {{_ab_star0}}
-_ab[1,:] = {{_ab_star1}}
+_ab[1,:] = {{_ab_star1}} - _gtot
 _ab[2,:] = {{_ab_star2}}
-_ab[1,:] -= _gtot
 {{_v_star}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
 # Homogeneous solutions
 _b[:] = {{_b_plus}}
-_ab[0,:] = {{_a_plus0}}
-_ab[1,:] = {{_a_plus1}}
-_ab[2,:] = {{_a_plus2}}
-_ab[1,:] -= _gtot
+_ab[0,:] = {{_ab_star0}}
+_ab[1,:] = {{_ab_star1}} - _gtot
+_ab[2,:] = {{_ab_star2}}
 {{_u_plus}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
 _b[:] = {{_b_minus}}
-_ab[0,:] = {{_a_minus0}}
-_ab[1,:] = {{_a_minus1}}
-_ab[2,:] = {{_a_minus2}}
-_ab[1,:] -= _gtot
+_ab[0,:] = {{_ab_star0}}
+_ab[1,:] = {{_ab_star1}} - _gtot
+_ab[2,:] = {{_ab_star2}}
 {{_u_minus}}[:] = solve_banded((1,1),_ab,_b,overwrite_ab=True,overwrite_b=True)
 {% else %}
 # Pure numpy solution, very slow because it needs forward and backward passes
@@ -60,62 +56,30 @@ _b = -({{Cm}} / {{dt}}*{{v}}) - _I0
 # Tridiagonal solving
 _forward = range(1, N)
 _backward = range(N-2, -1, -1)
-_c = zeros(N)
 
-# Pass 1
 _bi = {{_ab_star1}} - _gtot  # main diagonal
 
 # First compartment
-_c[0] = {{_ab_star0}}[1] / _bi[0]
+{{_c}}[0] = {{_ab_star0}}[1] / _bi[0]
 {{_v_star}}[0] = _b[0] / _bi[0]
-
-# Other compartments
-_c[1:-1] = {{_ab_star0}}[2:]
-for _i in _forward:
-    _ai = {{_ab_star2}}[_i-1]  # subdiagonal
-    _m = 1.0/(_bi[_i]-_ai*_c[_i-1])
-    _c[_i] *= _m
-    {{_v_star}}[_i] = (_b[_i] - _ai*{{_v_star}}[_i-1])*_m
-
-for _i in _backward:
-    {{_v_star}}[_i] -= _c[_i]*{{_v_star}}[_i+1]
-
-# Pass 2
-_bi = {{_a_plus1}} - _gtot  # main diagonal
-
-# First compartment
-_c[0] = {{_a_plus0}}[1]/_bi[0]
 {{_u_plus}}[0] = {{_b_plus}}[0]/_bi[0]
-
-# Other compartments
-_c[1:-1] = {{_a_plus0}}[2:]  # superdiagonal
-
-for _i in _forward:
-    _ai = {{_a_plus2}}[_i-1]  # subdiagonal
-    _m = 1.0/(_bi[_i]-_ai*_c[_i-1])
-    _c[_i] *= _m
-    {{_u_plus}}[_i] = ({{_b_plus}}[_i] - _ai*{{_u_plus}}[_i-1])*_m
-
-for _i in _backward:
-    {{_u_plus}}[_i] -= _c[_i]*{{_u_plus}}[_i+1]
-
-# Pass 3
-_bi = {{_a_minus1}} - _gtot  # main diagonal
-
-# First compartment
-_c[0] = {{_a_minus0}}[1]/_bi[0]
 {{_u_minus}}[0] = {{_b_minus}}[0]/_bi[0]
 
 # Other compartments
-_c[1:-1] = {{_a_minus0}}[2:]  # superdiagonal
+{{_c}}[1:-1] = {{_ab_star0}}[2:]
 for _i in _forward:
-    _ai = {{_a_minus2}}[_i-1]  # subdiagonal
-    _m = 1.0/(_bi[_i]-_ai*_c[_i-1]);
-    _c[_i] *= _m
+    _ai = {{_ab_star2}}[_i-1]  # subdiagonal
+    _m = 1.0/(_bi[_i]-_ai*{{_c}}[_i-1])
+    {{_c}}[_i] *= _m
+    {{_v_star}}[_i] = (_b[_i] - _ai*{{_v_star}}[_i-1])*_m
+    {{_u_plus}}[_i] = ({{_b_plus}}[_i] - _ai*{{_u_plus}}[_i-1])*_m
     {{_u_minus}}[_i] = ({{_b_minus}}[_i] - _ai*{{_u_minus}}[_i-1])*_m
 
 for _i in _backward:
-    {{_u_minus}}[_i] -= _c[_i]*{{_u_minus}}[_i+1]
+    {{_v_star}}[_i] -= {{_c}}[_i]*{{_v_star}}[_i+1]
+    {{_u_plus}}[_i] -= {{_c}}[_i]*{{_u_plus}}[_i+1]
+    {{_u_minus}}[_i] -= {{_c}}[_i]*{{_u_minus}}[_i+1]
+
 {% endif %}
 
 # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P

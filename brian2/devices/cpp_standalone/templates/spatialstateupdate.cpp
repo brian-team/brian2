@@ -2,28 +2,18 @@
 //// MAIN CODE /////////////////////////////////////////////////////////////
 
 {# USES_VARIABLES { Cm, dt, v, N, Ic,
-                  _ab_star0, _ab_star1, _ab_star2, _b_plus,
-                  _a_plus0, _a_plus1, _a_plus2, _b_minus,
-                  _a_minus0, _a_minus1, _a_minus2, _v_star, _u_plus, _u_minus,
+                  _ab_star0, _ab_star1, _ab_star2, _b_plus, _b_minus,
+                  _v_star, _u_plus, _u_minus,
                   _v_previous,
                   _gtot_all, _I0_all,
-                  _c1, _c2, _c3,
+                  _c,
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
                   _invr0, _invrn} #}
-                  
+
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-
-    {% set strategy = prefs.devices.cpp_standalone.openmp_spatialneuron_strategy %}
-    {% if strategy == None %}
-        {% if prefs.devices.cpp_standalone.openmp_threads <= 3 or number_sections < 3%}
-            {% set strategy = 'systems' %}
-        {% else %}
-            {% set strategy = 'branches' %}
-        {% endif %}
-    {% endif %}
 
     int _vectorisation_idx = 1;
 
@@ -45,133 +35,50 @@
     }
 
     // STEP 2: for each section: solve three tridiagonal systems
-    // (independent: branches and also the three tridiagonal systems)
+    // (independent: branches)
 
-    {% if strategy == 'systems' %}
-    {{ openmp_pragma('parallel') }}
+    {{ openmp_pragma('parallel-static') }}
+    for (int _i=0; _i<_num_B - 1; _i++)
     {
-    {% endif %}
-    {{ openmp_pragma('sections') }}
-    {
-    // system 2a: solve for _v_star
-    {{ openmp_pragma('section') }}
-    {
-        {% if strategy == 'branches' %}
-        {{ openmp_pragma('parallel-static') }}
-        {% endif %}
-        for (int _i=0; _i<_num_B - 1; _i++)
+        // first and last index of the i-th section
+        const int _j_start = {{_starts}}[_i];
+        const int _j_end = {{_ends}}[_i];
+
+        double _ai, _bi, _m; // helper variables
+
+        // upper triangularization of tridiagonal system for _v_star, _u_plus, and _u_minus
+        for(int _j=_j_start; _j<_j_end; _j++)
         {
-            // first and last index of the i-th section
-            const int _j_start = {{_starts}}[_i];
-            const int _j_end = {{_ends}}[_i];
-            
-            double _ai, _bi, _m; // helper variables
-
-            // upper triangularization of tridiagonal system for _v_star
-            for(int _j=_j_start; _j<_j_end; _j++)
+            {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j]; // RHS -> _v_star (solution)
+            {{_u_plus}}[_j]={{_b_plus}}[_j]; // RHS -> _u_plus (solution)
+            {{_u_minus}}[_j]={{_b_minus}}[_j]; // RHS -> _u_minus (solution)
+            _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
+            if (_j<N-1)
+                {{_c}}[_j]={{_ab_star0}}[_j+1]; // superdiagonal
+            if (_j>0)
             {
-                {{_v_star}}[_j]=-({{Cm}}[_j]/{{dt}}*{{v}}[_j])-{{_I0_all}}[_j]; // RHS -> _v_star (solution)
-                _bi={{_ab_star1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
-                if (_j<N-1)
-                    {{_c1}}[_j]={{_ab_star0}}[_j+1]; // superdiagonal
-                if (_j>0)
-                {
-                    _ai={{_ab_star2}}[_j-1]; // subdiagonal
-                    _m=1.0/(_bi-_ai*{{_c1}}[_j-1]);
-                    {{_c1}}[_j]={{_c1}}[_j]*_m;
-                    {{_v_star}}[_j]=({{_v_star}}[_j] - _ai*{{_v_star}}[_j-1])*_m;
-                } else
-                {
-                    {{_c1}}[0]={{_c1}}[0]/_bi;
-                    {{_v_star}}[0]={{_v_star}}[0]/_bi;
-                }
+                _ai={{_ab_star2}}[_j-1]; // subdiagonal
+                _m=1.0/(_bi-_ai*{{_c}}[_j-1]);
+                {{_c}}[_j]={{_c}}[_j]*_m;
+                {{_v_star}}[_j]=({{_v_star}}[_j] - _ai*{{_v_star}}[_j-1])*_m;
+                {{_u_plus}}[_j]=({{_u_plus}}[_j] - _ai*{{_u_plus}}[_j-1])*_m;
+                {{_u_minus}}[_j]=({{_u_minus}}[_j] - _ai*{{_u_minus}}[_j-1])*_m;
+            } else
+            {
+                {{_c}}[0]={{_c}}[0]/_bi;
+                {{_v_star}}[0]={{_v_star}}[0]/_bi;
+                {{_u_plus}}[0]={{_u_plus}}[0]/_bi;
+                {{_u_minus}}[0]={{_u_minus}}[0]/_bi;
             }
-            // backwards substituation of the upper triangularized system for _v_star
-            for(int _j=_j_end-2; _j>=_j_start; _j--)
-                {{_v_star}}[_j]={{_v_star}}[_j] - {{_c1}}[_j]*{{_v_star}}[_j+1];
+        }
+        // backwards substituation of the upper triangularized system for _v_star
+        for(int _j=_j_end-2; _j>=_j_start; _j--)
+        {
+            {{_v_star}}[_j]={{_v_star}}[_j] - {{_c}}[_j]*{{_v_star}}[_j+1];
+            {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c}}[_j]*{{_u_plus}}[_j+1];
+            {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c}}[_j]*{{_u_minus}}[_j+1];
         }
     }
-    // system 2b: solve for _u_plus
-    {{ openmp_pragma('section') }}
-    {
-        {% if strategy == 'branches' %}
-        {{ openmp_pragma('parallel-static') }}
-        {% endif %}
-        for (int _i=0; _i<_num_B - 1; _i++)
-        {
-            // first and last index of the i-th section
-            const int _j_start = {{_starts}}[_i];
-            const int _j_end = {{_ends}}[_i];
-            
-            double _ai, _bi, _m; // helper variables
-
-            // upper triangularization of tridiagonal system for _u_plus
-            for(int _j=_j_start; _j<_j_end; _j++)
-            {
-                {{_u_plus}}[_j]={{_b_plus}}[_j]; // RHS -> _u_plus (solution)
-                _bi={{_a_plus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
-                if (_j<N-1)
-                    {{_c2}}[_j]={{_a_plus0}}[_j+1]; // superdiagonal
-                if (_j>0)
-                {
-                    _ai={{_a_plus2}}[_j-1]; // subdiagonal
-                    _m=1.0/(_bi-_ai*{{_c2}}[_j-1]);
-                    {{_c2}}[_j]={{_c2}}[_j]*_m;
-                    {{_u_plus}}[_j]=({{_u_plus}}[_j] - _ai*{{_u_plus}}[_j-1])*_m;
-                } else
-                {
-                    {{_c2}}[0]={{_c2}}[0]/_bi;
-                    {{_u_plus}}[0]={{_u_plus}}[0]/_bi;
-                }
-            }
-            // backwards substituation of the upper triangularized system for _u_plus
-            for(int _j=_j_end-2; _j>=_j_start; _j--)
-                {{_u_plus}}[_j]={{_u_plus}}[_j] - {{_c2}}[_j]*{{_u_plus}}[_j+1];
-        }
-    }
-    // system 2c: solve for _u_minus
-    {{ openmp_pragma('section') }}
-    {
-        {% if strategy == 'branches' %}
-        {{ openmp_pragma('parallel-static') }}
-        {% endif %}
-        for (int _i=0; _i<_num_B - 1; _i++)
-        {
-            // first and last index of the i-th section
-            const int _j_start = {{_starts}}[_i];
-            const int _j_end = {{_ends}}[_i];
-
-            double _ai, _bi, _m; // helper variables
-            
-            // upper triangularization of tridiagonal system for _u_minus
-            for(int _j=_j_start; _j<_j_end; _j++)
-            {
-                {{_u_minus}}[_j]={{_b_minus}}[_j]; // RHS -> _u_minus (solution)
-                _bi={{_a_minus1}}[_j]-{{_gtot_all}}[_j]; // main diagonal
-                if (_j<N-1)
-                    {{_c3}}[_j]={{_a_minus0}}[_j+1]; // superdiagonal
-                if (_j>0)
-                {
-                    _ai={{_a_minus2}}[_j-1]; // subdiagonal
-                    _m=1.0/(_bi-_ai*{{_c3}}[_j-1]);
-                    {{_c3}}[_j]={{_c3}}[_j]*_m;
-                    {{_u_minus}}[_j]=({{_u_minus}}[_j] - _ai*{{_u_minus}}[_j-1])*_m;
-                } else
-                {
-                    {{_c3}}[0]={{_c3}}[0]/_bi;
-                    {{_u_minus}}[0]={{_u_minus}}[0]/_bi;
-                }
-            }
-            // backwards substituation of the upper triangularized system for _u_minus
-            for(int _j=_j_end-2; _j>=_j_start; _j--)
-                {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c3}}[_j]*{{_u_minus}}[_j+1];
-        }
-    } // (OpenMP section)
-    } // (OpenMP sections)
-    {% if strategy == 'systems' %}
-    } // (OpenMP parallel)
-    {% endif %}
-
 
     // STEP 3: solve the coupling system
 
