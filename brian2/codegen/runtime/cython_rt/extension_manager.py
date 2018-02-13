@@ -4,6 +4,7 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
+import glob
 import imp
 import os
 import sys
@@ -242,6 +243,18 @@ class CythonExtensionManager(object):
                     build_extension.build_temp = os.path.dirname(pyx_file)
                     build_extension.build_lib = lib_dir
                     build_extension.run()
+                    if prefs['codegen.runtime.cython.delete_source_files']:
+                        # we can delete the source files to save disk space
+                        cpp_file = os.path.join(lib_dir, module_name + '.cpp')
+                        try:
+                            os.remove(pyx_file)
+                            os.remove(cpp_file)
+                            temp_dir = os.path.join(lib_dir, os.path.dirname(pyx_file)[1:], module_name + '.*')
+                            for fname in glob.glob(temp_dir):
+                                os.remove(fname)
+                        except (OSError, IOError) as ex:
+                            logger.debug('Deleting Cython source files failed with error: %s' % str(ex))
+
             except Cython_Compiler.Errors.CompileError:
                 return
 

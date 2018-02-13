@@ -45,6 +45,16 @@ prefs.register_preferences(
         (the result of ``get_cython_cache_dir()``).
         '''
         ),
+    delete_source_files = BrianPreference(
+        default=True,
+        docs='''
+        Whether to delete source files after compiling. The Cython
+        source files can take a significant amount of disk space, and
+        are not used anymore when the compiled library file exists.
+        They are therefore deleted by default, but keeping them around
+        can be useful for debugging.
+        '''
+        )
     )
 
 
