@@ -29,7 +29,7 @@ try:
     import Cython
     import Cython.Compiler as Cython_Compiler
     import Cython.Build as Cython_Build
-    from Cython.Utils import get_cython_cache_dir
+    from Cython.Utils import get_cython_cache_dir as base_cython_cache_dir
 except ImportError:
     Cython = None
 
@@ -41,6 +41,13 @@ from brian2.core.preferences import prefs
 __all__ = ['cython_extension_manager']
 
 logger = get_logger(__name__)
+
+
+def get_cython_cache_dir():
+    cache_dir = prefs.codegen.runtime.cython.cache_dir
+    if cache_dir is None and Cython is not None:
+        cache_dir = os.path.join(base_cython_cache_dir(), 'brian_extensions')
+    return cache_dir
 
 
 class CythonExtensionManager(object):
@@ -66,9 +73,7 @@ class CythonExtensionManager(object):
 
         code = deindent(code)
 
-        lib_dir = prefs.codegen.runtime.cython.cache_dir
-        if lib_dir is None:
-            lib_dir = os.path.join(get_cython_cache_dir(), 'brian_extensions')
+        lib_dir = get_cython_cache_dir()
         if '~' in lib_dir:
             lib_dir = os.path.expanduser(lib_dir)
         try:

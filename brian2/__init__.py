@@ -97,3 +97,14 @@ for name, version in [('numpy',  '1.10'),
 
 # Initialize the logging system
 BrianLogger.initialize()
+
+
+# Check the caches
+if prefs.codegen.max_cache_dir_size > 0:
+    from brian2.codegen import check_cache
+    from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir as _get_weave_cache_dir
+    from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir as _get_cython_cache_dir
+    for target, dir in [('weave', _get_weave_cache_dir()),
+                        ('cython', _get_cython_cache_dir())]:
+        if dir is not None:
+            check_cache(target, dir)

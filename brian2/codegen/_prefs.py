@@ -55,5 +55,12 @@ prefs.register_preferences(
         optimisation is already performed by the compiler) or because the
         code generation target does not deal well with it. Defaults to ``True``.
         '''
+    ),
+    max_cache_dir_size=BrianPreference(
+      default=1000,
+      docs='''
+      The size of a directory (in MB) with cached code for weave or Cython that triggers a warning.
+      Set to 0 to never get a warning.
+      '''
     )
 )
