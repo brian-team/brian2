@@ -1,6 +1,9 @@
 '''
-Brian 2.0
+Brian 2
 '''
+import os
+import shutil
+
 # Import setuptools to do some monkey patching of distutils, necessary for
 # working weave/Cython on Windows with the Python for C++ compiler
 import setuptools as _setuptools
@@ -97,14 +100,45 @@ for name, version in [('numpy',  '1.10'),
 
 # Initialize the logging system
 BrianLogger.initialize()
-
+logger = get_logger(__name__)
 
 # Check the caches
-if prefs.codegen.max_cache_dir_size > 0:
-    from brian2.codegen import check_cache
-    from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir as _get_weave_cache_dir
-    from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir as _get_cython_cache_dir
-    for target, dir in [('weave', _get_weave_cache_dir()),
-                        ('cython', _get_cython_cache_dir())]:
-        if dir is not None:
-            check_cache(target, dir)
+def _get_size_recursively(dirname):
+    total_size = 0
+    for dirpath, _, filenames in os.walk(dirname):
+        for fname in filenames:
+            total_size += os.path.getsize(os.path.join(dirpath, fname))
+    return total_size
+
+#: Stores the cache directory for code generation targets
+_cache_dirs = {}
+
+def check_cache(target):
+    cache_dir = _cache_dirs.get(target, None)
+    if cache_dir is None:
+        return
+    size = _get_size_recursively(cache_dir)
+    size_in_mb = int(round(size/1024./1024.))
+    if size_in_mb > prefs.codegen.max_cache_dir_size:
+        logger.warn('Cache size for target "%s": %s MB' % (target, size_in_mb))
+    else:
+        logger.debug('Cache size for target "%s": %s MB' % (target, size_in_mb))
+
+
+def clear_cache(target):
+    cache_dir = _cache_dirs.get(target, None)
+    if cache_dir is None:
+        raise ValueError('No cache directory registered for target "%s".' % target)
+    logger.debug('Clearing cache for target "%s" (directory "%s").' %
+                 (target, cache_dir))
+    shutil.rmtree(cache_dir)
+
+
+from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir as _get_weave_cache_dir
+from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir as _get_cython_cache_dir
+
+for target, dir in [('weave', _get_weave_cache_dir()),
+                    ('cython', _get_cython_cache_dir())]:
+    _cache_dirs[target] = dir
+    if prefs.codegen.max_cache_dir_size > 0:
+        check_cache(target)
