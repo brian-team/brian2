@@ -1,7 +1,8 @@
 from brian2.core.network import schedule_propagation_offset
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
+from numpy.testing.utils import (assert_raises, assert_equal, assert_allclose,
+                                 assert_array_equal)
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
@@ -567,6 +568,29 @@ def test_synaptic_propagation_2():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_run_regularly():
+    # See github issue #922
+
+    group = NeuronGroup(10, 'v: integer')
+    # Full group
+    group.run_regularly('v += 16')
+    # Subgroup with explicit reference
+    subgroup = group[:2]
+    subgroup.run_regularly('v += 8')
+    # Subgroup with explicit reference and reference for run_regularly operation
+    subgroup2 = group[2:4]
+    updater = subgroup2.run_regularly('v += 4')
+    # Subgroup without reference
+    group[4:6].run_regularly('v += 2')
+    # Subgroup without reference, with reference for run_regularly operation
+    updater2 = group[6:8].run_regularly('v += 1')
+
+    run(defaultclock.dt)
+    assert_array_equal(group.v, [24, 24, 20, 20, 18, 18, 17, 17, 16, 16])
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_spike_monitor():
     G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G.v[0] = 1.1
@@ -697,6 +721,7 @@ if __name__ == '__main__':
     test_subexpression_no_references()
     test_synaptic_propagation()
     test_synaptic_propagation_2()
+    test_run_regularly()
     test_spike_monitor()
     test_wrong_indexing()
     test_no_reference_1()

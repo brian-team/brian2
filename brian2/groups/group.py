@@ -13,7 +13,7 @@ import inspect
 
 import numpy as np
 
-from brian2.core.base import BrianObject
+from brian2.core.base import BrianObject, weakproxy_with_fallback
 from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
@@ -940,6 +940,20 @@ class Group(VariableOwner, BrianObject):
         if dt is None and clock is None:
             clock = self._clock
 
+        # Subgroups are normally not included in their parent's
+        # contained_objects list, since there's no need to include them in the
+        # network (they don't perform any computation on their own). However,
+        # if a subgroup declares a `run_regularly` operation, then we want to
+        # include this operation automatically, i.e. with the parent group
+        # (adding just the run_regularly operation to the parent group's
+        # contained objects would no be enough, since the CodeObject needs a
+        # reference to the group providing the context for the operation, i.e.
+        # the subgroup instead of the parent group. See github issue #922
+        source_group = getattr(self, 'source', None)
+        if source_group is not None:
+            if not self in source_group.contained_objects:
+                source_group.contained_objects.append(self)
+
         runner = CodeRunner(self, 'stateupdate', code=code, name=name,
                             dt=dt, clock=clock, when=when, order=order,
                             codeobj_class=codeobj_class)
@@ -1049,7 +1063,7 @@ class CodeRunner(BrianObject):
                  ):
         BrianObject.__init__(self, clock=clock, dt=dt, when=when, order=order,
                              name=name)
-        self.group = weakref.proxy(group)
+        self.group = weakproxy_with_fallback(group)
         self.template = template
         self.user_code = user_code
         self.abstract_code = code
