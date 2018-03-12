@@ -864,7 +864,7 @@ class Synapses(Group):
                                   'in "_pre" or "_post".') % varname)
             if not varname in self.variables:
                 raise ValueError(('The summed variable "%s" does not refer'
-                                  'do any known variable in the '
+                                  'to any known variable in the '
                                   'target group.') % varname)
             if varname.endswith('_pre'):
                 summed_target = self.source
