@@ -10,6 +10,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units, get_dimensions, Quantity, \
     get_unit
 from brian2.core.names import Nameable
+from brian2.utils.caching import CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import replace
 
@@ -31,7 +32,7 @@ def _find_K(group_dt, dt):
     return K
 
 
-class TimedArray(Function, Nameable):
+class TimedArray(Function, Nameable, CacheKey):
     '''
     TimedArray(values, dt, name=None)
 
@@ -82,6 +83,7 @@ class TimedArray(Function, Nameable):
      [ 1.  3.]
      [ 2.  4.]] mV
     '''
+    _cache_irrelevant_attributes = {'values', 'pyfunc', 'implementations'}
     @check_units(dt=second)
     def __init__(self, values, dt, name=None):
         if name is None:

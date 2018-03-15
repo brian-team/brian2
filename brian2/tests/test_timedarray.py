@@ -113,6 +113,16 @@ def test_long_timedarray():
     assert_equal(mon[0].value[mon.t >= 16384*second], 16384)
 
 
+def test_timedarray_repeated_use():
+    # Check that recreating a TimedArray with different values does work correctly (no issues with caching)
+     for run_idx in range(2):
+        values = np.array([1, 2, 3])*(run_idx + 1)
+        ta = TimedArray(values, dt=defaultclock.dt, name='ta')
+        G = NeuronGroup(1, 'dx/dt = ta(t)/dt : 1', name='G')
+        run(3*defaultclock.dt)
+        assert G.x[0] == 6 * (run_idx + 1)
+
+
 if __name__ == '__main__':
     test_timedarray_direct_use()
     test_timedarray_semantics()
@@ -122,3 +132,4 @@ if __name__ == '__main__':
     test_timedarray_incorrect_use()
     test_timedarray_no_upsampling()
     test_long_timedarray()
+    test_timedarray_repeated_use()
