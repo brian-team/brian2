@@ -10,7 +10,7 @@
 
 	// Set all the target variable values to zero
 	for (int _target_idx=0; _target_idx<_target_size; _target_idx++)
-	    {{_target_var_array}}[_target_idx] = 0;
+	    {{_target_var_array}}[_target_idx + {{_target_start}}] = 0;
 
     // scalar code
 	const int _vectorisation_idx = 1;

@@ -1,7 +1,7 @@
 from brian2.core.network import schedule_propagation_offset
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
+from numpy.testing.utils import assert_raises, assert_equal, assert_allclose, assert_array_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
@@ -457,6 +457,25 @@ def test_synapses_access_subgroups_problematic():
             assert all([entry[1].endswith('ambiguous_string_expression')
                         for entry in l])
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_subgroup_summed_variable():
+    # Check in particular that only neurons targeted are reset to 0 (see github issue #925)
+    source = NeuronGroup(1, "")
+    target = NeuronGroup(5, "Iin : 1")
+    target.Iin = 10
+    target1 = target[1:2]
+    target2 = target[3:]
+
+    syn1 = Synapses(source, target1, "Iin_post = 5 : 1  (summed)")
+    syn1.connect(True)
+    syn2 = Synapses(source, target2, "Iin_post = 1 : 1  (summed)")
+    syn2.connect(True)
+
+    run(2 * defaultclock.dt)
+
+    assert_array_equal(target.Iin, [10, 5, 10, 1, 1])
+
 
 def test_subexpression_references():
     '''
@@ -693,6 +712,7 @@ if __name__ == '__main__':
     test_synapse_access()
     test_synapses_access_subgroups()
     test_synapses_access_subgroups_problematic()
+    test_subgroup_summed_variable()
     test_subexpression_references()
     test_subexpression_no_references()
     test_synaptic_propagation()
