@@ -721,15 +721,21 @@ def test_delay_specification():
     assert_equal(S.delay[:], abs(G.x - (10 - G.i)*mmeter)/velocity)
     S.delay = 5*ms
     assert_equal(S.delay[:], np.ones(len(G))*5*ms)
+    # Setting delays without units
+    S.delay_ = float(7*ms)
+    assert_equal(S.delay[:], np.ones(len(G))*7*ms)
 
     # Scalar delay
     S = Synapses(G, G, 'w:1', on_pre='v+=w', delay=5*ms)
     assert_equal(S.delay[:], 5*ms)
     S.connect(j='i')
-    S.delay = 10*ms
-    assert_equal(S.delay[:], 10*ms)
     S.delay = '3*ms'
     assert_equal(S.delay[:], 3*ms)
+    S.delay = 10 * ms
+    assert_equal(S.delay[:], 10 * ms)
+    # Without units
+    S.delay_ = float(20*ms)
+    assert_equal(S.delay[:], 20 * ms)
 
     # Invalid arguments
     assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',

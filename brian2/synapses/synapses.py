@@ -4,6 +4,7 @@ Module providing the `Synapses` class and related helper classes/functions.
 
 import collections
 from collections import defaultdict
+import functools
 import weakref
 import re
 import numbers
@@ -253,6 +254,11 @@ class SynapticPathway(CodeRunner, Group):
         self.variables.add_references(synapses, synaptic_vars)
         self.variables.indices.update(synaptic_idcs)
         self._enable_group_attributes()
+
+    def check_variable_write(self, variable):
+        # Forward the check to the `Synapses` object (raises an error if no
+        # synapse has been created yet)
+        self.synapses.check_variable_write(variable)
 
     @device_override('synaptic_pathway_update_abstract_code')
     def update_abstract_code(self, run_namespace=None, level=0):
@@ -826,12 +832,6 @@ class Synapses(Group):
                 raise ValueError(('Cannot set the delay for pathway '
                                   '"%s": unknown pathway.') % pathway)
 
-        # If we have a pathway called "pre" (the most common use case), provide
-        # direct access to its delay via a delay attribute (instead of having
-        # to use pre.delay)
-        if 'pre' in self._synaptic_updaters:
-            self.variables.add_reference('delay', self.pre)
-
         #: Performs numerical integration step
         self.state_updater = None
 
@@ -910,6 +910,38 @@ class Synapses(Group):
     def __getitem__(self, item):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
+
+    def _set_delay(self, delay, with_unit):
+        if 'pre' not in self._synaptic_updaters:
+            raise AttributeError("Synapses do not have a 'pre' pathway, "
+                                 "do not know what 'delay' refers to.")
+        # Note that we cannot simply say: "self.pre.delay = delay" because this
+        # would not correctly deal with references to external constants
+        var = self.pre.variables['delay']
+        if with_unit:
+            reference = var.get_addressable_value_with_unit('delay', self.pre)
+        else:
+            reference = var.get_addressable_value('delay', self.pre)
+        reference.set_item('True', delay, level=2)
+
+    def _get_delay(self, with_unit):
+        if 'pre' not in self._synaptic_updaters:
+            raise AttributeError("Synapses do not have a 'pre' pathway, "
+                                 "do not know what 'delay' refers to.")
+        var = self.pre.variables['delay']
+        if with_unit:
+            return var.get_addressable_value_with_unit('delay', self.pre)
+        else:
+            return var.get_addressable_value('delay', self.pre)
+
+    delay = property(functools.partial(_get_delay, with_unit=True),
+                     functools.partial(_set_delay, with_unit=True),
+                     doc='The presynaptic delay (if a pre-synaptic pathway '
+                         'exists).')
+    delay_ = property(functools.partial(_get_delay, with_unit=False),
+                      functools.partial(_set_delay, with_unit=False),
+                      doc='The presynaptic delay without unit information (if a'
+                          'pre-synaptic pathway exists).')
 
     def _add_updater(self, code, prepost, objname=None, delay=None,
                      event='spike'):
