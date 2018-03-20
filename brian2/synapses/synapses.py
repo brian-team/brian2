@@ -718,9 +718,12 @@ class Synapses(Group):
                                               ('summed', 'shared',
                                                'constant over dt')])
 
+        for name in ['j', 'lastupdate', 'delay']:
+            if name in model.names:
+                raise SyntaxError('"%s" is a reserved name that cannot be '
+                                  'used as a variable name.' % name)
+
         # Add the lastupdate variable, needed for event-driven updates
-        if 'lastupdate' in model.names:
-            raise SyntaxError('lastupdate is a reserved name.')
         model = model + Equations('lastupdate : second')
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index

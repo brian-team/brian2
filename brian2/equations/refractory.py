@@ -27,8 +27,10 @@ def check_identifier_refractory(identifier):
         If the identifier is a variable name used for the refractory mechanism.
     '''
     if identifier in ('not_refractory', 'refractory', 'refractory_until'):
-        raise ValueError(('The name "%s" is used in the refractory mechanism '
-                         ' and should not be used as a variable name.' % identifier))
+        raise SyntaxError('The name "%s" is used in the refractory mechanism '
+                          ' and should not be used as a variable '
+                          'name.' % identifier)
+
 
 Equations.register_identifier_check(check_identifier_refractory)
 

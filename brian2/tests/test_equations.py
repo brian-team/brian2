@@ -82,19 +82,19 @@ def test_identifier_checks():
                                  'identifier "%s": %s' % (identifier, ex))
 
     for identifier in illegal_identifiers:
-        assert_raises(ValueError, lambda: check_identifier_basic(identifier))
+        assert_raises(SyntaxError, lambda: check_identifier_basic(identifier))
 
-    for identifier in ('t', 'dt', 'xi'):
-        assert_raises(ValueError, lambda: check_identifier_reserved(identifier))
+    for identifier in ('t', 'dt', 'xi', 'i', 'N'):
+        assert_raises(SyntaxError, lambda: check_identifier_reserved(identifier))
 
     for identifier in ('not_refractory', 'refractory', 'refractory_until'):
-        assert_raises(ValueError, lambda: check_identifier_refractory(identifier))
+        assert_raises(SyntaxError, lambda: check_identifier_refractory(identifier))
 
     for identifier in ('exp', 'sin', 'sqrt'):
-        assert_raises(ValueError, lambda: check_identifier_functions(identifier))
+        assert_raises(SyntaxError, lambda: check_identifier_functions(identifier))
 
     for identifier in ('volt', 'second', 'mV', 'nA'):
-        assert_raises(ValueError, lambda: check_identifier_units(identifier))
+        assert_raises(SyntaxError, lambda: check_identifier_units(identifier))
 
     # Check identifier registry
     assert check_identifier_basic in Equations.identifier_checks
@@ -107,16 +107,17 @@ def test_identifier_checks():
     # gaba_123 (that is otherwise valid)
     def disallow_gaba_123(identifier):
         if identifier == 'gaba_123':
-            raise ValueError('I do not like this name')
+            raise SyntaxError('I do not like this name')
 
     Equations.check_identifier('gaba_123')
     old_checks = set(Equations.identifier_checks)
     Equations.register_identifier_check(disallow_gaba_123)
-    assert_raises(ValueError, lambda: Equations.check_identifier('gaba_123'))
+    assert_raises(SyntaxError, lambda: Equations.check_identifier('gaba_123'))
     Equations.identifier_checks = old_checks
 
-    # registering a non-function should now work
-    assert_raises(ValueError, lambda: Equations.register_identifier_check('no function'))
+    # registering a non-function should not work
+    assert_raises(ValueError,
+                  lambda: Equations.register_identifier_check('no function'))
 
 @attr('codegen-independent')
 def test_parse_equations():
@@ -192,12 +193,12 @@ def test_correct_replacements():
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
     # Replacing a variable name with an illegal new name
-    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                v='illegal name'))
-    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                v='_reserved'))
-    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                v='t'))
+    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                 v='illegal name'))
+    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                 v='_reserved'))
+    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau : 1',
+                                                 v='t'))
 
     # Replacing a variable name with a value that already exists
     assert_raises(EquationError, lambda: Equations('''
@@ -262,13 +263,13 @@ def test_construction_errors():
     assert_raises(EquationError, lambda: Equations(eqs))
 
     # illegal variable names
-    assert_raises(ValueError, lambda: Equations('ddt/dt = -dt / tau : volt'))
-    assert_raises(ValueError, lambda: Equations('dt/dt = -t / tau : volt'))
-    assert_raises(ValueError, lambda: Equations('dxi/dt = -xi / tau : volt'))
-    assert_raises(ValueError, lambda: Equations('for : volt'))
-    assert_raises((EquationError, ValueError),
+    assert_raises(SyntaxError, lambda: Equations('ddt/dt = -dt / tau : volt'))
+    assert_raises(SyntaxError, lambda: Equations('dt/dt = -t / tau : volt'))
+    assert_raises(SyntaxError, lambda: Equations('dxi/dt = -xi / tau : volt'))
+    assert_raises(SyntaxError, lambda: Equations('for : volt'))
+    assert_raises((EquationError, SyntaxError),
                   lambda: Equations('d1a/dt = -1a / tau : volt'))
-    assert_raises(ValueError, lambda: Equations('d_x/dt = -_x / tau : volt'))
+    assert_raises(SyntaxError, lambda: Equations('d_x/dt = -_x / tau : volt'))
 
     # xi in a subexpression
     assert_raises(EquationError,
