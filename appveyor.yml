@@ -132,8 +132,7 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           %appveyor-retry CMD_IN_ENV% conda install --yes --quiet -c conda-forge conda-build pip &&
           %appveyor-retry CMD_IN_ENV% conda install --yes --quiet anaconda-client &&
-          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe --numpy 1.12 &&
-          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe --numpy 1.13 &&
+          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
           if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
      )'

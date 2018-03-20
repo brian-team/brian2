@@ -8,11 +8,11 @@ requirements:
     - python
     - cython >=0.18
     - setuptools >=6.0
-    - numpy x.x
+    - numpy 1.10  # we build against the oldest supported version
 
   run:
     - python
-    - numpy x.x
+    - numpy >=1.10  # newer versions are still ABI-compatible
     - sympy >=0.7.6,!=1.1.0
     - pyparsing
     - scipy >=0.13.3

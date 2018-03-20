@@ -150,9 +150,7 @@ install:
 script:
 - if [[ $CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    for NUMPY_VERSION in 1.12 1.13; do
-      conda build --quiet -c conda-forge dev/conda-recipe --numpy $NUMPY_VERSION;
-    done;
+    conda build --quiet -c conda-forge dev/conda-recipe
     source activate travis_conda;
   fi
 # Don't run tests in parallel when reporting coverage
