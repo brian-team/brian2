@@ -83,7 +83,8 @@ class TimedArray(Function, Nameable, CacheKey):
      [ 1.  3.]
      [ 2.  4.]] mV
     '''
-    _cache_irrelevant_attributes = {'values', 'pyfunc', 'implementations'}
+    _cache_irrelevant_attributes = {'_id', 'values', 'pyfunc',
+                                    'implementations'}
     @check_units(dt=second)
     def __init__(self, values, dt, name=None):
         if name is None:
