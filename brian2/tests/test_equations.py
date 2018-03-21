@@ -1,5 +1,4 @@
 # encoding: utf8
-from collections import namedtuple
 import sys
 from StringIO import StringIO
 
@@ -12,16 +11,15 @@ except ImportError:
 from nose import SkipTest
 from nose.plugins.attrib import attr
 
-from brian2 import volt, amp, mV, second, ms, Hz, farad, metre, cm
-from brian2 import Unit, Equations, Expression, sin
+from brian2 import volt, mV, second, ms, Hz, farad, metre
+from brian2 import Unit, Equations, Expression
 from brian2.units.fundamentalunits import (DIMENSIONLESS, get_dimensions,
-                                           have_same_dimensions,
                                            DimensionMismatchError)
 from brian2.core.namespace import DEFAULT_UNITS
-from brian2.core.preferences import prefs
 from brian2.equations.equations import (check_identifier_basic,
                                         check_identifier_reserved,
                                         check_identifier_functions,
+                                        check_identifier_constants,
                                         check_identifier_units,
                                         parse_string_equations,
                                         dimensions_and_type_from_string,
@@ -29,7 +27,8 @@ from brian2.equations.equations import (check_identifier_basic,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER, FLOAT, BOOLEAN, INTEGER,
                                         EquationError,
-                                        extract_constant_subexpressions)
+                                        extract_constant_subexpressions
+                                        )
 from brian2.equations.refractory import check_identifier_refractory
 from brian2.groups.group import Group
 
@@ -93,6 +92,9 @@ def test_identifier_checks():
     for identifier in ('exp', 'sin', 'sqrt'):
         assert_raises(SyntaxError, lambda: check_identifier_functions(identifier))
 
+    for identifier in ('e', 'pi', 'inf'):
+        assert_raises(SyntaxError, lambda: check_identifier_constants(identifier))
+
     for identifier in ('volt', 'second', 'mV', 'nA'):
         assert_raises(SyntaxError, lambda: check_identifier_units(identifier))
 
@@ -101,6 +103,7 @@ def test_identifier_checks():
     assert check_identifier_reserved in Equations.identifier_checks
     assert check_identifier_refractory in Equations.identifier_checks
     assert check_identifier_functions in Equations.identifier_checks
+    assert check_identifier_constants in Equations.identifier_checks
     assert check_identifier_units in Equations.identifier_checks
 
     # Set up a dummy identifier check that disallows the variable name

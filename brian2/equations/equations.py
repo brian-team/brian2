@@ -177,7 +177,7 @@ def check_identifier_reserved(identifier):
     if (identifier in ('t', 'dt', 'xi', 'i', 'N') or
             identifier.startswith('xi_')):
         raise SyntaxError(('"%s" has a special meaning in equations and cannot '
-                           ' be used as a variable name.') % identifier)
+                           'be used as a variable name.') % identifier)
 
 
 def check_identifier_units(identifier):
@@ -675,7 +675,8 @@ class Equations(collections.Hashable, collections.Mapping):
     #: `Equations.register_identifier_check` and will be automatically
     #: used when checking identifiers
     identifier_checks = {check_identifier_basic, check_identifier_reserved,
-                         check_identifier_functions, check_identifier_units}
+                         check_identifier_functions, check_identifier_constants,
+                         check_identifier_units}
 
     @staticmethod
     def register_identifier_check(func):
