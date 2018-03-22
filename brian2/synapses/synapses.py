@@ -162,6 +162,9 @@ class SynapticPathway(CodeRunner, Group):
             raise ValueError('prepost argument has to be either "pre" or '
                              '"post"')
         self.synapses = weakref.proxy(synapses)
+        # Allow to use the same indexing of the delay variable  as in the parent
+        # Synapses object (e.g. 2d indexing with pre- and post-synaptic indices)
+        self._indices = self.synapses._indices
 
         if objname is None:
             objname = prepost
@@ -789,6 +792,9 @@ class Synapses(Group):
                 # it gets automatically resized
                 self.register_variable(var)
 
+        # Support 2d indexing
+        self._indices = SynapticIndexing(self)
+
         if delay is None:
             delay = {}
 
@@ -903,9 +909,6 @@ class Synapses(Group):
                                             summed_var_index)
             self.summed_updaters[varname] = updater
             self.contained_objects.append(updater)
-
-        # Support 2d indexing
-        self._indices = SynapticIndexing(self)
 
         # Activate name attribute access
         self._enable_group_attributes()
