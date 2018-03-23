@@ -206,7 +206,7 @@ Morphologies with coordinates can also be created section by section, following 
 morphologies::
 
     soma = Soma(diameter=30*um, x=50*um, y=20*um)
-    cylinder = Cylinder(10, x=[0, 100]*um, diameter=1*um)
+    cylinder = Cylinder(n=10, x=[0, 100]*um, diameter=1*um)
     section = Section(5,
                       x=[0, 10, 20, 30, 40, 50]*um,
                       y=[0, 10, 20, 30, 40, 50]*um,
