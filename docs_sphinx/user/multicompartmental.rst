@@ -56,7 +56,7 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |**Cylinder** |  ::                                                                               |
 |             |                                                                                   |
 |             |     # Each compartment has fixed length and diameter                              |
-|             |     Cylinder(5, diameter=10*um, length=50*um)                                     |
+|             |     Cylinder(n=5, diameter=10*um, length=50*um)                                   |
 |             |                                                                                   |
 |             | .. image:: images/cylinder.*                                                      |
 |             |                                                                                   |
@@ -65,7 +65,7 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |             |                                                                                   |
 |             |     # Length and diameter individually defined for each compartment (at start     |
 |             |     # and end)                                                                    |
-|             |     Section(5, diameter=[15, 5, 10, 5, 10, 5]*um,                                 |
+|             |     Section(n=5, diameter=[15, 5, 10, 5, 10, 5]*um,                               |
 |             |             length=[10, 20, 5, 5, 10]*um)                                         |
 |             |                                                                                   |
 |             | .. image:: images/section.*                                                       |
