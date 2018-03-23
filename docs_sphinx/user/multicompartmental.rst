@@ -207,11 +207,11 @@ morphologies::
 
     soma = Soma(diameter=30*um, x=50*um, y=20*um)
     cylinder = Cylinder(n=10, x=[0, 100]*um, diameter=1*um)
-    section = Section(5,
+    section = Section(n=5,
                       x=[0, 10, 20, 30, 40, 50]*um,
                       y=[0, 10, 20, 30, 40, 50]*um,
                       z=[0, 10, 10, 10, 10, 10]*um,
-                      diameter=[6, 5, 4, 3, 2, 1])*um
+                      diameter=[6, 5, 4, 3, 2, 1]*um)
 
 Note that the ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` will return the coordinates at the
 midpoint of each compartment (as for all other attributes that vary over the length of a compartment, e.g. ``diameter``
