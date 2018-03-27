@@ -151,6 +151,14 @@ class CPPStandaloneDevice(Device):
         #: build options
         self.build_options = None
 
+        #: Whether to generate profiling information (stored in an instance
+        #: variable to be accessible during CodeObject generation)
+        self.enable_profiling = False
+
+        #: CodeObjects that use profiling (users can potentially enable
+        #: profiling only for a subset of runs)
+        self.profiled_codeobjects = []
+
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
@@ -536,6 +544,7 @@ class CPPStandaloneDevice(Device):
         else:
             template_kwds = dict(template_kwds)
         template_kwds['user_headers'] = self.headers + prefs['codegen.cpp.headers']
+        template_kwds['profiled'] = self.enable_profiling
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
@@ -543,6 +552,8 @@ class CPPStandaloneDevice(Device):
                                                                override_conditional_write=override_conditional_write,
                                                                )
         self.code_objects[codeobj.name] = codeobj
+        if self.enable_profiling:
+            self.profiled_codeobjects.append(codeobj.name)
 
         # Mark all the non-read-only or non-constant variables used in this code
         # object as "dirty". This is almost certainly too much, most of these
@@ -584,6 +595,7 @@ class CPPStandaloneDevice(Device):
                         networks=networks,
                         get_array_filename=self.get_array_filename,
                         get_array_name=self.get_array_name,
+                        profiled_codeobjects=self.profiled_codeobjects,
                         code_objects=self.code_objects.values())
         writer.write('objects.*', arr_tmp)
         
@@ -1162,6 +1174,10 @@ class CPPStandaloneDevice(Device):
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))
+        # We store this as an instance variable for later access by the
+        # `code_object` method
+        self.enable_profiling = profile
+
         net._clocks = {obj.clock for obj in net.objects}
         t_end = net.t+duration
         for clock in net._clocks:
@@ -1292,12 +1308,14 @@ class CPPStandaloneDevice(Device):
 
     def network_get_profiling_info(self, net):
         fname = os.path.join(self.project_dir, 'results', 'profiling_info.txt')
-        if os.path.exists(fname):
-            net._profiling_info = []
-            with open(fname) as f:
-                for line in f:
-                    (key, val) = line.split()
-                    net._profiling_info.append((key, float(val)*second))
+        if not os.path.exists(fname):
+            raise ValueError('No profiling info collected (did you run with '
+                             'profile=True?)')
+        net._profiling_info = []
+        with open(fname) as f:
+            for line in f:
+                (key, val) = line.split()
+                net._profiling_info.append((key, float(val)*second))
         return sorted(net._profiling_info, key=lambda item: item[1],
                       reverse=True)
 
