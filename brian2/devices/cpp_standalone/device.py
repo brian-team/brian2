@@ -1291,9 +1291,9 @@ class CPPStandaloneDevice(Device):
                                    'supported in the C++ standalone'))
 
     def network_get_profiling_info(self, net):
-        if net._profiling_info is None:
+        fname = os.path.join(self.project_dir, 'results', 'profiling_info.txt')
+        if os.path.exists(fname):
             net._profiling_info = []
-            fname = os.path.join(self.project_dir, 'results', 'profiling_info.txt')
             with open(fname) as f:
                 for line in f:
                     (key, val) = line.split()
