@@ -5,6 +5,7 @@ decorator.
 '''
 import functools
 import collections
+import weakref
 
 
 class CacheKey(object):
@@ -107,18 +108,19 @@ def _hashable(obj):
     dictionary gets converted to a frozenset). The function is specifically
     tailored to our use case and not meant to be generally useful.'''
     if hasattr(obj, '_state_tuple'):
+        from brian2.core.variables import ArrayVariable
         return _hashable(obj._state_tuple)
 
     try:
-        # If the object is already hashable, do nothing
-        hash(obj)
-        return obj
+        # Try to replace the object with a weak reference to avoid keeping an
+        # object in memory only because it is part of a cache key
+        obj = weakref.ref(obj)
     except TypeError:
         pass
 
     if isinstance(obj, set):
         return frozenset(_hashable(el) for el in obj)
-    elif isinstance(obj, collections.Sequence):
+    elif isinstance(obj, collections.Sequence) and not isinstance(obj, basestring):
         return tuple(_hashable(el) for el in obj)
     elif isinstance(obj, collections.Mapping):
         return frozenset((_hashable(key), _hashable(value))
@@ -127,5 +129,10 @@ def _hashable(obj):
         # Scalar Quantity object
         return float(obj), obj.dim
     else:
-        raise TypeError('Do not know how to handle object of type '
-                        '%s' % type(obj))
+        try:
+            # Make sure that the object is hashable
+            hash(obj)
+            return obj
+        except TypeError:
+            raise TypeError('Do not know how to handle object of type '
+                            '%s' % type(obj))
