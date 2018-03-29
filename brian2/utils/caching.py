@@ -103,29 +103,27 @@ def cached(func):
     return cached_func
 
 
+_of_type_cache = collections.defaultdict(set)
+def _of_type(obj_type, check_type):
+    if (obj_type, check_type) not in _of_type_cache:
+        _of_type_cache[(obj_type, check_type)] = issubclass(obj_type, check_type)
+    return _of_type_cache[(obj_type, check_type)]
+
 def _hashable(obj):
     '''Helper function to make a few data structures hashable (e.g. a
     dictionary gets converted to a frozenset). The function is specifically
     tailored to our use case and not meant to be generally useful.'''
     if hasattr(obj, '_state_tuple'):
-        from brian2.core.variables import ArrayVariable
         return _hashable(obj._state_tuple)
-
-    try:
-        # Try to replace the object with a weak reference to avoid keeping an
-        # object in memory only because it is part of a cache key
-        obj = weakref.ref(obj)
-    except TypeError:
-        pass
-
-    if isinstance(obj, set):
-        return frozenset(_hashable(el) for el in obj)
-    elif isinstance(obj, collections.Sequence) and not isinstance(obj, basestring):
-        return tuple(_hashable(el) for el in obj)
-    elif isinstance(obj, collections.Mapping):
+    obj_type = type(obj)
+    if _of_type(obj_type, collections.Mapping):
         return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.iteritems())
-    elif hasattr(obj, 'dim') and getattr(obj, 'shape', None) == ():
+    elif _of_type(obj_type, set):
+        return frozenset(_hashable(el) for el in obj)
+    elif _of_type(obj_type, tuple) or _of_type(obj_type, list):
+        return tuple(_hashable(el) for el in obj)
+    if hasattr(obj, 'dim') and getattr(obj, 'shape', None) == ():
         # Scalar Quantity object
         return float(obj), obj.dim
     else:
