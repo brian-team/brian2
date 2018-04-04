@@ -362,7 +362,7 @@ class Network(Nameable):
         is to allow devices (e.g. `CPPStandaloneDevice`) to overwrite this.
         '''
         if self._profiling_info is None:
-            raise ValueError('(No profiling info collected (did you run with '
+            raise ValueError('No profiling info collected (did you run with '
                              'profile=True?)')
         return sorted(self._profiling_info, key=lambda item: item[1],
                       reverse=True)

@@ -56,7 +56,7 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |**Cylinder** |  ::                                                                               |
 |             |                                                                                   |
 |             |     # Each compartment has fixed length and diameter                              |
-|             |     Cylinder(5, diameter=10*um, length=50*um)                                     |
+|             |     Cylinder(n=5, diameter=10*um, length=50*um)                                   |
 |             |                                                                                   |
 |             | .. image:: images/cylinder.*                                                      |
 |             |                                                                                   |
@@ -65,7 +65,7 @@ start of the section represents the parent compartment with diameter 15 μm, no
 |             |                                                                                   |
 |             |     # Length and diameter individually defined for each compartment (at start     |
 |             |     # and end)                                                                    |
-|             |     Section(5, diameter=[15, 5, 10, 5, 10, 5]*um,                                 |
+|             |     Section(n=5, diameter=[15, 5, 10, 5, 10, 5]*um,                               |
 |             |             length=[10, 20, 5, 5, 10]*um)                                         |
 |             |                                                                                   |
 |             | .. image:: images/section.*                                                       |
@@ -206,12 +206,12 @@ Morphologies with coordinates can also be created section by section, following 
 morphologies::
 
     soma = Soma(diameter=30*um, x=50*um, y=20*um)
-    cylinder = Cylinder(10, x=[0, 100]*um, diameter=1*um)
-    section = Section(5,
+    cylinder = Cylinder(n=10, x=[0, 100]*um, diameter=1*um)
+    section = Section(n=5,
                       x=[0, 10, 20, 30, 40, 50]*um,
                       y=[0, 10, 20, 30, 40, 50]*um,
                       z=[0, 10, 10, 10, 10, 10]*um,
-                      diameter=[6, 5, 4, 3, 2, 1])*um
+                      diameter=[6, 5, 4, 3, 2, 1]*um)
 
 Note that the ``x``, ``y``, ``z`` attributes of `Morphology` and `SpatialNeuron` will return the coordinates at the
 midpoint of each compartment (as for all other attributes that vary over the length of a compartment, e.g. ``diameter``

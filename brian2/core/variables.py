@@ -525,8 +525,8 @@ class DynamicArrayVariable(ArrayVariable):
     '''
     # The size of a dynamic variable can of course change and changes in
     # size should not invalidate the cache
-    cache_irrelevant_attributes = (ArrayVariable._cache_irrelevant_attributes |
-                                   {'size'})
+    _cache_irrelevant_attributes = (ArrayVariable._cache_irrelevant_attributes |
+                                    {'size'})
 
     def __init__(self, name, owner, size, device, dimensions=DIMENSIONLESS,
                  dtype=None, constant=False, needs_reference_update=False,

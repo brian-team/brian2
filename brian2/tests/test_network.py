@@ -1252,7 +1252,8 @@ def test_multiple_runs_defaultclock_incorrect():
     assert_raises(ValueError, lambda: net.run(1*ms))
 
 
-@attr('codegen-independent')
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_profile():
     G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
                     reset='v=0', name='profile_test')
@@ -1263,12 +1264,25 @@ def test_profile():
     # for state update, threshold and reset + 1 for the clock
     info = net.profiling_info
     info_dict = dict(info)
-    assert len(info) == 4
-    assert 'profile_test' in info_dict
-    assert 'profile_test_stateupdater' in info_dict
-    assert 'profile_test_thresholder' in info_dict
-    assert 'profile_test_resetter' in info_dict
+    # Standalone does not include the NeuronGroup object (which is not doing
+    # anything during the run) in the profiling information, while runtime
+    # does
+    assert 3 <= len(info) <= 4
+    assert len(info) == 3 or 'profile_test' in info_dict
+    for obj in ['stateupdater', 'thresholder', 'resetter']:
+        name = 'profile_test_' + obj
+        assert name in info_dict or name + '_codeobject' in info_dict
     assert all([t>=0*second for _, t in info])
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_profile_off():
+    G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
+                    reset='v=0', name='profile_test')
+    net = Network(G)
+    net.run(1*ms, profile=False)
+    assert_raises(ValueError, lambda: profiling_summary(net))
 
 
 @attr('codegen-independent')
@@ -1426,6 +1440,7 @@ if __name__ == '__main__':
             test_multiple_runs_defaultclock,
             test_multiple_runs_defaultclock_incorrect,
             test_profile,
+            test_profile_off,
             test_profile_ipython_html,
             test_magic_scope,
             test_runtime_rounding,

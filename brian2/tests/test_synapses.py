@@ -721,15 +721,21 @@ def test_delay_specification():
     assert_equal(S.delay[:], abs(G.x - (10 - G.i)*mmeter)/velocity)
     S.delay = 5*ms
     assert_equal(S.delay[:], np.ones(len(G))*5*ms)
+    # Setting delays without units
+    S.delay_ = float(7*ms)
+    assert_equal(S.delay[:], np.ones(len(G))*7*ms)
 
     # Scalar delay
     S = Synapses(G, G, 'w:1', on_pre='v+=w', delay=5*ms)
     assert_equal(S.delay[:], 5*ms)
     S.connect(j='i')
-    S.delay = 10*ms
-    assert_equal(S.delay[:], 10*ms)
     S.delay = '3*ms'
     assert_equal(S.delay[:], 3*ms)
+    S.delay = 10 * ms
+    assert_equal(S.delay[:], 10 * ms)
+    # Without units
+    S.delay_ = float(20*ms)
+    assert_equal(S.delay[:], 20 * ms)
 
     # Invalid arguments
     assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',
@@ -766,6 +772,16 @@ def test_delays_pathways():
     assert_equal(S.pre1.delay[:], np.ones(len(G)) * 5*ms)
     assert_equal(S.pre2.delay[:], np.ones(len(G)) * 10*ms)
     assert_equal(S.post.delay[:], np.ones(len(G)) * 1*ms)
+    # Indexing with strings
+    assert len(S.pre1.delay['j<5']) == 5
+    assert_equal(S.pre1.delay['j<5'], 5*ms)
+    # Indexing with 2d indices
+    assert len(S.post.delay[[3, 4], :]) == 2
+    assert_equal(S.post.delay[[3, 4], :], 1*ms)
+    assert len(S.pre2.delay[:, 7]) == 1
+    assert_equal(S.pre2.delay[:, 7], 10*ms)
+    assert len(S.pre1.delay[[1, 2], [1, 2]]) == 2
+    assert_equal(S.pre1.delay[[1, 2], [1, 2]], 5*ms)
 
     # Scalar delay
     S = Synapses(G, G, 'w:1', on_pre={'pre1':'v+=w',
