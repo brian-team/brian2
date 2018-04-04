@@ -35,9 +35,13 @@ cdef extern from "cspikequeue.cpp":
 cdef class SpikeQueue:
     # TODO: Currently, the data type for dt and delays is fixed
     cdef CSpikeQueue[double] *thisptr
+    cdef readonly tuple _state_tuple
 
     def __cinit__(self, int source_start, int source_end):
         self.thisptr = new CSpikeQueue[double](source_start, source_end)
+
+    def __init__(self, source_start, source_end):
+        self._state_tuple = (source_start, source_end, np.int32)
 
     def __dealloc__(self):
         del self.thisptr

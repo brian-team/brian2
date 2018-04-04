@@ -89,6 +89,8 @@ class Device(object):
 
         self._maximum_run_time = None
 
+        self._state_tuple = (self.__module__, self.__class__.__name__)
+
     def _set_maximum_run_time(self, maximum_run_time):
         '''
         Sets a maximum time for a run before it will break. Used primarily for testing purposes. Not guaranteed to be
