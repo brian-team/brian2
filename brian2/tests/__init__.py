@@ -57,6 +57,7 @@ def make_argv(dirnames, attributes, doctests=False):
              '-I', '^_',
              "-a", attributes,
              '--nologcapture',
+             '--verbose',
              '--exe'])
     if doctests:
         argv += ['--with-doctest']
