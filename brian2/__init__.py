@@ -111,10 +111,10 @@ def _get_size_recursively(dirname):
     return total_size
 
 #: Stores the cache directory for code generation targets
-_cache_dirs = {}
+_cache_dirs_and_extensions = {}
 
 def check_cache(target):
-    cache_dir = _cache_dirs.get(target, None)
+    cache_dir, _ = _cache_dirs_and_extensions.get(target, (None, None))
     if cache_dir is None:
         return
     size = _get_size_recursively(cache_dir)
@@ -131,9 +131,20 @@ def check_cache(target):
 
 
 def clear_cache(target):
-    cache_dir = _cache_dirs.get(target, None)
+    cache_dir, extensions = _cache_dirs_and_extensions.get(target, (None, None))
     if cache_dir is None:
         raise ValueError('No cache directory registered for target "%s".' % target)
+    cache_dir = os.path.abspath(cache_dir)  # just to make sure...
+    for folder, _, files in os.walk(cache_dir):
+        for f in files:
+            for ext in extensions:
+                if f.endswith(ext):
+                    break
+            else:
+                raise IOError("The cache directory for target '{}' contains the file '{}' of an unexpected type and "
+                              "will therefore not be removed. Delete files in '{}' "
+                              "manually".format(target, os.path.join(folder, f), cache_dir))
+
     logger.debug('Clearing cache for target "%s" (directory "%s").' %
                  (target, cache_dir))
     shutil.rmtree(cache_dir)
@@ -141,9 +152,11 @@ def clear_cache(target):
 
 from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir as _get_weave_cache_dir
 from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir as _get_cython_cache_dir
+from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_extensions as _get_weave_extensions
+from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions as _get_cython_extensions
 
-for target, dir in [('weave', _get_weave_cache_dir()),
-                    ('cython', _get_cython_cache_dir())]:
-    _cache_dirs[target] = dir
+for target, (dir, extensions) in [('weave', (_get_weave_cache_dir(), _get_weave_extensions())),
+                                  ('cython', (_get_cython_cache_dir(), _get_cython_extensions()))]:
+    _cache_dirs_and_extensions[target] = (dir, extensions)
     if prefs.codegen.max_cache_dir_size > 0:
         check_cache(target)
