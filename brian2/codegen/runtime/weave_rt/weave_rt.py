@@ -39,6 +39,7 @@ __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
 logger = get_logger(__name__)
 
+
 def get_weave_cache_dir():
     if weave is not None:
         return default_dir()
@@ -47,7 +48,8 @@ def get_weave_cache_dir():
 
 
 def get_weave_extensions():
-    return {'compiled_catalog', 'cpp', '.so', '.pyd', '.dll', '.obj'}
+    return {'compiled_catalog', 'cpp', '.so', '.pyd', '.dll', '.obj', '.exp',
+            '.lib'}
 
 
 def weave_data_type(dtype):

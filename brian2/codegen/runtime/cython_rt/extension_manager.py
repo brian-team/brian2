@@ -49,13 +49,16 @@ def get_cython_cache_dir():
         cache_dir = os.path.join(base_cython_cache_dir(), 'brian_extensions')
     return cache_dir
 
+
 def get_cython_extensions():
-    return {'.pyx', '.pyd', '.cpp', '.so', '.o', '.o.d', '.lock', '.dll', '.obj'}
+    return {'.pyx', '.pyd', '.cpp', '.so', '.o', '.o.d', '.lock', '.dll',
+            '.obj', '.exp', '.lib'}
+
 
 class CythonExtensionManager(object):
     def __init__(self):
         self._code_cache = {}
-        
+
     def create_extension(self, code, force=False, name=None,
                          define_macros=None,
                          include_dirs=None,
