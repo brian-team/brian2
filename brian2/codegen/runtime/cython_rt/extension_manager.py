@@ -50,7 +50,7 @@ def get_cython_cache_dir():
     return cache_dir
 
 def get_cython_extensions():
-    return {'.pyx', '.pyd', '.cpp', '.so', '.o', '.o.d', '.lock'}
+    return {'.pyx', '.pyd', '.cpp', '.so', '.o', '.o.d', '.lock', '.dll', '.obj'}
 
 class CythonExtensionManager(object):
     def __init__(self):
