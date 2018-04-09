@@ -9,11 +9,13 @@ try:
     from scipy import weave
     from scipy.weave.c_spec import num_to_c_types
     from scipy.weave.inline_tools import function_cache
+    from scipy.weave.catalog import default_dir
 except ImportError:
     try:  # weave as an independent package
         import weave
         from weave.c_spec import num_to_c_types
         from weave.inline_tools import function_cache
+        from weave.catalog import default_dir
     except ImportError:
         # No weave for Python 3
         weave = None
@@ -36,6 +38,18 @@ __all__ = ['WeaveCodeObject', 'WeaveCodeGenerator']
 
 
 logger = get_logger(__name__)
+
+
+def get_weave_cache_dir():
+    if weave is not None:
+        return default_dir()
+    else:
+        return None
+
+
+def get_weave_extensions():
+    return {'compiled_catalog', 'cpp', '.so', '.pyd', '.dll', '.obj', '.exp',
+            '.lib'}
 
 
 def weave_data_type(dtype):
