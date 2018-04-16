@@ -4,6 +4,7 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
+import glob
 import imp
 import os
 import sys
@@ -28,7 +29,7 @@ try:
     import Cython
     import Cython.Compiler as Cython_Compiler
     import Cython.Build as Cython_Build
-    from Cython.Utils import get_cython_cache_dir
+    from Cython.Utils import get_cython_cache_dir as base_cython_cache_dir
 except ImportError:
     Cython = None
 
@@ -42,10 +43,22 @@ __all__ = ['cython_extension_manager']
 logger = get_logger(__name__)
 
 
+def get_cython_cache_dir():
+    cache_dir = prefs.codegen.runtime.cython.cache_dir
+    if cache_dir is None and Cython is not None:
+        cache_dir = os.path.join(base_cython_cache_dir(), 'brian_extensions')
+    return cache_dir
+
+
+def get_cython_extensions():
+    return {'.pyx', '.pyd', '.cpp', '.so', '.o', '.o.d', '.lock', '.dll',
+            '.obj', '.exp', '.lib'}
+
+
 class CythonExtensionManager(object):
     def __init__(self):
         self._code_cache = {}
-        
+
     def create_extension(self, code, force=False, name=None,
                          define_macros=None,
                          include_dirs=None,
@@ -65,9 +78,7 @@ class CythonExtensionManager(object):
 
         code = deindent(code)
 
-        lib_dir = prefs.codegen.runtime.cython.cache_dir
-        if lib_dir is None:
-            lib_dir = os.path.join(get_cython_cache_dir(), 'brian_extensions')
+        lib_dir = get_cython_cache_dir()
         if '~' in lib_dir:
             lib_dir = os.path.expanduser(lib_dir)
         try:
@@ -242,6 +253,18 @@ class CythonExtensionManager(object):
                     build_extension.build_temp = os.path.dirname(pyx_file)
                     build_extension.build_lib = lib_dir
                     build_extension.run()
+                    if prefs['codegen.runtime.cython.delete_source_files']:
+                        # we can delete the source files to save disk space
+                        cpp_file = os.path.join(lib_dir, module_name + '.cpp')
+                        try:
+                            os.remove(pyx_file)
+                            os.remove(cpp_file)
+                            temp_dir = os.path.join(lib_dir, os.path.dirname(pyx_file)[1:], module_name + '.*')
+                            for fname in glob.glob(temp_dir):
+                                os.remove(fname)
+                        except (OSError, IOError) as ex:
+                            logger.debug('Deleting Cython source files failed with error: %s' % str(ex))
+
             except Cython_Compiler.Errors.CompileError:
                 return
 
