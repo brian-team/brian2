@@ -209,8 +209,9 @@ class DynamicArray1D(DynamicArray):
                 newdata = zeros(newdatashape, dtype=self.dtype)
                 newdata[:shape] = self.data
                 self._data = newdata
-        # If we reduced the size, set the no longer used memory to 0
-        self._data[newshape:] = 0
+        elif newshape < self.shape[0]:
+            # If we reduced the size, set the no longer used memory to 0
+            self._data[newshape:] = 0
         # Reduce our view to the requested size if necessary
         self.data = self._data[:newshape]
         self.shape = (newshape,)
