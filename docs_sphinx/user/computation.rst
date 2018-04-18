@@ -62,21 +62,6 @@ See :doc:`../advanced/preferences` for different ways of setting preferences.
 
  .. _Cython: http://cython.org/
 
-You might find that running simulations in weave or Cython modes won't work
-or is not as efficient as you were expecting. This is probably because you're
-using Python functions which are not compatible with weave or Cython. For
-example, if you wrote something like this it would not be efficient::
-
-    from brian2 import *
-    prefs.codegen.target = 'cython'
-    def f(x):
-        return abs(x)
-    G = NeuronGroup(10000, 'dv/dt = -x*f(x) : 1')
-    
-The reason is that the function ``f(x)`` is a Python function and so cannot
-be called from C++ directly. To solve this problem, you need to provide an
-implementation of the function in the target language. See
-:doc:`../advanced/functions`.
 
 .. _cpp_standalone:
 
