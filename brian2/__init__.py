@@ -131,9 +131,27 @@ def check_cache(target):
 
 
 def clear_cache(target):
+    '''
+    Clears the on-disk cache with the compiled files for a given code generation
+    target.
+
+    Parameters
+    ----------
+    target : str
+        The code generation target (e.g. ``'weave'`` or ``'cython'``)
+
+    Raises
+    ------
+    ValueError
+        If the given code generation target does not have an on-disk cache
+    IOError
+        If the cache directory contains unexpected files, suggesting that
+        deleting it would also delete files unrelated to the cache.
+    '''
     cache_dir, extensions = _cache_dirs_and_extensions.get(target, (None, None))
     if cache_dir is None:
-        raise ValueError('No cache directory registered for target "%s".' % target)
+        raise ValueError('No cache directory registered for target '
+                         '"%s".' % target)
     cache_dir = os.path.abspath(cache_dir)  # just to make sure...
     for folder, _, files in os.walk(cache_dir):
         for f in files:
@@ -141,9 +159,12 @@ def clear_cache(target):
                 if f.endswith(ext):
                     break
             else:
-                raise IOError("The cache directory for target '{}' contains the file '{}' of an unexpected type and "
-                              "will therefore not be removed. Delete files in '{}' "
-                              "manually".format(target, os.path.join(folder, f), cache_dir))
+                raise IOError("The cache directory for target '{}' contains "
+                              "the file '{}' of an unexpected type and "
+                              "will therefore not be removed. Delete files in "
+                              "'{}' manually".format(target,
+                                                     os.path.join(folder, f),
+                                                     cache_dir))
 
     logger.debug('Clearing cache for target "%s" (directory "%s").' %
                  (target, cache_dir))

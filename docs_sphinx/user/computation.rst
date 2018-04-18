@@ -62,6 +62,21 @@ See :doc:`../advanced/preferences` for different ways of setting preferences.
 
  .. _Cython: http://cython.org/
 
+Caching
+~~~~~~~
+When you run code with ``weave`` or ``cython`` for the first time, it will take
+some time to compile the code. For short simulations, this can make these
+targets to appear slow compared to the ``numpy`` target where such compilation
+is not necessary. However, the compiled code is stored on disk and will be
+re-used for later runs, making these simulations start faster. If you run many
+simulations with different code (e.g. Brian's
+:doc:`test suite <../developer/guidelines/testing>`), this code can take quite
+a bit of space on the disk. During the import of the ``brian2`` package, we
+check whether the size of the disk cache exceeds the value set by the
+`codegen.max_cache_dir_size` preference (by default, 1GB) and display a message
+if this is the case. You can clear the disk cache manually, or use the
+`~brian2.__init__.clear_cache` function, e.g. ``clear_cache('cython')``.
+
 
 .. _cpp_standalone:
 
