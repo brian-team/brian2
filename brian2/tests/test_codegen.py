@@ -1,9 +1,12 @@
 from collections import namedtuple
+import os
 
 import numpy as np
+from nose.plugins.skip import SkipTest
 from numpy.testing.utils import assert_raises
 from nose.plugins.attrib import attr
 
+from brian2 import prefs, clear_cache, _cache_dirs_and_extensions
 from brian2.codegen.optimisation import optimise_statements
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
@@ -408,6 +411,41 @@ def test_automatic_augmented_assignments():
             raise AssertionError('Transformation for statement "%s" gave an unexpected result: %s' % (orig, str(ex)))
 
 
+def test_clear_cache_numpy():
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+    assert 'numpy' not in _cache_dirs_and_extensions
+    assert_raises(ValueError, clear_cache, 'numpy')
+
+
+def test_clear_cache_weave():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+    assert 'weave' in _cache_dirs_and_extensions
+    cache_dir, _ = _cache_dirs_and_extensions['weave']
+    # Create a file that should not be there
+    fname = os.path.join(cache_dir, 'some_file.py')
+    open(fname, 'w').close()
+    # clear_cache should refuse to clear the directory
+    assert_raises(IOError, clear_cache, 'weave')
+
+    os.remove(fname)
+
+
+def test_clear_cache_cython():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('Cython-only test')
+    assert 'cython' in _cache_dirs_and_extensions
+    cache_dir, _ = _cache_dirs_and_extensions['cython']
+    # Create a file that should not be there
+    fname = os.path.join(cache_dir, 'some_file.py')
+    open(fname, 'w').close()
+    # clear_cache should refuse to clear the directory
+    assert_raises(IOError, clear_cache, 'cython')
+
+    os.remove(fname)
+
+
 if __name__ == '__main__':
     test_auto_target()
     test_analyse_identifiers()
@@ -422,3 +460,10 @@ if __name__ == '__main__':
     test_apply_loop_invariant_optimisation_simplification()
     test_apply_loop_invariant_optimisation_constant_evaluation()
     test_automatic_augmented_assignments()
+    for t in [test_clear_cache_numpy,
+              test_clear_cache_weave,
+              test_clear_cache_cython]:
+        try:
+            t()
+        except SkipTest:
+            pass

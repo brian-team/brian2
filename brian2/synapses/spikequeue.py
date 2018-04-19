@@ -63,6 +63,8 @@ class SpikeQueue(object):
         #: The dt used for storing the spikes (will be set in `prepare`)
         self._dt = None
 
+        self._state_tuple = (self._source_start, self._source_end, self.dtype)
+
     def prepare(self, delays, dt, synapse_sources):
         '''
         Prepare the data structures

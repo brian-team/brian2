@@ -421,7 +421,7 @@ def test_GSL_fixed_timestep_big_dt_small_error():
 @attr('codegen-independent')
 @skip_if_not_implemented
 def test_GSL_internal_variable():
-    assert_raises(ValueError, Equations, 'd_p/dt = 300*Hz : 1')
+    assert_raises(SyntaxError, Equations, 'd_p/dt = 300*Hz : 1')
 
 
 @attr('standalone-compatible')

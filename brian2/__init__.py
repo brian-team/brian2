@@ -1,6 +1,9 @@
 '''
-Brian 2.0
+Brian 2
 '''
+import os
+import shutil
+
 # Import setuptools to do some monkey patching of distutils, necessary for
 # working weave/Cython on Windows with the Python for C++ compiler
 import setuptools as _setuptools
@@ -97,3 +100,63 @@ for name, version in [('numpy',  '1.10'),
 
 # Initialize the logging system
 BrianLogger.initialize()
+logger = get_logger(__name__)
+
+# Check the caches
+def _get_size_recursively(dirname):
+    total_size = 0
+    for dirpath, _, filenames in os.walk(dirname):
+        for fname in filenames:
+            total_size += os.path.getsize(os.path.join(dirpath, fname))
+    return total_size
+
+#: Stores the cache directory for code generation targets
+_cache_dirs_and_extensions = {}
+
+def check_cache(target):
+    cache_dir, _ = _cache_dirs_and_extensions.get(target, (None, None))
+    if cache_dir is None:
+        return
+    size = _get_size_recursively(cache_dir)
+    size_in_mb = int(round(size/1024./1024.))
+    if size_in_mb > prefs.codegen.max_cache_dir_size:
+        logger.info('Cache size for target "{target}": {size} MB.\n'
+                    'You can call "clear_cache(\'{target}\')" to delete all '
+                    'files from the cache or manually delete files in the '
+                    '"{cache_dir}" directory.'.format(target=target,
+                                                      size=size_in_mb,
+                                                      cache_dir=cache_dir))
+    else:
+        logger.debug('Cache size for target "%s": %s MB' % (target, size_in_mb))
+
+
+def clear_cache(target):
+    cache_dir, extensions = _cache_dirs_and_extensions.get(target, (None, None))
+    if cache_dir is None:
+        raise ValueError('No cache directory registered for target "%s".' % target)
+    cache_dir = os.path.abspath(cache_dir)  # just to make sure...
+    for folder, _, files in os.walk(cache_dir):
+        for f in files:
+            for ext in extensions:
+                if f.endswith(ext):
+                    break
+            else:
+                raise IOError("The cache directory for target '{}' contains the file '{}' of an unexpected type and "
+                              "will therefore not be removed. Delete files in '{}' "
+                              "manually".format(target, os.path.join(folder, f), cache_dir))
+
+    logger.debug('Clearing cache for target "%s" (directory "%s").' %
+                 (target, cache_dir))
+    shutil.rmtree(cache_dir)
+
+
+from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir as _get_weave_cache_dir
+from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir as _get_cython_cache_dir
+from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_extensions as _get_weave_extensions
+from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions as _get_cython_extensions
+
+for target, (dir, extensions) in [('weave', (_get_weave_cache_dir(), _get_weave_extensions())),
+                                  ('cython', (_get_cython_cache_dir(), _get_cython_extensions()))]:
+    _cache_dirs_and_extensions[target] = (dir, extensions)
+    if prefs.codegen.max_cache_dir_size > 0:
+        check_cache(target)

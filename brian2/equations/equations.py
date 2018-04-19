@@ -133,7 +133,7 @@ def check_identifier_basic(identifier):
     
     Raises
     ------
-    ValueError    
+    SyntaxError
         If the identifier does not conform to the above rules.
     '''
 
@@ -146,14 +146,14 @@ def check_identifier_basic(identifier):
     # full identifier, if not it is an illegal identifier like "3foo" which only
     # matched on "foo"
     if len(parse_result) != 1 or parse_result[0][0][0] != identifier:
-        raise ValueError('"%s" is not a valid variable name.' % identifier)
+        raise SyntaxError('"%s" is not a valid variable name.' % identifier)
 
     if keyword.iskeyword(identifier):
-        raise ValueError(('"%s" is a Python keyword and cannot be used as a '
-                          'variable.') % identifier)
+        raise SyntaxError(('"%s" is a Python keyword and cannot be used as a '
+                           'variable.') % identifier)
 
     if identifier.startswith('_'):
-        raise ValueError(('Variable "%s" starts with an underscore, '
+        raise SyntaxError(('Variable "%s" starts with an underscore, '
                           'this is only allowed for variables used '
                           'internally') % identifier)
 
@@ -171,12 +171,13 @@ def check_identifier_reserved(identifier):
     
     Raises
     ------
-    ValueError
+    SyntaxError
         If the identifier is a special variable name.
     '''
-    if identifier in ('t', 'dt', 'xi') or identifier.startswith('xi_'):
-        raise ValueError(('"%s" has a special meaning in equations and cannot '
-                         ' be used as a variable name.') % identifier)
+    if (identifier in ('t', 'dt', 'xi', 'i', 'N') or
+            identifier.startswith('xi_')):
+        raise SyntaxError(('"%s" has a special meaning in equations and cannot '
+                           'be used as a variable name.') % identifier)
 
 
 def check_identifier_units(identifier):
@@ -184,24 +185,26 @@ def check_identifier_units(identifier):
     Make sure that identifier names do not clash with unit names.
     '''
     if identifier in DEFAULT_UNITS:
-        raise ValueError('"%s" is the name of a unit, cannot be used as a '
-                         'variable name.' % identifier)
+        raise SyntaxError('"%s" is the name of a unit, cannot be used as a '
+                          'variable name.' % identifier)
+
 
 def check_identifier_functions(identifier):
     '''
     Make sure that identifier names do not clash with function names.
     '''
     if identifier in DEFAULT_FUNCTIONS:
-        raise ValueError('"%s" is the name of a function, cannot be used as a '
-                         'variable name.' % identifier)
+        raise SyntaxError('"%s" is the name of a function, cannot be used as a '
+                          'variable name.' % identifier)
+
 
 def check_identifier_constants(identifier):
     '''
     Make sure that identifier names do not clash with function names.
     '''
     if identifier in DEFAULT_CONSTANTS:
-        raise ValueError('"%s" is the name of a constant, cannot be used as a '
-                         'variable name.' % identifier)
+        raise SyntaxError('"%s" is the name of a constant, cannot be used as a '
+                          'variable name.' % identifier)
 
 
 _base_units_with_alternatives = None
@@ -672,7 +675,8 @@ class Equations(collections.Hashable, collections.Mapping):
     #: `Equations.register_identifier_check` and will be automatically
     #: used when checking identifiers
     identifier_checks = {check_identifier_basic, check_identifier_reserved,
-                         check_identifier_functions, check_identifier_units}
+                         check_identifier_functions, check_identifier_constants,
+                         check_identifier_units}
 
     @staticmethod
     def register_identifier_check(func):
