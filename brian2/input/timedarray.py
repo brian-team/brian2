@@ -148,7 +148,7 @@ class TimedArray(Function, Nameable, CacheKey):
             group_dt = owner.clock.dt_
             K = _find_K(group_dt, dt)
             support_code = '''
-            inline double %NAME%(const double t)
+            static inline double %NAME%(const double t)
             {
                 const double epsilon = %DT% / %K%;
                 int i = (int)((t/epsilon + 0.5)/%K%);
@@ -241,7 +241,7 @@ class TimedArray(Function, Nameable, CacheKey):
             group_dt = owner.clock.dt_
             K = _find_K(group_dt, dt)
             support_code = '''
-            inline double %NAME%(const double t, const int i)
+            static inline double %NAME%(const double t, const int i)
             {
                 const double epsilon = %DT% / %K%;
                 if (i < 0 || i >= %COLS%)
