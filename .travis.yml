@@ -113,8 +113,7 @@ before_install:
 
 # command to install dependencies
 install:
-  # - conda update --yes conda
-  - echo "conda ==4.3.21" >> ~/miniconda/conda-meta/pinned  # Pin conda as workaround for conda/conda#6030
+  - travis_retry conda update --yes conda
   # For faster tests, only build conda packages for the master branch or pull requests
   - if [[ $TRAVIS_PULL_REQUEST == 'false' ]] && [[ $TRAVIS_BRANCH != 'master' ]]; then
        CONDA_BUILD='no';
