@@ -102,12 +102,13 @@ install:
 
   # Install the build dependencies of the project via conda
   - 'appveyor-retry conda update --yes conda'
+  # Use the conda-forge channel
+  - 'conda config --append channels conda-forge'
   - 'appveyor-retry conda install --yes --quiet numpy nose "sphinx<1.6.3" "sympy!=1.1.0" pyparsing jinja2 ipython setuptools cython'
-  # Install an older version of scipy (which still has weave) on Python 2
-  - 'if "%PYTHON_VERSION:~0,1%" == "2" appveyor-retry conda install --yes --quiet -c brian-team weave scipy'
+  # Install the weave package for Python 2
+  - 'if "%PYTHON_VERSION:~0,1%" == "2" appveyor-retry conda install --yes --quiet weave scipy'
   - 'if "%PYTHON_VERSION:~0,1%" == "3" appveyor-retry conda install --yes --quiet scipy'
-  - 'appveyor-retry conda install --yes --quiet -c brian-team py-cpuinfo'
-  - 'appveyor-retry conda install --yes --quiet -c conda-forge "gsl>1.15"'  # install gsl from conda-forge
+  - 'appveyor-retry conda install --yes --quiet py-cpuinfo "gsl>1.15"'  # install cpuinfo and gsl from conda-forge
   # For faster tests, only build conda packages for the master branch or pull requests
   - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set DO_CONDA_BUILD=FALSE'
 
@@ -129,7 +130,7 @@ after_test:
           cd %SRC_DIR% &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&
           %CMD_IN_ENV% python setup.py bdist_wininst &&
-          %appveyor-retry CMD_IN_ENV% conda install --yes --quiet -c conda-forge conda-build pip &&
+          %appveyor-retry CMD_IN_ENV% conda install --yes --quiet  conda-build pip &&
           %appveyor-retry CMD_IN_ENV% conda install --yes --quiet anaconda-client &&
           %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe &&
           %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&

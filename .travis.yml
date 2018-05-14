@@ -114,6 +114,8 @@ before_install:
 # command to install dependencies
 install:
   - travis_retry conda update --yes conda
+  # Use the conda-forge channel
+  - conda config --append channels conda-forge
   # For faster tests, only build conda packages for the master branch or pull requests
   - if [[ $TRAVIS_PULL_REQUEST == 'false' ]] && [[ $TRAVIS_BRANCH != 'master' ]]; then
        DO_CONDA_BUILD='no';
@@ -122,24 +124,23 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose "sphinx<1.6.3" ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose "sphinx<1.6.3" ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
     else
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy nose "sphinx<1.6.3" ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
+    travis_retry conda create -n travis_conda --yes --quiet python=$PYTHON numpy nose "sphinx<1.6.3" ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
     fi
   - source activate travis_conda
-  # On Python 2: Install an older version of scipy that still has weave
+  # On Python 2: Install the weave package explicitly
   - if [ ${PYTHON:0:1} == "2" ]; then
       if [[ $MINIMAL_VERSIONS != 'yes' ]]; then
-        travis_retry conda install --yes --quiet -c brian-team weave scipy;
+        travis_retry conda install --yes --quiet weave scipy;
       fi;
       travis_retry conda install --yes --quiet bsddb;
     else
       travis_retry conda install --yes --quiet scipy;
     fi
-  - travis_retry conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
-  - travis_retry conda install --yes --quiet -c conda-forge "gsl>1.15"  # install gsl from conda-forge
+  - travis_retry conda install --yes --quiet py-cpuinfo "gsl>1.15"  # install cpuinfo and gsl from conda-forge
   - if [[ $CYTHON == 'yes' ]]; then travis_retry conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
-  - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry pip install -q coveralls; fi
+  - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry conda install --yes --quiet coveralls; fi
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       python setup.py sdist;
