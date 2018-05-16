@@ -58,7 +58,8 @@ test:
     - brian2.utils
 
   commands:
-    #- python -c 'import brian2; brian2.test()'
+    # Run a simple test that uses some of the main simulation elements
+    - python -c 'from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()'
 
   requires:
     - nose
