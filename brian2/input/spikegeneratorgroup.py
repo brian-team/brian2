@@ -96,12 +96,13 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.start = 0
         self.stop = N
 
+        times = np.asarray(times)
+        indices = np.asarray(indices)
         if not sorted:
             # sort times and indices first by time, then by indices
-            rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-            rec.sort()
-            times = np.ascontiguousarray(rec.t)
-            indices = np.ascontiguousarray(rec.i)
+            I = np.lexsort((indices, times))
+            indices = indices[I]
+            times = times[I]
 
         self.variables = Variables(self)
 
@@ -182,9 +183,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             shift = 1e-3*dt
             timebins = np.asarray(np.asarray(self._spike_time + shift)/dt,
                                   dtype=np.int32)
-            index_timebins = np.rec.fromarrays([self._neuron_index,
-                                                timebins], names=['i', 't'])
-            if not len(np.unique(index_timebins)) == len(timebins):
+            # time is already in sorted order, so it's enough to check if the condition
+            # that timebins[i]==timebins[i+1] and self._neuron_index[i]==self._neuron_index[i+1]
+            # is ever both true
+            if (np.logical_and(np.diff(timebins)==0, np.diff(self._neuron_index)==0)).any():
                 raise ValueError('Using a dt of %s, some neurons of '
                                  'SpikeGeneratorGroup "%s" spike more than '
                                  'once during a time step.' % (str(self.dt),
@@ -234,12 +236,13 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
 
+        times = np.asarray(times)
+        indices = np.asarray(indices)
         if not sorted:
             # sort times and indices first by time, then by indices
-            rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
-            rec.sort()
-            times = np.ascontiguousarray(rec.t)
-            indices = np.ascontiguousarray(rec.i)
+            I = np.lexsort((indices, times))
+            indices = indices[I]
+            times = times[I]
 
         self.variables['period'].set_value(period)
         self.variables['neuron_index'].resize(len(indices))

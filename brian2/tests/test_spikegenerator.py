@@ -69,6 +69,20 @@ def test_spikegenerator_basic_sorted():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_spikegenerator_basic_sorted_with_sorted():
+    '''
+    Basic test for `SpikeGeneratorGroup` with already sorted spike events.
+    '''
+    indices = np.array([3, 1, 2, 3, 1, 2, 1, 2, 3])
+    times   = np.array([1, 2, 2, 2, 3, 3, 4, 4, 4]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times, sorted=True)
+    s_mon = SpikeMonitor(SG)
+    run(5*ms)
+    _compare_spikes(5, indices, times, s_mon)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_spikegenerator_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -295,6 +309,7 @@ if __name__ == '__main__':
     test_spikegenerator_connected()
     test_spikegenerator_basic()
     test_spikegenerator_basic_sorted()
+    test_spikegenerator_basic_sorted_with_sorted()
     test_spikegenerator_period()
     test_spikegenerator_period_repeat()
     test_spikegenerator_change_spikes()
