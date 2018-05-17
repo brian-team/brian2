@@ -69,6 +69,17 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
 
+        # We store the indices and times also directly in the Python object,
+        # this way we can use them for checks in `before_run` even in standalone
+        # TODO: Remove this when the checks in `before_run` have been moved to the template
+        #: Array of spiking neuron indices.
+        self._neuron_index = None
+        #: Array of spiking neuron times.
+        self._spike_time = None
+        #: "Dirty flag" that will be set when spikes are changed after the
+        #: `before_run` check
+        self._spikes_changed = True
+
         # Let other objects know that we emit spikes events
         self.events = {'spike': None}
 
