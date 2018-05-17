@@ -74,43 +74,16 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         self.codeobj_class = codeobj_class
 
-        times = Quantity(times)
         if N < 1 or int(N) != N:
             raise TypeError('N has to be an integer >=1.')
         N = int(N)  # Make sure that it is an integer, values such as 10.0 would
                     # otherwise make weave compilation fail
-        if len(indices) != len(times):
-            raise ValueError(('Length of the indices and times array must '
-                              'match, but %d != %d') % (len(indices),
-                                                        len(times)))
-        if period < 0*second:
-            raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= np.max(times):
-            raise ValueError('The period has to be greater than the maximum of '
-                             'the spike times')
-        if len(times) and np.min(times) < 0*second:
-            raise ValueError('Spike times cannot be negative')
-        if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
-            raise ValueError('Indices have to lie in the interval [0, %d[' % N)
-
         self.start = 0
         self.stop = N
 
-        times = np.asarray(times)
-        indices = np.asarray(indices)
-        if not sorted:
-            # sort times and indices first by time, then by indices
-            I = np.lexsort((indices, times))
-            indices = indices[I]
-            times = times[I]
+        indices, times = self._check_args(indices, times, period, N, sorted)
 
         self.variables = Variables(self)
-
-        # We store the indices and times also directly in the Python object,
-        # this way we can use them for checks in `before_run` even in standalone
-        # TODO: Remove this when the checks in `before_run` have been moved to the template
-        self._spike_time = times
-        self._neuron_index = indices
 
         # standard variables
         self.variables.add_constant('N', value=N)
@@ -138,10 +111,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         #: Remember the dt we used the last time when we checked the spike bins
         #: to not repeat the work for multiple runs with the same dt
         self._previous_dt = None
-
-        #: "Dirty flag" that will be set when spikes are changed after the
-        #: `before_run` check
-        self._spikes_changed = True
 
         CodeRunner.__init__(self, self,
                             code='',
@@ -224,25 +193,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             then by index), this can save significant time at construction if
             your arrays contain large numbers of spikes. Defaults to ``False``.
         '''
-        times = Quantity(times)
-        if len(indices) != len(times):
-            raise ValueError(('Length of the indices and times array must '
-                              'match, but %d != %d') % (len(indices),
-                                                        len(times)))
 
-        if period < 0*second:
-            raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= np.max(times):
-            raise ValueError('The period has to be greater than the maximum of '
-                             'the spike times')
-
-        times = np.asarray(times)
-        indices = np.asarray(indices)
-        if not sorted:
-            # sort times and indices first by time, then by indices
-            I = np.lexsort((indices, times))
-            indices = indices[I]
-            times = times[I]
+        indices, times = self._check_args(indices, times, period, self.N, sorted)
 
         self.variables['period'].set_value(period)
         self.variables['neuron_index'].resize(len(indices))
@@ -257,6 +209,41 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self._neuron_index = indices
         self._spike_time = times
         self._spikes_changed = True
+
+    def _check_args(self, indices, times, period, N, sorted):
+        times = Quantity(times)
+        if len(indices) != len(times):
+            raise ValueError(('Length of the indices and times array must '
+                              'match, but %d != %d') % (len(indices),
+                                                        len(times)))
+        if period < 0*second:
+            raise ValueError('The period cannot be negative.')
+        elif len(times) and period <= np.max(times):
+            raise ValueError('The period has to be greater than the maximum of '
+                             'the spike times')
+        if len(times) and np.min(times) < 0*second:
+            raise ValueError('Spike times cannot be negative')
+        if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
+            raise ValueError('Indices have to lie in the interval [0, %d[' % N)
+
+        times = np.asarray(times)
+        indices = np.asarray(indices)
+        if not sorted:
+            # sort times and indices first by time, then by indices
+            I = np.lexsort((indices, times))
+            indices = indices[I]
+            times = times[I]
+
+        # We store the indices and times also directly in the Python object,
+        # this way we can use them for checks in `before_run` even in standalone
+        # TODO: Remove this when the checks in `before_run` have been moved to the template
+        self._neuron_index = indices
+        self._spike_time = times
+        #: "Dirty flag" that will be set when spikes are changed after the
+        #: `before_run` check
+        self._spikes_changed = True
+
+        return indices, times
 
     @property
     def spikes(self):
