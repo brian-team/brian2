@@ -205,11 +205,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables['spike_time'].set_value(times)
         self.variables['_lastindex'].set_value(0)
 
-        # Update the internal variables used in `SpikeGeneratorGroup.before_run`
-        self._neuron_index = indices
-        self._spike_time = times
-        self._spikes_changed = True
-
     def _check_args(self, indices, times, period, N, sorted):
         times = Quantity(times)
         if len(indices) != len(times):
