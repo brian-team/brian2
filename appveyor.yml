@@ -108,7 +108,7 @@ install:
   # Install the weave package for Python 2
   - 'if "%PYTHON_VERSION:~0,1%" == "2" appveyor-retry conda install --yes --quiet weave scipy'
   - 'if "%PYTHON_VERSION:~0,1%" == "3" appveyor-retry conda install --yes --quiet scipy'
-  - 'appveyor-retry conda install --yes --quiet py-cpuinfo "gsl>1.15"'  # install cpuinfo and gsl from conda-forge
+  - 'appveyor-retry conda install --yes --quiet py-cpuinfo=3 "gsl>1.15"'  # install cpuinfo and gsl from conda-forge
   # For faster tests, only build conda packages for the master branch or pull requests
   - 'if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if not "%APPVEYOR_REPO_BRANCH%" == "master" set DO_CONDA_BUILD=FALSE'
 
