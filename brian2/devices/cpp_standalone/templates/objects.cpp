@@ -63,10 +63,12 @@ SynapticPathway<double> {{path.name}}(
 Clock {{clock.name}};  // attributes will be set in run.cpp
 {% endfor %}
 
+{% if profiled_codeobjects is defined %}
 // Profiling information for each code object
 {% for codeobj in profiled_codeobjects | sort %}
 double {{codeobj}}_profiling_info = 0.0;
 {% endfor %}
+{% endif %}
 }
 
 void _init_arrays()
@@ -185,7 +187,7 @@ void _write_arrays()
 		std::cout << "Error writing output file for {{varname}}." << endl;
 	}
 	{% endfor %}
-    {% if profiled_codeobjects %}
+    {% if profiled_codeobjects is defined and profiled_codeobjects %}
 	// Write profiling info to disk
 	ofstream outfile_profiling_info;
 	outfile_profiling_info.open("results/profiling_info.txt", ios::out);
@@ -307,11 +309,12 @@ extern SynapticPathway<double> {{path.name}};
 {% endfor %}
 {% endfor %}
 
+{% if profiled_codeobjects is defined %}
 // Profiling information for each code object
 {% for codeobj in profiled_codeobjects | sort %}
 extern double {{codeobj}}_profiling_info;
 {% endfor %}
-
+{% endif %}
 }
 
 void _init_arrays();
