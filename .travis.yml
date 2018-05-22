@@ -150,10 +150,9 @@ install:
 script:
 - if [[ $DO_CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    conda build --quiet -c conda-forge dev/conda-recipe
+    conda build --quiet -c conda-forge dev/conda-recipe;
     source activate travis_conda;
   fi
-# Don't run tests in parallel when reporting coverage
 - if [[ $DOCS_ONLY == 'yes' ]]; then
     cd dist;
     tar xvzf *.tar.gz;
