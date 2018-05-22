@@ -28,6 +28,7 @@ requirements:
     - jinja2 >=2.7
     - setuptools >=6.0
     - py-cpuinfo >=0.1.6
+    - filelock >=2.0
 
 test:
   # Python imports
