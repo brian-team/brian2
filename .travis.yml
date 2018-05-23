@@ -121,26 +121,27 @@ install:
        DO_CONDA_BUILD='no';
     fi
   - if [[ $DO_CONDA_BUILD == 'yes' ]]; then
-       conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
+       conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    travis_retry conda create -n travis_conda --yes --quiet python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose "sphinx<1.6.3" ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage py-cpuinfo=3 gsl>1.15";
     else
-    travis_retry conda create -n travis_conda --yes --quiet python=$PYTHON numpy nose "sphinx<1.6.3" ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
+    PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage py-cpuinfo=3 gsl>1.15";
     fi
-  - source activate travis_conda
   # On Python 2: Install the weave package explicitly
   - if [ ${PYTHON:0:1} == "2" ]; then
       if [[ $MINIMAL_VERSIONS != 'yes' ]]; then
-        travis_retry conda install --yes --quiet weave scipy;
+        PYTHON_PACKAGES="$PYTHON_PACKAGES weave scipy";
       fi;
-      travis_retry conda install --yes --quiet bsddb;
+      PYTHON_PACKAGES="$PYTHON_PACKAGES bsddb";
     else
-      travis_retry conda install --yes --quiet scipy;
+      PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
     fi
-  - travis_retry conda install --yes --quiet py-cpuinfo "gsl>1.15"  # install cpuinfo and gsl from conda-forge
-  - if [[ $CYTHON == 'yes' ]]; then travis_retry conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
-  - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry conda install --yes --quiet coveralls; fi
+  - if [[ $CYTHON == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES cython"; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
+  - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES coveralls"; fi
+  # Install packages into a new environment
+  - travis_retry conda create --quiet --yes -n travis_conda $PYTHON_PACKAGES
+  - source activate travis_conda
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       python setup.py sdist;
@@ -185,4 +186,3 @@ after_success:
 
 notifications:
   email: false
-
