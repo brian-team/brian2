@@ -111,15 +111,18 @@ class CythonExtensionManager(object):
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
 
         if prefs['codegen.runtime.cython.multiprocess_safe']:
-            lock_file = os.path.join(lib_dir, module_name + '.lock')
-            with open(lock_file, 'w') as f:
-                # Lock
-                if msvcrt:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
-                                   os.stat(lock_file).st_size)
-                else:
-                    fcntl.flock(f, fcntl.LOCK_EX)
-                module = self._load_module(module_path,
+            try:
+                from filelock import FileLock
+            except ImportError:
+                raise ImportError('Need the filelock library to safely run '
+                                  'Cython simulations in parallel (set the '
+                                  'codegen.runtime.cython.multiprocess_safe '
+                                  'preference to False to disable this '
+                                  'feature).')
+            lock = FileLock(os.path.join(lib_dir, module_name + '.lock'),
+                            timeout=540)
+            with lock:
+                return self._load_module(module_path,
                                          define_macros=define_macros,
                                          include_dirs=include_dirs,
                                          library_dirs=library_dirs,
@@ -132,13 +135,6 @@ class CythonExtensionManager(object):
                                          runtime_library_dirs=runtime_library_dirs,
                                          compiler=compiler,
                                          key=key)
-                # Unlock
-                if msvcrt:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK,
-                                   os.stat(lock_file).st_size)
-                else:
-                    fcntl.flock(f, fcntl.LOCK_UN)
-            return module
         else:
             return self._load_module(module_path,
                                      define_macros=define_macros,

@@ -167,6 +167,7 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo>=0.1.6',
+                        'filelock>=2.0.0',
                         'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
                        ],
       setup_requires=['numpy>=1.10',

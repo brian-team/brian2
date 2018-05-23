@@ -28,6 +28,7 @@ requirements:
     - jinja2 >=2.7
     - setuptools >=6.0
     - py-cpuinfo >=0.1.6
+    - filelock >=2.0
 
 test:
   # Python imports
@@ -59,7 +60,7 @@ test:
 
   commands:
     # Run a simple test that uses some of the main simulation elements
-    - python -c 'from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()'
+    - 'python -c "from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()"'
 
   requires:
     - nose
