@@ -8,11 +8,16 @@ requirements:
     - python
     - cython >=0.18
     - setuptools >=6.0
-    - numpy x.x
+    # we build against the oldest supported numpy version
+    - numpy 1.10  # [not py36]
+    - numpy 1.11  # [py36]
 
   run:
     - python
-    - numpy x.x
+    # we don't need the same version as during the build, newer versions are
+    # still ABI-compatible
+    - numpy >=1.10  # [not py36]
+    - numpy >=1.11  # [py36]
     - sympy >=0.7.6,!=1.1.0
     - pyparsing
     - scipy >=0.13.3
@@ -53,7 +58,8 @@ test:
     - brian2.utils
 
   commands:
-    #- python -c 'import brian2; brian2.test()'
+    # Run a simple test that uses some of the main simulation elements
+    - python -c 'from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()'
 
   requires:
     - nose
