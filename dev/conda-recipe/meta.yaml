@@ -60,7 +60,7 @@ test:
 
   commands:
     # Run a simple test that uses some of the main simulation elements
-    - python -c 'from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()'
+    - 'python -c "from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()"'
 
   requires:
     - nose
