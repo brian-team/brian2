@@ -178,10 +178,7 @@ def test_connection_arrays():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
-def test_connection_string_deterministic():
-    '''
-    Test connecting synapses with a deterministic string expression.
-    '''
+def test_connection_string_deterministic_full():
     G = NeuronGroup(17, 'v : 1', threshold='False')
     G.v = 'i'
     G2 = NeuronGroup(4, 'v : 1', threshold='False')
@@ -196,68 +193,97 @@ def test_connection_string_deterministic():
     S2 = Synapses(G, G2, 'w:1', 'v+=w')
     S2.connect('True')
 
+    run(0 * ms)  # for standalone
+
+    _compare(S1, expected_full)
+    _compare(S2, expected_full)
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_connection_string_deterministic_full_no_self():
+    G = NeuronGroup(17, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '17 + i'
+
     # Full connection without self-connections
     expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
 
-    S5 = Synapses(G, G, 'w:1', 'v+=w')
-    S5.connect('i != j')
+    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1.connect('i != j')
 
-    S6 = Synapses(G, G, 'w:1', 'v+=w')
-    S6.connect('v_pre != v_post')
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect('v_pre != v_post')
 
-    S7 = Synapses(G, G, 'w:1', 'v+=w')
-    S7.connect(condition='i != j')
+    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3.connect(condition='i != j')
+
+    run(0*ms)  # for standalone
+
+    _compare(S1, expected_no_self)
+    _compare(S2, expected_no_self)
+    _compare(S3, expected_no_self)
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_connection_string_deterministic_full_one_to_one():
+    G = NeuronGroup(17, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '17 + i'
 
     # One-to-one connectivity
     expected_one_to_one = np.eye(len(G))
 
-    S8 = Synapses(G, G, 'w:1', 'v+=w')
-    S8.connect('i == j')
+    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1.connect('i == j')
 
-    S9 = Synapses(G, G, 'w:1', 'v+=w')
-    S9.connect('v_pre == v_post')
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect('v_pre == v_post')
 
-    S9b = Synapses(G, G, '''
+    S3 = Synapses(G, G, '''
                          sub_1 = v_pre : 1
                          sub_2 = v_post : 1
                          w:1''', 'v+=w')
-    S9b.connect('sub_1 == sub_2')
+    S3.connect('sub_1 == sub_2')
 
-    S10 = Synapses(G, G, 'w:1', 'v+=w')
-    S10.connect(j='i')
+    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4.connect(j='i')
 
+    run(0*ms)  # for standalone
+
+    _compare(S1, expected_one_to_one)
+    _compare(S2, expected_one_to_one)
+    _compare(S3, expected_one_to_one)
+    _compare(S4, expected_one_to_one)
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_connection_string_deterministic_full_custom():
+    G = NeuronGroup(17, 'v : 1', threshold='False')
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
     # Everything except for the upper [2, 2] quadrant
     number = 2
     expected_custom = np.ones((len(G), len(G)))
     expected_custom[:number, :number] = 0
-    S11 = Synapses(G, G, 'w:1', 'v+=w')
-    S11.connect('(i >= number) or (j >= number)')
+    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1.connect('(i >= number) or (j >= number)')
 
-    S12 = Synapses(G, G, 'w:1', 'v+=w')
-    S12.connect('(i >= explicit_number) or (j >= explicit_number)',
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect('(i >= explicit_number) or (j >= explicit_number)',
                 namespace={'explicit_number': number})
 
     # check that this mistaken syntax raises an error
-    assert_raises(ValueError, lambda: S12.connect('k for k in range(1)'))
+    assert_raises(ValueError, lambda: S2.connect('k for k in range(1)'))
 
     # check that trying to connect to a neuron outside the range raises an error
     if get_device() == all_devices['runtime']:
-        assert_raises(IndexError, lambda: S12.connect(j='20'))
+        assert_raises(IndexError, lambda: S2.connect(j='20'))
 
     run(0*ms)  # for standalone
 
-    _compare(S1, expected_full)
-    _compare(S2, expected_full)
-    _compare(S5, expected_no_self)
-    _compare(S6, expected_no_self)
-    _compare(S7, expected_no_self)
-    _compare(S8, expected_one_to_one)
-    _compare(S9, expected_one_to_one)
-    _compare(S9b, expected_one_to_one)
-    _compare(S10, expected_one_to_one)
-    _compare(S11, expected_custom)
-    _compare(S12, expected_custom)
-
+    _compare(S1, expected_custom)
+    _compare(S2, expected_custom)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -2382,7 +2408,10 @@ if __name__ == '__main__':
     test_creation()
     test_name_clashes()
     test_incoming_outgoing()
-    test_connection_string_deterministic()
+    test_connection_string_deterministic_full()
+    test_connection_string_deterministic_full_no_self()
+    test_connection_string_deterministic_full_one_to_one()
+    test_connection_string_deterministic_full_custom()
     test_connection_string_deterministic_multiple_and()
     test_connection_random_with_condition()
     test_connection_random_without_condition()
