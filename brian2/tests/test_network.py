@@ -1132,6 +1132,27 @@ def test_store_restore_magic_to_file():
     except OSError:
         pass
 
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
+def test_store_restore_spikequeue():
+    # See github issue #938
+    source = SpikeGeneratorGroup(1, [0], [0] * ms)
+    target = NeuronGroup(1, 'v : 1')
+    conn = Synapses(source, target, on_pre='v += 1', delay=2 * defaultclock.dt)
+    conn.connect()
+    run(defaultclock.dt)  # Spike is not yet delivered
+    store()
+    run(2 * defaultclock.dt)
+    assert target.v[0] == 1
+    restore()
+    run(2 * defaultclock.dt)
+    assert target.v[0] == 1
+    restore()
+    run(2 * defaultclock.dt)
+    assert target.v[0] == 1
+
+
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
 def test_defaultclock_dt_changes():
@@ -1432,6 +1453,7 @@ if __name__ == '__main__':
             test_store_restore_to_file_differing_nets,
             test_store_restore_magic,
             test_store_restore_magic_to_file,
+            test_store_restore_spikequeue,
             test_defaultclock_dt_changes,
             test_dt_changes_between_runs,
             test_dt_restore,

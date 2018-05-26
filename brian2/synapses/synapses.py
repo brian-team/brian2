@@ -362,11 +362,17 @@ class SynapticPathway(CodeRunner, Group):
         return state
 
     def _restore_from_full_state(self, state):
-        queue_state = state.pop('_spikequeue', None)
+        # We have to handle the SpikeQueue separately from the other state
+        # variables, so remove it from the state dictionary so that it does not
+        # get treated as a state variable by the standard mechanism in
+        # `VariableOwner`
+        queue_state = state.pop('_spikequeue')
         super(SynapticPathway, self)._restore_from_full_state(state)
         if self.queue is None:
             self.queue = get_device().spike_queue(self.source.start, self.source.stop)
         self.queue._restore_from_full_state(queue_state)
+        # Put the spike queue state back for future restore calls
+        state['_spikequeue'] = queue_state
 
     def push_spikes(self):
         # Push new events (e.g. spikes) into the queue
