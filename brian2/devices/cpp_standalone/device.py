@@ -162,6 +162,8 @@ class CPPStandaloneDevice(Device):
         #: Dict of all static saved arrays
         self.static_arrays = {}
 
+        self._vars_to_write = set()
+
         self.code_objects = {}
         self.main_queue = []
         self.runfuncs = {}
@@ -581,6 +583,23 @@ class CPPStandaloneDevice(Device):
                             "future versions of Brian.", "openmp_spatialneuron_strategy",
                             once=True)
 
+    def set_variables_to_write(self, variables_to_write):
+        '''
+        Set list of variables whose values should be written to disk at end of simulation
+
+        Parameters
+        ----------
+        variables_to_write : list of `Variable` or (`Group`, `str)
+            List of pairs variable objects or pairs (group, variablename)
+        '''
+        # Generate list of array names to write to disk
+        for spec in variables_to_write:
+            if isinstance(spec, Variable):
+                self._vars_to_write.add(spec)
+            else:
+                G, v = spec
+                self._vars_to_write.add(G.variables[v])
+
     def generate_objects_source(self, writer, arange_arrays, synapses, static_array_specs, networks):
         arr_tmp = self.code_object_class().templater.objects(
                         None, None,
@@ -596,7 +615,8 @@ class CPPStandaloneDevice(Device):
                         get_array_filename=self.get_array_filename,
                         get_array_name=self.get_array_name,
                         profiled_codeobjects=self.profiled_codeobjects,
-                        code_objects=self.code_objects.values())
+                        code_objects=self.code_objects.values(),
+                        vars_to_write=self._vars_to_write)
         writer.write('objects.*', arr_tmp)
 
     def generate_main_source(self, writer):
@@ -993,23 +1013,25 @@ class CPPStandaloneDevice(Device):
                 self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
 
         # Make sure that integration did not create NaN or very large values
-        owners = [var.owner for var in self.arrays]
-        # We don't want to check the same owner twice but var.owner is a
-        # weakproxy which we can't put into a set. We therefore store the name
-        # of all objects we already checked. Furthermore, under some specific
-        # instances a variable might have been created whose owner no longer
-        # exists (e.g. a `_sub_idx` variable for a subgroup) -- we ignore the
-        # resulting reference error.
-        already_checked = set()
-        for owner in owners:
-            try:
-                if owner.name in already_checked:
-                    continue
-                if isinstance(owner, Group):
-                    owner._check_for_invalid_states()
-                    already_checked.add(owner.name)
-            except ReferenceError:
-                pass
+        # Skip if we didn't write all variables to disk because this might lead to an error
+        if len(self._vars_to_write)==0:
+            owners = [var.owner for var in self.arrays]
+            # We don't want to check the same owner twice but var.owner is a
+            # weakproxy which we can't put into a set. We therefore store the name
+            # of all objects we already checked. Furthermore, under some specific
+            # instances a variable might have been created whose owner no longer
+            # exists (e.g. a `_sub_idx` variable for a subgroup) -- we ignore the
+            # resulting reference error.
+            already_checked = set()
+            for owner in owners:
+                try:
+                    if owner.name in already_checked:
+                        continue
+                    if isinstance(owner, Group):
+                        owner._check_for_invalid_states()
+                        already_checked.add(owner.name)
+                except ReferenceError:
+                    pass
 
 
     def build(self, directory='output',

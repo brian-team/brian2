@@ -382,6 +382,20 @@ def test_changing_profile_arg():
             profiling_dict['op3_codeobject_1'] > 0*second)
 
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_write_only_some_vars():
+    set_device('cpp_standalone')
+    tau = 10 * ms
+    G = NeuronGroup(1, 'dv/dt=-v/tau:1')
+    M = StateMonitor(G, 'v', record=True)
+    G.v = 1
+    device.set_variables_to_write([(M, 't'), (M, 'v')])
+    run(10 * ms)
+    (M.t, M.v)
+    assert_raises(IOError, lambda: G.v[:])
+
+
 if __name__=='__main__':
     for t in [
              test_cpp_standalone,
@@ -394,6 +408,7 @@ if __name__=='__main__':
              test_array_cache,
              test_run_with_debug,
              test_changing_profile_arg,
+             test_write_only_some_vars,
              ]:
         t()
         reinit_devices()
