@@ -73,8 +73,9 @@ cdef extern from "gsl/gsl_odeiv2.h":
 
     # scalar code
     _vectorisation_idx = 1
+    {% if define_dt %}
     dt = {{dt_array}}
-
+    {% endif %}
     cdef double t1
     cdef _dataholder * _GSL_dataholder = <_dataholder *>malloc(sizeof(_dataholder))
 
