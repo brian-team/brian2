@@ -11,6 +11,24 @@
 #include<iostream>
 #include<fstream>
 
+// Helper function to get file size
+// Adapted from https://www.joelverhagen.com/blog/2011/03/get-the-size-of-a-file-in-c/
+int get_file_size(const std::string &filename)
+{
+    ifstream file(filename.c_str(), ifstream::in | ifstream::binary);
+
+    if(!file.is_open())
+    {
+        return -1;
+    }
+
+    file.seekg(0, ios::end);
+    int filesize = file.tellg();
+    file.close();
+
+    return filesize;
+}
+
 namespace brian {
 
 std::vector< rk_state* > _mersenne_twister_states;
@@ -43,7 +61,7 @@ DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {# arrays that are initialized from static data are already declared #}
 {% if not (name in array_specs.values() or name in dynamic_array_specs.values() or name in dynamic_array_2d_specs.values())%}
 {{dtype_spec}} * {{name}};
-const int _num_{{name}} = {{N}};
+int _num_{{name}};
 {% endif %}
 {% endfor %}
 
@@ -99,14 +117,7 @@ void _init_arrays()
 
 	{% endfor %}
 
-	// static arrays
-	{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
-	{% if name in dynamic_array_specs.values() %}
-	{{name}}.resize({{N}});
-	{% else %}
-	{{name}} = new {{dtype_spec}}[{{N}}];
-	{% endif %}
-	{% endfor %}
+	// static arrays are allocated in _load_arrays because we need their sizes
 
 	// Random number generator states
 	for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
@@ -118,14 +129,23 @@ void _load_arrays()
 	using namespace brian;
 
 	{% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
+	// infer array size from disk array size
+	_num_{{name}} = get_file_size("static_arrays/{{name}}")/sizeof({{dtype_spec}});
+	// allocate memory
+	{% if name in dynamic_array_specs.values() %}
+	{{name}}.resize(_num_{{name}});
+	{% else %}
+	{{name}} = new {{dtype_spec}}[_num_{{name}}];
+	{% endif %}
+	// load data
 	ifstream f{{name}};
 	f{{name}}.open("static_arrays/{{name}}", ios::in | ios::binary);
 	if(f{{name}}.is_open())
 	{
 	    {% if name in dynamic_array_specs.values() %}
-	    f{{name}}.read(reinterpret_cast<char*>(&{{name}}[0]), {{N}}*sizeof({{dtype_spec}}));
+	    f{{name}}.read(reinterpret_cast<char*>(&{{name}}[0]), _num_{{name}}*sizeof({{dtype_spec}}));
 	    {% else %}
-		f{{name}}.read(reinterpret_cast<char*>({{name}}), {{N}}*sizeof({{dtype_spec}}));
+		f{{name}}.read(reinterpret_cast<char*>({{name}}), _num_{{name}}*sizeof({{dtype_spec}}));
 		{% endif %}
 	} else
 	{
@@ -303,7 +323,7 @@ extern DynamicArray2D<{{c_data_type(var.dtype)}}> {{varname}};
 {# arrays that are initialized from static data are already declared #}
 {% if not (name in array_specs.values() or name in dynamic_array_specs.values() or name in dynamic_array_2d_specs.values())%}
 extern {{dtype_spec}} *{{name}};
-extern const int _num_{{name}};
+extern int _num_{{name}};
 {% endif %}
 {% endfor %}
 

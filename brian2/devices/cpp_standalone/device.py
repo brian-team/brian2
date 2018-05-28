@@ -393,6 +393,15 @@ class CPPStandaloneDevice(Device):
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
             static_array_name = self.static_array(array_name, arr)
+            # check if we previously just issued a resize command with size being the size of this
+            # array, because if so we don't need to hard code that number but can infer it from
+            # _num_{{static_array_name}}
+            if len(self.main_queue):
+                func, args = self.main_queue[-1]
+                if func=='resize_array':
+                    prev_array_name, prev_new_size = args
+                    if prev_array_name==array_name and prev_new_size==arr.size:
+                        self.main_queue[-1] = ('resize_array_to_static_array_size', (array_name, static_array_name))
             self.main_queue.append(('set_by_array', (array_name,
                                                      static_array_name,
                                                      isinstance(var, DynamicArrayVariable))))
@@ -677,6 +686,10 @@ class CPPStandaloneDevice(Device):
                 array_name, new_size = args
                 main_lines.append("{array_name}.resize({new_size});".format(array_name=array_name,
                                                                             new_size=new_size))
+            elif func == 'resize_array_to_static_array_size':
+                array_name, static_array_name = args
+                main_lines.append("{array_name}.resize(_num_{static_array_name});".format(
+                    array_name=array_name, static_array_name=static_array_name))
             elif func=='insert_code':
                 main_lines.append(args)
             elif func=='start_run_func':
