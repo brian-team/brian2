@@ -37,5 +37,17 @@ prefs.register_preferences('core', 'Core Brian preferences',
         Whether to raise an error for outdated dependencies (``True``) or just
         a warning (``False``).
         '''
-        )
+        ),
+    legacy_refractory_timing=BrianPreference(
+        default=False,
+        docs='''
+        Whether to use the semantics for checking the refractoriness condition
+        that were in place up until (including) version 2.1.2. In that
+        implementation, refractory periods that were multiples of dt could lead
+        to a varying number of refractory timesteps due to the nature of
+        floating point comparisons). This preference is only provided for exact
+        reproducibility of previously obtained results, new simulations should
+        use the improved mechanism which uses a more robust mechanism to
+        convert refractoriness into timesteps. Defaults to ``False``.
+        ''')
     )
