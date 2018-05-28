@@ -117,7 +117,7 @@ class StateUpdater(CodeRunner):
                                                       '{value}'),
                                         value=ref)
 
-            abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
+            abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%f, dt)\n' % ref
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
@@ -125,7 +125,7 @@ class StateUpdater(CodeRunner):
                                                user_identifiers=identifiers)
             dims = parse_expression_dimensions(str(ref), variables)
             if dims is second.dim:
-                abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
+                abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%s, dt)\n' % ref
             elif dims is DIMENSIONLESS:
                 if not is_boolean_expression(str(ref), variables):
                     raise TypeError(('Refractory expression is dimensionless '

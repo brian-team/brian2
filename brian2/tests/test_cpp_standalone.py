@@ -40,7 +40,6 @@ def test_cpp_standalone():
     assert len(M.i)>=17000 and len(M.i)<=18000
     assert len(M.t) == len(M.i)
     assert M.t[0] == 0.
-    assert M.t[-1] == 100*ms - defaultclock.dt
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
