@@ -453,7 +453,7 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
 timestep_code = '''
         static inline int _timestep(double t, double dt)
         {
-            if (std::isinf(t))
+            if (isinf(t))
             {
                 if (t < 0)
                     return INT_MIN;
