@@ -84,7 +84,7 @@ converting a time into a time step in a safe way.
 .. versionadded:: 2.1.3
     The `timestep` function is now used to avoid floating point issues in the
     refractoriness calculation. To restore the previous behaviour, set the
-    `core.legacy_refractory_timing` preference to ``True``.
+    `legacy.refractory_timing` preference to ``True``.
 
 Defining model behaviour during refractoriness
 ----------------------------------------------

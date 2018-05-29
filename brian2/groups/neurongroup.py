@@ -117,7 +117,7 @@ class StateUpdater(CodeRunner):
                                                       'of seconds but got '
                                                       '{value}'),
                                         value=ref)
-            if prefs.core.legacy_refractory_timing:
+            if prefs.legacy.refractory_timing:
                 abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
             else:
                 abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%f, dt)\n' % ref
@@ -128,7 +128,7 @@ class StateUpdater(CodeRunner):
                                                user_identifiers=identifiers)
             dims = parse_expression_dimensions(str(ref), variables)
             if dims is second.dim:
-                if prefs.core.legacy_refractory_timing:
+                if prefs.legacy.refractory_timing:
                     abstract_code = '(t - lastspike) > %s\n' % ref
                 else:
                     abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%s, dt)\n' % ref

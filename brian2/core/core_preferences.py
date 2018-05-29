@@ -37,8 +37,11 @@ prefs.register_preferences('core', 'Core Brian preferences',
         Whether to raise an error for outdated dependencies (``True``) or just
         a warning (``False``).
         '''
-        ),
-    legacy_refractory_timing=BrianPreference(
+        )
+    )
+
+prefs.register_preferences('legacy', 'Preferences to enable legacy behaviour',
+    refractory_timing=BrianPreference(
         default=False,
         docs='''
         Whether to use the semantics for checking the refractoriness condition
