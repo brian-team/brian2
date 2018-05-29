@@ -544,6 +544,34 @@ class log10(sympy_Function):
 _infinity_int = np.iinfo(int).max//2
 
 def timestep(t, dt):
+    '''
+    Converts a given time to an integer time step. This function slightly shifts
+    the time before dividing it by ``dt`` to make sure that multiples of ``dt``
+    do not end up in the preceding time step due to floating point issues. This
+    function is used in the refractoriness calculation.
+
+    .. versionadded:: 2.1.3
+
+    Parameters
+    ----------
+    t : np.ndarray or Quantity
+        The time to convert.
+    dt : float or Quantity
+        The length of a simulation time step.
+
+    Returns
+    -------
+    ts : int
+        The time step corresponding to the given time.
+
+    Notes
+    -----
+    This function can handle infinity values, it will return a value equal to
+    half of the maximal integer value. This assures that an expression such as
+    ``timestep(t) - timestep(lastspike)`` will result in a reasonable value even
+    if ``lastspike`` is ``-inf``. If ``timestep(lastspike)`` were equal to the
+    minimal representable integer value, this expression would overflow.
+    '''
     elapsed_steps = (t + 1e-3*dt)/dt
     if np.isscalar(elapsed_steps) or elapsed_steps.shape == ():
         if np.isinf(elapsed_steps):
