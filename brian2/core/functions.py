@@ -541,24 +541,23 @@ class log10(sympy_Function):
         return sympy.functions.elementary.exponential.log(args, 10)
 
 
-_iinfo = np.iinfo(int)
+_infinity_int = np.iinfo(int).max//2
 
 def timestep(t, dt):
-    elapsed_steps = (t + 1e-3 * dt) / dt
+    elapsed_steps = (t + 1e-3*dt)/dt
     if np.isscalar(elapsed_steps) or elapsed_steps.shape == ():
         if np.isinf(elapsed_steps):
             if elapsed_steps > 0:
-                return _iinfo.max
+                return _infinity_int
             else:
-                return _iinfo.min
+                return -_infinity_int
         else:
             return np.int_(elapsed_steps)
     else:
-        are_inf = np.isinf(elapsed_steps)
         int_steps = np.asarray(elapsed_steps, dtype=int)
-        if any(are_inf):
-            int_steps[are_inf & (elapsed_steps < 0)] = _iinfo.min
-            int_steps[are_inf & (elapsed_steps > 0)] = _iinfo.max
+        are_inf, = np.nonzero(np.isinf(elapsed_steps))
+        int_steps[are_inf] = np.where(elapsed_steps[are_inf] > 0,
+                                      _infinity_int, -_infinity_int)
         return int_steps
 
 
