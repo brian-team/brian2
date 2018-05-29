@@ -389,7 +389,7 @@ DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator
 
 timestep_code = '''
 cdef int _timestep(double t, double dt):
-    if isinf(t):
+    if npy_isinf(t):
         if t < 0:
             return INT_MIN
         else:

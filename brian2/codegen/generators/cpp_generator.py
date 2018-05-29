@@ -451,9 +451,21 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
                                                              name='_sign')
 
 timestep_code = '''
+// Adapted from npy_math.h and https://www.christophlassner.de/collection-of-msvc-gcc-compatibility-tricks.html
+#ifndef _BRIAN_REPLACE_ISINF_MSVC
+#define _BRIAN_REPLACE_ISINF_MSVC
+#if defined(_MSC_VER)
+#if _MSC_VER < 1900
+namespace std {
+  template <typename T>
+  bool isinf(const T &x) { return (!_finite(x))&&(!_isnan(x)); }
+}
+#endif
+#endif
+#endif
         static inline int _timestep(double t, double dt)
         {
-            if (isinf(t))
+            if (std::isinf(t))
             {
                 if (t < 0)
                     return INT_MIN;

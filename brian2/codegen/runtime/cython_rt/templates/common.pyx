@@ -19,6 +19,9 @@ cdef extern from "numpy/ndarraytypes.h":
     void PyArray_CLEARFLAGS(_numpy.PyArrayObject *arr, int flags)
 from libc.stdlib cimport free
 
+cdef extern from "numpy/npy_math.h":
+    bint npy_isinf(double x)
+
 cdef extern from "stdint_compat.h":
     # Longness only used for type promotion
     # Actual compile time size used for conversion
