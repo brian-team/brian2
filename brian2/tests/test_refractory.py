@@ -1,9 +1,11 @@
-from brian2.core.functions import timestep
-from brian2.utils.logger import catch_logs
+from collections import Counter
+
 from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
 
+from brian2.core.functions import timestep
+from brian2.utils.logger import catch_logs
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
 from brian2.devices.device import reinit_devices
@@ -118,6 +120,36 @@ def test_refractoriness_threshold_basic():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_refractoriness_repeated():
+    # Create a group that spikes whenever it can
+    group = NeuronGroup(1, '', threshold='True', refractory=10*defaultclock.dt)
+    spike_mon = SpikeMonitor(group)
+    run(10000*defaultclock.dt)
+    assert spike_mon.t[0] == 0*ms
+    assert_allclose(np.diff(spike_mon.t), 10*defaultclock.dt)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_refractoriness_repeated_legacy():
+    # Switch on behaviour from versions <= 2.1.2
+    prefs.legacy.refractory_timing = True
+    # Create a group that spikes whenever it can
+    group = NeuronGroup(1, '', threshold='True', refractory=10*defaultclock.dt)
+    spike_mon = SpikeMonitor(group)
+    run(10000*defaultclock.dt)
+    assert spike_mon.t[0] == 0*ms
+
+    # Empirical values from running with earlier Brian versions
+    assert_allclose(np.diff(spike_mon.t)[:10],
+                    [1.1, 1, 1.1, 1, 1.1, 1.1, 1.1, 1.1, 1, 1.1]*ms)
+    steps = Counter(np.diff(np.int_(np.round(spike_mon.t / defaultclock.dt))))
+    assert len(steps) == 2 and steps[10] == 899 and steps[11] == 91
+    prefs.legacy.refractory_timing = False
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
@@ -224,6 +256,8 @@ if __name__ == '__main__':
     test_refractoriness_variables()
     test_refractoriness_threshold()
     test_refractoriness_threshold_basic()
+    test_refractoriness_repeated()
+    test_refractoriness_repeated_legacy()
     test_refractoriness_types()
     test_conditional_write_set()
     test_conditional_write_behaviour()

@@ -554,14 +554,14 @@ def timestep(t, dt):
 
     Parameters
     ----------
-    t : np.ndarray or Quantity
+    t : np.ndarray, float, Quantity
         The time to convert.
     dt : float or Quantity
         The length of a simulation time step.
 
     Returns
     -------
-    ts : int
+    ts : np.ndarray, int
         The time step corresponding to the given time.
 
     Notes

@@ -3,6 +3,7 @@ from nose.plugins.attrib import attr
 from numpy.testing import assert_equal, assert_raises, assert_allclose
 
 from brian2 import *
+from brian2.core.functions import timestep
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 from brian2.devices.device import reinit_devices
@@ -134,6 +135,23 @@ def test_bool_to_int():
     run(defaultclock.dt)
     assert_equal(s_mon.intexpr1.flatten(), [1, 0])
     assert_equal(s_mon.intexpr2.flatten(), [1, 0])
+
+@attr('codegen-independent')
+def test_timestep_function():
+    dt = defaultclock.dt_
+    # Check that multiples of dt end up in the correct time step
+    t = np.arange(100000)*dt
+    assert_equal(timestep(t, dt), np.arange(100000))
+    # Check that inf is handled correctly
+    t = np.array([-np.inf, np.inf])
+    ts = timestep(t, dt)
+    assert ts[0] < -1e9
+    assert ts[1] > 1e9
+
+    # Scalar values should stay scalar
+    ts = timestep(0.0005, 0.0001)
+    assert np.isscalar(ts) and ts == 5
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -640,6 +658,7 @@ if __name__ == '__main__':
             test_math_functions,
             test_clip,
             test_bool_to_int,
+            test_timestep_function,
             test_user_defined_function,
             test_user_defined_function_units,
             test_simple_user_defined_function,
