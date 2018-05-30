@@ -2,16 +2,20 @@ package:
   name: brian2
   version: "2.1.2+git"
 
-# Note: specifying a minimal version for numyp leads to incorrect build strings
+build:
+  number: 0
+  script: python -m pip install --no-deps --ignore-installed . --install-option=--with-cython --install-option=--fail-on-error
+
 requirements:
   build:
+    - {{ compiler('cxx') }}
+  host:
     - python
     - cython >=0.18
     - setuptools >=6.0
     # we build against the oldest supported numpy version
     - numpy 1.10  # [not py36]
     - numpy 1.11  # [py36]
-
   run:
     - python
     # we don't need the same version as during the build, newer versions are
@@ -30,7 +34,6 @@ requirements:
     - py-cpuinfo >=0.1.6
 
 test:
-  # Python imports
   imports:
     - brian2
     - brian2.codegen
@@ -59,16 +62,10 @@ test:
 
   commands:
     # Run a simple test that uses some of the main simulation elements
-    - 'python -c "from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()"'
+    - python -c 'from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()'
 
   requires:
     - nose
-
-source:
-  path: ../..
-
-build:
-  script: python setup.py install --with-cython --fail-on-error --single-version-externally-managed --record=record.txt
 
 about:
   home: http://www.briansimulator.org/
@@ -77,3 +74,15 @@ about:
   license: CeCILL-2.1
   license_file: LICENSE
   summary: 'A clock-driven simulator for spiking neural networks'
+  description: |
+    Brian2 is a simulator for spiking neural networks available on almost all platforms.
+    The motivation for this project is that a simulator should not only save the time of
+    processors, but also the time of scientists.
+
+    It is the successor of Brian1 and shares its approach of being highly flexible
+    and easily extensible. It is based on a code generation framework that allows
+    to execute simulations using other programming languages and/or on different
+    devices.
+
+source:
+  path: ../..
