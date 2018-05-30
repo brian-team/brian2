@@ -1,6 +1,10 @@
 Installation
 ============
 
+.. contents::
+    :local:
+    :depth: 1
+
 We recommend users to use the `Anaconda distribution <https://www.continuum.io/downloads>`_
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
@@ -146,7 +150,8 @@ distribution's package manager to install a ``g++`` package.
 Windows
 ~~~~~~~
 On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work
-depend on the Python version you are using:
+depend on the Python version you are using (also see the
+`notes in the Python wiki <https://wiki.python.org/moin/WindowsCompilers#Compilers_Installation_and_configuration>`_):
 
 **Python 2.7**
 
@@ -156,8 +161,8 @@ This should be all you need.
 
 **Python 3.4**
 
-* Download and install the `Microsoft .NET Framework 4 <https://www.microsoft.com/en-us/download/details.aspx?id=17851>`_
-* Download and install the `Microsoft Windows SDK for Windows 7 and .NET Framework 4 <http://www.microsoft.com/en-in/download/details.aspx?id=8279>`_
+* Follow the `instructions to install Microsoft Visual C++ 10.0 <https://wiki.python.org/moin/WindowsCompilers#Microsoft_Visual_C.2B-.2B-_10.0_standalone:_Windows_SDK_7.1_.28x86.2C_x64.2C_ia64.29>`_
+  in the Python wiki.
 
 For 64 Bit Windows with Python 3.4, you have to additionally set up your
 environment correctly every time you run your Brian script (this is why we
@@ -169,11 +174,12 @@ or put them in a batch file::
     CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
     set DISTUTILS_USE_SDK=1
 
-**Python 3.5**
+**Python 3.5 and 3.6**
 
-* Download and install `Visual Studio Community 2015 <https://www.visualstudio.com/>`_. Do not chose the default
-  install but instead customize it, the only necessary option is "Programming Languages / Visual C++ / Common Tools for
-  Visual C++ 2015"
+* Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
+* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
+  ``pip install --upgrade setuptools`` when using pip).
+
 
 For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio -- in this
 case, the Python version does not matter.
