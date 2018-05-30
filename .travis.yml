@@ -8,6 +8,16 @@ addons:
     - gcc-multilib
     - g++-multilib
     - lib32z1
+  artifacts:
+    paths:
+      - $(ls dist/*.whl | tr "\n" ":")
+
+env:
+  global:
+    - ARTIFACTS_AWS_REGION=eu-west-3
+    - ARTIFACTS_BUCKET=brian-travis-artifacts
+    - secure: "UFl+6nhIGYzwW7DQonBz6KLzHGDwWa+GYK1dJ9V7S2QP+F9BgkGSLV2cSyl9+ZhPlUnhDqv2hNHJhxMzWC7zUP5JftYcoo09a8e9BbyozKc5LDpHNqi1i6EA0deCdAhpCivSNcwmLEl0L5MkJHbXekPaoOeKDGch/Ro7B2wX+Ew="
+    - secure: "S+Ga7Wd4IeVYEm/yi8YBW6c6RxTLSlmj/UcjfoMLQTadDBIjjpuOtCLTlgJceyxlfbXOyKRI+D3sjFWzVWCzYVrui/lnpIBNEgMiaNOXjYkmdktOEfjPEVAgR0OZsNr25h0hr3ITWSLoS4XYNfxclDG6YMzVOuYlV+1TAfQJJ04="
 
 matrix:
   include:
@@ -166,12 +176,16 @@ script:
   fi
 
 after_success:
-# We only upload to binstar for commits merged into the master branch
 - if [[ $REPORT_COVERAGE == 'yes' ]]; then
     cd ~;
     cp .coverage $SRCDIR;
     cd $SRCDIR;
     coveralls;
+  fi
+# Create binary packages for pypi and upload them to AWS
+- if [[ $DO_CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
+    conda install --yes --quiet wheel;
+    python setup.py bdist_wheel --with-cython --fail-on-error;
   fi
 
 notifications:
