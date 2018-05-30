@@ -62,21 +62,21 @@ See :doc:`../advanced/preferences` for different ways of setting preferences.
 
  .. _Cython: http://cython.org/
 
-You might find that running simulations in weave or Cython modes won't work
-or is not as efficient as you were expecting. This is probably because you're
-using Python functions which are not compatible with weave or Cython. For
-example, if you wrote something like this it would not be efficient::
+Caching
+~~~~~~~
+When you run code with ``weave`` or ``cython`` for the first time, it will take
+some time to compile the code. For short simulations, this can make these
+targets to appear slow compared to the ``numpy`` target where such compilation
+is not necessary. However, the compiled code is stored on disk and will be
+re-used for later runs, making these simulations start faster. If you run many
+simulations with different code (e.g. Brian's
+:doc:`test suite <../developer/guidelines/testing>`), this code can take quite
+a bit of space on the disk. During the import of the ``brian2`` package, we
+check whether the size of the disk cache exceeds the value set by the
+`codegen.max_cache_dir_size` preference (by default, 1GB) and display a message
+if this is the case. You can clear the disk cache manually, or use the
+`~brian2.__init__.clear_cache` function, e.g. ``clear_cache('cython')``.
 
-    from brian2 import *
-    prefs.codegen.target = 'cython'
-    def f(x):
-        return abs(x)
-    G = NeuronGroup(10000, 'dv/dt = -x*f(x) : 1')
-    
-The reason is that the function ``f(x)`` is a Python function and so cannot
-be called from C++ directly. To solve this problem, you need to provide an
-implementation of the function in the target language. See
-:doc:`../advanced/functions`.
 
 .. _cpp_standalone:
 
