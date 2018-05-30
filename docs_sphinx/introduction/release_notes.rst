@@ -96,11 +96,11 @@ contributions):
 * Paul Pfeiffer (`@pfeffer90 <https://github.com/pfeffer90>`_)
 * Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
 * `@hustyanghui <https://github.com/hustyanghui>`_
-* Adrien F. Vincent `@afvincent <https://github.com/afvincent>`_
+* Adrien F. Vincent (`@afvincent <https://github.com/afvincent>`_)
 * `@ckemere <https://github.com/ckemere>`_
 * `@evearmstrong <https://github.com/evearmstrong>`_
 * Paweł Kopeć (`@pawelkopec <https://github.com/pawelkopec>`_)
-* Moritz Augustin `@moritzaugustin <https://github.com/moritzaugustin>`_
+* Moritz Augustin (`@moritzaugustin <https://github.com/moritzaugustin>`_)
 * Bart (`@louwers <https://github.com/louwers>`_)
 * `@amarsdd <https://github.com/amarsdd>`_
 * `@ttxtea <https://github.com/ttxtea>`_
