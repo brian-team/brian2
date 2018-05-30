@@ -128,7 +128,6 @@ after_test:
           appveyor-retry pip install wheel &&
           cd %SRC_DIR% &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&
-          %CMD_IN_ENV% python setup.py bdist_wininst &&
           appveyor-retry %CMD_IN_ENV% conda install --yes --quiet  conda-build pip &&
           appveyor-retry %CMD_IN_ENV% conda install --yes --quiet anaconda-client &&
           %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe
