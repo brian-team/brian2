@@ -52,15 +52,16 @@ new environment for Brian 2 (http://conda.pydata.org/docs/using/envs.html). The
 latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 
-Since Brian 2 is not part of the main Anaconda distribution, you have to install
-it from the `brian-team channel <https://conda.anaconda.org/brian-team>`_. To do
-so, use::
+Brian 2 is not part of the main Anaconda distribution, but built using the
+community-maintained `conda-forge <https://conda-forge.org/>`_ project. You
+will therefore have to to install it from the
+`conda-forge channel <https://anaconda.org/conda-forge>`_. To do so, use::
 
-    conda install -c brian-team brian2
+    conda install -c conda-forge brian2
 
 You can also permanently add the channel to your list of channels::
 
-    conda config --add channels brian-team
+    conda config --add channels conda-forge
 
 This has only to be done once. After that, you can install and update the brian2
 packages as any other Anaconda package::
@@ -81,7 +82,7 @@ You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
 install it with pip or anaconda, in the same way as Brian 2 itself, e.g. with::
 
-    conda install -c brian-team brian2tools
+    conda install -c conda-forge brian2tools
 
 .. _installation_from_source:
 
@@ -118,7 +119,6 @@ it to install ``pip``::
 
 If you have neither ``pip`` nor ``easy_install``, use the approach described
 here to install ``pip``: https://pip.pypa.io/en/latest/installing/
-
 
 Alternatively, you can download the source package directly and uncompress it.
 You can then either run ``python setup.py install`` or
