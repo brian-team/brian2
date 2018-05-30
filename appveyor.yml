@@ -6,8 +6,6 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\continuous-integration\\appveyor\\run_with_env.cmd"
-  BINSTAR_TOKEN:
-    secure: HVnAIjzsBAw04x6I65wG39i04Y4mTH+Vv+yv10rJl7+sMDIwKqIkGBi6Js9s0Xsm
 
   matrix:
     - PYTHON: "C:\\Miniconda"
@@ -133,9 +131,7 @@ after_test:
           %CMD_IN_ENV% python setup.py bdist_wininst &&
           appveyor-retry %CMD_IN_ENV% conda install --yes --quiet  conda-build pip &&
           appveyor-retry %CMD_IN_ENV% conda install --yes --quiet anaconda-client &&
-          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe &&
-          %CMD_IN_ENV% python dev\continuous-integration\move-conda-package.py dev\conda-recipe &&
-          if "%APPVEYOR_PULL_REQUEST_NUMBER%" == "" if "%APPVEYOR_REPO_NAME%" == "brian-team/brian2" if "%APPVEYOR_REPO_BRANCH%" == "master" %CMD_IN_ENV% python dev\continuous-integration\conda-server-push.py
+          %CMD_IN_ENV% conda build --quiet -c conda-forge dev\conda-recipe
      )'
 
 artifacts:

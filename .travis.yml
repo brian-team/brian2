@@ -1,10 +1,6 @@
 language: c  # We are not using the Python infrastructure
 sudo: false  # Make sure we are using the container-based infrastructure
 
-env:
-  global:
-    secure: "UiGZoh0Ac4StHCHlJ9+nRm3r5bvcJunTzX7xeg8KGBE/oL/TMTKmOTw7DbJ/zMG3RfecU1U3+GiTtPHluXRkFqiLNijKP0aO22rGcTHAHBNerIg+CZxpubbAP6+qvL1xlJzpb3R5CghDGRvFzV9Oc/vUs5PxnF9tUDQfSA0/Ksg="
-
 # Install packages for cross-compilation to 32 Bit
 addons:
   apt:
@@ -171,14 +167,7 @@ script:
 
 after_success:
 # We only upload to binstar for commits merged into the master branch
-- if [[ $DO_CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
-    cd $SRCDIR;
-    source deactivate;
-    python dev/continuous-integration/move-conda-package.py dev/conda-recipe &&
-    python dev/continuous-integration/conda-server-push.py;
-    source activate travis_conda;
-  fi;
-  if [[ $REPORT_COVERAGE == 'yes' ]]; then
+- if [[ $REPORT_COVERAGE == 'yes' ]]; then
     cd ~;
     cp .coverage $SRCDIR;
     cd $SRCDIR;
