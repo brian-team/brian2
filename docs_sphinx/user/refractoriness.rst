@@ -69,8 +69,22 @@ The ``refractory`` keyword should be read as "stay refractory as long as the
 condition remains true". In fact, specifying a time span for the refractoriness
 will be automatically transformed into a logical expression using the current
 time ``t`` and the time of the last spike ``lastspike``. Specifying
-``refractory=2*ms`` is equivalent to specifying
-``refractory='(t - lastspike) <= 2*ms'``.
+``refractory=2*ms`` is basically equivalent to specifying
+``refractory='(t - lastspike) <= 2*ms'``. However, this expression can give
+inconsistent results for the common case that the refractory period is a
+multiple of the simulation timestep. Due to floating point impreciseness, the
+actual value of ``t - lastspike`` can be slightly above or below a multiple of
+the simulation time step; comparing it directly to the refractory period can
+therefore lead to an end of the refractory one time step sooner or later. To
+avoid this issue, the actual code used for the above example is equivalent to
+``refractory='timestep(t - lastspike, dt) <= timestep(2*ms, dt)'``. The
+`~brian2.core.functions.timestep` function is provided by Brian and takes care of
+converting a time into a time step in a safe way.
+
+.. versionadded:: 2.1.3
+    The `timestep` function is now used to avoid floating point issues in the
+    refractoriness calculation. To restore the previous behaviour, set the
+    `legacy.refractory_timing` preference to ``True``.
 
 Defining model behaviour during refractoriness
 ----------------------------------------------

@@ -149,6 +149,7 @@ install:
 
 # command to run tests (make sure to not run it from the source directory)
 script:
+- export MACOSX_DEPLOYMENT_TARGET=10.9  # Prevents build errors linked when using isinf
 - if [[ $DO_CONDA_BUILD == 'yes' ]]; then
     source deactivate;
     conda build --quiet -c conda-forge dev/conda-recipe;

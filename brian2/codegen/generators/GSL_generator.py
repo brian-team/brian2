@@ -723,7 +723,7 @@ class GSLCodeGenerator(object):
                 continue
             if var in variables_in_scalar.keys():
                 code += [line]
-            if var in variables_in_vector.keys():
+            elif var in variables_in_vector.keys():
                 if var == 't':
                     continue
                 try:
@@ -930,6 +930,7 @@ class GSLCodeGenerator(object):
         kwds['support_code_lines'] += GSL_support_code.split('\n')
         kwds['t_array'] = self.get_array_name(self.variables['t']) + '[0]'
         kwds['dt_array'] = self.get_array_name(self.variables['dt']) + '[0]'
+        kwds['define_dt'] = 'dt' not in variables_in_scalar
         kwds['cpp_standalone'] = self.is_cpp_standalone()
         for key, value in pointer_names.items():
             kwds[key] = value

@@ -10,9 +10,10 @@ from sympy import Function as sympy_Function
 import brian2.units.unitsafefunctions as unitsafe
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
-from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch,
                                            Quantity, get_dimensions,
                                            DIMENSIONLESS, is_dimensionless)
+from brian2.units.allunits import second
 
 __all__ = ['DEFAULT_FUNCTIONS', 'Function', 'implementation', 'declare_types']
 
@@ -540,6 +541,54 @@ class log10(sympy_Function):
         return sympy.functions.elementary.exponential.log(args, 10)
 
 
+_infinity_int = np.iinfo(int).max//2
+
+def timestep(t, dt):
+    '''
+    Converts a given time to an integer time step. This function slightly shifts
+    the time before dividing it by ``dt`` to make sure that multiples of ``dt``
+    do not end up in the preceding time step due to floating point issues. This
+    function is used in the refractoriness calculation.
+
+    .. versionadded:: 2.1.3
+
+    Parameters
+    ----------
+    t : np.ndarray, float, Quantity
+        The time to convert.
+    dt : float or Quantity
+        The length of a simulation time step.
+
+    Returns
+    -------
+    ts : np.ndarray, int
+        The time step corresponding to the given time.
+
+    Notes
+    -----
+    This function can handle infinity values, it will return a value equal to
+    half of the maximal integer value. This assures that an expression such as
+    ``timestep(t) - timestep(lastspike)`` will result in a reasonable value even
+    if ``lastspike`` is ``-inf``. If ``timestep(lastspike)`` were equal to the
+    minimal representable integer value, this expression would overflow.
+    '''
+    elapsed_steps = (t + 1e-3*dt)/dt
+    if np.isscalar(elapsed_steps) or elapsed_steps.shape == ():
+        if np.isinf(elapsed_steps):
+            if elapsed_steps > 0:
+                return _infinity_int
+            else:
+                return -_infinity_int
+        else:
+            return np.int_(elapsed_steps)
+    else:
+        int_steps = np.asarray(elapsed_steps, dtype=int)
+        are_inf, = np.nonzero(np.isinf(elapsed_steps))
+        int_steps[are_inf] = np.where(elapsed_steps[are_inf] > 0,
+                                      _infinity_int, -_infinity_int)
+        return int_steps
+
+
 DEFAULT_FUNCTIONS = {
     # numpy functions that have the same name in numpy and math.h
     'cos': Function(unitsafe.cos,
@@ -588,7 +637,9 @@ DEFAULT_FUNCTIONS = {
                      return_type='highest',
                      return_unit=lambda u1, u2, u3: u1,),
     'int': Function(pyfunc=np.int_, return_type='integer',
-                    arg_units=[1], return_unit=1)
+                    arg_units=[1], return_unit=1),
+    'timestep': Function(pyfunc=timestep, return_type='integer',
+                         arg_units=[second, second], return_unit=1)
     }
 
 DEFAULT_CONSTANTS = {'pi': SymbolicConstant('pi', sympy.pi, value=np.pi),
