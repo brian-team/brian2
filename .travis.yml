@@ -11,10 +11,11 @@ addons:
   artifacts:
     paths:
       - $(ls dist/*.whl | tr "\n" ":")
+    s3_region: "eu-central-1"
 
 env:
   global:
-    - ARTIFACTS_REGION=eu-west-3
+    - ARTIFACTS_REGION=eu-central-1
     - ARTIFACTS_BUCKET=brian-travis-artifacts
     - secure: "cQocTghprWx5J+Y42AcLfzl4mPyDdsE1wlqAJ71u+wzJu9AVxPC3ARblAn/T9Tjyma5UFZf2WIIxKnjRNg3DfYFeJWWCRMk9p/ji5guM+1rD/xE/XQdR061EsRAundnOJns9/BQeKQ5r4Gex2vky+X0PU9Nds53nrroA33HiHA0="
     - secure: "S+Ga7Wd4IeVYEm/yi8YBW6c6RxTLSlmj/UcjfoMLQTadDBIjjpuOtCLTlgJceyxlfbXOyKRI+D3sjFWzVWCzYVrui/lnpIBNEgMiaNOXjYkmdktOEfjPEVAgR0OZsNr25h0hr3ITWSLoS4XYNfxclDG6YMzVOuYlV+1TAfQJJ04="
