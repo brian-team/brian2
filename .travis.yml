@@ -16,7 +16,7 @@ env:
   global:
     - ARTIFACTS_AWS_REGION=eu-west-3
     - ARTIFACTS_BUCKET=brian-travis-artifacts
-    - secure: "UFl+6nhIGYzwW7DQonBz6KLzHGDwWa+GYK1dJ9V7S2QP+F9BgkGSLV2cSyl9+ZhPlUnhDqv2hNHJhxMzWC7zUP5JftYcoo09a8e9BbyozKc5LDpHNqi1i6EA0deCdAhpCivSNcwmLEl0L5MkJHbXekPaoOeKDGch/Ro7B2wX+Ew="
+    - secure: "f9LksCruAqXiOMsdu04K8IxG/u+DRH0OVa9hVJ3yCTdl6JU0tlRvlkPl8TSCU2za5X/Nr0iqIZAJHe1Jy3V+YqdKBLqZoyXiKFPo5U3ZeLP6a7H2+WD+pWSoXXX7HHwVkYSl4PdNLY+xqy1BQfBgs+rtncYriMySHYhaKLM60p0="
     - secure: "S+Ga7Wd4IeVYEm/yi8YBW6c6RxTLSlmj/UcjfoMLQTadDBIjjpuOtCLTlgJceyxlfbXOyKRI+D3sjFWzVWCzYVrui/lnpIBNEgMiaNOXjYkmdktOEfjPEVAgR0OZsNr25h0hr3ITWSLoS4XYNfxclDG6YMzVOuYlV+1TAfQJJ04="
 
 matrix:
