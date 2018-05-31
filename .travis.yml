@@ -185,6 +185,7 @@ after_success:
 # Create binary packages for pypi and upload them to AWS
 - if [[ $DO_CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
     conda install --yes --quiet wheel;
+    cd $SRCDIR;
     python setup.py bdist_wheel --with-cython --fail-on-error;
   fi
 
