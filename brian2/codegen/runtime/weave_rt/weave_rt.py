@@ -48,8 +48,8 @@ def get_weave_cache_dir():
 
 
 def get_weave_extensions():
-    return {'compiled_catalog', 'cpp', '.so', '.pyd', '.dll', '.obj', '.exp',
-            '.lib'}
+    return {'compiled_catalog', 'compiled_catalog.dir', 'compiled_catalog.dat',
+            'cpp', '.so', '.pyd', '.dll', '.obj', '.exp', '.lib'}
 
 
 def weave_data_type(dtype):
