@@ -69,7 +69,7 @@ if 'rate' in globals():
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.1.3'
+__version__ = '2.1.3+git'
 __release_date__ = '2018-05-30'
 
 from brian2.only import *
