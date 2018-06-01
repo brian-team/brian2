@@ -4,7 +4,7 @@ import numpy as np
 
 from brian2.parsing.bast import brian_dtype_from_dtype
 from brian2.parsing.rendering import NumpyNodeRenderer
-from brian2.core.functions import DEFAULT_FUNCTIONS, Function
+from brian2.core.functions import DEFAULT_FUNCTIONS, timestep
 from brian2.core.variables import ArrayVariable
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent
 from brian2.utils.logger import get_logger
@@ -328,7 +328,14 @@ DEFAULT_FUNCTIONS['int'].implementations.add_implementation(NumpyCodeGenerator,
                                                             code=int_func)
 ceil_func = lambda value: np.int32(np.ceil(value))
 DEFAULT_FUNCTIONS['ceil'].implementations.add_implementation(NumpyCodeGenerator,
-                                                            code=ceil_func)
+                                                             code=ceil_func)
 floor_func = lambda value: np.int32(np.floor(value))
 DEFAULT_FUNCTIONS['floor'].implementations.add_implementation(NumpyCodeGenerator,
-                                                            code=floor_func)
+                                                              code=floor_func)
+
+# We need to explicitly add an implementation for the timestep function,
+# otherwise Brian would *add* units during simulation, thinking that the
+# timestep function would not work correctly otherwise. This would slow the
+# function down significantly.
+DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(NumpyCodeGenerator,
+                                                                 code=timestep)
