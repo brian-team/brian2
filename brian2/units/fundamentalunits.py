@@ -2036,7 +2036,7 @@ class Unit(Quantity):
             return other.__div__(self)
         else:
             try:
-                if other == 1:
+                if is_dimensionless(other) and other == 1:
                     return self**-1
             except (ValueError, TypeError, DimensionMismatchError):
                 pass
