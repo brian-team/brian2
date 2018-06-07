@@ -1,6 +1,16 @@
 Release notes
 =============
 
+Brian 2.1.3.1
+-------------
+This is a bug-fix release that fixes two bugs in the recent 2.1.3 release:
+
+* Fix an inefficiency in the newly introduced `~brian2.core.functions.timestep`
+  function when using the ``numpy`` target (:issue:`965`)
+* Fix inefficiencies in the unit system that could lead to slow operations
+  and high memory use (:issue:`967`). Thanks to Kaustab Pal for making us
+  aware of the issue.
+
 Brian 2.1.3
 -----------
 This is a bug-fix release that fixes a number of important bugs (see below),
