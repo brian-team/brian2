@@ -23,7 +23,9 @@
 
 int main(int argc, char **argv)
 {
-
+    if(brian::read_command_line_parameters(argc, argv)) {
+        return 1;
+    }
 	brian_start();
 
 	{
