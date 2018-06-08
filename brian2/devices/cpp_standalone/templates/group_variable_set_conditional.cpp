@@ -19,11 +19,10 @@ namespace {
 ////// HASH DEFINES ///////
 {{hashdefine_lines|autoindent}}
 
-void _run_{{codeobj_name}}()
+void brian::_run_{{codeobj_name}}()
 {
     {# USES_VARIABLES { N } #}
     {# ALLOWS_SCALAR_WRITE #}
-	using namespace brian;
 	///// CONSTANTS ///////////
 	%CONSTANTS%
 	///// POINTERS ////////////
@@ -71,8 +70,6 @@ void _run_{{codeobj_name}}()
 
 #include "objects.h"
 #include "parameters.h"
-
-void _run_{{codeobj_name}}();
 
 {% block extra_functions_h %}
 {% endblock %}

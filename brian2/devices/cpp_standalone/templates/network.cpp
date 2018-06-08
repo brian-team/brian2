@@ -174,9 +174,15 @@ Clock* Network::next_clocks()
 #include<vector>
 #include<utility>
 #include<set>
+#include<functional>
 #include "brianlib/clocks.h"
 
-typedef void (*codeobj_func)();
+class brian; // we need this but don't want to include objects.h
+
+//typedef void (brian::*codeobj_func)();
+//typedef std::function<void(const brian&)
+typedef std::function<void(void)> codeobj_func;
+//f = std::bind(&Foo::doSomething, this);
 
 class Network
 {
@@ -188,6 +194,7 @@ public:
     double t;
     static double _last_run_time;
     static double _last_run_completed_fraction;
+
 
     Network();
     void clear();

@@ -8,7 +8,7 @@
 #include<cmath>
 #include<ctime>
 
-void _run_{{codeobj_name}}()
+void brian::_run_{{codeobj_name}}()
 {
     using namespace brian;
 
@@ -57,8 +57,6 @@ void _run_{{codeobj_name}}()
 
 #include "objects.h"
 #include "parameters.h"
-
-void _run_{{codeobj_name}}();
 
 #endif
 {% endmacro %}

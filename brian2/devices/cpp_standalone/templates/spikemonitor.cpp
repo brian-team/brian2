@@ -50,9 +50,8 @@
 {% endblock %}
 
 {% block extra_functions_cpp %}
-void _debugmsg_{{codeobj_name}}()
+void brian::_debugmsg_{{codeobj_name}}()
 {
-	using namespace brian;
 	{# We need the pointers and constants here to get the access to N working #}
     %CONSTANTS%
     {{pointers_lines|autoindent}}
@@ -61,7 +60,7 @@ void _debugmsg_{{codeobj_name}}()
 {% endblock %}
 
 {% block extra_functions_h %}
-void _debugmsg_{{codeobj_name}}();
+//void _debugmsg_{{codeobj_name}}();
 {% endblock %}
 
 {% macro main_finalise() %}

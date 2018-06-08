@@ -21,21 +21,21 @@
 
 {{report_func|autoindent}}
 
+void brian::_run_main_lines()
+{
+    {{ openmp_pragma('set_num_threads') }}
+    {{main_lines|autoindent}}
+}
+
 int main(int argc, char **argv)
 {
-    if(brian::read_command_line_parameters(argc, argv)) {
+    if(read_command_line_parameters(argc, argv)) {
         return 1;
     }
-	brian_start();
-
-	{
-		using namespace brian;
-
-		{{ openmp_pragma('set_num_threads') }}
-        {{main_lines|autoindent}}
-	}
-
-	brian_end();
+    brian sim;
+	sim._start();
+	sim._run_main_lines();
+	sim._end();
 
 	return 0;
 }

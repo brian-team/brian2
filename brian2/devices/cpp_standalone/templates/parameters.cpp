@@ -4,7 +4,7 @@
 #include<iostream>
 #include <sstream>
 
-namespace brian {
+//namespace brian {
 
 {% for name, param in parameters | dictsort(by='key') %}
 {{c_data_type(param.dtype)}} _parameter_{{name}} = {{cpp_number_representation(param)}};
@@ -45,7 +45,7 @@ int read_command_line_parameters(int argc, char *argv[])
     return 0;
 };
 
-}
+//}
 
 {% endmacro %}
 
@@ -56,7 +56,7 @@ int read_command_line_parameters(int argc, char *argv[])
 #ifndef _BRIAN_PARAMETERS_H
 #define _BRIAN_PARAMETERS_H
 
-namespace brian {
+//namespace brian {
 
 {% for name, param in parameters | dictsort(by='key') %}
 extern {{c_data_type(param.dtype)}} _parameter_{{name}};
@@ -64,7 +64,7 @@ extern {{c_data_type(param.dtype)}} _parameter_{{name}};
 
 int read_command_line_parameters(int argc, char *argv[]);
 
-}
+//}
 
 #endif
 

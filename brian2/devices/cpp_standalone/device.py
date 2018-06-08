@@ -643,7 +643,8 @@ class CPPStandaloneDevice(Device):
                         get_array_name=self.get_array_name,
                         profiled_codeobjects=self.profiled_codeobjects,
                         code_objects=self.code_objects.values(),
-                        vars_to_write=self._vars_to_write)
+                        vars_to_write=self._vars_to_write,
+                        run_funcs=self.runfuncs)
         writer.write('objects.*', arr_tmp)
 
     def generate_parameters_source(self, writer):
@@ -1320,8 +1321,8 @@ class CPPStandaloneDevice(Device):
         run_lines = ['{net.name}.clear();'.format(net=net)]
         all_clocks = set()
         for clock, codeobj in code_objects:
-            run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
-                                                                                               codeobj=codeobj))
+            run_lines.append('{net.name}.add(&{clock.name}, std::bind(&brian::_run_{codeobj.name}, this));'.format(
+                clock=clock, net=net, codeobj=codeobj))
             all_clocks.add(clock)
 
         # Under some rare circumstances (e.g. a NeuronGroup only defining a

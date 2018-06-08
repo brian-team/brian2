@@ -20,10 +20,8 @@ namespace {
 ////// HASH DEFINES ///////
 {{hashdefine_lines|autoindent}}
 
-void _run_{{codeobj_name}}()
+void brian::_run_{{codeobj_name}}()
 {
-	using namespace brian;
-
     {% if profiled %}
     {% if openmp_pragma('with_openmp') %}
     const double _start_time = omp_get_wtime();
@@ -80,8 +78,6 @@ void _run_{{codeobj_name}}()
 
 #include "objects.h"
 #include "parameters.h"
-
-void _run_{{codeobj_name}}();
 
 {% block extra_functions_h %}
 {% endblock %}

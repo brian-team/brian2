@@ -2,8 +2,7 @@
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 {% set pathobj = owner.name %}
-void _run_{{codeobj_name}}() {
-	using namespace brian;
+void brian::_run_{{codeobj_name}}() {
 	{{pointers_lines|autoindent}}
 
     double* real_delays = {{pathobj}}.delay.empty() ? 0 : &({{pathobj}}.delay[0]);
@@ -21,8 +20,6 @@ void _run_{{codeobj_name}}() {
 {% macro h_file() %}
 #ifndef _INCLUDED_{{codeobj_name}}
 #define _INCLUDED_{{codeobj_name}}
-
-void _run_{{codeobj_name}}();
 
 #endif
 {% endmacro %}
