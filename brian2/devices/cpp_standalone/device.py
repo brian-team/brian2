@@ -115,6 +115,16 @@ def invert_dict(x):
     return dict((v, k) for k, v in x.iteritems())
 
 
+def cpp_number_representation(value):
+    renderer = CPPNodeRenderer()
+    value = np.asarray(value) # remove Quantity/Parameter
+    value = value[()] # remove array
+    string_value = renderer.render_expr(repr(value))
+    if value < 0:
+        string_value = '(%s)' % string_value
+    return string_value
+
+
 class CPPStandaloneDevice(Device):
     '''
     The `Device` used for C++ standalone simulations.
@@ -141,6 +151,8 @@ class CPPStandaloneDevice(Device):
         #: List of all arrays to be filled with numbers (list of
         #: (var, varname, start) tuples
         self.arange_arrays = []
+        #: Dictionary mapping names to `Parameter`
+        self.parameters = {}
 
         #: Whether the simulation has been run
         self.has_been_run = False
@@ -214,9 +226,18 @@ class CPPStandaloneDevice(Device):
         self.build_on_run = build_on_run
         self.build_options = build_options
 
+    def add_to_parameters(self, param):
+        if param.name in self.parameters and param is not self.parameters[param.name]:
+            raise ValueError("Found duplicate parameters with same name (%s) and different values" % param.name)
+        self.parameters[param.name] = param
+
     def freeze(self, code, ns):
         # this is a bit of a hack, it should be passed to the template somehow
         for k, v in ns.items():
+            if isinstance(v, Constant) and v.parameter is not None:
+                self.add_to_parameters(v.parameter)
+                code = word_substitute(code, {k: "_parameter_" + v.name})
+                continue
             if (isinstance(v, Variable) and
                   v.scalar and v.constant and v.read_only):
                 try:
@@ -227,10 +248,7 @@ class CPPStandaloneDevice(Device):
                 code = word_substitute(code, {k: v})
             elif isinstance(v, numbers.Number):
                 # Use a renderer to correctly transform constants such as True or inf
-                renderer = CPPNodeRenderer()
-                string_value = renderer.render_expr(repr(v))
-                if v < 0:
-                    string_value = '(%s)' % string_value
+                string_value = cpp_number_representation(v)
                 code = word_substitute(code, {k: string_value})
             else:
                 pass  # don't deal with this object
@@ -627,6 +645,11 @@ class CPPStandaloneDevice(Device):
                         code_objects=self.code_objects.values(),
                         vars_to_write=self._vars_to_write)
         writer.write('objects.*', arr_tmp)
+
+    def generate_parameters_source(self, writer):
+        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters,
+                                                                   cpp_number_representation=cpp_number_representation)
+        writer.write('parameters.*', params_tmp)
 
     def generate_main_source(self, writer):
         main_lines = []
@@ -1189,6 +1212,7 @@ class CPPStandaloneDevice(Device):
         self.generate_network_source(writer, compiler)
         self.generate_synapses_classes_source(writer)
         self.generate_run_source(writer)
+        self.generate_parameters_source(writer)
         self.copy_source_files(writer, directory)
 
         writer.source_files.extend(additional_source_files)

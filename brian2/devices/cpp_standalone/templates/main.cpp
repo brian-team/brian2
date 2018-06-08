@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "objects.h"
+#include "parameters.h"
 #include <ctime>
 #include <time.h>
 {{ openmp_pragma('include') }}

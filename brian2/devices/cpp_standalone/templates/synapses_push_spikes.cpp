@@ -56,6 +56,7 @@ void _run_{{codeobj_name}}()
 #define _INCLUDED_{{codeobj_name}}
 
 #include "objects.h"
+#include "parameters.h"
 
 void _run_{{codeobj_name}}();
 

@@ -18,7 +18,7 @@ from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
                                    ArrayVariable, DynamicArrayVariable,
-                                   Subexpression, AuxiliaryVariable)
+                                   Subexpression, AuxiliaryVariable, Parameter)
 from brian2.core.functions import Function
 from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_FUNCTIONS,
@@ -883,11 +883,15 @@ class Group(VariableOwner, BrianObject):
         if not isinstance(resolved, (Function, Variable)):
             # Wrap the value in a Constant object
             dimensions = getattr(resolved, 'dim', DIMENSIONLESS)
+            if isinstance(resolved, Parameter):
+                parameter = resolved
+            else:
+                parameter = None
             value = np.asarray(resolved)
             if value.shape != ():
                 raise KeyError('Variable %s was found in the namespace, but is'
                                ' not a scalar value' % identifier)
-            resolved = Constant(identifier, dimensions=dimensions, value=value)
+            resolved = Constant(identifier, dimensions=dimensions, value=value, parameter=parameter)
 
         return resolved
 

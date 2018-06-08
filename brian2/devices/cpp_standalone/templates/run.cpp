@@ -1,6 +1,7 @@
 {% macro cpp_file() %}
 #include<stdlib.h>
 #include "objects.h"
+#include "parameters.h"
 #include<ctime>
 #include "randomkit.h"
 

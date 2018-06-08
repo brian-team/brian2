@@ -28,11 +28,23 @@ __all__ = ['Variable',
            'VariableView',
            'Variables',
            'LinkedVariable',
-           'linked_var'
+           'linked_var',
+           'Parameter'
            ]
 
 
 logger = get_logger(__name__)
+
+
+class Parameter(Quantity):
+    __slots__ = ["dim", "name"]
+    def __new__(cls, arr, name=None, **kwds):
+        if name is None:
+            raise TypeError("Parameter requires argument name")
+        q = Quantity.__new__(cls, arr, **kwds)
+        q.name = name
+        return q
+
 
 
 def get_dtype(obj):
@@ -310,7 +322,8 @@ class Constant(Variable):
         specific group, e.g. the ``N`` constant for a `NeuronGroup`. External
         constants will have ``None`` (the default value).
     '''
-    def __init__(self, name, value, dimensions=DIMENSIONLESS, owner=None):
+    def __init__(self, name, value, dimensions=DIMENSIONLESS, owner=None, parameter=None):
+        self.parameter = parameter
         # Determine the type of the value
         is_bool = (value is True or
                    value is False or

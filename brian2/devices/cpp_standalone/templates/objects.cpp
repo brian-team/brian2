@@ -1,6 +1,7 @@
 {% macro cpp_file() %}
 
 #include "objects.h"
+#include "parameters.h"
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
