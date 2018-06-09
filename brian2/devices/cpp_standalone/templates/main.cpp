@@ -20,7 +20,7 @@
 
 {{report_func|autoindent}}
 
-void brian::_run_main_lines()
+void {{simname}}::_run_main_lines()
 {
     {{ openmp_pragma('set_num_threads') }}
     {{main_lines|autoindent}}
@@ -28,7 +28,7 @@ void brian::_run_main_lines()
 
 int main(int argc, char **argv)
 {
-    brian sim;
+    {{simname}} sim;
     sim._set_default_parameters();
     if(sim._read_command_line_parameters(argc, argv)) {
         return 1;

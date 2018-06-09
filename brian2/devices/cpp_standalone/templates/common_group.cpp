@@ -20,7 +20,7 @@ namespace {
 ////// HASH DEFINES ///////
 {{hashdefine_lines|autoindent}}
 
-void brian::_run_{{codeobj_name}}()
+void {{simname}}::_run_{{codeobj_name}}()
 {
     {% if profiled %}
     {% if openmp_pragma('with_openmp') %}

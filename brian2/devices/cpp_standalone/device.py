@@ -226,6 +226,10 @@ class CPPStandaloneDevice(Device):
         self.build_on_run = build_on_run
         self.build_options = build_options
 
+    @property
+    def simulation_class_name(self):
+        return self.build_options.get('simulation_class_name', 'brian')
+
     def add_to_parameters(self, param):
         if param.name in self.parameters and param is not self.parameters[param.name]:
             raise ValueError("Found duplicate parameters with same name (%s) and different values" % param.name)
@@ -574,12 +578,13 @@ class CPPStandaloneDevice(Device):
             template_kwds = dict(template_kwds)
         template_kwds['user_headers'] = self.headers + prefs['codegen.cpp.headers']
         template_kwds['profiled'] = self.enable_profiling
+        template_kwds['simname'] = self.simulation_class_name
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
-                                                               template_name, variable_indices,
-                                                               codeobj_class=codeobj_class,
-                                                               template_kwds=template_kwds,
-                                                               override_conditional_write=override_conditional_write,
-                                                               )
+            template_name, variable_indices,
+            codeobj_class=codeobj_class,
+            template_kwds=template_kwds,
+            override_conditional_write=override_conditional_write,
+            )
         self.code_objects[codeobj.name] = codeobj
         if self.enable_profiling:
             self.profiled_codeobjects.append(codeobj.name)
@@ -646,11 +651,13 @@ class CPPStandaloneDevice(Device):
                         vars_to_write=self._vars_to_write,
                         run_funcs=self.runfuncs,
                         parameters=self.parameters,
-                        cpp_number_representation=cpp_number_representation)
+                        cpp_number_representation=cpp_number_representation,
+                        simname=self.simulation_class_name)
         writer.write('objects.*', arr_tmp)
 
     def generate_parameters_source(self, writer):
-        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters, cpp_number_representation=cpp_number_representation)
+        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters, cpp_number_representation=cpp_number_representation,
+             simname=self.simulation_class_name)
         writer.write('parameters.*', params_tmp)
 
     def generate_main_source(self, writer):
@@ -735,9 +742,10 @@ class CPPStandaloneDevice(Device):
                     nb_threads = 1
                 main_lines.append('for (int _i=0; _i<{nb_threads}; _i++)'.format(nb_threads=nb_threads))
                 if seed is None:  # random
-                    main_lines.append('    rk_randomseed(brian::_mersenne_twister_states[_i]);')
+                    main_lines.append('    rk_randomseed({simname}::_mersenne_twister_states[_i]);'.format(simname=self.simulation_class_name))
                 else:
-                    main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
+                    main_lines.append('    rk_seed({seed!r}L + _i, {simname}::_mersenne_twister_states[_i]);'.format(seed=seed,
+                        simname=self.simulation_class_name))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
 
@@ -756,7 +764,8 @@ class CPPStandaloneDevice(Device):
                                                            code_objects=self.code_objects.values(),
                                                            report_func=self.report_func,
                                                            dt=float(self.defaultclock.dt),
-                                                           user_headers=self.headers
+                                                           user_headers=self.headers,
+                                                           simname=self.simulation_class_name
                                                            )
         writer.write('main.cpp', main_tmp)
 
@@ -804,11 +813,12 @@ class CPPStandaloneDevice(Device):
         maximum_run_time = self._maximum_run_time
         if maximum_run_time is not None:
             maximum_run_time = float(maximum_run_time)
-        network_tmp = self.code_object_class().templater.network(None, None, maximum_run_time=maximum_run_time)
+        network_tmp = self.code_object_class().templater.network(None, None, maximum_run_time=maximum_run_time, simname=self.simulation_class_name)
         writer.write('network.*', network_tmp)
 
     def generate_synapses_classes_source(self, writer):
-        synapses_classes_tmp = self.code_object_class().templater.synapses_classes(None, None)
+        synapses_classes_tmp = self.code_object_class().templater.synapses_classes(None, None,
+            simname=self.simulation_class_name)
         writer.write('synapses_classes.*', synapses_classes_tmp)
 
     def generate_run_source(self, writer):
@@ -816,7 +826,8 @@ class CPPStandaloneDevice(Device):
                                                         code_objects=self.code_objects.values(),
                                                         user_headers=self.headers,
                                                         array_specs=self.arrays,
-                                                        clocks=self.clocks
+                                                        clocks=self.clocks,
+                                                        simname=self.simulation_class_name
                                                         )
         writer.write('run.*', run_tmp)
 
@@ -1072,10 +1083,11 @@ class CPPStandaloneDevice(Device):
                     pass
 
 
-    def build(self, directory='output',
+    def build(self, directory='output', simulation_class_name='brian',
               compile=True, run=True, debug=False, clean=False,
               with_output=True, additional_source_files=None,
-              run_args=None, direct_call=True, **kwds):
+              run_args=None, direct_call=True,
+              **kwds):
         '''
         Build the project
 
@@ -1322,8 +1334,9 @@ class CPPStandaloneDevice(Device):
         run_lines = ['{net.name}.clear();'.format(net=net)]
         all_clocks = set()
         for clock, codeobj in code_objects:
-            run_lines.append('{net.name}.add(&{clock.name}, std::bind(&brian::_run_{codeobj.name}, this));'.format(
-                clock=clock, net=net, codeobj=codeobj))
+            run_lines.append('{net.name}.add(&{clock.name}, std::bind(&{simname}::_run_{codeobj.name}, this));'.format(
+                clock=clock, net=net, codeobj=codeobj,
+                simname=self.simulation_class_name))
             all_clocks.add(clock)
 
         # Under some rare circumstances (e.g. a NeuronGroup only defining a

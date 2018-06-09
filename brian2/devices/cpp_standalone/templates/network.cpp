@@ -177,12 +177,9 @@ Clock* Network::next_clocks()
 #include<functional>
 #include "brianlib/clocks.h"
 
-class brian; // we need this but don't want to include objects.h
+class {{simname}}; // we need this but don't want to include objects.h
 
-//typedef void (brian::*codeobj_func)();
-//typedef std::function<void(const brian&)
 typedef std::function<void(void)> codeobj_func;
-//f = std::bind(&Foo::doSomething, this);
 
 class Network
 {

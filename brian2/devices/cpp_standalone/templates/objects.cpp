@@ -29,7 +29,7 @@ int get_file_size(const std::string &filename)
     return filesize;
 }
 
-void brian::_init_arrays()
+void {{simname}}::_init_arrays()
 {
     // Arrays initialized to 0
     {% for var, varname in zero_arrays | sort(attribute='1') %}
@@ -62,7 +62,7 @@ void brian::_init_arrays()
         _mersenne_twister_states.push_back(new rk_state());
 }
 
-void brian::_load_arrays()
+void {{simname}}::_load_arrays()
 {
     {% for (name, dtype_spec, N, filename) in static_array_specs | sort %}
     // infer array size from disk array size
@@ -90,7 +90,7 @@ void brian::_load_arrays()
     {% endfor %}
 }
 
-void brian::_write_arrays()
+void {{simname}}::_write_arrays()
 {
     {% for var, varname in array_specs | dictsort(by='value') %}
     {% if not (var in dynamic_array_specs or var in dynamic_array_2d_specs) %}
@@ -175,7 +175,7 @@ void brian::_write_arrays()
     }
 }
 
-void brian::_dealloc_arrays()
+void {{simname}}::_dealloc_arrays()
 {
     {% for var, varname in array_specs | dictsort(by='value') %}
     {% if varname in dynamic_array_specs.values() %}
@@ -217,7 +217,7 @@ void brian::_dealloc_arrays()
 #include<vector>
 {{ openmp_pragma('include') }}
 
-class brian {
+class {{simname}} {
 public:
 
     std::vector< rk_state* > _mersenne_twister_states;

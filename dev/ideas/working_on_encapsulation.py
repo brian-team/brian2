@@ -1,6 +1,7 @@
 from brian2 import *
 from brian2.core.variables import Parameter
-set_device('cpp_standalone', directory='encapsulation', build_on_run=True)
+set_device('cpp_standalone', directory='encapsulation', build_on_run=True,
+           simulation_class_name='encapsulation_sim')
 
 tau = Parameter(9*ms, name='tau')
 G = NeuronGroup(1, 'dv/dt=(2-v)/tau:1', threshold='v>1', reset='v=0')

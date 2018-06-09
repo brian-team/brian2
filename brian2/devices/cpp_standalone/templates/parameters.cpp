@@ -10,14 +10,14 @@ enum {
 {% endfor %}
     };
 
-void brian::_set_default_parameters()
+void {{simname}}::_set_default_parameters()
 {
     {% for name, param in parameters | dictsort(by='key') %}
     _parameter_{{name}} = {{cpp_number_representation(param)}};
     {% endfor %}
 }
 
-int brian::_read_command_line_parameters(int argc, char *argv[])
+int {{simname}}::_read_command_line_parameters(int argc, char *argv[])
 {
     CSimpleOpt::SOption options[] = {
 {% for name, param in parameters | dictsort(by='key') %}

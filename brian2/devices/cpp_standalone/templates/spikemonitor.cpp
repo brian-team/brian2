@@ -50,7 +50,7 @@
 {% endblock %}
 
 {% block extra_functions_cpp %}
-void brian::_debugmsg_{{codeobj_name}}()
+void {{simname}}::_debugmsg_{{codeobj_name}}()
 {
 	{# We need the pointers and constants here to get the access to N working #}
     %CONSTANTS%

@@ -8,7 +8,7 @@
 #include<cmath>
 #include<ctime>
 
-void brian::_run_{{codeobj_name}}()
+void {{simname}}::_run_{{codeobj_name}}()
 {
     using namespace brian;
 

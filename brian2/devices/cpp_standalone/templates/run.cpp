@@ -12,7 +12,7 @@
 #include {{name}}
 {% endfor %}
 
-void brian::_start()
+void {{simname}}::_start()
 {
 	_init_arrays();
 	_load_arrays();
@@ -26,14 +26,14 @@ void brian::_start()
 	    rk_randomseed(_mersenne_twister_states[i]);  // Note that this seed can be potentially replaced in main.cpp
 }
 
-void brian::_end()
+void {{simname}}::_end()
 {
 	_write_arrays();
 	_dealloc_arrays();
 }
 
 {% for name, lines in run_funcs.items() | sort(attribute='name') %}
-void brian::_run_func_{{name}}()
+void {{simname}}::_run_func_{{name}}()
 {
     {{lines|autoindent}}
 }

@@ -2,7 +2,7 @@
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
 {% set pathobj = owner.name %}
-void brian::_run_{{codeobj_name}}() {
+void {{simname}}::_run_{{codeobj_name}}() {
 	{{pointers_lines|autoindent}}
 
     double* real_delays = {{pathobj}}.delay.empty() ? 0 : &({{pathobj}}.delay[0]);

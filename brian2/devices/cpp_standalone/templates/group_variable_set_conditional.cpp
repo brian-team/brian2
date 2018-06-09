@@ -19,7 +19,7 @@ namespace {
 ////// HASH DEFINES ///////
 {{hashdefine_lines|autoindent}}
 
-void brian::_run_{{codeobj_name}}()
+void {{simname}}::_run_{{codeobj_name}}()
 {
     {# USES_VARIABLES { N } #}
     {# ALLOWS_SCALAR_WRITE #}
