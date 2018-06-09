@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "objects.h"
-#include "parameters.h"
 #include <ctime>
 #include <time.h>
 {{ openmp_pragma('include') }}
@@ -29,10 +28,11 @@ void brian::_run_main_lines()
 
 int main(int argc, char **argv)
 {
-    if(read_command_line_parameters(argc, argv)) {
+    brian sim;
+    sim._set_default_parameters();
+    if(sim._read_command_line_parameters(argc, argv)) {
         return 1;
     }
-    brian sim;
 	sim._start();
 	sim._run_main_lines();
 	sim._end();

@@ -644,12 +644,13 @@ class CPPStandaloneDevice(Device):
                         profiled_codeobjects=self.profiled_codeobjects,
                         code_objects=self.code_objects.values(),
                         vars_to_write=self._vars_to_write,
-                        run_funcs=self.runfuncs)
+                        run_funcs=self.runfuncs,
+                        parameters=self.parameters,
+                        cpp_number_representation=cpp_number_representation)
         writer.write('objects.*', arr_tmp)
 
     def generate_parameters_source(self, writer):
-        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters,
-                                                                   cpp_number_representation=cpp_number_representation)
+        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters, cpp_number_representation=cpp_number_representation)
         writer.write('parameters.*', params_tmp)
 
     def generate_main_source(self, writer):
@@ -1205,14 +1206,14 @@ class CPPStandaloneDevice(Device):
                              'standalone mode, the following name(s) were used '
                              'more than once: %s' % formatted_names)
 
-        self.generate_objects_source(writer, self.arange_arrays,
-                                     self.net_synapses, self.static_array_specs,
-                                     self.networks)
         self.generate_main_source(writer)
         self.generate_codeobj_source(writer)
         self.generate_network_source(writer, compiler)
         self.generate_synapses_classes_source(writer)
         self.generate_run_source(writer)
+        self.generate_objects_source(writer, self.arange_arrays,
+                                     self.net_synapses, self.static_array_specs,
+                                     self.networks)
         self.generate_parameters_source(writer)
         self.copy_source_files(writer, directory)
 

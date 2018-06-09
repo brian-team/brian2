@@ -77,7 +77,6 @@ void brian::_run_{{codeobj_name}}()
 #define _INCLUDED_{{codeobj_name}}
 
 #include "objects.h"
-#include "parameters.h"
 
 {% block extra_functions_h %}
 {% endblock %}

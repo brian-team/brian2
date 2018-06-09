@@ -1,7 +1,6 @@
 {% macro cpp_file() %}
 
 #include "objects.h"
-#include "parameters.h"
 #include "synapses_classes.h"
 #include "brianlib/clocks.h"
 #include "brianlib/dynamic_array.h"
@@ -277,6 +276,13 @@ public:
     double {{codeobj}}_profiling_info = 0.0;
     {% endfor %}
     {% endif %}
+
+    ////////////////// parameters //////////////
+    void _set_default_parameters();
+    int _read_command_line_parameters(int argc, char *argv[]);
+    {% for name, param in parameters | dictsort(by='key') %}
+    {{c_data_type(param.dtype)}} _parameter_{{name}};
+    {% endfor %}
 
     //////////////// basic methods /////////////
     void _init_arrays();

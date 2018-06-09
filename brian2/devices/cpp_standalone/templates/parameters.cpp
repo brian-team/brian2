@@ -1,14 +1,8 @@
 {% macro cpp_file() %}
-#include "parameters.h"
 #include "brianlib/SimpleOpt.h"
+#include "objects.h"
 #include<iostream>
 #include <sstream>
-
-//namespace brian {
-
-{% for name, param in parameters | dictsort(by='key') %}
-{{c_data_type(param.dtype)}} _parameter_{{name}} = {{cpp_number_representation(param)}};
-{% endfor %}
 
 enum {
 {% for name, param in parameters | dictsort(by='key') %}
@@ -16,7 +10,14 @@ enum {
 {% endfor %}
     };
 
-int read_command_line_parameters(int argc, char *argv[])
+void brian::_set_default_parameters()
+{
+    {% for name, param in parameters | dictsort(by='key') %}
+    _parameter_{{name}} = {{cpp_number_representation(param)}};
+    {% endfor %}
+}
+
+int brian::_read_command_line_parameters(int argc, char *argv[])
 {
     CSimpleOpt::SOption options[] = {
 {% for name, param in parameters | dictsort(by='key') %}
@@ -49,23 +50,5 @@ int read_command_line_parameters(int argc, char *argv[])
 
 {% endmacro %}
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
 {% macro h_file() %}
-
-#ifndef _BRIAN_PARAMETERS_H
-#define _BRIAN_PARAMETERS_H
-
-//namespace brian {
-
-{% for name, param in parameters | dictsort(by='key') %}
-extern {{c_data_type(param.dtype)}} _parameter_{{name}};
-{% endfor %}
-
-int read_command_line_parameters(int argc, char *argv[]);
-
-//}
-
-#endif
-
 {% endmacro %}
