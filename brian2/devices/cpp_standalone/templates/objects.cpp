@@ -232,7 +232,7 @@ public:
     {% for var, varname in array_specs | dictsort(by='value') %}
     {% if not var in dynamic_array_specs %}
     {{c_data_type(var.dtype)}} * {{varname}};
-    const int _num_{{varname}} = {{var.size}};
+    static const int _num_{{varname}} = {{var.size}};
     {% endif %}
     {% endfor %}
 
