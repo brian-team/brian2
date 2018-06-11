@@ -12,10 +12,23 @@ enum {
 
 void {{simname}}::_set_default_parameters()
 {
+    // Set parameter values
     {% for name, param in parameters | dictsort(by='key') %}
     _parameter_{{name}} = {{cpp_number_representation(param)}};
     {% endfor %}
+    // Initialise maps
+    {% for name, param in parameters | dictsort(by='key') %}
+    {% set dtype = c_data_type(param.dtype) %}
+    _parametermap_{{dtype}}["{{name}}"] = &_parameter_{{name}};
+    {% endfor %}
 }
+
+{% for dtype in parameter_c_data_types %}
+void {{simname}}::_set_parameter_{{dtype}}(std::string name, {{dtype}} value)
+{
+    *_parametermap_{{dtype}}[name] = value;
+}
+{% endfor %}
 
 int {{simname}}::_read_command_line_parameters(int argc, char *argv[])
 {
@@ -45,8 +58,6 @@ int {{simname}}::_read_command_line_parameters(int argc, char *argv[])
     }
     return 0;
 };
-
-//}
 
 {% endmacro %}
 

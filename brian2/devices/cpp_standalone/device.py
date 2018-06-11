@@ -230,6 +230,10 @@ class CPPStandaloneDevice(Device):
     def simulation_class_name(self):
         return self.build_options.get('simulation_class_name', 'brian')
 
+    @property
+    def parameter_c_data_types(self):
+        return set([c_data_type(param.dtype) for param in self.parameters.values()])
+
     def add_to_parameters(self, param):
         if param.name in self.parameters and param is not self.parameters[param.name]:
             raise ValueError("Found duplicate parameters with same name (%s) and different values" % param.name)
@@ -650,14 +654,15 @@ class CPPStandaloneDevice(Device):
                         code_objects=self.code_objects.values(),
                         vars_to_write=self._vars_to_write,
                         run_funcs=self.runfuncs,
-                        parameters=self.parameters,
+                        parameters=self.parameters, parameter_c_data_types=self.parameter_c_data_types,
                         cpp_number_representation=cpp_number_representation,
                         simname=self.simulation_class_name)
         writer.write('objects.*', arr_tmp)
 
     def generate_parameters_source(self, writer):
-        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters, cpp_number_representation=cpp_number_representation,
-             simname=self.simulation_class_name)
+        params_tmp = self.code_object_class().templater.parameters(None, None, parameters=self.parameters,
+            cpp_number_representation=cpp_number_representation, parameter_c_data_types=self.parameter_c_data_types,
+            simname=self.simulation_class_name)
         writer.write('parameters.*', params_tmp)
 
     def generate_main_source(self, writer):

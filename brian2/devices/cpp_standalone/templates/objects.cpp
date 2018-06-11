@@ -221,6 +221,7 @@ void {{simname}}::_dealloc_arrays()
 #include "network.h"
 #include "randomkit.h"
 #include<vector>
+#include<map>
 {{ openmp_pragma('include') }}
 
 namespace brian_global_namespace {
@@ -285,6 +286,12 @@ public:
     ////////////////// parameters //////////////
     void _set_default_parameters();
     int _read_command_line_parameters(int argc, char *argv[]);
+    {% for dtype in parameter_c_data_types %}
+    void _set_parameter_{{dtype}}(std::string name, {{dtype}} value);
+    {% endfor %}
+    {% for dtype in parameter_c_data_types %}
+    std::map<std::string, {{dtype}}*> _parametermap_{{dtype}};
+    {% endfor %}
     {% for name, param in parameters | dictsort(by='key') %}
     {{c_data_type(param.dtype)}} _parameter_{{name}};
     {% endfor %}

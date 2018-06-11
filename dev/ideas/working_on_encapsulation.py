@@ -3,26 +3,15 @@ from brian2.core.variables import Parameter
 set_device('cpp_standalone', directory='encapsulation', build_on_run=True,
            simulation_class_name='encapsulation_sim')
 
-# tau = Parameter(9*ms, name='tau')
-# G = NeuronGroup(1, 'dv/dt=(2-v)/tau:1', threshold='v>1', reset='v=0')
-# S = Synapses(G, G, on_pre='v += 0')
-# S.connect()
-# M = SpikeMonitor(G)
-#
-# run(100*ms)
-#
-# print M.t/ms
-
-G1 = SpikeGeneratorGroup(1, [0], [1] * ms)
-G2 = SpikeGeneratorGroup(1, [0], [2] * ms)
-S = Synapses(G1, G2, '''pre_value : 1
-                        post_value : 1''',
-             pre='pre_value +=1',
-             post='post_value +=2')
+tau = Parameter(9*ms, name='tau')
+G = NeuronGroup(1, 'dv/dt=(2-v)/tau:1', threshold='v>1', reset='v=0')
+S = Synapses(G, G, on_pre='v += 0')
 S.connect()
-syn_mon = StateMonitor(S, ['pre_value', 'post_value'], record=[0],
-                       when='end')
-run(3 * ms)
+M = SpikeMonitor(G)
+
+run(100*ms)
+
+print M.t/ms
 
 #device.build(directory='encapsulation', run=False)
 
