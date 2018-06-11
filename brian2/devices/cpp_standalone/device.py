@@ -742,9 +742,9 @@ class CPPStandaloneDevice(Device):
                     nb_threads = 1
                 main_lines.append('for (int _i=0; _i<{nb_threads}; _i++)'.format(nb_threads=nb_threads))
                 if seed is None:  # random
-                    main_lines.append('    rk_randomseed({simname}::_mersenne_twister_states[_i]);'.format(simname=self.simulation_class_name))
+                    main_lines.append('    rk_randomseed(brian_global_namespace::_mersenne_twister_states[_i]);'.format(simname=self.simulation_class_name))
                 else:
-                    main_lines.append('    rk_seed({seed!r}L + _i, {simname}::_mersenne_twister_states[_i]);'.format(seed=seed,
+                    main_lines.append('    rk_seed({seed!r}L + _i, brian_global_namespace::_mersenne_twister_states[_i]);'.format(seed=seed,
                         simname=self.simulation_class_name))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)

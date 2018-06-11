@@ -290,14 +290,19 @@ public:
     {% endfor %}
 
     //////////////// basic methods /////////////
-    {{simname}}() {% if synapses %}:{% endif %}
+    {# Weird hack to count the number of synaptic pathways in Jinja #}
+    {% set pathwayvars = {'n': 0} %}
+    {% for S in synapses %}{% for path in S._pathways %}
+        {% if pathwayvars.update({'n': pathwayvars['n']+1}) %}{% endif %}
+    {% endfor %}{% endfor %}
+    {{simname}}() {% if pathwayvars['n']>0 %}:{% endif %}
         {% for S in synapses | sort(attribute='name') %} {% set outer_loop = loop %}
         // Synaptic pathways for {{S.name}}
         {% for path in S._pathways | sort(attribute='name') %}
         {{path.name}}(
             {{dynamic_array_specs[path.variables['delay']]}},
             {{dynamic_array_specs[path.synapse_sources]}},
-            {{path.source.start}}, {{path.source.stop}}){% if not outer_loop.last %},{% endif %}
+            {{path.source.start}}, {{path.source.stop}}){% if not (outer_loop.last and loop.last) %},{% endif %}
         {% endfor %}
         {% endfor %}
         {};
