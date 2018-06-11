@@ -5,6 +5,8 @@ set_device('cpp_standalone', directory='encapsulation', build_on_run=True,
 
 tau = Parameter(9*ms, name='tau')
 G = NeuronGroup(1, 'dv/dt=(2-v)/tau:1', threshold='v>1', reset='v=0')
+S = Synapses(G, G, on_pre='v += 0')
+S.connect()
 M = SpikeMonitor(G)
 
 run(100*ms)

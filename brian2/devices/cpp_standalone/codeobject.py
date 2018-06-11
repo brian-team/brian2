@@ -125,7 +125,7 @@ def generate_rand_code(rand_func, owner):
         raise AssertionError(rand_func)
     code = '''
            double _%RAND_FUNC%(const int _vectorisation_idx) {
-               return %RK_CALL%(brian::_mersenne_twister_states[%THREAD_NUMBER%]);
+               return %RK_CALL%(brian_global_namespace::_mersenne_twister_states[%THREAD_NUMBER%]);
            }
            '''
     code = replace(code, {'%THREAD_NUMBER%': thread_number,

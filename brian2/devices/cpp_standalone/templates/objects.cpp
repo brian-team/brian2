@@ -11,6 +11,10 @@
 #include<iostream>
 #include<fstream>
 
+namespace brian_global_namespace {
+    std::vector< rk_state* > _mersenne_twister_states;
+};
+
 // Helper function to get file size
 // Adapted from https://www.joelverhagen.com/blog/2011/03/get-the-size-of-a-file-in-c/
 int get_file_size(const std::string &filename)
@@ -58,8 +62,10 @@ void {{simname}}::_init_arrays()
     // static arrays are allocated in _load_arrays because we need their sizes
 
     // Random number generator states
-    for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
-        _mersenne_twister_states.push_back(new rk_state());
+    if(brian_global_namespace::_mersenne_twister_states.size()==0) {
+        for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+            brian_global_namespace::_mersenne_twister_states.push_back(new rk_state());
+    };
 }
 
 void {{simname}}::_load_arrays()
@@ -217,10 +223,12 @@ void {{simname}}::_dealloc_arrays()
 #include<vector>
 {{ openmp_pragma('include') }}
 
+namespace brian_global_namespace {
+    extern std::vector< rk_state* > _mersenne_twister_states;
+};
+
 class {{simname}} {
 public:
-
-    std::vector< rk_state* > _mersenne_twister_states;
 
     //////////////// networks /////////////////
     {% for net in networks | sort(attribute='name') %}
@@ -258,10 +266,7 @@ public:
     {% for S in synapses | sort(attribute='name') %}
     // {{S.name}}
     {% for path in S._pathways | sort(attribute='name') %}
-    SynapticPathway<double> {{path.name}}(
-            {{dynamic_array_specs[path.variables['delay']]}},
-            {{dynamic_array_specs[path.synapse_sources]}},
-            {{path.source.start}}, {{path.source.stop}});
+    SynapticPathway<double> {{path.name}};
     {% endfor %}
     {% endfor %}
 
@@ -285,11 +290,22 @@ public:
     {% endfor %}
 
     //////////////// basic methods /////////////
+    {{simname}}() {% if synapses %}:{% endif %}
+        {% for S in synapses | sort(attribute='name') %} {% set outer_loop = loop %}
+        // Synaptic pathways for {{S.name}}
+        {% for path in S._pathways | sort(attribute='name') %}
+        {{path.name}}(
+            {{dynamic_array_specs[path.variables['delay']]}},
+            {{dynamic_array_specs[path.synapse_sources]}},
+            {{path.source.start}}, {{path.source.stop}}){% if not outer_loop.last %},{% endif %}
+        {% endfor %}
+        {% endfor %}
+        {};
     void _init_arrays();
     void _load_arrays();
     void _write_arrays();
     void _dealloc_arrays();
-    void _start();
+    void _start(bool initialise_random_state=true);
     void _end();
 
     ///////////// code object methods //////////

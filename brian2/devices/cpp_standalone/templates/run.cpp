@@ -12,7 +12,7 @@
 #include {{name}}
 {% endfor %}
 
-void {{simname}}::_start()
+void {{simname}}::_start(bool initialise_random_state)
 {
 	_init_arrays();
 	_load_arrays();
@@ -22,8 +22,10 @@ void {{simname}}::_start()
     {{clock.name}}.dt = {{array_specs[clock.variables['dt']]}};
     {{clock.name}}.t = {{array_specs[clock.variables['t']]}};
     {% endfor %}
-    for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
-	    rk_randomseed(_mersenne_twister_states[i]);  // Note that this seed can be potentially replaced in main.cpp
+    if(initialise_random_state) {
+        for (int i=0; i<{{openmp_pragma('get_num_threads')}}; i++)
+            rk_randomseed(brian_global_namespace::_mersenne_twister_states[i]);  // Note that this seed can be potentially replaced in main.cpp
+    }
 }
 
 void {{simname}}::_end()

@@ -51,15 +51,13 @@
 
 
 {% block extra_functions_cpp %}
-void _debugmsg_{{codeobj_name}}()
+void {{simname}}::_debugmsg_{{codeobj_name}}()
 {
-	using namespace brian;
 	std::cout << "Number of synapses: " << {{_dynamic__synaptic_pre}}.size() << endl;
 }
 {% endblock %}
 
 {% block extra_functions_h %}
-void _debugmsg_{{codeobj_name}}();
 {% endblock %}
 
 {% macro main_finalise() -%}

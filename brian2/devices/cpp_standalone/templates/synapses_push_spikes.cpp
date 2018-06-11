@@ -10,8 +10,6 @@
 
 void {{simname}}::_run_{{codeobj_name}}()
 {
-    using namespace brian;
-
     {% if profiled %}
     {% if openmp_pragma('with_openmp') %}
     const double _start_time = omp_get_wtime();
