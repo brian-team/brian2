@@ -7,3 +7,6 @@ from .poissongroup import *
 from .poissoninput import *
 from .spikegeneratorgroup import *
 from .timedarray import *
+
+__all__ = ['BinomialFunction', 'PoissonGroup', 'PoissonInput',
+           'SpikeGeneratorGroup', 'TimedArray']
