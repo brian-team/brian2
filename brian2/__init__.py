@@ -78,6 +78,7 @@ def _check_dependency_version(name, version):
     from distutils.version import LooseVersion
     from core.preferences import prefs
     from utils.logger import get_logger
+    import sys
     logger = get_logger(__name__)
 
     module = sys.modules[name]
@@ -96,8 +97,8 @@ def _check_dependency_version(name, version):
 
 def _check_dependency_versions():
     for name, version in [('numpy',  '1.10'),
-                            ('sympy',  '0.7.6'),
-                            ('jinja2', '2.7')]:
+                          ('sympy',  '0.7.6'),
+                          ('jinja2', '2.7')]:
         _check_dependency_version(name, version)
 
 _check_dependency_versions()
