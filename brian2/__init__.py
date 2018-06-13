@@ -1,46 +1,45 @@
 '''
 Brian 2
 '''
-import os
-import shutil
-
 # Import setuptools to do some monkey patching of distutils, necessary for
 # working weave/Cython on Windows with the Python for C++ compiler
 import setuptools as _setuptools
 
-# Check basic dependencies
-import sys
-from distutils.version import LooseVersion
-missing = []
-try:
-    import numpy
-except ImportError as ex:
-    sys.stderr.write('Importing numpy failed: %s\n' % ex)
-    missing.append('numpy')
-try:
-    import sympy
-except ImportError as ex:
-    sys.stderr.write('Importing sympy failed: %s\n' % ex)
-    missing.append('sympy')
-try:
-    import pyparsing
-except ImportError as ex:
-    sys.stderr.write('Importing pyparsing failed: %s\n' % ex)
-    missing.append('pyparsing')
-try:
-    import jinja2
-except ImportError as ex:
-    sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
-    missing.append('jinja2')
+def _check_dependencies():
+    '''Check basic dependencies'''
+    import sys
+    missing = []
+    try:
+        import numpy
+    except ImportError as ex:
+        sys.stderr.write('Importing numpy failed: %s\n' % ex)
+        missing.append('numpy')
+    try:
+        import sympy
+    except ImportError as ex:
+        sys.stderr.write('Importing sympy failed: %s\n' % ex)
+        missing.append('sympy')
+    try:
+        import pyparsing
+    except ImportError as ex:
+        sys.stderr.write('Importing pyparsing failed: %s\n' % ex)
+        missing.append('pyparsing')
+    try:
+        import jinja2
+    except ImportError as ex:
+        sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
+        missing.append('jinja2')
 
-try:
-    import cpuinfo
-except Exception as ex:
-    sys.stderr.write('Importing cpuinfo failed: %s\n' % ex)
-    # we don't append it to "missing", Brian runs fine without it
+    try:
+        import cpuinfo
+    except Exception as ex:
+        sys.stderr.write('Importing cpuinfo failed: %s\n' % ex)
+        # we don't append it to "missing", Brian runs fine without it
 
-if len(missing):
-    raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
+    if len(missing):
+        raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
+
+_check_dependencies()
 
 try:
     from pylab import *
@@ -76,6 +75,7 @@ from brian2.only import *
 
 # Check for outdated dependency versions
 def _check_dependency_version(name, version):
+    from distutils.version import LooseVersion
     from core.preferences import prefs
     from utils.logger import get_logger
     logger = get_logger(__name__)
@@ -93,10 +93,10 @@ def _check_dependency_version(name, version):
 
             logger.warn(message, 'outdated_dependency')
 
-for name, version in [('numpy',  '1.10'),
-                      ('sympy',  '0.7.6'),
-                      ('jinja2', '2.7')]:
-    _check_dependency_version(name, version)
+for _name, _version in [('numpy',  '1.10'),
+                        ('sympy',  '0.7.6'),
+                        ('jinja2', '2.7')]:
+    _check_dependency_version(_name, _version)
 
 # Initialize the logging system
 BrianLogger.initialize()
@@ -104,6 +104,7 @@ logger = get_logger(__name__)
 
 # Check the caches
 def _get_size_recursively(dirname):
+    import os
     total_size = 0
     for dirpath, _, filenames in os.walk(dirname):
         for fname in filenames:
@@ -148,6 +149,8 @@ def clear_cache(target):
         If the cache directory contains unexpected files, suggesting that
         deleting it would also delete files unrelated to the cache.
     '''
+    import os
+    import shutil
     cache_dir, extensions = _cache_dirs_and_extensions.get(target, (None, None))
     if cache_dir is None:
         raise ValueError('No cache directory registered for target '
@@ -176,8 +179,8 @@ from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_
 from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_extensions as _get_weave_extensions
 from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions as _get_cython_extensions
 
-for target, (dir, extensions) in [('weave', (_get_weave_cache_dir(), _get_weave_extensions())),
-                                  ('cython', (_get_cython_cache_dir(), _get_cython_extensions()))]:
-    _cache_dirs_and_extensions[target] = (dir, extensions)
+for _target, (_dir, _extensions) in [('weave', (_get_weave_cache_dir(), _get_weave_extensions())),
+                                     ('cython', (_get_cython_cache_dir(), _get_cython_extensions()))]:
+    _cache_dirs_and_extensions[_target] = (_dir, _extensions)
     if prefs.codegen.max_cache_dir_size > 0:
-        check_cache(target)
+        check_cache(_target)
