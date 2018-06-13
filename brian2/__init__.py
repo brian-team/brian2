@@ -93,10 +93,14 @@ def _check_dependency_version(name, version):
 
             logger.warn(message, 'outdated_dependency')
 
-for _name, _version in [('numpy',  '1.10'),
-                        ('sympy',  '0.7.6'),
-                        ('jinja2', '2.7')]:
-    _check_dependency_version(_name, _version)
+
+def _check_dependency_versions():
+    for name, version in [('numpy',  '1.10'),
+                            ('sympy',  '0.7.6'),
+                            ('jinja2', '2.7')]:
+        _check_dependency_version(name, version)
+
+_check_dependency_versions()
 
 # Initialize the logging system
 BrianLogger.initialize()
