@@ -34,8 +34,7 @@ from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from .statements import Statement
 from .optimisation import optimise_statements
 
-__all__ = ['make_statements', 'analyse_identifiers',
-           'get_identifiers_recursively']
+__all__ = ['analyse_identifiers', 'get_identifiers_recursively']
 
 
 class LineInfo(object):

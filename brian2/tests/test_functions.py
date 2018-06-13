@@ -7,6 +7,8 @@ from brian2.core.functions import timestep
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 from brian2.devices.device import reinit_devices
+from brian2.codegen.generators import CodeGenerator
+from brian2.codegen.codeobject import CodeObject
 
 @attr('codegen-independent')
 def test_constants_sympy():

@@ -8,6 +8,7 @@ from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
+from brian2.codegen.generators import NumpyCodeGenerator
 from brian2.core.network import schedule_propagation_offset
 from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
 from brian2.core.functions import DEFAULT_FUNCTIONS
