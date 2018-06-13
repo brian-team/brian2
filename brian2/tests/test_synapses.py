@@ -5,6 +5,7 @@ from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
                                  assert_raises_regex, assert_array_equal)
+import sympy
 
 from brian2 import *
 from brian2.codegen.translation import make_statements
