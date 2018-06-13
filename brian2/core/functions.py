@@ -541,7 +541,7 @@ class log10(sympy_Function):
         return sympy.functions.elementary.exponential.log(args, 10)
 
 
-_infinity_int = np.iinfo(int).max//2
+_infinity_int = 1073741823  # maximum 32bit integer divided by 2
 
 def timestep(t, dt):
     '''

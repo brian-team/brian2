@@ -389,11 +389,12 @@ DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator
 
 timestep_code = '''
 cdef int _timestep(double t, double dt):
+    cdef int _infinity_int = 1073741823  # maximum 32bit integer divided by 2
     if npy_isinf(t):
         if t < 0:
-            return INT_MIN
+            return _infinity_int
         else:
-            return INT_MAX
+            return  _infinity_int
     return <int>((t + 1e-3*dt)/dt)
 '''
 DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CythonCodeGenerator,
