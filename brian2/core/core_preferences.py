@@ -6,12 +6,16 @@ from numpy import float64, int32
 
 from brian2.core.preferences import BrianPreference, prefs
 
+__all__ = []
+
 
 def dtype_repr(dtype):
     return dtype.__name__
 
+
 def default_float_dtype_validator(dtype):
     return dtype is float64
+
 
 prefs.register_preferences('core', 'Core Brian preferences',
     default_float_dtype=BrianPreference(
