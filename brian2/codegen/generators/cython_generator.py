@@ -392,7 +392,7 @@ cdef int _timestep(double t, double dt):
     cdef int _infinity_int = 1073741823  # maximum 32bit integer divided by 2
     if npy_isinf(t):
         if t < 0:
-            return _infinity_int
+            return -_infinity_int
         else:
             return  _infinity_int
     return <int>((t + 1e-3*dt)/dt)
