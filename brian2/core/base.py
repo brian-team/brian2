@@ -12,9 +12,7 @@ from brian2.units.allunits import second
 from brian2.units.fundamentalunits import check_units
 
 __all__ = ['BrianObject',
-           'weakproxy_with_fallback',
            'BrianObjectException',
-           'brian_object_exception',
            ]
 
 logger = get_logger(__name__)

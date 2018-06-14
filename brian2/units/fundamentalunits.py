@@ -30,7 +30,7 @@ __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
     'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
     'in_unit', 'in_best_unit', 'Quantity', 'Unit', 'register_new_unit',
-    'check_units', 'is_scalar_type', 'get_unit', 'unit_checking'
+    'check_units', 'is_scalar_type', 'get_unit',
     ]
 
 
