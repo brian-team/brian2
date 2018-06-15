@@ -157,6 +157,19 @@ def test_timestep_function():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
+def test_timestep_function_during_run():
+    group = NeuronGroup(3, '''ref_t : second
+                              ts = timestep(ref_t, dt) + timestep(t, dt) : integer''')
+    group.ref_t = [-np.inf*second, 5*defaultclock.dt, np.inf*second]
+    mon = StateMonitor(group, 'ts', record=True)
+    run(5*defaultclock.dt)
+    assert all(mon.ts[0] < -1e9)
+    assert_equal(mon.ts[1], [5, 6, 7, 8, 9])
+    assert all(mon.ts[2] > 1e9)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_user_defined_function():
     @implementation('cpp',"""
                 inline double usersin(double x)
@@ -661,6 +674,7 @@ if __name__ == '__main__':
             test_clip,
             test_bool_to_int,
             test_timestep_function,
+            test_timestep_function_during_run,
             test_user_defined_function,
             test_user_defined_function_units,
             test_simple_user_defined_function,

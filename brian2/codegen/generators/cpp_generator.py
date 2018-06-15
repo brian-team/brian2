@@ -463,17 +463,18 @@ namespace std {
 #endif
 #endif
 #endif
-        static inline int _timestep(double t, double dt)
-        {
-            if (std::isinf(t))
-            {
-                if (t < 0)
-                    return INT_MIN;
-                else
-                    return INT_MAX;
-            }
-            return (int)((t + 1e-3*dt)/dt); 
-        }
+static inline int _timestep(double t, double dt)
+{
+    const int _infinity_int = 1073741823;  // maximum 32bit integer divided by 2
+    if (std::isinf(t))
+    {
+        if (t < 0)
+            return -_infinity_int;
+        else
+            return _infinity_int;
+    }
+    return (int)((t + 1e-3*dt)/dt); 
+}
         '''
 DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CPPCodeGenerator,
                                                                  code=timestep_code,
