@@ -125,8 +125,18 @@ Arbitrary refractoriness
 In fact, arbitrary behaviours can be defined using Brian's refractoriness
 mechanism.
 
-Internally, a `NeuronGroup` with refractoriness has a boolean variable
-`not_refractory` added to the equations, and this is used to implement
+A `NeuronGroup` with refractoriness automatically defines two variables:
+
+``not_refractory``
+    A boolean variable stating whether a neuron is allowed to spike.
+
+``lastspike``
+    The time of the last spike of the neuron.
+
+The variable ``not_refractory`` is updated at every time step by checking the
+refractoriness condition -- for a refractoriness defined by a time period, this
+means comparing ``lastspike`` to the current time ``t``. The ``not_refractory``
+variable is then used to implement
 the refractoriness behaviour. Specifically, the ``threshold`` condition
 is replaced by ``threshold and not_refractory`` and differential equations
 that are marked as ``(unless refractory)`` are multiplied by
