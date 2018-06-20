@@ -35,24 +35,21 @@ similar to the models specified in `NeuronGroup`::
 
   S = Synapses(P, Q, model='w : volt', on_pre='v += w')
 
-The above specifies a parameter ``w``, i.e. a synapse-specific weight.
+The above specifies a parameter ``w``, i.e. a synapse-specific weight. Note that
+to avoid confusion, synaptic variables cannot have the same name as a pre-
+or post-synaptic variables.
 
 Synapses can also specify code that should be executed whenever a postsynaptic
 spike occurs (keyword ``on_post``) and a fixed (pre-synaptic) delay for all
 synapses (keyword ``delay``).
 
-When specifying equations or code for `Synapses`, there is a possible
-ambiguity about what a variable name refers to. For example, if both
-the `Synapses` object and the target `NeuronGroup` have a variable
-``w``, what would the code ``w += 1`` do? The answer is that it will
-modify the synapse's variable ``w``. In general, it will
-first check if there is a synaptic variable of that name, then a
-variable of the post-synaptic neurons, and otherwise it will look
-for an external constant. To explicitly specify that a variable
-should be from a pre- or post-synaptic neuron, append the suffix
-``_pre`` or ``_post``, so in the situation above ``w_post += 1``
-would increase the post-synaptic neuron's copy of ``w`` by 1,
-not the synapse's variable ``w``.
+As shown above, variable names that are not referring to a synaptic variable
+are automatically understood to be post-synaptic variables. To explicitly
+specify that a variable should be from a pre- or post-synaptic neuron, append
+the suffix ``_pre`` or ``_post``. An alternative but equivalent formulation of
+the ``on_pre`` statement above would therefore be ``v_post += w``.
+
+.. _model_syntax:
 
 Model syntax
 ~~~~~~~~~~~~
@@ -61,6 +58,34 @@ The model follows exactly the same syntax as for `NeuronGroup`. There can be par
 (e.g. synaptic variable ``w`` above), but there can also be named
 subexpressions and differential equations, describing the dynamics of synaptic
 variables. In all cases, synaptic variables are created, one value per synapse.
+
+Brian also automatically defines a number of synaptic variables that can be
+used in equations, ``on_pre`` and ``on_post`` statements, as well as when
+:ref:`assigning to other synaptic variables <accessing_synaptic_variables>`:
+
+``i``
+    The index of the pre-synaptic source of a synapse.
+
+``j``
+    The index of the post-synaptic target of a synapse.
+
+``N``
+    The total number of synapses.
+
+``N_incoming``
+    The total number of synapses connected to the post-synaptic target of a
+    synapse.
+
+``N_outgoing``
+    The total number of synapses outgoing from the pre-synaptic source of a
+    synapse.
+
+``lastupdate``
+    The last time this synapse has applied an ``on_pre`` or ``on_post``
+    statement. There is normally no need to refer to this variable explicitly,
+    it is used to implement :ref:`event_driven_updates` (see below).
+
+.. _event_driven_updates:
 
 Event-driven updates
 ~~~~~~~~~~~~~~~~~~~~
@@ -178,6 +203,8 @@ neurons 0, 2, 4, 6, ... to neurons 0, 1, 2, 3, ... you could write::
     S.connect(j='int(i/2) if i % 2 == 0')
 
 
+.. _accessing_synaptic_variables:
+
 Accessing synaptic variables
 ----------------------------
 Synaptic variables can be accessed in a similar way as `NeuronGroup` variables. They can be indexed
@@ -195,6 +222,13 @@ Here are a few examples::
     S.w[group1, group2] = "(1+cos(i-j))*2*nS"
     S.w[:, :] = 'rand()*nS'
     S.w['abs(x_pre-x_post) < 250*umetre'] = 1*nS
+
+Assignments can also refer to :ref:`pre-defined variables <synapse_model_syntax>`,
+e.g. to normalize synaptic weights.  For example, after the following assignment
+the sum of weights of all synapses that a neuron receives is identical to 1,
+regardless of the number of synapses it receives::
+
+    syn.w = '1.0/N_incoming'
 
 Note that it is also possible to index synaptic variables with a single index
 (integer, slice, or array), but in this case synaptic indices have to be
