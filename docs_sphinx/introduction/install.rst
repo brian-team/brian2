@@ -24,12 +24,9 @@ Installation with Anaconda
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
 `Download the Anaconda distribution <https://continuum.io/downloads>`_
-for your Operating System. For Windows users that want to use Python 3.x, we
-strongly recommend installing the 32 Bit version even on 64 Bit systems, since
-setting the compilation environment (see :ref:`installation_cpp` below) is less
-complicated in that case. Note that the choice between Python 2.7 and Python 3.x
-is not very important at this stage, Anaconda allows you to create a Python 3
-environment from Python 2 Anaconda and vice versa.
+for your Operating System. Note that the choice between Python 2.7 and Python
+3.x is not very important at this stage, Anaconda allows you to create a Python
+3 environment from Python 2 Anaconda and vice versa.
 
 After the installation, make sure that your environment is configured to use
 the Anaconda distribution. You should have access to the ``conda`` command in
@@ -47,6 +44,11 @@ https://docs.continuum.io/anaconda/ide_integration
 
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
+.. note::
+    The provided Brian 2 packages are only for 64bit systems. If you want to
+    install Brian 2 in a 32bit environment, please use the
+    :ref:`installation_from_source` instead.
+
 You can either install Brian 2 in the Anaconda root environment, or create a
 new environment for Brian 2 (http://conda.pydata.org/docs/using/envs.html). The
 latter has the advantage that you can update (or not update) the dependencies
@@ -86,8 +88,8 @@ install it with pip or anaconda, in the same way as Brian 2 itself, e.g. with::
 
 .. _installation_from_source:
 
-Installation from source
-------------------------
+Installation with pip
+---------------------
 If you decide not to use Anaconda, you can install Brian 2 from the Python
 package index: https://pypi.python.org/pypi/Brian2
 
@@ -98,11 +100,6 @@ To do so, use the ``pip`` utility::
 You might want to add the ``--user`` flag, to install Brian 2 for the local user
 only, which means that you don't need administrator privileges for the
 installation.
-
-In principle, the above command also install Brian's dependencies.
-Unfortunately, this does not work for ``numpy``, it has to be installed in a
-separate step before all other dependencies (``pip install numpy``), if it is
-not already installed.
 
 If you have an older version of pip, first update pip itself::
 
@@ -134,7 +131,7 @@ Requirements for C++ code generation
 
 C++ code generation is highly recommended since it can drastically increase the
 speed of simulations (see :doc:`../user/computation` for details). To use it,
-you need a C++ compiler and either Cython_ or weave_ (only for Python 2.x).
+you need a C++ compiler and either Cython_ or weave_ (only available for Python 2.x).
 Cython/weave will be automatically installed if you perform the installation via
 Anaconda, as recommended. Otherwise you can install them in the usual way, e.g.
 using ``pip install cython`` or ``pip install weave``.
@@ -233,8 +230,8 @@ suite::
     import brian2
     brian2.test()
 
-It should end with "OK", possibly showing a number of skipped tests but no
-warnings or errors. For more control about the tests that are run see the
+It should end with "OK", showing a number of skipped tests but no errors or
+failures. For more control about the tests that are run see the
 :doc:`developer documentation on testing <../developer/guidelines/testing>`.
 
 .. _matplotlib: http://matplotlib.org/
