@@ -50,7 +50,7 @@ Adapted from http://stackoverflow.com/questions/3160699/python-progress-bar
     import sys
 
     class ProgressBar(object):
-        def __init__(self, toolbar_width):
+        def __init__(self, toolbar_width=40):
             self.toolbar_width = toolbar_width
             self.ticks = 0
 
@@ -61,7 +61,7 @@ Adapted from http://stackoverflow.com/questions/3160699/python-progress-bar
                 sys.stdout.flush()
                 sys.stdout.write("\b" * (self.toolbar_width + 1)) # return to start of line, after '['
             else:
-                ticks_needed = int(round(complete * 40))
+                ticks_needed = int(round(complete * self.toolbar_width))
                 if self.ticks < ticks_needed:
                     sys.stdout.write("-" * (ticks_needed-self.ticks))
                     sys.stdout.flush()
@@ -69,4 +69,4 @@ Adapted from http://stackoverflow.com/questions/3160699/python-progress-bar
             if complete == 1.0:
                 sys.stdout.write("\n")
 
-    net.run(duration, report=progress_bar, report_period=1*second)
+    net.run(duration, report=ProgressBar(), report_period=1*second)
