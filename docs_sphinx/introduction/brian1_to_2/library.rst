@@ -66,7 +66,7 @@ Quadratic integrate-and-fire neuron
 + .. code::                                                        | .. code::                                                                                |
 +                                                                  |                                                                                          |
 +    eqs = (quadratic_IF(C=1*nF, a=5*nS/mV,                        |    C = 1*nF; a=5*nS/mV; EL=-70*mV; VT = -50*mV                                           |
-+           EL=-70*mV, VT=-50*mV) +                                |    eqs = '''dvm/dt = (a_q*(vm-EL)*(vm-VT) + I)/C : volt                                  |
++           EL=-70*mV, VT=-50*mV) +                                |    eqs = '''dvm/dt = (a*(vm-EL)*(vm-VT) + I)/C : volt                                    |
 +           Current('I : amp'))                                    |             I : amp'''                                                                   |
 +    group = ... # see above                                       |    group = ... # see above                                                               |
 +                                                                  |                                                                                          |
@@ -81,7 +81,7 @@ Izhikevich neuron
 +                                                                  |                                                                                          |
 +    eqs = (Izhikevich(a=0.02/ms, b=0.2/ms) +                      |    a = 0.02/ms; b = 0.2/ms                                                               |
 +           Current('I : volt/second'))                            |    eqs = '''dvm/dt = (0.04/ms/mV)*vm**2+(5/ms)*vm+140*mV/ms-w + I : volt                 |
-+    group = ... # see above                                       |             dw/dt = a_I*(b_I*vm-w) : volt/second                                         |
++    group = ... # see above                                       |             dw/dt = a*(b*vm-w) : volt/second                                             |
 +                                                                  |             I : volt/second'''                                                           |
 +                                                                  |    group = ... # see above                                                               |
 +                                                                  |                                                                                          |
@@ -96,10 +96,10 @@ Adaptive exponential integrate-and-fire neuron ("Brette-Gerstner model")
 +                                                                  |                                                                                          |
 +    # AdEx, aEIF, and Brette_Gerstner all refer to the same model |   C = 1*nF; gL = 30*nS; EL = -70*mV; VT = -50*mV; DeltaT = 2*mV; tauw = 150*ms; a = 4*nS |
 +    eqs = (aEIF(C=1*nF, gL=30*nS, EL=-70*mV,                      |   eqs = '''dvm/dt = (gL*(EL-vm)+gL*DeltaT*exp((vm-VT)/DeltaT) -w + I)/C : volt           |
-+                VT=-50*mV, DeltaT=2*mV, tauw=150*ms, a=4*nS) +    |            dw/dt=(a_BG*(vm-EL)-w)/tauw : amp                                             |
-+           Current('I:amp'))                                      |            I : volt/second'''                                                            |
++                VT=-50*mV, DeltaT=2*mV, tauw=150*ms, a=4*nS) +    |            dw/dt=(a*(vm-EL)-w)/tauw : amp                                                |
++           Current('I:amp'))                                      |            I : amp'''                                                                    |
 +    group = NeuronGroup(N, eqs,                                   |   group = NeuronGroup(N, eqs,                                                            |
-+                        threshold='v > -20*mV',                   |                       threshold='v > -20*mV',                                            |
++                        threshold='v > -20*mV',                   |                       threshold='vm > -20*mV',                                           |
 +                        reset=AdaptiveReset(Vr=-70*mV, b=0.08*nA))|                       reset='vm=-70*mV; w += 0.08*nA')                                   |
 +                                                                  |                                                                                          |
 +------------------------------------------------------------------+------------------------------------------------------------------------------------------+
