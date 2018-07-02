@@ -155,7 +155,7 @@ Current-based synapses
 +           syn_eqs)                                                               |    eqs = (Equations('dvm/dt = (gl*(El - vm) + I_syn)/C : volt') +                |
 +    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |           syn_eqs)                                                               |
 +    syn = Synapses(source, group, pre='s += 1*nA')                                |    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |
-+    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, pre='I_syn += 1*nA')                            |
++    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, on_pre='I_syn += 1*nA')                         |
 +                                                                                  |    # ... connect synapses, etc.                                                  |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -165,7 +165,7 @@ Current-based synapses
 +    eqs = ... # remaining code as above                                           |   syn_eqs = Equations('''dI_syn/dt = (s - I_syn)/tau : amp                       |
 +                                                                                  |                          ds/dt = -s/tau : amp''')                                |
 +                                                                                  |   group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')          |
-+                                                                                  |   syn = Synapses(source, group, pre='s += 1*nA')                                 |
++                                                                                  |   syn = Synapses(source, group, on_pre='s += 1*nA')                              |
 +                                                                                  |   # ... connect synapses, etc.                                                   |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -190,7 +190,7 @@ Conductance-based synapses
 +           syn_eqs)                                                               |    eqs = (Equations('dvm/dt = (gl*(El - vm) + g_syn*(E - vm))/C : volt') +       |
 +    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |           syn_eqs)                                                               |
 +    syn = Synapses(source, group, pre='s += 10*nS')                               |    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |
-+    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, pre='g_syn += 10*nS')                           |
++    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, on_pre='g_syn += 10*nS')                        |
 +                                                                                  |    # ... connect synapses, etc.                                                  |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -200,7 +200,7 @@ Conductance-based synapses
 +    eqs = ... # remaining code as above                                           |   syn_eqs = Equations('''dg_syn/dt = (s - g_syn)/tau : siemens                   |
 +                                                                                  |                          ds/dt = -s/tau : siemens''')                            |
 +                                                                                  |   group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')          |
-+                                                                                  |   syn = Synapses(source, group, pre='s += 10*nS')                                |
++                                                                                  |   syn = Synapses(source, group, on_pre='s += 10*nS')                             |
 +                                                                                  |   # ... connect synapses, etc.                                                   |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
