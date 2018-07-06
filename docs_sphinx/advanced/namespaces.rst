@@ -5,7 +5,7 @@ Namespaces
 external parameters or functions. During the initialisation of a `NeuronGroup`
 or a `Synapses` object, this *namespace* can be provided as an argument. This
 is a group-specific namespace that will only be used for names in the context
-of the respective group. Note that units and a set of standard functions are
+of the respective group. Note that units and a set of standard functions (listed below) are
 always provided and should not be given explicitly.
 This namespace does not necessarily need to be exhaustive at the time of the
 creation of the `NeuronGroup`/`Synapses`, entries can be added (or modified)
@@ -53,3 +53,37 @@ variable values, all having the same effect in this case::
 
 External variables are free to change between runs (but not during one run),
 the value at the time of the `run` call is used in the simulation. 
+
+Default functions and constants
+-------------------------------
+
+        # numpy functions that behave the same name in numpy and math.h
+        cos
+        sin
+        tan
+        cosh
+        sinh
+        tanh
+        exp
+        log
+        log10
+        sqrt
+        ceil
+        floor
+        arccos
+        arcsin
+        arctan
+        abs
+        sign
+
+        # other
+        rand
+        randn
+        clip
+        int
+        timestep
+
+        # constants
+        pi
+        e
+        inf
