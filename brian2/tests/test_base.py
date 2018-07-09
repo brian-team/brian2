@@ -1,7 +1,8 @@
 from brian2 import *
 from brian2.devices.device import reinit_devices
+from brian2.tests.utils import assert_allclose
 
-from numpy.testing import assert_raises, assert_equal, assert_allclose
+from numpy.testing import assert_raises, assert_equal
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -78,7 +79,7 @@ def test_active_flag():
     # Monitor should start recording at 1ms
     # Neurongroup should not integrate after 1ms (but should have integrated before)
     assert_allclose(mon[0].t[0], 1*ms)
-    assert_allclose(mon[0].v, 1.0, rtol=1e-6)
+    assert_allclose(mon[0].v, 1.0)
 
 
 if __name__=='__main__':

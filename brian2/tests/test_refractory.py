@@ -1,12 +1,12 @@
 from brian2.utils.logger import catch_logs
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+from numpy.testing.utils import assert_equal, assert_raises
 
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
 from brian2.devices.device import reinit_devices
-
+from brian2.tests.utils import assert_allclose
 
 @attr('codegen-independent')
 def test_add_refractoriness():

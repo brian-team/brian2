@@ -2,13 +2,14 @@ import uuid
 import tempfile
 import logging
 
-from numpy.testing.utils import assert_allclose, assert_array_equal, assert_raises
+from numpy.testing.utils import assert_array_equal, assert_raises
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 
 from brian2 import *
 from brian2.devices.device import reinit_devices
 from brian2.utils.logger import catch_logs
+from brian2.tests.utils import assert_allclose
 
 
 @attr('standalone-compatible')
@@ -311,10 +312,9 @@ def test_state_monitor():
 
     # Check v recording
     assert_allclose(v_mon.v.T,
-                    np.exp(np.tile(-v_mon.t, (2, 1)).T / (10*ms)), rtol=1e-5)
+                    np.exp(np.tile(-v_mon.t, (2, 1)).T / (10*ms)))
     assert_allclose(v_mon.v_.T,
-                    np.exp(np.tile(-v_mon.t_, (2, 1)).T / float(10*ms)),
-                    rtol=1e-5)
+                    np.exp(np.tile(-v_mon.t_, (2, 1)).T / float(10*ms)))
     assert_array_equal(v_mon.v, multi_mon.v)
     assert_array_equal(v_mon.v_, multi_mon.v_)
     assert_array_equal(v_mon.v, all_mon.v)
@@ -431,9 +431,9 @@ def test_rate_monitor_1():
     run(10*defaultclock.dt)
 
     assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
-    assert_allclose(rate_mon.t_, np.arange(10) * float(defaultclock.dt))
+    assert_allclose(rate_mon.t_, np.arange(10) * defaultclock.dt_)
     assert_allclose(rate_mon.rate, np.ones(10) / defaultclock.dt)
-    assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt))
+    assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt_))
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -444,7 +444,7 @@ def test_rate_monitor_2():
     net = Network(G, rate_mon)
     net.run(10*defaultclock.dt)
     assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
-    assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt))
+    assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt_))
 
 @attr('codegen-independent')
 def test_rate_monitor_smoothed_rate():
@@ -527,9 +527,9 @@ def test_rate_monitor_subgroups():
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:])
     run(1*second)
-    assert_allclose(mean(G.rate[:]), mean(rate_all.rate[:]), atol=.1*Hz, rtol=0)
-    assert_allclose(mean(G.rate[:2]), mean(rate_1.rate[:]), atol=.1*Hz, rtol=0)
-    assert_allclose(mean(G.rate[2:]), mean(rate_2.rate[:]), atol=.1*Hz, rtol=0)
+    assert_allclose(mean(G.rate_[:]), mean(rate_all.rate_[:]))
+    assert_allclose(mean(G.rate_[:2]), mean(rate_1.rate_[:]))
+    assert_allclose(mean(G.rate_[2:]), mean(rate_2.rate_[:]))
 
     defaultclock.dt = old_dt
 

@@ -1,9 +1,11 @@
-from numpy.testing.utils import assert_allclose, assert_raises
+from numpy.testing.utils import assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
 from brian2.devices.device import reinit_devices
+from brian2.tests.utils import assert_allclose
+
 
 @attr('codegen-independent')
 def test_timedarray_direct_use():

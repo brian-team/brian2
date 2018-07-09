@@ -4,7 +4,7 @@ import pickle
 
 from nose.plugins.attrib import attr
 import numpy as np
-from numpy.testing import assert_raises, assert_equal, assert_allclose
+from numpy.testing import assert_raises, assert_equal
 
 import brian2
 from brian2.core.preferences import prefs
@@ -26,6 +26,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import *
 from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz, mM
+from brian2.tests.utils import assert_allclose
 
 
 # To work around an issue in matplotlib 1.3.1 (see

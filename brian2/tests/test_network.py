@@ -6,7 +6,7 @@ import os
 import uuid
 
 import numpy as np
-from numpy.testing import assert_equal, assert_raises, assert_allclose
+from numpy.testing import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 
@@ -22,6 +22,7 @@ from brian2.core.network import schedule_propagation_offset, scheduling_summary
 from brian2.devices.device import (reinit_devices, Device, all_devices,
                                    set_device, get_device, reset_device, device)
 from brian2.utils.logger import catch_logs
+from brian2.tests.utils import assert_allclose
 
 @attr('codegen-independent')
 def test_incorrect_network_use():

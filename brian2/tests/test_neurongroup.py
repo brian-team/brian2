@@ -2,7 +2,7 @@ import uuid
 
 import sympy
 import numpy as np
-from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
+from numpy.testing.utils import assert_raises, assert_equal
 from nose import SkipTest, with_setup
 from nose.plugins.attrib import attr
 
@@ -23,6 +23,7 @@ from brian2.units.unitsafefunctions import linspace
 from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.utils.logger import catch_logs
+from brian2.tests.utils import assert_allclose
 
 
 @attr('codegen-independent')
@@ -107,7 +108,7 @@ def test_variableview_calculations():
     assert_allclose(2 + G.x, 2 + np.arange(10))
     assert_allclose(2*mV + G.y, 2*mV + np.arange(10)[::-1]*mV)
     assert_allclose(G.x - 2, np.arange(10) - 2)
-    assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV, rtol=1e-6)
+    assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV)
     assert_allclose(2 - G.x, 2 - np.arange(10))
     assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV, rtol=1e-6)
 
@@ -1153,8 +1154,7 @@ def test_sim_with_scalar_variable():
     G.tau = 10*ms
     G.v = '1.0*i/N'
     run(1*ms)
-    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False),
-                    rtol=1e-6)
+    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
 
 
 @attr('standalone-compatible')
@@ -1164,8 +1164,7 @@ def test_sim_with_scalar_subexpression():
                            dv/dt = -v/tau : 1''', method='exact')
     G.v = '1.0*i/N'
     run(1*ms)
-    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False),
-                    rtol=1e-6)
+    assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
 
 
 @attr('standalone-compatible')

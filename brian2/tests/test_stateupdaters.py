@@ -1,7 +1,7 @@
 import re
 import logging
 
-from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
+from numpy.testing.utils import assert_equal, assert_raises
 from nose.plugins.attrib import attr
 from nose import with_setup
 
@@ -10,6 +10,8 @@ from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.devices.device import reinit_devices
 from brian2.stateupdaters.base import UnsupportedEquationsException
+from brian2.tests.utils import assert_allclose
+
 
 @attr('codegen-independent')
 def test_explicit_stateupdater_parsing():
@@ -174,9 +176,9 @@ def test_multiple_noise_variables_deterministic_noise():
                 mon = StateMonitor(G, ['x', 'y'], record=True)
                 net = Network(G, mon)
                 net.run(10*ms)
-            assert_allclose(mon.x[:], no_noise_x, rtol=1e-6,
+            assert_allclose(mon.x[:], no_noise_x,
                             err_msg='Method %s gave incorrect results' % method_name)
-            assert_allclose(mon.y[:], no_noise_y, rtol=1e-6,
+            assert_allclose(mon.y[:], no_noise_y,
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
@@ -682,8 +684,7 @@ def test_refractory():
         net.run(10*ms)
         assert_allclose(G_no_ref.v[:], G_ref.v[:],
                         err_msg=('Results with and without refractoriness '
-                                 'differ for method %s.') % method,
-                        rtol=1e-6)
+                                 'differ for method %s.') % method)
 
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_refractory_stochastic():

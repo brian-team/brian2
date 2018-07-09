@@ -1,11 +1,12 @@
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+from numpy.testing.utils import assert_equal, assert_raises
 import tempfile
 import os
 
 from brian2.spatialneuron import *
 from brian2.units import um, cm, second, DimensionMismatchError
 from brian2 import numpy as np
+from brian2.tests.utils import assert_allclose
 
 
 @attr('codegen-independent')

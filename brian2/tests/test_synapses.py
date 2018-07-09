@@ -3,7 +3,7 @@ import logging
 
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
-from numpy.testing.utils import (assert_equal, assert_allclose, assert_raises,
+from numpy.testing.utils import (assert_equal, assert_raises,
                                  assert_raises_regex, assert_array_equal)
 
 from brian2 import *
@@ -16,6 +16,7 @@ from brian2.utils.stringtools import get_identifiers, word_substitute, indent, d
 from brian2.devices.device import reinit_devices, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
+from brian2.tests.utils import assert_allclose
 
 
 def _compare(synapses, expected):
@@ -1423,7 +1424,7 @@ def test_event_driven():
     S2.w = 0.5*gmax
     run(25*ms)
     # The two formulations should yield identical results
-    assert_allclose(S1.w[:], S2.w[:], rtol=1e-6)
+    assert_allclose(S1.w[:], S2.w[:])
 
 
 @attr('codegen-independent')
@@ -1796,20 +1797,18 @@ def test_vectorisation_STDP_like():
     assert_allclose(syn.w_dep[:][indices],
                     [1.29140162, 1.16226149, 1.04603529, 1.16226149, 1.04603529,
                      0.94143176, 1.04603529, 0.94143176, 6.2472887],
-                    rtol=1e-6, atol=1e-12)
+                    atol=1)
     assert_allclose(syn.w_fac[:][indices],
                     [5.06030369, 5.62256002, 6.2472887, 5.62256002, 6.2472887,
                      6.941432, 6.2472887, 6.941432, 1.04603529],
-                    rtol=1e-6, atol=1e-12)
+                    atol=1)
     assert_allclose(neurons.A[:],
                     [1.69665715, 1.88517461, 2.09463845, 2.32737606, 2.09463845,
                      1.88517461],
-                    rtol=1e-6, atol=1e-12)
+                    atol=1)
     assert_allclose(neurons.ge[:],
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
-                    rtol=1e-6, atol=1e-12)
-
-
+                    atol=1)
 
 
 @attr('standalone-compatible')
@@ -1822,7 +1821,7 @@ def test_synaptic_equations():
     S.connect(j='i')
     S.w = 'i'
     run(10*ms)
-    assert_allclose(S.w[:], np.arange(10) * np.exp(-1), rtol=1e-6)
+    assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)

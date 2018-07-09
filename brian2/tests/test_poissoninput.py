@@ -1,10 +1,12 @@
-from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
+from numpy.testing.utils import assert_equal, assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
 from brian2.devices.device import reinit_devices
 from brian2.core.network import schedule_propagation_offset
+from brian2.tests.utils import assert_allclose
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
