@@ -361,6 +361,7 @@ class StateMonitor(Group, CodeRunner):
         [   0.  100.  200.  300.  400.  500.] us
         >>> print(mon.v[:])
         [[ 1.      0.9802  0.9608  0.9418  0.9231  0.9048]]
+        >>> np.set_printoptions(precision=8)  # reset to default
         '''
         if self.codeobj is None:
             raise TypeError('Can only record a single time step after the '

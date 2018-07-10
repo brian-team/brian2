@@ -284,11 +284,12 @@ class EventMonitor(Group, CodeRunner):
         >>> mon = EventMonitor(G, event='spike', variables='v')
         >>> run(20*ms)
         >>> all_values = mon.all_values()
-        >>> np.set_printoptions(precision=4)
+        >>> np.set_printoptions(precision=4)  # show fewer digits than default
         >>> print(all_values['t'][0])
         [  4.9   9.9  14.9  19.9] ms
         >>> print(all_values['v'][0])
         [ 0.5  0.5  0.5  0.5]
+        >>> np.set_printoptions(precision=8)  # reset to default
         '''
         if not self.record:
             raise AttributeError('Indices and times have not been recorded.'
@@ -391,11 +392,12 @@ class SpikeMonitor(EventMonitor):
     >>> crossings = SpikeMonitor(G, variables='v', name='crossings')
     >>> net = Network(G, crossings)
     >>> net.run(10*ms)
-    >>> np.set_printoptions(precision=4)
+    >>> np.set_printoptions(precision=4)  # show fewer digits than default
     >>> print(crossings.t[:])
     [ 0.   1.4  4.6  9.7] ms
     >>> print(crossings.v[:])
     [ 0.01    0.1306  0.2739  0.3995]
+    >>> np.set_printoptions(precision=8)  # reset the precision
     '''
     def __init__(self, source, variables=None, record=True, when=None,
                  order=None, name='spikemonitor*', codeobj_class=None):
