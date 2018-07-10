@@ -110,7 +110,7 @@ def test_variableview_calculations():
     assert_allclose(G.x - 2, np.arange(10) - 2)
     assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV)
     assert_allclose(2 - G.x, 2 - np.arange(10))
-    assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV, rtol=1e-6)
+    assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV)
 
     # incorrect units
     assert_raises(DimensionMismatchError, lambda: G.x + G.y)

@@ -1797,18 +1797,18 @@ def test_vectorisation_STDP_like():
     assert_allclose(syn.w_dep[:][indices],
                     [1.29140162, 1.16226149, 1.04603529, 1.16226149, 1.04603529,
                      0.94143176, 1.04603529, 0.94143176, 6.2472887],
-                    atol=1)
+                    rtol=1e9, atol=1e4)
     assert_allclose(syn.w_fac[:][indices],
                     [5.06030369, 5.62256002, 6.2472887, 5.62256002, 6.2472887,
                      6.941432, 6.2472887, 6.941432, 1.04603529],
-                    atol=1)
+                    rtol=1e9, atol=1e4)
     assert_allclose(neurons.A[:],
                     [1.69665715, 1.88517461, 2.09463845, 2.32737606, 2.09463845,
                      1.88517461],
-                    atol=1)
+                    rtol=1e9, atol=1e4)
     assert_allclose(neurons.ge[:],
                     [0., 0., 0., -7.31700015, -8.13000011, -4.04603529],
-                    atol=1)
+                    rtol=1e9, atol=1e4)
 
 
 @attr('standalone-compatible')
