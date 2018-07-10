@@ -1,9 +1,9 @@
-import os
 import itertools
 
 from numpy.testing.utils import assert_equal, assert_raises
-from nose import with_setup
+from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
+
 from brian2 import *
 from brian2.devices.device import reinit_devices
 from brian2.tests.utils import assert_allclose
@@ -201,6 +201,8 @@ def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
     '''
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -242,7 +244,8 @@ def test_rallpack1():
     '''
     Rallpack 1
     '''
-
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 0.05*ms
 
     # Morphology
@@ -302,6 +305,8 @@ def test_rallpack2():
     '''
     Rallpack 2
     '''
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 0.1*ms
 
     # Morphology
@@ -465,6 +470,8 @@ def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
     '''
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -758,6 +765,8 @@ def test_spatialneuron_morphology_assignment():
 @attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
 def test_spatialneuron_capacitive_currents():
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 0.1*ms
     morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=200, type='axon')
 

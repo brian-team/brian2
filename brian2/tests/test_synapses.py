@@ -1764,6 +1764,8 @@ def test_vectorisation():
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_vectorisation_STDP_like():
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     # Test the use of pre- and post-synaptic traces that are stored in the
     # pre/post group instead of in the synapses
     w_max = 10
