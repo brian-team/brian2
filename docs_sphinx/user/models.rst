@@ -112,7 +112,16 @@ see :doc:`refractoriness` for details.
 State variables
 ---------------
 Differential equations and parameters in model descriptions are stored as 
-*state variables* of the `NeuronGroup`. They can be accessed and set as an
+*state variables* of the `NeuronGroup`. In addition to these variables, Brian
+also defines two variables automatically:
+
+``i``
+    The index of a neuron.
+
+``N``
+    The total number of neurons.
+
+All state variables can be accessed and set as an
 attribute of the group. To get the values without physical units (e.g. for
 analysing data with external tools), use an underscore after the name:
 
@@ -127,8 +136,8 @@ analysing data with external tools), use an underscore after the name:
     <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
 
 The value of state variables can also be set using string expressions that can
-refer to units and external variables, other state variables, mathematical
-functions, and a special variable ``i``, the index of the neuron:
+refer to units and external variables, other state variables or mathematical
+functions:
 
 .. doctest::
 

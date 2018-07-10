@@ -5,18 +5,22 @@
 
 import numpy as _numpy
 cimport numpy as _numpy
-from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil
+from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, sqrt, asin, acos, atan, fmod, floor, ceil, isinf
 cdef extern from "math.h":
     double M_PI
 # Import the two versions of std::abs
 from libc.stdlib cimport abs  # For integers
 from libc.math cimport abs  # For floating point values
+from libc.limits cimport INT_MIN, INT_MAX
 from libcpp cimport bool
 
 _numpy.import_array()
 cdef extern from "numpy/ndarraytypes.h":
     void PyArray_CLEARFLAGS(_numpy.PyArrayObject *arr, int flags)
 from libc.stdlib cimport free
+
+cdef extern from "numpy/npy_math.h":
+    bint npy_isinf(double x)
 
 cdef extern from "stdint_compat.h":
     # Longness only used for type promotion

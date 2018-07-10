@@ -582,7 +582,7 @@ class CPPStandaloneDevice(Device):
                             once=True)
 
     def generate_objects_source(self, writer, arange_arrays, synapses, static_array_specs, networks):
-        arr_tmp = CPPStandaloneCodeObject.templater.objects(
+        arr_tmp = self.code_object_class().templater.objects(
                         None, None,
                         array_specs=self.arrays,
                         dynamic_array_specs=self.dynamic_arrays,
@@ -598,7 +598,7 @@ class CPPStandaloneDevice(Device):
                         profiled_codeobjects=self.profiled_codeobjects,
                         code_objects=self.code_objects.values())
         writer.write('objects.*', arr_tmp)
-        
+
     def generate_main_source(self, writer):
         main_lines = []
         procedures = [('', main_lines)]
@@ -682,26 +682,26 @@ class CPPStandaloneDevice(Device):
                     main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
-        
+
         self.runfuncs = runfuncs
 
         # generate the finalisations
         for codeobj in self.code_objects.itervalues():
             if hasattr(codeobj.code, 'main_finalise'):
                 main_lines.append(codeobj.code.main_finalise)
-                
-                # The code_objects are passed in the right order to run them because they were
+
+        # The code_objects are passed in the right order to run them because they were
         # sorted by the Network object. To support multiple clocks we'll need to be
         # smarter about that.
-        main_tmp = CPPStandaloneCodeObject.templater.main(None, None,
-                                                          main_lines=main_lines,
-                                                          code_objects=self.code_objects.values(),
-                                                          report_func=self.report_func,
-                                                          dt=float(self.defaultclock.dt),
-                                                          user_headers=self.headers
-                                                          )
+        main_tmp = self.code_object_class().templater.main(None, None,
+                                                           main_lines=main_lines,
+                                                           code_objects=self.code_objects.values(),
+                                                           report_func=self.report_func,
+                                                           dt=float(self.defaultclock.dt),
+                                                           user_headers=self.headers
+                                                           )
         writer.write('main.cpp', main_tmp)
-        
+
     def generate_codeobj_source(self, writer):
                 # Generate data for non-constant values
         code_object_defs = defaultdict(list)
@@ -738,30 +738,30 @@ class CPPStandaloneDevice(Device):
             code = self.freeze(codeobj.code.cpp_file, ns)
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
             code = '#include "objects.h"\n'+code
-            
+
             writer.write('code_objects/'+codeobj.name+'.cpp', code)
             writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
-        
+
     def generate_network_source(self, writer, compiler):
         maximum_run_time = self._maximum_run_time
         if maximum_run_time is not None:
             maximum_run_time = float(maximum_run_time)
-        network_tmp = CPPStandaloneCodeObject.templater.network(None, None, maximum_run_time=maximum_run_time)
+        network_tmp = self.code_object_class().templater.network(None, None, maximum_run_time=maximum_run_time)
         writer.write('network.*', network_tmp)
-        
+
     def generate_synapses_classes_source(self, writer):
-        synapses_classes_tmp = CPPStandaloneCodeObject.templater.synapses_classes(None, None)
+        synapses_classes_tmp = self.code_object_class().templater.synapses_classes(None, None)
         writer.write('synapses_classes.*', synapses_classes_tmp)
-        
+
     def generate_run_source(self, writer):
-        run_tmp = CPPStandaloneCodeObject.templater.run(None, None, run_funcs=self.runfuncs,
+        run_tmp = self.code_object_class().templater.run(None, None, run_funcs=self.runfuncs,
                                                         code_objects=self.code_objects.values(),
                                                         user_headers=self.headers,
                                                         array_specs=self.arrays,
                                                         clocks=self.clocks
                                                         )
         writer.write('run.*', run_tmp)
-        
+
     def generate_makefile(self, writer, compiler, compiler_flags, linker_flags, nb_threads, debug):
         if compiler == 'msvc':
             if nb_threads>1:
@@ -776,7 +776,7 @@ class CPPStandaloneDevice(Device):
                 linker_debug_flags = ''
             # Generate the visual studio makefile
             source_bases = [fname.replace('.cpp', '').replace('.c', '').replace('/', '\\') for fname in writer.source_files]
-            win_makefile_tmp = CPPStandaloneCodeObject.templater.win_makefile(
+            win_makefile_tmp = self.code_object_class().templater.win_makefile(
                 None, None,
                 source_files=writer.source_files,
                 source_bases=source_bases,
@@ -808,7 +808,7 @@ class CPPStandaloneDevice(Device):
             else:
                 compiler_debug_flags = ''
                 linker_debug_flags = ''
-            makefile_tmp = CPPStandaloneCodeObject.templater.makefile(None, None,
+            makefile_tmp = self.code_object_class().templater.makefile(None, None,
                 source_files=' '.join(writer.source_files),
                 header_files=' '.join(writer.header_files),
                 compiler_flags=compiler_flags,
@@ -817,7 +817,7 @@ class CPPStandaloneDevice(Device):
                 linker_flags=linker_flags,
                 rm_cmd=rm_cmd)
             writer.write('makefile', makefile_tmp)
-    
+
     def copy_source_files(self, writer, directory):
         # Copy the brianlibdirectory
         brianlib_dir = os.path.join(os.path.split(inspect.getsourcefile(CPPStandaloneCodeObject))[0],
@@ -846,7 +846,7 @@ class CPPStandaloneDevice(Device):
                      os.path.join(directory, 'brianlib', 'randomkit', 'randomkit.h'))
 
     def _insert_func_namespace(self, func, code_object, namespace):
-        impl = func.implementations[CPPStandaloneCodeObject]
+        impl = func.implementations[self.code_object_class()]
         func_namespace = impl.get_namespace(code_object.owner)
         if func_namespace is not None:
             namespace.update(func_namespace)

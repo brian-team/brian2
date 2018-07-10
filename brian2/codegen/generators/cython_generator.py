@@ -376,7 +376,7 @@ ctypedef fused _to_clip:
     float
     double
 
-cdef _to_clip clip(_to_clip x, double low, double high):
+cdef _to_clip _clip(_to_clip x, double low, double high):
     if x < low:
         return <_to_clip?>low
     if x > high:
@@ -385,5 +385,18 @@ cdef _to_clip clip(_to_clip x, double low, double high):
 '''
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator,
                                                              code=clip_code,
-                                                             name='clip')
+                                                             name='_clip')
 
+timestep_code = '''
+cdef int _timestep(double t, double dt):
+    cdef int _infinity_int = 1073741823  # maximum 32bit integer divided by 2
+    if npy_isinf(t):
+        if t < 0:
+            return -_infinity_int
+        else:
+            return  _infinity_int
+    return <int>((t + 1e-3*dt)/dt)
+'''
+DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CythonCodeGenerator,
+                                                                 code=timestep_code,
+                                                                 name='_timestep')

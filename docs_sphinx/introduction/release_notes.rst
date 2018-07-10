@@ -1,6 +1,127 @@
 Release notes
 =============
 
+Brian 2.1.3.1
+-------------
+This is a bug-fix release that fixes two bugs in the recent 2.1.3 release:
+
+* Fix an inefficiency in the newly introduced `~brian2.core.functions.timestep`
+  function when using the ``numpy`` target (:issue:`965`)
+* Fix inefficiencies in the unit system that could lead to slow operations
+  and high memory use (:issue:`967`). Thanks to Kaustab Pal for making us
+  aware of the issue.
+
+Brian 2.1.3
+-----------
+This is a bug-fix release that fixes a number of important bugs (see below),
+but does not introduce any new features. We recommend all users of Brian 2 to
+upgrade.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development
+mailing list (brian-development@googlegroups.com).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- The Cython cache on disk now uses significantly less space by deleting
+  unnecessary source files (set the `codegen.runtime.cython.delete_source_files`
+  preference to ``False`` if you want to keep these files for debugging). In
+  addition, a warning will be given when the Cython or weave cache exceeds a
+  configurable size (`codegen.max_cache_dir_size`). The
+  `~brian2.__init__.clear_cache` function is provided to delete files from the
+  cache (:issue:`914`).
+- The C++ standalone mode now respects the ``profile`` option and therefore no
+  longer collects profiling information by default. This can speed up
+  simulations in certain cases (:issue:`935`).
+- The exact number of time steps that a neuron stays in the state of
+  refractoriness after a spike could vary by up to one time step when the
+  requested refractory time was a multiple of the simulation time step. With
+  this fix, the number of time steps is ensured to be as expected by making
+  use of a new `~brian2.core.functions.timestep` function that avoids floating
+  point rounding issues (:issue:`949`, first reported by
+  `@zhouyanasd <https://github.com/zhouyanasd>`_ in issue :issue:`943`).
+- When `restore` was called twice for a network, spikes that were not yet
+  delivered to their target were not restored correctly (:issue:`938`, reported by
+  `@zhouyanasd <https://github.com/zhouyanasd>`_).
+- `SpikeGeneratorGroup` now uses a more efficient method for sorting spike
+  indices and times, leading to a much faster preparation time for groups that
+  store many spikes (:issue:`948`).
+- Fix a memory leak in `TimedArray` (:issue:`923`, reported by Wilhelm Braun).
+- Fix an issue with summed variables targetting subgroups (:issue:`925`,
+  reported by `@AI-pha <https://github.com/AI-pha>`_).
+- Fix the use of `~brian2.groups.group.Group.run_regularly` on subgroups
+  (:issue:`922`, reported by `@AI-pha <https://github.com/AI-pha>`_).
+- Improve performance for `SpatialNeuron` by removing redundant computations
+  (:issue:`910`, thanks to `Moritz Augustin <https://github.com/moritzaugustin>`_
+  for making us aware of the issue).
+- Fix linked variables that link to scalar variables (:issue:`916`)
+- Fix warnings for numpy 1.14 and avoid compilation issues when switching
+  between versions of numpy (:issue:`913`)
+- Fix problems when using logical operators in code generated for the numpy
+  target which could lead to issues such as wrongly connected synapses
+  (:issue:`901`, :issue:`900`).
+
+Backward-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- No longer allow ``delay`` as a variable name in a synaptic model to avoid
+  ambiguity with respect to the synaptic delay. Also no longer allow access to
+  the ``delay`` variable in synaptic code since there is no way to distinguish
+  between pre- and post-synaptic delay (:issue:`927`, reported by Denis Alevi).
+- Due to the changed handling of refractoriness (see bug fixes above),
+  simulations that make use of refractoriness will possibly no longer give
+  exactly the same results. The preference `legacy.refractory_timing` can
+  be set to ``True`` to reinstate the previous behaviour.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- From this version on, conda packages will be available on
+  `conda-forge <https://conda-forge.org/>`_. For a limited time, we will copy
+  over packages to the ``brian-team`` channel as well.
+- Conda packages are no longer tied to a specific numpy version (PR :issue:`954`)
+- New example (:doc:`Brunel & Wang, 2001 <../examples/frompapers.Brunel_Wang_2001>`)
+  contributed by `Teo Stocco <https://github.com/zifeo>`_ and
+  `Alex Seeholzer <https://github.com/flinz>`_.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Teo Stocco (`@zifeo <https://github.com/zifeo>`_)
+* Dylan Muir (`@DylanMuir <https://github.com/DylanMuir>`_)
+* scarecrow (`@zhouyanasd <https://github.com/zhouyanasd>`_)
+* `@fuadfukhasyi <https://github.com/fuadfukhasyi>`_
+* Aditya Addepalli (`@Dyex719 <https://github.com/Dyex719>`_)
+* Kapil kumar (`@kapilkd13 <https://github.com/kapilkd13>`_)
+* svadams (`@svadams <https://github.com/svadams>`_)
+* Vafa Andalibi (`@Vafa-Andalibi <https://github.com/Vafa-Andalibi>`_)
+* Sven Leach (`@SvennoNito <https://github.com/SvennoNito>`_)
+* `@matrec4 <https://github.com/matrec4>`_
+* `@jarishna <https://github.com/jarishna>`_
+* `@AI-pha <https://github.com/AI-pha>`_
+* `@xdzhangxuejun <https://github.com/xdzhangxuejun>`_
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Paul Pfeiffer (`@pfeffer90 <https://github.com/pfeffer90>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+* `@hustyanghui <https://github.com/hustyanghui>`_
+* Adrien F. Vincent (`@afvincent <https://github.com/afvincent>`_)
+* `@ckemere <https://github.com/ckemere>`_
+* `@evearmstrong <https://github.com/evearmstrong>`_
+* Paweł Kopeć (`@pawelkopec <https://github.com/pawelkopec>`_)
+* Moritz Augustin (`@moritzaugustin <https://github.com/moritzaugustin>`_)
+* Bart (`@louwers <https://github.com/louwers>`_)
+* `@amarsdd <https://github.com/amarsdd>`_
+* `@ttxtea <https://github.com/ttxtea>`_
+* Maria Cervera (`@MariaCervera <https://github.com/MariaCervera>`_)
+* ouyangxinrong (`@longzhixin <https://github.com/longzhixin>`_)
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Wilhelm Braun
+
 Brian 2.1.2
 -----------
 This is another bug fix release that fixes a major bug in `Equations`'

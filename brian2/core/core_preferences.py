@@ -6,12 +6,16 @@ from numpy import float32, float64, int32
 
 from brian2.core.preferences import BrianPreference, prefs
 
+__all__ = []
+
 
 def dtype_repr(dtype):
     return dtype.__name__
 
+
 def default_float_dtype_validator(dtype):
     return dtype in [float32, float64]
+
 
 prefs.register_preferences('core', 'Core Brian preferences',
     default_float_dtype=BrianPreference(
@@ -36,4 +40,19 @@ prefs.register_preferences('core', 'Core Brian preferences',
         a warning (``False``).
         '''
         )
+    )
+
+prefs.register_preferences('legacy', 'Preferences to enable legacy behaviour',
+    refractory_timing=BrianPreference(
+        default=False,
+        docs='''
+        Whether to use the semantics for checking the refractoriness condition
+        that were in place up until (including) version 2.1.2. In that
+        implementation, refractory periods that were multiples of dt could lead
+        to a varying number of refractory timesteps due to the nature of
+        floating point comparisons). This preference is only provided for exact
+        reproducibility of previously obtained results, new simulations should
+        use the improved mechanism which uses a more robust mechanism to
+        convert refractoriness into timesteps. Defaults to ``False``.
+        ''')
     )

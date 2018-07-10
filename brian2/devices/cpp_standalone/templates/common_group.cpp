@@ -6,6 +6,7 @@
 #include<ctime>
 #include<iostream>
 #include<fstream>
+#include<climits>
 {% block extra_headers %}
 {% endblock %}
 {% for name in user_headers | sort %}

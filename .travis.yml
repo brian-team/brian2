@@ -1,10 +1,6 @@
 language: c  # We are not using the Python infrastructure
 sudo: false  # Make sure we are using the container-based infrastructure
 
-env:
-  global:
-    secure: "UiGZoh0Ac4StHCHlJ9+nRm3r5bvcJunTzX7xeg8KGBE/oL/TMTKmOTw7DbJ/zMG3RfecU1U3+GiTtPHluXRkFqiLNijKP0aO22rGcTHAHBNerIg+CZxpubbAP6+qvL1xlJzpb3R5CghDGRvFzV9Oc/vUs5PxnF9tUDQfSA0/Ksg="
-
 # Install packages for cross-compilation to 32 Bit
 addons:
   apt:
@@ -12,6 +8,16 @@ addons:
     - gcc-multilib
     - g++-multilib
     - lib32z1
+  artifacts:
+    paths:
+      - $(ls dist/*.whl | tr "\n" ":")
+    s3_region: "us-east-1"
+
+env:
+  global:
+    - ARTIFACTS_BUCKET=brian2-travis-artifacts
+    - secure: "cQocTghprWx5J+Y42AcLfzl4mPyDdsE1wlqAJ71u+wzJu9AVxPC3ARblAn/T9Tjyma5UFZf2WIIxKnjRNg3DfYFeJWWCRMk9p/ji5guM+1rD/xE/XQdR061EsRAundnOJns9/BQeKQ5r4Gex2vky+X0PU9Nds53nrroA33HiHA0="
+    - secure: "S+Ga7Wd4IeVYEm/yi8YBW6c6RxTLSlmj/UcjfoMLQTadDBIjjpuOtCLTlgJceyxlfbXOyKRI+D3sjFWzVWCzYVrui/lnpIBNEgMiaNOXjYkmdktOEfjPEVAgR0OZsNr25h0hr3ITWSLoS4XYNfxclDG6YMzVOuYlV+1TAfQJJ04="
 
 matrix:
   include:
@@ -23,28 +29,28 @@ matrix:
       os: linux
     # Standard tests
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: osx
     - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: osx
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: osx
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="27" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: osx
 #    - python: "2.7"
-#      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_BUILD='no' SPLIT_RUN=1 ARCHITECTURE="x86"
+#      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" DO_CONDA_BUILD='no' SPLIT_RUN=1 ARCHITECTURE="x86"
 #      os: linux
 #    - python: "2.7"
-#      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" CONDA_BUILD='yes' SPLIT_RUN=2 ARCHITECTURE="x86"
+#      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" DO_CONDA_BUILD='yes' SPLIT_RUN=2 ARCHITECTURE="x86"
 #      os: linux
     - python: "2.7"
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=1 ARCHITECTURE="x86_64"
@@ -53,29 +59,29 @@ matrix:
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: linux
     - python: "3.5"
-      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" DO_CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: linux
     - python: "3.5"
-      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" DO_CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: osx
 #    - python: "3.5"
-#      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" CONDA_BUILD='yes' ARCHITECTURE="x86"
+#      env: PYTHON="3.5" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="35" DO_CONDA_BUILD='yes' ARCHITECTURE="x86"
 #      os: linux
     - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="36" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="36" DO_CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: linux
     - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="36" CONDA_BUILD='yes' ARCHITECTURE="x86_64"
+      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="36" DO_CONDA_BUILD='yes' ARCHITECTURE="x86_64"
       os: osx
     # test standalone
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes CONDA_BUILD='no' ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: linux
 #    - python: "2.7"
-#      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86"
+#      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86"
 #      os: linux
     - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no CONDA_BUILD='no' ARCHITECTURE="x86_64"
+      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: linux
     # test without installed cython
     - python: "2.7"
@@ -113,34 +119,35 @@ before_install:
 
 # command to install dependencies
 install:
-  # - conda update --yes conda
-  - echo "conda ==4.3.21" >> ~/miniconda/conda-meta/pinned  # Pin conda as workaround for conda/conda#6030
+  - travis_retry conda update --yes conda
+  # Use the conda-forge channel
+  - conda config --append channels conda-forge
   # For faster tests, only build conda packages for the master branch or pull requests
   - if [[ $TRAVIS_PULL_REQUEST == 'false' ]] && [[ $TRAVIS_BRANCH != 'master' ]]; then
-       CONDA_BUILD='no';
+       DO_CONDA_BUILD='no';
     fi
-  - if [[ $CONDA_BUILD == 'yes' ]]; then
-       conda install --yes --quiet anaconda-client conda-build jinja2 pip setuptools;
+  - if [[ $DO_CONDA_BUILD == 'yes' ]]; then
+       conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose "sphinx<1.6.3" ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage;
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage py-cpuinfo=3 gsl>1.15";
     else
-    travis_retry conda create -n travis_conda --yes --quiet pip python=$PYTHON numpy nose "sphinx<1.6.3" ipython "sympy!=1.1.0" pyparsing jinja2 setuptools coverage;
+    PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage py-cpuinfo=3 gsl>1.15";
     fi
-  - source activate travis_conda
-  # On Python 2: Install an older version of scipy that still has weave
+  # On Python 2: Install the weave package explicitly
   - if [ ${PYTHON:0:1} == "2" ]; then
       if [[ $MINIMAL_VERSIONS != 'yes' ]]; then
-        travis_retry conda install --yes --quiet -c brian-team weave scipy;
+        PYTHON_PACKAGES="$PYTHON_PACKAGES weave scipy";
       fi;
-      travis_retry conda install --yes --quiet bsddb;
+      PYTHON_PACKAGES="$PYTHON_PACKAGES bsddb";
     else
-      travis_retry conda install --yes --quiet scipy;
+      PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
     fi
-  - travis_retry conda install --yes --quiet -c brian-team py-cpuinfo  # install cpuinfo from our own channel
-  - travis_retry conda install --yes --quiet -c conda-forge "gsl>1.15"  # install gsl from conda-forge
-  - if [[ $CYTHON == 'yes' ]]; then travis_retry conda install --yes cython; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
-  - if [[ $REPORT_COVERAGE == 'yes' ]]; then travis_retry pip install -q coveralls; fi
+  - if [[ $CYTHON == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES cython"; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
+  - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES coveralls"; fi
+  # Install packages into a new environment
+  - travis_retry conda create --quiet --yes -n travis_conda $PYTHON_PACKAGES
+  - source activate travis_conda
   - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       python setup.py sdist;
@@ -148,14 +155,12 @@ install:
 
 # command to run tests (make sure to not run it from the source directory)
 script:
-- if [[ $CONDA_BUILD == 'yes' ]]; then
+- export MACOSX_DEPLOYMENT_TARGET=10.9  # Prevents build errors linked when using isinf
+- if [[ $DO_CONDA_BUILD == 'yes' ]]; then
     source deactivate;
-    for NUMPY_VERSION in 1.12 1.13; do
-      conda build --quiet -c conda-forge dev/conda-recipe --numpy $NUMPY_VERSION;
-    done;
+    conda build --quiet -c conda-forge dev/conda-recipe;
     source activate travis_conda;
   fi
-# Don't run tests in parallel when reporting coverage
 - if [[ $DOCS_ONLY == 'yes' ]]; then
     cd dist;
     tar xvzf *.tar.gz;
@@ -171,21 +176,18 @@ script:
   fi
 
 after_success:
-# We only upload to binstar for commits merged into the master branch
-- if [[ $CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
-    cd $SRCDIR;
-    source deactivate;
-    python dev/continuous-integration/move-conda-package.py dev/conda-recipe &&
-    python dev/continuous-integration/conda-server-push.py;
-    source activate travis_conda;
-  fi;
-  if [[ $REPORT_COVERAGE == 'yes' ]]; then
+- if [[ $REPORT_COVERAGE == 'yes' ]]; then
     cd ~;
     cp .coverage $SRCDIR;
     cd $SRCDIR;
     coveralls;
   fi
+# Create binary packages for pypi and upload them to AWS
+- if [[ $DO_CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
+    conda install --yes --quiet wheel;
+    cd $SRCDIR;
+    python setup.py bdist_wheel --with-cython --fail-on-error;
+  fi
 
 notifications:
   email: false
-

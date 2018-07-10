@@ -66,7 +66,7 @@ Quadratic integrate-and-fire neuron
 + .. code::                                                        | .. code::                                                                                |
 +                                                                  |                                                                                          |
 +    eqs = (quadratic_IF(C=1*nF, a=5*nS/mV,                        |    C = 1*nF; a=5*nS/mV; EL=-70*mV; VT = -50*mV                                           |
-+           EL=-70*mV, VT=-50*mV) +                                |    eqs = '''dvm/dt = (a_q*(vm-EL)*(vm-VT) + I)/C : volt                                  |
++           EL=-70*mV, VT=-50*mV) +                                |    eqs = '''dvm/dt = (a*(vm-EL)*(vm-VT) + I)/C : volt                                    |
 +           Current('I : amp'))                                    |             I : amp'''                                                                   |
 +    group = ... # see above                                       |    group = ... # see above                                                               |
 +                                                                  |                                                                                          |
@@ -81,7 +81,7 @@ Izhikevich neuron
 +                                                                  |                                                                                          |
 +    eqs = (Izhikevich(a=0.02/ms, b=0.2/ms) +                      |    a = 0.02/ms; b = 0.2/ms                                                               |
 +           Current('I : volt/second'))                            |    eqs = '''dvm/dt = (0.04/ms/mV)*vm**2+(5/ms)*vm+140*mV/ms-w + I : volt                 |
-+    group = ... # see above                                       |             dw/dt = a_I*(b_I*vm-w) : volt/second                                         |
++    group = ... # see above                                       |             dw/dt = a*(b*vm-w) : volt/second                                             |
 +                                                                  |             I : volt/second'''                                                           |
 +                                                                  |    group = ... # see above                                                               |
 +                                                                  |                                                                                          |
@@ -96,10 +96,10 @@ Adaptive exponential integrate-and-fire neuron ("Brette-Gerstner model")
 +                                                                  |                                                                                          |
 +    # AdEx, aEIF, and Brette_Gerstner all refer to the same model |   C = 1*nF; gL = 30*nS; EL = -70*mV; VT = -50*mV; DeltaT = 2*mV; tauw = 150*ms; a = 4*nS |
 +    eqs = (aEIF(C=1*nF, gL=30*nS, EL=-70*mV,                      |   eqs = '''dvm/dt = (gL*(EL-vm)+gL*DeltaT*exp((vm-VT)/DeltaT) -w + I)/C : volt           |
-+                VT=-50*mV, DeltaT=2*mV, tauw=150*ms, a=4*nS) +    |            dw/dt=(a_BG*(vm-EL)-w)/tauw : amp                                             |
-+           Current('I:amp'))                                      |            I : volt/second'''                                                            |
++                VT=-50*mV, DeltaT=2*mV, tauw=150*ms, a=4*nS) +    |            dw/dt=(a*(vm-EL)-w)/tauw : amp                                                |
++           Current('I:amp'))                                      |            I : amp'''                                                                    |
 +    group = NeuronGroup(N, eqs,                                   |   group = NeuronGroup(N, eqs,                                                            |
-+                        threshold='v > -20*mV',                   |                       threshold='v > -20*mV',                                            |
++                        threshold='v > -20*mV',                   |                       threshold='vm > -20*mV',                                           |
 +                        reset=AdaptiveReset(Vr=-70*mV, b=0.08*nA))|                       reset='vm=-70*mV; w += 0.08*nA')                                   |
 +                                                                  |                                                                                          |
 +------------------------------------------------------------------+------------------------------------------------------------------------------------------+
@@ -155,7 +155,7 @@ Current-based synapses
 +           syn_eqs)                                                               |    eqs = (Equations('dvm/dt = (gl*(El - vm) + I_syn)/C : volt') +                |
 +    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |           syn_eqs)                                                               |
 +    syn = Synapses(source, group, pre='s += 1*nA')                                |    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |
-+    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, pre='I_syn += 1*nA')                            |
++    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, on_pre='I_syn += 1*nA')                         |
 +                                                                                  |    # ... connect synapses, etc.                                                  |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -165,7 +165,7 @@ Current-based synapses
 +    eqs = ... # remaining code as above                                           |   syn_eqs = Equations('''dI_syn/dt = (s - I_syn)/tau : amp                       |
 +                                                                                  |                          ds/dt = -s/tau : amp''')                                |
 +                                                                                  |   group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')          |
-+                                                                                  |   syn = Synapses(source, group, pre='s += 1*nA')                                 |
++                                                                                  |   syn = Synapses(source, group, on_pre='s += 1*nA')                              |
 +                                                                                  |   # ... connect synapses, etc.                                                   |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -190,7 +190,7 @@ Conductance-based synapses
 +           syn_eqs)                                                               |    eqs = (Equations('dvm/dt = (gl*(El - vm) + g_syn*(E - vm))/C : volt') +       |
 +    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |           syn_eqs)                                                               |
 +    syn = Synapses(source, group, pre='s += 10*nS')                               |    group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')         |
-+    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, pre='g_syn += 10*nS')                           |
++    # ... connect synapses, etc.                                                  |    syn = Synapses(source, group, on_pre='g_syn += 10*nS')                        |
 +                                                                                  |    # ... connect synapses, etc.                                                  |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+
@@ -200,7 +200,7 @@ Conductance-based synapses
 +    eqs = ... # remaining code as above                                           |   syn_eqs = Equations('''dg_syn/dt = (s - g_syn)/tau : siemens                   |
 +                                                                                  |                          ds/dt = -s/tau : siemens''')                            |
 +                                                                                  |   group = NeuronGroup(N, eqs, threshold='vm>-50*mV', reset='vm=-70*mV')          |
-+                                                                                  |   syn = Synapses(source, group, pre='s += 10*nS')                                |
++                                                                                  |   syn = Synapses(source, group, on_pre='s += 10*nS')                             |
 +                                                                                  |   # ... connect synapses, etc.                                                   |
 +                                                                                  |                                                                                  |
 +----------------------------------------------------------------------------------+----------------------------------------------------------------------------------+

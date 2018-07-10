@@ -1,10 +1,9 @@
 '''
 Package providing the code generation framework.
 '''
-
-from .generators import *
-from .statements import *
-from .translation import *
+# Import the runtime packages so that they can register their preferences
 from .runtime import *
-from ._prefs import *
+import _prefs
 import cpp_prefs as _cpp_prefs
+
+__all__ = ['NumpyCodeObject', 'WeaveCodeObject', 'CythonCodeObject']

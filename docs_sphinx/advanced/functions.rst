@@ -33,6 +33,13 @@ example, the following reset statement resets the variable `v` to either `v_r1`
 or `v_r2`, depending on the value of `w`:
 ``'v = v_r1 * int(w <= 0.5) + v_r2 * int(w > 0.5)'``
 
+Finally, the function `~brian2.core.functions.timestep` is a function that takes
+a time and the length of a time step as an input and returns an integer
+corresponding to the respective time step. The advantage of using this function
+over a simple division is that it slightly shifts the time before dividing to
+avoid floating point issues. This function is used as part of the
+:doc:`../user/refractoriness` mechanism.
+
 .. _user_functions:
 
 User-provided functions

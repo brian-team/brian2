@@ -1022,6 +1022,22 @@ def test_get_unit():
 
 
 @attr('codegen-independent')
+def test_get_best_unit():
+    # get_best_unit should not check all values for long arrays, since it is
+    # a function used for display purposes only. Instead, only the first and
+    # last few values should matter (see github issue #966)
+    long_ar = np.ones(10000)*siemens
+    long_ar[:10] = 1*nS
+    long_ar[-10:] = 2*nS
+    values = [(np.arange(10)*mV, mV),
+              ([0.001, 0.002, 0.003]*second, ms),
+              (long_ar, nS)]
+    for ar, expected_unit in values:
+        assert ar.get_best_unit() is expected_unit
+        assert str(expected_unit) in ar.in_best_unit()
+
+
+@attr('codegen-independent')
 def test_switching_off_unit_checks():
     '''
     Check switching off unit checks (used for external functions).
@@ -1182,6 +1198,7 @@ if __name__ == '__main__':
     test_list()
     test_check_units()
     test_get_unit()
+    test_get_best_unit()
     test_switching_off_unit_checks()
     test_fail_for_dimension_mismatch()
     test_deepcopy()

@@ -23,8 +23,9 @@ gsl_odeiv2_driver_set_hmax(_GSL_driver, {{GSL_settings['dt_start']}});
 const int _N = {{constant_or_scalar('N', variables['N'])}};
 // scalar code
 const int _vectorisation_idx = 1;
+{% if define_dt %}
 const double dt = {{dt_array}};
-
+{% endif %}
 {{scalar_code['GSL']|autoindent}}
 
 for(int _idx=0; _idx<_N; _idx++)

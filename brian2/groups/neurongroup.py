@@ -9,6 +9,7 @@ import sympy
 from pyparsing import Word
 
 from brian2.codegen.translation import analyse_identifiers
+from brian2.core.preferences import prefs
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import (Variables, LinkedVariable,
                                    DynamicArrayVariable, Subexpression)
@@ -117,8 +118,10 @@ class StateUpdater(CodeRunner):
                                                       'of seconds but got '
                                                       '{value}'),
                                         value=ref)
-
-            abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
+            if prefs.legacy.refractory_timing:
+                abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
+            else:
+                abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%f, dt)\n' % ref
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
@@ -126,7 +129,10 @@ class StateUpdater(CodeRunner):
                                                user_identifiers=identifiers)
             dims = parse_expression_dimensions(str(ref), variables)
             if dims is second.dim:
-                abstract_code = 'not_refractory = (t - lastspike) > %s\n' % ref
+                if prefs.legacy.refractory_timing:
+                    abstract_code = '(t - lastspike) > %s\n' % ref
+                else:
+                    abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%s, dt)\n' % ref
             elif dims is DIMENSIONLESS:
                 if not is_boolean_expression(str(ref), variables):
                     raise TypeError(('Refractory expression is dimensionless '

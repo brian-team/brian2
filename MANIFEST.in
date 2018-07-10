@@ -10,3 +10,6 @@ prune docs_sphinx/resources
 
 # Include examples (but not tutorials)
 recursive-include examples *.py
+
+# Include license file in source tarball
+include LICENSE

@@ -77,3 +77,8 @@ stimulations which changes the way the library is linked so that it does not
 suffer from this problem. If this environment variable leads to unwanted
 behaviour on your machine, change the
 `prefs.devices.cpp_standalone.run_environment_variables` preference.
+
+Cython fails with compilation error on OS X: ``error: use of undeclared identifier 'isinf'``
+--------------------------------------------------------------------------------------------
+
+Try setting the environment variable ``MACOSX_DEPLOYMENT_TARGET=10.9``.

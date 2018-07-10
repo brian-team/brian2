@@ -30,7 +30,7 @@ __all__ = [
     'DimensionMismatchError', 'get_or_create_dimension',
     'get_dimensions', 'is_dimensionless', 'have_same_dimensions',
     'in_unit', 'in_best_unit', 'Quantity', 'Unit', 'register_new_unit',
-    'check_units', 'is_scalar_type', 'get_unit', 'unit_checking'
+    'check_units', 'is_scalar_type', 'get_unit',
     ]
 
 
@@ -2036,7 +2036,7 @@ class Unit(Quantity):
             return other.__div__(self)
         else:
             try:
-                if other == 1:
+                if is_dimensionless(other) and other == 1:
                     return self**-1
             except (ValueError, TypeError, DimensionMismatchError):
                 pass
@@ -2148,9 +2148,24 @@ class UnitRegistry(object):
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
 
-        # determine how well this unit represents the value
         matching_values = np.array(matching.keys(), copy=False)
-        x_flat = np.array(x, copy=False).flatten()
+        print_opts = np.get_printoptions()
+        edgeitems, threshold = print_opts['edgeitems'], print_opts['threshold']
+        if x.size > threshold:
+            # Only care about optimizing the units for the values that will
+            # actually be shown later
+            # The code looks a bit complex, but should return the same numbers
+            # that are shown by numpy's string conversion
+            slices = []
+            for shape in x.shape:
+                if shape > 2*edgeitems:
+                    slices.append((slice(0, edgeitems), slice(-edgeitems, None)))
+                else:
+                    slices.append((slice(None), ))
+            x_flat = np.hstack([x[use_slices].flatten() for use_slices in
+                                itertools.product(*slices)])
+        else:
+            x_flat = np.array(x, copy=False).flatten()
         floatreps = np.tile(np.abs(x_flat), (len(matching), 1)).T / matching_values
         # ignore zeros, they are well represented in any unit
         floatreps[floatreps == 0] = np.nan

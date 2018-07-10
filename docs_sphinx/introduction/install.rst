@@ -1,6 +1,10 @@
 Installation
 ============
 
+.. contents::
+    :local:
+    :depth: 1
+
 We recommend users to use the `Anaconda distribution <https://www.continuum.io/downloads>`_
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
@@ -20,12 +24,9 @@ Installation with Anaconda
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
 `Download the Anaconda distribution <https://continuum.io/downloads>`_
-for your Operating System. For Windows users that want to use Python 3.x, we
-strongly recommend installing the 32 Bit version even on 64 Bit systems, since
-setting the compilation environment (see :ref:`installation_cpp` below) is less
-complicated in that case. Note that the choice between Python 2.7 and Python 3.x
-is not very important at this stage, Anaconda allows you to create a Python 3
-environment from Python 2 Anaconda and vice versa.
+for your Operating System. Note that the choice between Python 2.7 and Python
+3.x is not very important at this stage, Anaconda allows you to create a Python
+3 environment from Python 2 Anaconda and vice versa.
 
 After the installation, make sure that your environment is configured to use
 the Anaconda distribution. You should have access to the ``conda`` command in
@@ -43,20 +44,26 @@ https://docs.continuum.io/anaconda/ide_integration
 
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
+.. note::
+    The provided Brian 2 packages are only for 64bit systems. If you want to
+    install Brian 2 in a 32bit environment, please use the
+    :ref:`installation_from_source` instead.
+
 You can either install Brian 2 in the Anaconda root environment, or create a
 new environment for Brian 2 (http://conda.pydata.org/docs/using/envs.html). The
 latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 
-Since Brian 2 is not part of the main Anaconda distribution, you have to install
-it from the `brian-team channel <https://conda.anaconda.org/brian-team>`_. To do
-so, use::
+Brian 2 is not part of the main Anaconda distribution, but built using the
+community-maintained `conda-forge <https://conda-forge.org/>`_ project. You
+will therefore have to to install it from the
+`conda-forge channel <https://anaconda.org/conda-forge>`_. To do so, use::
 
-    conda install -c brian-team brian2
+    conda install -c conda-forge brian2
 
 You can also permanently add the channel to your list of channels::
 
-    conda config --add channels brian-team
+    conda config --add channels conda-forge
 
 This has only to be done once. After that, you can install and update the brian2
 packages as any other Anaconda package::
@@ -77,12 +84,12 @@ You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
 install it with pip or anaconda, in the same way as Brian 2 itself, e.g. with::
 
-    conda install -c brian-team brian2tools
+    conda install -c conda-forge brian2tools
 
 .. _installation_from_source:
 
-Installation from source
-------------------------
+Installation with pip
+---------------------
 If you decide not to use Anaconda, you can install Brian 2 from the Python
 package index: https://pypi.python.org/pypi/Brian2
 
@@ -93,11 +100,6 @@ To do so, use the ``pip`` utility::
 You might want to add the ``--user`` flag, to install Brian 2 for the local user
 only, which means that you don't need administrator privileges for the
 installation.
-
-In principle, the above command also install Brian's dependencies.
-Unfortunately, this does not work for ``numpy``, it has to be installed in a
-separate step before all other dependencies (``pip install numpy``), if it is
-not already installed.
 
 If you have an older version of pip, first update pip itself::
 
@@ -115,7 +117,6 @@ it to install ``pip``::
 If you have neither ``pip`` nor ``easy_install``, use the approach described
 here to install ``pip``: https://pip.pypa.io/en/latest/installing/
 
-
 Alternatively, you can download the source package directly and uncompress it.
 You can then either run ``python setup.py install`` or
 ``python setup.py develop`` to install it, or simply add
@@ -130,7 +131,7 @@ Requirements for C++ code generation
 
 C++ code generation is highly recommended since it can drastically increase the
 speed of simulations (see :doc:`../user/computation` for details). To use it,
-you need a C++ compiler and either Cython_ or weave_ (only for Python 2.x).
+you need a C++ compiler and either Cython_ or weave_ (only available for Python 2.x).
 Cython/weave will be automatically installed if you perform the installation via
 Anaconda, as recommended. Otherwise you can install them in the usual way, e.g.
 using ``pip install cython`` or ``pip install weave``.
@@ -146,7 +147,8 @@ distribution's package manager to install a ``g++`` package.
 Windows
 ~~~~~~~
 On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work
-depend on the Python version you are using:
+depend on the Python version you are using (also see the
+`notes in the Python wiki <https://wiki.python.org/moin/WindowsCompilers#Compilers_Installation_and_configuration>`_):
 
 **Python 2.7**
 
@@ -156,8 +158,8 @@ This should be all you need.
 
 **Python 3.4**
 
-* Download and install the `Microsoft .NET Framework 4 <https://www.microsoft.com/en-us/download/details.aspx?id=17851>`_
-* Download and install the `Microsoft Windows SDK for Windows 7 and .NET Framework 4 <http://www.microsoft.com/en-in/download/details.aspx?id=8279>`_
+* Follow the `instructions to install Microsoft Visual C++ 10.0 <https://wiki.python.org/moin/WindowsCompilers#Microsoft_Visual_C.2B-.2B-_10.0_standalone:_Windows_SDK_7.1_.28x86.2C_x64.2C_ia64.29>`_
+  in the Python wiki.
 
 For 64 Bit Windows with Python 3.4, you have to additionally set up your
 environment correctly every time you run your Brian script (this is why we
@@ -169,11 +171,12 @@ or put them in a batch file::
     CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
     set DISTUTILS_USE_SDK=1
 
-**Python 3.5**
+**Python 3.5 and 3.6**
 
-* Download and install `Visual Studio Community 2015 <https://www.visualstudio.com/>`_. Do not chose the default
-  install but instead customize it, the only necessary option is "Programming Languages / Visual C++ / Common Tools for
-  Visual C++ 2015"
+* Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
+* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
+  ``pip install --upgrade setuptools`` when using pip).
+
 
 For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio -- in this
 case, the Python version does not matter.
@@ -227,8 +230,8 @@ suite::
     import brian2
     brian2.test()
 
-It should end with "OK", possibly showing a number of skipped tests but no
-warnings or errors. For more control about the tests that are run see the
+It should end with "OK", showing a number of skipped tests but no errors or
+failures. For more control about the tests that are run see the
 :doc:`developer documentation on testing <../developer/guidelines/testing>`.
 
 .. _matplotlib: http://matplotlib.org/

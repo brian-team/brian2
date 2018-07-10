@@ -48,8 +48,8 @@ def get_weave_cache_dir():
 
 
 def get_weave_extensions():
-    return {'compiled_catalog', 'cpp', '.so', '.pyd', '.dll', '.obj', '.exp',
-            '.lib'}
+    return {'compiled_catalog', 'compiled_catalog.dir', 'compiled_catalog.dat',
+            'cpp', '.so', '.pyd', '.dll', '.obj', '.exp', '.lib'}
 
 
 def weave_data_type(dtype):
@@ -130,7 +130,7 @@ class WeaveCodeObject(CodeObject):
                                      self.extra_link_args, logger=logger)
         self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
         self.libraries = list(prefs['codegen.cpp.libraries'])
-        self.headers = ['<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
+        self.headers = ['<math.h>','<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
         self.numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
         self.annotated_code = self.code.main+'''
 /*

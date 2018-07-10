@@ -358,7 +358,7 @@ def test_GSL_non_autonomous():
 @with_setup(teardown=reinit_devices)
 @skip_if_not_implemented
 def test_GSL_refractory():
-    eqs = '''dv/dt = 100*Hz : 1 (unless refractory)'''
+    eqs = '''dv/dt = 99.99*Hz : 1 (unless refractory)'''
     neuron = NeuronGroup(1, eqs, method='gsl', threshold='v>1', reset='v=0', refractory=3*ms)
     neuron2 = NeuronGroup(1, eqs, method='euler', threshold='v>1', reset='v=0', refractory=3*ms)
     mon = SpikeMonitor(neuron, 'v')

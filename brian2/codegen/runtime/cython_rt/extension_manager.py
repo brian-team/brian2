@@ -113,12 +113,13 @@ class CythonExtensionManager(object):
         if prefs['codegen.runtime.cython.multiprocess_safe']:
             lock_file = os.path.join(lib_dir, module_name + '.lock')
             with open(lock_file, 'w') as f:
+                # Lock
                 if msvcrt:
                     msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
                                    os.stat(lock_file).st_size)
                 else:
                     fcntl.flock(f, fcntl.LOCK_EX)
-                return self._load_module(module_path,
+                module = self._load_module(module_path,
                                          define_macros=define_macros,
                                          include_dirs=include_dirs,
                                          library_dirs=library_dirs,
@@ -131,6 +132,13 @@ class CythonExtensionManager(object):
                                          runtime_library_dirs=runtime_library_dirs,
                                          compiler=compiler,
                                          key=key)
+                # Unlock
+                if msvcrt:
+                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK,
+                                   os.stat(lock_file).st_size)
+                else:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+            return module
         else:
             return self._load_module(module_path,
                                      define_macros=define_macros,

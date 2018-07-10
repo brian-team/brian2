@@ -428,7 +428,7 @@ DEFAULT_FUNCTIONS['abs'].implementations.add_implementation(CPPCodeGenerator,
 
 clip_code = '''
         template <typename T>
-        inline T _clip(const T value, const double a_min, const double a_max)
+        static inline T _clip(const T value, const double a_min, const double a_max)
         {
 	        if (value < a_min)
 	            return a_min;
@@ -442,10 +442,40 @@ DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
                                                              name='_clip')
 
 sign_code = '''
-        template <typename T> inline int sign_(T val) {
+        template <typename T> static inline int _sign(T val) {
             return (T(0) < val) - (val < T(0));
         }
         '''
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=sign_code,
-                                                             name='sign_')
+                                                             name='_sign')
+
+timestep_code = '''
+// Adapted from npy_math.h and https://www.christophlassner.de/collection-of-msvc-gcc-compatibility-tricks.html
+#ifndef _BRIAN_REPLACE_ISINF_MSVC
+#define _BRIAN_REPLACE_ISINF_MSVC
+#if defined(_MSC_VER)
+#if _MSC_VER < 1900
+namespace std {
+  template <typename T>
+  bool isinf(const T &x) { return (!_finite(x))&&(!_isnan(x)); }
+}
+#endif
+#endif
+#endif
+static inline int _timestep(double t, double dt)
+{
+    const int _infinity_int = 1073741823;  // maximum 32bit integer divided by 2
+    if (std::isinf(t))
+    {
+        if (t < 0)
+            return -_infinity_int;
+        else
+            return _infinity_int;
+    }
+    return (int)((t + 1e-3*dt)/dt); 
+}
+        '''
+DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CPPCodeGenerator,
+                                                                 code=timestep_code,
+                                                                 name='_timestep')
