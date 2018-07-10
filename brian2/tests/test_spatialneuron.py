@@ -1,3 +1,4 @@
+import os
 import itertools
 
 from numpy.testing.utils import assert_equal, assert_raises
