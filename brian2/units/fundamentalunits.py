@@ -155,7 +155,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
     else:
         dim2 = get_dimensions(obj2)
 
-    if dim1 is not dim2:
+    if dim1 is not dim2 and not (dim1 is None or dim2 is None):
         # Special treatment for "0":
         # if it is not a Quantity, it has "any dimension".
         # This allows expressions like 3*mV + 0 to pass (useful in cases where
@@ -699,7 +699,7 @@ def have_same_dimensions(obj1, obj2):
     # DimensionMismatchError anyway.
     dim1 = get_dimensions(obj1)
     dim2 = get_dimensions(obj2)
-    return (dim1 is dim2) or (dim1 == dim2)
+    return (dim1 is dim2) or (dim1 == dim2) or dim1 is None or dim2 is None
 
 
 def in_unit(x, u, precision=None):
