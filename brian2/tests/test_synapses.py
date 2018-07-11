@@ -1513,6 +1513,14 @@ def test_lastupdate_variable():
     for syn in [S1_, S2_, S3_]:
         assert not 'lastupdate' in syn.variables
 
+@attr('codegen-independent')
+def test_lastupdate_in_run_regularly():
+    G = NeuronGroup(10, 'v : 1')
+    S = Synapses(G, G, 'x : 1')
+    S.run_regularly('x += lastupdate')
+
+    assert 'lastupdate' in S.variables
+
 
 @attr('codegen-independent')
 def test_variables_by_owner():
@@ -2455,6 +2463,7 @@ if __name__ == '__main__':
     test_pre_before_post()
     test_pre_post_simple()
     test_lastupdate_variable()
+    test_lastupdate_in_run_regularly()
     test_transmission_simple()
     test_transmission_custom_event()
     test_invalid_custom_event()
