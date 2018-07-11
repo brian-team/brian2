@@ -940,11 +940,12 @@ class Synapses(Group):
             if isinstance(argument, basestring):
                 pathway_codes.append(argument)
             elif isinstance(argument, collections.Mapping):
-                for value in argument.intervalues():
+                for value in argument.itervalues():
                     pathway_codes.append(value)
         # check if lastupdate is needed for event update code
         for code in pathway_codes:
             # TODO: this also catches e.g. 'mylastupdate', use some brian parser!
+            if 'lastupdate' in code:
                 return True
         return False
 
