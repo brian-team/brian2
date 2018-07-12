@@ -82,7 +82,9 @@ def test_refractoriness_variables():
                         threshold='v>1', reset='v=0;w=0',
                         refractory=ref_time,
                         dtype={'ref': defaultclock.variables['t'].dtype,
-                               'ref_no_unit': defaultclock.variables['t'].dtype})
+                               'ref_no_unit': defaultclock.variables['t'].dtype,
+                               'lastspike': defaultclock.variables['t'].dtype,
+                               'time_since_spike': defaultclock.variables['t'].dtype})
         G.ref = 5*ms
         G.ref_no_unit = 5
         # It should take 10ms to reach the threshold, then v should stay at 0
@@ -101,8 +103,10 @@ def test_refractoriness_variables():
                          mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
             assert np.all(mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1] > 0)
             # After refractoriness, v should increase again
-            assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)])
+            print mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)]
+            assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
         except AssertionError as ex:
+            raise
             raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')
