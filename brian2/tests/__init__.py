@@ -68,7 +68,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
         reset_preferences=True, fail_for_not_implemented=True,
-        build_options=None, extra_test_dirs=None):
+        build_options=None, extra_test_dirs=None, float_dtype=None):
     '''
     Run brian's test suite. Needs an installation of the nose testing tool.
 
@@ -113,6 +113,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     extra_test_dirs : list of str or str, optional
         Additional directories as a list of strings (or a single directory as
         a string) that will be searched for additional tests.
+    float_dtype : np.dtype, optional
+        Set the dtype to use for floating point variables to a value different
+        from the default `core.default_float_dtype` setting.
     '''
     if nose is None:
         raise ImportError('Running the test suite requires the "nose" package.')
@@ -184,15 +187,18 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     if reset_preferences:
         sys.stderr.write('Resetting to default preferences\n')
 
-    sys.stderr.write('\n')
-
     if reset_preferences:
         # Store the currently set preferences and reset to default preferences
         stored_prefs = prefs.as_file
         prefs.read_preference_file(StringIO(prefs.defaults_as_file))
-        prefs._backup()
-    else:
-        prefs._backup()
+
+    if float_dtype is not None:
+        sys.stderr.write('Setting dtype for floating point variables to: '
+                         '{}\n'.format(float_dtype.__name__))
+        prefs['core.default_float_dtype'] = float_dtype
+    prefs._backup()
+
+    sys.stderr.write('\n')
 
     # Suppress INFO log messages during testing
     from brian2.utils.logger import BrianLogger, LOG_LEVELS
