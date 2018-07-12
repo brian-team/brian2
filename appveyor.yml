@@ -88,7 +88,31 @@ environment:
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       platform: x64
+      STANDALONE: "FALSE"
+      CONDA_PY: "27"
+      DO_CONDA_BUILD: "FALSE"
+      FLOAT_DTYPE_32: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Miniconda-x64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "FALSE"
+      DO_CONDA_BUILD: "FALSE"
+      FLOAT_DTYPE_32: "TRUE"
+      SPLIT_RUN: "2"
+    - PYTHON: "C:\\Miniconda-x64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      platform: x64
       STANDALONE: "TRUE"
+    - PYTHON: "C:\\Miniconda-x64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "TRUE"
+      FLOAT_DTYPE_32: "TRUE"
 
 install:
   # Add the paths
