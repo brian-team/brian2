@@ -237,16 +237,18 @@ class EventMonitor(Group, CodeRunner):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
+        >>> G = NeuronGroup(2, """dv/dt = 100.0001*Hz : 1
         ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.499, 0.999]
+        >>> G.v_th = [0.5, 1.0]
         >>> mon = EventMonitor(G, event='spike', variables='v')
         >>> run(20*ms)
         >>> v_values = mon.values('v')
+        >>> np.set_printoptions(precision=4)  # show fewer digits than default
         >>> print(v_values[0])
         [ 0.5  0.5  0.5  0.5]
         >>> print(v_values[1])
         [ 1.  1.]
+        >>> np.set_printoptions(precision=8)  # reset to default
         '''
         if not self.record:
             raise AttributeError('Indices and times have not been recorded.'
@@ -467,10 +469,12 @@ class SpikeMonitor(EventMonitor):
         >>> mon = SpikeMonitor(G, variables='v')
         >>> run(20*ms)
         >>> v_values = mon.values('v')
+        >>> np.set_printoptions(precision=4)  # show fewer digits than default
         >>> print(v_values[0])
         [ 0.5  0.5  0.5  0.5]
         >>> print(v_values[1])
         [ 1.  1.]
+        >>> np.set_printoptions(precision=8)  # reset to default
         '''
         return super(SpikeMonitor, self).values(var)
 
@@ -498,10 +502,12 @@ class SpikeMonitor(EventMonitor):
         >>> mon = SpikeMonitor(G, variables='v')
         >>> run(20*ms)
         >>> all_values = mon.all_values()
+        >>> np.set_printoptions(precision=4)  # show fewer digits than default
         >>> print(all_values['t'][0])
         [  4.9   9.9  14.9  19.9] ms
         >>> print(all_values['v'][0])
         [ 0.5  0.5  0.5  0.5]
+        >>> np.set_printoptions(precision=8)  # reset to default
         '''
         return super(SpikeMonitor, self).all_values()
 
