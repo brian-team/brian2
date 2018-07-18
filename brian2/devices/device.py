@@ -309,7 +309,7 @@ class Device(object):
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
                                                              dtype=prefs['core.default_float_dtype'],
-                                                             translate_kwds)
+                                                             additional_kwds=translate_kwds)
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
