@@ -281,7 +281,8 @@ class SynapticPathway(CodeRunner, Group):
             self.abstract_code = ''
 
         self.abstract_code += self.code + '\n'
-        self.abstract_code += 'lastupdate = t\n'
+        if self.synapses.need_lastupdate:
+            self.abstract_code += 'lastupdate = t\n'
 
     @device_override('synaptic_pathway_before_run')
     def before_run(self, run_namespace):
@@ -733,8 +734,8 @@ class Synapses(Group):
                                   'used as a variable name.' % name)
 
         # Check if a `lastupdate` variable is needed
-        need_lastupdate = self._check_lastupdate(model, on_pre, on_post)
-        if need_lastupdate:
+        self.need_lastupdate = self._check_lastupdate(model, on_pre, on_post)
+        if self.need_lastupdate:
             model = model + Equations('lastupdate : second')
 
         # Add the "multisynaptic index", if desired
