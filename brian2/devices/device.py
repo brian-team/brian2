@@ -269,7 +269,8 @@ class Device(object):
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
-                    template_kwds=None, override_conditional_write=None):
+                    template_kwds=None, override_conditional_write=None,
+                    translate_kwds=None):
         name = find_name(name)
         codeobj_class = self.code_object_class(codeobj_class)
         template = getattr(codeobj_class.templater, template_name)
@@ -288,6 +289,9 @@ class Device(object):
         else:
             template_kwds = template_kwds.copy()
 
+        if translate_kwds is None:
+            translate_kwds = dict()
+
         # Check that all functions are available
         for varname, value in variables.iteritems():
             if isinstance(value, Function):
@@ -304,7 +308,8 @@ class Device(object):
         logger.diagnostic('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
-                                                             dtype=prefs['core.default_float_dtype'])
+                                                             dtype=prefs['core.default_float_dtype'],
+                                                             translate_kwds)
         # Add the array names as keywords as well
         for varname, var in variables.iteritems():
             if isinstance(var, ArrayVariable):
