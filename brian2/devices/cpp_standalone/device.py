@@ -538,11 +538,15 @@ class CPPStandaloneDevice(Device):
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
-                    override_conditional_write=None):
+                    override_conditional_write=None, translate_kwds=None):
         if template_kwds is None:
             template_kwds = dict()
         else:
             template_kwds = dict(template_kwds)
+        if translate_kwds is None:
+            translate_kwds = dict()
+        else:
+            translate_kwds = dict(translate_kwds)
         template_kwds['user_headers'] = self.headers + prefs['codegen.cpp.headers']
         template_kwds['profiled'] = self.enable_profiling
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
@@ -550,6 +554,7 @@ class CPPStandaloneDevice(Device):
                                                                codeobj_class=codeobj_class,
                                                                template_kwds=template_kwds,
                                                                override_conditional_write=override_conditional_write,
+                                                               translate_kwds=translate_kwds
                                                                )
         self.code_objects[codeobj.name] = codeobj
         if self.enable_profiling:

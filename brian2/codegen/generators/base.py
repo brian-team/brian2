@@ -100,10 +100,12 @@ class CodeGenerator(object):
         '''
         raise NotImplementedError
 
-    def translate_one_statement_sequence(self, statements, scalar=False):
+    def translate_one_statement_sequence(self, statements, scalar=False,
+                                         **additional_kwds):
         raise NotImplementedError
 
-    def translate_statement_sequence(self, scalar_statements, vector_statements):
+    def translate_statement_sequence(self, scalar_statements, vector_statements,
+                                     additional_kwds):
         '''
         Translate a sequence of `Statement` into the target language, taking
         care to declare variables, etc. if necessary.
@@ -117,9 +119,13 @@ class CodeGenerator(object):
         scalar_code = {}
         vector_code = {}
         for name, block in scalar_statements.iteritems():
-            scalar_code[name] = self.translate_one_statement_sequence(block, scalar=True)
+            scalar_code[name] = self.translate_one_statement_sequence(block,
+                                                                      scalar=True,
+                                                                      **additional_kwds)
         for name, block in vector_statements.iteritems():
-            vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
+            vector_code[name] = self.translate_one_statement_sequence(block,
+                                                                      scalar=False,
+                                                                      **additional_kwds)
 
         kwds = self.determine_keywords()
 
@@ -215,9 +221,12 @@ class CodeGenerator(object):
                          if index not in ('_idx', '0'))
         return not all_unique
 
-    def translate(self, code, dtype):
+    def translate(self, code, dtype, additional_kwds):
         '''
         Translates an abstract code block into the target language.
+
+        In additional_kwds, codeobject dependent parameters can be passed (for
+        devices that inherit from the CodeObject class).
         '''
         scalar_statements = {}
         vector_statements = {}
@@ -250,6 +259,7 @@ class CodeGenerator(object):
                              'matter. ' + error_msg))
 
         translated = self.translate_statement_sequence(scalar_statements,
-                                                       vector_statements)
+                                                       vector_statements,
+                                                       additional_kwds)
 
         return translated
