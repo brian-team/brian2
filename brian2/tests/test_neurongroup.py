@@ -1536,20 +1536,27 @@ def test_run_regularly_dt():
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_division_semantics():
+    # See github issues #815 and #661
     G = NeuronGroup(1, '''a : 1
                           b : 1
+                          c : 1
                           x : 1
-                          y : 1''')
+                          y : 1
+                          z : 1''')
     n = 2
     G.a = '1//n'
     G.x = '1/n'
+    G.c = '-1//2'
     G.run_regularly('''b = 1//n
-                       y = 1/n''')
+                       y = 1/n
+                       z = -1//2''')
     run(defaultclock.dt)
     assert G.a == 0
     assert G.b == 0
+    assert G.c == -1
     assert G.x == 0.5
     assert G.y == 0.5
+    assert G.z == -1
 
 
 if __name__ == '__main__':
