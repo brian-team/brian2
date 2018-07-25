@@ -155,15 +155,17 @@ def _get_value_from_expression(expr, variables):
         op = expr.op.__class__.__name__
         left = _get_value_from_expression(expr.left, variables)
         right = _get_value_from_expression(expr.right, variables)
-        if op=='Add' or op=='Sub':
+        if op == 'Add' or op == 'Sub':
             v = left + right
-        elif op=='Mult':
+        elif op == 'Mult':
             v = left * right
-        elif op=='Div':
-            v = left / right
-        elif op=='Pow':
+        elif op == 'Div':
+            v = float(left) / right
+        elif op == 'FloorDiv':
+            v = left // right
+        elif op == 'Pow':
             v = left**right
-        elif op=='Mod':
+        elif op == 'Mod':
             v = left % right
         else:
             raise SyntaxError("Unsupported operation "+op)
@@ -172,10 +174,10 @@ def _get_value_from_expression(expr, variables):
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
         v =  _get_value_from_expression(expr.operand, variables)
-        if op=='Not':
+        if op == 'Not':
             raise SyntaxError(('Cannot determine the numerical value '
                                'for a boolean operation.'))
-        if op=='USub':
+        if op == 'USub':
             return -v
         else:
             raise SyntaxError('Unknown unary operation ' + op)
@@ -336,6 +338,11 @@ def parse_expression_dimensions(expr, variables):
             u = left_dim*right_dim
         elif op == 'Div':
             u = left_dim/right_dim
+        elif op == 'FloorDiv':
+            if not (left_dim is DIMENSIONLESS and right_dim is DIMENSIONLESS):
+                raise SyntaxError('Floor division can only be used on '
+                                  'dimensionless integer values.')
+            u = DIMENSIONLESS
         elif op == 'Pow':
             if left_dim is DIMENSIONLESS and right_dim is DIMENSIONLESS:
                 return DIMENSIONLESS
@@ -354,4 +361,3 @@ def parse_expression_dimensions(expr, variables):
             return u
     else:
         raise SyntaxError('Unsupported operation ' + str(expr.__class__))
-

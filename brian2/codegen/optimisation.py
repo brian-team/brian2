@@ -248,6 +248,13 @@ class ArithmeticSimplifier(BrianASTRenderer):
                 # only simplify this if the type wouldn't be cast by the operation
                 if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
+        elif op.__class__.__name__ == 'FloorDiv':
+            if left.__class__.__name__ == 'Num' and left.n == 0:  # 0/x
+                if node.stateless:
+                    # Do not remove stateful functions
+                    return _replace_with_zero(left, node)
+            if right.__class__.__name__ == 'Num' and right.n == 1:  # x/1
+                    return left
         # Handle addition of 0
         elif op.__class__.__name__ == 'Add':
             for operand, other in [(left, right),

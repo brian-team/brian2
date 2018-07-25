@@ -197,6 +197,9 @@ class BrianASTRenderer(object):
         # TODO: we could capture some syntax errors here, e.g. bool+bool
         # captures, e.g. int+float->float
         newdtype = dtype_hierarchy[max(dtype_hierarchy[subnode.dtype] for subnode in [node.left, node.right])]
+        if node.op.__class__.__name__ == 'Div':
+            # Division turns integers into floating point values
+            newdtype = 'float'
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar
         node.complexity = 1+node.left.complexity+node.right.complexity

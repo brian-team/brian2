@@ -1,7 +1,7 @@
 '''
 Tests the brian2.parsing package
 '''
-import sys
+from __future__ import division  # Make sure that we use Python 3 semantics in Python 2
 from collections import namedtuple
 
 from nose.plugins.attrib import attr
@@ -54,6 +54,14 @@ TEST_EXPRESSIONS = '''
     (a**b)**2
     a*(b+c*(a+b)*(a-(c*d)))
     a/b/c-a/(b/c)
+    10//n
+    n//10
+    n//m
+    10/n
+    10.0/n
+    n/10
+    n/10.0
+    n/m
     a<b
     a<=b
     a>b
@@ -87,7 +95,10 @@ def parse_expressions(renderer, evaluator, numvalues=10):
             # assign some random values
             ns = {}
             for v in varids:
-                ns[v] = float(i)/imod
+                if v in ['n', 'm']:  # integer values
+                    ns[v] = i
+                else:
+                    ns[v] = float(i)/imod
                 i = i%imod+1
             r1 = eval(expr.replace('&', ' and ').replace('|', ' or '), ns)
             n += 1
@@ -96,6 +107,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
                 # Use all close because we can introduce small numerical
                 # difference through sympy's rearrangements
                 # We add some absolute tolerance for expressions evaluating to 0
+                print('{} evals to: {} and {}'.format(expr, r1, r2))
                 assert_allclose(r1, r2, atol=1e-15)
             except AssertionError as e:
                 raise AssertionError("In expression " + str(expr) +
@@ -137,7 +149,6 @@ def cpp_evaluator(expr, ns):
                             library_dirs=library_dirs,
                             include_dirs=prefs['codegen.cpp.include_dirs']
                             )
-
 
 @attr('codegen-independent')
 def test_parse_expressions_python():

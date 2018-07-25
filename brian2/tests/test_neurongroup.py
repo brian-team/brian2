@@ -58,7 +58,7 @@ def test_integer_variables_and_mod():
     eqs = '''
     dv/dt = (a+b+j+k)/second : 1
     j = i%n : integer
-    k = i/n : integer
+    k = i//n : integer
     a = v%(i+1) : 1
     b = v%(2*v) : 1
     '''
@@ -66,7 +66,7 @@ def test_integer_variables_and_mod():
     G.v = np.random.rand(len(G))
     run(1*ms)
     assert_equal(G.j[:], G.i[:]%n)
-    assert_equal(G.k[:], G.i[:]/n)
+    assert_equal(G.k[:], G.i[:]//n)
     assert_equal(G.a[:], G.v[:]%(G.i[:]+1))
 
 @attr('codegen-independent')
@@ -1533,6 +1533,25 @@ def test_run_regularly_dt():
     assert_equal(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_division_semantics():
+    G = NeuronGroup(1, '''a : 1
+                          b : 1
+                          x : 1
+                          y : 1''')
+    n = 2
+    G.a = '1//n'
+    G.x = '1/n'
+    G.run_regularly('''b = 1//n
+                       y = 1/n''')
+    run(defaultclock.dt)
+    assert G.a == 0
+    assert G.b == 0
+    assert G.x == 0.5
+    assert G.y == 0.5
+
+
 if __name__ == '__main__':
     test_set_states()
     test_creation()
@@ -1604,3 +1623,4 @@ if __name__ == '__main__':
     test_no_code()
     test_run_regularly_scheduling()
     test_run_regularly_dt()
+    test_division_semantics()
