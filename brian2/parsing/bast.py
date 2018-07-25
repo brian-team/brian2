@@ -10,8 +10,13 @@ import weakref
 import numpy
 from __builtin__ import all as logical_all # defensive programming against numpy import
 
+from brian2.parsing.rendering import NodeRenderer
+from brian2.utils.logger import get_logger
+
 __all__ = ['brian_ast', 'BrianASTRenderer', 'dtype_hierarchy']
 
+
+logger = get_logger(__name__)
 
 # This codifies the idea that operations involving e.g. boolean and integer will end up
 # as integer. In general the output type will be the max of the hierarchy values here.
@@ -209,6 +214,30 @@ class BrianASTRenderer(object):
         if node.op.__class__.__name__ == 'Div':
             # Division turns integers into floating point values
             newdtype = 'float'
+            # Give a warning if the code uses floating point division where it
+            # previously might have used floor division
+            if node.left.dtype == node.right.dtype == 'integer':
+                # This would have led to floor division in earlier versions of
+                # Brian (except for the numpy target on Python 3)
+                # Ignore cases where the user already took care of this by
+                # wrapping the result of the division in int(...) or
+                # floor(...)
+                if not (hasattr(node, 'parent') and
+                        node.parent.__class__.__name__ == 'Call' and
+                        node.parent.func.id in ['int', 'floor']):
+                    rendered_expr = NodeRenderer().render_node(node)
+                    msg = ('The expression "{}" divides two integer values. '
+                           'In previous versions of Brian, this would have '
+                           'used either an integer ("flooring") or a floating '
+                           'point division, depending on the Python version '
+                           'and the code generation target. In the current '
+                           'version, it always uses a floating point '
+                           'division. Explicitly ask for an  integer division '
+                           '("//"), or turn one of the operands into a '
+                           'floating point value (e.g. replace "1/2" by '
+                           '"1.0/2") to no longer receive this '
+                           'warning.'.format(rendered_expr))
+                    logger.warn(msg, 'floating_point_division', once=True)
         node.dtype = newdtype
         node.scalar = node.left.scalar and node.right.scalar
         node.complexity = 1+node.left.complexity+node.right.complexity
