@@ -5,6 +5,8 @@ This is a standard Python AST representation with additional information added.
 '''
 
 import ast
+import weakref
+
 import numpy
 from __builtin__ import all as logical_all # defensive programming against numpy import
 
@@ -163,7 +165,12 @@ class BrianASTRenderer(object):
             raise ValueError("Variable number of arguments not supported")
         elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
-        node.args = [self.render_node(subnode) for subnode in node.args]
+        args = []
+        for subnode in node.args:
+            subnode.parent = weakref.proxy(node)
+            subnode = self.render_node(subnode)
+            args.append(subnode)
+        node.args = args
         node.dtype = 'float' # default dtype
         # Condition for scalarity of function call: stateless and arguments are scalar
         node.scalar = False
@@ -192,6 +199,8 @@ class BrianASTRenderer(object):
         return node
 
     def render_BinOp(self, node):
+        node.left.parent = weakref.proxy(node)
+        node.right.parent = weakref.proxy(node)
         node.left = self.render_node(node.left)
         node.right = self.render_node(node.right)
         # TODO: we could capture some syntax errors here, e.g. bool+bool
@@ -207,7 +216,12 @@ class BrianASTRenderer(object):
         return node
 
     def render_BoolOp(self, node):
-        node.values = [self.render_node(subnode) for subnode in node.values]
+        values = []
+        for subnode in node.values:
+            subnode.parent = node
+            subnode = self.render_node(subnode)
+            values.append(subnode)
+        node.values = values
         node.dtype = 'boolean'
         for subnode in node.values:
             if subnode.dtype!='boolean':
@@ -220,7 +234,12 @@ class BrianASTRenderer(object):
 
     def render_Compare(self, node):
         node.left = self.render_node(node.left)
-        node.comparators = [self.render_node(subnode) for subnode in node.comparators]
+        comparators = []
+        for subnode in node.comparators:
+            subnode.parent = node
+            subnode = self.render_node(subnode)
+            comparators.append(subnode)
+        node.comparators = comparators
         node.dtype = 'boolean'
         comparators = [node.left]+node.comparators
         node.scalar = logical_all(subnode.scalar for subnode in comparators)
@@ -230,6 +249,7 @@ class BrianASTRenderer(object):
         return node
 
     def render_UnaryOp(self, node):
+        node.operand.parent = node
         node.operand = self.render_node(node.operand)
         node.dtype = node.operand.dtype
         if node.dtype=='boolean' and node.op.__class__.__name__ != 'Not':
