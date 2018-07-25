@@ -597,7 +597,7 @@ def test_namespace_warnings():
     i = 5
     N = 3
     with catch_logs() as l:
-        G.x = 'i / N'
+        G.x = 'i // N'
         assert len(l) == 2, 'got %s as warnings' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
         assert l[1][1].endswith('.resolution_conflict')
