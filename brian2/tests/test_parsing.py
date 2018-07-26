@@ -12,7 +12,7 @@ import numpy as np
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
-from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
+from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
@@ -101,8 +101,6 @@ def parse_expressions(renderer, evaluator, numvalues=10):
                 else:
                     ns[v] = float(i)/imod
                 i = i%imod+1
-            ns.update(DEFAULT_FUNCTIONS)
-            ns.update(DEFAULT_CONSTANTS)
             r1 = eval(expr.replace('&', ' and ').replace('|', ' or '), ns)
             n += 1
             r2 = evaluator(pexpr, ns)
@@ -183,6 +181,9 @@ def test_parse_expressions_sympy():
 
     def evaluator(expr, ns):
         expr = sympy_to_str(expr)
+        ns = dict(ns)
+        # Add the floor function which is used to implement floor division
+        ns['floor'] = DEFAULT_FUNCTIONS['floor']
         return eval(expr, ns)
 
     parse_expressions(SympyRenderer(), evaluator)
