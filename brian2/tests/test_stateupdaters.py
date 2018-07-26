@@ -722,13 +722,16 @@ def test_check_for_invalid_values_linear_integrator():
     G.x = 1
     BrianLogger._log_messages.clear() # because the log message is set to be shown only once
     with catch_logs() as clog:
-        run(1*ms)
-        # this check allows for the possibility that we improve the linear
-        # integrator in the future so that it can handle this equation
-        if numpy.isnan(G.x[0]):
-            assert 'invalid_values' in repr(clog)
-        else:
-            assert G.x[0] != 0
+        try:
+            run(1*ms)
+            # this check allows for the possibility that we improve the linear
+            # integrator in the future so that it can handle this equation
+            if numpy.isnan(G.x[0]):
+                assert 'invalid_values' in repr(clog)
+            else:
+                assert G.x[0] != 0
+        except UnsupportedEquationsException:
+            pass
 
 
 if __name__ == '__main__':
