@@ -257,12 +257,9 @@ class SympyNodeRenderer(NodeRenderer):
                       1 / self.render_node(node.right))
         elif op_name == 'FloorDiv':
             op = self.expression_ops['Mult']
-            mod = self.expression_ops['Mod']
             left = self.render_node(node.left)
             right = self.render_node(node.right)
-            # Integer division x/y can be implemented as: (x - x%y)/y
-            # Sympy can simplify such expressions
-            return op(left - mod(left, right), 1 / right)
+            return sympy.floor(op(left, 1 / right))
         elif op_name == 'Sub':
             op = self.expression_ops['Add']
             return op(self.render_node(node.left),
