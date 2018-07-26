@@ -197,7 +197,7 @@ class LinearStateUpdater(StateUpdateMethod):
             raise UnsupportedEquationsException('Cannot solve the given '
                                                 'equations with this '
                                                 'stateupdater.')
-        b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
+        b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols])
 
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
@@ -210,9 +210,9 @@ class LinearStateUpdater(StateUpdateMethod):
         if method_options['simplify']:
             A = A.applyfunc(lambda x:
                             sp.factor_terms(sp.cancel(sp.signsimp(x))))
-        C = sp.ImmutableMatrix([A.dot(b)]) - b
+        C = sp.ImmutableMatrix(A * b) - b
         _S = sp.MatrixSymbol('_S', len(varnames), 1)
-        updates = A * _S + C.transpose()
+        updates = A * _S + C
         updates = updates.as_explicit()
 
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
