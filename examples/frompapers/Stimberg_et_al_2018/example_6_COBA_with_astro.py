@@ -127,9 +127,9 @@ exc_neurons = neurons[:N_e]
 inh_neurons = neurons[N_e:]
 # Arrange excitatory neurons in a grid
 N_rows = int(sqrt(N_e))
-N_cols = N_e/N_rows
+N_cols = N_e//N_rows
 grid_dist = (size / N_cols)
-exc_neurons.x = '(i / N_rows)*grid_dist - N_rows/2.0*grid_dist'
+exc_neurons.x = '(i // N_rows)*grid_dist - N_rows/2.0*grid_dist'
 exc_neurons.y = '(i % N_rows)*grid_dist - N_cols/2.0*grid_dist'
 # Random initial membrane potential values and conductances
 neurons.v = 'E_l + rand()*(V_th-E_l)'
@@ -231,7 +231,7 @@ astrocytes = NeuronGroup(N_a, astro_eqs,
                          method='rk4',
                          dt=1e-2*second)
 # Arrange astrocytes in a grid
-astrocytes.x = '(i / N_rows_a)*grid_dist - N_rows_a/2.0*grid_dist'
+astrocytes.x = '(i // N_rows_a)*grid_dist - N_rows_a/2.0*grid_dist'
 astrocytes.y = '(i % N_rows_a)*grid_dist - N_cols_a/2.0*grid_dist'
 # Add random initialization
 astrocytes.C = 0.01*umolar
