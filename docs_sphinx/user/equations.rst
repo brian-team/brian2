@@ -51,10 +51,44 @@ you use more than one plain ``xi``. Note that noise is always independent across
 restriction by defining your noise variable as a shared parameter and update it using a user-defined function (e.g. with `~Group.run_regularly`),
 or create a group that models the noise and link to its variable (see :ref:`linked_variables`).
 
+Arithmetic operations and functions
+-----------------------------------
+Equation strings can make use of standard arithmetic operations for numerical
+values, using the Python 3 syntax. The supported operations are ``+``, ``-``,
+``*``, ``/`` (floating point division), ``//`` (flooring division), ``%``
+(remainder), ``**`` (power). For variable assignments, e.g. in reset statements,
+the corresponding in-place assignments such as ``+=`` can be used as well.
+For comparisons, the operations ``==`` (equality), ``!=`` (inequality), ``<``,
+``<=``, ``>``, and ``>=`` are available. Truth values can be combined using
+``and`` and ``or``, or negated using ``not``. Note that Brian does not support
+any operations specific to integers, e.g. "bitwise AND" or shift operations.
+
+.. warning::
+
+    Brian versions up to 2.1.3.1 did not support ``//`` as the floor division
+    operator and potentially used different semantics for the ``/`` operator
+    depending on whether Python 2 or 3 was used. To write code that correctly
+    and unambiguously works with both newer and older Brian versions, you can
+    use expressions such as ``1.0*a/b`` to enforce floating point division (if
+    one of the operands is a floating point number, both Python 2 and 3 will use
+    floating point division), or ``floor(a/b)`` to enforce flooring division.
+
+Brian also supports standard mathematical functions with the same names as used
+in the ``numpy`` library (e.g. ``exp``, ``sqrt``, ``abs``, ``clip``, ``sin``,
+``cos``, ...) -- for a full list see :ref:`default_functions`. Note that support
+for such functions is provided by Brian itself and the translation to the
+various code generation targets is automatically taken care of. You should
+therefore refer to them directly by name and not as e.g. ``np.sqrt`` or
+``numpy.sqrt``, regardless of the way you
+:doc:`imported Brian or numpy <import>`. This also means that you cannot
+directly refer to arbitrary functions from ``numpy`` or other libraries. For
+details on how to extend the support to non-default functions see
+:ref:`user_functions`.
+
 .. _external-variables:
 
-External variables and functions
---------------------------------
+External variables
+------------------
 Equations defining neuronal or synaptic equations can contain references to
 external parameters or functions. These references are looked up at the time
 that the simulation is run. If you don't specify where to look them up, it

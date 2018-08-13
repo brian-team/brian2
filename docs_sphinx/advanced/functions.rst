@@ -11,6 +11,8 @@ Brian provides a number of default functions that are already prepared for use
 with numpy and C++ and also provides a mechanism for preparing new functions
 for use (see below).
 
+.. _default_functions:
+
 Default functions
 -----------------
 The following functions (stored in the `DEFAULT_FUNCTIONS` dictionary) are
