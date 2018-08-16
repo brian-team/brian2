@@ -1,7 +1,8 @@
 #cython: boundscheck=False
 #cython: wraparound=False
-#cython: cdivision=True
+#cython: cdivision=False
 #cython: infer_types=True
+from __future__ import division
 
 import numpy as _numpy
 cimport numpy as _numpy

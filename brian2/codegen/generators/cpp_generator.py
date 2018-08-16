@@ -88,9 +88,9 @@ prefs.register_preferences(
     )
 
 
-mod_support_code = ''
 typestrs = ['int', 'long', 'long long', 'float', 'double', 'long double']
 floattypestrs = ['float', 'double', 'long double']
+mod_support_code = ''
 for ix, xtype in enumerate(typestrs):
     for iy, ytype in enumerate(typestrs):
         hightype = typestrs[max(ix, iy)]
@@ -107,7 +107,18 @@ for ix, xtype in enumerate(typestrs):
         }}
         '''.format(hightype=hightype, xtype=xtype, ytype=ytype, expr=expr)
 
-_universal_support_code = deindent(mod_support_code)+'''
+floordiv_support_code = ''
+for ix, xtype in enumerate(typestrs):
+    for iy, ytype in enumerate(typestrs):
+        hightype = typestrs[max(ix, iy)]
+        floordiv_support_code += '''
+        {hightype} _brian_floordiv({xtype} x, {ytype} y)
+        {{
+            return ({hightype})floor(1.0*x/y);
+        }}
+        '''.format(hightype=hightype, xtype=xtype, ytype=ytype)
+
+_universal_support_code = deindent(mod_support_code) + deindent(floordiv_support_code) + '''
 #ifdef _MSC_VER
 #define _brian_pow(x, y) (pow((double)(x), (y)))
 #else

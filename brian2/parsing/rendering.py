@@ -309,6 +309,9 @@ class CPPNodeRenderer(NodeRenderer):
             # it uses floating point division for integers
             return '1.0f*%s/%s' % (self.render_element_parentheses(node.left),
                                    self.render_element_parentheses(node.right))
+        elif node.op.__class__.__name__ == 'FloorDiv':
+            return '_brian_floordiv(%s, %s)' % (self.render_node(node.left),
+                                                self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
 

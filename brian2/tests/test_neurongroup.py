@@ -1544,17 +1544,19 @@ def test_division_semantics():
                           y : 1
                           z : 1''')
     n = 4
+    m = 1
+    o = 2
     with catch_logs() as l:
-        G.a = '1//n'
-        G.x = '1/n'
-        G.c = '-1//2'
-        G.run_regularly('''b = 2//n
-                           y = 2/n
-                           z = -2//4''')
+        G.a = 'm//n'
+        G.x = 'm/n'
+        G.c = '-m//2'
+        G.run_regularly('''b = o//n
+                           y = o/n
+                           z = -o//4''')
         run(defaultclock.dt)
     assert len(l) == 2
-    assert "1 / n" in l[0][2]
-    assert "2 / n" in l[1][2]
+    assert "m / n" in l[0][2]
+    assert "o / n" in l[1][2]
     assert G.a == 0
     assert G.b == 0
     assert G.c == -1
