@@ -253,9 +253,10 @@ class ArithmeticSimplifier(BrianASTRenderer):
                 if node.stateless:
                     # Do not remove stateful functions
                     return _replace_with_zero(left, node)
-            # Only optimise floor division by 1 if the number is an integer, for
-            # floating point values, floor division by 1 changes the value
-            if (left.dtype == 'integer' and
+            # Only optimise floor division by 1 if both numbers are integers,
+            # for floating point values, floor division by 1 changes the value,
+            # and division by 1.0 can change the type for an integer value
+            if (left.dtype == right.dtype == 'integer' and
                     right.__class__.__name__ == 'Num' and right.n == 1):  # x//1
                     return left
         # Handle addition of 0
