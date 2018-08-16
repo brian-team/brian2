@@ -249,11 +249,14 @@ class ArithmeticSimplifier(BrianASTRenderer):
                 if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
         elif op.__class__.__name__ == 'FloorDiv':
-            if left.__class__.__name__ == 'Num' and left.n == 0:  # 0/x
+            if left.__class__.__name__ == 'Num' and left.n == 0:  # 0//x
                 if node.stateless:
                     # Do not remove stateful functions
                     return _replace_with_zero(left, node)
-            if right.__class__.__name__ == 'Num' and right.n == 1:  # x/1
+            # Only optimise floor division by 1 if the number is an integer, for
+            # floating point values, floor division by 1 changes the value
+            if (left.dtype == 'integer' and
+                    right.__class__.__name__ == 'Num' and right.n == 1):  # x//1
                     return left
         # Handle addition of 0
         elif op.__class__.__name__ == 'Add':
