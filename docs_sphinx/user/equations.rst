@@ -71,7 +71,10 @@ any operations specific to integers, e.g. "bitwise AND" or shift operations.
     and unambiguously works with both newer and older Brian versions, you can
     use expressions such as ``1.0*a/b`` to enforce floating point division (if
     one of the operands is a floating point number, both Python 2 and 3 will use
-    floating point division), or ``floor(a/b)`` to enforce flooring division.
+    floating point division), or ``floor(a/b)`` to enforce flooring division
+    Note that the ``floor`` function always returns a floating point value, if
+    it is important that the result is an integer value, additionally wrap it
+    with the ``int`` function.
 
 Brian also supports standard mathematical functions with the same names as used
 in the ``numpy`` library (e.g. ``exp``, ``sqrt``, ``abs``, ``clip``, ``sin``,
