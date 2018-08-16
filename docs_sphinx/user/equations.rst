@@ -185,7 +185,7 @@ lastspike
     Last time that the neuron spiked (for refractoriness)
 lastupdate
     Time of the last update of synaptic variables in event-driven
-    equations.
+    equations (only defined when event-driven equations are used).
 N
     Number of neurons (`NeuronGroup`) or synapses (`Synapses`). Use
     ``N_pre`` or ``N_post`` for the number of presynaptic or

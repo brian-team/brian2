@@ -803,8 +803,21 @@ class Group(VariableOwner, BrianObject):
             if internal_variable is not None:
                 return None
             else:
-                raise KeyError(('The identifier "%s" could not be resolved.') %
-                               (identifier))
+                # Give a more detailed explanation for the lastupdate variable
+                # that was removed with #988
+                if identifier == 'lastupdate':
+                    error_msg = ('The identifier "lastupdate" could not be '
+                                 'resolved. Note that this variable is only '
+                                 'automatically defined for models with '
+                                 'event-driven synapses. You can define it '
+                                 'manually by adding "lastupdate : second" to '
+                                 'the equations and setting "lastupdate = t" '
+                                 'at the end of your on_pre and/or on_post '
+                                 'statements.')
+                else:
+                    error_msg = ('The identifier "%s" could not be resolved.' %
+                                 identifier)
+                raise KeyError(error_msg)
 
         elif len(matches) > 1:
             # Possibly, all matches refer to the same object
