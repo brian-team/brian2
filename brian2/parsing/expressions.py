@@ -341,7 +341,7 @@ def parse_expression_dimensions(expr, variables):
         elif op == 'FloorDiv':
             if not (left_dim is DIMENSIONLESS and right_dim is DIMENSIONLESS):
                 raise SyntaxError('Floor division can only be used on '
-                                  'dimensionless integer values.')
+                                  'dimensionless values.')
             u = DIMENSIONLESS
         elif op == 'Pow':
             if left_dim is DIMENSIONLESS and right_dim is DIMENSIONLESS:
