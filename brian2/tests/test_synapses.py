@@ -1450,13 +1450,16 @@ def test_event_driven():
     S2 = Synapses(pre, post,
                   '''w : 1
                      Apre : 1
-                     Apost : 1''',
+                     Apost : 1
+                     lastupdate : second''',
                   on_pre='''Apre=Apre*exp((lastupdate-t)/taupre)+dApre
                          Apost=Apost*exp((lastupdate-t)/taupost)
-                         w = clip(w+Apost, 0, gmax)''',
+                         w = clip(w+Apost, 0, gmax)
+                         lastupdate = t''',
                   on_post='''Apre=Apre*exp((lastupdate-t)/taupre)
                           Apost=Apost*exp((lastupdate-t)/taupost) +dApost
-                          w = clip(w+Apre, 0, gmax)''')
+                          w = clip(w+Apre, 0, gmax)
+                          lastupdate = t''')
     S2.connect(j='i')
     S1.w = 0.5*gmax
     S2.w = 0.5*gmax
@@ -1517,7 +1520,7 @@ def test_pre_post_variables():
     for var in ['v_pre', 'v', 'v_post', 'w', 'w_post', 'x',
                 'N_pre', 'N_post', 'N_incoming', 'N_outgoing',
                 'i', 'j',
-                't', 'lastupdate', 'dt']:
+                't', 'dt']:
         assert var in S.variables
     # Check that postsynaptic variables without suffix refer to the correct
     # variable
