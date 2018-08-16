@@ -28,7 +28,7 @@ else:
 if operating_system == 'windows' or report_coverage or standalone:
     in_parallel = []
 else:
-    in_parallel = ['codegen_independent', 'numpy', 'cpp_standalone']
+    in_parallel = ['codegen_independent', 'numpy', 'cython', 'cpp_standalone']
 
 if operating_system in ['linux', 'windows']:
     openmp = True
