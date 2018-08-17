@@ -82,9 +82,11 @@ them from anaconda, simply do::
 
 You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
-install it with pip or anaconda, in the same way as Brian 2 itself, e.g. with::
+install it with pip or anaconda, similar to Brian 2 itself (but as of now, it is
+not included in the ``conda-forge`` channel, you therefore have to install it
+from our own ``brian-team`` channel), e.g. with::
 
-    conda install -c conda-forge brian2tools
+    conda install -c brian-team brian2tools
 
 .. _installation_from_source:
 
