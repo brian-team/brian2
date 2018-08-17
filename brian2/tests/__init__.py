@@ -33,6 +33,13 @@ except ImportError:
     nose = None
 
 
+def clear_caches():
+    from brian2.utils.logger import BrianLogger
+    BrianLogger._log_messages.clear()
+    from brian2.codegen.translation import make_statements
+    make_statements._cache.clear()
+
+
 def make_argv(dirnames, attributes, doctests=False):
     '''
     Create the list of arguments for the ``nosetests`` call.
@@ -232,6 +239,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
                                     addplugins=plugins))
+            clear_caches()
 
         for target in codegen_targets:
             sys.stderr.write('Running tests for target %s:\n' % target)
@@ -250,6 +258,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
                                     addplugins=plugins))
+            clear_caches()
 
         if test_standalone:
             from brian2.devices.device import get_device, set_device
@@ -264,6 +273,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
                                     addplugins=plugins))
+            clear_caches()
 
             reset_device()
 
@@ -277,7 +287,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
                                     addplugins=plugins))
-
+            clear_caches()
             reset_device()
 
             if test_openmp and test_standalone == 'cpp_standalone':
@@ -293,7 +303,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                  'standalone-compatible' + exclude_str)
                 success.append(nose.run(argv=argv,
                                         addplugins=plugins))
-
+                clear_caches()
                 reset_device()
 
                 set_device(test_standalone, directory=None, # use temp directory
@@ -305,7 +315,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                  'standalone-compatible' + exclude_str)
                 success.append(nose.run(argv=argv,
                                         addplugins=plugins))
-
+                clear_caches()
                 prefs.devices.cpp_standalone.openmp_threads = 0
                 prefs._backup()
 
@@ -318,6 +328,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(nose.run(argv=argv,
                                     addplugins=plugins))
+            clear_caches()
+
         all_success = all(success)
         if not all_success:
             sys.stderr.write(('ERROR: %d/%d test suite(s) did not complete '

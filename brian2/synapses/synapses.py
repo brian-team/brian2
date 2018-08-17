@@ -442,6 +442,7 @@ def find_synapses(index, synaptic_neuron):
         for neuron in index:
             targets = np.flatnonzero(synaptic_neuron == neuron)
             synapses.extend(targets)
+        synapses = np.array(synapses, dtype=np.int32)
 
     return synapses
 
