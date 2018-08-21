@@ -103,7 +103,7 @@ G = NeuronGroup(N, '''dv/dt = (-v + I)/tau : 1
                 threshold='v>v_th', reset='v=0; v_th = 3*v_th + 1.0',
                 method='exact')
 G.v_th = 1
-G.row = 'i/width'
+G.row = 'i//width'
 G.column = 'i%width'
 
 G.run_regularly('I = video_input(column, row)',
