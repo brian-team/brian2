@@ -1,3 +1,4 @@
+from __future__ import division
 import uuid
 
 import sympy
@@ -1535,34 +1536,96 @@ def test_run_regularly_dt():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
-def test_division_semantics():
+def test_semantics_floor_division():
     # See github issues #815 and #661
-    G = NeuronGroup(1, '''a : 1
-                          b : 1
-                          c : 1
-                          x : 1
-                          y : 1
-                          z : 1''')
-    n = 4
-    m = 1
-    o = 2
+    G = NeuronGroup(11, '''a : integer
+                           b : integer
+                           x : 1
+                           y : 1
+                           fvalue : 1
+                           ivalue : integer''',
+                    dtype={'a': np.int32, 'b': np.int64,
+                           'x': np.float, 'y': np.double})
+    int_values = np.arange(-5, 6)
+    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    G.ivalue = int_values
+    G.fvalue = float_values
     with catch_logs() as l:
-        G.a = 'm//n'
-        G.x = 'm/n'
-        G.c = '-m//2'
-        G.run_regularly('''b = o//n
-                           y = o/n
-                           z = -o//4''')
+        G.run_regularly('''
+        a = ivalue//3
+        b = ivalue//3
+        x = fvalue//3
+        y = fvalue//3
+        ''')
         run(defaultclock.dt)
-    assert len(l) == 2
-    assert "m / n" in l[0][2]
-    assert "o / n" in l[1][2]
-    assert G.a == 0
-    assert G.b == 0
-    assert G.c == -1
-    assert G.x == 0.25
-    assert G.y == 0.5
-    assert G.z == -1
+    assert len(l) == 0
+    assert_equal(G.a[:], int_values // 3)
+    assert_equal(G.b[:], int_values // 3)
+    assert_allclose(G.x[:], float_values // 3)
+    assert_allclose(G.y[:], float_values // 3)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_semantics_floating_point_division():
+    # See github issues #815 and #661
+    G = NeuronGroup(11, '''x1 : 1
+                           x2 : 1
+                           y1 : 1
+                           y2 : 1
+                           fvalue : 1
+                           ivalue : integer''',
+                    dtype={'a': np.int32, 'b': np.int64,
+                           'x': np.float, 'y': np.double})
+    int_values = np.arange(-5, 6)
+    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    G.ivalue = int_values
+    G.fvalue = float_values
+    with catch_logs() as l:
+        G.run_regularly('''
+        x1 = ivalue/3
+        x2 = fvalue/3
+        y1 = ivalue/3
+        y2 = fvalue/3
+        ''')
+        run(defaultclock.dt)
+    assert len(l) == 1
+    assert 'ivalue / 3' in l[0][2]
+    assert_allclose(G.x1[:], int_values / 3)
+    assert_allclose(G.y1[:], int_values / 3)
+    assert_allclose(G.x2[:], float_values / 3)
+    assert_allclose(G.y2[:], float_values / 3)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_semantics_mod():
+    # See github issues #815 and #661
+    G = NeuronGroup(11, '''a : integer
+                           b : integer
+                           x : 1
+                           y : 1
+                           fvalue : 1
+                           ivalue : integer''',
+                    dtype={'a': np.int32, 'b': np.int64,
+                           'x': np.float, 'y': np.double})
+    int_values = np.arange(-5, 6)
+    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    G.ivalue = int_values
+    G.fvalue = float_values
+    with catch_logs() as l:
+        G.run_regularly('''
+        a = ivalue % 3
+        b = ivalue % 3
+        x = fvalue % 3
+        y = fvalue % 3
+        ''')
+        run(defaultclock.dt)
+    assert len(l) == 0
+    assert_equal(G.a[:], int_values % 3)
+    assert_equal(G.b[:], int_values % 3)
+    assert_allclose(G.x[:], float_values % 3)
+    assert_allclose(G.y[:], float_values % 3)
 
 
 if __name__ == '__main__':
@@ -1636,4 +1699,6 @@ if __name__ == '__main__':
     test_no_code()
     test_run_regularly_scheduling()
     test_run_regularly_dt()
-    test_division_semantics()
+    test_semantics_floor_division()
+    test_semantics_floating_point_division()
+    test_semantics_mod()

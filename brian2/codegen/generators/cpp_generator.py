@@ -90,41 +90,44 @@ prefs.register_preferences(
 
 typestrs = ['int', 'long', 'long long', 'float', 'double', 'long double']
 floattypestrs = ['float', 'double', 'long double']
-mod_support_code = ''
+hightype_support_code = 'template < typename T1, typename T2 > struct _higher_type;\n'
 for ix, xtype in enumerate(typestrs):
     for iy, ytype in enumerate(typestrs):
         hightype = typestrs[max(ix, iy)]
-        if xtype in floattypestrs or ytype in floattypestrs:
-            expr = 'fmod(fmod(x, y)+y, y)'
-        else:
-            expr = '((x%y)+y)%y'
-        mod_support_code += '''
-        inline {hightype} _brian_mod({xtype} ux, {ytype} uy)
-        {{
-            const {hightype} x = ({hightype})ux;
-            const {hightype} y = ({hightype})uy;
-            return {expr};
-        }}
-        '''.format(hightype=hightype, xtype=xtype, ytype=ytype, expr=expr)
-
-floordiv_support_code = ''
-for ix, xtype in enumerate(typestrs):
-    for iy, ytype in enumerate(typestrs):
-        hightype = typestrs[max(ix, iy)]
-        floordiv_support_code += '''
-        {hightype} _brian_floordiv({xtype} x, {ytype} y)
-        {{
-            return ({hightype})floor(1.0*x/y);
-        }}
+        hightype_support_code += '''
+template < > struct _higher_type<{xtype},{ytype}> {{ typedef {hightype} type; }};
         '''.format(hightype=hightype, xtype=xtype, ytype=ytype)
 
-_universal_support_code = deindent(mod_support_code) + deindent(floordiv_support_code) + '''
+mod_support_code = '''
+
+template < typename T1, typename T2 >
+static inline typename _higher_type<T1,T2>::type
+_brian_mod(T1 x, T2 y)
+{{
+    return x-y*floor(1.0*x/y);
+}}
+'''
+
+floordiv_support_code = '''
+
+template < typename T1, typename T2 >
+static inline typename _higher_type<T1,T2>::type
+_brian_floordiv(T1 x, T2 y)
+{{
+    return floor(1.0*x/y);
+}}
+'''
+
+pow_support_code = '''
 #ifdef _MSC_VER
 #define _brian_pow(x, y) (pow((double)(x), (y)))
 #else
 #define _brian_pow(x, y) (pow((x), (y)))
 #endif
 '''
+
+_universal_support_code = (hightype_support_code + mod_support_code +
+                           floordiv_support_code + pow_support_code)
 
 
 class CPPCodeGenerator(CodeGenerator):
