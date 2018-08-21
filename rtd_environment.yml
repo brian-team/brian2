@@ -10,7 +10,7 @@ dependencies:
 - numpy>=1.13.1
 - openblas>=0.2.19
 - pip>=9.0.1
-- py-cpuinfo>=3.3.0
+- py-cpuinfo>=3.3.0,!=4.0.0
 - pyparsing>=2.2
 - python=2.7
 - scipy>=0.19.1
