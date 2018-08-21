@@ -11,6 +11,7 @@ Randomly connected networks with conductance-based synapses (COBA; see Brunel,
 1998).
 """
 from brian2 import *
+import sympy
 
 import plot_utils as pu
 
