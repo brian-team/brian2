@@ -603,13 +603,38 @@ class CPPStandaloneDevice(Device):
         main_lines = []
         procedures = [('', main_lines)]
         runfuncs = {}
-        for func, args in self.main_queue:
+        # Note down the first and last runs in case of multiple runs -- this is
+        # necessary to break down the total simulation time into phases
+        first_run, last_run = None, None
+        for idx, (func, _) in enumerate(self.main_queue):
+            if func == 'run_network':
+                if first_run is None:
+                    first_run = idx
+                last_run = idx
+
+        for idx, (func, args) in enumerate(self.main_queue):
             if func=='run_code_object':
                 codeobj, = args
                 main_lines.append('_run_%s();' % codeobj.name)
             elif func=='run_network':
                 net, netcode = args
+                # Add additional code to stop the recording of
+                # "before-run-time", respectively start the recording of
+                # "after-run-time"
+                nb_threads = prefs.devices.cpp_standalone.openmp_threads
+                if idx == first_run:
+                    if nb_threads == 0:  # no OpenMP
+                        main_lines.append('Network::_before_run_time = ((double)(std::clock() - _clock_start) / CLOCKS_PER_SEC);')
+                    else:
+                        main_lines.append('Network::_before_run_time = omp_get_wtime() - _clock_start;')
+
                 main_lines.extend(netcode)
+
+                if idx == last_run:
+                    if nb_threads == 0:
+                        main_lines.append('_clock_start = std::clock();')
+                    else:
+                        main_lines.append('_clock_start = omp_get_wtime();')
             elif func=='set_by_constant':
                 arrayname, value, is_dynamic = args
                 size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
@@ -682,6 +707,15 @@ class CPPStandaloneDevice(Device):
                     main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
             else:
                 raise NotImplementedError("Unknown main queue function type "+func)
+
+        # Avoid counting the preparation time as "after-run-time" as well for
+        # a simulation without any run
+        if first_run is None:
+            nb_threads = prefs.devices.cpp_standalone.openmp_threads
+            if nb_threads == 0:
+                main_lines.append('_clock_start = std::clock();')
+            else:
+                main_lines.append('_clock_start = omp_get_wtime();')
 
         self.runfuncs = runfuncs
 
@@ -990,7 +1024,10 @@ class CPPStandaloneDevice(Device):
             if os.path.isfile('results/last_run_info.txt'):
                 with open('results/last_run_info.txt', 'r') as f:
                     last_run_info = f.read()
-                self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
+                (self._before_run_time,
+                 self._last_run_time,
+                 self._after_run_time,
+                 self._last_run_completed_fraction) = map(float, last_run_info.split())
 
         # Make sure that integration did not create NaN or very large values
         owners = [var.owner for var in self.arrays]

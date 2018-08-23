@@ -11,6 +11,8 @@
 
 double Network::_last_run_time = 0.0;
 double Network::_last_run_completed_fraction = 0.0;
+double Network::_before_run_time = 0.0;
+double Network::_after_run_time = 0.0;
 
 Network::Network()
 {
@@ -114,7 +116,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
 
     if(!did_break_early) t = t_end;
 
-    _last_run_time = elapsed_realtime;
+    _last_run_time += elapsed_realtime;
     if(duration>0)
     {
         _last_run_completed_fraction = (t-t_start)/duration;
@@ -188,6 +190,8 @@ public:
     double t;
     static double _last_run_time;
     static double _last_run_completed_fraction;
+    static double _before_run_time;
+    static double _after_run_time;
 
     Network();
     void clear();
