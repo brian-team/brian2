@@ -9,7 +9,7 @@ G = NeuronGroup(rows * cols, '''x : meter
                                 y : meter''')
 # initialize the grid positions
 grid_dist = 25*umeter
-G.x = '(i / rows) * grid_dist - rows/2.0 * grid_dist'
+G.x = '(i // rows) * grid_dist - rows/2.0 * grid_dist'
 G.y = '(i % rows) * grid_dist - cols/2.0 * grid_dist'
 
 # Deterministic connections
@@ -29,14 +29,14 @@ for color in ['g', 'b', 'm']:
     subplot(1, 2, 1)
     neuron_idx = np.random.randint(0, rows*cols)
     plot(G.x[neuron_idx] / umeter, G.y[neuron_idx] / umeter, 'o', mec=color,
-             mfc='none')
+         mfc='none')
     plot(G.x[S_deterministic.j[neuron_idx, :]] / umeter,
-             G.y[S_deterministic.j[neuron_idx, :]] / umeter, color + '.')
+         G.y[S_deterministic.j[neuron_idx, :]] / umeter, color + '.')
     subplot(1, 2, 2)
     plot(G.x[neuron_idx] / umeter, G.y[neuron_idx] / umeter, 'o', mec=color,
-             mfc='none')
+         mfc='none')
     plot(G.x[S_stochastic.j[neuron_idx, :]] / umeter,
-             G.y[S_stochastic.j[neuron_idx, :]] / umeter, color + '.')
+         G.y[S_stochastic.j[neuron_idx, :]] / umeter, color + '.')
 
 for idx, t in enumerate(['determininstic connections',
                          'random connections']):

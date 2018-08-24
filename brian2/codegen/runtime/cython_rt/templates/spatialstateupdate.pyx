@@ -80,7 +80,7 @@
     # STEP 3: solve the coupling system
 
     # indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
-    _children_rowlength = _num{{_morph_children}}/_num{{_morph_children_num}}
+    _children_rowlength = _num{{_morph_children}}//_num{{_morph_children_num}}
 
     # STEP 3a: construct the coupling system with matrix _P in sparse form. s.t.
     # _P_diag contains the diagonal elements

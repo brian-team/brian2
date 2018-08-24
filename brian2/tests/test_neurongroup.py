@@ -1,3 +1,4 @@
+from __future__ import division
 import uuid
 
 import sympy
@@ -58,7 +59,7 @@ def test_integer_variables_and_mod():
     eqs = '''
     dv/dt = (a+b+j+k)/second : 1
     j = i%n : integer
-    k = i/n : integer
+    k = i//n : integer
     a = v%(i+1) : 1
     b = v%(2*v) : 1
     '''
@@ -66,7 +67,7 @@ def test_integer_variables_and_mod():
     G.v = np.random.rand(len(G))
     run(1*ms)
     assert_equal(G.j[:], G.i[:]%n)
-    assert_equal(G.k[:], G.i[:]/n)
+    assert_equal(G.k[:], G.i[:]//n)
     assert_equal(G.a[:], G.v[:]%(G.i[:]+1))
 
 @attr('codegen-independent')
@@ -597,7 +598,7 @@ def test_namespace_warnings():
     i = 5
     N = 3
     with catch_logs() as l:
-        G.x = 'i / N'
+        G.x = 'i // N'
         assert len(l) == 2, 'got %s as warnings' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
         assert l[1][1].endswith('.resolution_conflict')
@@ -1533,6 +1534,100 @@ def test_run_regularly_dt():
     assert_equal(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_semantics_floor_division():
+    # See github issues #815 and #661
+    G = NeuronGroup(11, '''a : integer
+                           b : integer
+                           x : 1
+                           y : 1
+                           fvalue : 1
+                           ivalue : integer''',
+                    dtype={'a': np.int32, 'b': np.int64,
+                           'x': np.float, 'y': np.double})
+    int_values = np.arange(-5, 6)
+    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    G.ivalue = int_values
+    G.fvalue = float_values
+    with catch_logs() as l:
+        G.run_regularly('''
+        a = ivalue//3
+        b = ivalue//3
+        x = fvalue//3
+        y = fvalue//3
+        ''')
+        run(defaultclock.dt)
+    assert len(l) == 0
+    assert_equal(G.a[:], int_values // 3)
+    assert_equal(G.b[:], int_values // 3)
+    assert_allclose(G.x[:], float_values // 3)
+    assert_allclose(G.y[:], float_values // 3)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_semantics_floating_point_division():
+    # See github issues #815 and #661
+    G = NeuronGroup(11, '''x1 : 1
+                           x2 : 1
+                           y1 : 1
+                           y2 : 1
+                           fvalue : 1
+                           ivalue : integer''',
+                    dtype={'a': np.int32, 'b': np.int64,
+                           'x': np.float, 'y': np.double})
+    int_values = np.arange(-5, 6)
+    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    G.ivalue = int_values
+    G.fvalue = float_values
+    with catch_logs() as l:
+        G.run_regularly('''
+        x1 = ivalue/3
+        x2 = fvalue/3
+        y1 = ivalue/3
+        y2 = fvalue/3
+        ''')
+        run(defaultclock.dt)
+    assert len(l) == 1
+    assert 'ivalue / 3' in l[0][2]
+    assert_allclose(G.x1[:], int_values / 3)
+    assert_allclose(G.y1[:], int_values / 3)
+    assert_allclose(G.x2[:], float_values / 3)
+    assert_allclose(G.y2[:], float_values / 3)
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_semantics_mod():
+    # See github issues #815 and #661
+    G = NeuronGroup(11, '''a : integer
+                           b : integer
+                           x : 1
+                           y : 1
+                           fvalue : 1
+                           ivalue : integer''',
+                    dtype={'a': np.int32, 'b': np.int64,
+                           'x': np.float, 'y': np.double})
+    int_values = np.arange(-5, 6)
+    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    G.ivalue = int_values
+    G.fvalue = float_values
+    with catch_logs() as l:
+        G.run_regularly('''
+        a = ivalue % 3
+        b = ivalue % 3
+        x = fvalue % 3
+        y = fvalue % 3
+        ''')
+        run(defaultclock.dt)
+    assert len(l) == 0
+    assert_equal(G.a[:], int_values % 3)
+    assert_equal(G.b[:], int_values % 3)
+    assert_allclose(G.x[:], float_values % 3)
+    assert_allclose(G.y[:], float_values % 3)
+
+
 if __name__ == '__main__':
     test_set_states()
     test_creation()
@@ -1604,3 +1699,6 @@ if __name__ == '__main__':
     test_no_code()
     test_run_regularly_scheduling()
     test_run_regularly_dt()
+    test_semantics_floor_division()
+    test_semantics_floating_point_division()
+    test_semantics_mod()
