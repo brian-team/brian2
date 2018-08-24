@@ -390,7 +390,8 @@ def test_rallpack3():
     '''
     Rallpack 3
     '''
-
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 1*usecond
 
     # Morphology
