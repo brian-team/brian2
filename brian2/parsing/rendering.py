@@ -18,6 +18,7 @@ class NodeRenderer(object):
       'Sub': '-',
       'Mult': '*',
       'Div': '/',
+      'FloorDiv': '//',
       'Pow': '**',
       'Mod': '%',
       # Compare
@@ -254,6 +255,11 @@ class SympyNodeRenderer(NodeRenderer):
             op = self.expression_ops['Mult']
             return op(self.render_node(node.left),
                       1 / self.render_node(node.right))
+        elif op_name == 'FloorDiv':
+            op = self.expression_ops['Mult']
+            left = self.render_node(node.left)
+            right = self.render_node(node.right)
+            return sympy.floor(op(left, 1 / right))
         elif op_name == 'Sub':
             op = self.expression_ops['Add']
             return op(self.render_node(node.left),
@@ -287,15 +293,25 @@ class CPPNodeRenderer(NodeRenderer):
           # Bool ops
           'And': '&&',
           'Or': '||',
+          # C does not have a floor division operator (but see render_BinOp)
+          'FloorDiv': '/',
           })
     
     def render_BinOp(self, node):
-        if node.op.__class__.__name__=='Pow':
+        if node.op.__class__.__name__ == 'Pow':
             return '_brian_pow(%s, %s)' % (self.render_node(node.left),
                                     self.render_node(node.right))
-        elif node.op.__class__.__name__=='Mod':
+        elif node.op.__class__.__name__ == 'Mod':
             return '_brian_mod(%s, %s)' % (self.render_node(node.left),
                                            self.render_node(node.right))
+        elif node.op.__class__.__name__ == 'Div':
+            # C uses integer division, this is a quick and dirty way to assure
+            # it uses floating point division for integers
+            return '1.0f*%s/%s' % (self.render_element_parentheses(node.left),
+                                   self.render_element_parentheses(node.right))
+        elif node.op.__class__.__name__ == 'FloorDiv':
+            return '_brian_floordiv(%s, %s)' % (self.render_node(node.left),
+                                                self.render_node(node.right))
         else:
             return NodeRenderer.render_BinOp(self, node)
 

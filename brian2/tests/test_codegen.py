@@ -190,7 +190,7 @@ def test_apply_loop_invariant_optimisation_integer():
                  }
     statements = [Statement('v', '=', 'v % (2*3*N)', '', np.float32),
                   # integer version doesn't get rewritten but float version does
-                  Statement('a', ':=', 'b/(c/d)', '', int),
+                  Statement('a', ':=', 'b//(c//d)', '', int),
                   Statement('x', ':=', 'y/(z/w)', '', float),
                   ]
     scalar, vector = optimise_statements([], statements, variables)
@@ -202,7 +202,7 @@ def test_apply_loop_invariant_optimisation_integer():
     assert np.issubdtype(scalar[1].dtype, np.signedinteger)
     assert scalar[1].var == '_lio_2'
     expr = scalar[1].expr.replace(' ', '')
-    assert expr=='b/(c/d)'
+    assert expr=='b//(c//d)'
     assert np.issubdtype(scalar[2].dtype, np.floating)
     assert scalar[2].var == '_lio_3'
     expr = scalar[2].expr.replace(' ', '')
@@ -298,7 +298,7 @@ def test_apply_loop_invariant_optimisation_simplification():
         Statement('v2', '=', 'v1*N / 1', '', np.float),
         # Should be simplified to i1
         Statement('i1', '=', 'i1*1', '', int),
-        Statement('i1', '=', 'i1/1', '', int),
+        Statement('i1', '=', 'i1//1', '', int),
         Statement('i1', '=', 'i1+0', '', int),
         Statement('i1', '=', '0+i1', '', int),
         Statement('i1', '=', 'i1-0', '', int),
@@ -307,9 +307,13 @@ def test_apply_loop_invariant_optimisation_simplification():
         Statement('v1', '=', 'i1*1.0', '', float),
         Statement('v1', '=', '1.0*i1', '', float),
         Statement('v1', '=', 'i1/1.0', '', float),
+        Statement('v1', '=', 'i1/1'  , '', float),
         Statement('v1', '=', 'i1+0.0', '', float),
         Statement('v1', '=', '0.0+i1', '', float),
         Statement('v1', '=', 'i1-0.0', '', float),
+        ## Should *not* be simplified, flooring division by 1 changes the value
+        Statement('v1', '=', 'v2//1.0', '', float),
+        Statement('i1', '=', 'i1//1.0', '', float)  # changes type
     ]
     scalar, vector = optimise_statements([], statements, variables)
     assert len(scalar) == 0
@@ -323,12 +327,19 @@ def test_apply_loop_invariant_optimisation_simplification():
     for s in vector[18:23]:
         expr = s.expr.replace(' ', '')
         assert expr == 'i1'
-    for s in vector[23:26]:
+    for s in vector[23:27]:
         expr = s.expr.replace(' ', '')
         assert expr == '1.0*i1' or expr == 'i1*1.0' or expr == 'i1/1.0'
-    for s in vector[26:28]:
+    for s in vector[27:30]:
         expr = s.expr.replace(' ', '')
         assert expr == '0.0+i1' or expr == 'i1+0.0'
+    for s in vector[30:31]:
+        expr = s.expr.replace(' ', '')
+        assert expr == 'v2//1.0' or expr == 'v2//1'
+    for s in vector[31:]:
+        expr = s.expr.replace(' ', '')
+        assert expr == 'i1//1.0'
+
 
 @attr('codegen-independent')
 def test_apply_loop_invariant_optimisation_constant_evaluation():

@@ -52,8 +52,8 @@ stim_start_y : 1 (shared) # start position of the stimulus
 '''
 layer4 = NeuronGroup(N4*Nbarrels, eqs_layer4, threshold='rand() < rate*dt',
                      method='euler', name='layer4')
-layer4.barrel_x = '(i / N4) % barrelarraysize + 0.5'
-layer4.barrel_y = 'i / (barrelarraysize*N4) + 0.5'
+layer4.barrel_x = '(i // N4) % barrelarraysize + 0.5'
+layer4.barrel_y = 'i // (barrelarraysize*N4) + 0.5'
 layer4.selectivity = '(i%N4)/(1.0*N4)*2*pi'  # for each barrel, selectivity between 0 and 2*pi
 
 stimradius = (11+1)*.5
@@ -91,12 +91,12 @@ layer23inh = layer23[Nbarrels*N23exc:]
 # Layer 2/3 excitatory
 # The units for x and y are the width/height of a single barrel
 layer23exc.x = '(i % (barrelarraysize*M23exc)) * (1.0/M23exc)'
-layer23exc.y = '(i / (barrelarraysize*M23exc)) * (1.0/M23exc)'
+layer23exc.y = '(i // (barrelarraysize*M23exc)) * (1.0/M23exc)'
 layer23exc.barrel_idx = 'floor(x) + floor(y)*barrelarraysize'
 
 # Layer 2/3 inhibitory
 layer23inh.x = 'i % (barrelarraysize*M23inh) * (1.0/M23inh)'
-layer23inh.y = 'i / (barrelarraysize*M23inh) * (1.0/M23inh)'
+layer23inh.y = 'i // (barrelarraysize*M23inh) * (1.0/M23inh)'
 layer23inh.barrel_idx = 'floor(x) + floor(y)*barrelarraysize'
 
 print("Building synapses, please wait...")

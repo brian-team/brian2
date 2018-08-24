@@ -322,6 +322,26 @@ def test_illegal_calls():
                                                                           group_name='my_name',
                                                                           method=[object(), 'euler']))
 
+def check_integration(eqs, variables, can_integrate):
+    # can_integrate maps integrators to True/False/None
+    # True/False means that the integrator should/should not integrate the equations
+    # None means that it *might* integrate the equations (only needed for the
+    # exact integration, since it can depend on the sympy version)
+    for integrator, able in can_integrate.iteritems():
+        try:
+            integrator(eqs, variables)
+            if able is False:
+                raise AssertionError('Should not be able to integrate these '
+                                     'equations (equations: "{}") with '
+                                     'integrator {}'.format(eqs,
+                                                            integrator.__class__.__name__))
+        except UnsupportedEquationsException:
+            if able is True:
+                raise AssertionError('Should not able to integrate these '
+                                     'equations (equations: "{}") with '
+                                     'integrator {}'.format(eqs,
+                                                            integrator.__class__.__name__))
+
 @attr('codegen-independent')
 def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
@@ -341,34 +361,18 @@ def test_priority():
     updater(eqs, variables)  # should not raise an error
     can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
                      heun: True, milstein: True}
-    for integrator, able in can_integrate.iteritems():
-        try:
-            integrator(eqs, variables)
-            if not able:
-                raise AssertionError('Should not be able to integrate these '
-                                     'equations')
-        except UnsupportedEquationsException:
-            if able:
-                raise AssertionError('Should be able to integrate these '
-                                     'equations')
 
-    # Equations resulting in complex linear solution (unsupported)
+    check_integration(eqs, variables, can_integrate)
+
+    # Equations resulting in complex linear solution for older versions of sympy
     eqs = Equations('''dv/dt      = (ge+gi-(v+49*mV))/(20*ms) : volt
             dge/dt     = -ge/(5*ms) : volt
             dgi/dt     = Dgi/(5*ms) : volt
             dDgi/dt    = ((-2./5) * Dgi - (1./5**2)*gi)/(10*ms) : volt''')
-    can_integrate = {linear: False, euler: True, rk2: True, rk4: True,
+    can_integrate = {linear: None, euler: True, rk2: True, rk4: True,
                      heun: True, milstein: True}
-    for integrator, able in can_integrate.iteritems():
-        try:
-            integrator(eqs, variables)
-            if not able:
-                raise AssertionError('Should not be able to integrate these '
-                                     'equations')
-        except UnsupportedEquationsException:
-            if able:
-                raise AssertionError('Should be able to integrate these '
-                                     'equations')
+    check_integration(eqs, variables, can_integrate)
+
 
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
@@ -377,16 +381,8 @@ def test_priority():
     
     can_integrate = {linear: False, euler: True, rk2: False, rk4: False, 
                      heun: True, milstein: True}
-    for integrator, able in can_integrate.iteritems():
-        try:
-            integrator(eqs, variables)
-            if not able:
-                raise AssertionError('Should not be able to integrate these '
-                                     'equations')
-        except UnsupportedEquationsException:
-            if able:
-                raise AssertionError('Should be able to integrate these '
-                                     'equations')
+
+    check_integration(eqs, variables, can_integrate)
     
     # Equation with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi/(10*ms)**.5 : 1')
@@ -395,17 +391,9 @@ def test_priority():
     
     can_integrate = {linear: False, euler: False, rk2: False, rk4: False, 
                      heun: True, milstein: True}
-    for integrator, able in can_integrate.iteritems():
-        try:
-            integrator(eqs, variables)
-            if not able:
-                raise AssertionError('Should not be able to integrate these '
-                                     'equations')
-        except UnsupportedEquationsException:
-            if able:
-                raise AssertionError('Should be able to integrate these '
-                                     'equations')
-    
+                     
+    check_integration(eqs, variables, can_integrate)
+
 
 @attr('codegen-independent')
 def test_registration():
@@ -724,13 +712,16 @@ def test_check_for_invalid_values_linear_integrator():
     G.x = 1
     BrianLogger._log_messages.clear() # because the log message is set to be shown only once
     with catch_logs() as clog:
-        run(1*ms)
-        # this check allows for the possibility that we improve the linear
-        # integrator in the future so that it can handle this equation
-        if numpy.isnan(G.x[0]):
-            assert 'invalid_values' in repr(clog)
-        else:
-            assert G.x[0] != 0
+        try:
+            run(1*ms)
+            # this check allows for the possibility that we improve the linear
+            # integrator in the future so that it can handle this equation
+            if numpy.isnan(G.x[0]):
+                assert 'invalid_values' in repr(clog)
+            else:
+                assert G.x[0] != 0
+        except UnsupportedEquationsException:
+            pass
 
 
 if __name__ == '__main__':

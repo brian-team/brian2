@@ -182,7 +182,7 @@ also be given as expressions, for example to implement a connection probability
 that depends on distance::
 
     S.connect(condition='i != j',
-              p='p_max*exp(-(x_pre-x_post)**2+(y_pre-y_post)**2) / (2*(125*umeter)**2)')
+              p='p_max*exp(-(x_pre-x_post)**2+(y_pre-y_post)**2 / (2*(125*umeter)**2))')
 
 If this statement is applied to a `Synapses` object that connects a group to
 itself, it prevents self-connections (``i != j``) and connects cells with a

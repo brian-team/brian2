@@ -329,6 +329,21 @@ def test_connection_random_with_condition():
     expected6[:, 0] = 1
     expected6[:, 1] = 1
 
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0 * ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, expected2)
+    assert len(S3) == 0
+    _compare(S4, expected4)
+    assert len(S5) == 0
+    _compare(S6, expected6)
+
+@attr('standalone-compatible', 'long')
+@with_setup(teardown=reinit_devices)
+def test_connection_random_with_condition_2():
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+
     # Just checking that everything works in principle (we can't check the
     # actual connections)
     S7 = Synapses(G, G, 'w:1', 'v+=w')
@@ -377,12 +392,6 @@ def test_connection_random_with_condition():
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
-    assert len(S1) == 0
-    _compare(S2, expected2)
-    assert len(S3) == 0
-    _compare(S4, expected4)
-    assert len(S5) == 0
-    _compare(S6, expected6)
     assert not any(S7.i == S7.j)
     assert not any(S8.i == S8.j)
     assert not any(S9.i == S9.j)
@@ -2108,6 +2117,30 @@ def test_synapse_generator_deterministic():
     S9 = Synapses(G, G, 'w:1', 'v+=w')
     S9.connect(j='i')  # short form of the above
 
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    _compare(S1, expected_full)
+    _compare(S2, expected_no_self)
+    _compare(S3, expected_no_self)
+    _compare(S4, expected_no_self)
+    _compare(S5, expected_one_to_one)
+    _compare(S6, expected_one_to_one)
+    _compare(S7, expected_one_to_one)
+    _compare(S8, expected_one_to_one)
+    _compare(S9, expected_one_to_one)
+
+
+@attr('standalone-compatible', 'long')
+@with_setup(teardown=reinit_devices)
+def test_synapse_generator_deterministic_2():
+    # Same as "test_connection_string_deterministic" but using the generator
+    # syntax
+    G = NeuronGroup(16, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '16 + i'
+
     # A few more tests of deterministic connections where the generator syntax
     # is particularly useful
 
@@ -2158,21 +2191,13 @@ def test_synapse_generator_deterministic():
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
-    _compare(S1, expected_full)
-    _compare(S2, expected_no_self)
-    _compare(S3, expected_no_self)
-    _compare(S4, expected_no_self)
-    _compare(S5, expected_one_to_one)
-    _compare(S6, expected_one_to_one)
-    _compare(S7, expected_one_to_one)
-    _compare(S8, expected_one_to_one)
-    _compare(S9, expected_one_to_one)
     _compare(S10, expected_ring)
     _compare(S11, expected_diverging)
     _compare(S11b, expected_diverging_b)
     _compare(S12, expected_converging)
     _compare(S13, expected_offdiagonal)
     _compare(S14, expected_converging_restricted)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -2248,6 +2273,24 @@ def test_synapse_generator_random_with_condition():
     S8 = Synapses(G, G, 'w:1', 'v+=w')
     S8.connect(j='k for k in sample(2, p=1.0)')  # better
 
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0 * ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, expected2)
+    assert len(S3) == 0
+    _compare(S4, expected4)
+    assert len(S5) == 0
+    assert len(S6) == 0
+    _compare(S7, expected7)
+    _compare(S8, expected7)
+
+
+@attr('standalone-compatible', 'long')
+@with_setup(teardown=reinit_devices)
+def test_synapse_generator_random_with_condition_2():
+    G = NeuronGroup(4, 'v: 1', threshold='False')
+
     # Just checking that everything works in principle (we can't check the
     # actual connections)
     S9 = Synapses(G, G, 'w:1', 'v+=w')
@@ -2309,14 +2352,6 @@ def test_synapse_generator_random_with_condition():
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
 
-    assert len(S1) == 0
-    _compare(S2, expected2)
-    assert len(S3) == 0
-    _compare(S4, expected4)
-    assert len(S5) == 0
-    assert len(S6) == 0
-    _compare(S7, expected7)
-    _compare(S8, expected7)
     assert not any(S9.i == S9.j)
     assert 0 <= len(S9) <= len(G) * (len(G) - 1)
     assert not any(S10.i == S10.j)
@@ -2417,6 +2452,7 @@ if __name__ == '__main__':
     test_connection_string_deterministic_full_custom()
     test_connection_string_deterministic_multiple_and()
     test_connection_random_with_condition()
+    test_connection_random_with_condition_2()
     test_connection_random_without_condition()
     test_connection_random_with_indices()
     test_connection_multiple_synapses()
@@ -2480,8 +2516,10 @@ if __name__ == '__main__':
         print('Skipping numpy-only test')
     test_synapse_generator_syntax()
     test_synapse_generator_deterministic()
+    test_synapse_generator_deterministic_2()
     test_synapse_generator_random()
     test_synapse_generator_random_with_condition()
+    test_synapse_generator_random_with_condition_2()
     test_synapses_refractory()
     test_synapses_refractory_rand()
     test_synapse_generator_range_noint()

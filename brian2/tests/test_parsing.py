@@ -1,7 +1,7 @@
 '''
 Tests the brian2.parsing package
 '''
-import sys
+from __future__ import division  # Make sure that we use Python 3 semantics in Python 2
 from collections import namedtuple
 
 from nose.plugins.attrib import attr
@@ -12,6 +12,7 @@ import numpy as np
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
+from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
@@ -27,7 +28,7 @@ from brian2.parsing.expressions import (is_boolean_expression,
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.parsing.functions import (abstract_code_from_function,
                                       extract_abstract_code_functions,
-                                      substitute_abstract_code_functions)
+                                      substitute_abstract_code_functions,)
 from brian2.units import (volt, amp, DimensionMismatchError,
                           have_same_dimensions, Unit, get_unit)
 from brian2.tests.utils import assert_allclose
@@ -55,6 +56,14 @@ TEST_EXPRESSIONS = '''
     (a**b)**2
     a*(b+c*(a+b)*(a-(c*d)))
     a/b/c-a/(b/c)
+    10//n
+    n//10
+    n//m
+    10/n
+    10.0/n
+    n/10
+    n/10.0
+    n/m
     a<b
     a<=b
     a>b
@@ -88,7 +97,10 @@ def parse_expressions(renderer, evaluator, numvalues=10):
             # assign some random values
             ns = {}
             for v in varids:
-                ns[v] = float(i)/imod
+                if v in ['n', 'm']:  # integer values
+                    ns[v] = i
+                else:
+                    ns[v] = float(i)/imod
                 i = i%imod+1
             r1 = eval(expr.replace('&', ' and ').replace('|', ' or '), ns)
             n += 1
@@ -138,7 +150,6 @@ def cpp_evaluator(expr, ns):
                             include_dirs=prefs['codegen.cpp.include_dirs']
                             )
 
-
 @attr('codegen-independent')
 def test_parse_expressions_python():
     parse_expressions(NodeRenderer(), eval)
@@ -170,6 +181,9 @@ def test_parse_expressions_sympy():
 
     def evaluator(expr, ns):
         expr = sympy_to_str(expr)
+        ns = dict(ns)
+        # Add the floor function which is used to implement floor division
+        ns['floor'] = DEFAULT_FUNCTIONS['floor']
         return eval(expr, ns)
 
     parse_expressions(SympyRenderer(), evaluator)

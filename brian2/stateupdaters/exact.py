@@ -4,7 +4,7 @@ Exact integration for linear equations.
 import itertools
 
 import sympy as sp
-from sympy import Wild, Symbol, I
+from sympy import Wild, Symbol, I, re, im
 
 from brian2.equations.codestrings import is_constant_over_dt
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
@@ -197,7 +197,7 @@ class LinearStateUpdater(StateUpdateMethod):
             raise UnsupportedEquationsException('Cannot solve the given '
                                                 'equations with this '
                                                 'stateupdater.')
-        b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols]).transpose()
+        b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols])
 
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
@@ -210,9 +210,9 @@ class LinearStateUpdater(StateUpdateMethod):
         if method_options['simplify']:
             A = A.applyfunc(lambda x:
                             sp.factor_terms(sp.cancel(sp.signsimp(x))))
-        C = sp.ImmutableMatrix([A.dot(b)]) - b
+        C = sp.ImmutableMatrix(A * b) - b
         _S = sp.MatrixSymbol('_S', len(varnames), 1)
-        updates = A * _S + C.transpose()
+        updates = A * _S + C
         updates = updates.as_explicit()
 
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
@@ -220,7 +220,7 @@ class LinearStateUpdater(StateUpdateMethod):
         abstract_code = []
         for idx, (variable, update) in enumerate(zip(varnames, updates)):
             rhs = update
-            if len(rhs.atoms(I)) > 0:
+            if rhs.has(I, re, im):
                 raise UnsupportedEquationsException('The solution to the linear system '
                                                     'contains complex values '
                                                     'which is currently not implemented.')
