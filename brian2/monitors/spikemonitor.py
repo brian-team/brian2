@@ -237,18 +237,21 @@ class EventMonitor(Group, CodeRunner):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """dv/dt = 100.0001*Hz : 1
-        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.5, 1.0]
-        >>> mon = EventMonitor(G, event='spike', variables='v')
-        >>> run(20*ms)
-        >>> v_values = mon.values('v')
-        >>> np.set_printoptions(precision=4)  # show fewer digits than default
-        >>> print(v_values[0])
-        [ 0.5  0.5  0.5  0.5]
-        >>> print(v_values[1])
-        [ 1.  1.]
-        >>> np.set_printoptions(precision=8)  # reset to default
+        >>> G = NeuronGroup(2, """counter1 : integer
+        ...                       counter2 : integer
+        ...                       max_value : integer""",
+        ...                    threshold='counter1 >= max_value',
+        ...                    reset='counter1 = 0')
+        >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
+        CodeRunner(...)
+        >>> G.max_value = [50, 100]
+        >>> mon = EventMonitor(G, event='spike', variables='counter2')
+        >>> run(10*ms)
+        >>> counter2_values = mon.values('counter2')
+        >>> print(counter2_values[0])
+        [ 50 100]
+        >>> print(counter2_values[1])
+        [100]
         '''
         if not self.record:
             raise AttributeError('Indices and times have not been recorded.'
@@ -280,18 +283,21 @@ class EventMonitor(Group, CodeRunner):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
-        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.499, 0.999]
-        >>> mon = EventMonitor(G, event='spike', variables='v')
-        >>> run(20*ms)
+        >>> G = NeuronGroup(2, """counter1 : integer
+        ...                       counter2 : integer
+        ...                       max_value : integer""",
+        ...                    threshold='counter1 >= max_value',
+        ...                    reset='counter1 = 0')
+        >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
+        CodeRunner(...)
+        >>> G.max_value = [50, 100]
+        >>> mon = EventMonitor(G, event='spike', variables='counter2')
+        >>> run(10*ms)
         >>> all_values = mon.all_values()
-        >>> np.set_printoptions(precision=4)  # show fewer digits than default
-        >>> print(all_values['t'][0])
-        [  4.9   9.9  14.9  19.9] ms
-        >>> print(all_values['v'][0])
-        [ 0.5  0.5  0.5  0.5]
-        >>> np.set_printoptions(precision=8)  # reset to default
+        >>> print(all_values['counter2'][0])
+        [ 50 100]
+        >>> print(all_values['t'][1])
+        [ 9.9] ms
         '''
         if not self.record:
             raise AttributeError('Indices and times have not been recorded.'
@@ -387,19 +393,22 @@ class SpikeMonitor(EventMonitor):
     [ 0.  1.  2.] ms
     >>> print(spike_mon.t_[:])
     [ 0.     0.001  0.002]
-    >>> G = NeuronGroup(1, """dv/dt = (1 - v)/(10*ms) : 1
-    ...                       dv_th/dt = (0.5 - v_th)/(20*ms) : 1""",
-    ...                 threshold='v>v_th',
-    ...                 reset='v = 0; v_th += 0.1')
-    >>> crossings = SpikeMonitor(G, variables='v', name='crossings')
-    >>> net = Network(G, crossings)
+    >>> from brian2 import *
+    >>> G = NeuronGroup(2, """counter1 : integer
+    ...                       counter2 : integer
+    ...                       max_value : integer""",
+    ...                    threshold='counter1 >= max_value',
+    ...                    reset='counter1 = 0')
+    >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
+    CodeRunner(...)
+    >>> G.max_value = [50, 100]
+    >>> mon = SpikeMonitor(G, variables='counter2')
+    >>> net = Network(G, mon)
     >>> net.run(10*ms)
-    >>> np.set_printoptions(precision=4)  # show fewer digits than default
-    >>> print(crossings.t[:])
-    [ 0.   1.4  4.6  9.7] ms
-    >>> print(crossings.v[:])
-    [ 0.01    0.1306  0.2739  0.3995]
-    >>> np.set_printoptions(precision=8)  # reset the precision
+    >>> print(mon.i[:])
+    [0 0 1]
+    >>> print(mon.counter2[:])
+    [ 50 100 100]
     '''
     def __init__(self, source, variables=None, record=True, when=None,
                  order=None, name='spikemonitor*', codeobj_class=None):
@@ -463,18 +472,21 @@ class SpikeMonitor(EventMonitor):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
-        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.499, 0.999]
-        >>> mon = SpikeMonitor(G, variables='v')
-        >>> run(20*ms)
-        >>> v_values = mon.values('v')
-        >>> np.set_printoptions(precision=4)  # show fewer digits than default
-        >>> print(v_values[0])
-        [ 0.5  0.5  0.5  0.5]
-        >>> print(v_values[1])
-        [ 1.  1.]
-        >>> np.set_printoptions(precision=8)  # reset to default
+        >>> G = NeuronGroup(2, """counter1 : integer
+        ...                       counter2 : integer
+        ...                       max_value : integer""",
+        ...                    threshold='counter1 >= max_value',
+        ...                    reset='counter1 = 0')
+        >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
+        CodeRunner(...)
+        >>> G.max_value = [50, 100]
+        >>> mon = SpikeMonitor(G, variables='counter2')
+        >>> run(10*ms)
+        >>> counter2_values = mon.values('counter2')
+        >>> print(counter2_values[0])
+        [ 50 100]
+        >>> print(counter2_values[1])
+        [100]
         '''
         return super(SpikeMonitor, self).values(var)
 
@@ -496,18 +508,21 @@ class SpikeMonitor(EventMonitor):
         Examples
         --------
         >>> from brian2 import *
-        >>> G = NeuronGroup(2, """dv/dt = 100*Hz : 1
-        ...                       v_th : 1""", threshold='v>v_th', reset='v=0')
-        >>> G.v_th = [0.499, 0.999]
-        >>> mon = SpikeMonitor(G, variables='v')
-        >>> run(20*ms)
+        >>> G = NeuronGroup(2, """counter1 : integer
+        ...                       counter2 : integer
+        ...                       max_value : integer""",
+        ...                    threshold='counter1 >= max_value',
+        ...                    reset='counter1 = 0')
+        >>> G.run_regularly('counter1 += 1; counter2 += 1')  # doctest: +ELLIPSIS
+        CodeRunner(...)
+        >>> G.max_value = [50, 100]
+        >>> mon = SpikeMonitor(G, variables='counter2')
+        >>> run(10*ms)
         >>> all_values = mon.all_values()
-        >>> np.set_printoptions(precision=4)  # show fewer digits than default
-        >>> print(all_values['t'][0])
-        [  4.9   9.9  14.9  19.9] ms
-        >>> print(all_values['v'][0])
-        [ 0.5  0.5  0.5  0.5]
-        >>> np.set_printoptions(precision=8)  # reset to default
+        >>> print(all_values['counter2'][0])
+        [ 50 100]
+        >>> print(all_values['t'][1])
+        [ 9.9] ms
         '''
         return super(SpikeMonitor, self).all_values()
 
