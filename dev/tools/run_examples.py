@@ -1,20 +1,22 @@
 import os, nose, sys, subprocess, warnings, unittest
 import tempfile, pickle
+
 from nose.plugins import Plugin
 from nose.plugins.capture import Capture
 from nose.plugins.xunit import Xunit
+import numpy as np
 warnings.simplefilter('ignore')
 
 
 class RunTestCase(unittest.TestCase):
     '''
-    A test case that simply executes a python script and notes the execution of
-    the script in a file `examples_completed.txt`.
+    A test case that simply executes a python script
     '''
-    def __init__(self, filename, codegen_target):
+    def __init__(self, filename, codegen_target, dtype):
         unittest.TestCase.__init__(self)
         self.filename = filename
         self.codegen_target = codegen_target
+        self.dtype = dtype
 
     def id(self):
         # Remove the .py and pretend the dirname is a package and the filename
@@ -40,9 +42,11 @@ _mpl.use('Agg')
 import warnings, traceback, pickle, sys, os
 warnings.simplefilter('ignore')
 try:
+    import numpy as np
     from brian2 import prefs
     from brian2.utils.filetools import ensure_directory_of_file
     prefs.codegen.target = '{target}'
+    prefs.core.default_float_dtype = np.{dtype}
     # Move to the file's directory for the run, so that it can do relative
     # imports and load files (e.g. figure style files)
     curdir = os.getcwd()
@@ -51,7 +55,7 @@ try:
     with open(rel_fname, "rb") as f:
         exec(compile(f.read(), rel_fname, 'exec'))
     os.chdir(curdir)
-    if '{target}'=='cython':
+    if '{target}'=='cython' and {dtype} == np.float64:
         for fignum in _mpl.pyplot.get_fignums():
             fname = r'{fname}'
             fname = os.path.relpath(fname, '../../examples')
@@ -68,7 +72,8 @@ except Exception as ex:
     f.close()
 """.format(fname=self.filename,
            tempfname=tempfilename,
-           target=self.codegen_target)
+           target=self.codegen_target,
+           dtype=self.dtype.__name__)
 
         args = [sys.executable, '-c',
                 code_string]
@@ -92,7 +97,8 @@ except Exception as ex:
             self.successful = True
 
     def __str__(self):
-        return 'Example: %s (%s)' % (self.filename, self.codegen_target)
+        return 'Example: %s (%s, %s)' % (self.filename, self.codegen_target,
+                                         self.dtype.__name__)
 
 
 class SelectFilesPlugin(Plugin):
@@ -124,13 +130,16 @@ class SelectFilesPlugin(Plugin):
     def loadTestsFromName(self, name, module=None, discovered=False):
         all_examples = self.find_examples(name)
         all_tests = []
-        for target in ['cython']:
-            for example in all_examples:
-                all_tests.append(RunTestCase(example, target))
+        for target in ['numpy', 'cython']:
+            for dtype in [np.float32, np.float64]:
+                for example in all_examples:
+                    all_tests.append(RunTestCase(example, target, dtype))
         return all_tests
 
 
 if __name__ == '__main__':
     argv = [__file__, '-v', '--with-xunit', '--verbose', '--exe', '../../examples']
 
-    nose.main(argv=argv, plugins=[SelectFilesPlugin(), Capture(), Xunit()])
+    if not nose.main(argv=argv,
+                     plugins=[SelectFilesPlugin(), Capture(), Xunit()]):
+        sys.exit(1)
