@@ -349,19 +349,17 @@ class StateMonitor(Group, CodeRunner):
         >>> G.v = 1
         >>> mon = StateMonitor(G, 'v', record=True)
         >>> run(0.5*ms)
-        >>> np.set_printoptions(precision=4)  # Show fewer digits than default
-        >>> print(mon.v[:])
+        >>> print(np.round(mon.v[:], 4))
         [[ 1.      0.9802  0.9608  0.9418  0.9231]]
         >>> print(mon.t[:])
         [   0.  100.  200.  300.  400.] us
-        >>> print(G.v[:])  # last value had not been recorded
+        >>> print(np.round(G.v[:], 4))  # last value had not been recorded
         [ 0.9048]
         >>> mon.record_single_timestep()
         >>> print(mon.t[:])
         [   0.  100.  200.  300.  400.  500.] us
-        >>> print(mon.v[:])
+        >>> print(np.round(mon.v[:], 4))
         [[ 1.      0.9802  0.9608  0.9418  0.9231  0.9048]]
-        >>> np.set_printoptions(precision=8)  # reset to default
         '''
         if self.codeobj is None:
             raise TypeError('Can only record a single time step after the '
