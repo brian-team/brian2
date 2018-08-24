@@ -3,7 +3,7 @@ import uuid
 
 import sympy
 import numpy as np
-from numpy.testing.utils import assert_raises, assert_equal, assert_allclose
+from numpy.testing.utils import assert_raises, assert_equal
 from nose import SkipTest, with_setup
 from nose.plugins.attrib import attr
 
@@ -24,6 +24,8 @@ from brian2.units.unitsafefunctions import linspace
 from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.utils.logger import catch_logs
+
+from .utils import assert_allclose
 
 
 @attr('codegen-independent')
