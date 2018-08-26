@@ -226,6 +226,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     plugins = [not_implemented_plugin()]
 
+    from brian2.devices import set_device
+    set_device('runtime')
     try:
         success = []
         if test_codegen_independent:
