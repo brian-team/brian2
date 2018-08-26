@@ -199,6 +199,12 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         stored_prefs = prefs.as_file
         prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
+    # Avoid failures in the tests for user-registered units
+    import copy
+    import brian2.units.fundamentalunits as fundamentalunits
+    old_unit_registry = copy.copy(fundamentalunits.user_unit_register)
+    fundamentalunits.user_unit_register = fundamentalunits.UnitRegistry()
+
     if float_dtype is not None:
         sys.stderr.write('Setting dtype for floating point variables to: '
                          '{}\n'.format(float_dtype.__name__))
@@ -350,10 +356,13 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     finally:
         BrianLogger.console_handler.setLevel(log_level)
+
         if reset_preferences:
             # Restore the user preferences
             prefs.read_preference_file(StringIO(stored_prefs))
             prefs._backup()
+
+        fundamentalunits.user_unit_register = old_unit_registry
 
 
 if __name__ == '__main__':
