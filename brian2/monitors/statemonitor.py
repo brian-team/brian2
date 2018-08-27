@@ -349,16 +349,16 @@ class StateMonitor(Group, CodeRunner):
         >>> G.v = 1
         >>> mon = StateMonitor(G, 'v', record=True)
         >>> run(0.5*ms)
-        >>> print(np.round(mon.v[:], 3))
+        >>> print(np.array_str(mon.v[:], precision=3))
         [[ 1.     0.98   0.961  0.942  0.923]]
         >>> print(mon.t[:])
         [   0.  100.  200.  300.  400.] us
-        >>> print(np.round(G.v[:], 3))  # last value had not been recorded
+        >>> print(np.array_str(G.v[:], precision=3))  # last value had not been recorded
         [ 0.905]
         >>> mon.record_single_timestep()
         >>> print(mon.t[:])
         [   0.  100.  200.  300.  400.  500.] us
-        >>> print(np.round(mon.v[:], 3))
+        >>> print(np.array_str(mon.v[:], precision=3))
         [[ 1.     0.98   0.961  0.942  0.923  0.905]]
         '''
         if self.codeobj is None:
