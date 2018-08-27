@@ -905,7 +905,9 @@ class GSLCodeGenerator(object):
         GSL_main_code = self.unpack_namespace(variables_in_vector, variables_in_scalar, ['t'])
 
         # rewrite actual calculations described by vector_code and put them in _GSL_func
-        GSL_support_code += self.make_function_code(self.translate_vector_code(vector_code[None],
+        func_code = self.translate_one_statement_sequence(vector_statements[None],
+                                                          scalar=False)
+        GSL_support_code += self.make_function_code(self.translate_vector_code(func_code,
                                                                                to_replace))
 
         # rewrite scalar code, keep variables that are needed in scalar code normal

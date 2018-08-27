@@ -522,7 +522,7 @@ class NeuronGroup(Group, SpikeSource):
 
         if refractory is not False:
             # Set the refractoriness information
-            self.variables['lastspike'].set_value(-np.inf*second)
+            self.variables['lastspike'].set_value(-1e4*second)
             self.variables['not_refractory'].set_value(True)
 
         # Activate name attribute access

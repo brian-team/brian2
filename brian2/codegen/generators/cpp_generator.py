@@ -235,8 +235,7 @@ class CPPCodeGenerator(CodeGenerator):
             code += ' // ' + comment
         return code
     
-    def translate_to_read_arrays(self, statements):
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+    def translate_to_read_arrays(self, read, write, indices):
         lines = []
         # index and read arrays (index arrays first)
         for varname in itertools.chain(indices, read):
@@ -251,8 +250,7 @@ class CPPCodeGenerator(CodeGenerator):
             lines.append(line)
         return lines
 
-    def translate_to_declarations(self, statements):
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+    def translate_to_declarations(self, read, write, indices):
         lines = []
         # simply declare variables that will be written but not read
         for varname in write:
@@ -262,8 +260,7 @@ class CPPCodeGenerator(CodeGenerator):
                 lines.append(line)
         return lines
 
-    def translate_to_statements(self, statements):
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+    def translate_to_statements(self, statements, conditional_write_vars):
         lines = []
         # the actual code
         for stmt in statements:
@@ -277,8 +274,7 @@ class CPPCodeGenerator(CodeGenerator):
                 lines.append(line)
         return lines
 
-    def translate_to_write_arrays(self, statements):
-        read, write, indices, conditional_write_vars = self.arrays_helper(statements)
+    def translate_to_write_arrays(self, write):
         lines = []
         # write arrays
         for varname in write:
@@ -289,20 +285,65 @@ class CPPCodeGenerator(CodeGenerator):
         return lines
 
     def translate_one_statement_sequence(self, statements, scalar=False):
-        # This function is refactored into four functions which perform the
-        # four necessary operations. It's done like this so that code
-        # deriving from this class can overwrite specific parts.
+        # Note that we do not call this function from
+        # `translate_statement_sequence` (which has been overwritten)
+        # It is nevertheless implemented, so that it can be called explicitly
+        # (e.g. from the GSL code generation)
+        read, write, indices, cond_write = self.arrays_helper(statements)
         lines = []
         # index and read arrays (index arrays first)
-        lines += self.translate_to_read_arrays(statements)
+        lines += self.translate_to_read_arrays(read, write, indices)
         # simply declare variables that will be written but not read
-        lines += self.translate_to_declarations(statements)
+        lines += self.translate_to_declarations(read, write, indices)
         # the actual code
-        lines += self.translate_to_statements(statements)
+        lines += self.translate_to_statements(statements, cond_write)
         # write arrays
-        lines += self.translate_to_write_arrays(statements)
-        code = '\n'.join(lines)                
-        return stripped_deindented_lines(code)
+        lines += self.translate_to_write_arrays(write)
+        return stripped_deindented_lines('\n'.join(lines))
+
+    def translate_statement_sequence(self, sc_statements, ve_statements):
+        # This function is overwritten, since we do not want to completely
+        # separate the code generation for scalar and vector code
+
+        assert set(sc_statements.keys()) == set(ve_statements.keys())
+
+        sc_code = {}
+        ve_code = {}
+
+        for block_name in sc_statements:
+            sc_block = sc_statements[block_name]
+            ve_block = ve_statements[block_name]
+            (sc_read, sc_write,
+             sc_indices, sc_cond_write) = self.arrays_helper(sc_block)
+            (ve_read, ve_write,
+             ve_indices, ve_cond_write) = self.arrays_helper(ve_block)
+            # We want to read all scalar variables that are needed in the
+            # vector code already in the scalar code, if they are not written
+            for varname in set(ve_read):
+                var = self.variables[varname]
+                if var.scalar and varname not in ve_write:
+                    sc_read.add(varname)
+                    ve_read.remove(varname)
+
+            for (code, stmts, read, write, indices,
+                 cond_write) in [(sc_code, sc_block, sc_read, sc_write,
+                                  sc_indices, sc_cond_write),
+                                 (ve_code, ve_block, ve_read, ve_write,
+                                  ve_indices, ve_cond_write)]:
+                lines = []
+                # index and read arrays (index arrays first)
+                lines += self.translate_to_read_arrays(read, write, indices)
+                # simply declare variables that will be written but not read
+                lines += self.translate_to_declarations(read, write, indices)
+                # the actual code
+                lines += self.translate_to_statements(stmts, cond_write)
+                # write arrays
+                lines += self.translate_to_write_arrays(write)
+                code[block_name] = stripped_deindented_lines('\n'.join(lines))
+
+        kwds = self.determine_keywords()
+        return sc_code, ve_code, kwds
+
 
     def denormals_to_zero_code(self):
         if self.flush_denormals:
@@ -465,31 +506,11 @@ DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
                                                              name='_sign')
 
 timestep_code = '''
-// Adapted from npy_math.h and https://www.christophlassner.de/collection-of-msvc-gcc-compatibility-tricks.html
-#ifndef _BRIAN_REPLACE_ISINF_MSVC
-#define _BRIAN_REPLACE_ISINF_MSVC
-#if defined(_MSC_VER)
-#if _MSC_VER < 1900
-namespace std {
-  template <typename T>
-  bool isinf(const T &x) { return (!_finite(x))&&(!_isnan(x)); }
-}
-#endif
-#endif
-#endif
-static inline int _timestep(double t, double dt)
+static inline int64_t _timestep(double t, double dt)
 {
-    const int _infinity_int = 1073741823;  // maximum 32bit integer divided by 2
-    if (std::isinf(t))
-    {
-        if (t < 0)
-            return -_infinity_int;
-        else
-            return _infinity_int;
-    }
-    return (int)((t + 1e-3*dt)/dt); 
+    return (int64_t)((t + 1e-3*dt)/dt); 
 }
-        '''
+'''
 DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CPPCodeGenerator,
                                                                  code=timestep_code,
                                                                  name='_timestep')

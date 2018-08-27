@@ -144,28 +144,26 @@ def test_timestep_function():
     # Check that multiples of dt end up in the correct time step
     t = np.arange(100000)*dt
     assert_equal(timestep(t, dt), np.arange(100000))
-    # Check that inf is handled correctly
-    t = np.array([-np.inf, np.inf])
-    ts = timestep(t, dt)
-    assert ts[0] < -1e9
-    assert ts[1] > 1e9
 
     # Scalar values should stay scalar
     ts = timestep(0.0005, 0.0001)
     assert np.isscalar(ts) and ts == 5
 
+    # Length-1 arrays should stay arrays
+    ts = timestep(np.array([0.0005]), 0.0001)
+    assert ts.shape == (1,) and ts == 5
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_timestep_function_during_run():
-    group = NeuronGroup(3, '''ref_t : second
+    group = NeuronGroup(2, '''ref_t : second
                               ts = timestep(ref_t, dt) + timestep(t, dt) : integer''')
-    group.ref_t = [-np.inf*second, 5*defaultclock.dt, np.inf*second]
+    group.ref_t = [-1e4*second, 5*defaultclock.dt]
     mon = StateMonitor(group, 'ts', record=True)
     run(5*defaultclock.dt)
-    assert all(mon.ts[0] < -1e9)
+    assert all(mon.ts[0] <= -1e4)
     assert_equal(mon.ts[1], [5, 6, 7, 8, 9])
-    assert all(mon.ts[2] > 1e9)
 
 
 @attr('standalone-compatible')
