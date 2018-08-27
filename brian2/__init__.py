@@ -96,7 +96,7 @@ def _check_dependency_version(name, version):
 
 
 def _check_dependency_versions():
-    for name, version in [('numpy',  '1.10'),
+    for name, version in [('numpy',  '1.11'),
                           ('sympy',  '0.7.6'),
                           ('jinja2', '2.7')]:
         _check_dependency_version(name, version)
