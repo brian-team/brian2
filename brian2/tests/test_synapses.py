@@ -13,6 +13,7 @@ from brian2.codegen.generators import NumpyCodeGenerator
 from brian2.core.network import schedule_propagation_offset
 from brian2.core.variables import variables_by_owner, ArrayVariable, Constant
 from brian2.core.functions import DEFAULT_FUNCTIONS
+from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
 from brian2.devices.device import reinit_devices, all_devices, get_device
@@ -1464,6 +1465,32 @@ def test_event_driven():
 
 
 @attr('codegen-independent')
+def test_event_driven_dependency_error():
+    stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
+    syn = Synapses(stim, stim, '''
+                   da/dt = -a / (5*ms) : 1 (event-driven)
+                   db/dt = -b / (5*ms) : 1 (event-driven)
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)''',
+                   on_pre='a+=1')
+    syn.connect()
+    net = Network(collect())
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+
+
+@attr('codegen-independent')
+def test_event_driven_dependency_error2():
+    stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
+    tau = 5*ms
+    syn = Synapses(stim, stim, '''
+                   da/dt = -a / (5*ms) : 1 (clock-driven)
+                   db/dt = -b / (5*ms) : 1 (clock-driven)
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)''',
+                   on_pre='a+=1')
+    syn.connect()
+    net = Network(collect())
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+
+@attr('codegen-independent')
 def test_repr():
     G = NeuronGroup(1, 'v: volt', threshold='False')
     S = Synapses(G, G,
@@ -2497,6 +2524,8 @@ if __name__ == '__main__':
     test_sim_with_constant_subexpression()
     test_external_variables()
     test_event_driven()
+    test_event_driven_dependency_error()
+    test_event_driven_dependency_error2()
     test_repr()
     test_pre_post_variables()
     test_variables_by_owner()

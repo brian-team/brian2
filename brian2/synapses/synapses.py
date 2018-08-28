@@ -266,10 +266,26 @@ class SynapticPathway(CodeRunner, Group):
     @device_override('synaptic_pathway_update_abstract_code')
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
+            event_driven_eqs = self.synapses.event_driven
+            clock_driven_eqs = self.synapses.equations
             try:
-                event_driven_update = linear(self.synapses.event_driven,
+                event_driven_update = linear(event_driven_eqs,
                                              self.group.variables)
             except UnsupportedEquationsException:
+                # Check whether equations are independent
+                for var, expr in event_driven_eqs.diff_eq_expressions:
+                    for identifier in expr.identifiers:
+                        if identifier == var:
+                            continue
+                        if (identifier in event_driven_eqs.diff_eq_names or
+                                identifier in clock_driven_eqs):
+                            err = ("Cannot solve the differential equation for "
+                                   "'{}' as event-driven, it depends on "
+                                   "another variable '{}'. Use (clock-driven) "
+                                   "instead.".format(var,
+                                                                    identifier))
+                            raise UnsupportedEquationsException(err)
+                # All equations are independent, go ahead
                 event_driven_update = independent(self.synapses.event_driven,
                                                   self.group.variables)
             # TODO: Any way to do this more elegantly?
