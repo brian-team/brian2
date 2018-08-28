@@ -44,7 +44,6 @@ taus = 1*ms
 epsilon_dopa = 5e-3
 
 # Setting the stage
-network = Network()
 
 ## Stimuli section
 input_indices = array([0, 1, 0, 1, 1, 0, 
@@ -100,7 +99,7 @@ dopamine_monitor = SpikeMonitor(dopamine)
 reward = Synapses(dopamine, synapse_stdp, model='''''',
                             on_pre='''d_post += epsilon_dopa''',
                             method='exact')
-reward.connect(p=1.)
+reward.connect()
 
 # Simulation
 ## Classical STDP
@@ -113,7 +112,7 @@ run(simulation_duration/2)
 # Visualisation
 dopamine_indices, dopamine_times = dopamine_monitor.it
 neurons_indices, neurons_times = neurons_monitor.it
-figure(figsize=(18,9))
+figure(figsize=(10,5))
 subplot(411)
 plot([0.05, 2.95], [2.7, 2.7], linewidth=5, color='k')
 text(1.5, 3, 'Classical STDP', horizontalalignment='center', fontsize=20)
