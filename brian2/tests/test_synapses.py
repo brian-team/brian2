@@ -1467,16 +1467,28 @@ def test_event_driven():
 @attr('codegen-independent')
 def test_event_driven_dependency_error():
     stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
-    tau = 5*ms
     syn = Synapses(stim, stim, '''
-                   da/dt = -a / tau : 1 (event-driven)
-                   db/dt = -b / tau : 1 (event-driven)
-                   dc/dt = a*b / tau : 1 (event-driven)''',
+                   da/dt = -a / (5*ms) : 1 (event-driven)
+                   db/dt = -b / (5*ms) : 1 (event-driven)
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)''',
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
     assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
+
+@attr('codegen-independent')
+def test_event_driven_dependency_error2():
+    stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
+    tau = 5*ms
+    syn = Synapses(stim, stim, '''
+                   da/dt = -a / (5*ms) : 1 (clock-driven)
+                   db/dt = -b / (5*ms) : 1 (clock-driven)
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)''',
+                   on_pre='a+=1')
+    syn.connect()
+    net = Network(collect())
+    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
 
 @attr('codegen-independent')
 def test_repr():
@@ -2513,6 +2525,7 @@ if __name__ == '__main__':
     test_external_variables()
     test_event_driven()
     test_event_driven_dependency_error()
+    test_event_driven_dependency_error2()
     test_repr()
     test_pre_post_variables()
     test_variables_by_owner()

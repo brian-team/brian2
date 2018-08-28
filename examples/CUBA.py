@@ -15,6 +15,14 @@ Clock-driven implementation with exact subthreshold integration
 (but spike times are aligned to the grid).
 '''
 from brian2 import *
+target = 'cpp_standalone'
+prefs.legacy.refractory_timing = True
+
+if target == 'cpp_standalone':
+    set_device('cpp_standalone')
+else:
+    set_device('runtime')
+    prefs.codegen.target = target
 
 taum = 20*ms
 taue = 5*ms
@@ -44,9 +52,15 @@ Ci.connect('i>=3200', p=0.02)
 
 s_mon = SpikeMonitor(P)
 
-run(1 * second)
+run(1 * second, profile=True)
+if target == 'cpp_standalone':
+    print dict(magic_network.profiling_info)[P.state_updater.codeobj.name]
+else:
+    print dict(magic_network.profiling_info)[P.state_updater.name]
 
-plot(s_mon.t/ms, s_mon.i, ',k')
-xlabel('Time (ms)')
-ylabel('Neuron index')
-show()
+# print P.state_updater.codeobj.code
+#
+# plot(s_mon.t/ms, s_mon.i, ',k')
+# xlabel('Time (ms)')
+# ylabel('Neuron index')
+# show()

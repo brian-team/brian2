@@ -267,6 +267,7 @@ class SynapticPathway(CodeRunner, Group):
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
             event_driven_eqs = self.synapses.event_driven
+            clock_driven_eqs = self.synapses.equations
             try:
                 event_driven_update = linear(event_driven_eqs,
                                              self.group.variables)
@@ -276,11 +277,12 @@ class SynapticPathway(CodeRunner, Group):
                     for identifier in expr.identifiers:
                         if identifier == var:
                             continue
-                        if identifier in event_driven_eqs.diff_eq_names:
+                        if (identifier in event_driven_eqs.diff_eq_names or
+                                identifier in clock_driven_eqs):
                             err = ("Cannot solve the differential equation for "
                                    "'{}' as event-driven, it depends on "
-                                   "another event-driven variable '{}'. Use "
-                                   "(clock-driven) instead.".format(var,
+                                   "another variable '{}'. Use (clock-driven) "
+                                   "instead.".format(var,
                                                                     identifier))
                             raise UnsupportedEquationsException(err)
                 # All equations are independent, go ahead
