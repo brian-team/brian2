@@ -112,20 +112,38 @@ class CythonCodeGenerator(CodeGenerator):
         return code
 
     def translate_one_statement_sequence(self, statements, scalar=False):
-        variables = self.variables
-        variable_indices = self.variable_indices
+        # Note that we do not call this function from
+        # `translate_statement_sequence` (which has been overwritten)
+        # It is nevertheless implemented, so that it can be called explicitly
+        # (e.g. from the GSL code generation)
         read, write, indices, conditional_write_vars = self.arrays_helper(statements)
         lines = []
         # index and read arrays (index arrays first)
-        for varname in itertools.chain(indices, read):
-            var = variables[varname]
-            index = variable_indices[varname]
-            line = '{varname} = {arrayname}[{index}]'.format(varname=varname, arrayname=self.get_array_name(var),
-                                                             index=index)
-            lines.append(line)
+        lines += self.translate_to_read_arrays(read, indices)
         # the actual code
+        lines += self.translate_to_statements(statements, conditional_write_vars)
+        # write arrays
+        lines += self.translate_to_write_arrays(write)
+
+        return lines
+
+    def translate_to_read_arrays(self, read, indices):
+        lines = []
+        for varname in itertools.chain(indices, read):
+            var = self.variables[varname]
+            index = self.variable_indices[varname]
+            line = ('{varname} = '
+                    '{arrayname}[{index}]').format(varname=varname,
+                                                   arrayname=self.get_array_name(
+                                                       var),
+                                                   index=index)
+            lines.append(line)
+        return lines
+
+    def translate_to_statements(self, statements, conditional_write_vars):
+        lines = []
         for stmt in statements:
-            if stmt.op == ':=' and not stmt.var in variables:
+            if stmt.op == ':=' and not stmt.var in self.variables:
                 self.temporary_vars.add((stmt.var, stmt.dtype))
             line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
@@ -135,14 +153,59 @@ class CythonCodeGenerator(CodeGenerator):
                 lines.append(indent(line))
             else:
                 lines.append(line)
-        # write arrays
+        return lines
+
+    def translate_to_write_arrays(self, write):
+        lines = []
         for varname in write:
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
-            line = self.get_array_name(var, self.variables) + '[' + index_var + '] = ' + varname
+            line = self.get_array_name(var,
+                                       self.variables) + '[' + index_var + '] = ' + varname
             lines.append(line)
-
         return lines
+
+    def translate_statement_sequence(self, sc_statements, ve_statements):
+        # This function is overwritten, since we do not want to completely
+        # separate the code generation for scalar and vector code
+
+        assert set(sc_statements.keys()) == set(ve_statements.keys())
+
+        sc_code = {}
+        ve_code = {}
+
+        for block_name in sc_statements:
+            sc_block = sc_statements[block_name]
+            ve_block = ve_statements[block_name]
+            (sc_read, sc_write,
+             sc_indices, sc_cond_write) = self.arrays_helper(sc_block)
+            (ve_read, ve_write,
+             ve_indices, ve_cond_write) = self.arrays_helper(ve_block)
+            # We want to read all scalar variables that are needed in the
+            # vector code already in the scalar code, if they are not written
+            for varname in set(ve_read):
+                var = self.variables[varname]
+                if var.scalar and varname not in ve_write:
+                    sc_read.add(varname)
+                    ve_read.remove(varname)
+
+            for (code, stmts, read, write, indices,
+                 cond_write) in [(sc_code, sc_block, sc_read, sc_write,
+                                  sc_indices, sc_cond_write),
+                                 (ve_code, ve_block, ve_read, ve_write,
+                                  ve_indices, ve_cond_write)]:
+                lines = []
+                # index and read arrays (index arrays first)
+                lines += self.translate_to_read_arrays(read, indices)
+                # the actual code
+                lines += self.translate_to_statements(stmts, cond_write)
+                # write arrays
+                lines += self.translate_to_write_arrays(write)
+                code[block_name] = '\n'.join(lines)
+
+        kwds = self.determine_keywords()
+        return sc_code, ve_code, kwds
+
 
     def _add_user_function(self, varname, var):
         user_functions = []
