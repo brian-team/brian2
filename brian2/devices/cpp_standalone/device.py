@@ -227,6 +227,9 @@ class CPPStandaloneDevice(Device):
                 # Use a renderer to correctly transform constants such as True or inf
                 renderer = CPPNodeRenderer()
                 string_value = renderer.render_expr(repr(v))
+                if (prefs.core.default_float_dtype == np.float32 and
+                        isinstance(v, (float, np.float32, np.float64))):
+                    string_value += 'f'
                 if v < 0:
                     string_value = '(%s)' % string_value
                 code = word_substitute(code, {k: string_value})

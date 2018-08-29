@@ -13,6 +13,7 @@ from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import DIMENSIONLESS
+from brian2.core.preferences import prefs
 
 from .statements import Statement
 
@@ -119,7 +120,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
         elif dtype_name=='integer':
             dtype = int
         else:
-            dtype = float
+            dtype = prefs.core.default_float_dtype
         new_stmt = Statement(name, ':=', expr, '',
                              dtype=dtype,
                              constant=True,
@@ -150,8 +151,9 @@ def _replace_with_zero(zero_node, node):
     if node.dtype == 'integer':
         zero_node.n = 0
     else:
-        zero_node.n = 0.0
+        zero_node.n = prefs.core.default_float_dtype(0.0)
     return zero_node
+
 
 class ArithmeticSimplifier(BrianASTRenderer):
     '''
@@ -205,7 +207,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
             elif node.dtype == 'integer':
                 val = int(val)
             else:
-                val = float(val)
+                val = prefs.core.default_float_dtype(val)
             if node.dtype != 'boolean':
                 newnode = ast.Num(val)
             newnode.dtype = node.dtype
@@ -280,7 +282,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
             for subnode in [node.left, node.right]:
                 if subnode.__class__.__name__ == 'Num':
                     subnode.dtype = 'float'
-                    subnode.n = float(subnode.n)
+                    subnode.n = prefs.core.default_float_dtype(subnode.n)
         return node
 
 
@@ -344,7 +346,7 @@ class Simplifier(BrianASTRenderer):
                 self.loop_invariant_dtypes[name] = node.dtype
                 numpy_dtype = {'boolean': bool,
                                'integer': int,
-                               'float': float}[node.dtype]
+                               'float': prefs.core.default_float_dtype}[node.dtype]
                 self.variables[name] = AuxiliaryVariable(name,
                                                          dtype=numpy_dtype,
                                                          scalar=True)
@@ -471,13 +473,13 @@ def collect(node):
     if node.op.__class__.__name__ in ['Mult', 'Div']:
         op_primary = ast.Mult
         op_inverted = ast.Div
-        op_null = 1.0 # the identity for the operator
+        op_null = prefs.core.default_float_dtype(1.0) # the identity for the operator
         op_py_primary = lambda x, y: x*y
         op_py_inverted = lambda x, y: x/y
     elif node.op.__class__.__name__ in ['Add', 'Sub']:
         op_primary = ast.Add
         op_inverted = ast.Sub
-        op_null = 0.0
+        op_null = prefs.core.default_float_dtype(0.0)
         op_py_primary = lambda x, y: x+y
         op_py_inverted = lambda x, y: x-y
     else:

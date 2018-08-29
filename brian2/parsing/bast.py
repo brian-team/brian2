@@ -37,7 +37,7 @@ def is_integer(value):
 
 
 def is_float(value):
-    return isinstance(value, (float, numpy.float))
+    return isinstance(value, (float, numpy.float32, numpy.float64))
 
 
 def brian_dtype_from_value(value):
