@@ -297,7 +297,8 @@ class SynapticPathway(CodeRunner, Group):
             self.abstract_code = ''
 
         self.abstract_code += self.code + '\n'
-        self.abstract_code += 'lastupdate = t\n'
+        if self.synapses.need_lastupdate:
+            self.abstract_code += 'lastupdate = t\n'
 
     @device_override('synaptic_pathway_before_run')
     def before_run(self, run_namespace):
@@ -754,8 +755,11 @@ class Synapses(Group):
                 raise SyntaxError('"%s" is a reserved name that cannot be '
                                   'used as a variable name.' % name)
 
-        # Add the lastupdate variable, needed for event-driven updates
-        model = model + Equations('lastupdate : second')
+        # Check if a `lastupdate` variable is needed
+        self.need_lastupdate = self._check_lastupdate(model, on_pre, on_post)
+        if self.need_lastupdate:
+            model = model + Equations('lastupdate : second')
+
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index
         if multisynaptic_index is not None:
@@ -944,6 +948,29 @@ class Synapses(Group):
     def __getitem__(self, item):
         indices = self.indices[item]
         return SynapticSubgroup(self, indices)
+
+    def _check_lastupdate(self, model, on_pre, on_post):
+        # check if `lastupdate` is used as identifier in synapse model equations
+        if 'lastupdate' in model.identifiers:
+            return True
+        # check if we have `event-driven` dynamics
+        for eq in model.itervalues():
+            if 'event-driven' in eq.flags:
+                return True
+        # get all pathway event update codes
+        pathway_codes = []
+        for argument in [on_pre, on_post]:
+            if isinstance(argument, basestring):
+                pathway_codes.append(argument)
+            elif isinstance(argument, collections.Mapping):
+                for value in argument.itervalues():
+                    pathway_codes.append(value)
+        # check if lastupdate is needed for event update code
+        for code in pathway_codes:
+            # TODO: this also catches e.g. 'mylastupdate', use some brian parser!
+            if 'lastupdate' in code:
+                return True
+        return False
 
     def _set_delay(self, delay, with_unit):
         if 'pre' not in self._synaptic_updaters:

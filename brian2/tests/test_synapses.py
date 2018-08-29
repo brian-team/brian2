@@ -1517,7 +1517,7 @@ def test_pre_post_variables():
     for var in ['v_pre', 'v', 'v_post', 'w', 'w_post', 'x',
                 'N_pre', 'N_post', 'N_incoming', 'N_outgoing',
                 'i', 'j',
-                't', 'lastupdate', 'dt']:
+                't', 'dt']:
         assert var in S.variables
     # Check that postsynaptic variables without suffix refer to the correct
     # variable
@@ -1528,6 +1528,35 @@ def test_pre_post_variables():
     assert '_spikespace_pre' not in S.variables
     assert '_spikespace' not in S.variables
     assert '_spikespace_post' not in S.variables
+
+
+@attr('codegen-independent')
+def test_lastupdate_variable():
+    G = NeuronGroup(10, 'v : 1', threshold='False')
+    S1 = Synapses(G, G, 'x = lastupdate : second')
+    S2 = Synapses(G, G, 'x : 1', on_pre='x += lastupdate')
+    S3 = Synapses(G, G, 'x : 1', on_post='x += lastupdate')
+    on_pre = {'path1': 'x+=1',
+              'path2': 'x += lastupdate'}
+    S3 = Synapses(G, G, 'x : 1', on_pre=on_pre)
+
+    for syn in [S1, S2, S3]:
+        assert 'lastupdate' in syn.variables
+
+    S1_ = Synapses(G, G, 'x : 1')
+    S2_ = Synapses(G, G, 'x : 1', on_pre='x += 1')
+    S3_ = Synapses(G, G, 'x : 1', on_post='x += 1')
+
+    for syn in [S1_, S2_, S3_]:
+        assert not 'lastupdate' in syn.variables
+
+@attr('codegen-independent')
+def test_lastupdate_in_run_regularly():
+    G = NeuronGroup(10, 'v : 1')
+    S = Synapses(G, G, 'x : 1')
+    S.run_regularly('x += lastupdate')
+
+    assert 'lastupdate' in S.variables
 
 
 @attr('codegen-independent')
@@ -2497,6 +2526,8 @@ if __name__ == '__main__':
     test_delays_pathways_subgroups()
     test_pre_before_post()
     test_pre_post_simple()
+    test_lastupdate_variable()
+    test_lastupdate_in_run_regularly()
     test_transmission_simple()
     test_transmission_custom_event()
     test_invalid_custom_event()
