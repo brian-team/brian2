@@ -1,11 +1,13 @@
 import os
 import itertools
 
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
-from nose import with_setup
+from numpy.testing.utils import assert_equal, assert_raises
+from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
+
 from brian2 import *
 from brian2.devices.device import reinit_devices
+from brian2.tests.utils import assert_allclose
 
 
 @attr('codegen-independent')
@@ -56,7 +58,7 @@ def test_construction():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
     # Test initialization of values
     neuron.LL.v = EL
-    assert_allclose(neuron.L.main.v, 0)
+    assert_allclose(neuron.L.main.v, 0*mV)
     assert_allclose(neuron.LL.v, EL)
     neuron.LL[1*um:3*um].v = 0*mV
     assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
@@ -118,7 +120,7 @@ def test_construction_coordinates():
 
     # Test initialization of values
     neuron.LL.v = EL
-    assert_allclose(neuron.L.main.v, 0)
+    assert_allclose(neuron.L.main.v, 0*mV)
     assert_allclose(neuron.LL.v, EL)
     neuron.LL[1*um:3*um].v = 0*mV
     assert_allclose(neuron.LL.v, Quantity([EL, 0*mV, 0*mV, EL, EL]))
@@ -192,7 +194,7 @@ def test_infinitecable():
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
                  exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
-    assert_allclose(v[t>0.5*ms],theory[t>0.5*ms],rtol=0.01) # 1% error tolerance (not exact because not infinite cable)
+    assert_allclose(v[t>0.5*ms],theory[t>0.5*ms], rtol=1e14, atol=1e10) # high error tolerance (not exact because not infinite cable)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -200,6 +202,8 @@ def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
     '''
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -233,7 +237,7 @@ def test_finitecable():
     la = neuron.space_constant[0]
     ra = la*4*Ri/(pi*diameter**2)
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
-    assert_allclose(v-EL, theory-EL, rtol=0.01)
+    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -241,7 +245,8 @@ def test_rallpack1():
     '''
     Rallpack 1
     '''
-
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 0.05*ms
 
     # Morphology
@@ -301,6 +306,8 @@ def test_rallpack2():
     '''
     Rallpack 2
     '''
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 0.1*ms
 
     # Morphology
@@ -383,7 +390,8 @@ def test_rallpack3():
     '''
     Rallpack 3
     '''
-
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 1*usecond
 
     # Morphology
@@ -464,6 +472,8 @@ def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
     '''
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -517,15 +527,15 @@ def test_rall():
     l = length/la + L1/l1
     theory = EL+ra*neuron.I[0]*cosh(l-x/la)/sinh(l)
     v = neuron.main.v
-    assert_allclose(v-EL, theory-EL, rtol=0.001)
+    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
     x = neuron.L.distance
     theory = EL+ra*neuron.I[0]*cosh(l-neuron.main.distance[-1]/la-(x-neuron.main.distance[-1])/l1)/sinh(l)
     v = neuron.L.v
-    assert_allclose(v-EL, theory-EL, rtol=0.001)
+    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
     x = neuron.R.distance
     theory = EL+ra*neuron.I[0]*cosh(l-neuron.main.distance[-1]/la-(x-neuron.main.distance[-1])/l2)/sinh(l)
     v = neuron.R.v
-    assert_allclose(v-EL, theory-EL, rtol=0.001)
+    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -757,6 +767,8 @@ def test_spatialneuron_morphology_assignment():
 @attr('standalone-compatible', 'multiple-runs')
 @with_setup(teardown=reinit_devices)
 def test_spatialneuron_capacitive_currents():
+    if prefs.core.default_float_dtype is np.float32:
+        raise SkipTest('Need double precision for this test')
     defaultclock.dt = 0.1*ms
     morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=200, type='axon')
 
@@ -794,7 +806,8 @@ def test_spatialneuron_capacitive_currents():
     neuron.I = 0*amp
     run(10*ms)
     device.build(direct_call=False, **device.build_options)
-    assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230), atol=1e-10)
+    assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230),
+                    atol=1e6)
 
 if __name__ == '__main__':
     test_custom_events()

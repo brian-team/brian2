@@ -1,12 +1,13 @@
 from nose import SkipTest, with_setup
 from nose.plugins.attrib import attr
-from numpy.testing import assert_equal, assert_raises, assert_allclose
+from numpy.testing import assert_equal, assert_raises
 
 from brian2 import *
 from brian2.core.functions import timestep
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 from brian2.devices.device import reinit_devices
+from brian2.tests.utils import assert_allclose
 from brian2.codegen.generators import CodeGenerator
 from brian2.codegen.codeobject import CodeObject
 
@@ -116,8 +117,8 @@ def test_clip():
     run(defaultclock.dt)
     assert_equal(s_mon.clipexpr1.flatten(), [0, 1, 0, 1])
     assert_equal(s_mon.clipexpr2.flatten(), [0, 1, 0, 1])
-    assert_equal(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
-    assert_equal(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
+    assert_allclose(s_mon.clipexpr3.flatten(), [0, 1, 0, 1])
+    assert_allclose(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
 
 
 @attr('standalone-compatible')
@@ -193,7 +194,7 @@ def test_user_defined_function():
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
     run(default_dt)
-    assert_equal(np.sin(test_array), mon.func_.flatten())
+    assert_allclose(np.sin(test_array), mon.func_.flatten())
 
 
 @with_setup(teardown=reinit_devices)
@@ -253,7 +254,7 @@ def test_simple_user_defined_function():
     net = Network(G, mon)
     net.run(default_dt)
 
-    assert_equal(np.sin(test_array), mon.func_.flatten())
+    assert_allclose(np.sin(test_array), mon.func_.flatten())
 
     # Check that it raises an error for C++
     try:

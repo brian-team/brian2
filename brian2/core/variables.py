@@ -468,7 +468,8 @@ class ArrayVariable(Variable):
         return self.size
 
     def get_addressable_value(self, name, group):
-        return VariableView(name=name, variable=self, group=group, dimensions=None)
+        return VariableView(name=name, variable=self, group=group,
+                            dimensions=None)
 
     def get_addressable_value_with_unit(self, name, group):
         return VariableView(name=name, variable=self, group=group,
@@ -648,7 +649,7 @@ class Subexpression(Variable):
 
     def get_addressable_value(self, name, group):
         return VariableView(name=name, variable=self, group=group,
-                            dimensions=None)
+                            dimensions=DIMENSIONLESS)
 
     def get_addressable_value_with_unit(self, name, group):
         return VariableView(name=name, variable=self, group=group,
@@ -828,7 +829,7 @@ class VariableView(object):
             else:
                 values = self.get_with_index_array(item)
 
-        if self.dim is None:
+        if self.dim is DIMENSIONLESS:
             return values
         else:
             return Quantity(values, self.dim)

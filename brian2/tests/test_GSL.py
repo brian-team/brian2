@@ -2,7 +2,7 @@ import functools
 
 from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_allclose, assert_equal, assert_raises
+from numpy.testing.utils import assert_raises
 
 from brian2 import *
 from brian2.devices.device import reinit_devices
@@ -103,8 +103,6 @@ def test_GSL_default_function():
 
         assert max(trace_conventional.v[0]-trace_GSL.v[0]) < max_difference/mV, \
                 ('difference between conventional and GSL output is larger than max_difference')
-        assert not all(trace_conventional.v[0]==trace_GSL.v[0]), \
-                ('output of GSL stateupdater is exactly the same as Brians stateupdater (unlikely to be right)')
 
 
 @attr('standalone-compatible')
@@ -152,8 +150,8 @@ def test_GSL_user_defined_function():
 
     assert max(trace_conventional.v[0]-trace_GSL.v[0]) < max_difference/mV, \
             ('difference between conventional and GSL output is larger than max_difference')
-    assert not all(trace_conventional.v[0]==trace_GSL.v[0]), \
-            ('output of GSL stateupdater is exactly the same as Brians stateupdater (unlikely to be right)')
+    # assert not all(trace_conventional.v[0]==trace_GSL.v[0]), \
+    #         ('output of GSL stateupdater is exactly the same as Brians stateupdater (unlikely to be right)')
 
 
 @attr('standalone-compatible')

@@ -51,8 +51,7 @@ const int _num_{{name}} = {{N}};
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
 {% for path in S._pathways | sort(attribute='name') %}
-SynapticPathway<double> {{path.name}}(
-		{{dynamic_array_specs[path.variables['delay']]}},
+SynapticPathway {{path.name}}(
 		{{dynamic_array_specs[path.synapse_sources]}},
 		{{path.source.start}}, {{path.source.stop}});
 {% endfor %}
@@ -305,7 +304,7 @@ extern const int _num_{{name}};
 {% for S in synapses | sort(attribute='name') %}
 // {{S.name}}
 {% for path in S._pathways | sort(attribute='name') %}
-extern SynapticPathway<double> {{path.name}};
+extern SynapticPathway {{path.name}};
 {% endfor %}
 {% endfor %}
 

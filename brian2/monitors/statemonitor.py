@@ -205,7 +205,7 @@ class StateMonitor(Group, CodeRunner):
             record = np.array([record], dtype=np.int32)
         else:
             record = np.asarray(record, dtype=np.int32)
-            
+
         #: The array of recorded indices
         self.record = record
         self.n_indices = len(record)
@@ -230,7 +230,8 @@ class StateMonitor(Group, CodeRunner):
         self.variables = Variables(self)
 
         self.variables.add_dynamic_array('t', size=0, dimensions=second.dim,
-                                         constant=False)
+                                         constant=False,
+                                         dtype=self._clock.variables['t'].dtype)
         self.variables.add_array('N', dtype=np.int32, size=1, scalar=True,
                                  read_only=True)
         self.variables.add_array('_indices', size=len(self.record),
@@ -348,18 +349,17 @@ class StateMonitor(Group, CodeRunner):
         >>> G.v = 1
         >>> mon = StateMonitor(G, 'v', record=True)
         >>> run(0.5*ms)
-        >>> mon.v
-        array([[ 1.        ,  0.98019867,  0.96078944,  0.94176453,  0.92311635]])
-        >>> mon.t[:]
-        array([   0.,  100.,  200.,  300.,  400.]) * usecond
-        >>> G.v[:]  # last value had not been recorded
-        array([ 0.90483742])
+        >>> print(np.array_str(mon.v[:], precision=3))
+        [[ 1.     0.98   0.961  0.942  0.923]]
+        >>> print(mon.t[:])
+        [   0.  100.  200.  300.  400.] us
+        >>> print(np.array_str(G.v[:], precision=3))  # last value had not been recorded
+        [ 0.905]
         >>> mon.record_single_timestep()
-        >>> mon.t[:]
-        array([   0.,  100.,  200.,  300.,  400.,  500.]) * usecond
-        >>> mon.v[:]
-        array([[ 1.        ,  0.98019867,  0.96078944,  0.94176453,  0.92311635,
-                 0.90483742]])
+        >>> print(mon.t[:])
+        [   0.  100.  200.  300.  400.  500.] us
+        >>> print(np.array_str(mon.v[:], precision=3))
+        [[ 1.     0.98   0.961  0.942  0.923  0.905]]
         '''
         if self.codeobj is None:
             raise TypeError('Can only record a single time step after the '

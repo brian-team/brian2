@@ -6,7 +6,7 @@ from collections import namedtuple
 
 from nose.plugins.attrib import attr
 from nose import SkipTest
-from numpy.testing import assert_allclose, assert_raises
+from numpy.testing import assert_raises
 import numpy as np
 
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
@@ -31,6 +31,7 @@ from brian2.parsing.functions import (abstract_code_from_function,
                                       substitute_abstract_code_functions,)
 from brian2.units import (volt, amp, DimensionMismatchError,
                           have_same_dimensions, Unit, get_unit)
+from brian2.tests.utils import assert_allclose
 
 try:
     from scipy import weave
@@ -107,8 +108,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
             try:
                 # Use all close because we can introduce small numerical
                 # difference through sympy's rearrangements
-                # We add some absolute tolerance for expressions evaluating to 0
-                assert_allclose(r1, r2, atol=1e-15)
+                assert_allclose(r1, r2, atol=10)
             except AssertionError as e:
                 raise AssertionError("In expression " + str(expr) +
                                      " translated to " + str(pexpr) +

@@ -1,7 +1,7 @@
 import re
 import logging
 
-from numpy.testing.utils import assert_equal, assert_raises, assert_allclose
+from numpy.testing.utils import assert_equal, assert_raises
 from nose.plugins.attrib import attr
 from nose import with_setup
 
@@ -10,6 +10,8 @@ from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.devices.device import reinit_devices
 from brian2.stateupdaters.base import UnsupportedEquationsException
+from brian2.tests.utils import assert_allclose
+
 
 @attr('codegen-independent')
 def test_explicit_stateupdater_parsing():

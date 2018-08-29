@@ -9,13 +9,11 @@ using namespace std;
 
 //TODO: The data type for indices is currently fixed (int), all floating point
 //      variables (delays, dt) are assumed to use the same data type
-
-template <class scalar>
 class CSpikeQueue
 {
 public:
     vector< vector<int32_t> > queue; // queue[(offset+i)%queue.size()] is delay i relative to current time
-    scalar dt;
+    double dt;
     int offset;
     bool scalar_delay;
     int *delays;
@@ -45,7 +43,7 @@ public:
         }
     }
 
-    void prepare(scalar *real_delays, int n_delays,
+    template <typename scalar> void prepare(scalar *real_delays, int n_delays,
                  int32_t *sources, int n_synapses,
                  double _dt)
     {

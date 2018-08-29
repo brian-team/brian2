@@ -21,7 +21,9 @@ class ATestDevice(Device):
 
 @attr('codegen-independent')
 def test_set_reset_device_implicit():
-
+    import brian2.devices.device as device_module
+    old_prev_devices = list(device_module.previous_devices)
+    device_module.previous_devices = []
     test_device1 = ATestDevice()
     all_devices['test1'] = test_device1
     test_device2 = ATestDevice()
@@ -45,6 +47,8 @@ def test_set_reset_device_implicit():
     assert get_device() is runtime_device
     del all_devices['test1']
     del all_devices['test2']
+    device_module.previous_devices = old_prev_devices
+
 
 @attr('codegen-independent')
 def test_set_reset_device_explicit():

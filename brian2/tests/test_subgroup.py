@@ -1,12 +1,13 @@
 from brian2.core.network import schedule_propagation_offset
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import (assert_raises, assert_equal, assert_allclose,
-                                 assert_array_equal)
+from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.devices.device import reinit_devices
+from brian2.tests.utils import assert_allclose
+
 
 @attr('codegen-independent')
 def test_str_repr():
@@ -33,9 +34,9 @@ def test_state_variables():
     assert_allclose(SG.v,
                     np.array([-80, -80, -80, -80, -80])*mV)
     assert_allclose(G.v_,
-                    np.array([0, 0, 0, 0, -80, -80, -80, -80, -80, 0]*mV))
+                    np.array([0, 0, 0, 0, -80, -80, -80, -80, -80, 0])*float(mV))
     assert_allclose(SG.v_,
-                    np.array([-80, -80, -80, -80, -80]*mV))
+                    np.array([-80, -80, -80, -80, -80])*float(mV))
     # You should also be able to set variables with a string
     SG.v = 'v + i*mV'
     assert_allclose(SG.v[0], -80*mV)
@@ -90,12 +91,12 @@ def test_state_variables_string_indices():
     assert len(SG.v['i>3']) == 1
 
     G.v = np.arange(10) * mV
-    assert len(SG.v['v>7*mV']) == 1
+    assert len(SG.v['v>7.5*mV']) == 1
 
     # Combined string indexing and assignment
     SG.v['i > 3'] = 'i*10*mV'
 
-    assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
+    assert_allclose(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
 
 @attr('codegen-independent')
 def test_state_variables_group_as_index():
@@ -134,9 +135,9 @@ def test_state_monitor():
     mon_0 = StateMonitor(SG, 'v', record=0)
     run(defaultclock.dt)
 
-    assert_equal(mon_0[0].v, mon_all[0].v)
-    assert_equal(mon_0[0].v, np.array([5]) * volt)
-    assert_equal(mon_all.v.flatten(), np.arange(5, 10) * volt)
+    assert_allclose(mon_0[0].v, mon_all[0].v)
+    assert_allclose(mon_0[0].v, np.array([5]) * volt)
+    assert_allclose(mon_all.v.flatten(), np.arange(5, 10) * volt)
 
     assert_raises(IndexError, lambda: mon_all[5])
 

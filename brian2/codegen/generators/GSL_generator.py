@@ -764,7 +764,8 @@ class GSLCodeGenerator(object):
             try:
                 N = int(self.variables['N'].get_value())
                 self.owner.variables.add_array('_last_timestep', size=N,
-                                               values=np.ones(N)*options['dt_start'])
+                                               values=np.ones(N)*options['dt_start'],
+                                               dtype=np.float64)
             except KeyError:
                 # has already been run
                 pass
@@ -855,7 +856,7 @@ class GSLCodeGenerator(object):
         self.function_names = self.find_function_names()
 
         scalar_code, vector_code, kwds = self.generator.translate_statement_sequence(scalar_statements,
-                                                 vector_statements)
+                                                                                     vector_statements)
 
         ############ translate code for GSL
 
@@ -864,7 +865,7 @@ class GSLCodeGenerator(object):
             for code in code_list:
                 m = re.search('\[(\w+)\]', code)
                 if m is not None:
-                    if m.group(1)!='0' and m.group(1)!='_idx':
+                    if m.group(1) != '0' and m.group(1) != '_idx':
                         from brian2.stateupdaters.base import UnsupportedEquationsException
                         raise UnsupportedEquationsException(("Equations result in state "
                                                              "updater code with indexing "
@@ -880,7 +881,7 @@ class GSLCodeGenerator(object):
 
         # analyze all needed variables; if not in self.variables: put in separate dic.
         # also keep track of variables needed for scalar statements and vector statements
-        other_variables = self.find_undefined_variables(scalar_statements[None]+\
+        other_variables = self.find_undefined_variables(scalar_statements[None] +
                                                         vector_statements[None])
         variables_in_scalar = self.find_used_variables(scalar_statements[None],
                                                        other_variables)
@@ -1006,7 +1007,7 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
               'end_struct': '\n};',
               'open_cast': '(',
               'close_cast': ')',
-              'diff_var_declaration': 'const double '}
+              'diff_var_declaration': 'const scalar '}
 
     def c_data_type(self, dtype):
         return self.generator.c_data_type(dtype)
@@ -1016,16 +1017,19 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
         return 'double const %s[] = {%s};' % (varname, value_list)
 
     def var_replace_diff_var_lhs(self, var, ind):
+        scalar_dtype = self.c_data_type(prefs.core.default_float_dtype)
         f = 'f[{ind}]'.format(ind=ind)
         try:
             if 'unless refractory' in self.variable_flags[var]:
                 return {'_gsl_{var}_f{ind}'.format(var=var,ind=ind) : f,
-                        'double _gsl_{var}_f{ind};'.format(var=var,ind=ind): '',
-                        'double {f};'.format(f=f): ''} # in case the replacement
-                                    # of _gsl_var_find to f[ind] happens first
+                        '{scalar_dtype} _gsl_{var}_f{ind};'.format(var=var, ind=ind,
+                                                                   scalar_dtype=scalar_dtype): '',
+                        '{scalar_dtype} {f};'.format(f=f, scalar_dtype=scalar_dtype): ''} # in case the replacement
+                                                                                          # of _gsl_var_find to f[ind] happens first
         except KeyError:
             pass
-        return {'const double _gsl_{var}_f{ind}'.format(var=var, ind=ind) : f}
+        return {'const {scalar_dtype} _gsl_{var}_f{ind}'.format(scalar_dtype=scalar_dtype,
+                                                                var=var, ind=ind) : f}
 
     def var_init_lhs(self, var, type):
         return type + var

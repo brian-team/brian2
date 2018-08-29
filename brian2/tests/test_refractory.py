@@ -2,14 +2,14 @@ from collections import Counter
 
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_allclose, assert_raises
+from numpy.testing.utils import assert_equal, assert_raises
 
 from brian2.core.functions import timestep
 from brian2.utils.logger import catch_logs
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
 from brian2.devices.device import reinit_devices
-
+from brian2.tests.utils import assert_allclose
 
 @attr('codegen-independent')
 def test_add_refractoriness():
@@ -49,14 +49,14 @@ def test_refractoriness_basic():
     mon = StateMonitor(G, ['v', 'w'], record=True, when='end')
     run(20*ms)
     # No difference before the spike
-    assert_equal(mon[0].v[:timestep(10*ms, defaultclock.dt)],
-                 mon[0].w[:timestep(10*ms, defaultclock.dt)])
+    assert_allclose(mon[0].v[:timestep(10*ms, defaultclock.dt)],
+                    mon[0].w[:timestep(10*ms, defaultclock.dt)])
     # v is not updated during refractoriness
     in_refractoriness = mon[0].v[timestep(10*ms, defaultclock.dt):timestep(15*ms, defaultclock.dt)]
     assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
     # w should evolve as before
-    assert_equal(mon[0].w[:timestep(5*ms, defaultclock.dt)],
-                 mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
+    assert_allclose(mon[0].w[:timestep(5*ms, defaultclock.dt)],
+                    mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
     assert np.all(mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1] > 0)
     # After refractoriness, v should increase again
     assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
@@ -80,7 +80,11 @@ def test_refractoriness_variables():
                         ref_subexpression = (t - lastspike) < ref : boolean
                         ''',
                         threshold='v>1', reset='v=0;w=0',
-                        refractory=ref_time)
+                        refractory=ref_time,
+                        dtype={'ref': defaultclock.variables['t'].dtype,
+                               'ref_no_unit': defaultclock.variables['t'].dtype,
+                               'lastspike': defaultclock.variables['t'].dtype,
+                               'time_since_spike': defaultclock.variables['t'].dtype})
         G.ref = 5*ms
         G.ref_no_unit = 5
         # It should take 10ms to reach the threshold, then v should stay at 0
@@ -89,20 +93,21 @@ def test_refractoriness_variables():
         run(20*ms)
         try:
             # No difference before the spike
-            assert_equal(mon[0].v[:timestep(10*ms, defaultclock.dt)],
-                         mon[0].w[:timestep(10*ms, defaultclock.dt)])
+            assert_allclose(mon[0].v[:timestep(10*ms, defaultclock.dt)],
+                            mon[0].w[:timestep(10*ms, defaultclock.dt)])
             # v is not updated during refractoriness
             in_refractoriness = mon[0].v[timestep(10*ms, defaultclock.dt):timestep(15*ms, defaultclock.dt)]
-            assert_equal(in_refractoriness, np.zeros_like(in_refractoriness))
+            assert_allclose(in_refractoriness, np.zeros_like(in_refractoriness))
             # w should evolve as before
-            assert_equal(mon[0].w[:timestep(5*ms, defaultclock.dt)],
+            assert_allclose(mon[0].w[:timestep(5*ms, defaultclock.dt)],
                          mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
             assert np.all(mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1] > 0)
             # After refractoriness, v should increase again
-            assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)])
+            print mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)]
+            assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
         except AssertionError as ex:
             raise
-            # raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
+            raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -161,7 +166,9 @@ def test_refractoriness_threshold():
                         ref : second
                         ref_no_unit : 1
                         ''', threshold='v > 1',
-                        reset='v=0', refractory=ref_time)
+                        reset='v=0', refractory=ref_time,
+                        dtype={'ref': defaultclock.variables['t'].dtype,
+                               'ref_no_unit': defaultclock.variables['t'].dtype})
         G.ref = 10*ms
         G.ref_no_unit = 10
         # The neuron should spike after 5ms but then not spike for the next
@@ -243,10 +250,10 @@ def test_conditional_write_automatic_and_manual():
     run(2*defaultclock.dt)
 
     # Synapse should not have been effective in the first time step
-    assert_equal(mon.v[:, 0], 0)
-    assert_equal(mon.v[:, 1], 1)
-    assert_equal(mon.w[:, 0], 0)
-    assert_equal(mon.w[:, 1], 1)
+    assert_allclose(mon.v[:, 0], 0)
+    assert_allclose(mon.v[:, 1], 1)
+    assert_allclose(mon.w[:, 0], 0)
+    assert_allclose(mon.w[:, 1], 1)
 
 
 if __name__ == '__main__':
