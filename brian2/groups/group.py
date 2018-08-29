@@ -804,7 +804,7 @@ class Group(VariableOwner, BrianObject):
                 return None
             else:
                 # Give a more detailed explanation for the lastupdate variable
-                # that was removed with #988
+                # that was removed with PR #1003
                 if identifier == 'lastupdate':
                     error_msg = ('The identifier "lastupdate" could not be '
                                  'resolved. Note that this variable is only '
