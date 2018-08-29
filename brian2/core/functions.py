@@ -561,32 +561,19 @@ def timestep(t, dt):
 
     Returns
     -------
-    ts : np.ndarray, int
+    ts : np.ndarray, np.int64
         The time step corresponding to the given time.
 
     Notes
     -----
-    This function can handle infinity values, it will return a value equal to
-    half of the maximal integer value. This assures that an expression such as
-    ``timestep(t) - timestep(lastspike)`` will result in a reasonable value even
-    if ``lastspike`` is ``-inf``. If ``timestep(lastspike)`` were equal to the
-    minimal representable integer value, this expression would overflow.
+    This function cannot handle infinity values, use big values instead (e.g.
+    a `NeuronGroup` will use ``-1e4*second`` as the value of the ``lastspike``
+    variable for neurons that never spiked).
     '''
-    elapsed_steps = (t + 1e-3*dt)/dt
-    if np.isscalar(elapsed_steps) or elapsed_steps.shape == ():
-        if np.isinf(elapsed_steps):
-            if elapsed_steps > 0:
-                return _infinity_int
-            else:
-                return -_infinity_int
-        else:
-            return np.int_(elapsed_steps)
-    else:
-        int_steps = np.asarray(elapsed_steps, dtype=int)
-        are_inf, = np.nonzero(np.isinf(elapsed_steps))
-        int_steps[are_inf] = np.where(elapsed_steps[are_inf] > 0,
-                                      _infinity_int, -_infinity_int)
-        return int_steps
+    elapsed_steps = np.array((t + 1e-3*dt)/dt, dtype=np.int64)
+    if elapsed_steps.shape == ():
+        elapsed_steps = elapsed_steps.item()
+    return elapsed_steps
 
 
 DEFAULT_FUNCTIONS = {
