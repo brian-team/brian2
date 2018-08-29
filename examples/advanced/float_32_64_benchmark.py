@@ -120,14 +120,6 @@ def generate_results(num_repeats):
 
     return results
 
-# Cache this if we have joblib installed, but don't worry if not
-try:
-    import joblib
-    mem = joblib.Memory(location='.', verbose=0)
-    generate_results = mem.cache(generate_results)
-except ImportError:
-    pass
-
 results = generate_results(3)
 
 bar_width = 0.9
