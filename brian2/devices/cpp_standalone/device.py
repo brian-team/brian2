@@ -170,7 +170,15 @@ class CPPStandaloneDevice(Device):
         self.static_array_specs =[]
         self.report_func = ''
         self.synapses = []
-        
+
+        #: Code lines that have been manually added with `device.insert_code`
+        #: Dictionary mapping slot names to lists of lines.
+        #: Note that the main slot is handled separately as part of `main_queue`
+        self.code_lines = {'before_start': [],
+                           'after_start': [],
+                           'before_end': [],
+                           'after_end': []}
+
         self.clocks = set([])
 
         self.extra_compile_args = []
@@ -241,8 +249,10 @@ class CPPStandaloneDevice(Device):
         '''
         Insert code directly into main.cpp
         '''
-        if slot=='main':
+        if slot == 'main':
             self.main_queue.append(('insert_code', code))
+        elif slot in self.code_lines:
+            self.code_lines[slot].append(code)
         else:
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
             
@@ -698,6 +708,7 @@ class CPPStandaloneDevice(Device):
         # smarter about that.
         main_tmp = self.code_object_class().templater.main(None, None,
                                                            main_lines=main_lines,
+                                                           code_lines=self.code_lines,
                                                            code_objects=self.code_objects.values(),
                                                            report_func=self.report_func,
                                                            dt=float(self.defaultclock.dt),
