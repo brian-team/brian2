@@ -58,7 +58,7 @@ def test_time_dependent_rate():
     timed_array = TimedArray(np.array([[0, 0],
                                        [1./defaultclock.dt, 0]])*Hz, dt=1*ms)
     group_1 = PoissonGroup(2, rates='timed_array(t, i)')
-    group_2 = PoissonGroup(2, rates='int(i==0)*int(t>=1*ms)*(1/dt)')
+    group_2 = PoissonGroup(2, rates='int(i==0)*int(t>1*ms-dt/2)*(1/dt)')
     spikes_1 = SpikeMonitor(group_1)
     spikes_2 = SpikeMonitor(group_2)
     run(2*ms)
