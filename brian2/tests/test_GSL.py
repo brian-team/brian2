@@ -333,7 +333,8 @@ def test_GSL_non_autonomous():
     mon2 = StateMonitor(neuron2, 'v', record=True)
     run(20*ms)
     abs_err = np.abs(mon.v.T - mon2.v.T)
-    assert np.max(abs_err) < 1e-12
+    max_allowed = 1000*np.finfo(prefs.core.default_float_dtype).eps
+    assert np.max(abs_err) < max_allowed
 
 
 @attr('standalone-compatible')
@@ -350,7 +351,8 @@ def test_GSL_non_autonomous():
     mon2 = StateMonitor(neuron2, 'v', record=True)
     run(20*ms)
     abs_err = np.abs(mon.v.T - mon2.v.T)
-    assert np.max(abs_err) < 1e-12
+    max_allowed = 1000 * np.finfo(prefs.core.default_float_dtype).eps
+    assert np.max(abs_err) < max_allowed
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
