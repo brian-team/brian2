@@ -1450,13 +1450,16 @@ def test_event_driven():
     S2 = Synapses(pre, post,
                   '''w : 1
                      Apre : 1
-                     Apost : 1''',
+                     Apost : 1
+                     lastupdate : second''',
                   on_pre='''Apre=Apre*exp((lastupdate-t)/taupre)+dApre
                          Apost=Apost*exp((lastupdate-t)/taupost)
-                         w = clip(w+Apost, 0, gmax)''',
+                         w = clip(w+Apost, 0, gmax)
+                         lastupdate = t''',
                   on_post='''Apre=Apre*exp((lastupdate-t)/taupre)
                           Apost=Apost*exp((lastupdate-t)/taupost) +dApost
-                          w = clip(w+Apre, 0, gmax)''')
+                          w = clip(w+Apre, 0, gmax)
+                          lastupdate = t''')
     S2.connect(j='i')
     S1.w = 0.5*gmax
     S2.w = 0.5*gmax
@@ -1517,7 +1520,7 @@ def test_pre_post_variables():
     for var in ['v_pre', 'v', 'v_post', 'w', 'w_post', 'x',
                 'N_pre', 'N_post', 'N_incoming', 'N_outgoing',
                 'i', 'j',
-                't', 'lastupdate', 'dt']:
+                't', 'dt']:
         assert var in S.variables
     # Check that postsynaptic variables without suffix refer to the correct
     # variable
@@ -2461,6 +2464,35 @@ def test_synapse_generator_range_noint():
     assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(0, True)'))
     assert_raises_regex(TypeError, msg.format('step'), lambda: S.connect(j='k for k in range(0, 42, True)'))
 
+@attr('codegen-independent')
+def test_missing_lastupdate_error_syn_pathway():
+    G = NeuronGroup(1, 'v : 1', threshold='False')
+    S = Synapses(G, G, on_pre='v += exp(-lastupdate/dt)')
+    S.connect()
+    try:
+        run(0*ms)
+        raise AssertionError('Expected a KeyError for lastupdate (no '
+                             'event-driven synapses)')
+    except KeyError as ex:
+        ex_string = str(ex)
+        assert ('lastupdate = t' in ex_string and
+                'lastupdate : second' in ex_string)
+
+@attr('codegen-independent')
+def test_missing_lastupdate_error_run_regularly():
+    G = NeuronGroup(1, 'v : 1', threshold='False')
+    S = Synapses(G, G)
+    S.connect()
+    S.run_regularly('v += exp(-lastupdate/dt')
+    try:
+        run(0*ms)
+        raise AssertionError('Expected a KeyError for lastupdate (no '
+                             'event-driven synapses)')
+    except KeyError as ex:
+        ex_string = str(ex)
+        assert ('lastupdate = t' in ex_string and
+                'lastupdate : second' in ex_string)
+
 
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
@@ -2552,4 +2584,6 @@ if __name__ == '__main__':
     test_synapses_refractory()
     test_synapses_refractory_rand()
     test_synapse_generator_range_noint()
+    test_missing_lastupdate_error_syn_pathway()
+    test_missing_lastupdate_error_run_regularly()
     print 'Tests took', time.time()-start

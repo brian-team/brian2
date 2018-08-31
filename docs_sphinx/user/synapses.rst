@@ -83,7 +83,8 @@ used in equations, ``on_pre`` and ``on_post`` statements, as well as when
 ``lastupdate``
     The last time this synapse has applied an ``on_pre`` or ``on_post``
     statement. There is normally no need to refer to this variable explicitly,
-    it is used to implement :ref:`event_driven_updates` (see below).
+    it is used to implement :ref:`event_driven_updates` (see below). It is only
+    defined when event-driven equations are used.
 
 .. _event_driven_updates:
 
@@ -453,20 +454,22 @@ Explicit event-driven updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As mentioned above, it is possible to write event-driven update code for the synaptic variables.
-For this, two special variables are provided: ``t`` is the current time when the code is executed,
-and ``lastupdate`` is the last time when the synapse was updated (either through ``on_pre`` or ``on_post``
-code). An example is short-term plasticity (in fact this could be done automatically with the use
-of the ``(event-driven)`` keyword mentioned above)::
+This can also be done manually, by defining the variable ``lastupdate`` and
+referring to the predefined variable ``t`` (current time).
+Here's an example for short-term plasticity -- but note that using the automatic
+``event-driven`` approach from above is usually preferable::
 
 	S=Synapses(input,neuron,
 	           model='''x : 1
 	                    u : 1
-	                    w : 1''',
+	                    w : 1
+	                    lastupdate : second''',
 	           on_pre='''u=U+(u-U)*exp(-(t-lastupdate)/tauf)
 	                  x=1+(x-1)*exp(-(t-lastupdate)/taud)
 	                  i+=w*u*x
 	                  x*=(1-u)
-	                  u+=U*(1-u)''')
+	                  u+=U*(1-u)
+	                  lastupdate = t''')
 
 By default, the ``pre`` pathway is executed before the ``post`` pathway (both
 are executed in the ``'synapses'`` scheduling slot, but the ``pre`` pathway has
