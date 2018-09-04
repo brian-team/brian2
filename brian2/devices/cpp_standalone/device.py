@@ -170,7 +170,15 @@ class CPPStandaloneDevice(Device):
         self.static_array_specs =[]
         self.report_func = ''
         self.synapses = []
-        
+
+        #: Code lines that have been manually added with `device.insert_code`
+        #: Dictionary mapping slot names to lists of lines.
+        #: Note that the main slot is handled separately as part of `main_queue`
+        self.code_lines = {'before_start': [],
+                           'after_start': [],
+                           'before_end': [],
+                           'after_end': []}
+
         self.clocks = set([])
 
         self.extra_compile_args = []
@@ -241,8 +249,10 @@ class CPPStandaloneDevice(Device):
         '''
         Insert code directly into main.cpp
         '''
-        if slot=='main':
+        if slot == 'main':
             self.main_queue.append(('insert_code', code))
+        elif slot in self.code_lines:
+            self.code_lines[slot].append(code)
         else:
             logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
             
@@ -693,15 +703,14 @@ class CPPStandaloneDevice(Device):
             if hasattr(codeobj.code, 'main_finalise'):
                 main_lines.append(codeobj.code.main_finalise)
 
-        # The code_objects are passed in the right order to run them because they were
-        # sorted by the Network object. To support multiple clocks we'll need to be
-        # smarter about that.
+        user_headers = self.headers + prefs['codegen.cpp.headers']
         main_tmp = self.code_object_class().templater.main(None, None,
                                                            main_lines=main_lines,
+                                                           code_lines=self.code_lines,
                                                            code_objects=self.code_objects.values(),
                                                            report_func=self.report_func,
                                                            dt=float(self.defaultclock.dt),
-                                                           user_headers=self.headers
+                                                           user_headers=user_headers
                                                            )
         writer.write('main.cpp', main_tmp)
 
