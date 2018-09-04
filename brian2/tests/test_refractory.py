@@ -67,17 +67,17 @@ def test_refractoriness_basic():
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
-    for ref_time in ['5*ms', '(t-lastspike) < 5*ms',
-                     'time_since_spike < 5*ms', 'ref_subexpression',
-                     '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
+    for ref_time in ['5*ms', '(t-lastspike + 1e-3*dt) < 5*ms',
+                     'time_since_spike + 1e-3*dt < 5*ms', 'ref_subexpression',
+                     '(t-lastspike + 1e-3*dt) <= ref', 'ref', 'ref_no_unit*ms']:
         reinit_devices()
         G = NeuronGroup(1, '''
                         dv/dt = 99.999*Hz : 1 (unless refractory)
                         dw/dt = 99.999*Hz : 1
                         ref : second
                         ref_no_unit : 1
-                        time_since_spike = t - lastspike : second
-                        ref_subexpression = (t - lastspike) < ref : boolean
+                        time_since_spike = (t - lastspike) +1e-3*dt : second
+                        ref_subexpression = (t - lastspike + 1e-3*dt) < ref : boolean
                         ''',
                         threshold='v>1', reset='v=0;w=0',
                         refractory=ref_time,
@@ -103,7 +103,6 @@ def test_refractoriness_variables():
                          mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
             assert np.all(mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1] > 0)
             # After refractoriness, v should increase again
-            print mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)]
             assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
         except AssertionError as ex:
             raise
@@ -257,15 +256,17 @@ def test_conditional_write_automatic_and_manual():
 
 
 if __name__ == '__main__':
-    test_add_refractoriness()
-    test_missing_refractory_warning()
-    test_refractoriness_basic()
+    prefs.core.default_float_dtype = np.float32
+    prefs.codegen.target = 'cython'
+    # test_add_refractoriness()
+    # test_missing_refractory_warning()
+    # test_refractoriness_basic()
     test_refractoriness_variables()
-    test_refractoriness_threshold()
-    test_refractoriness_threshold_basic()
-    test_refractoriness_repeated()
-    test_refractoriness_repeated_legacy()
-    test_refractoriness_types()
-    test_conditional_write_set()
-    test_conditional_write_behaviour()
-    test_conditional_write_automatic_and_manual()
+    # test_refractoriness_threshold()
+    # test_refractoriness_threshold_basic()
+    # test_refractoriness_repeated()
+    # test_refractoriness_repeated_legacy()
+    # test_refractoriness_types()
+    # test_conditional_write_set()
+    # test_conditional_write_behaviour()
+    # test_conditional_write_automatic_and_manual()

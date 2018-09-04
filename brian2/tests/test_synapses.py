@@ -651,8 +651,8 @@ def test_state_variable_indexing():
     assert_equal(S.w[0:3, :], S.w['i<3'])
     assert_equal(S.w[:, 0:3], S.w['j<3'])
     assert_equal(S.w[:, :, 0], S.w['k == 0'])
-    assert_equal(S.w[0:3, :], S.w['v_pre < 3*mV'])
-    assert_equal(S.w[:, 0:3], S.w['v_post < 13*mV'])
+    assert_equal(S.w[0:3, :], S.w['v_pre < 2.5*mV'])
+    assert_equal(S.w[:, 0:3], S.w['v_post < 12.5*mV'])
 
     #invalid indices
     assert_raises(IndexError, lambda: S.w.__getitem__((1, 2, 3, 4)))
