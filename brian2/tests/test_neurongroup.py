@@ -25,7 +25,7 @@ from brian2.units.allunits import second, volt
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.utils.logger import catch_logs
 
-from .utils import assert_allclose
+from brian2.tests.utils import assert_allclose
 
 
 @attr('codegen-independent')
@@ -1591,7 +1591,8 @@ def test_semantics_floating_point_division():
         y2 = fvalue/3
         ''')
         run(defaultclock.dt)
-    assert len(l) == 1
+    # Some devices (e.g. Brian2GeNN) might not raise a warning
+    assert len(l) == 0 or (len(l) == 1 and l[0][1].endswith('floating_point_division'))
     assert 'ivalue / 3' in l[0][2]
     assert_allclose(G.x1[:], int_values / 3)
     assert_allclose(G.y1[:], int_values / 3)
