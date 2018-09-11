@@ -1,6 +1,6 @@
 from collections import Counter
 
-from nose import with_setup
+from nose import SkipTest, with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_raises
 
@@ -136,6 +136,9 @@ def test_refractoriness_repeated():
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_refractoriness_repeated_legacy():
+    if prefs.core.default_float_dtype == np.float32:
+        raise SkipTest('Not testing legacy refractory mechanism with single '
+                       'precision floats.')
     # Switch on behaviour from versions <= 2.1.2
     prefs.legacy.refractory_timing = True
     # Create a group that spikes whenever it can
@@ -256,17 +259,15 @@ def test_conditional_write_automatic_and_manual():
 
 
 if __name__ == '__main__':
-    prefs.core.default_float_dtype = np.float32
-    prefs.codegen.target = 'cython'
-    # test_add_refractoriness()
-    # test_missing_refractory_warning()
-    # test_refractoriness_basic()
+    test_add_refractoriness()
+    test_missing_refractory_warning()
+    test_refractoriness_basic()
     test_refractoriness_variables()
-    # test_refractoriness_threshold()
-    # test_refractoriness_threshold_basic()
-    # test_refractoriness_repeated()
-    # test_refractoriness_repeated_legacy()
-    # test_refractoriness_types()
-    # test_conditional_write_set()
-    # test_conditional_write_behaviour()
-    # test_conditional_write_automatic_and_manual()
+    test_refractoriness_threshold()
+    test_refractoriness_threshold_basic()
+    test_refractoriness_repeated()
+    test_refractoriness_repeated_legacy()
+    test_refractoriness_types()
+    test_conditional_write_set()
+    test_conditional_write_behaviour()
+    test_conditional_write_automatic_and_manual()
