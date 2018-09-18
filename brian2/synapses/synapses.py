@@ -1150,7 +1150,8 @@ class Synapses(Group):
             # Raise an error if a variable name is also used for a synaptic
             # variable (we ignore 'lastupdate' to allow connections from another
             # Synapses object)
-            if name in equations.names and name != 'lastupdate':
+            if (name in equations.names and name != 'lastupdate' and
+                    'summed' not in equations[name].flags):
                 error_msg = ('The pre-synaptic variable {name} has the same '
                              'name as a synaptic variable, rename the synaptic '
                              'variable ').format(name=name)
@@ -1176,7 +1177,8 @@ class Synapses(Group):
             # Raise an error if a variable name is also used for a synaptic
             # variable (we ignore 'lastupdate' to allow connections to another
             # Synapses object)
-            if name in equations.names and name != 'lastupdate':
+            if (name in equations.names and name != 'lastupdate' and
+                    'summed' not in equations[name].flags):
                 error_msg = ("The post-synaptic variable '{name}' has the same "
                              "name as a synaptic variable, rename the synaptic "
                              "variable ").format(name=name)
@@ -1194,7 +1196,7 @@ class Synapses(Group):
                 # Also add all the post variables without a suffix, but only if
                 # it does not have a post or pre suffix in the target group
                 # (which could happen when connecting to synapses)
-                if not name.endswith('_post') or name.endswith('pre'):
+                if not name.endswith('_post') or name.endswith('_pre'):
                     self.variables.add_reference(name, self.target, name,
                                                  index=index)
             except TypeError:
