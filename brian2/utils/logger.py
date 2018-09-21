@@ -56,7 +56,7 @@ LOG_LEVELS = {'CRITICAL': logging.CRITICAL,
               'DIAGNOSTIC': DIAGNOSTIC}
 logging.addLevelName(DIAGNOSTIC, 'DIAGNOSTIC')
 
-if 'logging' not in prefs:
+if 'logging' not in prefs.pref_register:
     # Duplicate import of this module can happen when the documentation is built
     prefs.register_preferences('logging', 'Logging system preferences',
         delete_log_on_exit=BrianPreference(
