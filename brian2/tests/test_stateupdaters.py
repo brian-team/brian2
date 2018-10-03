@@ -337,7 +337,7 @@ def check_integration(eqs, variables, can_integrate):
                                                             integrator.__class__.__name__))
         except UnsupportedEquationsException:
             if able is True:
-                raise AssertionError('Should not able to integrate these '
+                raise AssertionError('Should be able to integrate these '
                                      'equations (equations: "{}") with '
                                      'integrator {}'.format(eqs,
                                                             integrator.__class__.__name__))
@@ -351,6 +351,9 @@ def test_priority():
     variables = {'v': ArrayVariable(name='name', size=10,
                                     owner=None, device=None, dtype=np.float64,
                                     constant=False),
+                 'w': ArrayVariable(name='name', size=10,
+                                    owner=None, device=None, dtype=np.float64,
+                                    constant=False),
                  't': clock.variables['t'],
                  'dt': clock.variables['dt']}
     updater(eqs, variables)  # should not raise an error
@@ -359,8 +362,18 @@ def test_priority():
     param = 1
     eqs = Equations('dv/dt = -param * v / (10*ms) : 1')
     updater(eqs, variables)  # should not raise an error
-    can_integrate = {linear: True, euler: True, rk2: True, rk4: True, 
-                     heun: True, milstein: True}
+    can_integrate = {linear: True, euler: True, exponential_euler: True,
+                     rk2: True, rk4: True, heun: True, milstein: True}
+
+    check_integration(eqs, variables, can_integrate)
+
+    # Constant equation, should work for all except linear (see #1010)
+    param = 1
+    eqs = Equations('''dv/dt = 10*Hz : 1
+                       dw/dt = -v/(10*ms) : 1''')
+    updater(eqs, variables)  # should not raise an error
+    can_integrate = {linear: None, euler: True, exponential_euler: True,
+                     rk2: True, rk4: True, heun: True, milstein: True}
 
     check_integration(eqs, variables, can_integrate)
 
@@ -369,8 +382,8 @@ def test_priority():
             dge/dt     = -ge/(5*ms) : volt
             dgi/dt     = Dgi/(5*ms) : volt
             dDgi/dt    = ((-2./5) * Dgi - (1./5**2)*gi)/(10*ms) : volt''')
-    can_integrate = {linear: None, euler: True, rk2: True, rk4: True,
-                     heun: True, milstein: True}
+    can_integrate = {linear: None, euler: True, exponential_euler: True,
+                     rk2: True, rk4: True, heun: True, milstein: True}
     check_integration(eqs, variables, can_integrate)
 
 
@@ -379,8 +392,8 @@ def test_priority():
     assert_raises(UnsupportedEquationsException,
                   lambda: updater(eqs, variables))
     
-    can_integrate = {linear: False, euler: True, rk2: False, rk4: False, 
-                     heun: True, milstein: True}
+    can_integrate = {linear: False, euler: True, exponential_euler: False,
+                     rk2: False, rk4: False, heun: True, milstein: True}
 
     check_integration(eqs, variables, can_integrate)
     
@@ -389,8 +402,8 @@ def test_priority():
     assert_raises(UnsupportedEquationsException,
                   lambda: updater(eqs, variables))
     
-    can_integrate = {linear: False, euler: False, rk2: False, rk4: False, 
-                     heun: True, milstein: True}
+    can_integrate = {linear: False, euler: False, exponential_euler: False,
+                     rk2: False, rk4: False, heun: True, milstein: True}
                      
     check_integration(eqs, variables, can_integrate)
 
@@ -726,8 +739,7 @@ def test_check_for_invalid_values_linear_integrator():
 
 if __name__ == '__main__':
     from brian2 import prefs
-    # prefs.codegen.target = 'cython'
-    # set_device('cpp_standalone')
+
     import time
     start = time.time()
 
