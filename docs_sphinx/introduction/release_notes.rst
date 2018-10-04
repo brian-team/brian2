@@ -32,6 +32,10 @@ Selected improvements and bug fixes
   some Python builtins such as ``dir`` (:issue:`969`). Now, less names are
   imported (but note that this still includes numpy and plotting tools:
   :doc:`../user/import`).
+* The ``exponential_euler`` state updater is no longer failing for systems of
+  equations with differential equations that have trivial, constant
+  right-hand-sides (:issue:`1010`). Thanks to Peter Duggins for making us aware
+  of this issue.
 
 Backward-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
