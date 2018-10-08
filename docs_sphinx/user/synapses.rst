@@ -289,6 +289,8 @@ the indices.
 
 .. admonition:: The following topics are not essential for beginners.
 
+    |
+
 Creating synapses with the generator syntax
 -------------------------------------------
 

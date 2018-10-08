@@ -1,6 +1,87 @@
 Release notes
 =============
 
+Brian 2.2
+---------
+This releases fixes a number of important bugs and comes with a number of
+performance improvements. It also makes sure that simulation no longer give
+platform-dependent results for certain corner cases that involve the division of
+integers. These changes can break backwards-compatiblity in certain cases, see
+below.  We recommend all users of Brian 2 to upgrade.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development
+mailing list (brian-development@googlegroups.com).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Divisions involving integers now use floating point division, independent of
+  Python version and code generation target. The `//` operator can now used in
+  equations and expressions to denote flooring division (:issue:`984`).
+* Simulations can now use single precision instead of double precision floats in
+  simulations (:issue:`981`, :issue:`1004`). This is mostly intended for use
+  with GPU code generation targets.
+* The `~brian2.core.functions.timestep`, introduced in version 2.1.3, was
+  further optimized for performance, making the refractoriness calculation
+  faster (:issue:`996`).
+* The ``lastupdate`` variable is only automatically added to synaptic models
+  when event-driven equations are used, reducing the memory and performance
+  footprint of simple synaptic models (:issue:`1003`). Thanks to Denis Alevi
+  for bringing this up.
+* A ``from brian2 import *`` imported names unrelated to Brian, and overwrote
+  some Python builtins such as ``dir`` (:issue:`969`). Now, fewer names are
+  imported (but note that this still includes numpy and plotting tools:
+  :doc:`../user/import`).
+* The ``exponential_euler`` state updater is no longer failing for systems of
+  equations with differential equations that have trivial, constant
+  right-hand-sides (:issue:`1010`). Thanks to Peter Duggins for making us aware
+  of this issue.
+
+Backward-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Code that divided integers (e.g. ``N/10``) with a C-based code generation
+  target, or with the ``numpy`` target on Python 2, will now use floating point
+  division instead of flooring division (i.e., Python 3 semantics). A warning
+  will notify the user of this change, use either the flooring division operator
+  (``N//10``), or the ``int`` function (``int(N/10)``) to make the expression
+  unambiguous.
+* Code that directly referred to the ``lastupdate`` variable in synaptic
+  statements, without using any event-driven variables, now has to manually add
+  ``lastupdate : second`` to the equations and update the variable at the end
+  of ``on_pre`` and/or ``on_post`` with ``lastupdate = t``.
+* Code that relied on ``from brian2 import *`` also importing unrelated names
+  such as ``sympy``, now has to import such names explicitly.
+
+Documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Various small fixes and additions (e.g. installation instructions, available
+  functions, fixes in examples)
+* A new example, :doc:`Izhikevich 2007 <../examples/frompapers.Izhikevich_2007>`,
+  provided by `Guillaume Dumas <https://github.com/deep-introspection>`_.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Thomas Nowotny (`@tnowotny <https://github.com/tnowotny>`_)
+* `@neworderofjamie <https://github.com/neworderofjamie>`_
+* Paul Brodersen (`@paulbrodersen <https://github.com/paulbrodersen>`_)
+* `@matrec4 <https://github.com/matrec4>`_
+* svadams (`@svadams <https://github.com/svadams>`_)
+* XiaoquinNUDT (`@XiaoquinNUDT <https://github.com/XiaoquinNUDT>`_)
+* Peter Duggins (`@psipeter <https://github.com/psipeter>`_)
+* `@nh17937 <https://github.com/nh17937>`_
+* Patrick Nave (`@pnave95 <https://github.com/pnave95>`_)
+* `@AI-pha <https://github.com/AI-pha>`_
+* Guillaume Dumas (`@deep-introspection <https://github.com/deep-introspection>`_)
+* `@godelicbach <https://github.com/godelicbach>`_
+* `@galharth <https://github.com/galharth>`_
+
+
 Brian 2.1.3.1
 -------------
 This is a bug-fix release that fixes two bugs in the recent 2.1.3 release:
