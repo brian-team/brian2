@@ -4,7 +4,7 @@ Release notes
 Brian 2.2
 ---------
 This releases fixes a number of important bugs and comes with a number of
-performance improvements. I also makes sure that simulation no longer give
+performance improvements. It also makes sure that simulation no longer give
 platform-dependent results for certain corner cases that involve the division of
 integers. These changes can break backwards-compatiblity in certain cases, see
 below.  We recommend all users of Brian 2 to upgrade.
@@ -29,7 +29,7 @@ Selected improvements and bug fixes
   footprint of simple synaptic models (:issue:`1003`). Thanks to Denis Alevi
   for bringing this up.
 * A ``from brian2 import *`` imported names unrelated to Brian, and overwrote
-  some Python builtins such as ``dir`` (:issue:`969`). Now, less names are
+  some Python builtins such as ``dir`` (:issue:`969`). Now, fewer names are
   imported (but note that this still includes numpy and plotting tools:
   :doc:`../user/import`).
 * The ``exponential_euler`` state updater is no longer failing for systems of
