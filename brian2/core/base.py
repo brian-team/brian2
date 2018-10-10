@@ -342,4 +342,10 @@ def brian_object_exception(message, brianobj, original_exception):
     DerivedBrianObjectException = type('BrianObjectException',
                                        (BrianObjectException, original_exception.__class__),
                                        {})
-    return DerivedBrianObjectException(message, brianobj, original_exception)
+    new_exception = DerivedBrianObjectException(message, brianobj, original_exception)
+    # Copy over all exception attributes
+    for attribute in dir(original_exception):
+        if attribute.startswith('_'):
+            continue
+        setattr(new_exception, attribute, getattr(original_exception, attribute))
+    return new_exception
