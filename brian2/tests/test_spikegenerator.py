@@ -284,14 +284,14 @@ def test_spikegenerator_rounding_period():
 def test_spikegenerator_multiple_spikes_per_bin():
     # Multiple spikes per bin are of course fine if they don't belong to the
     # same neuron
-    SG = SpikeGeneratorGroup(2, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
-    net = Network(SG)
-    net.run(0*ms)
-
-    # This should raise an error
-    SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
-    net = Network(SG)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    # SG = SpikeGeneratorGroup(2, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
+    # net = Network(SG)
+    # net.run(0*ms)
+    #
+    # # This should raise an error
+    # SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
+    # net = Network(SG)
+    # assert_raises(ValueError, lambda: net.run(0*ms))
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -301,10 +301,23 @@ def test_spikegenerator_multiple_spikes_per_bin():
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
     assert_raises(ValueError, lambda: net.run(0*ms))
 
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
+def test_spikegenerator_multiple_runs():
+    indices = np.zeros(5)
+    times = np.arange(5)*ms
+    spike_gen = SpikeGeneratorGroup(1, indices, times)  # all good
+    spike_mon = SpikeMonitor(spike_gen)
+    run(5*ms)
+    # Setting the same spike times again should not do anything, since they are
+    # before the start of the current simulation
+    spike_gen.set_spikes(indices, times)
+    run(5*ms)
+    device.build(direct_call=False, **device.build_options)
+    assert spike_mon.num_spikes == 5
+
 
 if __name__ == '__main__':
-    from brian2 import prefs
-    # prefs.codegen.target = 'cython'
     import time
     start = time.time()
 
@@ -322,5 +335,5 @@ if __name__ == '__main__':
     test_spikegenerator_rounding_long()
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
-
+    test_spikegenerator_multiple_runs()
     print 'Tests took', time.time()-start
