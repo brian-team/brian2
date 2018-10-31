@@ -568,18 +568,17 @@ class CPPStandaloneDevice(Device):
         if self.enable_profiling:
             self.profiled_codeobjects.append(codeobj.name)
 
-        # Mark all the non-read-only or non-constant variables used in this code
-        # object as "dirty". This is almost certainly too much, most of these
+        # Mark all the non-read-only used in this code object as "dirty". This
+        # is almost certainly too much, most of these
         # variables will only be read. However, the templates for synapse
-        # creation will write to read-only variables.. This is noted in the
+        # creation will write to read-only variables. This is noted in the
         # WRITES_TO_READ_ONLY_VARIABLES comment in the template.
         template = getattr(codeobj.templater, template_name)
         written_readonly_vars = {codeobj.variables[varname]
                                  for varname in template.writes_read_only}
         for var in codeobj.variables.itervalues():
             if (isinstance(var, ArrayVariable) and
-                    (not var.read_only or not var.constant or
-                             var in written_readonly_vars)):
+                    (not var.read_only or var in written_readonly_vars)):
                 self.array_cache[var] = None
 
         return codeobj
