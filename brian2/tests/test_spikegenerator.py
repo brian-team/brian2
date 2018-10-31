@@ -12,6 +12,7 @@ from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_devices
 from brian2.tests.utils import assert_allclose
+from brian2.utils.logger import catch_logs
 
 
 @attr('standalone-compatible')
@@ -284,14 +285,14 @@ def test_spikegenerator_rounding_period():
 def test_spikegenerator_multiple_spikes_per_bin():
     # Multiple spikes per bin are of course fine if they don't belong to the
     # same neuron
-    # SG = SpikeGeneratorGroup(2, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
-    # net = Network(SG)
-    # net.run(0*ms)
-    #
-    # # This should raise an error
-    # SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
-    # net = Network(SG)
-    # assert_raises(ValueError, lambda: net.run(0*ms))
+    SG = SpikeGeneratorGroup(2, [0, 1], [0, 0.05]*ms, dt=0.1*ms)
+    net = Network(SG)
+    net.run(0*ms)
+
+    # This should raise an error
+    SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
+    net = Network(SG)
+    assert_raises(ValueError, lambda: net.run(0*ms))
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -312,8 +313,11 @@ def test_spikegenerator_multiple_runs():
     # Setting the same spike times again should not do anything, since they are
     # before the start of the current simulation
     spike_gen.set_spikes(indices, times)
-    run(5*ms)
-    device.build(direct_call=False, **device.build_options)
+    # however, a warning should be raised
+    with catch_logs() as l:
+        run(5*ms)
+        device.build(direct_call=False, **device.build_options)
+    assert len(l) == 1 and l[0][1].endswith('ignored_spikes')
     assert spike_mon.num_spikes == 5
 
 

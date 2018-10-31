@@ -2,8 +2,9 @@
 Module defining `SpikeGeneratorGroup`.
 '''
 import numpy as np
-from brian2.core.functions import timestep
 
+from brian2.core.functions import timestep
+from brian2.utils.logger import get_logger
 from brian2.core.spikesource import SpikeSource
 from brian2.units.fundamentalunits import check_units, Unit, Quantity
 from brian2.units.allunits import second
@@ -11,6 +12,9 @@ from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
 
 __all__ = ['SpikeGeneratorGroup']
+
+
+logger = get_logger(__name__)
 
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
@@ -162,6 +166,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             current_step = timestep(current_t, dt)
             in_the_past = np.nonzero(timesteps < current_step)[0]
             if len(in_the_past):
+                logger.warn('The SpikeGeneratorGroup contains spike times '
+                            'earlier than the start time of the current run '
+                            '(t = {}), these spikes will be '
+                            'ignored.'.format(str(current_t*second)),
+                            name_suffix='ignored_spikes')
                 self.variables['_lastindex'].set_value(in_the_past[-1] + 1)
             else:
                 self.variables['_lastindex'].set_value(0)
