@@ -1,3 +1,4 @@
+# cython: language_level = 3
 # distutils: language = c++
 # distutils: sources = brian2/synapses/cspikequeue.cpp
 
