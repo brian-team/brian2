@@ -568,14 +568,27 @@ class CPPStandaloneDevice(Device):
         if self.enable_profiling:
             self.profiled_codeobjects.append(codeobj.name)
 
-        # Mark all the non-read-only used in this code object as "dirty". This
-        # is almost certainly too much, most of these
-        # variables will only be read. However, the templates for synapse
-        # creation will write to read-only variables. This is noted in the
-        # WRITES_TO_READ_ONLY_VARIABLES comment in the template.
+        # We mark all writeable (i.e. not read-only) variables used by the code
+        # as "dirty" to avoid that the cache contains incorrect values. This
+        # might remove a number of variables from the cache unnecessarily,
+        # since many variables are only read in the code.
+        # On the other hand, there are also *read-only* variables that can be
+        # changed by code (the "read-only" attribute only refers to the user
+        # being able to change values directly). For example, synapse creation
+        # write source and target indices, and monitors write the shared values.
+        # To correctly mark these values as changed, templates can include a
+        # "WRITES_TO_READ_ONLY_VARIABLES" comment, stating the name of the
+        # changed variables. For a monitor, this would for example state that
+        # the number of recorded values "N" changes. For the recorded variables,
+        # however, this information cannot be included in the template because
+        # it is up to the user to define which variables are recorded. For such
+        # cases, the "owner" object (e.g. a SpikeMonitor) can define a
+        # "written_readonly_vars" attribute, storing a set of `Variable` objects
+        # that will be changed by the owner's code objects.
         template = getattr(codeobj.templater, template_name)
-        written_readonly_vars = {codeobj.variables[varname]
-                                 for varname in template.writes_read_only}
+        written_readonly_vars = ({codeobj.variables[varname]
+                                  for varname in template.writes_read_only} |
+                                 getattr(owner, 'written_readonly_vars', set()))
         for var in codeobj.variables.itervalues():
             if (isinstance(var, ArrayVariable) and
                     (not var.read_only or var in written_readonly_vars)):

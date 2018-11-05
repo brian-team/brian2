@@ -157,8 +157,9 @@ class EventMonitor(Group, CodeRunner):
 
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
-
         self.add_dependency(source)
+        self.written_readonly_vars = {self.variables[varname]
+                                      for varname in self.record_variables}
         self._enable_group_attributes()
 
     def resize(self, new_size):
