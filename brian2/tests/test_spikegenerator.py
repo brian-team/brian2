@@ -12,6 +12,7 @@ from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_devices
 from brian2.tests.utils import assert_allclose
+from brian2.utils.logger import catch_logs
 
 
 @attr('standalone-compatible')
@@ -301,10 +302,26 @@ def test_spikegenerator_multiple_spikes_per_bin():
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
     assert_raises(ValueError, lambda: net.run(0*ms))
 
+@attr('standalone-compatible', 'multiple-runs')
+@with_setup(teardown=reinit_devices)
+def test_spikegenerator_multiple_runs():
+    indices = np.zeros(5)
+    times = np.arange(5)*ms
+    spike_gen = SpikeGeneratorGroup(1, indices, times)  # all good
+    spike_mon = SpikeMonitor(spike_gen)
+    run(5*ms)
+    # Setting the same spike times again should not do anything, since they are
+    # before the start of the current simulation
+    spike_gen.set_spikes(indices, times)
+    # however, a warning should be raised
+    with catch_logs() as l:
+        run(5*ms)
+        device.build(direct_call=False, **device.build_options)
+    assert len(l) == 1 and l[0][1].endswith('ignored_spikes')
+    assert spike_mon.num_spikes == 5
+
 
 if __name__ == '__main__':
-    from brian2 import prefs
-    # prefs.codegen.target = 'cython'
     import time
     start = time.time()
 
@@ -322,5 +339,5 @@ if __name__ == '__main__':
     test_spikegenerator_rounding_long()
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
-
+    test_spikegenerator_multiple_runs()
     print 'Tests took', time.time()-start

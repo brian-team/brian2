@@ -3,6 +3,8 @@ Module defining `SpikeGeneratorGroup`.
 '''
 import numpy as np
 
+from brian2.core.functions import timestep
+from brian2.utils.logger import get_logger
 from brian2.core.spikesource import SpikeSource
 from brian2.units.fundamentalunits import check_units, Unit, Quantity
 from brian2.units.allunits import second
@@ -10,6 +12,9 @@ from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
 
 __all__ = ['SpikeGeneratorGroup']
+
+
+logger = get_logger(__name__)
 
 
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
@@ -92,11 +97,11 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.start = 0
         self.stop = N
 
+        self.variables = Variables(self)
+        self.variables.create_clock_variables(self._clock)
+
         indices, times = self._check_args(indices, times, period, N, sorted)
 
-        self.variables = Variables(self)
-
-        # standard variables
         self.variables.add_constant('N', value=N)
         self.variables.add_array('period', dimensions=second.dim, size=1,
                                  constant=True, read_only=True, scalar=True,
@@ -119,7 +124,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables.add_array('_spikespace', size=N+1, dtype=np.int32)
         self.variables.add_array('_lastindex', size=1, values=0, dtype=np.int32,
                                  read_only=True, scalar=True)
-        self.variables.create_clock_variables(self._clock)
 
         #: Remember the dt we used the last time when we checked the spike bins
         #: to not repeat the work for multiple runs with the same dt
@@ -155,6 +159,21 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                           'of %s.' % (self.name,
                                                       self.period,
                                                       dt))
+
+        if self._spikes_changed:
+            current_t = self.variables['t'].get_value().item()
+            timesteps = timestep(self._spike_time, dt)
+            current_step = timestep(current_t, dt)
+            in_the_past = np.nonzero(timesteps < current_step)[0]
+            if len(in_the_past):
+                logger.warn('The SpikeGeneratorGroup contains spike times '
+                            'earlier than the start time of the current run '
+                            '(t = {}), these spikes will be '
+                            'ignored.'.format(str(current_t*second)),
+                            name_suffix='ignored_spikes')
+                self.variables['_lastindex'].set_value(in_the_past[-1] + 1)
+            else:
+                self.variables['_lastindex'].set_value(0)
 
         # Check that we don't have more than one spike per neuron in a time bin
         if self._previous_dt is None or dt != self._previous_dt or self._spikes_changed:
@@ -216,7 +235,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables['spike_number'].set_value(np.arange(len(indices)))
         self.variables['neuron_index'].set_value(indices)
         self.variables['spike_time'].set_value(times)
-        self.variables['_lastindex'].set_value(0)
+        # _lastindex will be set as part of before_run
 
     def _check_args(self, indices, times, period, N, sorted):
         times = Quantity(times)

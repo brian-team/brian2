@@ -4,6 +4,7 @@
 	//// MAIN CODE ////////////
     {# USES_VARIABLES { N, _clock_t, count,
                         _source_start, _source_stop} #}
+    {# WRITES_TO_READ_ONLY_VARIABLES { N, count } #}
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
 

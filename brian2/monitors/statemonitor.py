@@ -271,6 +271,8 @@ class StateMonitor(Group, CodeRunner):
 
         self.needed_variables = recorded_names
         self.template_kwds = {'_recorded_variables': self.recorded_variables}
+        self.written_readonly_vars = {self.variables[varname]
+                                      for varname in self.record_variables}
         self._enable_group_attributes()
 
     def resize(self, new_size):
