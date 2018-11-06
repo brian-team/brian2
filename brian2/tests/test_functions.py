@@ -567,6 +567,7 @@ def test_function_dependencies_numpy():
 
 
 @attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
 def test_repeated_function_dependencies():
     # each of the binomial functions adds randn as a depency, see #988
     test_neuron = NeuronGroup(1, 'x : 1',
