@@ -390,12 +390,13 @@ class CPPCodeGenerator(CodeGenerator):
         dep_support_code = []
         if impl.dependencies is not None:
             for dep_name, dep in impl.dependencies.iteritems():
-                self.variables[dep_name] = dep
-                hd, ps, sc, uf = self._add_user_function(dep_name, dep)
-                dep_hash_defines.extend(hd)
-                dep_pointers.extend(ps)
-                dep_support_code.extend(sc)
-                user_functions.extend(uf)
+                if dep_name not in self.variables:
+                    self.variables[dep_name] = dep
+                    hd, ps, sc, uf = self._add_user_function(dep_name, dep)
+                    dep_hash_defines.extend(hd)
+                    dep_pointers.extend(ps)
+                    dep_support_code.extend(sc)
+                    user_functions.extend(uf)
 
         return (dep_hash_defines + hash_defines,
                 dep_pointers + pointers,
