@@ -161,7 +161,9 @@ class NumpyCodeGenerator(CodeGenerator):
                             once=True)
             lines = []
             lines.extend(['_full_idx = _idx',
-                          'for _idx in _full_idx:'])
+                          'for _idx in _full_idx:',
+                          '    _vectorisation_idx = _idx'
+                          ])
             read, write, indices, conditional_write_vars = self.arrays_helper(statements)
             lines.extend(indent(code) for code in
                          self.read_arrays(read, write, indices,

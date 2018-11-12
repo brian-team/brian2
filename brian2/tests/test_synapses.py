@@ -2037,6 +2037,19 @@ def test_ufunc_at_vectorisation():
         finally:
             NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
 
+def test_fallback_loop_and_stateless_func():
+    # See github issue #1024
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+    source = NeuronGroup(2, '', threshold='True')
+    target = NeuronGroup(1, 'v : 1')
+    synapses = Synapses(source, target, 'x : 1',
+                        on_pre='''x = rand()
+                                  v_post += 0.5*(1-v_post)''')
+    synapses.connect()
+    with catch_logs():  # Suppress the warning
+        run(defaultclock.dt)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -2573,6 +2586,7 @@ if __name__ == '__main__':
     test_synapses_to_synapses_summed_variable()
     try:
         test_ufunc_at_vectorisation()
+        test_fallback_loop_and_stateless_func()
     except SkipTest:
         print('Skipping numpy-only test')
     test_synapse_generator_syntax()
