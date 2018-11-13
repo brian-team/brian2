@@ -136,9 +136,9 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage py-cpuinfo=3 gsl>1.15";
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage gsl>1.15";
     else
-    PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage py-cpuinfo=3 gsl>1.15";
+    PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage gsl>1.15";
     fi
   # On Python 2: Install the weave package explicitly
   - if [ ${PYTHON:0:1} == "2" ]; then
