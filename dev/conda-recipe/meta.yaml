@@ -11,7 +11,7 @@ requirements:
     - {{ compiler('cxx') }}
   host:
     - python
-    - cython >=0.18
+    - cython >=0.29
     - setuptools >=6.0
     # we build against the oldest supported numpy version
     - numpy 1.10  # [not py36]
@@ -28,7 +28,7 @@ requirements:
     - weave # [py2k]
     - bsddb # [py2k and not win]
     - gsl >1.15
-    - cython >=0.18
+    - cython >=0.29
     - jinja2 >=2.7
     - setuptools >=6.0
     - py-cpuinfo >=0.1.6,!=4.0.0

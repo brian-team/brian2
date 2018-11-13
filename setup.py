@@ -165,11 +165,12 @@ setup(name='Brian2',
                     'brian2': ['default_preferences']
                     },
       install_requires=['numpy>=1.10',
+                        'cython>=0.29',
                         'sympy>=0.7.6, !=1.1.0',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo>=0.1.6, !=4.0.0',
-                        'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
+                        'setuptools>=6.0'
                        ],
       setup_requires=['numpy>=1.10',
                       'setuptools>=6.0'
