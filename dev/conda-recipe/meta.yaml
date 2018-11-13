@@ -31,7 +31,7 @@ requirements:
     - cython >=0.29
     - jinja2 >=2.7
     - setuptools >=6.0
-    - py-cpuinfo >=0.1.6,!=4.0.0
+    - py-cpuinfo >=0.1.6,!=4.0.0 # [win]
 
 test:
   imports:

@@ -166,14 +166,14 @@ setup(name='Brian2',
                     },
       install_requires=['numpy>=1.10',
                         'cython>=0.29',
-                        'sympy>=0.7.6, !=1.1.0',
+                        'sympy>=0.7.6,!=1.1.0',
                         'pyparsing',
                         'jinja2>=2.7',
-                        'py-cpuinfo>=0.1.6, !=4.0.0',
-                        'setuptools>=6.0'
+                        'py-cpuinfo>=0.1.6,!=4.0.0;platform_system=="Windows"',
+                        'setuptools>=21'
                        ],
       setup_requires=['numpy>=1.10',
-                      'setuptools>=6.0'
+                      'setuptools>=21'
                       ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
