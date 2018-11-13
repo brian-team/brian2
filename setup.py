@@ -154,8 +154,10 @@ setup(name='Brian2',
                     # Include RALLPACK test data
                     'brian2.tests': ['rallpack_data/README',
                                      'rallpack_data/ref_*'],
-                    # include C++ version of spike queue
-                    'brian2.synapses': ['*.cpp', '*.h'],
+                    # include C++/Cython version of spike queue
+                    'brian2.synapses': ['cspikequeue.cpp',
+                                        'cythonspikequeue.pyx',
+                                        'stdint_compat.h'],
                     # include randomkit
                     'brian2.random': ['randomkit/randomkit.c',
                                       'randomkit/randomkit.h'],
