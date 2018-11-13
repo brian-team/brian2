@@ -7,8 +7,11 @@ Preferences
 
 '''
 from distutils.ccompiler import get_default_compiler
+import platform
 
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.logger import get_logger
+
 from .codeobject import sys_info
 
 __all__ = ['get_compiler_and_args']
@@ -16,22 +19,28 @@ __all__ = ['get_compiler_and_args']
 # Try to get architecture information to get the best compiler setting for
 # Windows
 msvc_arch_flag = ''
-try:
-    from cpuinfo import cpuinfo
-    res = cpuinfo.get_cpu_info()
-    # Note that this overwrites the arch_flag, i.e. only the best option will
-    # be used
-    if 'sse' in res['flags']:
-        msvc_arch_flag = '/arch:SSE'
-    if 'sse2' in res['flags']:
-        msvc_arch_flag = '/arch:SSE2'
-    if 'avx' in res['flags']:
-        msvc_arch_flag = '/arch:AVX'
-    if 'avx2' in res['flags']:
-        msvc_arch_flag = '/arch:AVX2'
-except Exception:
-    pass  # apparently it does not always work on appveyor
-
+# Only do this on Windows, importing cpuinfo can lead to problems when using
+# multiprocessing (e.g. in PyCharm's debug mode)
+if platform.system() == 'Windows':
+    try:
+        from cpuinfo import cpuinfo
+        res = cpuinfo.get_cpu_info()
+        # Note that this overwrites the arch_flag, i.e. only the best option will
+        # be used
+        if 'sse' in res['flags']:
+            msvc_arch_flag = '/arch:SSE'
+        if 'sse2' in res['flags']:
+            msvc_arch_flag = '/arch:SSE2'
+        if 'avx' in res['flags']:
+            msvc_arch_flag = '/arch:AVX'
+        if 'avx2' in res['flags']:
+            msvc_arch_flag = '/arch:AVX2'
+    except Exception as ex:
+        # This is not essential, we don't want everything to fail because
+        # of unoptimized flags
+        get_logger(__name__).warn('Could not determine optimized MSVC flags, '
+                                  'cpuinfo failed with: %s' % (str(ex)),
+                                  once=True)
 
 # Preferences
 prefs.register_preferences(
