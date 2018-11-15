@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+#! /usr/bin/env python
 '''
 Brian2 setup script
 '''
@@ -169,7 +170,7 @@ setup(name='Brian2',
                         'sympy>=0.7.6,!=1.1.0',
                         'pyparsing',
                         'jinja2>=2.7',
-                        'py-cpuinfo>=0.1.6,!=4.0.0;platform_system=="Windows"',
+                        'py-cpuinfo;platform_system=="Windows"',
                         'setuptools>=21'
                        ],
       setup_requires=['numpy>=1.10',
@@ -180,6 +181,7 @@ setup(name='Brian2',
       extras_require={'test': ['nose>=1.0'],
                       'docs': ['sphinx>=1.5']},
       use_2to3=True,
+      zip_safe=False,
       ext_modules=extensions,
       url='http://www.briansimulator.org/',
       description='A clock-driven simulator for spiking neural networks',
