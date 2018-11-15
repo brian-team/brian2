@@ -15,7 +15,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
 
-REQUIRED_CYTHON_VERSION = '0.18'
+REQUIRED_CYTHON_VERSION = '0.29'
 
 try:
     import Cython
