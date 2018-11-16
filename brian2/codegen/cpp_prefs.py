@@ -29,7 +29,8 @@ if platform.system() == 'Windows':
                                         'get_cpu_flags.py')
     try:
         output = subprocess.check_output([sys.executable,
-                                          os.path.abspath(get_cpu_flags_script)])
+                                          os.path.abspath(get_cpu_flags_script)],
+                                         universal_newlines=True)
         flags = json.loads(output)
         # Note that this overwrites the arch_flag, i.e. only the best option will
         # be used
