@@ -97,15 +97,6 @@
             }
             _j = __j; // make the previously locally scoped _j available
             _pre_idx = __pre_idx;
-            if(_j<0 || _j>=_N_post)
-            {
-                {% if skip_if_invalid %}
-                continue;
-                {% else %}
-                PyErr_SetString(PyExc_IndexError, "index j outside allowed range");
-                throw 1;
-                {% endif %}
-            }
             _raw_post_idx = _j + _target_offset;
             {% if postsynaptic_condition %}
             {
@@ -118,6 +109,16 @@
             {% if if_expression!='True' and postsynaptic_condition %}
             if(!_cond) continue;
             {% endif %}
+
+            if(_j<0 || _j>=_N_post)
+            {
+                {% if skip_if_invalid %}
+                continue;
+                {% else %}
+                PyErr_SetString(PyExc_IndexError, "index j outside allowed range");
+                throw 1;
+                {% endif %}
+            }
 
             {{vector_code['update_post']|autoindent}}
 

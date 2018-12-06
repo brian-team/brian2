@@ -93,6 +93,18 @@ for _i in range(N_pre):
 
     _vectorisation_idx = {{iteration_variable}}
     {{vector_code['create_j']|autoindent}}
+    _vectorisation_idx = _j
+    _raw_post_idx = _j + _target_offset
+    {% if postsynaptic_condition %}
+    {{vector_code['create_cond']|autoindent}}
+    {% endif %}
+    {% if if_expression!='True' and postsynaptic_condition %}
+    _j, _cond = _numpy.broadcast_arrays(_j, _cond)
+    _j = _j[_cond]
+    {% else %}
+    _j, {{iteration_variable}} = _numpy.broadcast_arrays(_j, {{iteration_variable}})
+    {% endif %}
+
     {% if skip_if_invalid %}
     if _numpy.isscalar(_j):
         if _j<0 or _j>=N_post:
@@ -100,7 +112,6 @@ for _i in range(N_pre):
     else:
         _in_range = _numpy.logical_and(_j>=0, _j<N_post)
         _j = _j[_in_range]
-        {{iteration_variable}} = {{iteration_variable}}[_in_range]
     {% else %}
     if _numpy.isscalar(_j):
         _min_j = _max_j = _j
@@ -113,17 +124,6 @@ for _i in range(N_pre):
         raise IndexError("index j=%d outside allowed range from 0 to %d" % (_min_j, N_post-1))
     elif _max_j >= N_post:
         raise IndexError("index j=%d outside allowed range from 0 to %d" % (_max_j, N_post-1))
-    {% endif %}
-    _vectorisation_idx = _j
-    _raw_post_idx = _j + _target_offset
-    {% if postsynaptic_condition %}
-    {{vector_code['create_cond']|autoindent}}
-    {% endif %}
-    {% if if_expression!='True' and postsynaptic_condition %}
-    _j, _cond = _numpy.broadcast_arrays(_j, _cond)
-    _j = _j[_cond]
-    {% else %}
-    _j, {{iteration_variable}} = _numpy.broadcast_arrays(_j, {{iteration_variable}})
     {% endif %}
 
     _vectorisation_idx = _j

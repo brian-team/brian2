@@ -86,12 +86,6 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
 
             {{vector_code['create_j']|autoindent}}
-            if _j<0 or _j>=N_post:
-                {% if skip_if_invalid %}
-                continue
-                {% else %}
-                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
-                {% endif %}
             _raw_post_idx = _j + _target_offset
 
             {% if postsynaptic_condition %}
@@ -101,6 +95,12 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             if not _cond:
                 continue
             {% endif %}
+            if _j<0 or _j>=N_post:
+                {% if skip_if_invalid %}
+                continue
+                {% else %}
+                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                {% endif %}
             {{vector_code['update_post']|autoindent}}
 
             for _repetition in range(_n):

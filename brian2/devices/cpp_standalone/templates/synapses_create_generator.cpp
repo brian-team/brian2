@@ -97,16 +97,6 @@
             _j = __j; // make the previously locally scoped _j available
             _pre_idx = __pre_idx;
             _raw_post_idx = _j + _target_offset;
-            if(_j<0 || _j>=_N_post)
-            {
-                {% if skip_if_invalid %}
-                continue;
-                {% else %}
-                cout << "Error: tried to create synapse to neuron j=" << _j << " outside range 0 to " <<
-                        _N_post-1 << endl;
-                exit(1);
-                {% endif %}
-            }
             {% if postsynaptic_condition %}
             {
                 {{vector_code['create_cond']|autoindent}}
@@ -118,7 +108,16 @@
             {% if if_expression!='True' %}
             if(!_cond) continue;
             {% endif %}
-
+            if(_j<0 || _j>=_N_post)
+            {
+                {% if skip_if_invalid %}
+                continue;
+                {% else %}
+                cout << "Error: tried to create synapse to neuron j=" << _j << " outside range 0 to " <<
+                        _N_post-1 << endl;
+                exit(1);
+                {% endif %}
+            }
             {{vector_code['update_post']|autoindent}}
 
             for (int _repetition=0; _repetition<_n; _repetition++) {
