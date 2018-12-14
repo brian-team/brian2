@@ -2112,6 +2112,38 @@ def test_synapse_generator_syntax():
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
 
 
+def test_synapse_generator_out_of_range():
+    G = NeuronGroup(16, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '16 + i'
+
+    S1 = Synapses(G, G2, '')
+    assert_raises(IndexError, lambda: S1.connect(j='k for k in range(0, N_post*2)'))
+
+    # This should be fine
+    S2 = Synapses(G, G, '')
+    S2.connect(j='i+k for k in range(0, 5) if i <= N_post-5')
+    expected = np.zeros((len(G), len(G)))
+    expected[np.triu_indices(len(G))] = 1
+    expected[np.triu_indices(len(G), 5)] = 0
+    expected[len(G)-4:, :] = 0
+    _compare(S2, expected)
+
+    # This should be fine (see #1037)
+    S2 = Synapses(G, G, '')
+    S2.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and rand() <= 1')
+    _compare(S2, expected)
+
+    # This could in principle be fine, but we cannot test the condition without
+    # accessing the post-synaptic variable outside of its range. By analyzing
+    # the post-synaptic condition, we could find out that the value of this
+    # variable is actually irrelevant, but that makes things too complicated.
+    S3 = Synapses(G, G, '')
+    assert_raises(IndexError,
+                  lambda: S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0'))
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_synapse_generator_deterministic():
@@ -2609,6 +2641,7 @@ if __name__ == '__main__':
     except SkipTest:
         print('Skipping numpy-only test')
     test_synapse_generator_syntax()
+    test_synapse_generator_out_of_range()
     test_synapse_generator_deterministic()
     test_synapse_generator_deterministic_2()
     test_synapse_generator_random()
