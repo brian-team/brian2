@@ -152,8 +152,15 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  'than its dt of %s.' % (self.name,
                                                          self.period[:],
                                                          dt*second))
-            if (abs(int(period/dt)*dt - period) >
-                    period * np.finfo(dt.dtype).eps):
+            # We check that the period is a multiple of dt. Because we cannot do
+            # any exact test, we use the following heuristic: we calculate all
+            # the multiples of the period that fit into 1000s and then check
+            # whether all these times correspond to the same time step as we
+            # obtain by first converting the period to the equivalent number of
+            # timesteps
+            n_periods = int(1000. / period)
+            periods = np.arange(n_periods) * period
+            if not np.all(timestep(periods*second, dt*second) % timestep(period*second, dt*second) == 0):
                 raise NotImplementedError('The period of %s is %s, which is '
                                           'not an integer multiple of its dt '
                                           'of %s.' % (self.name,

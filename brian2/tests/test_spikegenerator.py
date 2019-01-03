@@ -210,6 +210,11 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     assert_raises(NotImplementedError, lambda: net.run(0*ms))
 
+    # This should not raise an error (see #1041)
+    SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
+    net = Network(SG)
+    net.run(0*ms)
+
     # Period is smaller than dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1*ms, dt=2*ms)
     net = Network(SG)
