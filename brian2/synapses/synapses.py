@@ -1335,7 +1335,7 @@ class Synapses(Group):
                     j = None
                     if isinstance(p, basestring):
                         p_dep = self._expression_index_dependence(p)
-                        if '_postsynaptic_idx' in p_dep:
+                        if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
                             j = ('_k for _k in range(N_post) '
                                  'if ({expr}) and '
                                  'rand()<{p}').format(expr=condition, p=p)
@@ -1572,7 +1572,7 @@ class Synapses(Group):
             if varname == 'i':
                 deps.add('_presynaptic_idx')
             elif varname == 'j':
-                deps.add('_postsynaptic_idx')
+                deps.add('_iterator_idx')
             elif varname in additional_indices:
                 deps.add(additional_indices[varname])
             else:
@@ -1618,12 +1618,17 @@ class Synapses(Group):
         additional_indices['_vectorisation_idx'] = '_iterator_idx'
 
         postsynaptic_condition = False
+        postsynaptic_variable_used = False
         if parsed['if_expression'] is not None:
             deps = self._expression_index_dependence(parsed['if_expression'],
                                                      additional_indices)
-            if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
+            if '_postsynaptic_idx' in deps:
+                postsynaptic_condition = True
+                postsynaptic_variable_used = True
+            elif '_iterator_idx' in deps:
                 postsynaptic_condition = True
         template_kwds['postsynaptic_condition'] = postsynaptic_condition
+        template_kwds['postsynaptic_variable_used'] = postsynaptic_variable_used
 
         abstract_code['setup_iterator'] += setupiter
         abstract_code['create_j'] += '_pre_idx = _raw_pre_idx \n'

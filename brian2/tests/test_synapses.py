@@ -2140,9 +2140,13 @@ def test_synapse_generator_out_of_range():
     # the post-synaptic condition, we could find out that the value of this
     # variable is actually irrelevant, but that makes things too complicated.
     S3 = Synapses(G, G, '')
-    assert_raises(IndexError,
-                  lambda: S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0'))
-
+    try:
+        S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0')
+        raise AssertionError('IndexError not raised')
+    except IndexError as ex:
+        # Make sure that this is actually the error raised by our template and
+        # not an exception raised by numpy
+        assert 'outside allowed range' in ex.message
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)

@@ -2,9 +2,9 @@
 
 {% block maincode %}
     #include<iostream>
-	{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-	                    N_incoming, N_outgoing, N,
-	                    N_pre, N_post, _source_offset, _target_offset } #}
+    {# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
+                        N_incoming, N_outgoing, N,
+                        N_pre, N_post, _source_offset, _target_offset } #}
 
     {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
                                        N_incoming, N_outgoing, N}
@@ -24,7 +24,7 @@
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update_post']|autoindent}}
     for(int _i=0; _i<_N_pre; _i++)
-	{
+    {
         bool __cond, _cond;
         _raw_pre_idx = _i + _source_offset;
         {% if not postsynaptic_condition %}
@@ -99,6 +99,19 @@
             _raw_post_idx = _j + _target_offset;
             {% if postsynaptic_condition %}
             {
+                {% if postsynaptic_variable_used %}
+                {# The condition could index outside of array range #}
+                if(_j<0 || _j>=_N_post)
+                {
+                    {% if skip_if_invalid %}
+                    continue;
+                    {% else %}
+                    cout << "Error: tried to create synapse to neuron j=" << _j << " outside range 0 to " <<
+                                            _N_post-1 << endl;
+                    exit(1);
+                    {% endif %}
+                }
+                {% endif %}
                 {{vector_code['create_cond']|autoindent}}
                 __cond = _cond;
             }
@@ -108,6 +121,8 @@
             {% if if_expression!='True' %}
             if(!_cond) continue;
             {% endif %}
+            {% if not postsynaptic_variable_used %}
+            {# Otherwise, we already checked before #}
             if(_j<0 || _j>=_N_post)
             {
                 {% if skip_if_invalid %}
@@ -118,6 +133,7 @@
                 exit(1);
                 {% endif %}
             }
+            {% endif %}
             {{vector_code['update_post']|autoindent}}
 
             for (int _repetition=0; _repetition<_n; _repetition++) {

@@ -19,7 +19,7 @@
     const int oldsize = {{_dynamic__synaptic_pre}}.size();
 
     // scalar code
-	const int _vectorisation_idx = 1;
+    const int _vectorisation_idx = 1;
     {{scalar_code['setup_iterator']|autoindent}}
     {{scalar_code['create_j']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
@@ -100,6 +100,18 @@
             _raw_post_idx = _j + _target_offset;
             {% if postsynaptic_condition %}
             {
+                {% if postsynaptic_variable_used %}
+                {# The condition could index outside of array range #}
+                if(_j<0 || _j>=_N_post)
+                {
+                    {% if skip_if_invalid %}
+                    continue;
+                    {% else %}
+                    PyErr_SetString(PyExc_IndexError, "index j outside allowed range, and the condition refers to a post-synaptic variable.");
+                    throw 1;
+                    {% endif %}
+                }
+                {% endif %}
                 {{vector_code['create_cond']|autoindent}}
                 __cond = _cond;
             }
@@ -110,6 +122,8 @@
             if(!_cond) continue;
             {% endif %}
 
+            {% if not postsynaptic_variable_used %}
+            {# Otherwise, we already checked before #}
             if(_j<0 || _j>=_N_post)
             {
                 {% if skip_if_invalid %}
@@ -119,7 +133,7 @@
                 throw 1;
                 {% endif %}
             }
-
+            {% endif %}
             {{vector_code['update_post']|autoindent}}
 
             for (int _repetition=0; _repetition<_n; _repetition++) {
