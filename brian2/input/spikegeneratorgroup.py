@@ -150,15 +150,15 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             if period < dt:
                 raise ValueError('The period of %s is %s, which is smaller '
                                  'than its dt of %s.' % (self.name,
-                                                         self.period,
-                                                         dt))
+                                                         self.period[:],
+                                                         dt*second))
             if (abs(int(period/dt)*dt - period) >
                     period * np.finfo(dt.dtype).eps):
                 raise NotImplementedError('The period of %s is %s, which is '
                                           'not an integer multiple of its dt '
                                           'of %s.' % (self.name,
-                                                      self.period,
-                                                      dt))
+                                                      self.period[:],
+                                                      dt*second))
 
         if self._spikes_changed:
             current_t = self.variables['t'].get_value().item()
