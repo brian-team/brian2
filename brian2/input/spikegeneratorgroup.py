@@ -158,14 +158,15 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             # whether all these times correspond to the same time step as we
             # obtain by first converting the period to the equivalent number of
             # timesteps
-            n_periods = int(1000. / period)
-            periods = np.arange(n_periods) * period
-            if not np.all(timestep(periods*second, dt*second) % timestep(period*second, dt*second) == 0):
-                raise NotImplementedError('The period of %s is %s, which is '
-                                          'not an integer multiple of its dt '
-                                          'of %s.' % (self.name,
-                                                      self.period[:],
-                                                      dt*second))
+            if period < 1000:
+                n_periods = int(1000. / period)
+                periods = np.arange(n_periods) * period
+                if not np.all(timestep(periods*second, dt*second) % timestep(period*second, dt*second) == 0):
+                    raise NotImplementedError('The period of %s is %s, which is '
+                                              'not an integer multiple of its dt '
+                                              'of %s.' % (self.name,
+                                                          self.period[:],
+                                                          dt*second))
 
         if self._spikes_changed:
             current_t = self.variables['t'].get_value().item()
