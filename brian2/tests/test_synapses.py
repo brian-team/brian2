@@ -2146,7 +2146,7 @@ def test_synapse_generator_out_of_range():
     except IndexError as ex:
         # Make sure that this is actually the error raised by our template and
         # not an exception raised by numpy
-        assert 'outside allowed range' in ex.message
+        assert 'outside allowed range' in str(ex)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
