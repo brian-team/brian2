@@ -160,8 +160,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             # timesteps
             if period < 1000:
                 n_periods = int(1000. / period)
-                periods = np.arange(n_periods) * period
-                if not np.all(timestep(periods*second, dt*second) % timestep(period*second, dt*second) == 0):
+                if not (timestep(n_periods*period*second, dt*second) ==
+                        n_periods * timestep(period*second, dt*second)):
                     raise NotImplementedError('The period of %s is %s, which is '
                                               'not an integer multiple of its dt '
                                               'of %s.' % (self.name,
