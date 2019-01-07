@@ -86,20 +86,32 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
 
             {{vector_code['create_j']|autoindent}}
+            _raw_post_idx = _j + _target_offset
+
+            {% if postsynaptic_condition %}
+            {% if postsynaptic_variable_used %}
+            {# The condition could index outside of array range #}
             if _j<0 or _j>=N_post:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
                 raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
                 {% endif %}
-            _raw_post_idx = _j + _target_offset
-
-            {% if postsynaptic_condition %}
+            {% endif %}
             {{vector_code['create_cond']|autoindent}}
             {% endif %}
             {% if if_expression!='True' and postsynaptic_condition %}
             if not _cond:
                 continue
+            {% endif %}
+            {% if not postsynaptic_variable_used %}
+            {# Otherwise, we already checked before #}
+            if _j<0 or _j>=N_post:
+                {% if skip_if_invalid %}
+                continue
+                {% else %}
+                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                {% endif %}
             {% endif %}
             {{vector_code['update_post']|autoindent}}
 
