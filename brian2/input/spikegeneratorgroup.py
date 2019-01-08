@@ -94,7 +94,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables = Variables(self)
         self.variables.create_clock_variables(self._clock)
 
-        indices, times = self._check_args(indices, times, period, N, sorted)
+        indices, times = self._check_args(indices, times, period, N, sorted,
+                                          self._clock.dt)
 
         self.variables.add_constant('N', value=N)
         self.variables.add_array('period', dimensions=second.dim, size=1,
@@ -193,8 +194,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             if period_bins > max_int:
                 logger.warn('Periods longer than {} timesteps (={}) are not '
                             'supported, the period will therefore be '
-                            'considered infinite. Set the period to 0*second to'
-                            'avoid this'
+                            'considered infinite. Set the period to 0*second '
+                            'to avoid this '
                             'warning.'.format(max_int, str(max_int*dt*second)),
                             'spikegenerator_long_period')
                 period = period_bins = 0
@@ -242,7 +243,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             your arrays contain large numbers of spikes. Defaults to ``False``.
         '''
 
-        indices, times = self._check_args(indices, times, period, self.N, sorted)
+        indices, times = self._check_args(indices, times, period, self.N,
+                                          sorted, self.dt)
 
         self.variables['period'].set_value(period)
         self.variables['neuron_index'].resize(len(indices))
@@ -254,7 +256,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables['spike_time'].set_value(times)
         # _lastindex and _timebins will be set as part of before_run
 
-    def _check_args(self, indices, times, period, N, sorted):
+    def _check_args(self, indices, times, period, N, sorted, dt):
         times = Quantity(times)
         if len(indices) != len(times):
             raise ValueError(('Length of the indices and times array must '
@@ -262,9 +264,14 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                                         len(times)))
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
-        elif len(times) and period != 0*second and period <= np.max(times):
-            raise ValueError('The period has to be greater than the maximum of '
-                             'the spike times')
+        elif len(times) and period != 0*second:
+            period_bins = np.round(period / dt)
+            # Note: we have to use the timestep function here, to use the same
+            # binning as in the actual simulation
+            max_bin = timestep(np.max(times), dt)
+            if max_bin >= period_bins:
+                raise ValueError('The period has to be greater than the '
+                                 'maximum of the spike times')
         if len(times) and np.min(times) < 0*second:
             raise ValueError('Spike times cannot be negative')
         if len(indices) and (np.min(indices) < 0 or np.max(indices) >= N):
