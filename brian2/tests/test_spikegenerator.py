@@ -102,6 +102,34 @@ def test_spikegenerator_period():
         assert_allclose(generator_spikes, recorded_spikes)
 
 
+@attr('codegen-independent')
+def test_spikegenerator_extreme_period():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    indices = np.array([0, 1, 2])
+    times   = np.array([0, 1, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times, period=1e6*second)
+    s_mon = SpikeMonitor(SG)
+    with catch_logs() as l:
+        run(10*ms)
+
+    assert_equal(s_mon.i, np.array([0, 1, 2]))
+    assert_allclose(s_mon.t, [0, 1, 2]*ms)
+    assert len(l) == 1 and l[0][1].endswith('spikegenerator_long_period')
+    print(l)
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_spikegenerator_period_rounding():
+    # See discussion in PR #1042
+    src = SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .99999*ms],
+                              period=1*ms)
+    mon = SpikeMonitor(src)
+    run(2 * ms)
+    assert_allclose(mon.t, [0., 0.9, 1., 1.9] *msecond)
+
+
 @with_setup(teardown=reinit_devices)
 def test_spikegenerator_period_repeat():
     '''
@@ -343,6 +371,7 @@ if __name__ == '__main__':
     test_spikegenerator_basic_sorted()
     test_spikegenerator_basic_sorted_with_sorted()
     test_spikegenerator_period()
+    test_spikegenerator_extreme_period()
     test_spikegenerator_period_repeat()
     test_spikegenerator_change_spikes()
     test_spikegenerator_change_period()

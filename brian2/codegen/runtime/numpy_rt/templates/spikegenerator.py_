@@ -1,27 +1,24 @@
-{# USES_VARIABLES { _spikespace, t, dt, neuron_index, spike_time, period, _lastindex } #}
+{# USES_VARIABLES { _spikespace, t, dt, neuron_index, _timebins, _period_bins, _lastindex, timestep } #}
 from __future__ import division
 import numpy as _numpy
 
-# TODO: We don't deal with more than one spike per neuron yet
-
-_the_period    = {{period}}
-padding_before = {{t}} % _the_period
-padding_after  = ({{t}} + {{dt}}) % _the_period
+_the_period    = {{_period_bins}}
+_timebin       = timestep({{t}}, {{dt}})
 _n_spikes      = 0
-epsilon        = 1e-3*{{dt}}
 
-# We need some precomputed values that will be used during looping
-not_end_period  = abs(padding_after) > ({{dt}} - epsilon) and abs(padding_after) < (_the_period - epsilon)
 _lastindex_before = {{_lastindex}}
 
-if not_end_period:
-    _n_spikes = _numpy.searchsorted({{spike_time}}[_lastindex_before:], padding_after - epsilon, side='right')
-    {{_lastindex}}  += _n_spikes
-else:
-    _n_spikes = _numpy.searchsorted({{spike_time}}[_lastindex_before:], _the_period, side='right')
-    # If there is a periodicity in the SpikeGenerator, we need to reset the lastindex
-    # when all spikes have been played and at the end of the period
-    {{_lastindex}} = 0
+if _the_period > 0:
+    _timebin %= _the_period
+    # If there is a periodicity in the SpikeGenerator, we need to reset the
+    # lastindex when the period has passed
+    if _lastindex_before > 0 and {{_timebins}}[_lastindex_before - 1] >= _timebin:
+        _lastindex_before = 0
+
+_n_spikes = _numpy.searchsorted({{_timebins}}[_lastindex_before:],
+                                _timebin, side='right')
+
+{{_lastindex}} = _lastindex_before + _n_spikes
 
 _indices = {{neuron_index}}[_lastindex_before:_lastindex_before+_n_spikes]
 

@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
     '''
     SpikeGeneratorGroup(N, indices, times, dt=None, clock=None,
-                        period=1e100*second, when='thresholds', order=0,
+                        period=0*second, when='thresholds', order=0,
                         sorted=False, name='spikegeneratorgroup*',
                         codeobj_class=None)
 
@@ -36,7 +36,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         The spike times for the cells given in ``indices``. Has to have the
         same length as ``indices``.
     period : `Quantity`, optional
-        If this is specified, it will repeat spikes with this period.
+        If this is specified, it will repeat spikes with this period. A
+        period of 0s means not repeating spikes.
     dt : `Quantity`, optional
         The time step to be used for the simulation. Cannot be combined with
         the `clock` argument.
@@ -56,20 +57,13 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
     Notes
     -----
-    * In a time step, `SpikeGeneratorGroup` emits all spikes that happened
-      at :math:`t-dt < t_{spike} \leq t`. This might lead to unexpected
-      or missing spikes if you change the time step dt between runs.
-    * `SpikeGeneratorGroup` does not currently raise any warning if a neuron
-      spikes more that once during a time step, but other code (e.g. for
-      synaptic propagation) might assume that neurons only spike once per
-      time step and will therefore not work properly.
     * If `sorted` is set to ``True``, the given arrays will not be copied
       (only affects runtime mode)..
     '''
 
     @check_units(N=1, indices=1, times=second, period=second)
     def __init__(self, N, indices, times, dt=None, clock=None,
-                 period=1e100*second, when='thresholds', order=0, sorted=False,
+                 period=0*second, when='thresholds', order=0, sorted=False,
                  name='spikegeneratorgroup*', codeobj_class=None):
 
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
@@ -121,6 +115,13 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                          dimensions=second.dim, index='spike_number',
                                          read_only=True, constant=True,
                                          dtype=self._clock.variables['t'].dtype)
+        self.variables.add_dynamic_array('_timebins', size=len(times),
+                                         index='spike_number',
+                                         read_only=True, constant=True,
+                                         dtype=np.int32)
+        self.variables.add_array('_period_bins', size=1, constant=True,
+                                 read_only=True, scalar=True,
+                                 dtype=np.int32)
         self.variables.add_array('_spikespace', size=N+1, dtype=np.int32)
         self.variables.add_array('_lastindex', size=1, values=0, dtype=np.int32,
                                  read_only=True, scalar=True)
@@ -132,6 +133,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         CodeRunner.__init__(self, self,
                             code='',
                             template='spikegenerator',
+                            needed_variables=['timestep'],
                             clock=self._clock,
                             when=when,
                             order=order,
@@ -146,27 +148,12 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         # Do some checks on the period vs. dt
         dt = self.dt_[:]  # make a copy
         period = self.period_
-        if period < np.inf:
+        if period < np.inf and period != 0:
             if period < dt:
                 raise ValueError('The period of %s is %s, which is smaller '
                                  'than its dt of %s.' % (self.name,
                                                          self.period[:],
                                                          dt*second))
-            # We check that the period is a multiple of dt. Because we cannot do
-            # any exact test, we use the following heuristic: we calculate all
-            # the multiples of the period that fit into 1000s and then check
-            # whether all these times correspond to the same time step as we
-            # obtain by first converting the period to the equivalent number of
-            # timesteps
-            if period < 1000:
-                n_periods = int(1000. / period)
-                if not (timestep(n_periods*period*second, dt*second) ==
-                        n_periods * timestep(period*second, dt*second)):
-                    raise NotImplementedError('The period of %s is %s, which is '
-                                              'not an integer multiple of its dt '
-                                              'of %s.' % (self.name,
-                                                          self.period[:],
-                                                          dt*second))
 
         if self._spikes_changed:
             current_t = self.variables['t'].get_value().item()
@@ -200,15 +187,35 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                  'SpikeGeneratorGroup "%s" spike more than '
                                  'once during a time step.' % (str(self.dt),
                                                                self.name))
+            self.variables['_timebins'].set_value(timebins)
+            period_bins = np.round(period / dt)
+            max_int = np.iinfo(np.int32).max
+            if period_bins > max_int:
+                logger.warn('Periods longer than {} timesteps (={}) are not '
+                            'supported, the period will therefore be '
+                            'considered infinite. Set the period to 0*second to'
+                            'avoid this'
+                            'warning.'.format(max_int, str(max_int*dt*second)),
+                            'spikegenerator_long_period')
+                period = period_bins = 0
+            if np.abs(period_bins * dt - period) > period * np.finfo(dt.dtype).eps:
+                raise NotImplementedError('The period of %s is %s, which is '
+                                          'not an integer multiple of its dt '
+                                          'of %s.' % (self.name,
+                                                      self.period[:],
+                                                      dt * second))
+
+            self.variables['_period_bins'].set_value(period_bins)
+
             self._previous_dt = dt
             self._spikes_changed = False
 
         super(SpikeGeneratorGroup, self).before_run(run_namespace=run_namespace)
 
     @check_units(indices=1, times=second, period=second)
-    def set_spikes(self, indices, times, period=1e100*second, sorted=False):
+    def set_spikes(self, indices, times, period=0*second, sorted=False):
         '''
-        set_spikes(indices, times, period=1e100*second, sorted=False)
+        set_spikes(indices, times, period=0*second, sorted=False)
 
         Change the spikes that this group will generate.
 
@@ -226,7 +233,8 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
             The spike times for the cells given in ``indices``. Has to have the
             same length as ``indices``.
         period : `Quantity`, optional
-            If this is specified, it will repeat spikes with this period.
+            If this is specified, it will repeat spikes with this period. A
+            period of 0s means not repeating spikes.
         sorted : bool, optional
             Whether the given indices and times are already sorted. Set to
             ``True`` if your events are already sorted (first by spike time,
@@ -241,9 +249,10 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         self.variables['spike_time'].resize(len(indices))
         self.variables['spike_number'].resize(len(indices))
         self.variables['spike_number'].set_value(np.arange(len(indices)))
+        self.variables['_timebins'].resize(len(indices))
         self.variables['neuron_index'].set_value(indices)
         self.variables['spike_time'].set_value(times)
-        # _lastindex will be set as part of before_run
+        # _lastindex and _timebins will be set as part of before_run
 
     def _check_args(self, indices, times, period, N, sorted):
         times = Quantity(times)
@@ -253,7 +262,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
                                                         len(times)))
         if period < 0*second:
             raise ValueError('The period cannot be negative.')
-        elif len(times) and period <= np.max(times):
+        elif len(times) and period != 0*second and period <= np.max(times):
             raise ValueError('The period has to be greater than the maximum of '
                              'the spike times')
         if len(times) and np.min(times) < 0*second:
@@ -274,8 +283,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         # TODO: Remove this when the checks in `before_run` have been moved to the template
         self._neuron_index = indices
         self._spike_time = times
-        #: "Dirty flag" that will be set when spikes are changed after the
-        #: `before_run` check
         self._spikes_changed = True
 
         return indices, times
