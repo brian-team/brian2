@@ -1,10 +1,10 @@
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-    {# USES_VARIABLES { _spikespace, t, dt, neuron_index, _timebins, _period_bins, _lastindex, timestep, N } #}
+    {# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps, N } #}
 
-    const int32_t _the_period    = {{_period_bins}};
-    int32_t _timebin             = _timestep({{t}}, {{dt}});
-    const int32_t _n_spikes      = 0;
+    const int32_t _the_period = {{_period_bins}};
+    int32_t _timebin          = {{t_in_timesteps}};
+    const int32_t _n_spikes   = 0;
 
     if (_the_period > 0) {
         _timebin %= _the_period;
