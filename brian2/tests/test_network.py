@@ -1235,7 +1235,9 @@ def test_get_set_states():
     states2 = magic_network.get_states()
     states3 = net.get_states(read_only_variables=False)
     assert set(states1.keys()) == set(states2.keys()) == set(states3.keys()) == {'a_neurongroup'}
-    assert set(states1['a_neurongroup'].keys()) == set(states2['a_neurongroup'].keys()) == {'i', 'dt', 'N', 't', 'v'}
+    assert (set(states1['a_neurongroup'].keys()) ==
+            set(states2['a_neurongroup'].keys()) ==
+            {'i', 'dt', 'N', 't', 'v', 't_in_timesteps'})
     assert set(states3['a_neurongroup']) == {'v'}
 
     # Try re-setting the state
