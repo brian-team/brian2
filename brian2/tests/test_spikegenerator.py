@@ -102,6 +102,40 @@ def test_spikegenerator_period():
         assert_allclose(generator_spikes, recorded_spikes)
 
 
+@attr('codegen-independent')
+def test_spikegenerator_extreme_period():
+    '''
+    Basic test for `SpikeGeneratorGroup`.
+    '''
+    indices = np.array([0, 1, 2])
+    times   = np.array([0, 1, 2]) * ms
+    SG = SpikeGeneratorGroup(5, indices, times, period=1e6*second)
+    s_mon = SpikeMonitor(SG)
+    with catch_logs() as l:
+        run(10*ms)
+
+    assert_equal(s_mon.i, np.array([0, 1, 2]))
+    assert_allclose(s_mon.t, [0, 1, 2]*ms)
+    assert len(l) == 1 and l[0][1].endswith('spikegenerator_long_period')
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_spikegenerator_period_rounding():
+    # See discussion in PR #1042
+    # The last spike will be considered to be in the time step *after* 1s, due
+    # to the way our rounding works. Although probably not what the user
+    # expects, this should therefore raise an error. In previous versions of
+    # Brian, this did not raise any error but silently discarded the spike.
+    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [0, 0, 0],
+                                                          [0*ms, .9*ms, .99999*ms],
+                                                          period=1*ms, dt=0.1*ms))
+    # This should also raise a ValueError, since the last two spikes fall into
+    # the same bin
+    s = SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .96*ms],
+                            period=1*ms, dt=0.1*ms)
+    net = Network(s)
+    assert_raises(ValueError, lambda: net.run(0*ms))
+
 @with_setup(teardown=reinit_devices)
 def test_spikegenerator_period_repeat():
     '''
@@ -209,6 +243,19 @@ def test_spikegenerator_incorrect_period():
     SG = SpikeGeneratorGroup(1, [], []*second, period=1.25*ms, dt=0.1*ms)
     net = Network(SG)
     assert_raises(NotImplementedError, lambda: net.run(0*ms))
+
+    SG = SpikeGeneratorGroup(1, [], [] * second, period=0.101 * ms, dt=0.1 * ms)
+    net = Network(SG)
+    assert_raises(NotImplementedError, lambda: net.run(0 * ms))
+
+    SG = SpikeGeneratorGroup(1, [], [] * second, period=3.333 * ms, dt=0.1 * ms)
+    net = Network(SG)
+    assert_raises(NotImplementedError, lambda: net.run(0 * ms))
+
+    # This should not raise an error (see #1041)
+    SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
+    net = Network(SG)
+    net.run(0*ms)
 
     # Period is smaller than dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1*ms, dt=2*ms)
@@ -330,6 +377,8 @@ if __name__ == '__main__':
     test_spikegenerator_basic_sorted()
     test_spikegenerator_basic_sorted_with_sorted()
     test_spikegenerator_period()
+    test_spikegenerator_period_rounding()
+    test_spikegenerator_extreme_period()
     test_spikegenerator_period_repeat()
     test_spikegenerator_change_spikes()
     test_spikegenerator_change_period()
