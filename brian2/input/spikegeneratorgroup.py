@@ -134,7 +134,6 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         CodeRunner.__init__(self, self,
                             code='',
                             template='spikegenerator',
-                            needed_variables=['timestep'],
                             clock=self._clock,
                             when=when,
                             order=order,

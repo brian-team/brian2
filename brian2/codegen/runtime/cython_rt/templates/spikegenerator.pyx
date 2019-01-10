@@ -1,10 +1,10 @@
 {% extends 'common.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { _spikespace, t, dt, neuron_index, _timebins, _period_bins, _lastindex, timestep, N } #}
+    {# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps, N } #}
 
     cdef int32_t _the_period    = {{_period_bins}}
-    cdef int32_t _timebin       = _timestep({{t}}, {{dt}})
+    cdef int32_t _timebin       = {{t_in_timesteps}}
     cdef int32_t _cpp_numspikes = 0;
 
     if _the_period > 0:
