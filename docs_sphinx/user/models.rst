@@ -65,7 +65,7 @@ following is an example of the
 that is often used to model a leaky integrate-and-fire neuron with
 a stochastic current::
 
-    G = NeuronGroup(10, 'dv/dt = -v/tau + sigma*xi*tau**-0.5 : volt')
+    G = NeuronGroup(10, 'dv/dt = -v/tau + sigma*sqrt(2/tau)*xi : volt')
 
 You can start by thinking of ``xi`` as just a Gaussian random variable
 with mean 0 and standard deviation 1. However, it scales in an

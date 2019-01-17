@@ -1,6 +1,55 @@
 Release notes
 =============
 
+Brian 2.2.1
+-----------
+This is a bug-fix release that fixes a few minor bugs and incompatibilites with
+recent versions of the dependencies. We recommend all users of Brian 2 to
+upgrade.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development
+mailing list (brian-development@googlegroups.com).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Work around problems with the latest version of ``py-cpuinfo`` on Windows
+  (:issue:`990`, :issue:`1020`) and no longer require it for Linux and OS X.
+* Avoid warnings with newer versions of Cython (:issue:`1030`) and correctly
+  build the Cython spike queue for Python 3.7 (:issue:`1026`), thanks to Fleur
+  Zeldenrust and Ankur Sinha for reporting these issues.
+* Fix error messages for ``SyntaxError`` exceptions in jupyter notebooks
+  (:issue:`#964`).
+
+Dependency and packaging changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Conda packages in `conda-forge <https://conda-forge.org/>`_ are now avaible
+  for Python 3.7 (but no longer for Python 3.5).
+* Linux and OS X no longer depend on the ``py-cpuinfo`` package.
+* Source packages on `pypi <https://pypi.org/>`_ now require a recent Cython
+  version for installation.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Christopher (`@Chris-Currin <https://github.com/Chris-Currin>`_)
+* Peter Duggins (`@psipeter <https://github.com/psipeter>`_)
+* Paola Suárez (`@psrmx <https://github.com/psrmx>`_)
+* Ankur Sinha (`@sanjayankur31 <https://github.com/sanjayankur31>`_)
+* `@JingjinW <https://github.com/JingjinW>`_
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* `@lemonade117 <https://github.com/lemonade117>`_
+* `@wjx0914 <https://github.com/wjx0914>`_
+* Sven Leach (`@SvennoNito <https://github.com/SvennoNito>`_)
+* svadams (`@svadams <https://github.com/svadams>`_)
+* `@ghaessig <https://github.com/ghaessig>`_
+* Varshith Sreeramdass (`@varshiths <https://github.com/varshiths>`_)
+
+
 Brian 2.2
 ---------
 This releases fixes a number of important bugs and comes with a number of

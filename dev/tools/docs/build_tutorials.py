@@ -3,6 +3,7 @@ import shutil
 import glob
 import codecs
 
+from nbformat import NotebookNode
 from nbformat.v4 import reads
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.exporters.notebook import NotebookExporter
@@ -65,12 +66,8 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
            See the :doc:`tutorial overview page <index>` for more details.
 
     '''.format(tutorial=basename))
-    notebook.cells.insert(1, {
-        u'cell_type': u'raw',
-        u'metadata': {},
-        u'source': note
-    })
-
+    notebook.cells.insert(1, NotebookNode(cell_type=u'raw', metadata={},
+                                          source=note))
     exporter = RSTExporter()
     output, resources = exporter.from_notebook_node(notebook,
                                                     resources={'unique_key': basename+'_image'})

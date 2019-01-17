@@ -565,6 +565,19 @@ def test_function_dependencies_numpy():
 
     assert_allclose(G.v_[:], 84*0.001)
 
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_repeated_function_dependencies():
+    # each of the binomial functions adds randn as a depency, see #988
+    test_neuron = NeuronGroup(1, 'x : 1',
+                              namespace={'bino_1': BinomialFunction(10, 0.5),
+                                         'bino_2': BinomialFunction(10, 0.6)})
+    test_neuron.x = 'bino_1()+bino_2()'
+
+    run(0 * ms)
+
+
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
 def test_binomial():
@@ -685,6 +698,7 @@ if __name__ == '__main__':
             test_function_dependencies_numpy,
             test_function_dependencies_weave,
             test_function_dependencies_cython,
+            test_repeated_function_dependencies,
             test_binomial,
             test_declare_types,
             test_multiple_stateless_function_calls,

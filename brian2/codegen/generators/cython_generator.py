@@ -270,11 +270,12 @@ class CythonCodeGenerator(CodeGenerator):
         dep_user_functions = []
         if impl.dependencies is not None:
             for dep_name, dep in impl.dependencies.iteritems():
-                self.variables[dep_name] = dep
-                sc, ln, uf = self._add_user_function(dep_name, dep)
-                dep_support_code.extend(sc)
-                dep_load_namespace.extend(ln)
-                dep_user_functions.extend(uf)
+                if dep_name not in self.variables:
+                    self.variables[dep_name] = dep
+                    sc, ln, uf = self._add_user_function(dep_name, dep)
+                    dep_support_code.extend(sc)
+                    dep_load_namespace.extend(ln)
+                    dep_user_functions.extend(uf)
 
         return (support_code + dep_support_code,
                 dep_load_namespace + load_namespace,

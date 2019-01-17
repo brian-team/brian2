@@ -78,7 +78,7 @@ def test_variables():
     Test the correct creation of the variables dictionary.
     '''
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
-    assert 'v' in G.variables and 't' in G.variables and 'dt' in G.variables
+    assert all((x in G.variables) for x in ['v', 't', 'dt', 't_in_timesteps'])
     assert 'not_refractory' not in G.variables and 'lastspike' not in G.variables
 
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
@@ -1349,10 +1349,11 @@ def test_get_states():
     assert_allclose(states['subexpr2'], 11*np.arange(10))
 
     all_states = G.get_states(units=True)
-    assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i'}
+    assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i',
+                                      't_in_timesteps'}
     all_states = G.get_states(units=True, subexpressions=True)
     assert set(all_states.keys()) == {'v', 'x', 'N', 't', 'dt', 'i',
-                                      'subexpr', 'subexpr2'}
+                                      't_in_timesteps', 'subexpr', 'subexpr2'}
 
 
 @attr('codegen-independent')
@@ -1398,10 +1399,11 @@ def test_get_states_pandas():
     assert_allclose(states['subexpr2'].values, 11*np.arange(10))
 
     all_states = G.get_states(units=False, format='pandas')
-    assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i'}
+    assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i',
+                                       't_in_timesteps'}
     all_states = G.get_states(units=False, subexpressions=True, format='pandas')
     assert set(all_states.columns) == {'v', 'x', 'N', 't', 'dt', 'i',
-                                       'subexpr', 'subexpr2'}
+                                       't_in_timesteps', 'subexpr', 'subexpr2'}
 
 
 @attr('codegen-independent')

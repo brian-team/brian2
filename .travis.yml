@@ -29,12 +29,6 @@ matrix:
       os: linux
     # Standard tests
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
-      os: osx
-    - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
-      os: osx
-    - python: "2.7"
       env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="27" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
@@ -81,23 +75,13 @@ matrix:
       os: osx
     # test standalone
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
+      env: PYTHON="2.7" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: linux
     - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
+      env: PYTHON="2.7" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
       os: linux
     - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=yes CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
-      os: linux
-    # test without installed cython
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=yes ARCHITECTURE="x86_64"
-      os: linux
-    - python: "3.5"
-      env: PYTHON="3.5" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
-      os: linux
-    - python: "3.6"
-      env: PYTHON="3.6" STANDALONE=no CYTHON=no MINIMAL_VERSIONS=no REPORT_COVERAGE=no ARCHITECTURE="x86_64"
+      env: PYTHON="3.6" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: linux
 
 # Use miniconda to install binary versions of numpy etc. from continuum
@@ -136,9 +120,9 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage py-cpuinfo=3 gsl>1.15";
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage gsl>1.15 cython";
     else
-    PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage py-cpuinfo=3 gsl>1.15";
+    PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage gsl>1.15 cython";
     fi
   # On Python 2: Install the weave package explicitly
   - if [ ${PYTHON:0:1} == "2" ]; then
@@ -149,12 +133,11 @@ install:
     else
       PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
     fi
-  - if [[ $CYTHON == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES cython"; SETUP_ARGS=--with-cython; else SETUP_ARGS=''; fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES coveralls"; fi
   # Install packages into a new environment
   - travis_retry conda create --quiet --yes -n travis_conda $PYTHON_PACKAGES
   - source activate travis_conda
-  - python setup.py install $SETUP_ARGS --fail-on-error --single-version-externally-managed --record=record.txt
+  - python setup.py install --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       python setup.py sdist;
     fi;

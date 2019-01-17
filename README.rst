@@ -20,8 +20,8 @@ If you use Brian for your published research, we suggest that you cite one of ou
 .. image:: https://img.shields.io/pypi/v/Brian2.svg?style=flat-square
         :target: https://pypi.python.org/pypi/Brian2
 
-.. image:: https://anaconda.org/brian-team/brian2/badges/version.svg
-        :target: https://anaconda.org/brian-team/brian2
+.. image:: https://img.shields.io/conda/vn/conda-forge/brian2.svg
+        :target: https://anaconda.org/conda-forge/brian2
 
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg
         :target: https://doi.org/10.5281/zenodo.654861

@@ -30,12 +30,6 @@ def _check_dependencies():
         sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
         missing.append('jinja2')
 
-    try:
-        import cpuinfo
-    except Exception as ex:
-        sys.stderr.write('Importing cpuinfo failed: %s\n' % ex)
-        # we don't append it to "missing", Brian runs fine without it
-
     if len(missing):
         raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
 
@@ -68,8 +62,8 @@ if 'rate' in globals():
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.2'
-__release_date__ = '2018-10-08'
+__version__ = '2.2.1'
+__release_date__ = '2018-11-19'
 
 from brian2.only import *
 

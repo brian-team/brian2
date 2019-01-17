@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+#! /usr/bin/env python
 '''
 Brian2 setup script
 '''
@@ -14,7 +15,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
 
-REQUIRED_CYTHON_VERSION = '0.18'
+REQUIRED_CYTHON_VERSION = '0.29'
 
 try:
     import Cython
@@ -133,7 +134,7 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 '''
 
 setup(name='Brian2',
-      version='2.2',
+      version='2.2.1',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -154,8 +155,10 @@ setup(name='Brian2',
                     # Include RALLPACK test data
                     'brian2.tests': ['rallpack_data/README',
                                      'rallpack_data/ref_*'],
-                    # include C++ version of spike queue
-                    'brian2.synapses': ['*.cpp', '*.h'],
+                    # include C++/Cython version of spike queue
+                    'brian2.synapses': ['cspikequeue.cpp',
+                                        'cythonspikequeue.pyx',
+                                        'stdint_compat.h'],
                     # include randomkit
                     'brian2.random': ['randomkit/randomkit.c',
                                       'randomkit/randomkit.h'],
@@ -163,20 +166,22 @@ setup(name='Brian2',
                     'brian2': ['default_preferences']
                     },
       install_requires=['numpy>=1.10',
-                        'sympy>=0.7.6, !=1.1.0',
+                        'cython>=0.29',
+                        'sympy>=0.7.6,!=1.1.0',
                         'pyparsing',
                         'jinja2>=2.7',
-                        'py-cpuinfo>=0.1.6, !=4.0.0',
-                        'setuptools>=6.0'  # FIXME: setuptools>=6.0 is only needed for Windows
+                        'py-cpuinfo;platform_system=="Windows"',
+                        'setuptools>=21'
                        ],
       setup_requires=['numpy>=1.10',
-                      'setuptools>=6.0'
+                      'setuptools>=21'
                       ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
-      extras_require={'test': ['nosetests>=1.0'],
+      extras_require={'test': ['nose>=1.0'],
                       'docs': ['sphinx>=1.5']},
       use_2to3=True,
+      zip_safe=False,
       ext_modules=extensions,
       url='http://www.briansimulator.org/',
       description='A clock-driven simulator for spiking neural networks',

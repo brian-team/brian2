@@ -2037,6 +2037,19 @@ def test_ufunc_at_vectorisation():
         finally:
             NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
 
+def test_fallback_loop_and_stateless_func():
+    # See github issue #1024
+    if prefs.codegen.target != 'numpy':
+        raise SkipTest('numpy-only test')
+    source = NeuronGroup(2, '', threshold='True')
+    target = NeuronGroup(1, 'v : 1')
+    synapses = Synapses(source, target, 'x : 1',
+                        on_pre='''x = rand()
+                                  v_post += 0.5*(1-v_post)''')
+    synapses.connect()
+    with catch_logs():  # Suppress the warning
+        run(defaultclock.dt)
+
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -2098,6 +2111,42 @@ def test_synapse_generator_syntax():
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, p=0.1, size=5)')
     assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
 
+
+def test_synapse_generator_out_of_range():
+    G = NeuronGroup(16, 'v : 1', threshold='False')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2.v = '16 + i'
+
+    S1 = Synapses(G, G2, '')
+    assert_raises(IndexError, lambda: S1.connect(j='k for k in range(0, N_post*2)'))
+
+    # This should be fine
+    S2 = Synapses(G, G, '')
+    S2.connect(j='i+k for k in range(0, 5) if i <= N_post-5')
+    expected = np.zeros((len(G), len(G)))
+    expected[np.triu_indices(len(G))] = 1
+    expected[np.triu_indices(len(G), 5)] = 0
+    expected[len(G)-4:, :] = 0
+    _compare(S2, expected)
+
+    # This should be fine (see #1037)
+    S2 = Synapses(G, G, '')
+    S2.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and rand() <= 1')
+    _compare(S2, expected)
+
+    # This could in principle be fine, but we cannot test the condition without
+    # accessing the post-synaptic variable outside of its range. By analyzing
+    # the post-synaptic condition, we could find out that the value of this
+    # variable is actually irrelevant, but that makes things too complicated.
+    S3 = Synapses(G, G, '')
+    try:
+        S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0')
+        raise AssertionError('IndexError not raised')
+    except IndexError as ex:
+        # Make sure that this is actually the error raised by our template and
+        # not an exception raised by numpy
+        assert 'outside allowed range' in str(ex)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -2218,6 +2267,21 @@ def test_synapse_generator_deterministic_2():
     for target in xrange(4):
         expected_converging_restricted[np.arange(4, step=2) + target * 4, target] = 1
 
+    # Connecting to post indices >= source index
+    expected_diagonal = np.zeros((len(G), len(G)), dtype=np.int32)
+    expected_diagonal[np.triu_indices(len(G))] = 1
+    S15 = Synapses(G, G)
+    S15.connect(j='i + k for k in range(0, N_post-i)')
+
+    S15b = Synapses(G, G)
+    S15b.connect(j='i + k for k in range(0, N_post)', skip_if_invalid=True)
+
+    S15c = Synapses(G, G)
+    S15c.connect(j='i + k for k in range(0, N_post) if j < N_post')
+
+    S15d = Synapses(G, G)
+    S15d.connect(j='i + k for k in range(0, N_post) if i + k < N_post')
+
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
 
@@ -2227,6 +2291,10 @@ def test_synapse_generator_deterministic_2():
     _compare(S12, expected_converging)
     _compare(S13, expected_offdiagonal)
     _compare(S14, expected_converging_restricted)
+    _compare(S15, expected_diagonal)
+    _compare(S15b, expected_diagonal)
+    _compare(S15c, expected_diagonal)
+    _compare(S15d, expected_diagonal)
 
 
 @attr('standalone-compatible')
@@ -2573,9 +2641,11 @@ if __name__ == '__main__':
     test_synapses_to_synapses_summed_variable()
     try:
         test_ufunc_at_vectorisation()
+        test_fallback_loop_and_stateless_func()
     except SkipTest:
         print('Skipping numpy-only test')
     test_synapse_generator_syntax()
+    test_synapse_generator_out_of_range()
     test_synapse_generator_deterministic()
     test_synapse_generator_deterministic_2()
     test_synapse_generator_random()

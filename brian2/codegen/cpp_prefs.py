@@ -7,31 +7,82 @@ Preferences
 
 '''
 from distutils.ccompiler import get_default_compiler
+import json
+import os
+import platform
+import socket
+import subprocess
+import sys
 
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.logger import get_logger
+
 from .codeobject import sys_info
 
 __all__ = ['get_compiler_and_args']
 
+
+logger = get_logger(__name__)
+
 # Try to get architecture information to get the best compiler setting for
 # Windows
 msvc_arch_flag = ''
-try:
-    from cpuinfo import cpuinfo
-    res = cpuinfo.get_cpu_info()
-    # Note that this overwrites the arch_flag, i.e. only the best option will
-    # be used
-    if 'sse' in res['flags']:
-        msvc_arch_flag = '/arch:SSE'
-    if 'sse2' in res['flags']:
-        msvc_arch_flag = '/arch:SSE2'
-    if 'avx' in res['flags']:
-        msvc_arch_flag = '/arch:AVX'
-    if 'avx2' in res['flags']:
-        msvc_arch_flag = '/arch:AVX2'
-except Exception:
-    pass  # apparently it does not always work on appveyor
+if platform.system() == 'Windows':
+    flags = None
+    previously_stored_flags = None
 
+    # Check whether we've already stored the CPU flags previously
+    user_dir = os.path.join(os.path.expanduser('~'), '.brian')
+    flag_file = os.path.join(user_dir, 'cpu_flags.txt')
+    hostname = socket.gethostname()
+    if os.path.isfile(flag_file):
+        try:
+            with open(flag_file, 'r') as f:
+                previously_stored_flags = json.load(f, encoding='utf-8')
+            if hostname not in previously_stored_flags:
+                logger.debug('Ignoring stored CPU flags for a different host')
+            else:
+                flags = previously_stored_flags[hostname]
+        except (IOError, OSError) as ex:
+            logger.debug('Opening file "{}" to get CPU flags failed with error '
+                         '"{}".'.format(flag_file, str(ex)))
+
+    if flags is None:  # If we don't have stored info, run get_cpu_flags.py
+        get_cpu_flags_script = os.path.join(os.path.dirname(__file__),
+                                            'get_cpu_flags.py')
+        get_cpu_flags_script = os.path.abspath(get_cpu_flags_script)
+        try:
+            output = subprocess.check_output([sys.executable,
+                                              get_cpu_flags_script],
+                                             universal_newlines=True)
+            flags = json.loads(output)
+            # Store flags to a file so we don't have to call cpuinfo next time
+            try:
+                if previously_stored_flags is not None:
+                    to_store = previously_stored_flags
+                    to_store[hostname] = flags
+                else:
+                    to_store = {hostname: flags}
+                with open(flag_file, 'w') as f:
+                    json.dump(to_store, f, encoding='utf-8')
+            except (IOError, OSError) as ex:
+                logger.debug('Writing file "{}" to store CPU flags failed with '
+                             'error "{}".'.format(flag_file, str(ex)))
+        except subprocess.CalledProcessError as ex:
+            logger.debug('Could not determine optimized MSVC flags, '
+                         'get_cpu_flags failed with: %s' % (str(ex)))
+
+    if flags is not None:
+        # Note that this overwrites the arch_flag, i.e. only the best option
+        # will be used
+        if 'sse' in flags:
+            msvc_arch_flag = '/arch:SSE'
+        if 'sse2' in flags:
+            msvc_arch_flag = '/arch:SSE2'
+        if 'avx' in flags:
+            msvc_arch_flag = '/arch:AVX'
+        if 'avx2' in flags:
+            msvc_arch_flag = '/arch:AVX2'
 
 # Preferences
 prefs.register_preferences(

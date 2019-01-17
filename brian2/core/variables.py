@@ -1862,5 +1862,6 @@ class Variables(collections.Mapping):
             not confuse the dynamic array of recorded times with the current
             time in the recorded group.
         '''
-        for name in ['t', 'dt']:
-            self.add_reference(prefix+name, clock, name)
+        self.add_reference(prefix + 't', clock, 't')
+        self.add_reference(prefix + 'dt', clock, 'dt')
+        self.add_reference(prefix + 't_in_timesteps', clock, 'timestep')
