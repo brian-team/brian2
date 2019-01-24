@@ -16,7 +16,7 @@ from brian2 import *
 defaultclock.dt = 1*ms
 prefs.codegen.target = 'weave'
 prefs.logging.std_redirection = False
-set_device('cpp_standalone')
+set_device('cpp_standalone', clean=True)
 filename = os.path.abspath('Megamind.avi')
 
 if not os.path.exists(filename):
@@ -33,7 +33,6 @@ width, height, frame_count = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)),
 fps = 24
 time_between_frames = 1*second/fps
 
-prefs.codegen.cpp.extra_compile_args_gcc += ['-I/mnt/data/anaconda2/envs/brian2/include']
 # Links the necessary libraries
 prefs.codegen.cpp.libraries += ['opencv_core',
                                 'opencv_highgui',
