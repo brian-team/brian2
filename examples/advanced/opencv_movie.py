@@ -3,14 +3,13 @@ An example that uses a function from external C library (OpenCV in this case).
 Works for all C-based code generation targets (i.e. for weave and cpp_standalone
 device) and for numpy (using the Python bindings).
 
-This example needs a working installation of OpenCV2 and its Python bindings.
-It has been tested on Ubuntu 14.04 with OpenCV 2.4.8 (libopencv-dev and
-python-opencv packages).
+This example needs a working installation of OpenCV 3.x and its Python bindings.
+It has been tested on 64 bit Linux in a conda environment with packages from the
+``conda-forge`` channels (opencv 3.4.4, x264 1!152.20180717, ffmpeg 4.1).
 '''
 import os
 import urllib2
 import cv2  # Import OpenCV2
-import cv2.cv as cv  # Import the cv subpackage, needed for some constants
 
 from brian2 import *
 
@@ -28,15 +27,17 @@ if not os.path.exists(filename):
         f.write(data)
 
 video = cv2.VideoCapture(filename)
-width, height, frame_count = (int(video.get(cv.CV_CAP_PROP_FRAME_WIDTH)),
-                              int(video.get(cv.CV_CAP_PROP_FRAME_HEIGHT)),
-                              int(video.get(cv.CV_CAP_PROP_FRAME_COUNT)))
+width, height, frame_count = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                              int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+                              int(video.get(cv2.CAP_PROP_FRAME_COUNT)))
 fps = 24
 time_between_frames = 1*second/fps
 
+prefs.codegen.cpp.extra_compile_args_gcc += ['-I/mnt/data/anaconda2/envs/brian2/include']
 # Links the necessary libraries
 prefs.codegen.cpp.libraries += ['opencv_core',
-                                'opencv_highgui']
+                                'opencv_highgui',
+                                'opencv_videoio']
 
 # Includes the header files in all generated files
 prefs.codegen.cpp.headers += ['<opencv2/core/core.hpp>',
@@ -111,7 +112,7 @@ G.run_regularly('I = video_input(column, row)',
 mon = SpikeMonitor(G)
 runtime = frame_count*time_between_frames
 run(runtime, report='text')
-device.build(compile=True, run=True)
+# device.build(compile=True, run=True)
 
 # Avoid going through the whole Brian2 indexing machinery too much
 i, t, row, column = mon.i[:], mon.t[:], G.row[:], G.column[:]
