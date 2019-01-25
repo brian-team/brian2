@@ -231,12 +231,15 @@ class FunctionImplementation(object):
         to return the final `code` and `namespace`. Defaults to ``False``.
     '''
     def __init__(self, name=None, code=None, namespace=None,
-                 dependencies=None, dynamic=False):
+                 dependencies=None, dynamic=False, compiler_kwds=None):
+        if compiler_kwds is None:
+            compiler_kwds = {}
         self.name = name
         self.dependencies = dependencies
         self._code = code
         self._namespace = namespace
         self.dynamic = dynamic
+        self.compiler_kwds = compiler_kwds
 
     def get_code(self, owner):
         if self.dynamic:
@@ -312,7 +315,7 @@ class FunctionImplementationContainer(collections.Mapping):
                                                                     keys=keys))
 
     def add_numpy_implementation(self, wrapped_func, dependencies=None,
-                                 discard_units=None):
+                                 discard_units=None, compiler_kwds=None):
         '''
         Add a numpy implementation to a `Function`.
 
@@ -348,7 +351,8 @@ class FunctionImplementationContainer(collections.Mapping):
                                                orig_func.func_closure)
             self._implementations['numpy'] = FunctionImplementation(name=None,
                                                                     code=unitless_func,
-                                                                    dependencies=dependencies)
+                                                                    dependencies=dependencies,
+                                                                    compiler_kwds=None)
         else:
             def wrapper_function(*args):
                 if not len(args) == len(self._function._arg_units):
@@ -396,14 +400,16 @@ class FunctionImplementationContainer(collections.Mapping):
                                                                     dependencies=dependencies)
 
     def add_implementation(self, target, code, namespace=None,
-                           dependencies=None, name=None):
+                           dependencies=None, name=None, compiler_kwds=None):
         self._implementations[target] = FunctionImplementation(name=name,
                                                                code=code,
                                                                dependencies=dependencies,
-                                                               namespace=namespace)
+                                                               namespace=namespace,
+                                                               compiler_kwds=compiler_kwds)
 
     def add_dynamic_implementation(self, target, code, namespace=None,
-                                   dependencies=None, name=None):
+                                   dependencies=None, name=None,
+                                   compiler_kwds=None):
         '''
         Adds an "dynamic implementation" for this function. `code` and `namespace`
         arguments are expected to be callables that will be called in
@@ -419,7 +425,8 @@ class FunctionImplementationContainer(collections.Mapping):
                                                                code=code,
                                                                namespace=namespace,
                                                                dependencies=dependencies,
-                                                               dynamic=True)
+                                                               dynamic=True,
+                                                               compiler_kwds=compiler_kwds)
 
     def __len__(self):
         return len(self._implementations)
@@ -429,7 +436,7 @@ class FunctionImplementationContainer(collections.Mapping):
 
 
 def implementation(target, code=None, namespace=None, dependencies=None,
-                   discard_units=None):
+                   discard_units=None, **compiler_kwds):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
@@ -465,6 +472,10 @@ def implementation(target, code=None, namespace=None, dependencies=None,
         units indirectly (e.g. uses ``brian2.ms`` instead of ``ms``). If no
         value is given, defaults to the preference setting
         `codegen.runtime.numpy.discard_units`.
+    compiler_kwds : dict, optional
+        Additional keyword arguments will be transferred to the code generation
+        stage, e.g. for C++-based targets, the code can make use of additional
+        header files by providing a list of strings as the ``headers`` argument.
 
     Notes
     -----
@@ -472,7 +483,7 @@ def implementation(target, code=None, namespace=None, dependencies=None,
     as an argument for this decorator, this is normally not necessary -- the
     numpy implementation should be provided in the decorated function.
 
-    If this decorator is used with other directors such as `check_units` or
+    If this decorator is used with other decorators such as `check_units` or
     `declare_types`, it should be the uppermost decorator (that is, the
     last one to be applied).
 
@@ -505,11 +516,13 @@ def implementation(target, code=None, namespace=None, dependencies=None,
                                  "any code."))
             function.implementations.add_numpy_implementation(wrapped_func=func,
                                                               dependencies=dependencies,
-                                                              discard_units=discard_units)
+                                                              discard_units=discard_units,
+                                                              compiler_kwds=compiler_kwds)
         else:
             function.implementations.add_implementation(target, code=code,
                                                         dependencies=dependencies,
-                                                        namespace=namespace)
+                                                        namespace=namespace,
+                                                        compiler_kwds=compiler_kwds)
         # # copy any annotation attributes
         # if hasattr(func, '_annotation_attributes'):
         #     for attrname in func._annotation_attributes:

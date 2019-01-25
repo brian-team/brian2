@@ -1,10 +1,12 @@
 '''
 Module providing the base `CodeObject` and related functions.
 '''
+import collections
 import copy
 import platform
 import weakref
 
+from brian2.core.functions import Function
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -13,7 +15,6 @@ from brian2.utils.stringtools import indent, code_representation
 from .translation import analyse_identifiers
 
 __all__ = ['CodeObject',
-           'CodeObjectUpdater',
            'constant_or_scalar']
 
 logger = get_logger(__name__)
@@ -58,7 +59,8 @@ class CodeObject(Nameable):
     class_name = None
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='codeobject*'):
+                 template_name, template_source, compiler_kwds,
+                 name='codeobject*'):
         Nameable.__init__(self, name=name)
         try:    
             owner = weakref.proxy(owner)
@@ -70,6 +72,7 @@ class CodeObject(Nameable):
         self.variable_indices = variable_indices
         self.template_name = template_name
         self.template_source = template_source
+        self.compiler_kwds = compiler_kwds
 
     @classmethod
     def is_available(cls):
@@ -123,6 +126,51 @@ def _error_msg(code, name):
         error_msg += ('from %d lines of abstract code, first line is: '
                       '"%s"\n') % (len(code_lines), code_lines[0])
     return error_msg
+
+
+def _merge_compiler_kwds(list_of_kwds):
+    '''
+
+    Parameters
+    ----------
+    list_of_kwds : list of dict
+        TODO
+
+    Returns
+    -------
+    merged_kwds : dict
+        TODO
+    '''
+    merged_kwds = collections.defaultdict(list)
+    for kwds in list_of_kwds:
+        for key, values in kwds.iteritems():
+            merged_kwds[key].extend(values)
+    return merged_kwds
+
+
+def _gather_compiler_kwds(function, codeobj_class):
+    '''
+    Gather all the compiler keywords for a function and its dependencies.
+
+    Parameters
+    ----------
+    function : `Function`
+        The function for which the compiler keywords should be gathered
+    codeobj_class : type
+        The class of `CodeObject` to use
+
+    Returns
+    -------
+    kwds : dict
+        A dictionary with the compiler arguments, a list of values for each
+        key.
+    '''
+    implementation = function.implementations[codeobj_class]
+    all_kwds = [implementation.compiler_kwds]
+    if implementation.dependencies is not None:
+        for dependency in implementation.dependencies:
+            all_kwds.append(_gather_compiler_kwds(dependency, codeobj_class))
+    return _merge_compiler_kwds(all_kwds)
 
 
 def create_runner_codeobj(group, code, template_name,
@@ -292,6 +340,13 @@ def create_runner_codeobj(group, code, template_name,
         if cond_write_var is not None:
             all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
 
+    # Gather the additional compiler arguments declared by function
+    # implementations
+    all_keywords = [_gather_compiler_kwds(var, codeobj_class)
+                    for var in variables.itervalues()
+                    if isinstance(var, Function)]
+    compiler_kwds = _merge_compiler_kwds(all_keywords)
+
     # Add the indices needed by the variables
     varnames = variables.keys()
     for varname in varnames:
@@ -308,4 +363,5 @@ def create_runner_codeobj(group, code, template_name,
                               template_kwds=template_kwds,
                               codeobj_class=codeobj_class,
                               override_conditional_write=override_conditional_write,
+                              compiler_kwds=compiler_kwds
                               )

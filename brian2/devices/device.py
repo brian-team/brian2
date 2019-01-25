@@ -269,7 +269,10 @@ class Device(object):
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
-                    template_kwds=None, override_conditional_write=None):
+                    template_kwds=None, override_conditional_write=None,
+                    compiler_kwds=None):
+        if compiler_kwds is None:
+            compiler_kwds = {}
         name = find_name(name)
         codeobj_class = self.code_object_class(codeobj_class)
         template = getattr(codeobj_class.templater, template_name)
@@ -332,7 +335,7 @@ class Device(object):
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
                                 template_source=template.template_source,
-                                name=name)
+                                name=name, compiler_kwds=compiler_kwds)
         codeobj.compile()
         return codeobj
     
