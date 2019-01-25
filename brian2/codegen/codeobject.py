@@ -128,22 +128,57 @@ def _error_msg(code, name):
     return error_msg
 
 
+def check_compiler_kwds(compiler_kwds, accepted_kwds, target):
+    '''
+    Internal function to check the provided compiler keywords against the list
+    of understood keywords.
+
+    Parameters
+    ----------
+    compiler_kwds : dict
+        Dictionary of compiler keywords and respective list of values.
+    accepted_kwds : list of str
+        The compiler keywords understood by the code generation target
+    target : str
+        The name of the code generation target (used for the error message).
+
+    Raises
+    ------
+    ValueError
+        If a compiler keyword is not understood
+    '''
+    for key, value in compiler_kwds.iteritems():
+        if key not in accepted_kwds:
+            formatted_kwds = ', '.join("'{}'".format(kw)
+                                       for kw in accepted_kwds)
+            raise ValueError("The keyword argument '{}' is not understood by "
+                             "the code generation target '{}'. The valid "
+                             "arguments are: {}.".format(key, target,
+                                                         formatted_kwds))
+
+
 def _merge_compiler_kwds(list_of_kwds):
     '''
+    Merges a list of keyword dictionaries. Values in these dictionaries are
+    lists of values, the merged dictionaries will contain the concatenations
+    of lists specified for the same key.
 
     Parameters
     ----------
     list_of_kwds : list of dict
-        TODO
+        A list of compiler keyword dictionaries that should be merged.
 
     Returns
     -------
     merged_kwds : dict
-        TODO
+        The merged dictionary
     '''
     merged_kwds = collections.defaultdict(list)
     for kwds in list_of_kwds:
         for key, values in kwds.iteritems():
+            if not isinstance(values, list):
+                raise TypeError("Compiler keyword argument '{}' requires a "
+                                "list of values.".format(key))
             merged_kwds[key].extend(values)
     return merged_kwds
 

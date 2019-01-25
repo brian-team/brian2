@@ -12,7 +12,7 @@ from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.functions import Function
 
-from ...codeobject import CodeObject, constant_or_scalar
+from ...codeobject import CodeObject, constant_or_scalar, check_compiler_kwds
 
 from ...templates import Templater
 from ...generators.numpy_generator import NumpyCodeGenerator
@@ -158,6 +158,8 @@ class NumpyCodeObject(CodeObject):
     def __init__(self, owner, code, variables, variable_indices,
                  template_name, template_source, compiler_kwds,
                  name='numpy_code_object*'):
+        check_compiler_kwds(compiler_kwds, [],
+                            'numpy')
         from brian2.devices.device import get_device
         self.device = get_device()
         self.namespace = {'_owner': owner,

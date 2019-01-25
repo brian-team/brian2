@@ -5,6 +5,8 @@ import os
 import sys
 import numpy
 
+from brian2.codegen.codeobject import check_compiler_kwds
+
 try:
     from scipy import weave
     from scipy.weave.c_spec import num_to_c_types
@@ -76,6 +78,7 @@ class WeaveCodeGenerator(CPPCodeGenerator):
         super(WeaveCodeGenerator, self).__init__(*args, **kwds)
         self.c_data_type = weave_data_type
 
+
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -96,6 +99,11 @@ class WeaveCodeObject(CodeObject):
                  name='weave_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
+        check_compiler_kwds(compiler_kwds, ['headers', 'sources',
+                                            'define_macros', 'libraries',
+                                            'include_dirs', 'library_dirs',
+                                            'runtime_library_dirs'],
+                            'weave')
         self._done_first_run = False
         self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables,

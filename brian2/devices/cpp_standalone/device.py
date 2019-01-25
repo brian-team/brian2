@@ -16,7 +16,7 @@ from distutils import ccompiler
 import numpy as np
 
 import brian2
-
+from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
@@ -552,14 +552,18 @@ class CPPStandaloneDevice(Device):
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
                     override_conditional_write=None, compiler_kwds=None):
+        check_compiler_kwds(compiler_kwds, ['headers', 'sources',
+                                            'define_macros', 'libraries',
+                                            'include_dirs', 'library_dirs',
+                                            'runtime_library_dirs'],
+                            'C++ standalone')
         if template_kwds is None:
             template_kwds = dict()
         else:
             template_kwds = dict(template_kwds)
         # In standalone mode, the only place where we use additional header
-        # files is by inserting them into the template, we do not need this
-        # information later
-        codeobj_headers = compiler_kwds.pop('headers', [])
+        # files is by inserting them into the template
+        codeobj_headers = compiler_kwds.get('headers', [])
         template_kwds['user_headers'] = (self.headers +
                                          prefs['codegen.cpp.headers'] +
                                          codeobj_headers)

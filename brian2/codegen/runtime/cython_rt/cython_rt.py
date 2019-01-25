@@ -10,7 +10,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
-from ...codeobject import constant_or_scalar
+from ...codeobject import constant_or_scalar, check_compiler_kwds
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
 from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
@@ -73,10 +73,14 @@ class CythonCodeObject(NumpyCodeObject):
     def __init__(self, owner, code, variables, variable_indices,
                  template_name, template_source, compiler_kwds,
                  name='cython_code_object*'):
+        check_compiler_kwds(compiler_kwds, ['libraries', 'include_dirs',
+                                            'library_dirs',
+                                            'runtime_library_dirs'],
+                            'Cython')
         super(CythonCodeObject, self).__init__(owner, code, variables,
                                                variable_indices,
                                                template_name, template_source,
-                                               compiler_kwds=compiler_kwds,
+                                               compiler_kwds={}, # do not pass the actual args
                                                name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
         self.define_macros = list(prefs['codegen.cpp.define_macros'])
