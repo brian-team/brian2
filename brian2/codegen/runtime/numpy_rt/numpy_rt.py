@@ -156,14 +156,16 @@ class NumpyCodeObject(CodeObject):
     class_name = 'numpy'
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='numpy_code_object*'):
+                 template_name, template_source, compiler_kwds,
+                 name='numpy_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
         self.namespace = {'_owner': owner,
                           # TODO: This should maybe go somewhere else
                           'logical_not': np.logical_not}
         CodeObject.__init__(self, owner, code, variables, variable_indices,
-                            template_name, template_source, name=name)
+                            template_name, template_source,
+                            compiler_kwds=compiler_kwds, name=name)
         self.variables_to_namespace()
 
     @classmethod
