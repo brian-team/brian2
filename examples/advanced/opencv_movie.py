@@ -33,20 +33,6 @@ width, height, frame_count = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)),
 fps = 24
 time_between_frames = 1*second/fps
 
-# Links the necessary libraries
-prefs.codegen.cpp.libraries += ['opencv_core',
-                                'opencv_highgui',
-                                'opencv_videoio']
-
-# Includes the header files in all generated files
-prefs.codegen.cpp.headers += ['<opencv2/core/core.hpp>',
-                              '<opencv2/highgui/highgui.hpp>']
-
-# Pass in values as macros
-# Note that in general we could also pass in the filename this way, but to get
-# the string quoting right is unfortunately quite difficult
-prefs.codegen.cpp.define_macros += [('VIDEO_WIDTH', width),
-                                    ('VIDEO_HEIGHT', height)]
 @implementation('cpp', '''
 double* get_frame(bool new_frame)
 {
@@ -81,7 +67,14 @@ double video_input(const int x, const int y)
     double *frame = get_frame(x==0 && y==0);
     return frame[y*VIDEO_WIDTH + x];
 }
-'''.replace('VIDEO_FILENAME', filename))
+'''.replace('VIDEO_FILENAME', filename),
+                libraries=['opencv_core',
+                           'opencv_highgui',
+                           'opencv_videoio'],
+                headers=['<opencv2/core/core.hpp>',
+                         '<opencv2/highgui/highgui.hpp>'],
+                define_macros=[('VIDEO_WIDTH', width),
+                               ('VIDEO_HEIGHT', height)])
 @check_units(x=1, y=1, result=1)
 def video_input(x, y):
     # we assume this will only be called in the custom operation (and not for
