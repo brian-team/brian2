@@ -1155,7 +1155,7 @@ class CPPStandaloneDevice(Device):
         codeobj_runtime_dirs = [runtime_dir for codeobj in
                                 self.code_objects.itervalues()
                                 for runtime_dir in
-                                codeobj.compiler_kwds.get('runtime_dirs', [])]
+                                codeobj.compiler_kwds.get('runtime_library_dirs', [])]
         runtime_library_dirs = (self.runtime_library_dirs +
                                 prefs['codegen.cpp.runtime_library_dirs'] +
                                 codeobj_runtime_dirs)

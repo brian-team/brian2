@@ -149,6 +149,7 @@ class WeaveCodeObject(CodeObject):
                          '"stdint_compat.h"'] +
                         prefs['codegen.cpp.headers'] +
                         compiler_kwds.get('headers', []))
+        self.additional_sources = compiler_kwds.get('sources', [])
         self.numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
         self.annotated_code = self.code.main+'''
 /*
@@ -313,6 +314,7 @@ numpy version: {self.numpy_version}
                 extra_link_args=self.extra_link_args,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
+                sources=self.additional_sources,
                 verbose=0)
             with std_silent():
                 ret_val = weave.inline(*self._inline_args, **self._inline_kwds)
