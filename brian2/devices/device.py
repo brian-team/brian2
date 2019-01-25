@@ -291,19 +291,6 @@ class Device(object):
         else:
             template_kwds = template_kwds.copy()
 
-        # Check that all functions are available
-        for varname, value in variables.iteritems():
-            if isinstance(value, Function):
-                try:
-                    value.implementations[codeobj_class]
-                except KeyError as ex:
-                    # if we are dealing with numpy, add the default implementation
-                    if codeobj_class is NumpyCodeObject:
-                        value.implementations.add_numpy_implementation(value.pyfunc)
-                    else:
-                        raise NotImplementedError(('Cannot use function '
-                                                   '%s: %s') % (varname, ex))
-
         logger.diagnostic('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
         scalar_code, vector_code, kwds = generator.translate(abstract_code,

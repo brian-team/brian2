@@ -168,8 +168,9 @@ def _gather_compiler_kwds(function, codeobj_class):
     implementation = function.implementations[codeobj_class]
     all_kwds = [implementation.compiler_kwds]
     if implementation.dependencies is not None:
-        for dependency in implementation.dependencies:
-            all_kwds.append(_gather_compiler_kwds(dependency, codeobj_class))
+        for dependency in implementation.dependencies.itervalues():
+            all_kwds.append(_gather_compiler_kwds(dependency,
+                                                  codeobj_class))
     return _merge_compiler_kwds(all_kwds)
 
 
@@ -339,6 +340,20 @@ def create_runner_codeobj(group, code, template_name,
         cond_write_var = getattr(var, 'conditional_write', None)
         if cond_write_var is not None:
             all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
+
+    # Check that all functions are available
+    for varname, value in variables.iteritems():
+        if isinstance(value, Function):
+            try:
+                value.implementations[codeobj_class]
+            except KeyError as ex:
+                # if we are dealing with numpy, add the default implementation
+                from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+                if codeobj_class is NumpyCodeObject:
+                    value.implementations.add_numpy_implementation(value.pyfunc)
+                else:
+                    raise NotImplementedError(('Cannot use function '
+                                               '%s: %s') % (varname, ex))
 
     # Gather the additional compiler arguments declared by function
     # implementations
