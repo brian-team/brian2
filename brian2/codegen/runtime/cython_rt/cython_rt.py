@@ -75,7 +75,8 @@ class CythonCodeObject(NumpyCodeObject):
                  name='cython_code_object*'):
         check_compiler_kwds(compiler_kwds, ['libraries', 'include_dirs',
                                             'library_dirs',
-                                            'runtime_library_dirs'],
+                                            'runtime_library_dirs',
+                                            'sources'],
                             'Cython')
         super(CythonCodeObject, self).__init__(owner, code, variables,
                                                variable_indices,
@@ -107,6 +108,7 @@ class CythonCodeObject(NumpyCodeObject):
 
         self.libraries = (list(prefs['codegen.cpp.libraries']) +
                           compiler_kwds.get('libraries', []))
+        self.sources = compiler_kwds.get('sources', [])
 
     @classmethod
     def is_available(cls):
@@ -131,7 +133,6 @@ class CythonCodeObject(NumpyCodeObject):
                         'failed_compile_test')
             return False
 
-
     def compile(self):
         self.compiled_code = cython_extension_manager.create_extension(
             self.code,
@@ -143,6 +144,7 @@ class CythonCodeObject(NumpyCodeObject):
             library_dirs=self.library_dirs,
             compiler=self.compiler,
             owner_name=self.owner.name+'_'+self.template_name,
+            sources=self.sources
             )
         
     def run(self):
