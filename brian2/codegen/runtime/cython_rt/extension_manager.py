@@ -267,13 +267,12 @@ class CythonExtensionManager(object):
             build_extension = self._get_build_extension(compiler=compiler)
             try:
                 opts = dict(
-                    quiet=False,
+                    quiet=True,
                     annotate=False,
                     force=True,
-                    verbose=True
                     )
                 # suppresses the output on stdout
-                with std_silent(True):
+                with std_silent():
                     build_extension.extensions = Cython_Build.cythonize([extension] + final_sources, **opts)
 
                     build_extension.build_temp = os.path.dirname(pyx_file)
