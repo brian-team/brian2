@@ -1,9 +1,10 @@
-python:
-   version: 2.7
-formats:
-    - epub
-    - pdf
 conda:
     file: rtd_environment.yml
 python:
-   pip_install: true
+   version: 2.7
+   install:
+     - method: pip
+       path: .
+formats:
+    - epub
+    - pdf
