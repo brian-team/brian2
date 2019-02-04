@@ -19,3 +19,6 @@ dependencies:
 - sphinx_rtd_theme>=0.2.4
 - sympy>=1.1.1
 - weave>=0.15.0
+- pip:
+  - .
+

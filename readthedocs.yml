@@ -1,10 +1,5 @@
 conda:
     file: rtd_environment.yml
-python:
-   version: 2.7
-   install:
-     - method: setuptools
-       path: .
 formats:
     - epub
     - pdf
