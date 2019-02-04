@@ -7,6 +7,7 @@ https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 import glob
 import imp
 import os
+import shutil
 import sys
 import time
 
@@ -51,8 +52,8 @@ def get_cython_cache_dir():
 
 
 def get_cython_extensions():
-    return {'.pyx', '.pyd', '.cpp', '.so', '.o', '.o.d', '.lock', '.dll',
-            '.obj', '.exp', '.lib'}
+    return {'.pyx', '.pxd', '.pyd', '.cpp', '.c', '.so', '.o', '.o.d', '.lock',
+            '.dll', '.obj', '.exp', '.lib'}
 
 
 class CythonExtensionManager(object):
@@ -68,9 +69,11 @@ class CythonExtensionManager(object):
                          extra_link_args=None,
                          libraries=None,
                          compiler=None,
+                         sources=None,
                          owner_name='',
                          ):
-
+        if sources is None:
+            sources = []
         self._simplify_paths()
 
         if Cython is None:
@@ -120,18 +123,19 @@ class CythonExtensionManager(object):
                 else:
                     fcntl.flock(f, fcntl.LOCK_EX)
                 module = self._load_module(module_path,
-                                         define_macros=define_macros,
-                                         include_dirs=include_dirs,
-                                         library_dirs=library_dirs,
-                                         extra_compile_args=extra_compile_args,
-                                         extra_link_args=extra_link_args,
-                                         libraries=libraries,
-                                         code=code,
-                                         lib_dir=lib_dir,
-                                         module_name=module_name,
-                                         runtime_library_dirs=runtime_library_dirs,
-                                         compiler=compiler,
-                                         key=key)
+                                           define_macros=define_macros,
+                                           include_dirs=include_dirs,
+                                           library_dirs=library_dirs,
+                                           extra_compile_args=extra_compile_args,
+                                           extra_link_args=extra_link_args,
+                                           libraries=libraries,
+                                           code=code,
+                                           lib_dir=lib_dir,
+                                           module_name=module_name,
+                                           runtime_library_dirs=runtime_library_dirs,
+                                           compiler=compiler,
+                                           key=key,
+                                           sources=sources)
                 # Unlock
                 if msvcrt:
                     msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK,
@@ -152,7 +156,8 @@ class CythonExtensionManager(object):
                                      module_name=module_name,
                                      runtime_library_dirs=runtime_library_dirs,
                                      compiler=compiler,
-                                     key=key)
+                                     key=key,
+                                     sources=sources)
 
     @property
     def so_ext(self):
@@ -195,7 +200,7 @@ class CythonExtensionManager(object):
     def _load_module(self, module_path, define_macros, include_dirs, library_dirs,
                      extra_compile_args, extra_link_args, libraries, code,
                      lib_dir, module_name, runtime_library_dirs, compiler,
-                     key):
+                     key, sources):
         have_module = os.path.isfile(module_path)
 
         if not have_module:
@@ -234,7 +239,20 @@ class CythonExtensionManager(object):
             update_for_cross_compilation(library_dirs,
                                          extra_compile_args,
                                          extra_link_args, logger=logger)
-
+            for source in sources:
+                if not source.lower().endswith('.pyx'):
+                    raise ValueError('Additional Cython source files need to '
+                                     'have an .pyx ending')
+                # Copy source and header file (if present) to library directory
+                shutil.copyfile(source, os.path.join(lib_dir,
+                                                     os.path.basename(source)))
+                name_without_ext = os.path.splitext(os.path.basename(source))[0]
+                header_name = name_without_ext + '.pxd'
+                if os.path.exists(os.path.join(os.path.dirname(source), header_name)):
+                    shutil.copyfile(os.path.join(os.path.dirname(source), header_name),
+                                    os.path.join(lib_dir, header_name))
+            final_sources = [os.path.join(lib_dir, os.path.basename(source))
+                             for source in sources]
             extension = Extension(
                 name=module_name,
                 sources=[pyx_file],
@@ -245,8 +263,7 @@ class CythonExtensionManager(object):
                 extra_compile_args=extra_compile_args,
                 extra_link_args=extra_link_args,
                 libraries=libraries,
-                language='c++',
-                )
+                language='c++')
             build_extension = self._get_build_extension(compiler=compiler)
             try:
                 opts = dict(
@@ -256,7 +273,7 @@ class CythonExtensionManager(object):
                     )
                 # suppresses the output on stdout
                 with std_silent():
-                    build_extension.extensions = Cython_Build.cythonize([extension], **opts)
+                    build_extension.extensions = Cython_Build.cythonize([extension] + final_sources, **opts)
 
                     build_extension.build_temp = os.path.dirname(pyx_file)
                     build_extension.build_lib = lib_dir
@@ -275,8 +292,12 @@ class CythonExtensionManager(object):
 
             except Cython_Compiler.Errors.CompileError:
                 return
-
+        # Temporarily insert the Cython directory to the Python path so that
+        # code importing from an external module that was declared via
+        # sources works
+        sys.path.insert(0, lib_dir)
         module = imp.load_dynamic(module_name, module_path)
+        sys.path.pop(0)
         self._code_cache[key] = module
         return module
         #self._import_all(module)

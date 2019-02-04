@@ -1,10 +1,12 @@
 '''
 Module providing the base `CodeObject` and related functions.
 '''
+import collections
 import copy
 import platform
 import weakref
 
+from brian2.core.functions import Function
 from brian2.core.names import Nameable
 from brian2.equations.unitcheck import check_units_statements
 from brian2.utils.logger import get_logger
@@ -13,7 +15,6 @@ from brian2.utils.stringtools import indent, code_representation
 from .translation import analyse_identifiers
 
 __all__ = ['CodeObject',
-           'CodeObjectUpdater',
            'constant_or_scalar']
 
 logger = get_logger(__name__)
@@ -58,7 +59,8 @@ class CodeObject(Nameable):
     class_name = None
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='codeobject*'):
+                 template_name, template_source, compiler_kwds,
+                 name='codeobject*'):
         Nameable.__init__(self, name=name)
         try:    
             owner = weakref.proxy(owner)
@@ -70,6 +72,7 @@ class CodeObject(Nameable):
         self.variable_indices = variable_indices
         self.template_name = template_name
         self.template_source = template_source
+        self.compiler_kwds = compiler_kwds
 
     @classmethod
     def is_available(cls):
@@ -123,6 +126,87 @@ def _error_msg(code, name):
         error_msg += ('from %d lines of abstract code, first line is: '
                       '"%s"\n') % (len(code_lines), code_lines[0])
     return error_msg
+
+
+def check_compiler_kwds(compiler_kwds, accepted_kwds, target):
+    '''
+    Internal function to check the provided compiler keywords against the list
+    of understood keywords.
+
+    Parameters
+    ----------
+    compiler_kwds : dict
+        Dictionary of compiler keywords and respective list of values.
+    accepted_kwds : list of str
+        The compiler keywords understood by the code generation target
+    target : str
+        The name of the code generation target (used for the error message).
+
+    Raises
+    ------
+    ValueError
+        If a compiler keyword is not understood
+    '''
+    for key, value in compiler_kwds.iteritems():
+        if key not in accepted_kwds:
+            formatted_kwds = ', '.join("'{}'".format(kw)
+                                       for kw in accepted_kwds)
+            raise ValueError("The keyword argument '{}' is not understood by "
+                             "the code generation target '{}'. The valid "
+                             "arguments are: {}.".format(key, target,
+                                                         formatted_kwds))
+
+
+def _merge_compiler_kwds(list_of_kwds):
+    '''
+    Merges a list of keyword dictionaries. Values in these dictionaries are
+    lists of values, the merged dictionaries will contain the concatenations
+    of lists specified for the same key.
+
+    Parameters
+    ----------
+    list_of_kwds : list of dict
+        A list of compiler keyword dictionaries that should be merged.
+
+    Returns
+    -------
+    merged_kwds : dict
+        The merged dictionary
+    '''
+    merged_kwds = collections.defaultdict(list)
+    for kwds in list_of_kwds:
+        for key, values in kwds.iteritems():
+            if not isinstance(values, list):
+                raise TypeError("Compiler keyword argument '{}' requires a "
+                                "list of values.".format(key))
+            merged_kwds[key].extend(values)
+    return merged_kwds
+
+
+def _gather_compiler_kwds(function, codeobj_class):
+    '''
+    Gather all the compiler keywords for a function and its dependencies.
+
+    Parameters
+    ----------
+    function : `Function`
+        The function for which the compiler keywords should be gathered
+    codeobj_class : type
+        The class of `CodeObject` to use
+
+    Returns
+    -------
+    kwds : dict
+        A dictionary with the compiler arguments, a list of values for each
+        key.
+    '''
+    implementation = function.implementations[codeobj_class]
+    all_kwds = [implementation.compiler_kwds]
+    if implementation.dependencies is not None:
+        for dependency in implementation.dependencies.itervalues():
+            all_kwds.append(_gather_compiler_kwds(dependency,
+                                                  codeobj_class))
+    return _merge_compiler_kwds(all_kwds)
 
 
 def create_runner_codeobj(group, code, template_name,
@@ -292,6 +376,27 @@ def create_runner_codeobj(group, code, template_name,
         if cond_write_var is not None:
             all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
 
+    # Check that all functions are available
+    for varname, value in variables.iteritems():
+        if isinstance(value, Function):
+            try:
+                value.implementations[codeobj_class]
+            except KeyError as ex:
+                # if we are dealing with numpy, add the default implementation
+                from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
+                if codeobj_class is NumpyCodeObject:
+                    value.implementations.add_numpy_implementation(value.pyfunc)
+                else:
+                    raise NotImplementedError(('Cannot use function '
+                                               '%s: %s') % (varname, ex))
+
+    # Gather the additional compiler arguments declared by function
+    # implementations
+    all_keywords = [_gather_compiler_kwds(var, codeobj_class)
+                    for var in variables.itervalues()
+                    if isinstance(var, Function)]
+    compiler_kwds = _merge_compiler_kwds(all_keywords)
+
     # Add the indices needed by the variables
     varnames = variables.keys()
     for varname in varnames:
@@ -308,4 +413,5 @@ def create_runner_codeobj(group, code, template_name,
                               template_kwds=template_kwds,
                               codeobj_class=codeobj_class,
                               override_conditional_write=override_conditional_write,
+                              compiler_kwds=compiler_kwds
                               )

@@ -152,9 +152,13 @@ setup(name='Brian2',
                     # include test template files
                     'brian2.tests.test_templates.fake_package_1': ['templates/*.txt'],
                     'brian2.tests.test_templates.fake_package_2': ['templates/*.txt'],
-                    # Include RALLPACK test data
+                    # Include RALLPACK test data and external code
                     'brian2.tests': ['rallpack_data/README',
-                                     'rallpack_data/ref_*'],
+                                     'rallpack_data/ref_*',
+                                     'func_def_cpp.cpp',
+                                     'func_def_cpp.h',
+                                     'func_def_cython.pyx',
+                                     'func_def_cython.pxd'],
                     # include C++/Cython version of spike queue
                     'brian2.synapses': ['cspikequeue.cpp',
                                         'cythonspikequeue.pyx',

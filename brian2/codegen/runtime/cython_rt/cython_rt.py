@@ -10,7 +10,7 @@ from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 
-from ...codeobject import constant_or_scalar
+from ...codeobject import constant_or_scalar, check_compiler_kwds
 from ..numpy_rt import NumpyCodeObject
 from ...templates import Templater
 from ...generators.cython_generator import (CythonCodeGenerator, get_cpp_dtype,
@@ -71,27 +71,44 @@ class CythonCodeObject(NumpyCodeObject):
     class_name = 'cython'
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='cython_code_object*'):
+                 template_name, template_source, compiler_kwds,
+                 name='cython_code_object*'):
+        check_compiler_kwds(compiler_kwds, ['libraries', 'include_dirs',
+                                            'library_dirs',
+                                            'runtime_library_dirs',
+                                            'sources'],
+                            'Cython')
         super(CythonCodeObject, self).__init__(owner, code, variables,
                                                variable_indices,
                                                template_name, template_source,
+                                               compiler_kwds={}, # do not pass the actual args
                                                name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
         self.define_macros = list(prefs['codegen.cpp.define_macros'])
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
         self.headers = []  # not actually used
+
+        self.include_dirs = (list(prefs['codegen.cpp.include_dirs']) +
+                             compiler_kwds.get('include_dirs', []))
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
         if sys.platform == 'win32':
             self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
         else:
             self.include_dirs += [os.path.join(sys.prefix, 'include')]
-        self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+
+        self.library_dirs = (list(prefs['codegen.cpp.library_dirs']) +
+                             compiler_kwds.get('library_dirs', []))
         if sys.platform == 'win32':
             self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
         else:
             self.library_dirs += [os.path.join(sys.prefix, 'lib')]
-        self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
-        self.libraries = list(prefs['codegen.cpp.libraries'])
+
+        self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']),
+                                     compiler_kwds.get('runtime_library_dirs', []))
+
+        self.libraries = (list(prefs['codegen.cpp.libraries']) +
+                          compiler_kwds.get('libraries', []))
+        self.sources = compiler_kwds.get('sources', [])
 
     @classmethod
     def is_available(cls):
@@ -116,7 +133,6 @@ class CythonCodeObject(NumpyCodeObject):
                         'failed_compile_test')
             return False
 
-
     def compile(self):
         self.compiled_code = cython_extension_manager.create_extension(
             self.code,
@@ -128,6 +144,7 @@ class CythonCodeObject(NumpyCodeObject):
             library_dirs=self.library_dirs,
             compiler=self.compiler,
             owner_name=self.owner.name+'_'+self.template_name,
+            sources=self.sources
             )
         
     def run(self):

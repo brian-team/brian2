@@ -1,6 +1,10 @@
 Functions
 =========
 
+.. contents::
+    :local:
+    :depth: 2
+
 All equations, expressions and statements in Brian can make use of mathematical
 functions. However, functions have to be prepared for use with Brian for two
 reasons: 1) Brian is strict about checking the consistency of units, therefore
@@ -142,6 +146,41 @@ The same sort of approach as for C++ works for Cython using the
     def piecewise_linear(I):
         return clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
 
+
+Additional compiler arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If the code for a function needs additional compiler options to work, e.g. to
+link to an external library, these options can be provided as keyword
+arguments to the ``@implementation`` decorator. E.g. to link C++ code to the
+``foo`` library which is stored in the directory ``/usr/local/foo``, use::
+
+        @implementation('cpp', '...',
+         libraries=['foo'], library_dirs=['/usr/local/foo'])
+
+These arguments can also be used to refer to external source files, see
+:ref:`below <external_sources>`. Equivalent arguments can also be set as global
+:doc:`preferences` in which case they apply to all code and not only to code
+referring to the respective function. Note that in C++ standalone mode, all
+files are compiled together, and therefore the additional compiler arguments
+provided to functions are always combined with the preferences into a common
+set of settings that is applied to all code.
+
+The list of currently supported additional arguments (for further explications,
+see the respective :doc:`preferences` and the Python documentation of the
+`distutils.core.Extension` class):
+
+========================   ====== ============== ======
+keyword                    weave  C++ standalone Cython
+========================   ====== ============== ======
+``headers``                ✓      ✓              ❌
+``sources``                ✓      ✓              ✓
+``define_macros``          ✓      ✓              ❌
+``libraries``              ✓      ✓              ✓
+``include_dirs``           ✓      ✓              ✓
+``library_dirs``           ✓      ✓              ✓
+``runtime_library_dirs``   ✓      ✓              ✓
+========================   ====== ============== ======
+
 Arrays vs. scalar values in user-provided functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Equations, expressions and abstract code statements are always implicitly
@@ -196,3 +235,100 @@ decorator, e.g.::
 This is potentially important if you have functions that return integer or boolean
 values, because Brian's code generation optimisation step will make some potentially
 incorrect simplifications if it assumes that the return type is floating point.
+
+.. _external_sources:
+
+External source files
+~~~~~~~~~~~~~~~~~~~~~
+
+Code for functions can also be provided via external files in the target
+language. This can be especially useful for linking to existing code without
+having to include it a second time in the Python script. For C++-based code
+generation targets (i.e. ``weave`` and the C++ standalone mode), the external
+code should be in a file that is provided as an argument to the ``sources``
+keyword, together with a header file whose name is provided to ``headers``
+(see the note for the `codegen.cpp.headers` preference about the necessary
+format). Since the main simulation code is compiled and executed in a different
+directory, you should also point the compiler towards the directory of the
+header file via the ``include_dirs`` keyword. For the same reason, use an
+absolute path for the source file.
+For example, the ``piecewise_linear`` function from above can be implemented
+with external files as follows:
+
+.. code-block:: cpp
+
+    //file: piecewise_linear.h
+    double piecewise_linear(double);
+
+.. code-block:: cpp
+
+    //file: piecewise_linear.cpp
+    double piecewise_linear(double I) {
+        if (I < 1e-9)
+            return 0;
+        if (I > 3e-9)
+            return 100;
+        return (I/1e-9 - 1) * 50;
+    }
+
+.. code::
+
+    # Python script
+
+    # Get the absolute directory of this Python script, the C++ files are
+    # expected to be stored alongside of it
+    import os
+    current_dir = os.path.abspath(os.path.dirname(__file__))
+
+    @implementation('cpp', '// all code in piecewise_linear.cpp',
+                    sources=[os.path.join(current_dir,
+                                          'piecewise_linear.cpp')],
+                    headers=['"piecewise_linear.h"'],
+                    include_dirs=[current_dir])
+    @check_units(I=amp, result=Hz)
+    def piecewise_linear(I):
+        return clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
+
+
+For Cython, the process is very similar (see the
+`Cython documentation <https://cython.readthedocs.io/en/latest/src/userguide/sharing_declarations.html>`_
+for general information). The name of the header file does not need to be
+specified, it is expected to have the same name as the source file (except for
+the ``.pxd`` extension). The source and header files will be automatically
+copied to the cache directory where Cython files are compiled, they therefore
+have to be imported as top-level modules, regardless of whether the executed
+Python code is itself in a package or module.
+
+A Cython equivalent of above's C++ example can be written as:
+
+.. code-block:: cython
+
+    # file: piecewise_linear.pxd
+    cdef double piecewise_linear(double)
+
+.. code-block:: cython
+
+    # file: piecewise_linear.pyx
+    cdef double piecewise_linear(double I):
+        if I<1e-9:
+            return 0.0
+        elif I>3e-9:
+            return 100.0
+        return (I/1e-9-1)*50
+
+.. code::
+
+    # Python script
+
+    # Get the absolute directory of this Python script, the Cython files
+    # are expected to be stored alongside of it
+    import os
+    current_dir = os.path.abspath(os.path.dirname(__file__))
+
+    @implementation('cython',
+                    'from piecewise_linear cimport piecewise_linear',
+                    sources=[os.path.join(current_dir,
+                                          'piecewise_linear.pyx')])
+    @check_units(I=amp, result=Hz)
+    def piecewise_linear(I):
+        return clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)

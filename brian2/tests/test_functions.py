@@ -1,3 +1,5 @@
+import os
+
 from nose import SkipTest, with_setup
 from nose.plugins.attrib import attr
 from numpy.testing import assert_equal, assert_raises
@@ -367,6 +369,301 @@ def test_manual_user_defined_function_weave():
     assert mon[0].func == [6] * volt
 
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_manual_user_defined_function_cpp_standalone_compiler_args():
+    set_device('cpp_standalone', directory=None)
+
+    @implementation('cpp', '''
+    static inline double foo(const double x, const double y)
+    {
+        return x + y + _THREE;
+    }''',  # just check whether we can specify the supported compiler args,
+           # only the define macro is actually used
+        headers=[], sources=[], libraries=[], include_dirs=[],
+        library_dirs=[], runtime_library_dirs=[],
+        define_macros=[('_THREE', '3')])
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+    assert mon[0].func == [6] * volt
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
+    set_device('cpp_standalone', directory=None)
+
+    @implementation('cpp', '''
+    static inline double foo(const double x, const double y)
+    {
+        return x + y + _THREE;
+    }''',  some_arg=[])  # non-existing argument
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    assert_raises(ValueError, lambda: net.run(defaultclock.dt,
+                                                 namespace={'foo': foo}))
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
+    set_device('cpp_standalone', directory=None)
+
+    @implementation('cpp', '''
+    static inline double foo(const double x, const double y)
+    {
+        return x + y + _THREE;
+    }''',  headers='<stdio.h>')  # existing argument, wrong value type
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    assert_raises(TypeError, lambda: net.run(defaultclock.dt,
+                                                 namespace={'foo': foo}))
+
+
+def test_manual_user_defined_function_weave_compiler_args():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    @implementation('cpp', '''
+    static inline double foo(const double x, const double y)
+    {
+        return x + y + _THREE;
+    }''',  # just check whether we can specify the supported compiler args,
+           # only the define macro is actually used
+        headers=[], sources=[], libraries=[], include_dirs=[],
+        library_dirs=[], runtime_library_dirs=[],
+                    define_macros=[('_THREE', '3')])
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+    assert mon[0].func == [6] * volt
+
+
+def test_manual_user_defined_function_weave_wrong_compiler_args1():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    @implementation('cpp', '''
+    static inline double foo(const double x, const double y)
+    {
+        return x + y + _THREE;
+    }''',  some_arg=[])  # non-existing argument
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    assert_raises(ValueError, lambda: net.run(defaultclock.dt,
+                                                 namespace={'foo': foo}))
+
+
+def test_manual_user_defined_function_weave_wrong_compiler_args2():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    @implementation('cpp', '''
+    static inline double foo(const double x, const double y)
+    {
+        return x + y + _THREE;
+    }''',  headers='<stdio.h>')  # existing argument, wrong value type
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    assert_raises(TypeError, lambda: net.run(defaultclock.dt,
+                                                 namespace={'foo': foo}))
+
+
+def test_manual_user_defined_function_cython_compiler_args():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('Cython-only test')
+
+    @implementation('cython', '''
+    cdef double foo(double x, const double y):
+        return x + y + 3
+    ''',  # just check whether we can specify the supported compiler args,
+        libraries=[], include_dirs=[], library_dirs=[], runtime_library_dirs=[])
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+    assert mon[0].func == [6] * volt
+
+
+def test_manual_user_defined_function_cython_wrong_compiler_args1():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('Cython-only test')
+
+    @implementation('cython', '''
+    cdef double foo(double x, const double y):
+        return x + y + 3
+    ''',  some_arg=[])  # non-existing argument
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    assert_raises(ValueError, lambda: net.run(defaultclock.dt,
+                                              namespace={'foo': foo}))
+
+
+def test_manual_user_defined_function_cython_wrong_compiler_args2():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('Cython-only test')
+
+    @implementation('cython', '''
+    cdef double foo(double x, const double y):
+        return x + y + 3
+    ''',   libraries='cstdio')  # existing argument, wrong value type
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    assert_raises(TypeError, lambda: net.run(defaultclock.dt,
+                                             namespace={'foo': foo}))
+
+
+def test_external_function_cython():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('Cython-only test')
+
+    this_dir = os.path.abspath(os.path.dirname(__file__))
+    @implementation('cython', 'from func_def_cython cimport foo',
+                    sources=[os.path.join(this_dir, 'func_def_cython.pyx')])
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+    assert mon[0].func == [6] * volt
+
+
+def test_external_function_weave():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    this_dir = os.path.abspath(os.path.dirname(__file__))
+    @implementation('cpp', '//all code in func_def_cpp.cpp',
+                    headers=['"func_def_cpp.h"'],
+                    include_dirs=[this_dir],
+                    sources=[os.path.join(this_dir, 'func_def_cpp.cpp')])
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+    assert mon[0].func == [6] * volt
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_external_function_cpp_standalone():
+    set_device('cpp_standalone', directory=None)
+    this_dir = os.path.abspath(os.path.dirname(__file__))
+    @implementation('cpp', '//all code in func_def_cpp.cpp',
+                    headers=['"func_def_cpp.h"'],
+                    include_dirs=[this_dir],
+                    sources=[os.path.join(this_dir, 'func_def_cpp.cpp')])
+    @check_units(x=volt, y=volt, result=volt)
+    def foo(x, y):
+        return x + y + 3*volt
+
+    G = NeuronGroup(1, '''
+                       func = foo(x, y) : volt
+                       x : volt
+                       y : volt''')
+    G.x = 1*volt
+    G.y = 2*volt
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
+    assert mon[0].func == [6] * volt
+
+
 @attr('codegen-independent')
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
@@ -675,6 +972,7 @@ def test_multiple_stateless_function_calls():
     net3 = Network(G3)
     assert_raises(NotImplementedError, lambda: net3.run(0*ms))
 
+
 if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
@@ -692,6 +990,8 @@ if __name__ == '__main__':
             test_simple_user_defined_function,
             test_manual_user_defined_function,
             test_manual_user_defined_function_weave,
+            test_external_function_cython,
+            test_external_function_weave,
             test_user_defined_function_discarding_units,
             test_user_defined_function_discarding_units_2,
             test_function_implementation_container,

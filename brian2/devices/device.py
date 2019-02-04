@@ -269,7 +269,10 @@ class Device(object):
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None,
-                    template_kwds=None, override_conditional_write=None):
+                    template_kwds=None, override_conditional_write=None,
+                    compiler_kwds=None):
+        if compiler_kwds is None:
+            compiler_kwds = {}
         name = find_name(name)
         codeobj_class = self.code_object_class(codeobj_class)
         template = getattr(codeobj_class.templater, template_name)
@@ -287,19 +290,6 @@ class Device(object):
             template_kwds = dict()
         else:
             template_kwds = template_kwds.copy()
-
-        # Check that all functions are available
-        for varname, value in variables.iteritems():
-            if isinstance(value, Function):
-                try:
-                    value.implementations[codeobj_class]
-                except KeyError as ex:
-                    # if we are dealing with numpy, add the default implementation
-                    if codeobj_class is NumpyCodeObject:
-                        value.implementations.add_numpy_implementation(value.pyfunc)
-                    else:
-                        raise NotImplementedError(('Cannot use function '
-                                                   '%s: %s') % (varname, ex))
 
         logger.diagnostic('%s abstract code:\n%s' % (name, indent(code_representation(abstract_code))))
 
@@ -332,7 +322,7 @@ class Device(object):
         codeobj = codeobj_class(owner, code, variables, variable_indices,
                                 template_name=template_name,
                                 template_source=template.template_source,
-                                name=name)
+                                name=name, compiler_kwds=compiler_kwds)
         codeobj.compile()
         return codeobj
     

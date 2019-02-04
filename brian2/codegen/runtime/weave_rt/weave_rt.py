@@ -5,6 +5,8 @@ import os
 import sys
 import numpy
 
+from brian2.codegen.codeobject import check_compiler_kwds
+
 try:
     from scipy import weave
     from scipy.weave.c_spec import num_to_c_types
@@ -76,6 +78,7 @@ class WeaveCodeGenerator(CPPCodeGenerator):
         super(WeaveCodeGenerator, self).__init__(*args, **kwds)
         self.c_data_type = weave_data_type
 
+
 class WeaveCodeObject(CodeObject):
     '''
     Weave code object
@@ -92,17 +95,25 @@ class WeaveCodeObject(CodeObject):
     class_name = 'weave'
 
     def __init__(self, owner, code, variables, variable_indices,
-                 template_name, template_source, name='weave_code_object*'):
+                 template_name, template_source, compiler_kwds,
+                 name='weave_code_object*'):
         from brian2.devices.device import get_device
         self.device = get_device()
+        check_compiler_kwds(compiler_kwds, ['headers', 'sources',
+                                            'define_macros', 'libraries',
+                                            'include_dirs', 'library_dirs',
+                                            'runtime_library_dirs'],
+                            'weave')
         self._done_first_run = False
         self.namespace = {'_owner': owner}
         super(WeaveCodeObject, self).__init__(owner, code, variables,
                                               variable_indices,
                                               template_name, template_source,
+                                              compiler_kwds=compiler_kwds,
                                               name=name)
         self.compiler, self.extra_compile_args = get_compiler_and_args()
-        self.define_macros = list(prefs['codegen.cpp.define_macros'])
+        self.define_macros = (list(prefs['codegen.cpp.define_macros']) +
+                              compiler_kwds.get('define_macros', []))
         if self.compiler == 'msvc':
             self.define_macros.extend([
                 ('INFINITY', '(std::numeric_limits<double>::infinity())'),
@@ -110,7 +121,8 @@ class WeaveCodeObject(CodeObject):
                 ('M_PI', '3.14159265358979323846')
             ])
         self.extra_link_args = list(prefs['codegen.cpp.extra_link_args'])
-        self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
+        self.include_dirs = (list(prefs['codegen.cpp.include_dirs']) +
+                             compiler_kwds.get('include_dirs', []))
         if sys.platform == 'win32':
             self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
         else:
@@ -120,7 +132,8 @@ class WeaveCodeObject(CodeObject):
         import brian2.synapses as synapses
         synapses_dir = os.path.dirname(synapses.__file__)
         self.include_dirs.append(synapses_dir)
-        self.library_dirs = list(prefs['codegen.cpp.library_dirs'])
+        self.library_dirs = (list(prefs['codegen.cpp.library_dirs']) +
+                             compiler_kwds.get('library_dirs', []))
         if sys.platform == 'win32':
             self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
         else:
@@ -128,9 +141,15 @@ class WeaveCodeObject(CodeObject):
         update_for_cross_compilation(self.library_dirs,
                                      self.extra_compile_args,
                                      self.extra_link_args, logger=logger)
-        self.runtime_library_dirs = list(prefs['codegen.cpp.runtime_library_dirs'])
-        self.libraries = list(prefs['codegen.cpp.libraries'])
-        self.headers = ['<math.h>','<algorithm>', '<limits>', '"stdint_compat.h"'] + prefs['codegen.cpp.headers']
+        self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']),
+                                     compiler_kwds.get('runtime_library_dirs', []))
+        self.libraries = (list(prefs['codegen.cpp.libraries']) +
+                          compiler_kwds.get('libraries', []))
+        self.headers = (['<math.h>','<algorithm>', '<limits>',
+                         '"stdint_compat.h"'] +
+                        prefs['codegen.cpp.headers'] +
+                        compiler_kwds.get('headers', []))
+        self.additional_sources = compiler_kwds.get('sources', [])
         self.numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
         self.annotated_code = self.code.main+'''
 /*
@@ -295,6 +314,7 @@ numpy version: {self.numpy_version}
                 extra_link_args=self.extra_link_args,
                 include_dirs=self.include_dirs,
                 library_dirs=self.library_dirs,
+                sources=self.additional_sources,
                 verbose=0)
             with std_silent():
                 ret_val = weave.inline(*self._inline_args, **self._inline_kwds)

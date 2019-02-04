@@ -16,7 +16,7 @@ from distutils import ccompiler
 import numpy as np
 
 import brian2
-
+from brian2.codegen.codeobject import check_compiler_kwds
 from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
@@ -551,18 +551,29 @@ class CPPStandaloneDevice(Device):
 
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
-                    override_conditional_write=None):
+                    override_conditional_write=None, compiler_kwds=None):
+        check_compiler_kwds(compiler_kwds, ['headers', 'sources',
+                                            'define_macros', 'libraries',
+                                            'include_dirs', 'library_dirs',
+                                            'runtime_library_dirs'],
+                            'C++ standalone')
         if template_kwds is None:
             template_kwds = dict()
         else:
             template_kwds = dict(template_kwds)
-        template_kwds['user_headers'] = self.headers + prefs['codegen.cpp.headers']
+        # In standalone mode, the only place where we use additional header
+        # files is by inserting them into the template
+        codeobj_headers = compiler_kwds.get('headers', [])
+        template_kwds['user_headers'] = (self.headers +
+                                         prefs['codegen.cpp.headers'] +
+                                         codeobj_headers)
         template_kwds['profiled'] = self.enable_profiling
         codeobj = super(CPPStandaloneDevice, self).code_object(owner, name, abstract_code, variables,
                                                                template_name, variable_indices,
                                                                codeobj_class=codeobj_class,
                                                                template_kwds=template_kwds,
                                                                override_conditional_write=override_conditional_write,
+                                                               compiler_kwds=compiler_kwds
                                                                )
         self.code_objects[codeobj.name] = codeobj
         if self.enable_profiling:
@@ -1116,11 +1127,46 @@ class CPPStandaloneDevice(Device):
         compiler, default_extra_compile_args = get_compiler_and_args()
         extra_compile_args = self.extra_compile_args + default_extra_compile_args
         extra_link_args = self.extra_link_args + prefs['codegen.cpp.extra_link_args']
-        define_macros = self.define_macros + prefs['codegen.cpp.define_macros']
-        include_dirs = self.include_dirs + prefs['codegen.cpp.include_dirs']
-        library_dirs = self.library_dirs + prefs['codegen.cpp.library_dirs']
-        runtime_library_dirs = self.runtime_library_dirs + prefs['codegen.cpp.runtime_library_dirs']
-        libraries = self.libraries + prefs['codegen.cpp.libraries']
+
+        codeobj_define_macros = [macro for codeobj in
+                                 self.code_objects.itervalues()
+                                 for macro in
+                                 codeobj.compiler_kwds.get('define_macros', [])]
+        define_macros = (self.define_macros +
+                         prefs['codegen.cpp.define_macros'] +
+                         codeobj_define_macros)
+
+        codeobj_include_dirs = [include_dir for codeobj in
+                                self.code_objects.itervalues()
+                                for include_dir in
+                                codeobj.compiler_kwds.get('include_dirs', [])]
+        include_dirs = (self.include_dirs +
+                        prefs['codegen.cpp.include_dirs'] +
+                        codeobj_include_dirs)
+
+        codeobj_library_dirs = [library_dir for codeobj in
+                                self.code_objects.itervalues()
+                                for library_dir in
+                                codeobj.compiler_kwds.get('library_dirs', [])]
+        library_dirs = (self.library_dirs +
+                        prefs['codegen.cpp.library_dirs'] +
+                        codeobj_library_dirs)
+
+        codeobj_runtime_dirs = [runtime_dir for codeobj in
+                                self.code_objects.itervalues()
+                                for runtime_dir in
+                                codeobj.compiler_kwds.get('runtime_library_dirs', [])]
+        runtime_library_dirs = (self.runtime_library_dirs +
+                                prefs['codegen.cpp.runtime_library_dirs'] +
+                                codeobj_runtime_dirs)
+
+        codeobj_libraries = [library for codeobj in
+                             self.code_objects.itervalues()
+                             for library in
+                             codeobj.compiler_kwds.get('libraries', [])]
+        libraries = (self.libraries +
+                     prefs['codegen.cpp.libraries'] +
+                     codeobj_libraries)
 
         compiler_obj = ccompiler.new_compiler(compiler=compiler)
         compiler_flags = (ccompiler.gen_preprocess_options(define_macros,
@@ -1132,7 +1178,12 @@ class CPPStandaloneDevice(Device):
                                                   libraries=libraries) +
                         extra_link_args)
 
-        additional_source_files.append('brianlib/randomkit/randomkit.c')
+        codeobj_source_files = [source_file for codeobj in
+                                self.code_objects.itervalues()
+                                for source_file in
+                                codeobj.compiler_kwds.get('sources', [])]
+        additional_source_files += (codeobj_source_files +
+                                    ['brianlib/randomkit/randomkit.c'])
 
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
