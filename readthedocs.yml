@@ -3,7 +3,7 @@ conda:
 python:
    version: 2.7
    install:
-     - method: pip
+     - method: setuptools
        path: .
 formats:
     - epub
