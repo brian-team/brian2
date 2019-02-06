@@ -552,6 +552,8 @@ class CPPStandaloneDevice(Device):
     def code_object(self, owner, name, abstract_code, variables, template_name,
                     variable_indices, codeobj_class=None, template_kwds=None,
                     override_conditional_write=None, compiler_kwds=None):
+        if compiler_kwds is None:
+            compiler_kwds = {}
         check_compiler_kwds(compiler_kwds, ['headers', 'sources',
                                             'define_macros', 'libraries',
                                             'include_dirs', 'library_dirs',
