@@ -66,14 +66,28 @@ scripts (or two processes started from the same Python script, e.g. via the
 ``weave`` will crash with an error message. The ``numpy`` and ``cython`` targets
 are not affected by this problem.
 
-Slow standalone simulations
----------------------------
+Parallel Brian simulations with C++ standalone
+----------------------------------------------
+
+Simulations using the C++ standalone device will create code and store results
+in a dedicated directory (``output``, by default). If you run multiple
+simulations in parallel, you have to take care that these simulations do not
+use the same directory – otherwise, everything from compilation errors to
+incorrect results can happen. Either chose a different directory name for each
+simulation and provide it as the ``directory`` argument to the
+`.set_device` or `~.Device.build` call, or use ``directory=None`` which
+will use a randomly chosen unique temporary directory (in ``/tmp`` on
+Unix-based systems) for each simulation. If you need to know the directory name,
+you can access it after the simulation run via ``device.project_dir``.
+
+Slow C++ standalone simulations
+-------------------------------
 
 Some versions of the GNU standard library (in particular those used by recent
 Ubuntu versions) have a bug that can dramatically slow down simulations in
 C++ standalone mode on modern hardware (see :issue:`803`). As a workaround, Brian will
 set an environment variable ``LD_BIND_NOW`` during the execution of standalone
-stimulations which changes the way the library is linked so that it does not
+simulations which changes the way the library is linked so that it does not
 suffer from this problem. If this environment variable leads to unwanted
 behaviour on your machine, change the
 `prefs.devices.cpp_standalone.run_environment_variables` preference.
