@@ -536,10 +536,12 @@ class Equations(collections.Hashable, collections.Mapping):
     
     Parameters
     ----------
-    eqs : `str` or list of `SingleEquation` objects
-        A multiline string of equations (see above) -- for internal purposes
-        also a list of `SingleEquation` objects can be given. This is done for
-        example when adding new equations to implement the refractory
+    eqs : `str`, list of `SingleEquation`, or `Equations`
+        A multiline string of equations (see above). To make a copy of an
+        existing `Equations` object (with potential changes in the variable
+        names, see below), an existing `Equations` object can be provided as
+        well. Finally, a list of `SingleEquation` objects can be given. This is
+        done for example when adding new equations to implement the refractory
         mechanism. Note that in this case the variable names are not checked
         to allow for "internal names", starting with an underscore.
     kwds: keyword arguments
@@ -552,6 +554,8 @@ class Equations(collections.Hashable, collections.Mapping):
     """
 
     def __init__(self, eqns, **kwds):
+        if isinstance(eqns, Equations):
+            eqns = eqns._equations.values()
         if isinstance(eqns, basestring):
             self._equations = parse_string_equations(eqns)
             # Do a basic check for the identifiers
