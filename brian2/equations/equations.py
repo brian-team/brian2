@@ -785,7 +785,7 @@ class Equations(collections.Hashable, collections.Mapping):
                     if self[name].type == DIFFERENTIAL_EQUATION]
 
     def _prefix_postfix(self, use_prefix, prepostfix, internal=True,
-                        external=False):
+                        external=False, exclude=None):
         '''
         Helper method to implement `~Equations.prefix` and `~Equations.postfix`
         without duplicating the code. See the respective documentation.
@@ -794,10 +794,14 @@ class Equations(collections.Hashable, collections.Mapping):
             internal = self.names
         elif internal is False:
             internal = []
+        if exclude is None:
+            exclude = []
         if use_prefix:
-            substitutions = {n: prepostfix + n for n in internal}
+            substitutions = {n: prepostfix + n for n in internal
+                             if n not in exclude}
         else:
-            substitutions = {n: n + prepostfix for n in internal}
+            substitutions = {n: n + prepostfix for n in internal
+                             if n not in exclude}
         eq_substituted_vars = Equations(self, **substitutions)
         if external is True:
             external_names = {n for n in self.identifiers
@@ -806,9 +810,11 @@ class Equations(collections.Hashable, collections.Mapping):
         elif external is False:
             external = []
         if use_prefix:
-            substitutions = {n: prepostfix + n for n in external}
+            substitutions = {n: prepostfix + n for n in external
+                             if n not in exclude}
         else:
-            substitutions = {n: n + prepostfix for n in external}
+            substitutions = {n: n + prepostfix for n in external
+                             if n not in exclude}
         single_equations = eq_substituted_vars._equations.values()
         new_single_equations = []
         for single_eq in single_equations:
@@ -827,7 +833,7 @@ class Equations(collections.Hashable, collections.Mapping):
 
         return Equations(new_single_equations)
 
-    def prefix(self, prefix, internal=True, external=False):
+    def prefix(self, prefix, internal=True, external=False, exclude=None):
         '''
         Return a copy of the equations where variables and/or constants are
         prefixed with a given string.
@@ -850,6 +856,13 @@ class Equations(collections.Hashable, collections.Mapping):
             Alternatively, ``True`` can be used to prefix all variables and
             constants, or ``False`` to prefix none. By default, no external
             names are prefixed.
+        exclude : list of str or None, optional
+            A list of names that should not be prefixed. Can be used together
+            with ``internal=True`` or ``external=True``, when it is easier to
+            specify which names should not be prefixed instead of listing the
+            names that should be. This argument applies both to internal and
+            external variables. Can be set to ``None`` (the default value) to
+            not exclude any names.
 
         Returns
         -------
@@ -878,9 +891,10 @@ class Equations(collections.Hashable, collections.Mapping):
         dm/dt = Na_q10*(Na_minf - m) / Na_mtau : 1
         '''
         return self._prefix_postfix(use_prefix=True, prepostfix=prefix,
-                                    internal=internal, external=external)
+                                    internal=internal, external=external,
+                                    exclude=exclude)
 
-    def postfix(self, postfix, internal=True, external=False):
+    def postfix(self, postfix, internal=True, external=False, exclude=None):
         '''
         Return a copy of the equations where variables and/or constants are
         postfixed with a given string.
@@ -903,6 +917,13 @@ class Equations(collections.Hashable, collections.Mapping):
             Alternatively, ``True`` can be used to postfix all variables and
             constants, or ``False`` to postfix none. By default, no external
             names are postfixed.
+        exclude : list of str or None, optional
+            A list of names that should not be postfixed. Can be used together
+            with ``internal=True`` or ``external=True``, when it is easier to
+            specify which names should not be postfixed instead of listing the
+            names that should be. This argument applies both to internal and
+            external variables. Can be set to ``None`` (the default value) to
+            not exclude any names.
 
         Returns
         -------
@@ -931,7 +952,8 @@ class Equations(collections.Hashable, collections.Mapping):
         dm/dt = q10_Na*(minf_Na - m) / mtau_Na : 1
         '''
         return self._prefix_postfix(use_prefix=False, prepostfix=postfix,
-                                    internal=internal, external=external)
+                                    internal=internal, external=external,
+                                    exclude=exclude)
 
     def _get_stochastic_type(self):
         '''
