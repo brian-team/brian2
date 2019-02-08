@@ -784,31 +784,31 @@ class Equations(collections.Hashable, collections.Mapping):
             return [(name, expr) for name, expr in self._substituted_expressions
                     if self[name].type == DIFFERENTIAL_EQUATION]
 
-    def _prefix_postfix(self, use_prefix, prepostfix, variables=True,
-                        constants=False):
+    def _prefix_postfix(self, use_prefix, prepostfix, internal=True,
+                        external=False):
         '''
         Helper method to implement `~Equations.prefix` and `~Equations.postfix`
         without duplicating the code. See the respective documentation.
         '''
-        if variables is True:
-            variables = self.names
-        elif variables is False:
-            variables = []
+        if internal is True:
+            internal = self.names
+        elif internal is False:
+            internal = []
         if use_prefix:
-            substitutions = {n: prepostfix + n for n in variables}
+            substitutions = {n: prepostfix + n for n in internal}
         else:
-            substitutions = {n: n + prepostfix for n in variables}
+            substitutions = {n: n + prepostfix for n in internal}
         eq_substituted_vars = Equations(self, **substitutions)
-        if constants is True:
+        if external is True:
             external_names = {n for n in self.identifiers
                               if n not in self.names}
-            constants = external_names
-        elif constants is False:
-            constants = []
+            external = external_names
+        elif external is False:
+            external = []
         if use_prefix:
-            substitutions = {n: prepostfix + n for n in constants}
+            substitutions = {n: prepostfix + n for n in external}
         else:
-            substitutions = {n: n + prepostfix for n in constants}
+            substitutions = {n: n + prepostfix for n in external}
         single_equations = eq_substituted_vars._equations.values()
         new_single_equations = []
         for single_eq in single_equations:
@@ -827,7 +827,7 @@ class Equations(collections.Hashable, collections.Mapping):
 
         return Equations(new_single_equations)
 
-    def prefix(self, prefix, variables=True, constants=False):
+    def prefix(self, prefix, internal=True, external=False):
         '''
         Return a copy of the equations where variables and/or constants are
         prefixed with a given string.
@@ -838,13 +838,13 @@ class Equations(collections.Hashable, collections.Mapping):
             The string to use as a prefix (no separator character is added,
             i.e. to transform ``'v'`` into ``'soma_v'``, the prefix has to be
             ``'soma_'``).
-        variables : bool or list of str, optional
+        internal : bool or list of str, optional
             A list of variable names (variables defined by differential
             equations, neuron-/synapse-specific parameters, and subexpressions)
             that should be prefixed. Alternatively, ``True`` can be used to
             prefix all variables, or ``False`` to prefix none. By default, all
             names are prefixed.
-        constants : bool or list of str, optional
+        external : bool or list of str, optional
             A list of constant or external variable names (i.e., all names that
             are not defined as part of the equations) that should be prefixed.
             Alternatively, ``True`` can be used to prefix all variables and
@@ -868,19 +868,19 @@ class Equations(collections.Hashable, collections.Mapping):
         Na_I = g*Na_m**3*Na_h*(E - v) : amp
         dNa_h/dt = q10*(hinf - Na_h) / htau : 1
         dNa_m/dt = q10*(minf - Na_m) / mtau : 1
-        >>> print(eqs.prefix('Na_', constants=['E']))
+        >>> print(eqs.prefix('Na_', external=['E']))
         Na_I = g*Na_m**3*Na_h*(Na_E - v) : amp
         dNa_h/dt = q10*(hinf - Na_h) / htau : 1
         dNa_m/dt = q10*(minf - Na_m) / mtau : 1
-        >>> print(eqs.prefix('Na_', variables=['I'], constants=True))
+        >>> print(eqs.prefix('Na_', internal=['I'], external=True))
         Na_I = Na_g*m**3*h*(Na_E - Na_v) : amp
         dh/dt = Na_q10*(Na_hinf - h) / Na_htau : 1
         dm/dt = Na_q10*(Na_minf - m) / Na_mtau : 1
         '''
         return self._prefix_postfix(use_prefix=True, prepostfix=prefix,
-                                    variables=variables, constants=constants)
+                                    internal=internal, external=external)
 
-    def postfix(self, postfix, variables=True, constants=False):
+    def postfix(self, postfix, internal=True, external=False):
         '''
         Return a copy of the equations where variables and/or constants are
         postfixed with a given string.
@@ -891,13 +891,13 @@ class Equations(collections.Hashable, collections.Mapping):
             The string to use as a postfix (no separator character is added,
             i.e. to transform ``'v'`` into ``'v_soma'``, the postfix has to be
             ``'_soma'``).
-        variables : bool or list of str, optional
+        internal : bool or list of str, optional
             A list of variable names (variables defined by differential
             equations, neuron-/synapse-specific parameters, and subexpressions)
             that should be postfixed. Alternatively, ``True`` can be used to
             postfix all variables, or ``False`` to postfix none. By default, all
             names are postfixed.
-        constants : bool or list of str, optional
+        external : bool or list of str, optional
             A list of constant or external variable names (i.e., all names that
             are not defined as part of the equations) that should be postfixed.
             Alternatively, ``True`` can be used to postfix all variables and
@@ -921,17 +921,17 @@ class Equations(collections.Hashable, collections.Mapping):
         I_Na = g*m_Na**3*h_Na*(E - v) : amp
         dh_Na/dt = q10*(hinf - h_Na) / htau : 1
         dm_Na/dt = q10*(minf - m_Na) / mtau : 1
-        >>> print(eqs.postfix('_Na', constants=['E']))
+        >>> print(eqs.postfix('_Na', external=['E']))
         I_Na = g*m_Na**3*h_Na*(E_Na - v) : amp
         dh_Na/dt = q10*(hinf - h_Na) / htau : 1
         dm_Na/dt = q10*(minf - m_Na) / mtau : 1
-        >>> print(eqs.postfix('_Na', variables=['I'], constants=True))
+        >>> print(eqs.postfix('_Na', internal=['I'], external=True))
         I_Na = g_Na*m**3*h*(E_Na - v_Na) : amp
         dh/dt = q10_Na*(hinf_Na - h) / htau_Na : 1
         dm/dt = q10_Na*(minf_Na - m) / mtau_Na : 1
         '''
         return self._prefix_postfix(use_prefix=False, prepostfix=postfix,
-                                    variables=variables, constants=constants)
+                                    internal=internal, external=external)
 
     def _get_stochastic_type(self):
         '''
