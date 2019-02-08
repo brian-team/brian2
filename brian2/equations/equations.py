@@ -809,7 +809,7 @@ class Equations(collections.Hashable, collections.Mapping):
             substitutions = {n: prepostfix + n for n in constants}
         else:
             substitutions = {n: n + prepostfix for n in constants}
-        single_equations = sorted(eq_substituted_vars._equations.values())
+        single_equations = eq_substituted_vars._equations.values()
         new_single_equations = []
         for single_eq in single_equations:
             if single_eq.type in (DIFFERENTIAL_EQUATION, SUBEXPRESSION):
