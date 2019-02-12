@@ -16,6 +16,7 @@ dist
 build
 /docs
 docs_sphinx/reference
+/.eggs/
 
 # Unit test / coverage reports
 .coverage
@@ -39,3 +40,6 @@ nosetests.xml
 
 # IPython
 .ipynb_checkpoints
+
+# Visual Studio
+/.vscode/
