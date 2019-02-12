@@ -85,7 +85,8 @@
 
         // STEP 3: solve the coupling system
         // indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
-        const int _children_rowlength = _max_children;
+        const int _children_rowlength = _num_morph_children/_num_morph_children_num;
+
         #define _IDX_C(idx_row,idx_col) _children_rowlength * idx_row + idx_col
 
         // STEP 3a: construct the coupling system with matrix _P in sparse form. s.t.
