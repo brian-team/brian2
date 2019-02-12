@@ -1,7 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////
 //// MAIN CODE /////////////////////////////////////////////////////////////
-
-{# USES_VARIABLES { Cm, dt, v, N, Ic,
+{# USES_VARIABLES {N, Cm, dt, v, Ic,
                   _ab_star0, _ab_star1, _ab_star2, _b_plus, _b_minus,
                   _v_star, _u_plus, _u_minus,
                   _v_previous,
@@ -15,33 +14,37 @@
 
 {% extends 'common_group.cpp' %}
 {% block maincode %}
+
+    // We evaluate the membrane current/conductance in each compartment
+    // independently, therefore we can do a simple loop instead of doing this
+    // as part of the loop over neurons
+    int _vectorisation_idx = 1;
+
+    //// MAIN CODE ////////////
+    {{scalar_code|autoindent}}
+
+    // STEP 1: compute g_total and I_0
+    {{ openmp_pragma('parallel-static') }}
+    for(int _i=0; _i<N; _i++)
+    {
+        const int _idx = _i;
+        _vectorisation_idx = _idx;
+
+        {{vector_code|autoindent}}
+        {{_gtot_all}}[_idx] = _gtot;
+        {{_I0_all}}[_idx] = _I0;
+
+        {{_v_previous}}[_idx] = {{v}}[_idx];
+    }
+
     #define _INDEX(_neuron, _compartment) ((_neuron)*_n_compartments + (_compartment))
     #define _INDEX_SEC(_neuron, _section) ((_neuron)*_n_sections + (_section))
     #define _INDEX_SEC1(_neuron, _section) ((_neuron)*(_n_sections+1) + (_section))
     #define _INDEX_CHILDREN(_neuron, _child) ((_neuron)*_max_children + (_child))
+    {{ openmp_pragma('parallel-static-collapse') }}
     for (int _neuron=0; _neuron < _n_neurons; _neuron++)
     {
-        int _vectorisation_idx = 1;
-
-        //// MAIN CODE ////////////
-        {{scalar_code|autoindent}}
-
-        // STEP 1: compute g_total and I_0
-        {{ openmp_pragma('parallel-static') }}
-        for(int _i=0; _i<_n_compartments; _i++)
-        {
-            const int _idx = _INDEX(_neuron, _i);
-            _vectorisation_idx = _idx;
-
-            {{vector_code|autoindent}}
-            {{_gtot_all}}[_idx] = _gtot;
-            {{_I0_all}}[_idx] = _I0;
-
-            {{_v_previous}}[_idx] = {{v}}[_idx];
-        }
-
         // STEP 2: for each section: solve three tridiagonal systems
-        {{ openmp_pragma('parallel-static') }}
         for (int _i=0; _i<_n_sections; _i++)
         {
             // first and last index of the i-th section
@@ -82,18 +85,21 @@
                 {{_u_minus}}[_j]={{_u_minus}}[_j] - {{_c}}[_j]*{{_u_minus}}[_j+1];
             }
         }
+    }
+    // STEP 3: solve the coupling system
+    // indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
+    const int _children_rowlength = _num_morph_children/_num_morph_children_num;
 
-        // STEP 3: solve the coupling system
-        // indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
-        const int _children_rowlength = _num_morph_children/_num_morph_children_num;
+    #define _IDX_C(idx_row,idx_col) _children_rowlength * idx_row + idx_col
 
-        #define _IDX_C(idx_row,idx_col) _children_rowlength * idx_row + idx_col
-
-        // STEP 3a: construct the coupling system with matrix _P in sparse form. s.t.
-        // _P_diag contains the diagonal elements
-        // _P_children contains the super diagonal entries
-        // _P_parent contains the single sub diagonal entry for each row
-        // _B contains the right hand side
+    // STEP 3a: construct the coupling system with matrix _P in sparse form. s.t.
+    // _P_diag contains the diagonal elements
+    // _P_children contains the super diagonal entries
+    // _P_parent contains the single sub diagonal entry for each row
+    // _B contains the right hand side
+    {{ openmp_pragma('parallel-static') }}
+    for (int _neuron=0; _neuron < _n_neurons; _neuron++)
+    {
         for (int _i=0; _i<_n_sections; _i++)
         {
             const int _i_parent = {{_morph_parent_i}}[_INDEX_SEC(_neuron, _i)];
@@ -152,8 +158,8 @@
         {{_B}}[_INDEX_SEC1(_neuron, 0)] = {{_B}}[_INDEX_SEC1(_neuron, 0)] / {{_P_diag}}[_INDEX_SEC1(_neuron, 0)]; // the first section does not have a parent
         for (int _i=1; _i<_n_sections + 1; _i++) {
             const int _j = {{_morph_parent_i}}[_INDEX_SEC(_neuron, _i-1)]; // parent index
-            {{_B}}[_INDEX_SEC1(_neuron, _i)] = {{_B}}[_INDEX_SEC1(_neuron, _i)] - {{_P_parent}}[_INDEX_SEC(_neuron, _i-1)] * {{_B}}[_j];
-            {{_B}}[_INDEX_SEC1(_neuron, _i)] = {{_B}}[_INDEX_SEC1(_neuron, _i)] / {{_P_diag}}[_INDEX_SEC1(_neuron, _i)];
+            {{_B}}[_INDEX_SEC1(_neuron, _i)] -= {{_P_parent}}[_INDEX_SEC(_neuron, _i-1)] * {{_B}}[_j];
+            {{_B}}[_INDEX_SEC1(_neuron, _i)] /= {{_P_diag}}[_INDEX_SEC1(_neuron, _i)];
 
         }
 
@@ -172,11 +178,12 @@
                                                + {{_B}}[_INDEX_SEC1(_neuron, _i+1)] * {{_u_plus}}[_j];
                 }
         }
-        {{ openmp_pragma('parallel-static') }}
-        for (int _i=0; _i<_n_compartments; _i++)
-        {
-            {{Ic}}[_INDEX(_neuron, _i)] = {{Cm}}[_INDEX(_neuron, _i)]*({{v}}[_INDEX(_neuron, _i)] - {{_v_previous}}[_INDEX(_neuron, _i)])/{{dt}};
-        }
+    }
+
+    {{ openmp_pragma('parallel-static') }}
+    for (int _i=0; _i<N; _i++)
+    {
+        {{Ic}}[_i] = {{Cm}}[_i]*({{v}}[_i] - {{_v_previous}}[_i])/{{dt}};
     }
 
 {% endblock %}
