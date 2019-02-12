@@ -27,7 +27,7 @@ from brian2.groups.neurongroup import (NeuronGroup, SubexpressionUpdater,
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
 
-__all__ = ['SpatialNeuron']
+__all__ = ['SpatialNeuron', 'SpatialNeuronGroup']
 
 logger = get_logger(__name__)
 
@@ -159,7 +159,7 @@ class FlatMorphology(object):
             self._insert_data(child, parent_idx=idx, depth=depth+1)
 
 
-class SpatialNeuron(NeuronGroup):
+class SpatialNeuronGroup(NeuronGroup):
     '''
     A single neuron with a morphology and possibly many compartments.
 
@@ -226,7 +226,7 @@ class SpatialNeuron(NeuronGroup):
         A unique name for the group, otherwise use ``spatialneuron_0``, etc.
     '''
 
-    def __init__(self, morphology=None, model=None, threshold=None,
+    def __init__(self, neurons, morphology=None, model=None, threshold=None,
                  refractory=False, reset=None, events=None,
                  threshold_location=None,
                  dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
@@ -362,7 +362,7 @@ class SpatialNeuron(NeuronGroup):
             z : meter (constant)
             ''')
 
-        NeuronGroup.__init__(self, morphology.total_compartments,
+        NeuronGroup.__init__(self, morphology.total_compartments * neurons,
                              model=model + eqs_constants,
                              method_options=method_options,
                              threshold=threshold, refractory=refractory,
@@ -383,21 +383,25 @@ class SpatialNeuron(NeuronGroup):
                                    # and arrays interchangeably:
                                    '_I0_all', '_gtot_all'],
                                   size=self.N, read_only=True)
-
+        self.variables.add_constant('_n_neurons', neurons)
+        self.variables.add_constant('_n_sections',
+                                    morphology.total_sections)
+        self.variables.add_constant('_n_compartments',
+                                    morphology.total_compartments)
         self.Cm = Cm
         self.Ri = Ri
         # These explict assignments will load the morphology values from disk
         # in standalone mode
-        self.distance_ = self.flat_morphology.distance
-        self.length_ = self.flat_morphology.length
-        self.area_ = self.flat_morphology.area
-        self.diameter_ = self.flat_morphology.diameter
-        self.r_length_1_ = self.flat_morphology.r_length_1
-        self.r_length_2_ = self.flat_morphology.r_length_2
+        self.distance_ = np.tile(self.flat_morphology.distance, neurons)
+        self.length_ = np.tile(self.flat_morphology.length, neurons)
+        self.area_ = np.tile(self.flat_morphology.area, neurons)
+        self.diameter_ = np.tile(self.flat_morphology.diameter, neurons)
+        self.r_length_1_ = np.tile(self.flat_morphology.r_length_1, neurons)
+        self.r_length_2_ = np.tile(self.flat_morphology.r_length_2, neurons)
         if self.flat_morphology.has_coordinates:
-            self.x_ = self.flat_morphology.x
-            self.y_ = self.flat_morphology.y
-            self.z_ = self.flat_morphology.z
+            self.x_ = np.tile(self.flat_morphology.x, neurons)
+            self.y_ = np.tile(self.flat_morphology.y, neurons)
+            self.z_ = np.tile(self.flat_morphology.z, neurons)
 
         # Performs numerical integration step
         self.add_attribute('diffusion_state_updater')
@@ -502,6 +506,25 @@ class SpatialNeuron(NeuronGroup):
 
         return Subgroup(neuron, start, stop)
 
+class SpatialNeuron(SpatialNeuronGroup):
+    def __init__(self, morphology=None, model=None, threshold=None,
+                 refractory=False, reset=None, events=None,
+                 threshold_location=None,
+                 dt=None, clock=None, order=0, Cm=0.9 * uF / cm ** 2, Ri=150 * ohm * cm,
+                 name='spatialneuron*', dtype=None, namespace=None,
+                 method=('exact', 'exponential_euler', 'rk2', 'heun'),
+                 method_options=None):
+        super(SpatialNeuron, self).__init__(1, morphology=morphology,
+                                            model=model, threshold=threshold,
+                                            refractory=refractory,
+                                            reset=reset, events=events,
+                                            threshold_location=threshold_location,
+                                            dt=dt, clock=clock, order=order,
+                                            Cm=Cm, Ri=Ri, name=name,
+                                            dtype=dtype, namespace=namespace,
+                                            method=method,
+                                            method_options=method_options)
+
 
 class SpatialSubgroup(Subgroup):
     '''
@@ -542,8 +565,12 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.method_choice = method
         self.group = weakref.proxy(group)
 
+        neurons = group._n_neurons
         compartments = group.flat_morphology.n
+        total_compartments = compartments * neurons
         sections = group.flat_morphology.sections
+        total_sections = sections * neurons
+
 
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
@@ -558,48 +585,60 @@ class SpatialStateUpdater(CodeRunner, Group):
 
         self.variables = Variables(self, default_index='_section_idx')
         self.variables.add_reference('N', group)
+        self.variables.add_reference('_n_neurons', group)
+        self.variables.add_reference('_n_sections', group)
+        self.variables.add_reference('_n_compartments', group)
+
         # One value per compartment
-        self.variables.add_arange('_compartment_idx', size=compartments)
+        self.variables.add_arange('_compartment_idx',
+                                  size=total_compartments)
         self.variables.add_array('_invr', dimensions=siemens.dim,
-                                 size=compartments, constant=True,
+                                 size=total_compartments, constant=True,
                                  index='_compartment_idx')
+        print(self.variables['_invr'].size)
         # one value per section
-        self.variables.add_arange('_section_idx', size=sections)
-        self.variables.add_array('_P_parent', size=sections,
+        self.variables.add_arange('_section_idx', size=total_sections)
+        self.variables.add_array('_P_parent', size=total_sections,
                                  constant=True)  # elements below diagonal
         self.variables.add_arrays(['_morph_idxchild', '_morph_parent_i',
-                                   '_starts', '_ends'], size=sections,
+                                   '_starts', '_ends'], size=total_sections,
                                   dtype=np.int32, constant=True)
         self.variables.add_arrays(['_invr0', '_invrn'], dimensions=siemens.dim,
-                                  size=sections, constant=True)
+                                  size=total_sections, constant=True)
+
         # one value per section + 1 value for the root
-        self.variables.add_arange('_section_root_idx', size=sections+1)
-        self.variables.add_array('_P_diag', size=sections+1,
+        self.variables.add_arange('_section_root_idx',
+                                  size=(sections+1)*neurons)
+        self.variables.add_array('_P_diag', size=(sections+1)*neurons,
                                  constant=True, index='_section_root_idx')
-        self.variables.add_array('_B', size=sections+1,
+        self.variables.add_array('_B', size=(sections+1)*neurons,
                                  constant=True, index='_section_root_idx')
         self.variables.add_array('_morph_children_num',
-                                 size=sections+1, dtype=np.int32,
+                                 size=(sections+1)*neurons, dtype=np.int32,
                                  constant=True, index='_section_root_idx')
+
         # 2D matrices of size (sections + 1) x max children per section
+        max_children = len(group.flat_morphology.morph_children)
         self.variables.add_arange('_morph_children_idx',
-                                  size=len(group.flat_morphology.morph_children))
+                                  size=max_children*neurons)
         self.variables.add_array('_P_children',
-                                 size=len(group.flat_morphology.morph_children),
+                                 size=max_children*neurons,
                                  index='_morph_children_idx',
                                  constant=True)  # elements above diagonal
         self.variables.add_array('_morph_children',
-                                 size=len(group.flat_morphology.morph_children),
+                                 size=max_children*neurons,
                                  dtype=np.int32, constant=True,
                                  index='_morph_children_idx')
+        self.variables.add_constant('_max_children', value=max_children)
         self._enable_group_attributes()
 
-        self._morph_parent_i = group.flat_morphology.morph_parent_i
-        self._morph_children_num = group.flat_morphology.morph_children_num
-        self._morph_children = group.flat_morphology.morph_children
-        self._morph_idxchild = group.flat_morphology.morph_idxchild
-        self._starts = group.flat_morphology.starts
-        self._ends = group.flat_morphology.ends
+        self._morph_parent_i = np.tile(group.flat_morphology.morph_parent_i, neurons) + np.repeat(np.arange(neurons), sections)*(sections + 1)  # we index into B
+        self._morph_children_num = np.tile(group.flat_morphology.morph_children_num, neurons)  # numbers, not indices
+        self._morph_children = np.tile(group.flat_morphology.morph_children, neurons) + np.repeat(np.arange(neurons), max_children)*max_children
+        self._morph_idxchild = np.tile(group.flat_morphology.morph_idxchild, neurons) + np.repeat(np.arange(neurons), sections)*sections
+        # Indexing into compartments:
+        self._starts = np.tile(group.flat_morphology.starts, neurons) + np.repeat(np.arange(neurons), sections)*compartments
+        self._ends = np.tile(group.flat_morphology.ends, neurons) + np.repeat(np.arange(neurons), sections)*compartments
         self._prepare_codeobj = None
 
     def before_run(self, run_namespace):
