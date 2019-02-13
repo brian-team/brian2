@@ -14,7 +14,13 @@
 
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-
+    {% if profiled %}
+    {% if openmp_pragma('with_openmp') %}
+    double _my_start_time = omp_get_wtime();
+    {% else %}
+    std::clock_t _my_start_time = std::clock();
+    {% endif %}
+    {% endif %}
     // We evaluate the membrane current/conductance in each compartment
     // independently, therefore we can do a simple loop instead of doing this
     // as part of the loop over neurons
@@ -36,6 +42,16 @@
 
         {{_v_previous}}[_idx] = {{v}}[_idx];
     }
+    {% if profiled %}
+    {% if openmp_pragma('with_openmp') %}
+    double _my_run_time = omp_get_wtime() - _my_start_time;
+    _my_start_time = omp_get_wtime();
+    {% else %}
+    double _my_run_time = (double)(std::clock() - _my_start_time)/CLOCKS_PER_SEC;
+    _my_start_time = std::clock();
+    {% endif %}
+    {{codeobj_name}}_step_1_profiling_info += _my_run_time;
+    {% endif %}
 
     #define _INDEX(_neuron, _compartment) ((_neuron)*_n_compartments + (_compartment))
     #define _INDEX_SEC(_neuron, _section) ((_neuron)*_n_sections + (_section))
@@ -86,6 +102,16 @@
             }
         }
     }
+    {% if profiled %}
+    {% if openmp_pragma('with_openmp') %}
+    _my_run_time = omp_get_wtime() - _my_start_time;
+    _my_start_time = omp_get_wtime();
+    {% else %}
+    _my_run_time = (double)(std::clock() - _my_start_time)/CLOCKS_PER_SEC;
+    _my_start_time = std::clock();
+    {% endif %}
+    {{codeobj_name}}_step_2_profiling_info += _my_run_time;
+    {% endif %}
     // STEP 3: solve the coupling system
     // indexing for _P_children which contains the elements above the diagonal of the coupling matrix _P
     const int _children_rowlength = _num_morph_children/_num_morph_children_num;
@@ -179,11 +205,29 @@
                 }
         }
     }
-
+    {% if profiled %}
+    {% if openmp_pragma('with_openmp') %}
+    _my_run_time = omp_get_wtime() - _my_start_time;
+    _my_start_time = omp_get_wtime();
+    {% else %}
+    _my_run_time = (double)(std::clock() - _my_start_time)/CLOCKS_PER_SEC;
+    _my_start_time = std::clock();
+    {% endif %}
+    {{codeobj_name}}_step_3_profiling_info += _my_run_time;
+    {% endif %}
     {{ openmp_pragma('parallel-static') }}
     for (int _i=0; _i<N; _i++)
     {
         {{Ic}}[_i] = {{Cm}}[_i]*({{v}}[_i] - {{_v_previous}}[_i])/{{dt}};
     }
-
+    {% if profiled %}
+    {% if openmp_pragma('with_openmp') %}
+    _my_run_time = omp_get_wtime() - _my_start_time;
+    _my_start_time = omp_get_wtime();
+    {% else %}
+    _my_run_time = (double)(std::clock() - _my_start_time)/CLOCKS_PER_SEC;
+    _my_start_time = std::clock();
+    {% endif %}
+    {{codeobj_name}}_step_4_profiling_info += _my_run_time;
+    {% endif %}
 {% endblock %}

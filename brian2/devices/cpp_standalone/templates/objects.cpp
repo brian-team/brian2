@@ -65,6 +65,12 @@ Clock {{clock.name}};  // attributes will be set in run.cpp
 {% if profiled_codeobjects is defined %}
 // Profiling information for each code object
 {% for codeobj in profiled_codeobjects | sort %}
+{% if 'spatialstateupdate' in codeobj %}
+double {{codeobj}}_step_1_profiling_info = 0.0;
+double {{codeobj}}_step_2_profiling_info = 0.0;
+double {{codeobj}}_step_3_profiling_info = 0.0;
+double {{codeobj}}_step_4_profiling_info = 0.0;
+{% endif %}
 double {{codeobj}}_profiling_info = 0.0;
 {% endfor %}
 {% endif %}
@@ -193,6 +199,12 @@ void _write_arrays()
 	if(outfile_profiling_info.is_open())
 	{
 	{% for codeobj in profiled_codeobjects | sort %}
+	{% if 'spatialstateupdate' in codeobj %}
+	outfile_profiling_info << "{{codeobj}}_step_1\t" << {{codeobj}}_step_1_profiling_info << std::endl;
+	outfile_profiling_info << "{{codeobj}}_step_2\t" << {{codeobj}}_step_2_profiling_info << std::endl;
+	outfile_profiling_info << "{{codeobj}}_step_3\t" << {{codeobj}}_step_3_profiling_info << std::endl;
+	outfile_profiling_info << "{{codeobj}}_step_4\t" << {{codeobj}}_step_4_profiling_info << std::endl;
+	{% endif %}
 	outfile_profiling_info << "{{codeobj}}\t" << {{codeobj}}_profiling_info << std::endl;
 	{% endfor %}
 	outfile_profiling_info.close();
@@ -311,6 +323,12 @@ extern SynapticPathway {{path.name}};
 {% if profiled_codeobjects is defined %}
 // Profiling information for each code object
 {% for codeobj in profiled_codeobjects | sort %}
+{% if 'spatialstateupdate' in codeobj %}
+extern double {{codeobj}}_step_1_profiling_info;
+extern double {{codeobj}}_step_2_profiling_info;
+extern double {{codeobj}}_step_3_profiling_info;
+extern double {{codeobj}}_step_4_profiling_info;
+{% endif %}
 extern double {{codeobj}}_profiling_info;
 {% endfor %}
 {% endif %}
