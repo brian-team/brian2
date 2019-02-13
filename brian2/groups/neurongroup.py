@@ -2,6 +2,7 @@
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
 import collections
+import numbers
 import string
 
 import numpy as np
@@ -87,6 +88,81 @@ def check_identifier_pre_post(identifier):
         raise ValueError('"%s" cannot be used as a variable name, the "_pre" '
                          'and "_post" suffixes are used to refer to pre- and '
                          'post-synaptic variables in synapses.' % identifier)
+
+
+def to_start_stop(item, N):
+    '''
+    Helper function to transform a single number, a slice or an array of
+    contiguous indices to a start and stop value. This is used to allow for
+    some flexibility in the syntax of specifying subgroups in `.NeuronGroup`
+    and `.SpatialNeuron`.
+
+    Parameters
+    ----------
+    item : slice, int or sequence
+        The slice, index, or sequence of indices to use. Note that a sequence
+        of indices has to be a sorted ascending sequence of subsequent integers.
+    N : int
+        The total number of elements in the group.
+
+    Returns
+    -------
+        start : int
+            The start value of the slice.
+        stop : int
+            The stop value of the slice.
+
+    Examples
+    --------
+    >>> from brian2.groups.neurongroup import to_start_stop
+    >>> to_start_stop(slice(3, 6), 10)
+    (3, 6)
+    >>> to_start_stop(slice(3, None), 10)
+    (3, 10)
+    >>> to_start_stop(5, 10)
+    (5, 6)
+    >>> to_start_stop([3, 4, 5], 10)
+    (3, 6)
+    >>> to_start_stop([3, 5, 7], 10)
+    Traceback (most recent call last):
+        ...
+    IndexError: Subgroups can only be constructed using contiguous indices.
+    '''
+    if isinstance(item, slice):
+        start, stop, step = item.indices(N)
+    elif isinstance(item, numbers.Integral):
+        start = item
+        stop = item + 1
+        step = 1
+    elif (isinstance(item, (collections.Sequence, np.ndarray)) and
+          not isinstance(item, basestring)):
+        if not (len(item) > 0 and np.all(np.diff(item) == 1)):
+            raise IndexError('Subgroups can only be constructed using '
+                             'contiguous indices.')
+        if not np.issubdtype(np.asarray(item).dtype, np.integer):
+            raise TypeError('Subgroups can only be constructed using integer '
+                            'values.')
+        start = int(item[0])
+        stop = int(item[-1]) + 1
+        step = 1
+    else:
+        raise TypeError('Subgroups can only be constructed using slicing '
+                        'syntax, a single index, or an array of contiguous '
+                        'indices.')
+    if step != 1:
+        raise IndexError('Subgroups have to be contiguous')
+    if start >= stop:
+        raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
+                         (start, stop))
+    if start >= N:
+        raise IndexError('Illegal start value for subgroup, %d>=%d' %
+                         (start, N))
+    if stop > N:
+        raise IndexError('Illegal stop value for subgroup, %d>%d' %
+                         (stop, N))
+    if start < 0:
+        raise IndexError('Indices have to be positive.')
+    return start, stop
 
 
 class StateUpdater(CodeRunner):
@@ -725,14 +801,7 @@ class NeuronGroup(Group, SpikeSource):
                 Group.__setattr__(self, key, value, level=1)
 
     def __getitem__(self, item):
-        if not isinstance(item, slice):
-            raise TypeError('Subgroups can only be constructed using slicing syntax')
-        start, stop, step = item.indices(self._N)
-        if step != 1:
-            raise IndexError('Subgroups have to be contiguous')
-        if start >= stop:
-            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                             (start, stop))
+        start, stop = to_start_stop(item, self._N)
 
         return Subgroup(self, start, stop)
 

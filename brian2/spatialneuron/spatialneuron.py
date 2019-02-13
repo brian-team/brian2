@@ -18,7 +18,8 @@ from brian2.units.fundamentalunits import Quantity, Unit, fail_for_dimension_mis
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
-from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater
+from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, \
+    to_start_stop
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
 
@@ -474,21 +475,22 @@ class SpatialNeuron(NeuronGroup):
         either compartment indexes or distances.
         Note a: segment is not a `SpatialNeuron`, only a `Group`.
         '''
-        if not isinstance(item, slice):
-            raise TypeError(
-                'Subgroups can only be constructed using slicing syntax')
-        start, stop, step = item.start, item.stop, item.step
-        if step is None:
-            step = 1
-        if step != 1:
-            raise IndexError('Subgroups have to be contiguous')
-
-        if isinstance(start, Quantity):
-            if not have_same_dimensions(start, meter) or not have_same_dimensions(stop, meter):
-                raise DimensionMismatchError('Start and stop should have units of meter', start, stop)
+        if isinstance(item, slice) and isinstance(item.start, Quantity):
+            if item.step is not None:
+                raise ValueError('Cannot specify a step size for slicing based'
+                                 'on length.')
+            start, stop = item.start, item.stop
+            if (not have_same_dimensions(start, meter) or
+                    not have_same_dimensions(stop, meter)):
+                raise DimensionMismatchError('Start and stop should have units '
+                                             'of meter', start, stop)
             # Convert to integers (compartment numbers)
             indices = neuron.morphology.indices[item]
             start, stop = indices[0], indices[-1] + 1
+        elif not isinstance(item, slice) and hasattr(item, 'indices'):
+            start, stop = to_start_stop(item.indices[:], neuron._N)
+        else:
+            start, stop = to_start_stop(item, neuron._N)
 
         if start >= stop:
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
