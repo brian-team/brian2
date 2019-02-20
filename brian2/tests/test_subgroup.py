@@ -650,13 +650,28 @@ def test_spike_monitor():
 @attr('codegen-independent')
 def test_wrong_indexing():
     G = NeuronGroup(10, 'v:1')
-    assert_raises(TypeError, lambda: G[0])
-    assert_raises(TypeError, lambda: G[[0, 1]])
     assert_raises(TypeError, lambda: G['string'])
 
+    assert_raises(IndexError, lambda: G[10])
     assert_raises(IndexError, lambda: G[10:])
     assert_raises(IndexError, lambda: G[::2])
     assert_raises(IndexError, lambda: G[3:2])
+    assert_raises(IndexError, lambda: G[[5, 4, 3]])
+    assert_raises(IndexError, lambda: G[[2, 4, 6]])
+    assert_raises(IndexError, lambda: G[[-1, 0, 1]])
+    assert_raises(IndexError, lambda: G[[9, 10, 11]])
+    assert_raises(IndexError, lambda: G[[9, 10]])
+    assert_raises(IndexError, lambda: G[[10, 11]])
+    assert_raises(TypeError, lambda: G[[2.5, 3.5, 4.5]])
+
+
+@attr('codegen-independent')
+def test_alternative_indexing():
+    G = NeuronGroup(10, 'v : integer')
+    G.v = 'i'
+    assert_equal(G[-3:].v, np.array([7, 8, 9]))
+    assert_equal(G[3].v, np.array([3]))
+    assert_equal(G[[3, 4, 5]].v, np.array([3, 4, 5]))
 
 
 def test_no_reference_1():

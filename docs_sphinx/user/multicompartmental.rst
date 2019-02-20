@@ -309,6 +309,29 @@ A part of a section can be accessed as follows::
 
     initial_segment = neuron.axon[10*um:50*um]
 
+Finally, similar to the way that you can refer to a subset of neurons of a
+`NeuronGroup`, you can also index the `SpatialNeuron` object itself, e.g. to
+get a group representing only the first compartment of a cell (typically the
+soma), you can use::
+
+    soma = neuron[0]
+
+In the same way as for sections, you can also use slices, either with the
+indices of compartments, or with the distance from the root::
+
+    first_compartments = neurons[:3]
+    first_compartments = neurons[0*um:30*um]
+
+However, note that this is restricted to contiguous indices which most of the
+time means that all compartments indexed in this way have to be part of the
+same section. Such indices can be acquired directly from the morphology::
+
+    axon = neurons[morpho.axon.indices[:]]
+
+or, more concisely::
+
+    axon = neurons[morpho.axon]
+
 Synaptic inputs
 ~~~~~~~~~~~~~~~
 There are two methods to have synapses on `SpatialNeuron`.
@@ -386,3 +409,8 @@ Again the location of the threshold can be specified with spatial position::
                            threshold_location=morpho.axon[30*um],
                            refractory='m > 0.4')
 
+Subgroups
+~~~~~~~~~
+
+In the same way that you can refer to a subset of neurons in a `NeuronGroup`,
+you can also refer to a subset of compartments in a `SpatialNeuron`

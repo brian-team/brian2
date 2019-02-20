@@ -662,6 +662,13 @@ def test_spatialneuron_indexing():
     assert len(neuron.sec1.sec12.main.v[:]) == 8
     assert len(neuron.sec2.main.v[:]) == 16
     assert len(neuron.sec2.sec21.main.v[:]) == 32
+    # Accessing subgroups
+    assert len(neuron[0].indices[:]) == 1
+    assert len(neuron[0*um:50*um].indices[:]) == 1
+    assert len(neuron[0:1].indices[:]) == 1
+    assert len(neuron[sec.sec2.indices[:]]) == 16
+    assert len(neuron[sec.sec2]) == 16
+
 
 @attr('codegen-independent')
 def test_tree_index_consistency():
@@ -808,6 +815,7 @@ def test_spatialneuron_capacitive_currents():
     device.build(direct_call=False, **device.build_options)
     assert_allclose((mon.Im-mon.Ic).sum(axis=0)/(mA/cm**2), np.zeros(230),
                     atol=1e6)
+
 
 if __name__ == '__main__':
     test_custom_events()

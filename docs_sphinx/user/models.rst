@@ -173,6 +173,14 @@ Python's slicing syntax::
 Here ``G1`` refers to the first 5 neurons in G, and ``G2`` to the second 5
 neurons. In general ``G[i:j]`` refers to the neurons with indices from ``i``
 to ``j-1``, as in general in Python.
+
+For convenience, you can also use a single index, i.e. ``G[i]`` is equivalent
+to ``G[i:i+1]``. In some situations, it can be easier to provide a list of
+indices instead of a slice, Brian therefore also allows for this syntax. Note
+that this is restricted to cases that are strictly equivalent with slicing
+syntax, e.g. you can write ``G[[3, 4, 5]]`` instead of ``G[3:6]``, but you
+*cannot* write ``G[[3, 5, 7]]`` or ``G[[5, 4, 3]]``.
+
 Subgroups can be used in most places where regular groups are used, e.g. their
 state variables or spiking activity can be recorded using monitors, they can be
 connected via `Synapses`, etc. In such situations, indices (e.g. the indices of
