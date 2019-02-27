@@ -36,8 +36,7 @@ def check_dt(new_dt, old_dt, target_t):
     ------
     ValueError
         If using the new dt value would lead to a difference in the target
-        time of more than `Clock.epsilon_dt` times ``new_dt`` (by default,
-        0.01% of the new dt).
+        time of more than `Clock.epsilon_dt` (by default, 10ns).
 
     Examples
     --------
@@ -52,7 +51,7 @@ def check_dt(new_dt, old_dt, target_t):
     old_t = np.int64(np.round(target_t / old_dt)) * old_dt
     new_t = np.int64(np.round(target_t / new_dt)) * new_dt
     error_t = target_t
-    if abs(new_t - old_t)/new_dt > Clock.epsilon_dt:
+    if abs(new_t - old_t) > Clock.epsilon_dt:
         raise ValueError(('Cannot set dt from {old} to {new}, the '
                           'time {t} is not a multiple of '
                           '{new}').format(old=str(old_dt * second),
@@ -74,10 +73,8 @@ class Clock(VariableOwner):
     Notes
     -----
     Clocks are run in the same `Network.run` iteration if `~Clock.t` is the
-    same. The condition for two
-    clocks to be considered as having the same time is
-    ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
-    point values. The value of ``epsilon`` is ``1e-14``.
+    same. The condition for two clocks to be considered as having the same time
+    is ``abs(t1-t2)<10*ns``.
     '''
 
     def __init__(self, dt, name='clock*'):
@@ -121,7 +118,7 @@ class Clock(VariableOwner):
     def _calc_timestep(self, target_t):
         '''
         Calculate the integer time step for the target time. If it cannot be
-        exactly represented (up to 0.01% of dt), round up.
+        exactly represented (up to 10ns), round up.
 
         Parameters
         ----------
@@ -136,7 +133,7 @@ class Clock(VariableOwner):
         new_i = np.int64(np.round(target_t / self.dt_))
         new_t = new_i * self.dt_
         if (new_t == target_t or
-                        np.abs(new_t - target_t)/self.dt_ <= Clock.epsilon_dt):
+                        np.abs(new_t - target_t) <= Clock.epsilon_dt):
             new_timestep = new_i
         else:
             new_timestep = np.int64(np.ceil(target_t / self.dt_))
@@ -189,9 +186,9 @@ class Clock(VariableOwner):
                                      self._i_end),
                         'many_timesteps')
 
-    #: The relative difference for times (in terms of dt) so that they are
+    #: The absolute difference for times (in seconds) so that clocks are
     #: considered identical.
-    epsilon_dt = 1e-4
+    epsilon_dt = 1e-8
 
 
 class DefaultClockProxy(object):
