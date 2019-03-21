@@ -476,6 +476,13 @@ def test_error_messages():
             assert expected_2 in message
 
 
+@attr('codegen-independent')
+def test_sympy_infinity():
+    # See github issue #1061
+    assert sympy_to_str(str_to_sympy('inf')) == 'inf'
+    assert sympy_to_str(str_to_sympy('-inf')) == '-inf'
+
+
 if __name__=='__main__':
     test_parse_expressions_python()
     test_parse_expressions_numpy()
@@ -493,3 +500,5 @@ if __name__=='__main__':
     test_substitute_abstract_code_functions()
     test_sympytools()
     test_error_messages()
+    test_sympy_infinity()
+

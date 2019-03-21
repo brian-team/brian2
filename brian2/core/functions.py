@@ -6,6 +6,7 @@ import numpy as np
 import sympy
 from numpy.random import randn, rand
 from sympy import Function as sympy_Function
+from sympy import S
 
 import brian2.units.unitsafefunctions as unitsafe
 from brian2.core.preferences import prefs
@@ -644,4 +645,7 @@ DEFAULT_FUNCTIONS = {
 
 DEFAULT_CONSTANTS = {'pi': SymbolicConstant('pi', sympy.pi, value=np.pi),
                      'e': SymbolicConstant('e', sympy.E, value=np.e),
-                     'inf': SymbolicConstant('inf', sympy.oo, value=np.inf)}
+                     'inf': SymbolicConstant('inf', S.Infinity,
+                                             value=np.inf),
+                     '-inf': SymbolicConstant('-inf', S.NegativeInfinity,
+                                              value=-np.inf)}
