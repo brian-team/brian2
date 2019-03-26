@@ -1372,6 +1372,24 @@ def test_small_runs():
     assert_allclose(mon_1.t_[:], mon_2.t_[:])
     assert_allclose(mon_1.v_[:], mon_2.v_[:])
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_long_run():
+    defaultclock.dt = 0.1 * ms
+    group = NeuronGroup(1, 'x : 1')
+    group.run_regularly('x += 1')
+    # Timesteps are internally stored as 64bit integers, but previous versions
+    # converted them into 32bit integers along the way. We'll make sure that
+    # this is not the case and everything runs fine. To not actually run such a
+    # long simulation we manually advance the clock.
+    net = Network(group, name='network')
+    start_step = 2**31-5
+    start_time = start_step*defaultclock.dt_
+    with catch_logs() as l:
+        net.t_ = start_time  # for runtime
+        device.insert_code('main', 'network.t = {};'.format(start_time))  # for standalone
+        net.run(6 * defaultclock.dt)
+    assert group.x == 6
 
 @attr('codegen-independent')
 @with_setup(teardown=reinit_devices)
@@ -1408,6 +1426,7 @@ def test_multiple_runs_function_change():
     run(2*defaultclock.dt)
     device.build(direct_call=False, **device.build_options)
     assert_equal(mon.v[0], [1, 2, 3, 4])
+
 
 if __name__ == '__main__':
     BrianLogger.log_level_warn()
@@ -1470,6 +1489,7 @@ if __name__ == '__main__':
             test_magic_scope,
             test_runtime_rounding,
             test_small_runs,
+            test_long_run,
             test_long_run_dt_change,
             test_multiple_runs_constant_change,
             test_multiple_runs_function_change
