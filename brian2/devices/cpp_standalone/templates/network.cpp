@@ -7,8 +7,6 @@
 #include<utility>
 {{ openmp_pragma('include') }}
 
-#define Clock_epsilon 1e-8
-
 double Network::_last_run_time = 0.0;
 double Network::_last_run_completed_fraction = 0.0;
 
@@ -158,7 +156,7 @@ Clock* Network::next_clocks()
     {
         Clock *clock = *i;
         double s = clock->t[0];
-        if(s==t || fabs(s-t)<=Clock_epsilon)
+        if(s==t || fabs(s-t) <= clock->epsilon)
             curclocks.insert(clock);
     }
     return minclock;
