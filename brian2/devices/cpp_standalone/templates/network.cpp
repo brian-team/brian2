@@ -7,7 +7,7 @@
 #include<utility>
 {{ openmp_pragma('include') }}
 
-#define Clock_epsilon 1e-14
+#define Clock_epsilon 1e-8
 
 double Network::_last_run_time = 0.0;
 double Network::_last_run_completed_fraction = 0.0;
