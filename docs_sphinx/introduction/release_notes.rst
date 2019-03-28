@@ -1,6 +1,54 @@
 Release notes
 =============
 
+Brian 2.2.2
+-----------
+This is a bug-fix release that fixes several bugs and adds a few minor new
+features. We recommend all users of Brian 2 to upgrade.
+
+As always, please report bugs or suggestions to the github bug tracker
+(https://github.com/brian-team/brian2/issues) or to the brian-development
+mailing list (brian-development@googlegroups.com).
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix an issue with the synapses generator syntax (:issue:`1037`).
+* Fix an incorrect error when using a `SpikeGeneratorGroup` with a long period
+  (:issue:`1041`). Thanks to Kévin Cuallado-Keltsch for reporting this issue.
+* Improve the performance of `SpikeGeneratorGroup` by avoiding a conversion
+  from time to integer time step (:issue:`1043`). This time step is now also
+  available to user code as ``t_in_timesteps``.
+* Function definitions for weave/Cython/C++ standalone can now declare
+  additional header files and libraries. They also support a new ``sources``
+  argument to use a function definition from an external file. See the
+  :doc:`../advanced/functions` documentation for details.
+* For convenience, single-neuron subgruops can now be created with a single
+  index instead of with a slice (e.g. ``neurongroup[3]`` instead of
+  ``neurongroup[3:4]``).
+* Fix an issue when ``-inf`` is used in an equation (:issue:`1061`).
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Felix Z. Hoffmann (`@Felix11H <https://github.com/Felix11H>`_)
+* `@wjx0914 <https://github.com/wjx0914>`_
+* Kévin Cuallado-Keltsch (`@kevincuallado <https://github.com/kevincuallado>`_)
+* Romain Cazé (`@rcaze <https://github.com/rcaze>`_)
+* Daphne (`@daphn3cor <https://github.com/daphn3cor>`_)
+* Erik (`@parenthetical-e <https://github.com/parenthetical-e>`_)
+* `@RahulMaram <https://github.com/RahulMaram>`_
+* Eghbal Hosseini (`@eghbalhosseini <https://github.com/eghbalhosseini>`_)
+* Martino Sorbaro (`@martinosorb <https://github.com/martinosorb>`_)
+* Mihir Vaidya (`@MihirVaidya94 <https://github.com/MihirVaidya94>`_)
+* `@hellolingling <https://github.com/hellolingling>`_
+* Volodimir Slobodyanyuk (`@vslobody <https://github.com/vslobody>`_)
+* Peter Duggins (`@psipeter <https://github.com/psipeter>`_)
+
+
 Brian 2.2.1
 -----------
 This is a bug-fix release that fixes a few minor bugs and incompatibilites with
