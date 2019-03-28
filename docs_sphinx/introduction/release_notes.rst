@@ -22,7 +22,7 @@ Selected improvements and bug fixes
   additional header files and libraries. They also support a new ``sources``
   argument to use a function definition from an external file. See the
   :doc:`../advanced/functions` documentation for details.
-* For convenience, single-neuron subgruops can now be created with a single
+* For convenience, single-neuron subgroups can now be created with a single
   index instead of with a slice (e.g. ``neurongroup[3]`` instead of
   ``neurongroup[3:4]``).
 * Fix an issue when ``-inf`` is used in an equation (:issue:`1061`).
