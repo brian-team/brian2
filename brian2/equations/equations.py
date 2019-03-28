@@ -174,7 +174,7 @@ def check_identifier_reserved(identifier):
     SyntaxError
         If the identifier is a special variable name.
     '''
-    if (identifier in ('t', 'dt', 'xi', 'i', 'N') or
+    if (identifier in ('t', 'dt', 't_in_timesteps', 'xi', 'i', 'N') or
             identifier.startswith('xi_')):
         raise SyntaxError(('"%s" has a special meaning in equations and cannot '
                            'be used as a variable name.') % identifier)
