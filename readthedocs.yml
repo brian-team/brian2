@@ -1,5 +1,0 @@
-conda:
-    file: rtd_environment.yml
-formats:
-    - epub
-    - pdf
