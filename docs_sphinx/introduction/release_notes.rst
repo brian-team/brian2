@@ -1,14 +1,17 @@
 Release notes
 =============
 
-Brian 2.2.2
------------
+Brian 2.2.2.1
+-------------
 This is a bug-fix release that fixes several bugs and adds a few minor new
 features. We recommend all users of Brian 2 to upgrade.
 
 As always, please report bugs or suggestions to the github bug tracker
 (https://github.com/brian-team/brian2/issues) or to the brian-development
 mailing list (brian-development@googlegroups.com).
+
+[Note that the original upload of this release was version 2.2.2, but due to
+a mistake in the released archive, it has been uploaded again as version 2.2.2.1]
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
