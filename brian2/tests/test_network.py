@@ -475,6 +475,33 @@ def test_incorrect_network_operations():
 
 @attr('codegen-independent')
 @with_setup(teardown=restore_initial_state)
+def test_network_operations_name():
+    # test NetworkOperation name input
+    seq = []
+    def f1():
+        seq.append('a')
+
+    def f2():
+        seq.append('b')
+
+    op = NetworkOperation(lambda: x)
+    assert_equal(op.name, 'networkoperation')
+
+    op0 = NetworkOperation(lambda: x, name='named_network')
+    assert_equal(op0.name, 'named_network')
+
+    op1 = NetworkOperation(f1, name='networkoperation_1')
+    op2 = NetworkOperation(f1, name='networkoperation_3')
+    op3 = NetworkOperation(f2, name='networkoperation_2')
+
+    net = Network(op1, op2, op3)
+    net.run(1*ms)
+
+    assert_equal(''.join(seq), 'aba'*10)
+
+
+@attr('codegen-independent')
+@with_setup(teardown=restore_initial_state)
 def test_network_active_flag():
     # test that the BrianObject.active flag is recognised by Network.run
     x = Counter()
@@ -1432,6 +1459,7 @@ if __name__ == '__main__':
             test_network_stop,
             test_network_operations,
             test_incorrect_network_operations,
+            test_network_operations_name,
             test_network_active_flag,
             test_network_t,
             test_incorrect_dt_defaultclock,
