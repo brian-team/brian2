@@ -328,7 +328,7 @@ class Network(Nameable):
         #: objects during a run: it is filled in `before_run` and emptied in
         #: `after_run`
         self.objects = []
-        
+        self.allobjects=[]                                                                    
         name = kwds.pop('name', 'network*')
 
         if kwds:
@@ -443,7 +443,6 @@ class Network(Nameable):
                                        % obj.name)
                 if obj not in self.objects:  # Don't include objects twice
                     self.objects.append(obj)
-                self.add(obj.contained_objects)
             else:
                 # allow adding values from dictionaries
                 if isinstance(obj, Mapping):
@@ -880,6 +879,32 @@ class Network(Nameable):
                          abs(time - min_time)/min(minclock_dt, dt) < Clock.epsilon_dt))
         return minclock, curclocks
 
+    def add_contained_objects(self, *objs):
+        """
+        Add objects defined by network.add() and their respective contained_objects to the Network
+        """
+        for obj in objs:
+            if isinstance(obj, BrianObject):
+                if obj not in self.allobjects:  # Don't include objects twice
+                    self.allobjects.append(obj) #Add to allobjects
+                self.add_contained_objects(obj.contained_objects)  #add each object's contained_objects                          
+            else:
+                # allow adding values from dictionaries
+                if isinstance(obj, Mapping):
+                    self.add_contained_objects(*obj.values())
+                else:
+                    try:
+                        for o in obj:
+                            # The following "if" looks silly but avoids an infinite
+                            # recursion if a string is provided as an argument
+                            # (which might occur during testing)
+                            if o is obj:
+                                raise TypeError()
+                            self.add_contained_objects(o)
+                    except TypeError:
+                        raise TypeError("Can only add objects of type BrianObject, "
+                                        "or containers of such objects to Network")
+        
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
@@ -924,6 +949,8 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
+        self.add_contained_objects(self.objects)    
+        self.objects=self.allobjects
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
         self._clocks = set([obj.clock for obj in self.objects])
         single_clock = len(self._clocks) == 1
