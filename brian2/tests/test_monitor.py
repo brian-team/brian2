@@ -241,7 +241,7 @@ def test_spike_trains():
     monitor = SpikeMonitor(generator)
     run(19.1*ms)
     trains = monitor.spike_trains()
-    for idx, spike_times in trains.iteritems():
+    for idx, spike_times in trains.items():
         assert all(np.diff(spike_times) > 0*ms), 'Spike times for neuron %d are not sorted' % idx
 
 
@@ -453,7 +453,7 @@ def test_rate_monitor_smoothed_rate():
     r_mon = PopulationRateMonitor(G)
     run(3*ms)
     index = int(np.round(1*ms/defaultclock.dt))
-    except_index = np.array([idx for idx in xrange(len(r_mon.rate))
+    except_index = np.array([idx for idx in range(len(r_mon.rate))
                              if idx != index])
     assert_array_equal(r_mon.rate[except_index], 0*Hz)
     assert_allclose(r_mon.rate[index], 1/defaultclock.dt)

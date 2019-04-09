@@ -4,6 +4,7 @@ Numerical integration functions.
 
 import string
 import operator
+from functools import reduce
 
 import sympy
 from sympy.core.sympify import SympifyError

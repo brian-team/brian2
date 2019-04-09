@@ -329,5 +329,5 @@ if __name__=='__main__':
     '''
     man = CythonExtensionManager()
     mod = man.create_extension(code)
-    print mod.f(2)
+    print(mod.f(2))
     

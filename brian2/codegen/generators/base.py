@@ -38,7 +38,7 @@ class CodeGenerator(object):
         self.variables = variables
         self.variable_indices = variable_indices
         self.func_name_replacements = {}
-        for varname, var in variables.iteritems():
+        for varname, var in variables.items():
             if isinstance(var, Function):
                 if codeobj_class in var.implementations:
                     impl_name = var.implementations[codeobj_class].name
@@ -116,9 +116,9 @@ class CodeGenerator(object):
         '''
         scalar_code = {}
         vector_code = {}
-        for name, block in scalar_statements.iteritems():
+        for name, block in scalar_statements.items():
             scalar_code[name] = self.translate_one_statement_sequence(block, scalar=True)
-        for name, block in vector_statements.iteritems():
+        for name, block in vector_statements.items():
             vector_code[name] = self.translate_one_statement_sequence(block, scalar=False)
 
         kwds = self.determine_keywords()
@@ -154,9 +154,9 @@ class CodeGenerator(object):
                                            'vector variable %s') %
                                           (stmt.var, name))
             write.add(stmt.var)
-        read = set(varname for varname, var in variables.items()
+        read = set(varname for varname, var in list(variables.items())
                    if isinstance(var, ArrayVariable) and varname in read)
-        write = set(varname for varname, var in variables.items()
+        write = set(varname for varname, var in list(variables.items())
                     if isinstance(var, ArrayVariable) and varname in write)
         # Gather the indices stored as arrays (ignore _idx which is special)
         indices = set()
@@ -178,7 +178,7 @@ class CodeGenerator(object):
         when ``varname`` is written to, it should only be when ``condition_var_name`` is ``True``.
         '''
         conditional_write_vars = {}
-        for varname, var in self.variables.items():
+        for varname, var in list(self.variables.items()):
             if getattr(var, 'conditional_write', None) is not None:
                 cvar = var.conditional_write
                 cname = cvar.name
@@ -221,14 +221,14 @@ class CodeGenerator(object):
         '''
         scalar_statements = {}
         vector_statements = {}
-        for ac_name, ac_code in code.iteritems():
+        for ac_name, ac_code in code.items():
             statements = make_statements(ac_code,
                                          self.variables,
                                          dtype,
                                          optimise=True,
                                          blockname=ac_name)
             scalar_statements[ac_name], vector_statements[ac_name] = statements
-        for vs in vector_statements.itervalues():
+        for vs in vector_statements.values():
             # Check that the statements are meaningful independent on the order of
             # execution (e.g. for synapses)
             try:

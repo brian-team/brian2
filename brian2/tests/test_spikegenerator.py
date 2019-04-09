@@ -1,3 +1,4 @@
+from __future__ import print_function
 '''
 Tests for `SpikeGeneratorGroup`
 '''
@@ -96,7 +97,7 @@ def test_spikegenerator_period():
 
     s_mon = SpikeMonitor(SG)
     run(10*ms)
-    for idx in xrange(5):
+    for idx in range(5):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]] + [(idx, time+5*ms) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time) for time in s_mon.t[s_mon.i==idx]])
         assert_allclose(generator_spikes, recorded_spikes)
@@ -152,13 +153,13 @@ def test_spikegenerator_period_repeat():
     s_mon = SpikeMonitor(SG)
     net   = Network(SG, s_mon)
     rate  = PopulationRateMonitor(SG)
-    for idx in xrange(5):
+    for idx in range(5):
         net.run(1*ms)
         assert (idx+1)*len(SG.spike_time) == s_mon.num_spikes
 
 
 def _compare_spikes(N, indices, times, recorded, start_time=0*ms, end_time=1e100*second):
-    for idx in xrange(N):
+    for idx in range(N):
         generator_spikes = sorted([(idx, time) for time in times[indices==idx]])
         recorded_spikes = sorted([(idx, time) for time in recorded.t[recorded.i==idx] if time >= start_time and time < end_time])
         assert_allclose(generator_spikes, recorded_spikes)
@@ -389,4 +390,4 @@ if __name__ == '__main__':
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
     test_spikegenerator_multiple_runs()
-    print 'Tests took', time.time()-start
+    print('Tests took', time.time()-start)

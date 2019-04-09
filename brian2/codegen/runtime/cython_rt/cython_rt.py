@@ -37,7 +37,7 @@ prefs.register_preferences(
         ),
     cache_dir = BrianPreference(
         default=None,
-        validator=lambda x: x is None or isinstance(x, basestring),
+        validator=lambda x: x is None or isinstance(x, str),
         docs='''
         Location of the cache directory for Cython files. By default,
         will be stored in a ``brian_extensions`` subdirectory
@@ -158,7 +158,7 @@ class CythonCodeObject(NumpyCodeObject):
         if func_namespace is not None:
             self.namespace.update(func_namespace)
         if impl.dependencies is not None:
-            for dep in impl.dependencies.itervalues():
+            for dep in impl.dependencies.values():
                 self._insert_func_namespace(dep)
 
     def variables_to_namespace(self):
@@ -171,7 +171,7 @@ class CythonCodeObject(NumpyCodeObject):
         # A list containing tuples of name and a function giving the value
         self.nonconstant_values = []
 
-        for name, var in self.variables.iteritems():
+        for name, var in self.variables.items():
             if isinstance(var, Function):
                 self._insert_func_namespace(var)
             if isinstance(var, (AuxiliaryVariable, Subexpression)):
@@ -209,14 +209,14 @@ class CythonCodeObject(NumpyCodeObject):
         # will pass something into the namespace unnecessarily.
         all_identifiers = get_identifiers(self.code)
         # Filter out all unneeded objects
-        self.namespace = {k: v for k, v in self.namespace.iteritems()
+        self.namespace = {k: v for k, v in self.namespace.items()
                           if k in all_identifiers}
 
         # There is one type of objects that we have to inject into the
         # namespace with their current value at each time step: dynamic
         # arrays that change in size during runs, where the size change is not
         # initiated by the template itself
-        for name, var in self.variables.iteritems():
+        for name, var in self.variables.items():
             if (isinstance(var, DynamicArrayVariable) and
                     var.needs_reference_update):
                 array_name = self.device.get_array_name(var, self.variables)

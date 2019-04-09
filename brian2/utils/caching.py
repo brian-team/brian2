@@ -33,7 +33,7 @@ class CacheKey(object):
     def _state_tuple(self):
         '''A tuple with this object's attribute values, defining its identity
         for caching purposes. See `CacheKey` for details.'''
-        return tuple(value for key, value in sorted(self.__dict__.iteritems())
+        return tuple(value for key, value in sorted(self.__dict__.items())
                      if key not in self._cache_irrelevant_attributes)
 
 
@@ -85,7 +85,7 @@ def cached(func):
         try:
             cache_key = tuple([_hashable(arg) for arg in args] +
                               [(key, _hashable(value))
-                               for key, value in sorted(kwds.iteritems())])
+                               for key, value in sorted(kwds.items())])
         except TypeError:
             # If we cannot handle a type here, that most likely means that the
             # user provided an argument of a type we don't handle. This will
@@ -118,7 +118,7 @@ def _hashable(obj):
     obj_type = type(obj)
     if _of_type(obj_type, collections.Mapping):
         return frozenset((_hashable(key), _hashable(value))
-                         for key, value in obj.iteritems())
+                         for key, value in obj.items())
     elif _of_type(obj_type, set):
         return frozenset(_hashable(el) for el in obj)
     elif _of_type(obj_type, tuple) or _of_type(obj_type, list):

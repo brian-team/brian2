@@ -176,7 +176,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
             error_message = 'Dimension mismatch'
         else:
             error_quantities = {name: _short_str(q)
-                                for name, q in error_quantities.iteritems()}
+                                for name, q in error_quantities.items()}
             error_message = error_message.format(**error_quantities)
         # If we are comparing an object to a specific unit, we don't want to
         # restate this unit (it is probably mentioned in the text already)
@@ -405,7 +405,7 @@ class Dimension(object):
 
     def _latex(self, *args):
         parts = []
-        for i in xrange(len(self._dims)):
+        for i in range(len(self._dims)):
             if self._dims[i]:
                 s = _ilabel[i]
                 if self._dims[i] != 1:
@@ -431,11 +431,11 @@ class Dimension(object):
     # wrong sort of input
     def __mul__(self, value):
         return get_or_create_dimension([x + y for x, y in
-                                        itertools.izip(self._dims, value._dims)])
+                                        zip(self._dims, value._dims)])
 
     def __div__(self, value):
         return get_or_create_dimension([x - y for x, y in
-                                        itertools.izip(self._dims, value._dims)])
+                                        zip(self._dims, value._dims)])
 
     def __truediv__(self, value):
         return self.__div__(value)
@@ -538,7 +538,7 @@ def get_or_create_dimension(*args, **kwds):
     else:
         # initialisation by keywords
         dims = [0, 0, 0, 0, 0, 0, 0]
-        for k in kwds.keys():
+        for k in kwds:
             # _di stores the index of the dimension with name 'k'
             dims[_di[k]] = kwds[k]
 
@@ -2148,7 +2148,7 @@ class UnitRegistry(object):
         if len(matching) == 0:
             raise KeyError("Unit not found in registry.")
 
-        matching_values = np.array(matching.keys(), copy=False)
+        matching_values = np.array(list(matching.keys()), copy=False)
         print_opts = np.get_printoptions()
         edgeitems, threshold = print_opts['edgeitems'], print_opts['threshold']
         if x.size > threshold:
@@ -2173,7 +2173,7 @@ class UnitRegistry(object):
             return matching[1.0]  # all zeros, use the base unit
 
         deviations = np.nansum((np.log10(floatreps) - 1)**2, axis=0)
-        return matching.values()[deviations.argmin()]
+        return list(matching.values())[deviations.argmin()]
 
 
 def register_new_unit(u):
@@ -2329,8 +2329,8 @@ def check_units(**au):
     def do_check_units(f):
         def new_f(*args, **kwds):
             newkeyset = kwds.copy()
-            arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
-            for (n, v) in zip(arg_names, args[0:f.func_code.co_argcount]):
+            arg_names = f.__code__.co_varnames[0:f.__code__.co_argcount]
+            for (n, v) in zip(arg_names, args[0:f.__code__.co_argcount]):
                 if (not isinstance(v, (Quantity, basestring, bool))
                         and v is not None
                         and n in au):
@@ -2347,12 +2347,12 @@ def check_units(**au):
                                              '%s') % (n, au[n]))
                 newkeyset[n] = v
 
-            for k in newkeyset.iterkeys():
+            for k in newkeyset:
                 # string variables are allowed to pass, the presumption is they
                 # name another variable. None is also allowed, useful for
                 # default parameters
-                if (k in au.keys() and not isinstance(newkeyset[k], str) and
-                                       not newkeyset[k] is None):
+                if (k in au and not isinstance(newkeyset[k], basestring) and
+                        not newkeyset[k] is None):
 
                     if au[k] == bool:
                         if not isinstance(newkeyset[k], bool):
@@ -2402,7 +2402,7 @@ def check_units(**au):
         if hasattr(f, '_orig_arg_names'):
             arg_names = f._orig_arg_names
         else:
-            arg_names = f.func_code.co_varnames[:f.func_code.co_argcount]
+            arg_names = f.__code__.co_varnames[:f.__code__.co_argcount]
         for name in arg_names:
             unit = au.get(name, None)
             if unit is None:

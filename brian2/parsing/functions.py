@@ -3,7 +3,7 @@ import inspect
 
 from brian2.utils.stringtools import deindent, indent, get_identifiers
 
-from rendering import NodeRenderer
+from .rendering import NodeRenderer
 
 __all__ = ['AbstractCodeFunction',
            'abstract_code_from_function',
@@ -270,41 +270,3 @@ def substitute_abstract_code_functions(code, funcs):
         return newcode
     else:
         return substitute_abstract_code_functions(newcode, funcs)
-
-
-if __name__=='__main__':
-    if 1:
-        def f(x):
-            y = x*x
-            return y
-        def g(x):
-            return f(x)+1
-        code = '''
-        z = f(x)
-        z = f(x)+f(y)
-        w = f(z)
-        h = f(f(w))
-        p = g(g(x))
-        '''
-        funcs = [abstract_code_from_function(f),
-                 abstract_code_from_function(g),
-                 ]
-        print substitute_abstract_code_functions(code, funcs)
-    if 0:
-        code = '''
-        def f(x):
-            return x*x
-        def g(V):
-            V += 1
-        '''
-        funcs = extract_abstract_code_functions(code)
-        for k, v in funcs.items():
-            print v
-    if 0:
-        def f(V, w):
-            V = w
-            V += x
-            x = y*z
-            return x+y
-        print abstract_code_from_function(f)
-        

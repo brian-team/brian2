@@ -234,10 +234,10 @@ def test_preference_name_access():
     assert_raises(KeyError, lambda: gp.nonexisting.name)
 
     # Check dictionary functionality
-    for name, value in gp.iteritems():
+    for name, value in gp.items():
         assert gp[name] == value
     
-    for name, value in gp.main.iteritems():
+    for name, value in gp.main.items():
         assert gp.main[name] == value
     
     assert len(gp) == 3  # three preferences in total

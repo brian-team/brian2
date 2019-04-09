@@ -40,7 +40,7 @@ def declare_types(**types):
         if hasattr(f, '_orig_arg_names'):
             arg_names = f._orig_arg_names
         else:
-            arg_names = f.func_code.co_varnames[0:f.func_code.co_argcount]
+            arg_names = f.__code__.co_varnames[0:f.__code__.co_argcount]
         argtypes = []
         for name in arg_names:
             arg_type = types.get(name, 'any')
@@ -48,7 +48,7 @@ def declare_types(**types):
                 raise ValueError("Argument type %s is not valid, must be one of %s, "
                                  "for argument %s" % (arg_type, VALID_ARG_TYPES, name))
             argtypes.append(arg_type)
-        for n in types.keys():
+        for n in types:
             if n not in arg_names and n!='result':
                 raise ValueError("Type specified for unknown argument "+n)
         return_type = types.get('result', 'float')
@@ -290,7 +290,7 @@ class FunctionImplementationContainer(collections.Mapping):
         for K in [key, fallback, fallback_parent]:
             name = getattr(K, 'class_name',
                            'no class name for key')
-            for impl_key, impl in self._implementations.iteritems():
+            for impl_key, impl in self._implementations.items():
                 impl_key_name = getattr(impl_key, 'class_name',
                                         'no class name for implementation')
                 if ((impl_key_name is not None and impl_key_name in [K, name]) or
@@ -310,7 +310,7 @@ class FunctionImplementationContainer(collections.Mapping):
         elif getattr(fallback, 'class_name', None) is not None:
             key = fallback.class_name
         keys = ', '.join([getattr(k, 'class_name', str(k))
-                          for k in self._implementations.iterkeys()])
+                          for k in self._implementations])
         raise KeyError(('No implementation available for target {key}. '
                         'Available implementations: {keys}').format(key=key,
                                                                     keys=keys))
@@ -341,15 +341,15 @@ class FunctionImplementationContainer(collections.Mapping):
             orig_func = wrapped_func
 
         if discard_units:
-            new_globals = dict(orig_func.func_globals)
+            new_globals = dict(orig_func.__globals__)
             # strip away units in the function by changing its namespace
-            for key, value in new_globals.iteritems():
+            for key, value in new_globals.items():
                 if isinstance(value, Quantity):
                     new_globals[key] = np.asarray(value)
-            unitless_func = types.FunctionType(orig_func.func_code, new_globals,
-                                               orig_func.func_name,
-                                               orig_func.func_defaults,
-                                               orig_func.func_closure)
+            unitless_func = types.FunctionType(orig_func.__code__, new_globals,
+                                               orig_func.__name__,
+                                               orig_func.__defaults__,
+                                               orig_func.__closure__)
             self._implementations['numpy'] = FunctionImplementation(name=None,
                                                                     code=unitless_func,
                                                                     dependencies=dependencies,

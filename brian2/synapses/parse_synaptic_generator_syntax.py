@@ -132,12 +132,12 @@ def parse_synapse_generator(expr):
     if _cname(iterator) != 'Call' or _cname(iterator.func) !=  'Name':
         raise SyntaxError(parse_error + " Iterator expression must be one of "
                                         "the supported functions: " +
-                          str(iterator_function_handlers.keys()))
+                          str(list(iterator_function_handlers)))
     iterator_funcname = iterator.func.id
     if iterator_funcname not in iterator_function_handlers:
         raise SyntaxError(parse_error + " Iterator expression must be one of "
                                         "the supported functions: " +
-                          str(iterator_function_handlers.keys()))
+                          str(list(iterator_function_handlers)))
     if (getattr(iterator, 'starargs', None) is not None or
                 getattr(iterator, 'kwargs', None) is not None):
         raise SyntaxError(parse_error + " Star arguments not supported.")
@@ -168,14 +168,3 @@ def parse_synapse_generator(expr):
         'if_expression': nr.render_node(condition),
         }
     return parsed
-
-
-if __name__=='__main__':
-    for parsed in [
-                parse_synapse_generator('k for k in sample(0, N, p=p) if abs(i-k)<10'),
-                parse_synapse_generator('k for k in sample(0, N, size=5) if abs(i-k)<10'),
-                parse_synapse_generator('k+1 for k in range(i-100, i+100, 2)'),
-                ]:
-        print 'PARSED:'
-        for k, v in parsed.items():
-            print '    '+k+': '+str(v)

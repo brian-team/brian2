@@ -184,7 +184,7 @@ class NumpyCodeObject(CodeObject):
         # A list containing tuples of name and a function giving the value
         self.nonconstant_values = []
 
-        for name, var in self.variables.iteritems():
+        for name, var in self.variables.items():
             if isinstance(var, (AuxiliaryVariable, Subexpression)):
                 continue
 
@@ -239,7 +239,7 @@ class NumpyCodeObject(CodeObject):
 
     def run(self):
         try:
-            exec self.compiled_code in self.namespace
+            exec(self.compiled_code, self.namespace)
         except Exception as exc:
             message = ('An exception occured during the execution of code '
                        'object {}.\n').format(self.name)

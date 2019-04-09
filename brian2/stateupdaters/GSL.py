@@ -100,7 +100,7 @@ class GSLContainer(object):
                                        "'cpp_standalone' device."
                                        ).format(target_name=target_name))
         else:
-            device_name = [name for name, dev in all_devices.iteritems()
+            device_name = [name for name, dev in all_devices.items()
                            if dev is device]
             assert len(device_name) == 1
             raise NotImplementedError(("GSL integration has not been implemented for "

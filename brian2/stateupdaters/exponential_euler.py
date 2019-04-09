@@ -91,7 +91,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
                                                 'state updater.')
         
         code = []
-        for var, (A, B) in system.iteritems():
+        for var, (A, B) in system.items():
             s_var = sp.Symbol(var)
             s_dt = sp.Symbol('dt')
             if A == 0:

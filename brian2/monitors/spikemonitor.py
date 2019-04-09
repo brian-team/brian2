@@ -203,7 +203,7 @@ class EventMonitor(Group, CodeRunner):
         dim = self.variables[var].dim
         event_values = {}
         current_pos = 0  # position in the all_indices array
-        for idx in xrange(len(self.source)):
+        for idx in range(len(self.source)):
             if current_pos < len(used_indices) and used_indices[current_pos] == idx:
                 if current_pos < len(used_indices) - 1:
                     event_values[idx] = Quantity(sorted_values[

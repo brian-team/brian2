@@ -49,7 +49,7 @@ def test_utility_functions():
     assert 'ms' in unit_namespace
     assert unit_namespace['ms'] is ms
     assert unit_namespace['ms'] is unit_namespace['msecond']
-    for unit in unit_namespace.itervalues():
+    for unit in unit_namespace.values():
         assert isinstance(unit, Unit)
 
     assert dimensions_and_type_from_string('second') == (second.dim, FLOAT)
@@ -70,7 +70,7 @@ def test_utility_functions():
 @attr('codegen-independent')
 def test_identifier_checks():
     legal_identifiers = ['v', 'Vm', 'V', 'x', 'ge', 'g_i', 'a2', 'gaba_123']
-    illegal_identifiers = ['_v', '1v', u'ü', 'ge!', 'v.x', 'for', 'else', 'if']
+    illegal_identifiers = ['_v', '1v', 'ü', 'ge!', 'v.x', 'for', 'else', 'if']
 
     for identifier in legal_identifiers:
         try:
@@ -127,7 +127,7 @@ def test_parse_equations():
     ''' Test the parsing of equation strings '''
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
-    assert len(eqs.keys()) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
+    assert len(eqs) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert eqs['v'].dim is DIMENSIONLESS
 
     # A complex one
@@ -141,7 +141,7 @@ def test_parse_equations():
                                     b : boolean
                                     n : integer
                                  ''')
-    assert len(eqs.keys()) == 6
+    assert len(eqs) == 6
     assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert 'ge' in eqs and eqs['ge'].type == DIFFERENTIAL_EQUATION
     assert 'I' in eqs and eqs['I'].type == SUBEXPRESSION
@@ -371,7 +371,7 @@ def test_properties():
     assert len(eqs.eq_names) == 3 and eqs.eq_names == {'v', 'I', 'f'}
     assert set(eqs.keys()) == {'v', 'I', 'f', 'freq'}
     # test that the equations object is iterable itself
-    assert all((isinstance(eq, SingleEquation) for eq in eqs.itervalues()))
+    assert all((isinstance(eq, SingleEquation) for eq in eqs.values()))
     assert all((isinstance(eq, basestring) for eq in eqs))
     assert (len(eqs.ordered) == 4 and
             all((isinstance(eq, SingleEquation) for eq in eqs.ordered)) and
@@ -478,7 +478,7 @@ def test_str_repr():
 
     # Test str and repr of SingleEquations explicitly (might already have been
     # called by Equations
-    for eq in eqs.itervalues():
+    for eq in eqs.values():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
 

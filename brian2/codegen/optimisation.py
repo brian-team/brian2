@@ -5,6 +5,7 @@ import ast
 from collections import OrderedDict
 import copy
 import itertools
+from functools import reduce
 
 from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.core.variables import AuxiliaryVariable
@@ -18,8 +19,8 @@ from brian2.core.preferences import prefs
 from .statements import Statement
 
 # Default namespace has all the standard functions and constants in it
-defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.iteritems())
-defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.iteritems()))
+defaults_ns = dict((k, v.pyfunc) for k, v in DEFAULT_FUNCTIONS.items())
+defaults_ns.update(dict((k, v.value) for k, v in DEFAULT_CONSTANTS.items()))
 
 
 __all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
@@ -73,7 +74,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
     new_vector_statements : sequence of Statement
         Simplified/optimised versions of statements
     '''
-    boolvars = dict((k, v) for k, v in variables.iteritems()
+    boolvars = dict((k, v) for k, v in variables.items()
                     if hasattr(v, 'dtype') and brian_dtype_from_dtype(v.dtype)=='boolean')
     # We use the Simplifier class by rendering each expression, which generates new scalar statements
     # stored in the Simplifier object, and these are then added to the scalar statements.
@@ -90,7 +91,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
         # Now check if boolean simplification can be carried out
         complexity_std = expression_complexity(new_expr, simplifier.variables)
         idents = get_identifiers(new_expr)
-        used_boolvars = [var for var in boolvars.iterkeys() if var in idents]
+        used_boolvars = [var for var in boolvars if var in idents]
         if len(used_boolvars):
             # We want to iterate over all the possible assignments of boolean variables to values in (True, False)
             bool_space = [[False, True] for var in used_boolvars]
@@ -113,7 +114,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
         new_vector_statements.append(new_stmt)
     # Generate additional scalar statements for the loop invariants
     new_scalar_statements = copy.copy(scalar_statements)
-    for expr, name in simplifier.loop_invariants.iteritems():
+    for expr, name in simplifier.loop_invariants.items():
         dtype_name = simplifier.loop_invariant_dtypes[name]
         if dtype_name=='boolean':
             dtype = bool

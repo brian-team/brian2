@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import uuid
 import logging
 
@@ -545,7 +547,7 @@ def test_connection_multiple_synapses():
     _compare(S4, np.arange(len(G)).reshape(len(G), 1).repeat(len(G2),
                                                              axis=1))
     expected = np.zeros((len(G), len(G2)), dtype=np.int32)
-    for source in xrange(len(G)):
+    for source in range(len(G)):
         expected[source, :source] = 2
     _compare(S5, expected)
     _compare(S6, expected)
@@ -962,7 +964,7 @@ def test_transmission():
         net.run(50*ms+default_dt+max(delay))
         # All spikes should trigger spikes in the receiving neurons with
         # the respective delay ( + one dt)
-        for d in xrange(len(delay)):
+        for d in range(len(delay)):
             assert_allclose(source_mon.t[source_mon.i==d],
                             target_mon.t[target_mon.i==d] - default_dt - delay[d])
 
@@ -1544,9 +1546,9 @@ def test_variables_by_owner():
     # Check that the variables returned as owned by the pre/post groups are the
     # variables stored in the respective groups. We only compare the `Variable`
     # objects, as the names may be different (e.g. ``v_post`` vs. ``v``)
-    G_variables = {key: value for key, value in G.variables.iteritems()
+    G_variables = {key: value for key, value in G.variables.items()
                    if value.owner.name==G.name}  # exclude dt
-    G2_variables = {key: value for key, value in G2.variables.iteritems()
+    G2_variables = {key: value for key, value in G2.variables.items()
                     if value.owner.name==G2.name}
     assert set(G_variables.values()) == set(variables_by_owner(S.variables, G).values())
     assert set(G2_variables.values()) == set(variables_by_owner(S.variables, G2).values())
@@ -1612,7 +1614,7 @@ def numerically_check_permutation_code(code):
             indices[var] = '0'
             vals[var] = 42
     subs = dict((var, var+'['+idx+']')
-                for var, idx in indices.iteritems()
+                for var, idx in indices.items()
                 if not var.endswith('_const'))
     code = word_substitute(code, subs)
     code = '''
@@ -1627,23 +1629,23 @@ for _idx in shuffled_indices:
     ns['shuffled_indices'] = arange(9)
     ns['presyn'] = arange(9)%3
     ns['postsyn'] = arange(9)/3
-    for _ in xrange(10):
+    for _ in range(10):
         origvals = {}
-        for k, v in vals.iteritems():
+        for k, v in vals.items():
             if not k.endswith('_const'):
                 v[:] = randn(len(v))
                 origvals[k] = v.copy()
-        exec code in ns
+        exec(code, ns)
         endvals = {}
-        for k, v in vals.iteritems():
+        for k, v in vals.items():
             endvals[k] = copy(v)
-        for _ in xrange(10):
-            for k, v in vals.iteritems():
+        for _ in range(10):
+            for k, v in vals.items():
                 if not k.endswith('_const'):
                     v[:] = origvals[k]
             shuffle(ns['shuffled_indices'])
-            exec code in ns
-            for k, v in vals.iteritems():
+            exec(code, ns)
+            for k, v in vals.items():
                 try:
                     assert_allclose(v, endvals[k])
                 except AssertionError:
@@ -1860,7 +1862,7 @@ def test_vectorisation_STDP_like():
     neurons.v = 'abs(3-i)*0.1 + 0.7'
     run(2*ms)
     # Make sure that this test is invariant to synapse order
-    indices = np.argsort(np.array(zip(syn.i[:], syn.j[:]),
+    indices = np.argsort(np.array(list(zip(syn.i[:], syn.j[:])),
                                   dtype=[('i', '<i4'), ('j', '<i4')]),
                          order=['i', 'j'])
     assert_allclose(syn.w_dep[:][indices],
@@ -2235,14 +2237,14 @@ def test_synapse_generator_deterministic_2():
     S11 = Synapses(G2, G, 'w:1', 'v+=w')
     S11.connect(j='i*4 + k for k in range(4)')
     expected_diverging = np.zeros((len(G2), len(G)), dtype=np.int32)
-    for source in xrange(4):
+    for source in range(4):
         expected_diverging[source, np.arange(4) + source*4] = 1
 
     # Diverging connection pattern within population (no self-connections)
     S11b = Synapses(G2, G2, 'w:1', 'v+=w')
     S11b.connect(j='k for k in range(i-3, i+4) if i!=k', skip_if_invalid=True)
     expected_diverging_b = np.zeros((len(G2), len(G2)), dtype=np.int32)
-    for source in xrange(len(G2)):
+    for source in range(len(G2)):
         expected_diverging_b[source, np.clip(np.arange(-3, 4) + source, 0, len(G2)-1)] = 1
         expected_diverging_b[source, source] = 0
 
@@ -2250,7 +2252,7 @@ def test_synapse_generator_deterministic_2():
     S12 = Synapses(G, G2, 'w:1', 'v+=w')
     S12.connect(j='int(i/4)')
     expected_converging = np.zeros((len(G), len(G2)), dtype=np.int32)
-    for target in xrange(4):
+    for target in range(4):
         expected_converging[np.arange(4) + target*4, target] = 1
 
     # skip if invalid
@@ -2264,7 +2266,7 @@ def test_synapse_generator_deterministic_2():
     S14 = Synapses(G, G2, 'w:1', 'v+=w')
     S14.connect(j='int(i/4) if i % 2 == 0')
     expected_converging_restricted = np.zeros((len(G), len(G2)), dtype=np.int32)
-    for target in xrange(4):
+    for target in range(4):
         expected_converging_restricted[np.arange(4, step=2) + target * 4, target] = 1
 
     # Connecting to post indices >= source index
@@ -2656,4 +2658,4 @@ if __name__ == '__main__':
     test_synapse_generator_range_noint()
     test_missing_lastupdate_error_syn_pathway()
     test_missing_lastupdate_error_run_regularly()
-    print 'Tests took', time.time()-start
+    print('Tests took', time.time()-start)

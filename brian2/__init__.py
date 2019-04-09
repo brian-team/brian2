@@ -71,8 +71,8 @@ from brian2.only import test
 # Check for outdated dependency versions
 def _check_dependency_version(name, version):
     from distutils.version import LooseVersion
-    from core.preferences import prefs
-    from utils.logger import get_logger
+    from .core.preferences import prefs
+    from .utils.logger import get_logger
     import sys
     logger = get_logger(__name__)
 

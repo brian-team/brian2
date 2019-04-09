@@ -287,24 +287,3 @@ class BrianASTRenderer(object):
         node.complexity = 1+node.operand.complexity
         node.stateless = node.operand.stateless
         return node
-
-
-if __name__=='__main__':
-    import brian2
-    eqs = '''
-    x : 1
-    y : 1 (shared)
-    a : integer
-    b : boolean
-    c : integer (shared)
-    '''
-    expr = 'x<3.0+1.0'
-
-    G = brian2.NeuronGroup(2, eqs)
-    variables = {}
-    variables.update(**brian2.DEFAULT_FUNCTIONS)
-    variables.update(**brian2.DEFAULT_CONSTANTS)
-    variables.update(**G.variables)
-    node = brian_ast(expr, variables)
-
-    print node.dtype, node.scalar, node.complexity

@@ -104,12 +104,3 @@ class Nameable(Trackable):
                         have to deal with the chore of comparing weak
                         references, weak proxies and strong references.
                         ''')
-
-    
-if __name__=='__main__':
-    from brian2 import *
-    from brian2.core.names import Nameable
-    nam = Nameable('nameable')
-    obj = BrianObject(name='object*')
-    obj2 = BrianObject(name='object*')
-    print nam.name, obj.name, obj2.name

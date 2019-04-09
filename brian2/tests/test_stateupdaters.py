@@ -1,3 +1,4 @@
+from __future__ import print_function
 import re
 import logging
 
@@ -327,7 +328,7 @@ def check_integration(eqs, variables, can_integrate):
     # True/False means that the integrator should/should not integrate the equations
     # None means that it *might* integrate the equations (only needed for the
     # exact integration, since it can depend on the sympy version)
-    for integrator, able in can_integrate.iteritems():
+    for integrator, able in can_integrate.items():
         try:
             integrator(eqs, variables)
             if able is False:
@@ -769,4 +770,4 @@ if __name__ == '__main__':
     test_refractory_stochastic()
     restore_randn()
     test_check_for_invalid_values_linear_integrator()
-    print 'Tests took', time.time()-start
+    print('Tests took', time.time()-start)

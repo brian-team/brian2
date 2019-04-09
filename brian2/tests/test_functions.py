@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 
 from nose import SkipTest, with_setup
@@ -1006,6 +1008,6 @@ if __name__ == '__main__':
         try:
             start = time.time()
             f()
-            print 'Test', f.__name__, 'took', time.time()-start
+            print('Test', f.__name__, 'took', time.time()-start)
         except SkipTest as e:
-            print 'Skipping test', f.__name__, e
+            print('Skipping test', f.__name__, e)

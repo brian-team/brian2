@@ -134,7 +134,7 @@ def word_substitute(expr, substitutions):
     >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
     '''
-    for var, replace_var in substitutions.iteritems():
+    for var, replace_var in substitutions.items():
         expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
     return expr
 
@@ -144,7 +144,7 @@ def replace(s, substitutions):
     Applies a dictionary of substitutions. Simpler than `word_substitute`, it
     does not attempt to only replace words
     '''
-    for before, after in substitutions.iteritems():
+    for before, after in substitutions.items():
         s = s.replace(before, after)
     return s
 
@@ -246,10 +246,10 @@ def code_representation(code):
         if isinstance(v, (list, tuple)):
             v = '\n'.join([str(line) for line in v])
             code[k] = v
-    if len(code)==1 and code.keys()[0] is None:
-        return strip_empty_leading_and_trailing_lines(code.values()[0])
+    if len(code) == 1 and list(code.keys())[0] is None:
+        return strip_empty_leading_and_trailing_lines(list(code.values())[0])
     output = []
-    for k, v in code.iteritems():
+    for k, v in code.items():
         msg = 'Key %s:\n' % k
         msg += indent(str(v))
         output.append(msg)

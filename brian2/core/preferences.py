@@ -2,7 +2,6 @@
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``prefs``.
 '''
-import itertools
 import re
 import os
 from collections import MutableMapping
@@ -147,11 +146,11 @@ class BrianGlobalPreferences(MutableMapping):
         self.prefs_unvalidated = {}
         self.pref_register = {}
         self.eval_namespace = {}
-        exec deindent('''
+        exec(deindent('''
             from numpy import *
             from brian2.units import *            
             from brian2.units.stdunits import *
-            ''') in self.eval_namespace
+            '''), self.eval_namespace)
 
     def __getitem__(self, item):
         if item in self.pref_register:
@@ -239,7 +238,7 @@ class BrianGlobalPreferences(MutableMapping):
         return s
 
     def __dir__(self):
-        res = dir(type(self)) + self.__dict__.keys()
+        res = dir(type(self)) + list(self.__dict__)
         categories = self.toplevel_categories
         res.extend(categories)
         return res        
@@ -309,7 +308,8 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         s = ''
         if basename is None:
-            basenames = [tuple(basename.split('.')) for basename in self.pref_register.keys()]
+            basenames = [tuple(basename.split('.'))
+                         for basename in self.pref_register]
             basenames.sort()
             for basename in basenames:
                 lev = len(basename)
@@ -539,7 +539,7 @@ class BrianGlobalPreferences(MutableMapping):
             logger.warn("The following preferences values have been set but "
                         "are not registered preferences:\n%s\nThis is usually "
                         "because of a spelling mistake or missing library "
-                        "import." % ', '.join(self.prefs_unvalidated.keys()),
+                        "import." % ', '.join(self.prefs_unvalidated),
                         once=True)
 
     def __repr__(self):
@@ -570,9 +570,9 @@ class BrianGlobalPreferencesView(MutableMapping):
     def __init__(self, basename, all_prefs):
         self._basename = basename
         self._all_prefs = all_prefs
-        self._subcategories = [key for key in all_prefs.pref_register.iterkeys()
+        self._subcategories = [key for key in all_prefs.pref_register
                               if key.startswith(basename + '.')]
-        self._preferences = all_prefs.pref_register[basename][0].keys()
+        self._preferences = list(all_prefs.pref_register[basename][0].keys())
         self.__doc__ = all_prefs.get_documentation(basename=basename,
                                                    link_targets=False)
 
@@ -618,7 +618,7 @@ class BrianGlobalPreferencesView(MutableMapping):
             del self._all_prefs[self._basename + '.' + name]
 
     def __dir__(self):
-        res = dir(type(self)) + self.__dict__.keys()
+        res = dir(type(self)) + list(self.__dict__)
         res.extend(self._preferences)
         res.extend([category[len(self._basename+'.'):]
                     for category in self._subcategories])

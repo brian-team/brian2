@@ -436,7 +436,7 @@ class VariableOwner(Nameable):
             object.__setattr__(self, name, val)
         else:
             # Try to suggest the correct name in case of a typo
-            checker = SpellChecker([varname for varname, var in self.variables.iteritems()
+            checker = SpellChecker([varname for varname, var in self.variables.items()
                                     if not (varname.startswith('_') or var.read_only)])
             if name.endswith('_'):
                 suffix = '_'
@@ -526,7 +526,7 @@ class VariableOwner(Nameable):
             raise NotImplementedError("Format '%s' is not supported" % format)
         if vars is None:
             vars = []
-            for name, var in self.variables.iteritems():
+            for name, var in self.variables.items():
                 if name.startswith('_'):
                     continue
                 if subexpressions or not isinstance(var, Subexpression):
@@ -579,7 +579,7 @@ class VariableOwner(Nameable):
 
     def _full_state(self):
         state = {}
-        for var in self.variables.itervalues():
+        for var in self.variables.values():
             if not isinstance(var, ArrayVariable):
                 continue  # we are only interested in arrays
             if var.owner is None or var.owner.name != self.name:
@@ -590,7 +590,7 @@ class VariableOwner(Nameable):
         return state
 
     def _restore_from_full_state(self, state):
-        for var_name, (values, size) in state.iteritems():
+        for var_name, (values, size) in state.items():
             var = self.variables[var_name]
             if isinstance(var, DynamicArrayVariable):
                 var.resize(size)
@@ -623,7 +623,7 @@ class VariableOwner(Nameable):
         referred_variables = self.resolve_all(identifiers,
                                               run_namespace=run_namespace,
                                               level=level+1)
-        for ref_varname, ref_var in referred_variables.iteritems():
+        for ref_varname, ref_var in referred_variables.items():
             if not getattr(ref_var, 'scalar', False):
                 raise ValueError(('String expression for setting scalar '
                                   'variable %s refers to %s which is not '
@@ -784,7 +784,7 @@ class Group(VariableOwner, BrianObject):
         # explicit or implicit run namespace
         namespaces['run'] = run_namespace
 
-        for description, namespace in namespaces.iteritems():
+        for description, namespace in namespaces.items():
             if identifier in namespace:
                 match = namespace[identifier]
                 if ((isinstance(match, (numbers.Number,

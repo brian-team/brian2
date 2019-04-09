@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import functools
 
 from nose import with_setup, SkipTest
@@ -45,7 +47,7 @@ def test_GSL_stateupdater_basic():
     neurons_conventional.vt = 10*mV
     neurons_GSL.vt = 10*mV
     # 50 'different' neurons so no neuron spikes more than once per dt
-    P = SpikeGeneratorGroup(1, [0]*50, array(range(50))/50.*100*ms)
+    P = SpikeGeneratorGroup(1, [0]*50, np.arange(50)/50.*100*ms)
     C_conventional = Synapses(P, neurons_conventional, on_pre='v += 3*mV')
     C_GSL = Synapses(P, neurons_GSL, on_pre='v += 3*mV')
     C_conventional.connect()
@@ -528,4 +530,4 @@ if __name__ == '__main__':
         try:
             t()
         except SkipTest as ex:
-            print('Skipped: {} ({})'.format(t.__name__, str(ex)))
+            print(('Skipped: {} ({})'.format(t.__name__, str(ex))))

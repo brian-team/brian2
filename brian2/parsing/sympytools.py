@@ -20,7 +20,7 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
     if len(identifiers) == len(set(identifiers)):
         return
     identifier_count = Counter(identifiers)
-    for identifier, count in identifier_count.iteritems():
+    for identifier, count in identifier_count.items():
         var = variables.get(identifier, None)
         if count > 1 and isinstance(var, Function) and not var.stateless:
             raise NotImplementedError(('The expression "{expr}" contains '
@@ -144,20 +144,20 @@ def sympy_to_str(sympy_expr):
 
     # replace the standard functions by our names if necessary
     replacements = dict((f.sympy_func, sympy.Function(name)) for
-                        name, f in DEFAULT_FUNCTIONS.iteritems()
+                        name, f in DEFAULT_FUNCTIONS.items()
                         if f.sympy_func is not None and isinstance(f.sympy_func,
                                                                    sympy.FunctionClass)
                         and str(f.sympy_func) != name)
     # replace constants with our names as well
     replacements.update(dict((c.sympy_obj, sympy.Symbol(name)) for
-                             name, c in DEFAULT_CONSTANTS.iteritems()
+                             name, c in DEFAULT_CONSTANTS.items()
                              if str(c.sympy_obj) != name))
 
     # Replace _vectorisation_idx by an empty symbol
     replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
     atoms = (sympy_expr.atoms() |
              {f.func for f in sympy_expr.atoms(sympy.Function)})
-    for old, new in replacements.iteritems():
+    for old, new in replacements.items():
         if old in atoms:
             sympy_expr = sympy_expr.subs(old, new)
     expr = PRINTER.doprint(sympy_expr)

@@ -277,7 +277,7 @@ class SpatialNeuron(NeuronGroup):
 
         model_equations = []
         # Insert point currents in the membrane equation
-        for eq in model.itervalues():
+        for eq in model.values():
             if eq.varname == 'Im':
                 continue  # ignore -- handled separately
             if 'point current' in eq.flags:

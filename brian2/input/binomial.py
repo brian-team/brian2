@@ -186,7 +186,7 @@ class BinomialFunction(Function, Nameable):
 
         self.implementations.add_implementation('numpy', sample_function)
 
-        for target, func in BinomialFunction.implementations.iteritems():
+        for target, func in BinomialFunction.implementations.items():
             code, dependencies = func(n=n, p=p, use_normal=use_normal,
                                       name=self.name)
             self.implementations.add_implementation(target, code,

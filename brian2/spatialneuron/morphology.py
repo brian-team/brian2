@@ -1146,17 +1146,17 @@ class Morphology(object):
                 parent.children.append(node)
 
         if spherical_soma:
-            Morphology._replace_three_point_soma(compartments.values()[0],
+            Morphology._replace_three_point_soma(list(compartments.values())[0],
                                                  compartments)
 
-        sections = Morphology._compartments_to_sections(compartments.values()[0],
+        sections = Morphology._compartments_to_sections(list(compartments.values())[0],
                                                         spherical_soma)
 
         # Go through all the sections again and add standard names for all
         # sections (potentially in addition to the name they already have):
         # "L" + "R" for one or two children, "1", "2", "3", etc. otherwise
         children_counter = defaultdict(int)
-        for section in sections.itervalues():
+        for section in sections.values():
             parent = section.parent
             if parent is not None:
                 children_counter[parent] += 1
@@ -1169,7 +1169,7 @@ class Morphology(object):
                 children.add(name, section)
 
         # There should only be one section without parents
-        root = [sec for sec in sections.itervalues() if sec.parent is None]
+        root = [sec for sec in sections.values() if sec.parent is None]
         assert len(root) == 1
         return root[0]
 

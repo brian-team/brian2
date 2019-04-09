@@ -64,7 +64,8 @@ def make_argv(dirnames, attributes, doctests=False):
              '-I', '^_',
              "-a", attributes,
              '--nologcapture',
-             '--exe'])
+             '--exe',
+             '--stop'])
     if doctests:
         argv += ['--with-doctest']
     return argv
@@ -196,7 +197,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     if reset_preferences:
         # Store the currently set preferences and reset to default preferences
         stored_prefs = prefs.as_file
-        prefs.read_preference_file(StringIO(prefs.defaults_as_file))
+        prefs.read_preference_file(StringIO(prefs.defaults_as_file.decode('utf-8')))
 
     # Avoid failures in the tests for user-registered units
     import copy

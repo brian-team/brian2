@@ -301,7 +301,7 @@ def test_synapse_creation_generator_multiple_synapses():
     run(0*ms)  # for standalone
 
     # straightforward loop instead of doing something clever...
-    for source in xrange(len(SG1)):
+    for source in range(len(SG1)):
         assert_equal(S1.j[source, :], np.arange(len(SG2)).repeat(source))
         assert_equal(S2.j[source, :], np.arange(len(SG2)).repeat(np.arange(len(SG2))))
         assert_equal(S3.i[:, source], np.arange(len(SG2)).repeat(np.arange(len(SG2))))
@@ -340,7 +340,7 @@ def test_synapse_creation_generator_complex_ranges():
 
     run(0*ms)  # for standalone
 
-    for syn_source in xrange(5):
+    for syn_source in range(5):
         # Internally, the "real" neuron indices should be used
         assert_equal(S._synaptic_post[syn_source, :],
                      10 + syn_source + np.arange(10 - syn_source))

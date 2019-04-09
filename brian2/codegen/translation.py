@@ -42,7 +42,7 @@ class LineInfo(object):
     A helper class, just used to store attributes.
     '''
     def __init__(self, **kwds):
-        for k, v in kwds.iteritems():
+        for k, v in kwds.items():
             setattr(self, k, v)
 
     # TODO: This information should go somewhere else, I guess
@@ -83,7 +83,7 @@ def analyse_identifiers(code, variables, recursive=False):
         external namespace.
     '''
     if isinstance(variables, collections.Mapping):
-        known = set(k for k, v in variables.iteritems()
+        known = set(k for k, v in variables.items()
                     if not isinstance(k, AuxiliaryVariable))
     else:
         known = set(variables)
@@ -217,7 +217,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     # Do a copy so we can add stuff without altering the original dict
     variables = dict(variables)
     # we will do inference to work out which lines are := and which are =
-    defined = set(k for k, v in variables.iteritems()
+    defined = set(k for k, v in variables.items()
                   if not isinstance(v, AuxiliaryVariable))
     for line in lines:
         statement = None
@@ -310,17 +310,19 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         line.will_write = will_write.copy()
         will_write.add(line.write)
 
-    subexpressions = dict((name, val) for name, val in variables.items() if isinstance(val, Subexpression))
+    subexpressions = dict((name, val) for name, val in variables.items()
+                          if isinstance(val, Subexpression))
     # sort subexpressions into an order so that subexpressions that don't depend
     # on other subexpressions are first
-    subexpr_deps = dict((name, [dep for dep in subexpr.identifiers if dep in subexpressions]) for \
-                                                            name, subexpr in subexpressions.items())
+    subexpr_deps = dict((name, [dep for dep in subexpr.identifiers
+                                if dep in subexpressions])
+                        for name, subexpr in subexpressions.items())
     sorted_subexpr_vars = topsort(subexpr_deps)
 
     statements = []
 
     # none are yet defined (or declared)
-    subdefined = dict((name, None) for name in subexpressions.keys())
+    subdefined = dict((name, None) for name in subexpressions)
     for line in lines:
         stmt = line.statement
         read = line.read

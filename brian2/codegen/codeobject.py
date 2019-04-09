@@ -147,7 +147,7 @@ def check_compiler_kwds(compiler_kwds, accepted_kwds, target):
     ValueError
         If a compiler keyword is not understood
     '''
-    for key, value in compiler_kwds.iteritems():
+    for key, value in compiler_kwds.items():
         if key not in accepted_kwds:
             formatted_kwds = ', '.join("'{}'".format(kw)
                                        for kw in accepted_kwds)
@@ -175,7 +175,7 @@ def _merge_compiler_kwds(list_of_kwds):
     '''
     merged_kwds = collections.defaultdict(list)
     for kwds in list_of_kwds:
-        for key, values in kwds.iteritems():
+        for key, values in kwds.items():
             if not isinstance(values, list):
                 raise TypeError("Compiler keyword argument '{}' requires a "
                                 "list of values.".format(key))
@@ -203,7 +203,7 @@ def _gather_compiler_kwds(function, codeobj_class):
     implementation = function.implementations[codeobj_class]
     all_kwds = [implementation.compiler_kwds]
     if implementation.dependencies is not None:
-        for dependency in implementation.dependencies.itervalues():
+        for dependency in implementation.dependencies.values():
             all_kwds.append(_gather_compiler_kwds(dependency,
                                                   codeobj_class))
     return _merge_compiler_kwds(all_kwds)
@@ -337,7 +337,7 @@ def create_runner_codeobj(group, code, template_name,
 
     conditional_write_variables = {}
     # Add all the "conditional write" variables
-    for var in variables.itervalues():
+    for var in variables.values():
         cond_write_var = getattr(var, 'conditional_write', None)
         if cond_write_var in override_conditional_write:
             continue
@@ -371,13 +371,13 @@ def create_runner_codeobj(group, code, template_name,
 
     # Make "conditional write" variables use the same index as the variable
     # that depends on them
-    for varname, var in variables.iteritems():
+    for varname, var in variables.items():
         cond_write_var = getattr(var, 'conditional_write', None)
         if cond_write_var is not None:
             all_variable_indices[cond_write_var.name] = all_variable_indices[varname]
 
     # Check that all functions are available
-    for varname, value in variables.iteritems():
+    for varname, value in variables.items():
         if isinstance(value, Function):
             try:
                 value.implementations[codeobj_class]
@@ -393,13 +393,12 @@ def create_runner_codeobj(group, code, template_name,
     # Gather the additional compiler arguments declared by function
     # implementations
     all_keywords = [_gather_compiler_kwds(var, codeobj_class)
-                    for var in variables.itervalues()
+                    for var in variables.values()
                     if isinstance(var, Function)]
     compiler_kwds = _merge_compiler_kwds(all_keywords)
 
     # Add the indices needed by the variables
-    varnames = variables.keys()
-    for varname in varnames:
+    for varname in list(variables):
         var_index = all_variable_indices[varname]
         if not var_index in ('_idx', '0'):
             variables[var_index] = all_variables[var_index]

@@ -38,14 +38,14 @@ def get_local_namespace(level):
     '''
     # Get the locals and globals from the stack frame
     frame = inspect.currentframe()
-    for _ in xrange(level + 1):
+    for _ in range(level + 1):
         frame = frame.f_back
     # We return the full stack here, even if it contains a lot of stuff we are
     # not interested in -- it is cheaper to later raise an error when we find
     # a specific object with an incorrect type instead of going through this big
     # list now to check the types of all objects
-    return dict(itertools.chain(frame.f_globals.iteritems(),
-                                frame.f_locals.iteritems()))
+    return dict(itertools.chain(frame.f_globals.items(),
+                                frame.f_locals.items()))
 
 
 def _get_default_unit_namespace():
@@ -63,7 +63,8 @@ def _get_default_unit_namespace():
     namespace.update(stdunits)
     # Include all "simple" units from additional_units, i.e. units like mliter
     # but not "newton * metre"
-    namespace.update(dict((name, unit) for name, unit in additional_unit_register.units.iteritems()
+    namespace.update(dict((name, unit)
+                          for name, unit in additional_unit_register.units.items()
                           if not unit.iscompound))
     return namespace
 
