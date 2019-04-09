@@ -1,6 +1,9 @@
 '''
 This is only a bridge for using Brian 1 hears with Brian 2.
 
+.. deprecated:: 2.2.2.2
+    Use the `brian2hears <https://github.com/brian-team/brian2hears>`_ package instead.
+
 NOTES:
 
 * Slicing sounds with Brian 2 units doesn't work, you need to either use Brian 1 units or replace calls to

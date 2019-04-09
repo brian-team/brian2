@@ -49,14 +49,22 @@ np.arange(2) * mV                   array([ 0.   ,  0.001])             array([ 
 
 Unported packages
 -----------------
-The following packages have not (yet) been ported to Brian 1. If your simulation
+The following packages have not (yet) been ported to Brian 2. If your simulation
 critically depends on them, you should consider staying with Brian 1 for now.
 
 * ``brian.tools``
-* ``brian.hears``  (the Brian 1 version can be used via `brian2.hears`, though,
-  see :ref:`brian_hears`)
 * ``brian.library.modelfitting``
-* ``brian.library.electrophysilogy``
+* ``brian.library.electrophysiology``
+
+Replacement packages
+--------------------
+The following packages that were included in Brian 1 have now been split into separate
+packages.
+
+* ``brian.hears`` has been updated to
+  `brian2hears <https://github.com/brian-team/brian2hears>`_. Note that there is a
+  legacy package ``brian2.hears`` included in ``brian2``, but this is now deprecated and
+  will be removed in a future release. For now, see :ref:`brian_hears` for details.
 
 Removed classes/functions and their replacements
 ------------------------------------------------

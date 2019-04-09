@@ -5,6 +5,9 @@ Brian Hears
 
 .. currentmodule:: brian2.hears
 
+.. deprecated:: 2.2.2.2
+    Use the `brian2hears <https://github.com/brian-team/brian2hears>`_ package instead.
+
 This module is designed for users of the Brian 1 library "Brian Hears". It allows you to use Brian Hears with Brian 2
 with only a few modifications (although it's not compatible with the "standalone" mode of Brian 2).
 The way it works is by acting as a "bridge" to the version in Brian 1. To
