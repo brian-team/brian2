@@ -130,7 +130,7 @@ install:
   # Install the weave package for Python 2
   - 'if "%PYTHON_VERSION:~0,1%" == "2" set PYTHON_PACKAGES=%PYTHON_PACKAGES% weave'
   # weave 0.16 is the only available version for 32 bit Windows, and it is not compatible with numpy 0.16
-  - 'if "%platform%" == "x86" (set PYTHON_PACKAGES=%PYTHON_PACKAGES% "numpy<0.16") else (set PYTHON_PACKAGES=%PYTHON_PACKAGES% numpy)'
+  - 'if "%platform%" == "x86" (set PYTHON_PACKAGES=%PYTHON_PACKAGES% "numpy<1.16") else (set PYTHON_PACKAGES=%PYTHON_PACKAGES% numpy)'
   # Create the test environment
   - 'appveyor-retry conda install --quiet --yes python=%PYTHON_VERSION% %PYTHON_PACKAGES%'
   # For faster tests, only build conda packages for the master branch or pull requests
