@@ -62,7 +62,7 @@ The following packages that were included in Brian 1 have now been split into se
 packages.
 
 * ``brian.hears`` has been updated to
-  `brian2hears <https://github.com/brian-team/brian2hears>`_. Note that there is a
+  `brian2hears <https://brian2hears.readthedocs.io/>`_. Note that there is a
   legacy package ``brian2.hears`` included in ``brian2``, but this is now deprecated and
   will be removed in a future release. For now, see :ref:`brian_hears` for details.
 

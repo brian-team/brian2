@@ -2,7 +2,7 @@
 This is only a bridge for using Brian 1 hears with Brian 2.
 
 .. deprecated:: 2.2.2.2
-    Use the `brian2hears <https://github.com/brian-team/brian2hears>`_ package instead.
+    Use the `brian2hears <https://brian2hears.readthedocs.io/>`_ package instead.
 
 NOTES:
 
@@ -21,7 +21,7 @@ try:
     import brian.hears as b1h
 except ImportError:
     raise ImportError("brian2.hears is deprecated and will be removed in a future release, please use the brian2hears "                        
-                      "package available at https://github.com/brian-team/brian2hears. If you really want to keep "
+                      "package available at https://brian2hears.readthedocs.io/. If you really want to keep "
                       "using it, note: brian2.hears is a bridge between Brian 2 and the version of Brian Hears from "
                       "Brian 1, you need to have Brian 1 installed to use it.")
 
@@ -38,7 +38,7 @@ from inspect import isclass, ismethod
 logger = get_logger(__name__)
 
 logger.warn("brian2.hears is deprecated and will be removed in a future release, please use the brian2hears "                        
-            "package available at https://github.com/brian-team/brian2hears. If you really want to keep using it, note "
+            "package available at https://brian2hears.readthedocs.io/. If you really want to keep using it, note "
             "that it is a bridge between Brian 2 and Brian Hears from Brian 1. "
             "This is not guaranteed to work in all cases that brian.hears works. "
             "See the limitations in the online documentation.")
