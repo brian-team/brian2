@@ -328,7 +328,7 @@ class Network(Nameable):
         #: objects during a run: it is filled in `before_run` and emptied in
         #: `after_run`
         self.objects = []
-        self.allobjects=[]                                                                    
+        
         name = kwds.pop('name', 'network*')
 
         if kwds:
@@ -385,21 +385,22 @@ class Network(Nameable):
     _globally_stopped = False
 
     def __getitem__(self, item):
+        all_objects = self.get_all_objects()
         if not isinstance(item, basestring):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(item)))
-        for obj in self.objects:
+        for obj in all_objects:
             if obj.name == item:
                 return obj
 
         raise KeyError('No object with name "%s" found' % item)
 
     def __delitem__(self, key):
+        all_objects = self.get_all_objects()
         if not isinstance(key, basestring):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(key)))
-
-        for obj in self.objects:
+        for obj in all_objects:
             if obj.name == key:
                 self.remove(obj)
                 return
@@ -407,16 +408,19 @@ class Network(Nameable):
         raise KeyError('No object with name "%s" found' % key)
 
     def __contains__(self, item):
-        for obj in self.objects:
+        all_objects = self.get_all_objects()
+        for obj in all_objects:
             if obj.name == item:
                 return True
         return False
 
     def __len__(self):
-        return len(self.objects)
+        all_objects = self.get_all_objects()
+        return len(all_objects)
 
     def __iter__(self):
-        return iter(self.objects)
+        all_objects = self.get_all_objects()
+        return iter(all_objects)
 
     def add(self, *objs):
         """
@@ -460,6 +464,32 @@ class Network(Nameable):
                         raise TypeError("Can only add objects of type BrianObject, "
                                         "or containers of such objects to Network")
 
+    def get_all_objects(self):
+
+        all_objects = []
+
+        def add_child_objects(*objs):
+            for obj in objs:
+                if isinstance(obj, BrianObject):
+                    if obj not in all_objects:  # Don't include objects twice
+                        all_objects.append(obj)
+                    add_child_objects(obj.contained_objects)
+                else:
+                    # allow adding values from dictionaries
+                    if isinstance(obj, Mapping):
+                        add_child_objects(*obj.values())
+                    else:
+                        try:
+                            for o in obj:
+                                if o is obj:
+                                    raise TypeError()
+                                add_child_objects(o)
+                        except TypeError:
+                            raise TypeError("Can only add objects of type BrianObject, "
+                                            "or containers of such objects to Network")
+        add_child_objects(self.objects)
+        return(all_objects)
+
     def remove(self, *objs):
         '''
         Remove an object or sequence of objects from a `Network`.
@@ -486,11 +516,12 @@ class Network(Nameable):
                                     "objects from Network")
 
     def _full_state(self):
+        all_objects = self.get_all_objects()
         state = {}
-        for obj in self.objects:
+        for obj in all_objects:
             if hasattr(obj, '_full_state'):
                 state[obj.name] = obj._full_state()
-        clocks = set([obj.clock for obj in self.objects])
+        clocks = set([obj.clock for obj in all_objects])
         for clock in clocks:
             state[clock.name] = clock._full_state()
         # Store the time as "0_t" -- this name is guaranteed not to clash with
@@ -525,7 +556,8 @@ class Network(Nameable):
         versions. If you are interested in storing the state of a network for
         documentation or analysis purposes use `Network.get_states` instead.
         '''
-        clocks = [obj.clock for obj in self.objects]
+        all_objects = self.get_all_objects()
+        clocks = [obj.clock for obj in all_objects]
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
@@ -564,15 +596,16 @@ class Network(Nameable):
             (i.e. `Network.store` was previously called without the ``filename``
             argument).
         '''
+        all_objects = self.get_all_objects()
         if filename is None:
             state = self._stored_state[name]
         else:
             with open(filename, 'rb') as f:
                 state = pickle.load(f)[name]
         self.t_ = state['0_t']
-        clocks = set([obj.clock for obj in self.objects])
+        clocks = set([obj.clock for obj in all_objects])
         restored_objects = set()
-        for obj in self.objects:
+        for obj in all_objects:
             if obj.name in state:
                 obj._restore_from_full_state(state[obj.name])
                 restored_objects.add(obj.name)
@@ -637,8 +670,9 @@ class Network(Nameable):
         --------
         VariableOwner.get_states
         '''
+        all_objects = self.get_all_objects()
         states = dict()
-        for obj in self.objects:
+        for obj in all_objects:
             if hasattr(obj, 'get_states'):
                 states[obj.name] = obj.get_states(vars=None, units=units,
                                                   format=format,
@@ -737,13 +771,14 @@ class Network(Nameable):
         # Provided slot names are assigned positions 1, 4, 7, ...
         # before_... names are assigned positions 0, 3, 6, ...
         # after_... names are assigned positions 2, 5, 8, ...
+        all_objects = self.get_all_objects()
         when_to_int = dict((when, 1+i*3)
                            for i, when in enumerate(self.schedule))
         when_to_int.update(('before_' + when, i*3)
                            for i, when in enumerate(self.schedule))
         when_to_int.update(('after_' + when, 2+i*3)
                            for i, when in enumerate(self.schedule))
-        self.objects.sort(key=lambda obj: (when_to_int[obj.when],
+        all_objects.sort(key=lambda obj: (when_to_int[obj.when],
                                            obj.order,
                                            obj.name))
 
@@ -757,12 +792,14 @@ class Network(Nameable):
         summary : `SchedulingSummary`
             Object representing the scheduling information.
         '''
+        all_objects = self.get_all_objects()
         self._sort_objects()
-        return SchedulingSummary(self.objects)
+        return SchedulingSummary(all_objects)
 
     def check_dependencies(self):
-        all_ids = [obj.id for obj in self.objects]
-        for obj in self.objects:
+        all_objects = self.get_all_objects()
+        all_ids = [obj.id for obj in all_objects]
+        for obj in all_objects:
             for dependency in obj._dependencies:
                 if not dependency in all_ids:
                     raise ValueError(('"%s" has been included in the network '
@@ -785,10 +822,11 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
+        all_objects = self.get_all_objects()
         prefs.check_all_validated()
 
         # Check names in the network for uniqueness
-        names = [obj.name for obj in self.objects]
+        names = [obj.name for obj in all_objects]
         non_unique_names = [name for name, count in Counter(names).iteritems()
                             if count > 1]
         if len(non_unique_names):
@@ -800,7 +838,7 @@ class Network(Nameable):
 
         # Check that there are no SummedVariableUpdaters targeting the same
         # target variable
-        _check_multiple_summed_updaters(self.objects)
+        _check_multiple_summed_updaters(all_objects)
 
         self._stopped = False
         Network._globally_stopped = False
@@ -828,13 +866,13 @@ class Network(Nameable):
 
         logger.debug("Preparing network {self.name} with {numobj} "
                      "objects: {objnames}".format(self=self,
-                        numobj=len(self.objects),
-                        objnames=', '.join(obj.name for obj in self.objects)),
+                        numobj=len(all_objects),
+                        objnames=', '.join(obj.name for obj in all_objects)),
                      "before_run")
 
         self.check_dependencies()
 
-        for obj in self.objects:
+        for obj in all_objects:
             if obj.active:
                 try:
                     obj.before_run(run_namespace)
@@ -842,7 +880,7 @@ class Network(Nameable):
                     raise brian_object_exception("An error occurred when preparing an object.", obj, ex)
 
         # Check that no object has been run as part of another network before
-        for obj in self.objects:
+        for obj in all_objects:
             if obj._network is None:
                 obj._network = self.id
             elif obj._network != self.id:
@@ -864,7 +902,8 @@ class Network(Nameable):
         '''
         after_run()
         '''
-        for obj in self.objects:
+        all_objects = self.get_all_objects()
+        for obj in all_objects:
             if obj.active:
                 obj.after_run()
         
@@ -879,32 +918,6 @@ class Network(Nameable):
                          abs(time - min_time)/min(minclock_dt, dt) < Clock.epsilon_dt))
         return minclock, curclocks
 
-    def add_contained_objects(self, *objs):
-        """
-        Add objects defined by network.add() and their respective contained_objects to the Network
-        """
-        for obj in objs:
-            if isinstance(obj, BrianObject):
-                if obj not in self.allobjects:  # Don't include objects twice
-                    self.allobjects.append(obj) #Add to allobjects
-                self.add_contained_objects(obj.contained_objects)  #add each object's contained_objects                          
-            else:
-                # allow adding values from dictionaries
-                if isinstance(obj, Mapping):
-                    self.add_contained_objects(*obj.values())
-                else:
-                    try:
-                        for o in obj:
-                            # The following "if" looks silly but avoids an infinite
-                            # recursion if a string is provided as an argument
-                            # (which might occur during testing)
-                            if o is obj:
-                                raise TypeError()
-                            self.add_contained_objects(o)
-                    except TypeError:
-                        raise TypeError("Can only add objects of type BrianObject, "
-                                        "or containers of such objects to Network")
-        
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
@@ -949,10 +962,9 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        self.add_contained_objects(self.objects)    
-        self.objects=self.allobjects
+        all_objects = self.get_all_objects()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
-        self._clocks = set([obj.clock for obj in self.objects])
+        self._clocks = set([obj.clock for obj in all_objects])
         single_clock = len(self._clocks) == 1
 
         t_start = self.t
@@ -977,7 +989,7 @@ class Network(Nameable):
 
         self.before_run(namespace)
 
-        if len(self.objects)==0:
+        if len(all_objects)==0:
             return  # TODO: raise an error? warning?
 
         start_time = time.time()
@@ -1019,7 +1031,7 @@ class Network(Nameable):
 
         running = timestep[0] < clock._i_end
 
-        active_objects = [obj for obj in self.objects if obj.active]
+        active_objects = [obj for obj in all_objects if obj.active]
 
         while running and not self._stopped and not Network._globally_stopped:
             if not single_clock:
@@ -1088,7 +1100,7 @@ class Network(Nameable):
             device._last_run_completed_fraction = 1.0
 
         # check for nans
-        for obj in self.objects:
+        for obj in all_objects:
             if isinstance(obj, Group):
                 obj._check_for_invalid_states()
 
@@ -1118,9 +1130,10 @@ class Network(Nameable):
         self._stopped = True
 
     def __repr__(self):
+        all_objects = self.get_all_objects()
         return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
                                                               str(self.t),
-                                                              ', '.join((obj.__repr__() for obj in self.objects)))
+                                                              ', '.join((obj.__repr__() for obj in all_objects)))
 
 
 class ProfilingSummary(object):
