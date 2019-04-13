@@ -670,9 +670,8 @@ class Network(Nameable):
         --------
         VariableOwner.get_states
         '''
-        all_objects = self.get_all_objects()
         states = dict()
-        for obj in all_objects:
+        for obj in self.objects:
             if hasattr(obj, 'get_states'):
                 states[obj.name] = obj.get_states(vars=None, units=units,
                                                   format=format,
@@ -781,6 +780,7 @@ class Network(Nameable):
         all_objects.sort(key=lambda obj: (when_to_int[obj.when],
                                            obj.order,
                                            obj.name))
+        return(all_objects)
 
     def scheduling_summary(self):
         '''
@@ -792,8 +792,7 @@ class Network(Nameable):
         summary : `SchedulingSummary`
             Object representing the scheduling information.
         '''
-        all_objects = self.get_all_objects()
-        self._sort_objects()
+        all_objects = self._sort_objects()
         return SchedulingSummary(all_objects)
 
     def check_dependencies(self):
@@ -822,7 +821,7 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
-        all_objects = self.get_all_objects()
+        all_objects = self._sort_objects()
         prefs.check_all_validated()
 
         # Check names in the network for uniqueness
@@ -862,8 +861,6 @@ class Network(Nameable):
                                                            net=self),
                             name_suffix='schedule_conflict', once=True)
 
-        self._sort_objects()
-
         logger.debug("Preparing network {self.name} with {numobj} "
                      "objects: {objnames}".format(self=self,
                         numobj=len(all_objects),
@@ -902,7 +899,7 @@ class Network(Nameable):
         '''
         after_run()
         '''
-        all_objects = self.get_all_objects()
+        all_objects = self._sort_objects()
         for obj in all_objects:
             if obj.active:
                 obj.after_run()
@@ -962,7 +959,7 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        all_objects = self.get_all_objects()
+        all_objects = self._sort_objects()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
         self._clocks = set([obj.clock for obj in all_objects])
         single_clock = len(self._clocks) == 1
