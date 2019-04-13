@@ -59,7 +59,7 @@ SynapticPathway {{path.name}}(
 
 //////////////// clocks ///////////////////
 {% for clock in clocks | sort(attribute='name') %}
-Clock {{clock.name}};  // attributes will be set in run.cpp
+Clock {{clock.name}}({{clock.epsilon_dt}});  // attributes will be set in run.cpp
 {% endfor %}
 
 {% if profiled_codeobjects is defined %}

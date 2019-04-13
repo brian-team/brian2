@@ -19,7 +19,7 @@ public:
 	double *dt;
 	int64_t *timestep;
 	double *t;
-	Clock(double _epsilon=1e-14) : epsilon(_epsilon) { i_end = 0;};
+	Clock(double _epsilon=1e-8) : epsilon(_epsilon) { i_end = 0;};
     inline void tick()
     {
         timestep[0] += 1;
@@ -30,18 +30,18 @@ public:
 	{
         int i_start = fround(start/dt[0]);
         double t_start = i_start*dt[0];
-        if(t_start==start || fabs(t_start-start)<=epsilon*fabs(t_start))
+        if(t_start==start || fabs(t_start-start)<=epsilon)
         {
             timestep[0] = i_start;
         } else
         {
-            timestep[0] = (int)ceil(start/dt[0]);
+            timestep[0] = (int64_t)ceil(start/dt[0]);
         }
         i_end = fround(end/dt[0]);
         double t_end = i_end*dt[0];
-        if(!(t_end==end || fabs(t_end-end)<=epsilon*fabs(t_end)))
+        if(!(t_end==end || fabs(t_end-end)<=epsilon))
         {
-            i_end = (int)ceil(end/dt[0]);
+            i_end = (int64_t)ceil(end/dt[0]);
         }
 	}
 private:

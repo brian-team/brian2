@@ -59,6 +59,31 @@ def test_set_interval_warning():
     assert logs[0][1].endswith('many_timesteps')
 
 
+@attr('codegen-independent')
+def test_very_long_dt():
+    # See github issue #1054
+    clock1 = Clock(dt=0.1*ms)
+    clock2 = Clock(dt=100000*second)
+    clock1.set_interval(0*ms, 1*ms)
+    clock2.set_interval(0*ms, 1*ms)  # The clock should advance
+    assert clock1.timestep[:] == 0
+    assert clock2.timestep[:] == 0
+    assert clock1._i_end == 10
+    assert clock2._i_end == 1
+    # Simulate advancing the clock
+    clock1.variables['timestep'].set_value(clock1._i_end)
+    clock1.variables['t'].set_value(clock1._i_end * clock1.dt)
+    clock2.variables['timestep'].set_value(clock2._i_end)
+    clock2.variables['t'].set_value(clock2._i_end * clock2.dt)
+
+    clock1.set_interval(1*ms, 2*ms)
+    clock2.set_interval(1*ms, 2*ms)  # The clock should not advance
+    assert clock1.timestep[:] == 10
+    assert clock2.timestep[:] == 1
+    assert clock1._i_end == 20
+    assert clock2._i_end == 1
+
+
 if __name__ == '__main__':
     test_clock_attributes()
     restore_initial_state()
@@ -66,3 +91,4 @@ if __name__ == '__main__':
     restore_initial_state()
     test_defaultclock()
     test_set_interval_warning()
+    test_very_long_dt()
