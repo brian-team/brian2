@@ -1,8 +1,8 @@
 from __future__ import print_function
+from __future__ import absolute_import
 '''
 Check that the features of `Synapses` are available and correct.
 '''
-from __future__ import absolute_import
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
 import numpy
