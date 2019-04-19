@@ -78,7 +78,7 @@ class TimedArray(Function, Nameable, CacheKey):
     >>> net = Network(G, mon)
     >>> net.run(0.2*ms)  # doctest: +ELLIPSIS
     ...
-    >>> print mon.v[:]
+    >>> print(mon.v[:])
     [[ 1.  3.]
      [ 2.  4.]
      [ 1.  3.]

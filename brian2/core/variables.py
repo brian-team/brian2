@@ -1060,7 +1060,7 @@ class VariableView(object):
         '''
         Gets a variable using a string expression. Is called by
         `VariableView.get_item` for statements such as
-        ``print G.v['g_syn > 0']``.
+        ``print(G.v['g_syn > 0'])``.
 
         Parameters
         ----------

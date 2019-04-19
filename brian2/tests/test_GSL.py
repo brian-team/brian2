@@ -531,4 +531,4 @@ if __name__ == '__main__':
         try:
             t()
         except SkipTest as ex:
-            print(('Skipped: {} ({})'.format(t.__name__, str(ex))))
+            print('Skipped: {} ({})'.format(t.__name__, str(ex)))

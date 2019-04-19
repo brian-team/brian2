@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from __future__ import print_function
 import os
 import fnmatch
 import shutil
@@ -42,7 +43,7 @@ def main(rootpath, destdir):
         shutil.os.makedirs(destdir)
 
     examplesfnames = [fname for fname in GlobDirectoryWalker(rootpath, '*.py')]
-    print 'Documenting %d examples' % len(examplesfnames)
+    print('Documenting %d examples' % len(examplesfnames))
     examplespaths = []
     examplesbasenames = []
     relativepaths = []
@@ -109,7 +110,7 @@ def main(rootpath, destdir):
         rootdir, _ = os.path.split(__file__)
         rootdir = os.path.normpath(os.path.join(rootdir, '../../examples'))
     eximgpath = os.path.abspath(os.path.join(rootdir, '../docs_sphinx/resources/examples_images'))
-    print 'Searching for example images in directory', eximgpath
+    print('Searching for example images in directory', eximgpath)
     for fname, path, basename, code, docs, afterdoccode, relpath, exname in examples:
         categories[relpath].append((exname, basename))
         title = 'Example: ' + basename
@@ -138,7 +139,7 @@ def main(rootpath, destdir):
         images = glob.glob(eximgpattern)
         for image in sorted(images):
             _, image = os.path.split(image)
-            print 'Found example image file', image
+            print('Found example image file', image)
             output += '.. image:: ../resources/examples_images/%s\n\n' % image
 
         with codecs.open(os.path.join(destdir, exname + '.rst'), 'w', 'utf-8') as f:

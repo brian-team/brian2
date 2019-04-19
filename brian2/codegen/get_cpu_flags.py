@@ -7,6 +7,7 @@ multiprocessing module, and any import of cpuinfo that is not within a
 The CPU flags are printed to stdout encoded as JSON.
 '''
 from __future__ import absolute_import
+from __future__ import print_function
 import json
 
 if __name__ == '__main__':
