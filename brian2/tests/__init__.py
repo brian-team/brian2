@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import os
 import sys
-from StringIO import StringIO
+from io import StringIO
 
 from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices, set_device, reset_device
@@ -198,7 +198,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     if reset_preferences:
         # Store the currently set preferences and reset to default preferences
         stored_prefs = prefs.as_file
-        prefs.read_preference_file(StringIO(prefs.defaults_as_file.decode('utf-8')))
+        prefs.read_preference_file(StringIO(prefs.defaults_as_file))
 
     # Avoid failures in the tests for user-registered units
     import copy
