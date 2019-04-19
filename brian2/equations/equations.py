@@ -667,7 +667,7 @@ class Equations(collections.Hashable, collections.Mapping):
         elif not isinstance(other_eqns, Equations):
             return NotImplemented
 
-        return Equations(self.values() + other_eqns.values())
+        return Equations(list(self.values()) + list(other_eqns.values()))
 
     def __hash__(self):
         return hash(frozenset(self._equations.items()))
