@@ -9,7 +9,12 @@ import ast
 import weakref
 
 import numpy
-from __builtin__ import all as logical_all # defensive programming against numpy import
+try:
+    # Python 2
+    from __builtin__ import all as logical_all # defensive programming against numpy import
+except ImportError:
+    # Python 3
+    from builtins import all as logical_all
 
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.logger import get_logger
@@ -26,7 +31,7 @@ dtype_hierarchy = {'boolean': 0,
                    'float': 2,
                    }
 # This is just so you can invert from number to string
-for tc, i in dtype_hierarchy.items():
+for tc, i in dict(dtype_hierarchy).items():
     dtype_hierarchy[i] = tc
 
 def is_boolean(value):
