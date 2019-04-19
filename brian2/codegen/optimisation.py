@@ -1,6 +1,7 @@
 '''
 Simplify and optimise sequences of statements by rewriting and pulling out loop invariants.
 '''
+from __future__ import absolute_import
 import ast
 from collections import OrderedDict
 import copy

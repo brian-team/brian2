@@ -2,6 +2,7 @@
 A collection of tools for string formatting tasks.
 """
 
+from __future__ import absolute_import
 import re
 import string
 

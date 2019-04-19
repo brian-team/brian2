@@ -2,6 +2,7 @@
 Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
+from __future__ import absolute_import
 import collections
 import functools
 import numbers

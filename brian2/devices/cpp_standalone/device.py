@@ -1,6 +1,7 @@
 '''
 Module implementing the C++ "standalone" device.
 '''
+from __future__ import absolute_import
 import os
 import shutil
 import subprocess

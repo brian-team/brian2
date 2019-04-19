@@ -1,6 +1,7 @@
 '''
 Module providing the base `CodeObject` and related functions.
 '''
+from __future__ import absolute_import
 import collections
 import copy
 import platform

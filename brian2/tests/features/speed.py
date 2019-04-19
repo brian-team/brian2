@@ -1,6 +1,7 @@
 '''
 Check the speed of different Brian 2 configurations
 '''
+from __future__ import absolute_import
 from brian2 import *
 from brian2.tests.features import SpeedTest
 

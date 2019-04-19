@@ -1,5 +1,6 @@
 # Register the base category before importing the indivial generators with
 # their subcategories
+from __future__ import absolute_import
 from brian2.core.preferences import prefs
 prefs.register_preferences('codegen.generators',
                            ('Codegen generator preferences (see subcategories '

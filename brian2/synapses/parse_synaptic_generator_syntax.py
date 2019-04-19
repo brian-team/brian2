@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from brian2 import *
 from brian2.parsing.rendering import NodeRenderer
 import ast

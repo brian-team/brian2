@@ -4,6 +4,7 @@ Brian AST representation
 This is a standard Python AST representation with additional information added.
 '''
 
+from __future__ import absolute_import
 import ast
 import weakref
 

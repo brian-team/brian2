@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import numpy as np
 
 from brian2.utils.logger import get_logger

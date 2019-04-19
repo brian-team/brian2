@@ -2,6 +2,7 @@ from __future__ import print_function
 '''
 Tests for `SpikeGeneratorGroup`
 '''
+from __future__ import absolute_import
 import os
 import tempfile
 

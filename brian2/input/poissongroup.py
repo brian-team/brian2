@@ -2,6 +2,7 @@
 Implementation of `PoissonGroup`.
 '''
 
+from __future__ import absolute_import
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource

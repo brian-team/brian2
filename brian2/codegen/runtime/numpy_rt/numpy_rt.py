@@ -1,6 +1,7 @@
 '''
 Module providing `NumpyCodeObject`.
 '''
+from __future__ import absolute_import
 import sys
 from collections import Iterable
 

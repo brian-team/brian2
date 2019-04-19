@@ -2,6 +2,7 @@
 
 """
 
+from __future__ import absolute_import
 import inspect
 import textwrap
 import re

@@ -1,6 +1,7 @@
 '''
 GSLCodeGenerators for code that uses the ODE solver provided by the GNU Scientific Library (GSL)
 '''
+from __future__ import absolute_import
 import os
 import re
 import sys

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from numpy import float64, float32
 from StringIO import StringIO
 

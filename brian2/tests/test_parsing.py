@@ -2,6 +2,7 @@
 Tests the brian2.parsing package
 '''
 from __future__ import division  # Make sure that we use Python 3 semantics in Python 2
+from __future__ import absolute_import
 from collections import namedtuple
 
 from nose.plugins.attrib import attr

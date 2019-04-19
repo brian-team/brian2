@@ -3,6 +3,7 @@ Brian 2
 '''
 # Import setuptools to do some monkey patching of distutils, necessary for
 # working weave/Cython on Windows with the Python for C++ compiler
+from __future__ import absolute_import
 import setuptools as _setuptools
 
 def _check_dependencies():

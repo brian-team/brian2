@@ -1,6 +1,7 @@
 '''
 All Brian objects should derive from `BrianObject`.
 '''
+from __future__ import absolute_import
 import weakref
 import traceback
 import os

@@ -1,6 +1,7 @@
 '''
 AST parsing based analysis of expressions
 '''
+from __future__ import absolute_import
 import sys
 import ast
 import numbers

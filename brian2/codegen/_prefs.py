@@ -6,6 +6,7 @@ Preferences
 .. document_brian_prefs:: codegen
 '''
 
+from __future__ import absolute_import
 from .codeobject import CodeObject
 from brian2.core.preferences import prefs, BrianPreference
 

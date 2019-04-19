@@ -16,6 +16,7 @@ Luminosity             candle    cd
 """
 from __future__ import division
 
+from __future__ import absolute_import
 import numbers
 import collections
 from warnings import warn

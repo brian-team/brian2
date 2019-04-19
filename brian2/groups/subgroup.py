@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables

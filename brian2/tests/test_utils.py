@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from nose.plugins.attrib import attr
 
 from brian2.utils.environment import running_from_ipython

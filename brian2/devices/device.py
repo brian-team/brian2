@@ -2,6 +2,7 @@
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
+from __future__ import absolute_import
 from weakref import WeakKeyDictionary
 import numbers
 

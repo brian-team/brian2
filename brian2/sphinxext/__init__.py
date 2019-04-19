@@ -2,6 +2,7 @@
 Brian-specific extension to the Sphinx documentation generation system.
 '''
 
+from __future__ import absolute_import
 def setup():
     '''
     Setup function for doctests (used by nosetest).

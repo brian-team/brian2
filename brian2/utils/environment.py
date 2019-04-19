@@ -2,6 +2,7 @@
 Utility functions to get information about the environment Brian is running in.
 '''
 
+from __future__ import absolute_import
 import __builtin__ as builtins
 
 def running_from_ipython():

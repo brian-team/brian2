@@ -2,6 +2,7 @@
 Base class for generating code in different programming languages, gives the
 methods which should be overridden to implement a new language.
 '''
+from __future__ import absolute_import
 from brian2.core.variables import ArrayVariable
 from brian2.core.functions import Function
 from brian2.utils.stringtools import get_identifiers

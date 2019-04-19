@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import itertools
 
 from brian2.devices.device import all_devices

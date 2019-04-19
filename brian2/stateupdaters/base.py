@@ -4,6 +4,7 @@ all stateupdaters and allows to register stateupdaters so that it is able to
 return a suitable stateupdater object for a given set of equations. This is used
 for example in `NeuronGroup` when no state updater is given explicitly.
 '''
+from __future__ import absolute_import
 from abc import abstractmethod, ABCMeta
 import collections
 import time

@@ -2,6 +2,7 @@
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 '''
+from __future__ import absolute_import
 import abc
 import numbers
 from abc import abstractmethod

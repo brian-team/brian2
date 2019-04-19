@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from nose.plugins.attrib import attr
 import numpy as np
 from numpy.testing import assert_raises, assert_equal

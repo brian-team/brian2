@@ -1,6 +1,7 @@
 '''
 Implementation of `PoissonInput`.
 '''
+from __future__ import absolute_import
 from .binomial import BinomialFunction
 
 from brian2.core.variables import Variables

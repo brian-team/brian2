@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from numpy.testing.utils import assert_raises
 from nose import with_setup
 from nose.plugins.attrib import attr

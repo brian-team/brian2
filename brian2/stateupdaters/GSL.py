@@ -2,6 +2,7 @@
 Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
 '''
+from __future__ import absolute_import
 import sys
 
 from .base import (StateUpdateMethod, UnsupportedEquationsException, extract_method_options)

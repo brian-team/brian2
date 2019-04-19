@@ -2,6 +2,7 @@
 Module providing the `Synapses` class and related helper classes/functions.
 '''
 
+from __future__ import absolute_import
 import collections
 from collections import defaultdict
 import functools

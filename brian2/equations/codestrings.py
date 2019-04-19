@@ -3,6 +3,7 @@ Module defining `CodeString`, a class for a string of code together with
 information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
+from __future__ import absolute_import
 import collections
 
 import sympy

@@ -1,6 +1,7 @@
 '''
 Implementation of `BinomialFunction`
 '''
+from __future__ import absolute_import
 import numpy as np
 
 from brian2.core.base import Nameable

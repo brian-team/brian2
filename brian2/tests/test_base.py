@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from brian2 import *
 from brian2.devices.device import reinit_devices
 from brian2.tests.utils import assert_allclose

@@ -7,6 +7,7 @@ Preferences
 .. document_brian_prefs:: core.network
 
 '''
+from __future__ import absolute_import
 import os
 import sys
 import time

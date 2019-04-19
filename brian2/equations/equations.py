@@ -1,6 +1,7 @@
 '''
 Differential equations for Brian models.
 '''
+from __future__ import absolute_import
 import collections
 import keyword
 import re

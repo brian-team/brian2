@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from numpy.testing import assert_raises, assert_equal, assert_array_equal

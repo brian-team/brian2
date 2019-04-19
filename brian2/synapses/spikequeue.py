@@ -3,6 +3,7 @@ The spike queue class stores future synaptic events
 produced by a given presynaptic neuron group (or postsynaptic for backward
 propagation in STDP).
 """
+from __future__ import absolute_import
 import bisect
 
 import numpy as np

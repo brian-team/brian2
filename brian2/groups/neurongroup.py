@@ -1,6 +1,7 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
+from __future__ import absolute_import
 import collections
 import numbers
 import string
