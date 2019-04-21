@@ -909,11 +909,12 @@ class CPPStandaloneDevice(Device):
             
     def find_synapses(self):
         # Write the global objects
+        all_objects = net._sort_objects()
         networks = [net() for net in Network.__instances__()
                     if net().name != '_fake_network']
         synapses = []
         for net in networks:
-            net_synapses = [s for s in net.objects if isinstance(s, Synapses)]
+            net_synapses = [s for s in all_objects if isinstance(s, Synapses)]
             synapses.extend(net_synapses)
         self.networks = networks
         self.net_synapses = synapses
@@ -1088,6 +1089,7 @@ class CPPStandaloneDevice(Device):
             distinguish an automatic build due to the ``build_on_run`` option
             from a manual ``device.build`` call.
         '''
+        all_objects = net._sort_objects()
         if self.build_on_run and direct_call:
             raise RuntimeError('You used set_device with build_on_run=True '
                                '(the default option), which will automatically '
@@ -1213,7 +1215,7 @@ class CPPStandaloneDevice(Device):
             net.after_run()
 
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in net.objects]
+        names = [obj.name for net in self.networks for obj in all_objects]
         non_unique_names = [name for name, count in Counter(names).iteritems()
                             if count > 1]
         if len(non_unique_names):
@@ -1254,8 +1256,8 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
-
-        net._clocks = {obj.clock for obj in net.objects}
+        all_objects = net._sort_objects()
+        net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
         for clock in net._clocks:
             clock.set_interval(net.t, t_end)
@@ -1278,7 +1280,7 @@ class CPPStandaloneDevice(Device):
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right
         # running order, assuming that there is only one clock
         code_objects = []
-        for obj in net.objects:
+        for obj in all_objects:
             if obj.active:
                 for codeobj in obj._code_objects:
                     code_objects.append((obj.clock, codeobj))
