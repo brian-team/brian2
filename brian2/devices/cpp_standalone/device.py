@@ -906,15 +906,40 @@ class CPPStandaloneDevice(Device):
             arr.tofile(os.path.join(directory, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
         self.static_array_specs = static_array_specs
-            
+    
+    def get_all_objects(self, objects):
+        
+        all_objects = []
+        def add_child_objects(*objs):
+            for obj in objs:
+                if isinstance(obj, BrianObject):
+                    if obj not in all_objects:  # Don't include objects twice
+                        all_objects.append(obj)
+                    add_child_objects(obj.contained_objects)
+                else:
+                    # allow adding values from dictionaries
+                    if isinstance(obj, Mapping):
+                        add_child_objects(*obj.values())
+                    else:
+                        try:
+                            for o in obj:
+                                if o is obj:
+                                    raise TypeError()
+                                add_child_objects(o)
+                        except TypeError:
+                            raise TypeError("Can only add objects of type BrianObject, "
+                                            "or containers of such objects to Network")
+        
+        add_child_objects(objects)
+        return(all_objects)
+
     def find_synapses(self):
         # Write the global objects
         networks = [net() for net in Network.__instances__()
                     if net().name != '_fake_network']
-        all_objects = net._sort_objects()
         synapses = []
         for net in networks:
-            net_synapses = [s for s in all_objects if isinstance(s, Synapses)]
+            net_synapses = [s for s in self.get_all_objects(net.objects) if isinstance(s, Synapses)]
             synapses.extend(net_synapses)
         self.networks = networks
         self.net_synapses = synapses
@@ -1212,9 +1237,8 @@ class CPPStandaloneDevice(Device):
         # for repeated runs of standalone (e.g. in the test suite).
         for net in self.networks:
             net.after_run()
-        all_objects = net._sort_objects()
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in all_objects]
+        names = [obj.name for net in self.networks for obj in self.get_all_objects(net.objects)]
         non_unique_names = [name for name, count in Counter(names).iteritems()
                             if count > 1]
         if len(non_unique_names):
@@ -1255,7 +1279,7 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
-        all_objects = net._sort_objects()
+        all_objects = self.get_all_objects(net.objects)
         net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
         for clock in net._clocks:
