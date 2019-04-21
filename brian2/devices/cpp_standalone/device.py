@@ -909,9 +909,9 @@ class CPPStandaloneDevice(Device):
             
     def find_synapses(self):
         # Write the global objects
-        all_objects = net._sort_objects()
         networks = [net() for net in Network.__instances__()
                     if net().name != '_fake_network']
+        all_objects = net._sort_objects()
         synapses = []
         for net in networks:
             net_synapses = [s for s in all_objects if isinstance(s, Synapses)]
@@ -1089,7 +1089,6 @@ class CPPStandaloneDevice(Device):
             distinguish an automatic build due to the ``build_on_run`` option
             from a manual ``device.build`` call.
         '''
-        all_objects = net._sort_objects()
         if self.build_on_run and direct_call:
             raise RuntimeError('You used set_device with build_on_run=True '
                                '(the default option), which will automatically '
@@ -1213,7 +1212,7 @@ class CPPStandaloneDevice(Device):
         # for repeated runs of standalone (e.g. in the test suite).
         for net in self.networks:
             net.after_run()
-
+        all_objects = net._sort_objects()
         # Check that all names are globally unique
         names = [obj.name for net in self.networks for obj in all_objects]
         non_unique_names = [name for name, count in Counter(names).iteritems()
