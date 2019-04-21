@@ -912,7 +912,7 @@ class CPPStandaloneDevice(Device):
         all_objects = []
         def add_child_objects(*objs):
             for obj in objs:
-                if isinstance(obj, BrianObject):
+                if not isinstance(obj, dict):
                     if obj not in all_objects:  # Don't include objects twice
                         all_objects.append(obj)
                     add_child_objects(obj.contained_objects)
@@ -929,10 +929,9 @@ class CPPStandaloneDevice(Device):
                         except TypeError:
                             raise TypeError("Can only add objects of type BrianObject, "
                                             "or containers of such objects to Network")
-        
         add_child_objects(objects)
         return(all_objects)
-
+        
     def find_synapses(self):
         # Write the global objects
         networks = [net() for net in Network.__instances__()
