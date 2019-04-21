@@ -7,7 +7,7 @@ import subprocess
 import sys
 import inspect
 import struct
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, Mapping
 import itertools
 import numbers
 import tempfile
@@ -21,6 +21,7 @@ from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.functions import Function
+from brian2.core.base import BrianObject
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.groups.group import Group
@@ -908,11 +909,10 @@ class CPPStandaloneDevice(Device):
         self.static_array_specs = static_array_specs
     
     def get_all_objects(self, objects):
-        
         all_objects = []
         def add_child_objects(*objs):
-            for obj in objs:
-                if not isinstance(obj, dict):
+            for obj in objs:           
+                if isinstance(obj, BrianObject):
                     if obj not in all_objects:  # Don't include objects twice
                         all_objects.append(obj)
                     add_child_objects(obj.contained_objects)
