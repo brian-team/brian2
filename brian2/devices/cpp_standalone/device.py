@@ -908,7 +908,7 @@ class CPPStandaloneDevice(Device):
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
         self.static_array_specs = static_array_specs
     
-    def get_all_objects(self, objects):
+    def get_all_objects(self, net):
         all_objects = []
         def add_child_objects(*objs):
             for obj in objs:           
@@ -929,7 +929,14 @@ class CPPStandaloneDevice(Device):
                         except TypeError:
                             raise TypeError("Can only add objects of type BrianObject, "
                                             "or containers of such objects to Network")
-        add_child_objects(objects)
+        add_child_objects(net.objects)
+        when_to_int = dict((when, 1+i*3)
+                           for i, when in enumerate(net.schedule))
+        when_to_int.update(('before_' + when, i*3)
+                           for i, when in enumerate(net.schedule))
+        when_to_int.update(('after_' + when, 2+i*3)
+                           for i, when in enumerate(net.schedule))
+        all_objects.sort(key=lambda obj: (when_to_int[obj.when],obj.order,obj.name))
         return(all_objects)
         
     def find_synapses(self):
@@ -938,7 +945,7 @@ class CPPStandaloneDevice(Device):
                     if net().name != '_fake_network']
         synapses = []
         for net in networks:
-            net_synapses = [s for s in self.get_all_objects(net.objects) if isinstance(s, Synapses)]
+            net_synapses = [s for s in self.get_all_objects(net) if isinstance(s, Synapses)]
             synapses.extend(net_synapses)
         self.networks = networks
         self.net_synapses = synapses
@@ -1237,7 +1244,7 @@ class CPPStandaloneDevice(Device):
         for net in self.networks:
             net.after_run()
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in self.get_all_objects(net.objects)]
+        names = [obj.name for net in self.networks for obj in self.get_all_objects(net)]
         non_unique_names = [name for name, count in Counter(names).iteritems()
                             if count > 1]
         if len(non_unique_names):
@@ -1278,7 +1285,7 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
-        all_objects = self.get_all_objects(net.objects)
+        all_objects = self.get_all_objects(net)
         net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
         for clock in net._clocks:
