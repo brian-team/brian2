@@ -1,13 +1,15 @@
+from __future__ import absolute_import
 '''
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
 '''
-from __future__ import absolute_import
 import abc
 import numbers
 from abc import abstractmethod
 from collections import OrderedDict, defaultdict, namedtuple
 import os
+
+from past.builtins import basestring
 
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger

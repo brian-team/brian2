@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 '''
 Handles loading templates from a directory.
 '''
-from __future__ import absolute_import
 import re
 from collections import Mapping
 
+from past.builtins import basestring
 from jinja2 import (Environment, PackageLoader, ChoiceLoader, StrictUndefined,
                     TemplateNotFound)
 

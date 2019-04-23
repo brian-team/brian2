@@ -1,11 +1,14 @@
+from __future__ import absolute_import
 '''
 All Brian objects should derive from `BrianObject`.
 '''
-from __future__ import absolute_import
+
 import weakref
 import traceback
 import os
 import sys
+
+from past.builtins import basestring
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable

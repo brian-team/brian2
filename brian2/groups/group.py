@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 '''
 This module defines the `VariableOwner` class, a mix-in class for everything
 that saves state variables, e.g. `Clock` or `NeuronGroup`, the class `Group`
@@ -5,7 +6,6 @@ for objects that in addition to storing state variables also execute code, i.e.
 objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 `CodeRunner`, a class to run code in the context of a `Group`.
 '''
-from __future__ import absolute_import
 import collections
 from collections import OrderedDict
 import weakref
@@ -13,6 +13,7 @@ import numbers
 import inspect
 
 import numpy as np
+from past.builtins import basestring
 
 from brian2.core.base import BrianObject, weakproxy_with_fallback
 from brian2.core.names import Nameable

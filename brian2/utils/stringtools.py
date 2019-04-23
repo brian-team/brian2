@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 """
 A collection of tools for string formatting tasks.
 """
-
-from __future__ import absolute_import
 import re
 import string
+
+from past.builtins import basestring
 
 __all__ = ['indent',
            'deindent',
@@ -17,6 +18,7 @@ __all__ = ['indent',
            'code_representation',
            'SpellChecker'
            ]
+
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
     '''

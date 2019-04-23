@@ -1,17 +1,18 @@
+from __future__ import absolute_import
 '''
 Differential equations for Brian models.
 '''
-from __future__ import absolute_import
 import collections
 import keyword
 import re
 import string
 
-import sympy
-from brian2.utils.stringtools import get_identifiers
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
+import sympy
+from past.builtins import basestring
 
+from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import (DEFAULT_FUNCTIONS,
                                    DEFAULT_CONSTANTS,
                                    DEFAULT_UNITS)

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 '''
 Module declaring general code generation preferences.
 
@@ -5,10 +6,10 @@ Preferences
 -----------
 .. document_brian_prefs:: codegen
 '''
+from past.builtins import basestring
 
-from __future__ import absolute_import
-from .codeobject import CodeObject
 from brian2.core.preferences import prefs, BrianPreference
+from .codeobject import CodeObject
 
 # Preferences
 prefs.register_preferences(

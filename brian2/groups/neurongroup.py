@@ -1,12 +1,13 @@
+from __future__ import absolute_import
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
-from __future__ import absolute_import
 import collections
 import numbers
 import string
 
 import numpy as np
+from past.builtins import basestring
 import sympy
 from pyparsing import Word
 
@@ -30,6 +31,7 @@ from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
+
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 

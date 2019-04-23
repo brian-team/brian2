@@ -1,8 +1,8 @@
+from __future__ import absolute_import
 '''
 Implementation of `PoissonInput`.
 '''
-from __future__ import absolute_import
-from .binomial import BinomialFunction
+from past.builtins import basestring
 
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
@@ -12,6 +12,7 @@ from brian2.units.fundamentalunits import (check_units, have_same_dimensions,
                                            get_dimensions)
 from brian2.units.stdunits import Hz
 
+from .binomial import BinomialFunction
 
 __all__ = ['PoissonInput']
 

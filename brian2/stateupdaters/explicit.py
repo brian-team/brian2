@@ -1,8 +1,7 @@
+from __future__ import absolute_import
 '''
 Numerical integration functions.
 '''
-
-from __future__ import absolute_import
 import string
 import operator
 from functools import reduce
@@ -11,8 +10,10 @@ import sympy
 from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
+from past.builtins import basestring
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
+
 from .base import (StateUpdateMethod, UnsupportedEquationsException,
                    extract_method_options)
 

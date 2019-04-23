@@ -11,6 +11,7 @@ except ImportError:
     pprint = None
 from nose import SkipTest
 from nose.plugins.attrib import attr
+from past.builtins import basestring
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre
 from brian2 import Unit, Equations, Expression

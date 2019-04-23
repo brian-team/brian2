@@ -1,6 +1,9 @@
 from __future__ import absolute_import
+
 import uuid
 import re
+
+from past.builtins import basestring
 
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable

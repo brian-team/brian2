@@ -1,7 +1,9 @@
 from __future__ import absolute_import
-import numbers
-
+'''
+Module defining `EventMonitor` and `SpikeMonitor`.
+'''
 import numpy as np
+from past.builtins import basestring
 
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable

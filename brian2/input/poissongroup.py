@@ -1,9 +1,9 @@
+from __future__ import absolute_import
 '''
 Implementation of `PoissonGroup`.
 '''
-
-from __future__ import absolute_import
 import numpy as np
+from past.builtins import basestring
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables, Subexpression

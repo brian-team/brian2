@@ -1,13 +1,15 @@
+from __future__ import absolute_import
 '''
 This module defines the `StateUpdateMethod` class that acts as a base class for
 all stateupdaters and allows to register stateupdaters so that it is able to
 return a suitable stateupdater object for a given set of equations. This is used
 for example in `NeuronGroup` when no state updater is given explicitly.
 '''
-from __future__ import absolute_import
 from abc import abstractmethod, ABCMeta
 import collections
 import time
+
+from past.builtins import basestring
 
 from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
@@ -15,6 +17,7 @@ from brian2.utils.logger import get_logger
 __all__ = ['StateUpdateMethod']
 
 logger = get_logger(__name__)
+
 
 class UnsupportedEquationsException(Exception):
     pass

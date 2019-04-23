@@ -1,14 +1,15 @@
+from __future__ import absolute_import
 '''
 Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
-from __future__ import absolute_import
 import collections
 import functools
 import numbers
 
 import numpy as np
 import sympy
+from past.builtins import basestring
 
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,

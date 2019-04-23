@@ -1,8 +1,8 @@
+from __future__ import absolute_import
+from __future__ import print_function
 '''
 Module implementing the C++ "standalone" device.
 '''
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import shutil
 import subprocess
@@ -16,6 +16,7 @@ import tempfile
 from distutils import ccompiler
 
 import numpy as np
+from past.builtins import basestring
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds

@@ -5,6 +5,8 @@ Brian 2
 # working weave/Cython on Windows with the Python for C++ compiler
 from __future__ import absolute_import
 import setuptools as _setuptools
+from past.builtins import basestring
+
 
 def _check_dependencies():
     '''Check basic dependencies'''

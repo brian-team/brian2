@@ -1,7 +1,12 @@
 from __future__ import absolute_import
+'''
+Package contain all unit/integration tests for the `brian2` package.
+'''
 import os
 import sys
 from io import StringIO
+
+from past.builtins import basestring
 
 from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices, set_device, reset_device

@@ -1,4 +1,6 @@
 # coding=utf-8
+from __future__ import division
+from __future__ import absolute_import
 """
 Defines physical units and quantities
 
@@ -14,9 +16,7 @@ Quantity of substance  mole      mol
 Luminosity             candle    cd
 =====================  ========  ======
 """
-from __future__ import division
 
-from __future__ import absolute_import
 import numbers
 import collections
 from warnings import warn
@@ -25,6 +25,7 @@ import itertools
 
 import numpy as np
 from numpy import VisibleDeprecationWarning
+from past.builtins import basestring
 from sympy import latex
 
 __all__ = [
