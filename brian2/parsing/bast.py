@@ -9,12 +9,7 @@ import ast
 import weakref
 
 import numpy
-try:
-    # Python 2
-    from __builtin__ import all as logical_all # defensive programming against numpy import
-except ImportError:
-    # Python 3
-    from builtins import all as logical_all
+from builtins import all as logical_all  # defensive programming against numpy import
 
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.logger import get_logger
