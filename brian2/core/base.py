@@ -351,5 +351,8 @@ def brian_object_exception(message, brianobj, original_exception):
     for attribute in dir(original_exception):
         if attribute.startswith('_'):
             continue
-        setattr(new_exception, attribute, getattr(original_exception, attribute))
+        try:
+            setattr(new_exception, attribute, getattr(original_exception, attribute))
+        except AttributeError:  # some attributes cannot be set
+            pass
     return new_exception
