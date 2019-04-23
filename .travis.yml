@@ -120,7 +120,7 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage gsl>1.15 cython";
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 nose sphinx<1.6.3 ipython sympy==0.7.6 jinja2==2.7 pyparsing setuptools coverage gsl>1.15 cython future";
     else
     PYTHON_PACKAGES="python=$PYTHON numpy nose sphinx<1.6.3 ipython sympy!=1.1.0 pyparsing jinja2 setuptools coverage gsl>1.15 cython";
     fi
