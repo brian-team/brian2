@@ -195,6 +195,8 @@ not_refractory
     is currently in a refractory state
 t
     Current time
+t_in_timesteps
+    Current time measured in time steps
 xi, xi_*
     Stochastic differential in equations
 
