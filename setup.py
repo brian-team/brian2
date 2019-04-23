@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-#! /usr/bin/env python
 '''
 Brian2 setup script
 '''
