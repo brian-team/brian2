@@ -1,7 +1,7 @@
 # encoding: utf8
 from __future__ import absolute_import
 import sys
-from io import BytesIO
+from io import StringIO
 
 from numpy.testing import assert_raises
 import numpy as np
@@ -493,7 +493,7 @@ def test_ipython_pprint():
                        f : Hz''')
     # Test ipython's pretty printing
     old_stdout = sys.stdout
-    string_output = BytesIO()
+    string_output = StringIO()
     sys.stdout = string_output
     pprint(eqs)
     assert len(string_output.getvalue()) > 0
