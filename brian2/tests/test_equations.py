@@ -1,7 +1,6 @@
 # encoding: utf8
 from __future__ import absolute_import
 import sys
-from io import StringIO
 
 from numpy.testing import assert_raises
 import numpy as np
@@ -486,6 +485,10 @@ def test_str_repr():
 
 @attr('codegen-independent')
 def test_ipython_pprint():
+    try:
+        from cStringIO import StringIO  # Python 2
+    except ImportError:
+        from io import StringIO  # Python 3
     if pprint is None:
         raise SkipTest('ipython is not available')
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
