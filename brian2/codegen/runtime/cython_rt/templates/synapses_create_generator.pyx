@@ -11,13 +11,13 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, rand, N,
 
 {% block template_support_code %}
 cdef int _buffer_size = 1024
-cdef int[:] _prebuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
-cdef int[:] _postbuf = _numpy.zeros(_buffer_size, dtype=_numpy.int32)
+cdef int _prebuf[1024]
+cdef int _postbuf[1024]
 cdef int _curbuf = 0
 cdef int _raw_pre_idx
 cdef int _raw_post_idx
 
-cdef void _flush_buffer(buf, dynarr, int buf_len):
+cdef void _flush_buffer(int[:] buf, dynarr, int buf_len):
     _curlen = dynarr.shape[0]
     _newlen = _curlen+buf_len
     # Resize the array
@@ -76,7 +76,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         while {{iteration_variable}}+1<_iter_high:
             {{iteration_variable}} += 1
             if _jump_algo:
-                _jump = int(floor(log(_rand(_vectorisation_idx))*_pconst))*_iter_step
+                _jump = <int>(floor(log(_rand(_vectorisation_idx))*_pconst))*_iter_step
                 {{iteration_variable}} += _jump
                 if {{iteration_variable}}>=_iter_high:
                     break

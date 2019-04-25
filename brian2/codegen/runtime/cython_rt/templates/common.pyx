@@ -2,6 +2,7 @@
 #cython: boundscheck=False
 #cython: wraparound=False
 #cython: cdivision=False
+#cython: initializedcheck=False
 #cython: infer_types=True
 from __future__ import division
 
