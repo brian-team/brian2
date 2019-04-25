@@ -10,7 +10,7 @@
 
     cdef int _spiking_synapse_idx
 
-    for _spiking_synapse_idx in range(len(_spiking_synapses)):
+    for _spiking_synapse_idx in range(_spiking_synapses.shape[0]):
         # vector code
         _idx = _spiking_synapses[_spiking_synapse_idx]
         _vectorisation_idx = _idx

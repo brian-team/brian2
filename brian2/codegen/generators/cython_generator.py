@@ -236,12 +236,15 @@ class CythonCodeGenerator(CodeGenerator):
                             "global _namespace_num{var_name}",
                             "cdef _numpy.ndarray[{cpp_dtype}, ndim=1, mode='c'] _buf_{var_name} = _namespace['{var_name}']",
                             "_namespace{var_name} = <{cpp_dtype} *> _buf_{var_name}.data",
-                            "_namespace_num{var_name} = len(_namespace['{var_name}'])"
+                            "_namespace_num{var_name} = _buf_{var_name}.shape[0]"
                         ]
-                        support_code.append(
+                        support_code.extend([
                             "cdef {cpp_dtype} *_namespace{var_name}".format(
                                 cpp_dtype=get_cpp_dtype(ns_value.dtype),
-                                var_name=ns_key))
+                                var_name=ns_key),
+                            "cdef int _namespace_num{var_name}".format(
+                                var_name=ns_key)
+                        ])
 
                     else:  # e.g. a function
                         newlines = [
@@ -326,7 +329,7 @@ class CythonCodeGenerator(CodeGenerator):
                                 "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
 
                 if not var.scalar:
-                    newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
+                    newlines += ["cdef int _num{array_name} = _buf_{array_name}.shape[0]"]
 
                 if var.scalar and var.constant:
                     newlines += ['cdef {cpp_dtype} {varname} = _namespace["{varname}"]']
