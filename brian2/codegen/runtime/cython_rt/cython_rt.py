@@ -109,6 +109,9 @@ class CythonCodeObject(NumpyCodeObject):
         self.libraries = (list(prefs['codegen.cpp.libraries']) +
                           compiler_kwds.get('libraries', []))
         self.sources = compiler_kwds.get('sources', [])
+        self.compiled_code = None
+        self.build_process = None
+        self.module_name = None
 
     @classmethod
     def is_available(cls):
@@ -134,7 +137,7 @@ class CythonCodeObject(NumpyCodeObject):
             return False
 
     def compile(self):
-        self.compiled_code = cython_extension_manager.create_extension(
+        self.module_name, self.build_process = cython_extension_manager.create_extension(
             self.code,
             define_macros=self.define_macros,
             libraries=self.libraries,
@@ -145,9 +148,14 @@ class CythonCodeObject(NumpyCodeObject):
             compiler=self.compiler,
             owner_name=self.owner.name+'_'+self.template_name,
             sources=self.sources
-            )
+        )
         
     def run(self):
+        if self.compiled_code is None:
+            if self.build_process is not None:
+                self.build_process.join()
+                self.build_process = None
+            self.compiled_code = cython_extension_manager.get_module(self.module_name)
         return self.compiled_code.main(self.namespace)
 
     # the following are copied from WeaveCodeObject

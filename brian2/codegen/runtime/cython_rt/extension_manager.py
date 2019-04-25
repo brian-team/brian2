@@ -56,6 +56,36 @@ def get_cython_extensions():
             '.dll', '.obj', '.exp', '.lib'}
 
 
+def assure_lib_dir():
+    lib_dir = get_cython_cache_dir()
+    if '~' in lib_dir:
+        lib_dir = os.path.expanduser(lib_dir)
+    try:
+        os.makedirs(lib_dir)
+    except OSError:
+        if not os.path.exists(lib_dir):
+            raise IOError(
+                "Couldn't create Cython cache directory '%s', try setting the "
+                "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
+    return lib_dir
+
+
+def lock_file(fp, file_name):
+    if msvcrt:
+        msvcrt.locking(fp.fileno(), msvcrt.LK_RLCK,
+                       os.stat(file_name).st_size)
+    else:
+        fcntl.flock(fp, fcntl.LOCK_EX)
+
+
+def unlock_file(fp, file_name):
+    if msvcrt:
+        msvcrt.locking(fp.fileno(), msvcrt.LK_UNLCK,
+                       os.stat(file_name).st_size)
+    else:
+        fcntl.flock(fp, fcntl.LOCK_UN)
+
+
 class CythonExtensionManager(object):
     def __init__(self):
         self._code_cache = {}
@@ -72,8 +102,35 @@ class CythonExtensionManager(object):
                          sources=None,
                          owner_name='',
                          ):
+        """
+        Compile Cython code into an extension that can be imported as a Python
+        module.
+
+        Returns
+        -------
+        module_name : str
+            The name of the module (based on a hash of the code, Python version,
+            etc.)
+        build_process : `Process` or ``None``
+            The process that compiles the module. Before loading the module,
+            this process has to end, i.e. ``build_process.join()` has to be
+            used. If no build process has been started because the module
+            already exists, ``None`` will be returned
+        """
         if sources is None:
             sources = []
+        if define_macros is None:
+            define_macros = []
+        if include_dirs is None:
+            include_dirs = []
+        if library_dirs is None:
+            library_dirs = []
+        if extra_compile_args is None:
+            extra_compile_args = []
+        if extra_link_args is None:
+            extra_link_args = []
+        if libraries is None:
+            libraries = []
         self._simplify_paths()
 
         if Cython is None:
@@ -81,15 +138,7 @@ class CythonExtensionManager(object):
 
         code = deindent(code)
 
-        lib_dir = get_cython_cache_dir()
-        if '~' in lib_dir:
-            lib_dir = os.path.expanduser(lib_dir)
-        try:
-            os.makedirs(lib_dir)
-        except OSError:
-            if not os.path.exists(lib_dir):
-                raise IOError("Couldn't create Cython cache directory '%s', try setting the "
-                              "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
+        lib_dir = assure_lib_dir()
 
         numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
         key = code, sys.version_info, sys.executable, Cython.__version__, numpy_version
@@ -97,67 +146,76 @@ class CythonExtensionManager(object):
         if force:
             # Force a new module name by adding the current time to the
             # key which is hashed to determine the module name.
-            key += time.time(),            
+            key += time.time(),
 
-        if key in self._code_cache:
-            return self._code_cache[key]
-
-        if name is not None:
-            module_name = name#py3compat.unicode_to_str(args.name)
-        else:
-            module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
+        module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
         if owner_name:
             logger.diagnostic('"{owner_name}" using Cython module "{module_name}"'.format(owner_name=owner_name,
                                                                                      module_name=module_name))
-
+        # Nothing to do
+        if module_name in self._code_cache:
+            return module_name, None
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
 
-        if prefs['codegen.runtime.cython.multiprocess_safe']:
-            lock_file = os.path.join(lib_dir, module_name + '.lock')
-            with open(lock_file, 'w') as f:
-                # Lock
-                if msvcrt:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
-                                   os.stat(lock_file).st_size)
-                else:
-                    fcntl.flock(f, fcntl.LOCK_EX)
-                module = self._load_module(module_path,
-                                           define_macros=define_macros,
-                                           include_dirs=include_dirs,
-                                           library_dirs=library_dirs,
-                                           extra_compile_args=extra_compile_args,
-                                           extra_link_args=extra_link_args,
-                                           libraries=libraries,
-                                           code=code,
-                                           lib_dir=lib_dir,
-                                           module_name=module_name,
-                                           runtime_library_dirs=runtime_library_dirs,
-                                           compiler=compiler,
-                                           key=key,
-                                           sources=sources)
-                # Unlock
-                if msvcrt:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK,
-                                   os.stat(lock_file).st_size)
-                else:
-                    fcntl.flock(f, fcntl.LOCK_UN)
-            return module
-        else:
-            return self._load_module(module_path,
-                                     define_macros=define_macros,
-                                     include_dirs=include_dirs,
-                                     library_dirs=library_dirs,
-                                     extra_compile_args=extra_compile_args,
-                                     extra_link_args=extra_link_args,
-                                     libraries=libraries,
-                                     code=code,
-                                     lib_dir=lib_dir,
-                                     module_name=module_name,
-                                     runtime_library_dirs=runtime_library_dirs,
-                                     compiler=compiler,
-                                     key=key,
-                                     sources=sources)
+        lock_file_name = os.path.join(lib_dir, module_name + '.lock')
+        with open(lock_file_name, 'w') as f:
+            # Lock
+            lock_file(f, lock_file_name)
+
+            # We might just have acquired the lock after waiting for another
+            # process to finish creating the module
+            if module_name in self._code_cache:
+                unlock_file(f, lock_file_name)
+                return module_name, None
+
+            # The module exists already, but has not yet been loaded into the
+            # memory cache
+            if os.path.isfile(module_path):
+                unlock_file(f, lock_file_name)
+                return module_name, None
+
+            c_include_dirs = include_dirs
+            if 'numpy' in code:
+                c_include_dirs.append(numpy.get_include())
+
+            # TODO: We should probably have a special folder just for header
+            # files that are shared between different codegen targets
+            import brian2.synapses as synapses
+            synapses_dir = os.path.dirname(synapses.__file__)
+            c_include_dirs.append(synapses_dir)
+
+            pyx_file = os.path.join(lib_dir, module_name + '.pyx')
+            with open(pyx_file, 'w') as f:
+                f.write(code)
+
+            update_for_cross_compilation(library_dirs,
+                                         extra_compile_args,
+                                         extra_link_args, logger=logger)
+            for source in sources:
+                if not source.lower().endswith('.pyx'):
+                    raise ValueError('Additional Cython source files need to '
+                                     'have an .pyx ending')
+                # Copy source and header file (if present) to library directory
+                shutil.copyfile(source, os.path.join(lib_dir,
+                                                     os.path.basename(source)))
+                name_without_ext = os.path.splitext(os.path.basename(source))[0]
+                header_name = name_without_ext + '.pxd'
+                if os.path.exists(os.path.join(os.path.dirname(source), header_name)):
+                    shutil.copyfile(os.path.join(os.path.dirname(source), header_name),
+                                    os.path.join(lib_dir, header_name))
+            final_sources = [os.path.join(lib_dir, os.path.basename(source))
+                             for source in sources]
+            from multiprocessing import Process
+            p = Process(target=self.build_module,
+                        args=(c_include_dirs, compiler, define_macros,
+                              extra_compile_args, extra_link_args,
+                              final_sources, lib_dir, libraries, library_dirs,
+                              module_name, pyx_file, runtime_library_dirs,
+                              lock_file_name))
+            p.start()
+            # Note that the process will take care of unlocking the lock file!
+            return module_name, p
 
     @property
     def so_ext(self):
@@ -180,7 +238,6 @@ class CythonExtensionManager(object):
         else:
             _path_created.clear()
 
-
     def _get_build_extension(self, compiler=None):
         self._clear_distutils_mkpath_cache()
         dist = Distribution()
@@ -196,111 +253,73 @@ class CythonExtensionManager(object):
         build_extension.finalize_options()
         return build_extension
 
-    
-    def _load_module(self, module_path, define_macros, include_dirs, library_dirs,
-                     extra_compile_args, extra_link_args, libraries, code,
-                     lib_dir, module_name, runtime_library_dirs, compiler,
-                     key, sources):
-        have_module = os.path.isfile(module_path)
+    def build_module(self, c_include_dirs, compiler, define_macros,
+                     extra_compile_args, extra_link_args, final_sources,
+                     lib_dir, libraries, library_dirs, module_name, pyx_file,
+                     runtime_library_dirs, lock_file_name):
+        extension = Extension(
+            name=module_name,
+            sources=[pyx_file],
+            define_macros=define_macros,
+            include_dirs=c_include_dirs,
+            library_dirs=library_dirs,
+            runtime_library_dirs=runtime_library_dirs,
+            extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args,
+            libraries=libraries,
+            language='c++')
+        build_extension = self._get_build_extension(compiler=compiler)
+        opts = dict(
+            quiet=True,
+            annotate=False,
+            force=True,
+        )
+        # suppresses the output on stdout
+        with std_silent():
+            build_extension.extensions = Cython_Build.cythonize(
+                [extension] + final_sources, **opts)
+            build_extension.build_temp = os.path.dirname(pyx_file)
+            build_extension.build_lib = lib_dir
+            build_extension.run()
+            if prefs['codegen.runtime.cython.delete_source_files']:
+                # we can delete the source files to save disk space
+                cpp_file = os.path.join(lib_dir, module_name + '.cpp')
+                try:
+                    os.remove(pyx_file)
+                    os.remove(cpp_file)
+                    temp_dir = os.path.join(lib_dir,
+                                            os.path.dirname(pyx_file)[1:],
+                                            module_name + '.*')
+                    for fname in glob.glob(temp_dir):
+                        os.remove(fname)
+                except (OSError, IOError) as ex:
+                    logger.debug('Deleting Cython source files failed with '
+                                 'error: %s' % str(ex))
+        # unlock the file lock
+        with open(lock_file_name, 'w') as f:
+            unlock_file(f, lock_file_name)
 
-        if not have_module:
-            if define_macros is None:
-                define_macros = []
-            if include_dirs is None:
-                include_dirs = []
-            if library_dirs is None:
-                library_dirs = []
-            if extra_compile_args is None:
-                extra_compile_args = []
-            if extra_link_args is None:
-                extra_link_args = []
-            if libraries is None:
-                libraries = []
-
-            c_include_dirs = include_dirs
-            if 'numpy' in code:
-                import numpy
-                c_include_dirs.append(numpy.get_include())
-
-            # TODO: We should probably have a special folder just for header
-            # files that are shared between different codegen targets
-            import brian2.synapses as synapses
-            synapses_dir = os.path.dirname(synapses.__file__)
-            c_include_dirs.append(synapses_dir)
-
-            pyx_file = os.path.join(lib_dir, module_name + '.pyx')
-            # ignore Python 3 unicode stuff for the moment
-            #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
-            #with io.open(pyx_file, 'w', encoding='utf-8') as f:
-            #    f.write(code)
-            with open(pyx_file, 'w') as f:
-                f.write(code)
-
-            update_for_cross_compilation(library_dirs,
-                                         extra_compile_args,
-                                         extra_link_args, logger=logger)
-            for source in sources:
-                if not source.lower().endswith('.pyx'):
-                    raise ValueError('Additional Cython source files need to '
-                                     'have an .pyx ending')
-                # Copy source and header file (if present) to library directory
-                shutil.copyfile(source, os.path.join(lib_dir,
-                                                     os.path.basename(source)))
-                name_without_ext = os.path.splitext(os.path.basename(source))[0]
-                header_name = name_without_ext + '.pxd'
-                if os.path.exists(os.path.join(os.path.dirname(source), header_name)):
-                    shutil.copyfile(os.path.join(os.path.dirname(source), header_name),
-                                    os.path.join(lib_dir, header_name))
-            final_sources = [os.path.join(lib_dir, os.path.basename(source))
-                             for source in sources]
-            extension = Extension(
-                name=module_name,
-                sources=[pyx_file],
-                define_macros=define_macros,
-                include_dirs=c_include_dirs,
-                library_dirs=library_dirs,
-                runtime_library_dirs=runtime_library_dirs,
-                extra_compile_args=extra_compile_args,
-                extra_link_args=extra_link_args,
-                libraries=libraries,
-                language='c++')
-            build_extension = self._get_build_extension(compiler=compiler)
-            try:
-                opts = dict(
-                    quiet=True,
-                    annotate=False,
-                    force=True,
-                    )
-                # suppresses the output on stdout
-                with std_silent():
-                    build_extension.extensions = Cython_Build.cythonize([extension] + final_sources, **opts)
-
-                    build_extension.build_temp = os.path.dirname(pyx_file)
-                    build_extension.build_lib = lib_dir
-                    build_extension.run()
-                    if prefs['codegen.runtime.cython.delete_source_files']:
-                        # we can delete the source files to save disk space
-                        cpp_file = os.path.join(lib_dir, module_name + '.cpp')
-                        try:
-                            os.remove(pyx_file)
-                            os.remove(cpp_file)
-                            temp_dir = os.path.join(lib_dir, os.path.dirname(pyx_file)[1:], module_name + '.*')
-                            for fname in glob.glob(temp_dir):
-                                os.remove(fname)
-                        except (OSError, IOError) as ex:
-                            logger.debug('Deleting Cython source files failed with error: %s' % str(ex))
-
-            except Cython_Compiler.Errors.CompileError:
-                return
+    def get_module(self, module_name):
+        if module_name in self._code_cache:
+            return self._code_cache[module_name]
+        lib_dir = get_cython_cache_dir()
+        if '~' in lib_dir:
+            lib_dir = os.path.expanduser(lib_dir)
+        try:
+            os.makedirs(lib_dir)
+        except OSError:
+            if not os.path.exists(lib_dir):
+                raise IOError("Couldn't create Cython cache directory '%s', try setting the "
+                              "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
+        module_path = os.path.join(lib_dir, module_name + self.so_ext)
         # Temporarily insert the Cython directory to the Python path so that
         # code importing from an external module that was declared via
         # sources works
         sys.path.insert(0, lib_dir)
         module = imp.load_dynamic(module_name, module_path)
         sys.path.pop(0)
-        self._code_cache[key] = module
+        self._code_cache[module_name] = module
         return module
-        #self._import_all(module)
 
     def _simplify_paths(self):
         if 'lib' in os.environ:
