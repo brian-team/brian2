@@ -459,15 +459,22 @@ class Network(Nameable):
                         raise TypeError("Can only add objects of type BrianObject, "
                                         "or containers of such objects to Network")
 
-    def get_all_objects(self):
+    def get_all_objects(self, objs):
+        """
+        Add all objects of the 'Network' along with their 
+        corresponding contained_objects.
+
+        Returns
+        -------
+        all_objects : list
+            A list of all Network's objects and respective child objects.
+        """
         all_objects = []
-        def add_child_objects(objs):
-            for obj in objs:
-                if obj not in all_objects:  # Don't include objects twice
-                    all_objects.append(obj)
-                add_child_objects(obj.contained_objects)
-        add_child_objects(self.objects)
-        return(all_objects)
+        for obj in objs:
+            if obj not in all_objects:
+                all_objects.append(obj)
+                all_objects += self.get_all_objects(obj.contained_objects)
+        return(list(set(all_objects)))
 
     def remove(self, *objs):
         '''
@@ -495,7 +502,7 @@ class Network(Nameable):
                                     "objects from Network")
 
     def _full_state(self):
-        all_objects = self.get_all_objects()
+        all_objects = self.get_all_objects(self.objects)
         state = {}
         for obj in all_objects:
             if hasattr(obj, '_full_state'):
@@ -535,8 +542,7 @@ class Network(Nameable):
         versions. If you are interested in storing the state of a network for
         documentation or analysis purposes use `Network.get_states` instead.
         '''
-        all_objects = self.get_all_objects()
-        clocks = {obj.clock for obj in all_objects}
+        clocks = {obj.clock for obj in self.get_all_objects(self.objects)}
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
@@ -575,7 +581,7 @@ class Network(Nameable):
             (i.e. `Network.store` was previously called without the ``filename``
             argument).
         '''
-        all_objects = self.get_all_objects()
+        all_objects = self.get_all_objects(self.objects)
         if filename is None:
             state = self._stored_state[name]
         else:
@@ -749,7 +755,7 @@ class Network(Nameable):
         # Provided slot names are assigned positions 1, 4, 7, ...
         # before_... names are assigned positions 0, 3, 6, ...
         # after_... names are assigned positions 2, 5, 8, ...
-        all_objects = self.get_all_objects()
+        all_objects = self.get_all_objects(self.objects)
         when_to_int = dict((when, 1+i*3)
                            for i, when in enumerate(self.schedule))
         when_to_int.update(('before_' + when, i*3)
@@ -771,11 +777,10 @@ class Network(Nameable):
         summary : `SchedulingSummary`
             Object representing the scheduling information.
         '''
-        all_objects = self._sort_objects()
-        return SchedulingSummary(all_objects)
+        return SchedulingSummary(self._sort_objects())
 
     def check_dependencies(self):
-        all_objects = self.get_all_objects()
+        all_objects = self.get_all_objects(self.objects)
         all_ids = [obj.id for obj in all_objects]
         for obj in all_objects:
             for dependency in obj._dependencies:
@@ -878,8 +883,7 @@ class Network(Nameable):
         '''
         after_run()
         '''
-        all_objects = self._sort_objects()
-        for obj in all_objects:
+        for obj in self._sort_objects():
             if obj.active:
                 obj.after_run()
         
@@ -1106,10 +1110,9 @@ class Network(Nameable):
         self._stopped = True
 
     def __repr__(self):
-        all_objects = self.get_all_objects()
         return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
                                                               str(self.t),
-                                                              ', '.join((obj.__repr__() for obj in all_objects)))
+                                                              ', '.join((obj.__repr__() for obj in self.get_all_objects(self.objects))))
 
 
 class ProfilingSummary(object):
