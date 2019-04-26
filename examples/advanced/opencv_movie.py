@@ -104,7 +104,6 @@ G.run_regularly('I = video_input(column, row)',
 mon = SpikeMonitor(G)
 runtime = frame_count*time_between_frames
 run(runtime, report='text')
-# device.build(compile=True, run=True)
 
 # Avoid going through the whole Brian2 indexing machinery too much
 i, t, row, column = mon.i[:], mon.t[:], G.row[:], G.column[:]

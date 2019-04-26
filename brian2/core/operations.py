@@ -34,8 +34,8 @@ class NetworkOperation(BrianObject):
     network_operation, Network, BrianObject
     """
     add_to_magic_network = True
-    def __init__(self, function, dt=None, clock=None, when='start', order=0):
-        BrianObject.__init__(self, dt=dt, clock=clock, when=when, order=order, name='networkoperation*')
+    def __init__(self, function, dt=None, clock=None, when='start', order=0, name='networkoperation*'):
+        BrianObject.__init__(self, dt=dt, clock=clock, when=when, order=order, name=name)
 
         #: The function to be called each time step
         self.function = function

@@ -126,10 +126,11 @@ install:
   - 'appveyor-retry conda update --yes conda'
   # Use the conda-forge channel
   - 'conda config --append channels conda-forge'
-  - 'set PYTHON_PACKAGES=numpy nose "sphinx<1.6.3" "sympy!=1.1.0" pyparsing jinja2 ipython setuptools cython "py-cpuinfo=3" "gsl>1.15"'
+  - 'set PYTHON_PACKAGES=nose "sphinx<1.6.3" "sympy!=1.1.0,!=1.1" pyparsing jinja2 ipython setuptools cython "py-cpuinfo=3" "gsl>1.15"'
   # Install the weave package for Python 2
-  - 'if "%PYTHON_VERSION:~0,1%" == "2" set PYTHON_PACKAGES=%PYTHON_PACKAGES% weave scipy'
-  - 'if "%PYTHON_VERSION:~0,1%" == "3" set PYTHON_PACKAGES=%PYTHON_PACKAGES% scipy'
+  - 'if "%PYTHON_VERSION:~0,1%" == "2" set PYTHON_PACKAGES=%PYTHON_PACKAGES% weave'
+  # weave 0.16 is the only available version for 32 bit Windows, and it is not compatible with numpy 0.16
+  - 'if "%platform%" == "x86" (set PYTHON_PACKAGES=%PYTHON_PACKAGES% "numpy<1.16") else (set PYTHON_PACKAGES=%PYTHON_PACKAGES% numpy)'
   # Create the test environment
   - 'appveyor-retry conda install --quiet --yes python=%PYTHON_VERSION% %PYTHON_PACKAGES%'
   # For faster tests, only build conda packages for the master branch or pull requests
