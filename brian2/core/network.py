@@ -385,22 +385,20 @@ class Network(Nameable):
     _globally_stopped = False
 
     def __getitem__(self, item):
-        all_objects = self.get_all_objects()
         if not isinstance(item, basestring):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(item)))
-        for obj in all_objects:
+        for obj in self.objects:
             if obj.name == item:
                 return obj
 
         raise KeyError('No object with name "%s" found' % item)
 
     def __delitem__(self, key):
-        all_objects = self.get_all_objects()
         if not isinstance(key, basestring):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(key)))
-        for obj in all_objects:
+        for obj in self.objects:
             if obj.name == key:
                 self.remove(obj)
                 return
@@ -408,19 +406,16 @@ class Network(Nameable):
         raise KeyError('No object with name "%s" found' % key)
 
     def __contains__(self, item):
-        all_objects = self.get_all_objects()
-        for obj in all_objects:
+        for obj in self.objects:
             if obj.name == item:
                 return True
         return False
 
     def __len__(self):
-        all_objects = self.get_all_objects()
-        return len(all_objects)
+        return len(self.objects)
 
     def __iter__(self):
-        all_objects = self.get_all_objects()
-        return iter(all_objects)
+        return iter(self.objects)
 
     def add(self, *objs):
         """
@@ -465,28 +460,12 @@ class Network(Nameable):
                                         "or containers of such objects to Network")
 
     def get_all_objects(self):
-
         all_objects = []
-
-        def add_child_objects(*objs):
+        def add_child_objects(objs):
             for obj in objs:
-                if isinstance(obj, BrianObject):
-                    if obj not in all_objects:  # Don't include objects twice
-                        all_objects.append(obj)
-                    add_child_objects(obj.contained_objects)
-                else:
-                    # allow adding values from dictionaries
-                    if isinstance(obj, Mapping):
-                        add_child_objects(*obj.values())
-                    else:
-                        try:
-                            for o in obj:
-                                if o is obj:
-                                    raise TypeError()
-                                add_child_objects(o)
-                        except TypeError:
-                            raise TypeError("Can only add objects of type BrianObject, "
-                                            "or containers of such objects to Network")
+                if obj not in all_objects:  # Don't include objects twice
+                    all_objects.append(obj)
+                add_child_objects(obj.contained_objects)
         add_child_objects(self.objects)
         return(all_objects)
 
@@ -521,7 +500,7 @@ class Network(Nameable):
         for obj in all_objects:
             if hasattr(obj, '_full_state'):
                 state[obj.name] = obj._full_state()
-        clocks = set([obj.clock for obj in all_objects])
+        clocks = {obj.clock for obj in all_objects}
         for clock in clocks:
             state[clock.name] = clock._full_state()
         # Store the time as "0_t" -- this name is guaranteed not to clash with
@@ -557,7 +536,7 @@ class Network(Nameable):
         documentation or analysis purposes use `Network.get_states` instead.
         '''
         all_objects = self.get_all_objects()
-        clocks = [obj.clock for obj in all_objects]
+        clocks = {obj.clock for obj in all_objects}
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
@@ -603,7 +582,7 @@ class Network(Nameable):
             with open(filename, 'rb') as f:
                 state = pickle.load(f)[name]
         self.t_ = state['0_t']
-        clocks = set([obj.clock for obj in all_objects])
+        clocks = {obj.clock for obj in all_objects}
         restored_objects = set()
         for obj in all_objects:
             if obj.name in state:
@@ -910,9 +889,9 @@ class Network(Nameable):
                             self._clock_variables[c][2][0])
                         for c in self._clocks]
         minclock, min_time, minclock_dt = min(clocks_times_dt, key=lambda k: k[1])
-        curclocks = set(clock for clock, time, dt in clocks_times_dt if
+        curclocks = {clock for clock, time, dt in clocks_times_dt if
                         (time == min_time or
-                         abs(time - min_time)/min(minclock_dt, dt) < Clock.epsilon_dt))
+                         abs(time - min_time)/min(minclock_dt, dt) < Clock.epsilon_dt)}
         return minclock, curclocks
 
     @device_override('network_run')
@@ -961,7 +940,7 @@ class Network(Nameable):
         '''
         all_objects = self._sort_objects()
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
-        self._clocks = set([obj.clock for obj in all_objects])
+        self._clocks = {obj.clock for obj in all_objects}
         single_clock = len(self._clocks) == 1
 
         t_start = self.t
