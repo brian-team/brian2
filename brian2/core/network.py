@@ -743,9 +743,10 @@ class Network(Nameable):
         schedule set by the `core.network.default_schedule` preference.
         ''')
 
-    def _sort_objects(self):
+    @property
+    def sorted_objects(self):
         '''
-        Sorts the objects in the order defined by the schedule.
+        The sorted objects of this network in the order defined by the schedule.
         
         Objects are sorted first by their ``when`` attribute, and secondly
         by the ``order`` attribute. The order of the ``when`` attribute is
@@ -782,7 +783,7 @@ class Network(Nameable):
         summary : `SchedulingSummary`
             Object representing the scheduling information.
         '''
-        return SchedulingSummary(self._sort_objects())
+        return SchedulingSummary(self.sorted_objects)
 
     def check_dependencies(self):
         all_objects = _get_all_objects(self.objects)
@@ -810,7 +811,7 @@ class Network(Nameable):
             A namespace in which objects which do not define their own
             namespace will be run.
         '''
-        all_objects = self._sort_objects()
+        all_objects = self.sorted_objects
         prefs.check_all_validated()
 
         # Check names in the network for uniqueness
@@ -888,7 +889,7 @@ class Network(Nameable):
         '''
         after_run()
         '''
-        for obj in self._sort_objects():
+        for obj in self.sorted_objects:
             if obj.active:
                 obj.after_run()
         
@@ -947,7 +948,7 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        all_objects = self._sort_objects()
+        all_objects = self.sorted_objects
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
         self._clocks = {obj.clock for obj in all_objects}
         single_clock = len(self._clocks) == 1

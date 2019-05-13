@@ -1213,7 +1213,7 @@ class CPPStandaloneDevice(Device):
         for net in self.networks:
             net.after_run()
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in net._sort_objects()]
+        names = [obj.name for net in self.networks for obj in net.sorted_objects]
         non_unique_names = [name for name, count in Counter(names).iteritems()
                             if count > 1]
         if len(non_unique_names):
@@ -1254,7 +1254,7 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
-        all_objects = net._sort_objects()
+        all_objects = net.sorted_objects
         net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
         for clock in net._clocks:
