@@ -87,8 +87,6 @@ def test_network_two_objects():
     net = Network()
     net.add([x, [y]]) # check that a funky way of adding objects work correctly
     net.run(1*ms)
-    assert_equal(net.objects[0].order, 5)
-    assert_equal(net.objects[1].order, 6)
     assert_equal(len(net.objects), 2)
     assert_equal(x.count, 10)
     assert_equal(y.count, 10)

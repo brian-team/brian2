@@ -345,12 +345,12 @@ class Network(Nameable):
     '''
 
     def __init__(self, *objs, **kwds):
-        #: The list of objects in the Network, should not normally be modified
+        #: The set of objects in the Network, should not normally be modified
         #: directly.
         #: Note that in a `MagicNetwork`, this attribute only contains the
         #: objects during a run: it is filled in `before_run` and emptied in
         #: `after_run`
-        self.objects = []
+        self.objects = set()
         
         name = kwds.pop('name', 'network*')
 
@@ -463,8 +463,7 @@ class Network(Nameable):
                                        'temporarily stop it from being run, '
                                        'set its active flag to False instead.'
                                        % obj.name)
-                if obj not in self.objects:  # Don't include objects twice
-                    self.objects.append(obj)
+                self.objects.add(obj)
             else:
                 # allow adding values from dictionaries
                 if isinstance(obj, Mapping):

@@ -198,7 +198,7 @@ class MagicNetwork(Network):
             if obj._network is None:
                 obj._network = self.id
 
-        self.objects[:] = objects
+        self.objects = objects
         logger.debug("Updated MagicNetwork to include {numobjs} objects "
                      "with names {names}".format(
                 numobjs=len(self.objects),
@@ -206,12 +206,12 @@ class MagicNetwork(Network):
                 name_suffix='magic_objects')
 
     def check_dependencies(self):
-        all_ids = set([obj.id for obj in self.objects])
+        all_ids = {obj.id for obj in self.objects}
         for obj in self.objects:
             if not obj.active:
                 continue  # object is already inactive, no need to check it
             for dependency in obj._dependencies:
-                if not dependency in all_ids:
+                if dependency not in all_ids:
                     logger.warn(('"%s" has been included in the network but '
                                  'not the object on which it depends.'
                                  'Setting "%s" to inactive.') % (obj.name,
@@ -221,7 +221,7 @@ class MagicNetwork(Network):
                     break
 
     def after_run(self):
-        self.objects[:] = []
+        self.objects.clear()
         gc.collect()  # Make sure that all unused objects are cleared
 
     def run(self, duration, report=None, report_period=10*second,
@@ -236,7 +236,7 @@ class MagicNetwork(Network):
         '''
         self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).store(name=name, filename=filename)
-        self.objects[:] = []
+        self.objects.clear()
 
     def restore(self, name='default', filename=None, level=0):
         '''
@@ -244,7 +244,7 @@ class MagicNetwork(Network):
         '''
         self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).restore(name=name, filename=filename)
-        self.objects[:] = []
+        self.objects.clear()
 
     def get_states(self, units=True, format='dict', subexpressions=False,
                    level=0):
@@ -255,7 +255,7 @@ class MagicNetwork(Network):
         states = super(MagicNetwork, self).get_states(units, format,
                                                       subexpressions,
                                                       level=level+1)
-        self.objects[:] = []
+        self.objects.clear()
         return states
 
     def set_states(self, values, units=True, format='dict', level=0):
@@ -265,7 +265,7 @@ class MagicNetwork(Network):
         self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).set_states(values, units, format,
                                              level=level+1)
-        self.objects[:] = []
+        self.objects.clear()
 
     def __str__(self):
         return 'MagicNetwork()'
