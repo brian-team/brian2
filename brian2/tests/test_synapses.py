@@ -890,10 +890,11 @@ def test_pre_post_simple():
     syn_mon = StateMonitor(S, ['pre_value', 'post_value'], record=[0],
                            when='end')
     run(3*ms)
-    assert_allclose(syn_mon.pre_value[0][syn_mon.t < 1*ms], 0)
-    assert_allclose(syn_mon.pre_value[0][syn_mon.t >= 1*ms], 1)
-    assert_allclose(syn_mon.post_value[0][syn_mon.t < 2*ms], 0)
-    assert_allclose(syn_mon.post_value[0][syn_mon.t >= 2*ms], 2)
+    offset = schedule_propagation_offset()
+    assert_allclose(syn_mon.pre_value[0][syn_mon.t < 1*ms + offset], 0)
+    assert_allclose(syn_mon.pre_value[0][syn_mon.t >= 1*ms + offset], 1)
+    assert_allclose(syn_mon.post_value[0][syn_mon.t < 2*ms + offset], 0)
+    assert_allclose(syn_mon.post_value[0][syn_mon.t >= 2*ms + offset], 2)
 
 
 @attr('standalone-compatible')
