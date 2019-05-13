@@ -48,6 +48,7 @@ prefs.register_preferences('core.network', 'Network preferences',
                            )
                            )
 
+
 def _format_time(time_in_s):
     '''
     Helper function to format time in seconds, minutes, hours, days, depending
@@ -257,6 +258,28 @@ def _check_multiple_summed_updaters(objects):
             summed_targets[obj.target_var] = obj.target
 
 
+def _get_all_objects(objs):
+    """
+    Helper function to get all objects of a 'Network' along with their
+    corresponding ``contained_objects``.
+
+    Parameters
+    ----------
+    objs : Iterable
+        List or set of objects
+
+    Returns
+    -------
+    all_objects : set
+        A set of all Network's objects and respective child objects.
+    """
+    all_objects = set()
+    for obj in objs:
+        all_objects.add(obj)
+        all_objects |= _get_all_objects(obj.contained_objects)
+    return all_objects
+
+
 class Network(Nameable):
     '''
     Network(*objs, name='network*')
@@ -459,23 +482,6 @@ class Network(Nameable):
                         raise TypeError("Can only add objects of type BrianObject, "
                                         "or containers of such objects to Network")
 
-    def get_all_objects(self, objs):
-        """
-        Add all objects of the 'Network' along with their 
-        corresponding contained_objects.
-
-        Returns
-        -------
-        all_objects : list
-            A list of all Network's objects and respective child objects.
-        """
-        all_objects = []
-        for obj in objs:
-            if obj not in all_objects:
-                all_objects.append(obj)
-                all_objects += self.get_all_objects(obj.contained_objects)
-        return(list(set(all_objects)))
-
     def remove(self, *objs):
         '''
         Remove an object or sequence of objects from a `Network`.
@@ -502,7 +508,7 @@ class Network(Nameable):
                                     "objects from Network")
 
     def _full_state(self):
-        all_objects = self.get_all_objects(self.objects)
+        all_objects = _get_all_objects(self.objects)
         state = {}
         for obj in all_objects:
             if hasattr(obj, '_full_state'):
@@ -542,7 +548,7 @@ class Network(Nameable):
         versions. If you are interested in storing the state of a network for
         documentation or analysis purposes use `Network.get_states` instead.
         '''
-        clocks = {obj.clock for obj in self.get_all_objects(self.objects)}
+        clocks = {obj.clock for obj in _get_all_objects(self.objects)}
         # Make sure that all clocks are up to date
         for clock in clocks:
             clock._set_t_update_dt(target_t=self.t)
@@ -581,7 +587,7 @@ class Network(Nameable):
             (i.e. `Network.store` was previously called without the ``filename``
             argument).
         '''
-        all_objects = self.get_all_objects(self.objects)
+        all_objects = _get_all_objects(self.objects)
         if filename is None:
             state = self._stored_state[name]
         else:
@@ -755,17 +761,16 @@ class Network(Nameable):
         # Provided slot names are assigned positions 1, 4, 7, ...
         # before_... names are assigned positions 0, 3, 6, ...
         # after_... names are assigned positions 2, 5, 8, ...
-        all_objects = self.get_all_objects(self.objects)
+        all_objects = _get_all_objects(self.objects)
         when_to_int = dict((when, 1+i*3)
                            for i, when in enumerate(self.schedule))
         when_to_int.update(('before_' + when, i*3)
                            for i, when in enumerate(self.schedule))
         when_to_int.update(('after_' + when, 2+i*3)
                            for i, when in enumerate(self.schedule))
-        all_objects.sort(key=lambda obj: (when_to_int[obj.when],
-                                           obj.order,
-                                           obj.name))
-        return(all_objects)
+        return sorted(all_objects, key=lambda obj: (when_to_int[obj.when],
+                                                    obj.order,
+                                                    obj.name))
 
     def scheduling_summary(self):
         '''
@@ -780,7 +785,7 @@ class Network(Nameable):
         return SchedulingSummary(self._sort_objects())
 
     def check_dependencies(self):
-        all_objects = self.get_all_objects(self.objects)
+        all_objects = _get_all_objects(self.objects)
         all_ids = [obj.id for obj in all_objects]
         for obj in all_objects:
             for dependency in obj._dependencies:
@@ -1112,7 +1117,7 @@ class Network(Nameable):
     def __repr__(self):
         return '<%s at time t=%s, containing objects: %s>' % (self.__class__.__name__,
                                                               str(self.t),
-                                                              ', '.join((obj.__repr__() for obj in self.get_all_objects(self.objects))))
+                                                              ', '.join((obj.__repr__() for obj in _get_all_objects(self.objects))))
 
 
 class ProfilingSummary(object):
