@@ -7,7 +7,7 @@ import subprocess
 import sys
 import inspect
 import struct
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, Mapping
 import itertools
 import numbers
 import tempfile
@@ -21,6 +21,7 @@ from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.functions import Function
+from brian2.core.base import BrianObject
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.groups.group import Group
@@ -906,7 +907,7 @@ class CPPStandaloneDevice(Device):
             arr.tofile(os.path.join(directory, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
         self.static_array_specs = static_array_specs
-            
+    
     def find_synapses(self):
         # Write the global objects
         networks = [net() for net in Network.__instances__()
@@ -1211,9 +1212,8 @@ class CPPStandaloneDevice(Device):
         # for repeated runs of standalone (e.g. in the test suite).
         for net in self.networks:
             net.after_run()
-
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in net.objects]
+        names = [obj.name for net in self.networks for obj in net.sorted_objects]
         non_unique_names = [name for name, count in Counter(names).iteritems()
                             if count > 1]
         if len(non_unique_names):
@@ -1254,8 +1254,8 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
-
-        net._clocks = {obj.clock for obj in net.objects}
+        all_objects = net.sorted_objects
+        net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
         for clock in net._clocks:
             clock.set_interval(net.t, t_end)
@@ -1278,7 +1278,7 @@ class CPPStandaloneDevice(Device):
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right
         # running order, assuming that there is only one clock
         code_objects = []
-        for obj in net.objects:
+        for obj in all_objects:
             if obj.active:
                 for codeobj in obj._code_objects:
                     code_objects.append((obj.clock, codeobj))
