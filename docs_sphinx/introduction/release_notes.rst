@@ -1,6 +1,29 @@
 Release notes
 =============
 
+Next release
+------------
+...
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* `~brian2.groups.group.Group.run_regularly` operations are now included in the network, even if they are
+  created after the parent object was added to the network (:issue:`1009`).
+  Contributed by `Vigneswaran Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_.
+
+Backward-incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* The fix to :issue:`1009` (see above) entails a change in how objects are
+  stored within `Network` objects. Previously, `Network.objects` stored a
+  complete list of all objects, including objects such as `~brian2.groups.neurongroup.StateUpdater` that
+  – often invisible to the user – are a part of major objects such as
+  `NeuronGroup`. Now, `Network.objects` only stores the objects directly
+  provided by the user (`NeuronGroup`, `Synapses`, `StateMonitor`, ...), the
+  dependent objects (`~brian2.groups.neurongroup.StateUpdater`, `~brian2.groups.neurongroup.Thresholder`, ...) are taken into account
+  at the time of the run. This might break code in some corner cases, e.g.
+  when removing a `~brian2.groups.neurongroup.StateUpdater` from `Network.objects` via `Network.remove`.
+
+
 Brian 2.2.2.1
 -------------
 This is a bug-fix release that fixes several bugs and adds a few minor new
