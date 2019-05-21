@@ -1054,7 +1054,6 @@ class CPPStandaloneDevice(Device):
             except ReferenceError:
                 pass
 
-
     def build(self, directory='output',
               compile=True, run=True, debug=False, clean=False,
               with_output=True, additional_source_files=None,
@@ -1127,7 +1126,7 @@ class CPPStandaloneDevice(Device):
         if run_args is None:
             run_args = []
         if directory is None:
-            directory = tempfile.mkdtemp()
+            directory = tempfile.mkdtemp(prefix='brian_standalone_')
         self.project_dir = directory
         ensure_directory(directory)
 
