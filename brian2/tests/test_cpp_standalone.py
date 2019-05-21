@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+import os
+
 from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_raises
@@ -382,6 +384,17 @@ def test_changing_profile_arg():
     assert ('op3_codeobject_1' in profiling_dict and
             profiling_dict['op3_codeobject_1'] > 0*second)
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_devices)
+def test_delete_directory():
+    set_device('cpp_standalone', build_on_run=True, directory=None)
+    group = NeuronGroup(1, 'dv/dt = -v / (10*ms) : volt', method='exact')
+    run(defaultclock.dt)
+    assert os.path.exists(device.project_dir)
+    assert os.path.isdir(device.project_dir)
+    device.delete_data()
+    assert not os.path.exists(device.project_dir)
+
 
 if __name__=='__main__':
     for t in [
@@ -395,6 +408,7 @@ if __name__=='__main__':
              test_array_cache,
              test_run_with_debug,
              test_changing_profile_arg,
+             test_delete_directory
              ]:
         t()
         reinit_devices()

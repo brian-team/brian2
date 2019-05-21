@@ -155,6 +155,9 @@ class CPPStandaloneDevice(Device):
         #: build options
         self.build_options = None
 
+        #: The directory which contains the generated code and results
+        self.project_dir = None
+
         #: Whether to generate profiling information (stored in an instance
         #: variable to be accessible during CodeObject generation)
         self.enable_profiling = False
@@ -1250,6 +1253,14 @@ class CPPStandaloneDevice(Device):
             self.compile_source(directory, compiler, debug, clean)
             if run:
                 self.run(directory, with_output, run_args)
+
+    def delete_data(self):
+        if self.project_dir is None:
+            return  # Nothing to delete
+
+        logger.debug('Deleting standalone directory '
+                     '"{}"'.format(self.project_dir))
+        shutil.rmtree(self.project_dir)
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, profile=False, level=0, **kwds):

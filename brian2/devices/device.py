@@ -363,6 +363,16 @@ class Device(object):
         '''
         pass
 
+    def delete_data(self):
+        '''
+        Delete all data stored by the device. For standalone devices, this means
+        deleting the directory containing the code and the results. Note that
+        this should only be called at the very end of a script, state variables
+        and values recorded by monitors can no longer be accessed after this
+        function has been called.
+        '''
+        pass
+
 
 class RuntimeDevice(Device):
     '''
