@@ -4,13 +4,13 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.core.network import schedule_propagation_offset
 from brian2.tests.utils import assert_allclose
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_poissoninput():
     # Test extreme cases and do a very basic test of an intermediate case, we
     # don't want tests to be stochastic
@@ -72,7 +72,7 @@ def test_poissoninput_errors():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_poissoninput_refractory():
     eqs = '''
     dv/dt = 0/second : 1 (unless refractory)
@@ -89,6 +89,6 @@ def test_poissoninput_refractory():
 
 if __name__ == '__main__':
     test_poissoninput()
-    reinit_devices()
+    reinit_and_delete()
     test_poissoninput_errors()
     test_poissoninput_refractory()

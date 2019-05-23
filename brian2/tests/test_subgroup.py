@@ -6,7 +6,7 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
 
@@ -61,7 +61,7 @@ def test_state_variables():
     assert_equal(G.v[SG], SG.v[:])
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_state_variables_simple():
     G = NeuronGroup(10, '''a : 1
                            b : 1
@@ -127,7 +127,7 @@ def test_state_variables_group_as_index_problematic():
                         for entry in l])
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_state_monitor():
     G = NeuronGroup(10, 'v : volt')
     G.v = np.arange(10) * volt
@@ -152,7 +152,7 @@ def test_shared_variable():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_creation():
     G1 = NeuronGroup(10, '', threshold='False')
     G2 = NeuronGroup(20, '', threshold='False')
@@ -176,7 +176,7 @@ def test_synapse_creation():
     assert all(S.N_incoming[:, 5] == 1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_creation_state_vars():
     G1 = NeuronGroup(10, 'v : 1', threshold='False')
     G2 = NeuronGroup(20, 'v : 1', threshold='False')
@@ -212,7 +212,7 @@ def test_synapse_creation_state_vars():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_creation_generator():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -261,7 +261,7 @@ def test_synapse_creation_generator():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_creation_generator_multiple_synapses():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -320,7 +320,7 @@ def test_synapse_creation_generator_multiple_synapses():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_creation_generator_complex_ranges():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -355,7 +355,7 @@ def test_synapse_creation_generator_complex_ranges():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_creation_generator_random():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -471,7 +471,7 @@ def test_synapses_access_subgroups_problematic():
                         for entry in l])
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_subgroup_summed_variable():
     # Check in particular that only neurons targeted are reset to 0 (see github issue #925)
     source = NeuronGroup(1, "")
@@ -568,7 +568,7 @@ def test_subexpression_no_references():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synaptic_propagation():
     G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G1.v['i%2==1'] = 1.1 # odd numbers should spike
@@ -585,7 +585,7 @@ def test_synaptic_propagation():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synaptic_propagation_2():
     # This tests for the bug in github issue #461
     source = NeuronGroup(100, '', threshold='True')
@@ -598,7 +598,7 @@ def test_synaptic_propagation_2():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_run_regularly():
     # See github issue #922
 
@@ -621,7 +621,7 @@ def test_run_regularly():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spike_monitor():
     G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G.v[0] = 1.1
@@ -685,7 +685,7 @@ def test_no_reference_1():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_no_reference_2():
     '''
     Using subgroups without keeping an explicit reference. Monitors
@@ -703,7 +703,7 @@ def test_no_reference_2():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_no_reference_3():
     '''
     Using subgroups without keeping an explicit reference. Monitors
@@ -717,7 +717,7 @@ def test_no_reference_3():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_no_reference_4():
     '''
     Using subgroups without keeping an explicit reference. Synapses

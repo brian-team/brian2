@@ -9,7 +9,7 @@ from brian2.core.functions import timestep
 from brian2.utils.logger import catch_logs
 from brian2 import *
 from brian2.equations.refractory import add_refractoriness
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
 @attr('codegen-independent')
@@ -37,7 +37,7 @@ def test_missing_refractory_warning():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_refractoriness_basic():
     G = NeuronGroup(1, '''
                        dv/dt = 99.999*Hz : 1 (unless refractory)
@@ -64,14 +64,14 @@ def test_refractoriness_basic():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
     for ref_time in ['5*ms', '(t-lastspike + 1e-3*dt) < 5*ms',
                      'time_since_spike + 1e-3*dt < 5*ms', 'ref_subexpression',
                      '(t-lastspike + 1e-3*dt) <= ref', 'ref', 'ref_no_unit*ms']:
-        reinit_devices()
+        reinit_and_delete()
         G = NeuronGroup(1, '''
                         dv/dt = 99.999*Hz : 1 (unless refractory)
                         dw/dt = 99.999*Hz : 1
@@ -110,7 +110,7 @@ def test_refractoriness_variables():
             raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_refractoriness_threshold_basic():
     G = NeuronGroup(1, '''
     dv/dt = 199.99*Hz : 1
@@ -124,7 +124,7 @@ def test_refractoriness_threshold_basic():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_refractoriness_repeated():
     # Create a group that spikes whenever it can
     group = NeuronGroup(1, '', threshold='True', refractory=10*defaultclock.dt)
@@ -135,7 +135,7 @@ def test_refractoriness_repeated():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_refractoriness_repeated_legacy():
     if prefs.core.default_float_dtype == np.float32:
         raise SkipTest('Not testing legacy refractory mechanism with single '
@@ -157,13 +157,13 @@ def test_refractoriness_repeated_legacy():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
     for ref_time in [10*ms, '10*ms', '(t-lastspike) <= 10*ms',
                      '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
-        reinit_devices()
+        reinit_and_delete()
         G = NeuronGroup(1, '''
                         dv/dt = 199.99*Hz : 1
                         ref : second
@@ -205,7 +205,7 @@ def test_conditional_write_set():
     assert G.variables['w'].conditional_write is None
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_conditional_write_behaviour():
     H = NeuronGroup(1, 'v:1', threshold='v>-1')
 
@@ -238,7 +238,7 @@ def test_conditional_write_behaviour():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_conditional_write_automatic_and_manual():
     source = NeuronGroup(1, '', threshold='True')  # spiking all the time
     target = NeuronGroup(2, '''dv/dt = 0/ms : 1 (unless refractory)

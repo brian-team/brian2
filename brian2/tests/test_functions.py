@@ -11,7 +11,7 @@ from brian2 import *
 from brian2.core.functions import timestep
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 from brian2.codegen.generators import CodeGenerator
 from brian2.codegen.codeobject import CodeObject
@@ -26,7 +26,7 @@ def test_constants_sympy():
     assert sympy_to_str(str_to_sympy('log(e)')) == '1'
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_constants_values():
     '''
     Make sure that symbolic constants use the correct values in code
@@ -101,7 +101,7 @@ def test_math_functions():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_clip():
     G = NeuronGroup(4, '''
                        clipexpr1 = clip(integer_var1, 0, 1) : integer
@@ -127,7 +127,7 @@ def test_clip():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_bool_to_int():
     # Test that boolean expressions and variables are correctly converted into
     # integers
@@ -161,7 +161,7 @@ def test_timestep_function():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_timestep_function_during_run():
     group = NeuronGroup(2, '''ref_t : second
                               ts = timestep(ref_t, dt) + timestep(t, dt) : integer''')
@@ -173,7 +173,7 @@ def test_timestep_function_during_run():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_user_defined_function():
     @implementation('cpp',"""
                 inline double usersin(double x)
@@ -200,7 +200,7 @@ def test_user_defined_function():
     assert_allclose(np.sin(test_array), mon.func_.flatten())
 
 
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
@@ -373,7 +373,7 @@ def test_manual_user_defined_function_weave():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_manual_user_defined_function_cpp_standalone_compiler_args():
     set_device('cpp_standalone', directory=None)
 
@@ -403,7 +403,7 @@ def test_manual_user_defined_function_cpp_standalone_compiler_args():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
     set_device('cpp_standalone', directory=None)
 
@@ -427,7 +427,7 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
     set_device('cpp_standalone', directory=None)
 
@@ -643,7 +643,7 @@ def test_external_function_weave():
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_external_function_cpp_standalone():
     set_device('cpp_standalone', directory=None)
     this_dir = os.path.abspath(os.path.dirname(__file__))
@@ -867,7 +867,7 @@ def test_function_dependencies_numpy():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_repeated_function_dependencies():
     # each of the binomial functions adds randn as a depency, see #988
     test_neuron = NeuronGroup(1, 'x : 1',
@@ -879,7 +879,7 @@ def test_repeated_function_dependencies():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_binomial():
     binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
     binomial_f = BinomialFunction(100, 0.1, approximate=False)

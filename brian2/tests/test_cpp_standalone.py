@@ -6,12 +6,12 @@ from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_raises
 
 from brian2 import *
-from brian2.devices.device import reinit_devices, set_device, reset_device
+from brian2.devices.device import reinit_and_delete, set_device, reset_device
 from brian2.tests.utils import assert_allclose
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_cpp_standalone():
     set_device('cpp_standalone', build_on_run=False)
     ##### Define the model
@@ -47,7 +47,7 @@ def test_cpp_standalone():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_connects():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
@@ -60,7 +60,7 @@ def test_multiple_connects():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_storing_loading():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, '''v : volt
@@ -97,7 +97,7 @@ def test_storing_loading():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_openmp_consistency():
     previous_device = get_device()
     n_cells    = 100
@@ -141,7 +141,7 @@ def test_openmp_consistency():
         set_device(devicename, build_on_run=False, with_output=False)
         Synapses.__instances__().clear()
         if devicename == 'cpp_standalone':
-            reinit_devices()
+            reinit_and_delete()
         prefs.devices.cpp_standalone.openmp_threads = n_threads
         P    = NeuronGroup(n_cells, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
         Q    = SpikeGeneratorGroup(n_cells, sources, times)
@@ -193,7 +193,7 @@ def test_openmp_consistency():
     reset_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_duplicate_names_across_nets():
     set_device('cpp_standalone', build_on_run=False)
     # In standalone mode, names have to be globally unique, not just unique
@@ -211,7 +211,7 @@ def test_duplicate_names_across_nets():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_openmp_scalar_writes():
     # Test that writing to a scalar variable only is done once in an OpenMP
     # setting (see github issue #551)
@@ -226,7 +226,7 @@ def test_openmp_scalar_writes():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_time_after_run():
     set_device('cpp_standalone', build_on_run=False)
     # Check that the clock and network time after a run is correct, even if we
@@ -254,7 +254,7 @@ def test_time_after_run():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_array_cache():
     # Check that variables are only accessible from Python when they should be
     set_device('cpp_standalone', build_on_run=False)
@@ -319,7 +319,7 @@ def test_array_cache():
     assert_allclose(S.weight, 7)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_run_with_debug():
     # We just want to make sure that it works for now (i.e. not fails with a
     # compilation or runtime error), capturing the output is actually
@@ -333,7 +333,7 @@ def test_run_with_debug():
     run(defaultclock.dt)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_changing_profile_arg():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10000, 'v : 1')
@@ -385,7 +385,7 @@ def test_changing_profile_arg():
             profiling_dict['op3_codeobject_1'] > 0*second)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_delete_directory():
     set_device('cpp_standalone', build_on_run=True, directory=None)
     group = NeuronGroup(1, 'dv/dt = -v / (10*ms) : volt', method='exact')
@@ -411,4 +411,4 @@ if __name__=='__main__':
              test_delete_directory
              ]:
         t()
-        reinit_devices()
+        reinit_and_delete()

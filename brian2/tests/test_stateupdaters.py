@@ -10,7 +10,7 @@ from nose import with_setup
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import assert_allclose
 
@@ -602,7 +602,7 @@ def test_determination():
         assert "'heun'" in logs[0][2]
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_subexpressions_basic():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -752,7 +752,7 @@ def test_refractory_stochastic():
                                  'differ for method %s.') % method)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_check_for_invalid_values_linear_integrator():
     # A differential equation that cannot be solved by the linear
     # integrator should return nan values to warn the user, and not silently

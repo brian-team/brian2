@@ -21,7 +21,7 @@ from brian2.utils.stringtools import code_representation, indent
 
 __all__ = ['Device', 'RuntimeDevice',
            'get_device', 'set_device',
-           'all_devices', 'reinit_devices',
+           'all_devices', 'reinit_devices', 'reinit_and_delete',
            'reset_device', 'device', 'seed'
            ]
 
@@ -35,6 +35,7 @@ prefs.register_preferences('devices', 'Device preferences')
 
 #: caches the automatically determined code generation target
 _auto_target = None
+
 
 def auto_target():
     '''
@@ -623,6 +624,19 @@ def reinit_devices():
         reset_device(active_device)
 
     restore_initial_state()
+
+
+def reinit_and_delete():
+    '''
+    Calls `reinit_devices` and additionally deletes the files left behind by
+    the standalone mode in the temporary directory.
+    Silently suppresses errors that occur while deleting the directory.
+    '''
+    reinit_devices()
+    try:
+        device.delete_data()
+    except (OSError, IOError):
+        pass
 
 
 def seed(seed=None):

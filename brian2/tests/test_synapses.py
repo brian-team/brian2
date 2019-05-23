@@ -19,7 +19,7 @@ from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.utils.logger import catch_logs
 from brian2.utils.stringtools import get_identifiers, word_substitute, indent, deindent
-from brian2.devices.device import reinit_devices, all_devices, get_device
+from brian2.devices.device import reinit_and_delete, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.tests.utils import assert_allclose
@@ -104,7 +104,7 @@ def test_name_clashes():
     Synapses(G1, G2, 'b_syn : 1')
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_incoming_outgoing():
     '''
     Test the count of outgoing/incoming synapses per neuron.
@@ -131,7 +131,7 @@ def test_incoming_outgoing():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_arrays():
     '''
     Test connecting synapses with explictly given arrays
@@ -184,7 +184,7 @@ def test_connection_arrays():
     assert_raises(TypeError, lambda: S.connect(object()))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_string_deterministic_full():
     G = NeuronGroup(17, 'v : 1', threshold='False')
     G.v = 'i'
@@ -206,7 +206,7 @@ def test_connection_string_deterministic_full():
     _compare(S2, expected_full)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_string_deterministic_full_no_self():
     G = NeuronGroup(17, 'v : 1', threshold='False')
     G.v = 'i'
@@ -232,7 +232,7 @@ def test_connection_string_deterministic_full_no_self():
     _compare(S3, expected_no_self)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_string_deterministic_full_one_to_one():
     G = NeuronGroup(17, 'v : 1', threshold='False')
     G.v = 'i'
@@ -265,7 +265,7 @@ def test_connection_string_deterministic_full_one_to_one():
     _compare(S4, expected_one_to_one)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_string_deterministic_full_custom():
     G = NeuronGroup(17, 'v : 1', threshold='False')
     G2 = NeuronGroup(4, 'v : 1', threshold='False')
@@ -293,7 +293,7 @@ def test_connection_string_deterministic_full_custom():
     _compare(S2, expected_custom)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_string_deterministic_multiple_and():
     # In Brian versions 2.1.0-2.1.2, this fails on the numpy target
     # See github issue 900
@@ -305,7 +305,7 @@ def test_connection_string_deterministic_multiple_and():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_random_with_condition():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -344,7 +344,7 @@ def test_connection_random_with_condition():
     _compare(S6, expected6)
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_random_with_condition_2():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -410,7 +410,7 @@ def test_connection_random_with_condition_2():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_random_with_indices():
     '''
     Test random connections.
@@ -465,7 +465,7 @@ def test_connection_random_with_indices():
     assert 0 <= len(S9) <= 2
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_random_without_condition():
     G = NeuronGroup(4, '''v: 1
                           x : integer''', threshold='False')
@@ -509,7 +509,7 @@ def test_connection_random_without_condition():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_connection_multiple_synapses():
     '''
     Test multiple synapses per connection.
@@ -691,7 +691,7 @@ def test_subexpression_references():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_constant_variable_subexpression_in_synapses():
     G = NeuronGroup(10, '')
     S = Synapses(G, G, ''' dv1/dt = -v1**2 / (10*ms) : 1 (clock-driven)
@@ -718,7 +718,7 @@ def test_constant_variable_subexpression_in_synapses():
     assert np.sum((S.v2 - S.v1)**2) > 1e-10
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_nested_subexpression_references():
     '''
     Assure that subexpressions in targeted groups are handled correctly.
@@ -879,7 +879,7 @@ def test_pre_before_post():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_pre_post_simple():
     # Test that pre and post still work correctly
     G1 = SpikeGeneratorGroup(1, [0], [1]*ms)
@@ -901,7 +901,7 @@ def test_pre_post_simple():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_simple():
     source = SpikeGeneratorGroup(2, [0, 1], [2, 1] * ms)
     target = NeuronGroup(2, 'v : 1')
@@ -916,7 +916,7 @@ def test_transmission_simple():
     assert_allclose(mon[1].v[mon.t>=1*ms+offset], 1.)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_custom_event():
     source = NeuronGroup(2, '',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
@@ -941,7 +941,7 @@ def test_invalid_custom_event():
     assert_raises(ValueError, lambda: Synapses(group2, group2, on_pre='v+=1',
                                                on_event='custom'))
 
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission():
     default_dt = defaultclock.dt
     delays = [[0, 0, 0, 0] * ms,
@@ -972,7 +972,7 @@ def test_transmission():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_all_to_one_heterogeneous_delays():
     source = SpikeGeneratorGroup(6,
                                  [0, 1, 4, 5, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
@@ -996,7 +996,7 @@ def test_transmission_all_to_one_heterogeneous_delays():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_one_to_all_heterogeneous_delays():
     source = SpikeGeneratorGroup(1, [0, 0], [0, 2]*defaultclock.dt)
     target = NeuronGroup(6, 'v:integer')
@@ -1015,7 +1015,7 @@ def test_transmission_one_to_all_heterogeneous_delays():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_scalar_delay():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms)
     target = NeuronGroup(2, 'v:1')
@@ -1031,7 +1031,7 @@ def test_transmission_scalar_delay():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_scalar_delay_different_clocks():
 
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 1]*ms, dt=0.5*ms,
@@ -1057,7 +1057,7 @@ def test_transmission_scalar_delay_different_clocks():
     assert_allclose(mon[1].v[mon.t>=1.5*ms], 1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_transmission_boolean_variable():
     source = SpikeGeneratorGroup(4, [0, 1, 2, 3], [2, 1, 2, 1] * ms)
     target = NeuronGroup(4, 'v : 1')
@@ -1143,7 +1143,7 @@ def test_no_synapses_variable_write():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_summed_variable():
     source = NeuronGroup(2, 'v : volt', threshold='v>1*volt', reset='v=0*volt')
     source.v = 1.1*volt  # will spike immediately
@@ -1163,7 +1163,7 @@ def test_summed_variable():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_summed_variable_pre_and_post():
     G1 = NeuronGroup(4, '''neuron_var : 1
                            syn_sum : 1
@@ -1193,7 +1193,7 @@ def test_summed_variable_pre_and_post():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_summed_variable_differing_group_size():
     G1 = NeuronGroup(2, 'var : 1', name='G1')
     G2 = NeuronGroup(10, 'var : 1', name='G2')
@@ -1265,7 +1265,7 @@ def test_multiple_summed_variables():
     assert_raises(NotImplementedError, net.run, 0*ms)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_summed_variables_subgroups():
     source = NeuronGroup(1, '')
     target = NeuronGroup(10, 'v : 1')
@@ -1365,7 +1365,7 @@ def test_scalar_subexpression():
                                                 on_pre='v+=s'))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_sim_with_scalar_variable():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
     out = NeuronGroup(2, 'v : 1')
@@ -1379,7 +1379,7 @@ def test_sim_with_scalar_variable():
     assert_allclose(out.v[:], [6, 7])
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_sim_with_scalar_subexpression():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
     out = NeuronGroup(2, 'v : 1')
@@ -1392,7 +1392,7 @@ def test_sim_with_scalar_subexpression():
     assert_allclose(out.v[:], [6, 7])
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_sim_with_constant_subexpression():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
     out = NeuronGroup(2, 'v : 1')
@@ -1406,7 +1406,7 @@ def test_sim_with_constant_subexpression():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_external_variables():
     # Make sure that external variables are correctly resolved
     source = SpikeGeneratorGroup(1, [0], [0]*ms)
@@ -1421,7 +1421,7 @@ def test_external_variables():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
@@ -1813,7 +1813,7 @@ def test_permutation_analysis():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_vectorisation():
     source = NeuronGroup(10, 'v : 1', threshold='v>1')
     target = NeuronGroup(10, '''x : 1
@@ -1833,7 +1833,7 @@ def test_vectorisation():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_vectorisation_STDP_like():
     if prefs.core.default_float_dtype is np.float32:
         raise SkipTest('Need double precision for this test')
@@ -1885,7 +1885,7 @@ def test_vectorisation_STDP_like():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synaptic_equations():
     # Check that integration works for synaptic equations
     G = NeuronGroup(10, '')
@@ -1897,7 +1897,7 @@ def test_synaptic_equations():
     assert_allclose(S.w[:], np.arange(10) * np.exp(-1))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_with_run_regularly():
     # Check that integration works for synaptic equations
     G = NeuronGroup(10, '')
@@ -1910,7 +1910,7 @@ def test_synapse_with_run_regularly():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapses_to_synapses():
     source = SpikeGeneratorGroup(3, [0, 1, 2], [0, 0, 0]*ms, period=2*ms)
     modulator = SpikeGeneratorGroup(3, [0, 2], [1, 3]*ms)
@@ -1927,7 +1927,7 @@ def test_synapses_to_synapses():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapses_to_synapses_statevar_access():
     source = NeuronGroup(10, 'v:1')
     modulator = NeuronGroup(40, '')
@@ -1951,7 +1951,7 @@ def test_synapses_to_synapses_statevar_access():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapses_to_synapses_different_sizes():
     prefs.codegen.target = 'numpy'
     source = NeuronGroup(100, 'v : 1', threshold='False')
@@ -2056,7 +2056,7 @@ def test_fallback_loop_and_stateless_func():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapses_to_synapses_summed_variable():
     source = NeuronGroup(5, '', threshold='False')
     target = NeuronGroup(5, '')
@@ -2153,7 +2153,7 @@ def test_synapse_generator_out_of_range():
         assert 'outside allowed range' in str(ex)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_generator_deterministic():
     # Same as "test_connection_string_deterministic" but using the generator
     # syntax
@@ -2215,7 +2215,7 @@ def test_synapse_generator_deterministic():
 
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_generator_deterministic_2():
     # Same as "test_connection_string_deterministic" but using the generator
     # syntax
@@ -2302,7 +2302,7 @@ def test_synapse_generator_deterministic_2():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_generator_random():
     # The same tests as test_connection_random_without_condition, but using
     # the generator syntax
@@ -2340,7 +2340,7 @@ def test_synapse_generator_random():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_generator_random_with_condition():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -2389,7 +2389,7 @@ def test_synapse_generator_random_with_condition():
 
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapse_generator_random_with_condition_2():
     G = NeuronGroup(4, 'v: 1', threshold='False')
 
@@ -2493,7 +2493,7 @@ def test_synapse_generator_random_with_condition_2():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapses_refractory():
     source = NeuronGroup(10, '', threshold='True')
     target = NeuronGroup(10, 'dv/dt = 0/second : 1 (unless refractory)',
@@ -2505,7 +2505,7 @@ def test_synapses_refractory():
     assert_allclose(target.v[5:], 0)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_synapses_refractory_rand():
     source = NeuronGroup(10, '', threshold='True')
     target = NeuronGroup(10, 'dv/dt = 0/second : 1 (unless refractory)',
@@ -2588,7 +2588,7 @@ if __name__ == '__main__':
     test_connection_random_with_indices()
     test_connection_multiple_synapses()
     test_connection_arrays()
-    reinit_devices()
+    reinit_and_delete()
     test_state_variable_assignment()
     test_state_variable_indexing()
     test_indices()
