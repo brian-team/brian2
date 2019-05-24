@@ -1,0 +1,5 @@
+# This is NOT a requirements file for Brian2
+# We only use this file to make sure that ipython is installed on readthedocs,
+# necessary to make code blocks in the tutorials (which use ipython syntax
+# highlighting) get displayed correctly
+ipython >= 5
