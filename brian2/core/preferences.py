@@ -2,11 +2,11 @@
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``prefs``.
 '''
-import itertools
+from __future__ import absolute_import
 import re
 import os
 from collections import MutableMapping
-from StringIO import StringIO
+from io import BytesIO
 
 from brian2.utils.stringtools import deindent, indent
 from brian2.units.fundamentalunits import have_same_dimensions, Quantity
@@ -147,11 +147,11 @@ class BrianGlobalPreferences(MutableMapping):
         self.prefs_unvalidated = {}
         self.pref_register = {}
         self.eval_namespace = {}
-        exec deindent('''
+        exec(deindent('''
             from numpy import *
             from brian2.units import *            
             from brian2.units.stdunits import *
-            ''') in self.eval_namespace
+            '''), self.eval_namespace)
 
     def __getitem__(self, item):
         if item in self.pref_register:
@@ -239,7 +239,7 @@ class BrianGlobalPreferences(MutableMapping):
         return s
 
     def __dir__(self):
-        res = dir(type(self)) + self.__dict__.keys()
+        res = dir(type(self)) + list(self.__dict__)
         categories = self.toplevel_categories
         res.extend(categories)
         return res        
@@ -309,7 +309,8 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         s = ''
         if basename is None:
-            basenames = [tuple(basename.split('.')) for basename in self.pref_register.keys()]
+            basenames = [tuple(basename.split('.'))
+                         for basename in self.pref_register]
             basenames.sort()
             for basename in basenames:
                 lev = len(basename)
@@ -332,16 +333,16 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         Helper function used to generate the preference file for the default or current preference values.
         '''
-        s = ''
+        s = u''
         for basename, (prefdefs, basedoc) in self.pref_register.items():
-            s += '#' + '-' * 79 + '\n'
-            s += '\n'.join(['# ' + line for line in deindent(basedoc, docstring=True).strip().split('\n')]) + '\n'
-            s += '#' + '-' * 79 + '\n\n'
-            s += '[' + basename + ']\n\n'
+            s += u'#' + u'-' * 79 + u'\n'
+            s += u'\n'.join([u'# ' + line for line in deindent(basedoc, docstring=True).strip().split(u'\n')]) + u'\n'
+            s += u'#' + u'-' * 79 + u'\n\n'
+            s += u'[' + basename + u']\n\n'
             for name in sorted(prefdefs.keys()):
                 pref = prefdefs[name]
-                s += '\n'.join(['# ' + line for line in deindent(pref.docs, docstring=True).strip().split('\n')]) + '\n\n'
-                s += name + ' = ' + pref.representor(valuefunc(pref, basename + '.' + name)) + '\n\n'
+                s += u'\n'.join([u'# ' + line for line in deindent(pref.docs, docstring=True).strip().split(u'\n')]) + u'\n\n'
+                s += name + u' = ' + pref.representor(valuefunc(pref, basename + u'.' + name)) + u'\n\n'
         return s
 
     def _get_defaults_as_file(self):
@@ -457,7 +458,7 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         Resets the parameters to their default values.
         '''
-        self.read_preference_file(StringIO(self.defaults_as_file))
+        self.read_preference_file(BytesIO(self.defaults_as_file))
 
     def register_preferences(self, prefbasename, prefbasedoc, **prefs):
         '''
@@ -523,7 +524,7 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         Validates preferences that have not yet been validated.
         '''
-        for name, value in self.prefs_unvalidated.items():
+        for name, value in dict(self.prefs_unvalidated).items():
             self[name] = value
 
     def check_all_validated(self):
@@ -539,7 +540,7 @@ class BrianGlobalPreferences(MutableMapping):
             logger.warn("The following preferences values have been set but "
                         "are not registered preferences:\n%s\nThis is usually "
                         "because of a spelling mistake or missing library "
-                        "import." % ', '.join(self.prefs_unvalidated.keys()),
+                        "import." % ', '.join(self.prefs_unvalidated),
                         once=True)
 
     def __repr__(self):
@@ -570,9 +571,9 @@ class BrianGlobalPreferencesView(MutableMapping):
     def __init__(self, basename, all_prefs):
         self._basename = basename
         self._all_prefs = all_prefs
-        self._subcategories = [key for key in all_prefs.pref_register.iterkeys()
+        self._subcategories = [key for key in all_prefs.pref_register
                               if key.startswith(basename + '.')]
-        self._preferences = all_prefs.pref_register[basename][0].keys()
+        self._preferences = list(all_prefs.pref_register[basename][0].keys())
         self.__doc__ = all_prefs.get_documentation(basename=basename,
                                                    link_targets=False)
 
@@ -618,7 +619,7 @@ class BrianGlobalPreferencesView(MutableMapping):
             del self._all_prefs[self._basename + '.' + name]
 
     def __dir__(self):
-        res = dir(type(self)) + self.__dict__.keys()
+        res = dir(type(self)) + list(self.__dict__)
         res.extend(self._preferences)
         res.extend([category[len(self._basename+'.'):]
                     for category in self._subcategories])

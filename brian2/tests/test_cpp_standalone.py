@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_raises
@@ -163,8 +164,8 @@ def test_openmp_consistency():
 
         spike_mon = SpikeMonitor(P)
         rate_mon  = PopulationRateMonitor(P)
-        state_mon = StateMonitor(S, 'w', record=range(n_recorded), dt=0.1*second)
-        v_mon     = StateMonitor(P, 'v', record=range(n_recorded))
+        state_mon = StateMonitor(S, 'w', record=np.arange(n_recorded), dt=0.1*second)
+        v_mon     = StateMonitor(P, 'v', record=np.arange(n_recorded))
 
         run(0.2 * second, report='text')
 

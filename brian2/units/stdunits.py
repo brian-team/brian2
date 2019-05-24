@@ -62,4 +62,4 @@ stdunits = {'mV': mV, 'mA': mA, 'uA': uA, 'nA': nA, 'pA': pA, 'pF': pF,
             'Hz': Hz, 'kHz': kHz, 'MHz': MHz, 'cm': cm, 'cm2': cm2,
             'cm3': cm3, 'mm': mm, 'mm2': mm2, 'mm3': mm3, 'um': um, 'um2': um2,
             'um3': um3, 'mM': mM, 'uM': uM, 'nM': nM}
-all_units.extend(stdunits.itervalues())
+all_units.extend(stdunits.values())

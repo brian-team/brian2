@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import itertools
 
 from brian2.devices.device import all_devices
@@ -84,7 +85,7 @@ class CythonCodeGenerator(CodeGenerator):
             firstline = True
             # bool assigns is a sequence of (var, value) pairs giving the conditions under
             # which the simplified expression simp_expr holds
-            for bool_assigns, simp_expr in bool_simp.iteritems():
+            for bool_assigns, simp_expr in bool_simp.items():
                 # generate a boolean expression like ``var1 and var2 and not var3``
                 atomics = []
                 for boolvar, boolval in bool_assigns:
@@ -216,14 +217,14 @@ class CythonCodeGenerator(CodeGenerator):
         # Implementation can be None if the function is already
         # available in Cython (possibly under a different name)
         if func_code is not None:
-            if isinstance(func_code, basestring):
+            if isinstance(func_code, str):
                 # Function is provided as Cython code
                 # To make namespace variables available to functions, we
                 # create global variables and assign to them in the main
                 # code
                 user_functions.append((varname, var))
                 func_namespace = impl.get_namespace(self.owner) or {}
-                for ns_key, ns_value in func_namespace.iteritems():
+                for ns_key, ns_value in func_namespace.items():
                     load_namespace.append(
                         '# namespace for function %s' % varname)
                     if hasattr(ns_value, 'dtype'):
@@ -269,7 +270,7 @@ class CythonCodeGenerator(CodeGenerator):
         dep_load_namespace = []
         dep_user_functions = []
         if impl.dependencies is not None:
-            for dep_name, dep in impl.dependencies.iteritems():
+            for dep_name, dep in impl.dependencies.items():
                 if dep_name not in self.variables:
                     self.variables[dep_name] = dep
                     sc, ln, uf = self._add_user_function(dep_name, dep)

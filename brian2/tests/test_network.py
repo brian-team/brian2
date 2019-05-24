@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 import copy
 import logging
@@ -802,12 +803,16 @@ def test_magic_collect():
     assert len(objects) == 6, ('expected %d objects, got %d' % (6, len(objects)))
 
 from contextlib import contextmanager
-from StringIO import StringIO
+from io import StringIO, BytesIO
 import sys
 
 @contextmanager
 def captured_output():
-    new_out, new_err = StringIO(), StringIO()
+    if sys.version_info[0] == 2:
+        # in Python 2, stdout/stderr works with bytes and not with unicode
+        new_out, new_err = BytesIO(), BytesIO()
+    else:
+        new_out, new_err = StringIO(), StringIO()
     old_out, old_err = sys.stdout, sys.stderr
     try:
         sys.stdout, sys.stderr = new_out, new_err

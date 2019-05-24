@@ -5,6 +5,7 @@ Preferences
 -----------
 .. document_brian_prefs:: logging
 '''
+from __future__ import absolute_import
 import atexit
 import logging
 import os
@@ -532,10 +533,10 @@ class BrianLogger(object):
                         delete=False)
                     with tmp_file:
                         # Timestamp
-                        tmp_file.write(_encode(u'# %s\n' % time.asctime()))
+                        tmp_file.write(_encode('# %s\n' % time.asctime()))
                         # Command line arguments
                         tmp_file.write(
-                            _encode(u'# Run as: %s\n\n' % (' '.join(sys.argv))))
+                            _encode('# Run as: %s\n\n' % (' '.join(sys.argv))))
                         # The actual script file
                         # TODO: We are copying the script file as it is, this might clash
                         # with the encoding we used for the comments added above
@@ -581,7 +582,7 @@ class BrianLogger(object):
                          'sympy': sympy.__version__,
                          'python': sys.version,
                          }
-        for _name, _version in version_infos.iteritems():
+        for _name, _version in version_infos.items():
             logger.log(DIAGNOSTIC,
                        '{name} version is: {version}'.format(name=_name,
                                                              version=str(

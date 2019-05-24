@@ -1,5 +1,6 @@
+from __future__ import absolute_import
 from numpy import float64, float32
-from StringIO import StringIO
+from io import StringIO
 
 from brian2 import restore_initial_state, volt, amp
 from brian2.core.preferences import (DefaultValidator, BrianPreference,
@@ -123,7 +124,7 @@ def test_brianglobalpreferences():
     gp.as_file
     gp.defaults_as_file
     # test that reading a preference file works as expected
-    pref_file = StringIO('''
+    pref_file = StringIO(u'''
         # a comment
         a.b = 10
         [a]
@@ -137,13 +138,13 @@ def test_brianglobalpreferences():
     assert gp['a.d']==1
     assert gp['a.e']==float64
     # test that reading a badly formatted prefs file fails
-    pref_file = StringIO('''
+    pref_file = StringIO(u'''
         [a
         b = 10
         ''')
     assert_raises(PreferenceError, gp.read_preference_file, pref_file)
     # test that reading a well formatted prefs file with an invalid value fails
-    pref_file = StringIO('''
+    pref_file = StringIO(u'''
         a.b = 'oh no, not a string'
         ''')
     assert_raises(PreferenceError, gp.read_preference_file, pref_file)
@@ -234,10 +235,10 @@ def test_preference_name_access():
     assert_raises(KeyError, lambda: gp.nonexisting.name)
 
     # Check dictionary functionality
-    for name, value in gp.iteritems():
+    for name, value in gp.items():
         assert gp[name] == value
     
-    for name, value in gp.main.iteritems():
+    for name, value in gp.main.items():
         assert gp.main[name] == value
     
     assert len(gp) == 3  # three preferences in total

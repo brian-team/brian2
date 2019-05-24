@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import inspect
 
 from brian2.core.base import BrianObject
@@ -44,7 +45,7 @@ class NetworkOperation(BrianObject):
 
         if (hasattr(function, 'func_code') or  # Python 2
                 hasattr(function, '__code__')):  # Python 3:
-            argcount = function.func_code.co_argcount
+            argcount = function.__code__.co_argcount
             if is_method:
                 if argcount == 2:
                     self._has_arg = True
@@ -58,7 +59,7 @@ class NetworkOperation(BrianObject):
                                                             argcount)))
             else:
                 if (argcount >= 1 and
-                            function.func_code.co_varnames[0] == 'self'):
+                            function.__code__.co_varnames[0] == 'self'):
                     raise TypeError('The first argument of the function "%s" '
                                     'is "self", suggesting it is an instance '
                                     'method and not a function. Did you use '

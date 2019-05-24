@@ -7,11 +7,12 @@ Preferences
 .. document_brian_prefs:: core.network
 
 '''
+from __future__ import absolute_import
 import os
 import sys
 import time
 from collections import defaultdict, Sequence, Counter, Mapping, namedtuple
-import cPickle as pickle
+import pickle as pickle
 
 from brian2.synapses.synapses import SummedVariableUpdater
 from brian2.utils.logger import get_logger
@@ -125,8 +126,8 @@ def _format_table(header, values, cell_formats):
     table_format = len(values)*[cell_formats]
     col_widths = [max(len(format.format(cell, 0))
                       for format, cell in zip(col_format, col))
-                  for col_format, col in zip(zip(*([len(header)*['{}']] + table_format)),
-                                             zip(*([header] + values)))]
+                  for col_format, col in zip(list(zip(*([len(header)*['{}']] + table_format))),
+                                             list(zip(*([header] + values))))]
     line = '-+-'.join('-'*width for width in col_widths)
     content = [' | '.join(format.format(cell, width)
                           for format, cell, width in zip(row_format, row, col_widths))
@@ -408,7 +409,7 @@ class Network(Nameable):
     _globally_stopped = False
 
     def __getitem__(self, item):
-        if not isinstance(item, basestring):
+        if not isinstance(item, str):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(item)))
         for obj in self.objects:
@@ -418,7 +419,7 @@ class Network(Nameable):
         raise KeyError('No object with name "%s" found' % item)
 
     def __delitem__(self, key):
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(key)))
         for obj in self.objects:
@@ -467,7 +468,7 @@ class Network(Nameable):
             else:
                 # allow adding values from dictionaries
                 if isinstance(obj, Mapping):
-                    self.add(*obj.values())
+                    self.add(*list(obj.values()))
                 else:
                     try:
                         for o in obj:
@@ -693,7 +694,7 @@ class Network(Nameable):
         '''
         # For the moment, 'dict' is the only supported format -- later this will
         # be made into an extensible system, see github issue #306
-        for obj_name, obj_values in values.iteritems():
+        for obj_name, obj_values in values.items():
             if obj_name not in self:
                 raise KeyError(("Network does not include a network with "
                                 "name '%s'.") % obj_name)
@@ -714,7 +715,7 @@ class Network(Nameable):
                          'default schedule')
         else:
             if (not isinstance(schedule, Sequence) or
-                    not all(isinstance(slot, basestring) for slot in schedule)):
+                    not all(isinstance(slot, str) for slot in schedule)):
                 raise TypeError('Schedule has to be None or a sequence of '
                                 'scheduling slots')
             if any(slot.startswith('before_') or slot.startswith('after_')
@@ -815,7 +816,7 @@ class Network(Nameable):
 
         # Check names in the network for uniqueness
         names = [obj.name for obj in all_objects]
-        non_unique_names = [name for name, count in Counter(names).iteritems()
+        non_unique_names = [name for name, count in Counter(names).items()
                             if count > 1]
         if len(non_unique_names):
             formatted_names = ', '.join("'%s'" % name
@@ -836,7 +837,7 @@ class Network(Nameable):
             # The device defines a fixed network schedule
             if device.network_schedule != self.schedule:
                 # TODO: The human-readable name of a device should be easier to get
-                device_name = all_devices.keys()[all_devices.values().index(device)]
+                device_name = list(all_devices.keys())[list(all_devices.values()).index(device)]
                 logger.warn(("The selected device '{device_name}' only "
                              "supports a fixed schedule, but this schedule is "
                              "not consistent with the network's schedule. The "
@@ -974,7 +975,7 @@ class Network(Nameable):
 
         self.before_run(namespace)
 
-        if len(all_objects)==0:
+        if len(all_objects) == 0:
             return  # TODO: raise an error? warning?
 
         start_time = time.time()
@@ -991,7 +992,7 @@ class Network(Nameable):
                 report_callback = TextReport(sys.stdout)
             elif report == 'stderr':
                 report_callback = TextReport(sys.stderr)
-            elif isinstance(report, basestring):
+            elif isinstance(report, str):
                 raise ValueError(('Do not know how to handle report argument '
                                   '"%s".' % report))
             elif callable(report):
@@ -1099,7 +1100,7 @@ class Network(Nameable):
         # Store profiling info (or erase old info to avoid confusion)
         if profile:
             self._profiling_info = [(name, t*second)
-                                    for name, t in profiling_info.iteritems()]
+                                    for name, t in profiling_info.items()]
             # Dump a profiling summary to the log
             logger.debug('\n' + str(profiling_summary(self)))
         else:
@@ -1141,7 +1142,7 @@ class ProfilingSummary(object):
     def __init__(self, net, show=None):
         prof = net.profiling_info
         if len(prof):
-            names, times = zip(*prof)
+            names, times = list(zip(*prof))
         else:  # Can happen if a network has been run for 0ms
             # Use a dummy entry to prevent problems with empty lists later
             names = ['no code objects have been run']

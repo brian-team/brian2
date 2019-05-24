@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import uuid
 
 from numpy.testing.utils import assert_equal, assert_raises

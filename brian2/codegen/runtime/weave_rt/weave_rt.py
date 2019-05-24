@@ -1,11 +1,13 @@
 '''
 Module providing `WeaveCodeObject`.
 '''
+from __future__ import absolute_import
 import os
 import sys
 import numpy
 
 from brian2.codegen.codeobject import check_compiler_kwds
+from functools import reduce
 
 try:
     from scipy import weave
@@ -209,7 +211,7 @@ numpy version: {self.numpy_version}
         if func_namespace is not None:
             self.namespace.update(func_namespace)
         if impl.dependencies is not None:
-            for dep in impl.dependencies.itervalues():
+            for dep in impl.dependencies.values():
                 self._insert_func_namespace(dep)
 
     def variables_to_namespace(self):
@@ -222,7 +224,7 @@ numpy version: {self.numpy_version}
         # A list containing tuples of name and a function giving the value
         self.nonconstant_values = []
 
-        for name, var in self.variables.iteritems():
+        for name, var in self.variables.items():
             if isinstance(var, Function):
                 self._insert_func_namespace(var)
                 continue  # Everything else has already been dealt with in the
@@ -262,16 +264,16 @@ numpy version: {self.numpy_version}
         # things. If we include something incorrectly, this only means that we
         # will pass something into the namespace unnecessarily.
         all_identifiers = reduce(lambda s, c: s | get_identifiers(c),
-                                 self.code.values(), set())
+                                 list(self.code.values()), set())
         # Filter out all unneeded objects
-        self.namespace = {k: v for k, v in self.namespace.iteritems()
+        self.namespace = {k: v for k, v in self.namespace.items()
                           if k in all_identifiers}
 
         # There is one type of objects that we have to inject into the
         # namespace with their current value at each time step: dynamic
         # arrays that change in size during runs, where the size change is not
         # initiated by the template itself
-        for name, var in self.variables.iteritems():
+        for name, var in self.variables.items():
             if (isinstance(var, DynamicArrayVariable) and
                     var.needs_reference_update):
                 array_name = self.device.get_array_name(var, self.variables)
@@ -298,11 +300,11 @@ numpy version: {self.numpy_version}
 
     def run(self):
         if self.compiled_python_pre is not None:
-            exec self.compiled_python_pre in self.python_code_namespace
+            exec(self.compiled_python_pre, self.python_code_namespace)
         if self._done_first_run:
             ret_val = self._compiled_func(self.namespace, {})
         else:
-            self._inline_args = (self.annotated_code, self.namespace.keys())
+            self._inline_args = (self.annotated_code, list(self.namespace.keys()))
             self._inline_kwds = dict(
                 local_dict=self.namespace,
                 support_code=self.code.support_code,
@@ -321,7 +323,7 @@ numpy version: {self.numpy_version}
             self._compiled_func = function_cache[self.annotated_code]
             self._done_first_run = True
         if self.compiled_python_post is not None:
-            exec self.compiled_python_post in self.python_code_namespace
+            exec(self.compiled_python_post, self.python_code_namespace)
         return ret_val
 
 if weave is not None:

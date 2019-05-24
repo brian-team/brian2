@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 '''
 Utility functions to get information about the environment Brian is running in.
 '''
+from future import builtins
 
-import __builtin__ as builtins
 
 def running_from_ipython():
     '''
@@ -14,4 +15,3 @@ def running_from_ipython():
         Whether running under ipython or not.
     '''
     return getattr(builtins, '__IPYTHON__', False)
-

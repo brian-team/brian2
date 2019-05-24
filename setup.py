@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-#! /usr/bin/env python
 '''
 Brian2 setup script
 '''
@@ -175,7 +174,8 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo;platform_system=="Windows"',
-                        'setuptools>=21'
+                        'setuptools>=21',
+                        'future'
                        ],
       setup_requires=['numpy>=1.10',
                       'setuptools>=21'
@@ -184,7 +184,7 @@ setup(name='Brian2',
       provides=['brian2'],
       extras_require={'test': ['nose>=1.0'],
                       'docs': ['sphinx>=1.5']},
-      use_2to3=True,
+      use_2to3=False,
       zip_safe=False,
       ext_modules=extensions,
       url='http://www.briansimulator.org/',

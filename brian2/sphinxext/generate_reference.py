@@ -4,6 +4,8 @@
     
     Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import inspect
 import sys
 import os
@@ -31,7 +33,7 @@ def makename(package, module):
 def write_file(name, text, destdir, suffix):
     """Write the output file for module/package <name>."""
     fname = path.join(destdir, '%s.%s' % (name, suffix))
-    print 'Creating file %s.' % fname
+    print('Creating file %s.' % fname)
     f = open(fname, 'w')
     try:
         f.write(text)

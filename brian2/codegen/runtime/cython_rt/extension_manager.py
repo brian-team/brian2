@@ -4,6 +4,8 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
+from __future__ import absolute_import
+
 import glob
 import imp
 import os
@@ -320,14 +322,3 @@ def simplify_path_env_var(path):
             knownpaths.add(p)
             uniquepaths.append(p)
     return os.pathsep.join(uniquepaths)
-
-
-if __name__=='__main__':
-    code = '''
-    def f(double x):
-        return x*x
-    '''
-    man = CythonExtensionManager()
-    mod = man.create_extension(code)
-    print mod.f(2)
-    

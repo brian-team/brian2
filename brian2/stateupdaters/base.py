@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 '''
 This module defines the `StateUpdateMethod` class that acts as a base class for
 all stateupdaters and allows to register stateupdaters so that it is able to
@@ -8,12 +9,15 @@ from abc import abstractmethod, ABCMeta
 import collections
 import time
 
+from past.builtins import basestring
+
 from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
 
 __all__ = ['StateUpdateMethod']
 
 logger = get_logger(__name__)
+
 
 class UnsupportedEquationsException(Exception):
     pass
@@ -64,7 +68,7 @@ def extract_method_options(method_options, default_options):
     for key in method_options:
         if key not in default_options:
             if len(default_options):
-                keys = sorted(default_options.iterkeys())
+                keys = sorted(default_options.keys())
                 options = ('Avalaible options are: ' +
                            ', '.join('"%s"' % key for key in keys) + '.')
             else:

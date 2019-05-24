@@ -1,12 +1,15 @@
+from __future__ import absolute_import
 '''
 Compartmental models.
-This module defines the SpatialNeuron class, which defines multicompartmental models.
+This module defines the `SpatialNeuron` class, which defines multicompartmental
+models.
 '''
 import weakref
 import copy
 
 import sympy as sp
 import numpy as np
+from past.builtins import basestring
 
 from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
@@ -14,12 +17,15 @@ from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
                                         extract_constant_subexpressions)
 from brian2.groups.group import Group, CodeRunner, create_runner_codeobj
 from brian2.units.allunits import ohm, siemens, amp, meter, volt
-from brian2.units.fundamentalunits import Quantity, Unit, fail_for_dimension_mismatch, have_same_dimensions, DimensionMismatchError
+from brian2.units.fundamentalunits import (Quantity,
+                                           fail_for_dimension_mismatch,
+                                           have_same_dimensions,
+                                           DimensionMismatchError)
 from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
-from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, \
-    to_start_stop
+from brian2.groups.neurongroup import (NeuronGroup, SubexpressionUpdater,
+                                       to_start_stop)
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
 
@@ -277,7 +283,7 @@ class SpatialNeuron(NeuronGroup):
 
         model_equations = []
         # Insert point currents in the membrane equation
-        for eq in model.itervalues():
+        for eq in model.values():
             if eq.varname == 'Im':
                 continue  # ignore -- handled separately
             if 'point current' in eq.flags:

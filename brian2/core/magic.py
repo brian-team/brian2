@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 import inspect
 import itertools
@@ -63,8 +64,8 @@ def get_objects_in_namespace(level):
     # Get the locals and globals from the stack frame
     objects = set()
     frame = inspect.stack()[level + 1][0]
-    for k, v in itertools.chain(frame.f_globals.iteritems(),
-                                frame.f_locals.iteritems()):
+    for k, v in itertools.chain(frame.f_globals.items(),
+                                frame.f_locals.items()):
         # We are only interested in numbers and functions, not in
         # everything else (classes, modules, etc.)
         if isinstance(v, BrianObject):

@@ -1,7 +1,7 @@
+from __future__ import absolute_import
 '''
 Module providing the `Synapses` class and related helper classes/functions.
 '''
-
 import collections
 from collections import defaultdict
 import functools
@@ -10,6 +10,7 @@ import re
 import numbers
 
 import numpy as np
+from past.builtins import basestring
 
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override
@@ -248,7 +249,7 @@ class SynapticPathway(CodeRunner, Group):
         # Allow the use of string expressions referring to synaptic (including
         # pre-/post-synaptic) variables
         # Only include non-private variables (and their indices)
-        synaptic_vars = {varname for varname in synapses.variables.keys()
+        synaptic_vars = {varname for varname in list(synapses.variables)
                          if not varname.startswith('_')}
         synaptic_idcs = {varname: synapses.variables.indices[varname]
                          for varname in synaptic_vars}
@@ -771,7 +772,7 @@ class Synapses(Group):
         event_driven = []
         continuous = []
         summed_updates = []
-        for single_equation in model.itervalues():
+        for single_equation in model.values():
             if 'event-driven' in single_equation.flags:
                 event_driven.append(single_equation)
             elif 'summed' in single_equation.flags:
@@ -813,7 +814,7 @@ class Synapses(Group):
         #: number of synapses changes
         self._registered_variables = set()
 
-        for varname, var in self.variables.iteritems():
+        for varname, var in self.variables.items():
             if (isinstance(var, DynamicArrayVariable) and
                         self.variables.indices[varname] == '_idx'):
                 # Register the array with the `SynapticItemMapping` object so
@@ -853,7 +854,7 @@ class Synapses(Group):
                 self._add_updater(argument, prepost, delay=pathway_delay,
                                   event=self.events[prepost])
             elif isinstance(argument, collections.Mapping):
-                for key, value in argument.iteritems():
+                for key, value in argument.items():
                     if not isinstance(key, basestring):
                         err_msg = ('Keys for the "on_{}" argument'
                                    'have to be strings, got '
@@ -1107,7 +1108,7 @@ class Synapses(Group):
         self.variables.add_array('N',  dtype=np.int32, size=1, scalar=True,
                                  constant=True, read_only=True)
 
-        for eq in equations.itervalues():
+        for eq in equations.values():
             dtype = get_dtype(eq, user_dtype)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
                 check_identifier_pre_post(eq.varname)
@@ -1146,7 +1147,7 @@ class Synapses(Group):
             self.variables.add_auxiliary_variable(xi, dimensions=(second ** -0.5).dim)
 
         # Add all the pre and post variables with _pre and _post suffixes
-        for name in getattr(self.source, 'variables', {}).iterkeys():
+        for name in getattr(self.source, 'variables', {}):
             # Raise an error if a variable name is also used for a synaptic
             # variable (we ignore 'lastupdate' to allow connections from another
             # Synapses object)
@@ -1173,7 +1174,7 @@ class Synapses(Group):
                                    '{source}.').format(var=name,
                                                        synapses=self.name,
                                                        source=self.source.name))
-        for name in getattr(self.target, 'variables', {}).iterkeys():
+        for name in getattr(self.target, 'variables', {}):
             # Raise an error if a variable name is also used for a synaptic
             # variable (we ignore 'lastupdate' to allow connections to another
             # Synapses object)
@@ -1208,7 +1209,7 @@ class Synapses(Group):
                                                        target=self.target.name))
 
         # Check scalar subexpressions
-        for eq in equations.itervalues():
+        for eq in equations.values():
             if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:
@@ -1605,7 +1606,7 @@ class Synapses(Group):
         additional_indices = {parsed['iteration_variable']: '_iterator_idx'}
 
         setupiter = ''
-        for k, v in parsed['iterator_kwds'].iteritems():
+        for k, v in parsed['iterator_kwds'].items():
             if v is not None and k!='sample_size':
                 deps = self._expression_index_dependence(v, additional_indices)
                 if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:

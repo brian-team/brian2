@@ -4,11 +4,12 @@ Brian AST representation
 This is a standard Python AST representation with additional information added.
 '''
 
+from __future__ import absolute_import
 import ast
 import weakref
 
 import numpy
-from __builtin__ import all as logical_all # defensive programming against numpy import
+from builtins import all as logical_all  # defensive programming against numpy import
 
 from brian2.parsing.rendering import NodeRenderer
 from brian2.utils.logger import get_logger
@@ -25,7 +26,7 @@ dtype_hierarchy = {'boolean': 0,
                    'float': 2,
                    }
 # This is just so you can invert from number to string
-for tc, i in dtype_hierarchy.items():
+for tc, i in dict(dtype_hierarchy).items():
     dtype_hierarchy[i] = tc
 
 def is_boolean(value):
@@ -287,24 +288,3 @@ class BrianASTRenderer(object):
         node.complexity = 1+node.operand.complexity
         node.stateless = node.operand.stateless
         return node
-
-
-if __name__=='__main__':
-    import brian2
-    eqs = '''
-    x : 1
-    y : 1 (shared)
-    a : integer
-    b : boolean
-    c : integer (shared)
-    '''
-    expr = 'x<3.0+1.0'
-
-    G = brian2.NeuronGroup(2, eqs)
-    variables = {}
-    variables.update(**brian2.DEFAULT_FUNCTIONS)
-    variables.update(**brian2.DEFAULT_CONSTANTS)
-    variables.update(**G.variables)
-    node = brian_ast(expr, variables)
-
-    print node.dtype, node.scalar, node.complexity

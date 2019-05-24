@@ -1,3 +1,6 @@
+from __future__ import print_function
+
+from __future__ import absolute_import
 import brian2
 import numpy
 import os
@@ -94,7 +97,7 @@ class FeatureTest(BaseTest):
         Often you just want to compare the values of some arrays, this does that.
         '''
         if isinstance(v_base, dict):
-            for k in v_base.keys():
+            for k in v_base:
                 self.compare_arrays(maxrelerr, v_base[k], v_test[k])
         else:
             I = (v_base!=0)
@@ -320,15 +323,15 @@ def run_feature_tests(configurations=None, feature_tests=None,
     configurations = [DefaultConfiguration]+configurations
     feature_tests.sort(key=lambda ft: ft.fullname())
     if verbose:
-        print 'Running feature tests'
-        print 'Configurations:', ', '.join(c.name for c in configurations)
+        print('Running feature tests')
+        print('Configurations:', ', '.join(c.name for c in configurations))
 
     full_results = {}
     tag_results = defaultdict(lambda:defaultdict(list))
     for ft in feature_tests:
         baseline = None
         if verbose:
-            print ft.fullname()+': [',
+            print(ft.fullname()+': [', end=' ')
         for configuration in configurations:
             txt = 'OK'
             sym = '.'
@@ -361,7 +364,7 @@ def run_feature_tests(configurations=None, feature_tests=None,
             for tag in ft.tags:
                 tag_results[tag][configuration.name].append((sym, txt, exc, tb, runtime, prof_info))
         if verbose:
-            print ']'
+            print(']')
         
     return FeatureTestResults(full_results, tag_results,
                               configurations, feature_tests)
@@ -489,20 +492,20 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
         speed_tests = SpeedTest.__subclasses__()
     speed_tests.sort(key=lambda ft: ft.fullname())
     if verbose:
-        print 'Running speed tests'
-        print 'Configurations:', ', '.join(c.name for c in configurations)
+        print('Running speed tests')
+        print('Configurations:', ', '.join(c.name for c in configurations))
 
     full_results = {}
     tag_results = defaultdict(lambda:defaultdict(list))
     for ft in speed_tests:
         if verbose:
-            print ft.fullname()+': ',
+            print(ft.fullname()+': ', end=' ')
         for n in ft.n_range[n_slice]:
             if verbose:
-                print 'n=%d [' % n,
+                print('n=%d [' % n, end=' ')
             for configuration in configurations:
                 sym = '.'
-                for _ in xrange(1+int(run_twice)):
+                for _ in range(1+int(run_twice)):
                     tb, res, runtime, prof_info = results(configuration, ft, n, maximum_run_time=maximum_run_time)
                 if isinstance(res, Exception):
                     if isinstance(res, NotImplementedError):
@@ -523,13 +526,13 @@ def run_speed_tests(configurations=None, speed_tests=None, run_twice=True, verbo
                     suffix = codeobjname
                     suffixtime[suffix] += proftime
                     overheadstime -= float(proftime)
-                for suffix, proftime in suffixtime.items():
+                for suffix, proftime in list(suffixtime.items()):
                     full_results[configuration.name, ft.fullname(), n, suffix] = proftime
                 full_results[configuration.name, ft.fullname(), n, 'Overheads'] = overheadstime
             if verbose:
-                print ']',
+                print(']', end=' ')
         if verbose:
-            print
+            print()
         
     return SpeedTestResults(full_results, configurations, speed_tests)
 
@@ -541,12 +544,16 @@ class SpeedTestResults(object):
         self.speed_tests = speed_tests
         
     def get_ns(self, fullname):
-        L = [(cn, fn, n, s) for cn, fn, n, s in self.full_results.keys() if fn==fullname]
+        L = [(cn, fn, n, s)
+             for cn, fn, n, s in self.full_results
+             if fn == fullname]
         confignames, fullnames, n, codeobjsuffixes  = zip(*L)
         return numpy.array(sorted(list(set(n))))
 
     def get_codeobjsuffixes(self, fullname):
-        L = [(cn, fn, n, s) for cn, fn, n, s in self.full_results.keys() if fn==fullname]
+        L = [(cn, fn, n, s)
+             for cn, fn, n, s in self.full_results
+             if fn == fullname]
         confignames, fullnames, n, codeobjsuffixes  = zip(*L)
         return set(codeobjsuffixes)
 
@@ -615,7 +622,7 @@ class SpeedTestResults(object):
                                     else:
                                         dash = dash+(4, 2)
                                 dashes[suffix] = dash
-                                markerstyles[suffix] = msty = markerstyles_cycle.next()
+                                markerstyles[suffix] = msty = next(markerstyles_cycle)
                         line = pylab.plot(ns, runtimes, lw=lw, color=col, marker=msty,
                                           mec='none', ms=8, label=label)[0]
                         if dash is not None:

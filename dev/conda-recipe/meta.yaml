@@ -32,6 +32,7 @@ requirements:
     - jinja2 >=2.7
     - setuptools >=6.0
     - py-cpuinfo  # [win]
+    - future
 
 test:
   imports:

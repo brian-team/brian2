@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import numpy as np
 from numpy.testing.utils import assert_equal
 from nose.plugins.attrib import attr
@@ -41,10 +42,10 @@ def test_spikequeue():
     queue = SpikeQueue(source_start=0, source_end=N)
     queue.prepare(delays[:], dt, synapses)
     queue.push(np.arange(N, dtype=np.int32))
-    for i in xrange(N):
+    for i in range(N):
         assert_equal(queue.peek(), np.array([i]))
         queue.advance()
-    for i in xrange(N):
+    for i in range(N):
         assert_equal(queue.peek(), np.array([]))
         queue.advance()
 
@@ -53,10 +54,10 @@ def test_spikequeue():
     queue = SpikeQueue(source_start=0, source_end=N)
     queue.prepare(delays[:], dt, synapses)
     queue.push(np.arange(N*N, dtype=np.int32))
-    for i in xrange(N):
+    for i in range(N):
         assert_equal(queue.peek(), i*N + np.arange(N))
         queue.advance()
-    for i in xrange(N):
+    for i in range(N):
         assert_equal(queue.peek(), np.array([]))
         queue.advance()
 

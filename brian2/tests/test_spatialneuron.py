@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import itertools
 
@@ -319,7 +320,7 @@ def test_rallpack2():
     # Construct binary tree according to Rall's formula
     morpho = Cylinder(n=1, diameter=diameter, y=[0, float(length)]*meter)
     endpoints = {morpho}
-    for depth in xrange(1, 10):
+    for depth in range(1, 10):
         diameter /= 2.**(1./3.)
         length /= 2.**(2./3.)
         new_endpoints = set()
@@ -685,19 +686,19 @@ def test_tree_index_consistency():
                                               ):
         sec = Cylinder(length=50 * um, diameter=10 * um, n=1)
         root_children = tree_description[0]
-        if not all([tree_description[x] == 0 for x in xrange(root_children + 1, 4)]):
+        if not all([tree_description[x] == 0 for x in range(root_children + 1, 4)]):
             # skip redundant descriptions (differing number of branches in a
             # subtree that does not exist)
             continue
 
         # Create a tree according to the description
-        for idx in xrange(root_children):
+        for idx in range(root_children):
             setattr(sec, 'sec%d' % (idx + 1),
                     Cylinder(length=50*um, diameter=10*um, n=2*(idx + 1)))
-        for child in xrange(root_children):
+        for child in range(root_children):
             subsec = getattr(sec, 'sec%d' % (child + 1))
             subsec_children = tree_description[child + 1]
-            for idx in xrange(subsec_children):
+            for idx in range(subsec_children):
                 setattr(subsec, 'sec%d%d' % (child + 1, idx + 1),
                         Cylinder(length=50 * um, diameter=10 * um, n=1 + (child + 1) * idx))
 
@@ -706,11 +707,11 @@ def test_tree_index_consistency():
         assert_equal(neuron.indices[:], np.arange(sec.total_compartments))
 
         all_subsec_indices = []
-        for child in xrange(root_children):
+        for child in range(root_children):
             subsec = getattr(neuron, 'sec%d' % (child + 1))
             sub_indices = set(subsec.main.indices[:])
             subsec_children = tree_description[child + 1]
-            for idx in xrange(subsec_children):
+            for idx in range(subsec_children):
                 subsubsec = getattr(subsec, 'sec%d%d' % (child + 1, idx + 1))
                 sub_indices |= set(subsubsec.main.indices[:])
             # The indices for a full subtree should be the union of the indices

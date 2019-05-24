@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 '''
 Check that the features of `Synapses` are available and correct.
 '''
@@ -123,8 +125,8 @@ class SynapsesSTDP(FeatureTest):
         T.w       = 10*fac
 
         spike_mon = SpikeMonitor(P)
-        state_mon = StateMonitor(S, 'w', record=range(n_recorded))
-        v_mon     = StateMonitor(P, 'v', record=range(n_recorded))
+        state_mon = StateMonitor(S, 'w', record=np.arange(n_recorded))
+        v_mon     = StateMonitor(P, 'v', record=np.arange(n_recorded))
         
         self.state_mon = state_mon
         self.spike_mon = spike_mon
@@ -148,5 +150,4 @@ if __name__=='__main__':
     for ftc in [SynapsesPre, SynapsesPost]:
         ft = ftc()
         ft.run()
-        print ft.results()
-    
+        print(ft.results())

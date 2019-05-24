@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import re, inspect, textwrap, pydoc
 import sphinx
 from sphinx.pycode import ModuleAnalyzer

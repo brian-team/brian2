@@ -3,6 +3,7 @@ The spike queue class stores future synaptic events
 produced by a given presynaptic neuron group (or postsynaptic for backward
 propagation in STDP).
 """
+from __future__ import absolute_import
 import bisect
 
 import numpy as np
@@ -103,7 +104,7 @@ class SpikeQueue(object):
         I = np.argsort(ss, kind='mergesort')
         ss_sorted = ss[I]
         splitinds = np.searchsorted(ss_sorted, np.arange(self._source_start, self. _source_end+1))
-        self._neurons_to_synapses = [I[splitinds[j]:splitinds[j+1]] for j in xrange(len(splitinds)-1)]
+        self._neurons_to_synapses = [I[splitinds[j]:splitinds[j+1]] for j in range(len(splitinds)-1)]
         max_events = max(map(len, self._neurons_to_synapses))
 
         n_steps = max_delays + 1

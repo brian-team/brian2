@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
@@ -91,7 +92,7 @@ class ExponentialEulerStateUpdater(StateUpdateMethod):
                                                 'state updater.')
         
         code = []
-        for var, (A, B) in system.iteritems():
+        for var, (A, B) in system.items():
             s_var = sp.Symbol(var)
             s_dt = sp.Symbol('dt')
             if A == 0:

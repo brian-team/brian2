@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from brian2 import *
 from brian2.codegen.templates import Templater
 from nose.plugins.attrib import attr

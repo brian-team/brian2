@@ -2,6 +2,7 @@
 Implementation of `TimedArray`.
 '''
 
+from __future__ import absolute_import
 import numpy as np
 
 from brian2.core.clocks import defaultclock
@@ -77,7 +78,7 @@ class TimedArray(Function, Nameable, CacheKey):
     >>> net = Network(G, mon)
     >>> net.run(0.2*ms)  # doctest: +ELLIPSIS
     ...
-    >>> print mon.v[:]
+    >>> print(mon.v[:])
     [[ 1.  3.]
      [ 2.  4.]
      [ 1.  3.]

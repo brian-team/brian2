@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import absolute_import
 import uuid
 
 import sympy
@@ -398,8 +399,8 @@ def test_linked_subexpression():
 
     # Due to the linking, the first 5 and the second 5 recorded I vectors should
     # be identical
-    assert all((all(mon[i].I == mon[0].I) for i in xrange(5)))
-    assert all((all(mon[i+5].I == mon[5].I) for i in xrange(5)))
+    assert all((all(mon[i].I == mon[0].I) for i in range(5)))
+    assert all((all(mon[i+5].I == mon[5].I) for i in range(5)))
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)
@@ -440,8 +441,8 @@ def test_linked_subexpression_3():
 
     # Due to the linking, the first 5 and the second 5 recorded I vectors should
     # refer to the
-    assert all((all(mon[i].I_l == mon1[0].I) for i in xrange(5)))
-    assert all((all(mon[i+5].I_l == mon1[1].I) for i in xrange(5)))
+    assert all((all(mon[i].I_l == mon1[0].I) for i in range(5)))
+    assert all((all(mon[i+5].I_l == mon1[1].I) for i in range(5)))
 
 
 def test_linked_subexpression_synapse():
@@ -1235,7 +1236,7 @@ def test_repr():
     for func in [str, repr, sympy.latex]:
         assert len(func(G))
         assert len(func(G.equations))
-        for eq in G.equations.itervalues():
+        for eq in G.equations.values():
             assert len(func(eq))
 
 @attr('codegen-independent')
@@ -1338,7 +1339,7 @@ def test_get_states():
     states_units = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True)
     states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False)
 
-    assert len(states_units.keys()) == len(states.keys()) == 4
+    assert len(states_units) == len(states) == 4
     assert_allclose(states_units['v'], np.arange(10)*volt)
     assert_allclose(states_units['x'], 10*np.arange(10))
     assert_allclose(states_units['subexpr'], 11*np.arange(10))
