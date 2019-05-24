@@ -124,7 +124,7 @@ install:
   # Use the conda-forge channel
   - 'conda config --append channels conda-forge'
   # Install the build dependencies of the project via conda
-  - 'appveyor-retry conda update --yes conda'
+  - 'appveyor-retry conda update -c conda-forge --yes conda'
   - 'set PYTHON_PACKAGES=nose "sphinx<1.6.3" "sympy>=1.1.1" pyparsing jinja2 ipython setuptools cython "py-cpuinfo=3" "gsl>1.15" future'
   # Install the weave package for Python 2
   - 'if "%PYTHON_VERSION:~0,1%" == "2" set PYTHON_PACKAGES=%PYTHON_PACKAGES% weave'
