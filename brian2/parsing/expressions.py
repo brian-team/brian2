@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 '''
 AST parsing based analysis of expressions
 '''
-import sys
 import ast
-import numbers
+
+from past.builtins import basestring
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer

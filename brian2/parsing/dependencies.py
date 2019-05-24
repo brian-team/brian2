@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import ast
 
 from brian2.utils.stringtools import deindent
@@ -130,18 +131,4 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
         undefined_read=undefined_read,
         newly_defined=newly_defined,
         )
-    return namedtuple('AbstractCodeDependencies', results.keys())(**results)
-
-    
-if __name__=='__main__':
-    code = '''
-    x = y+z
-    a = f(b)
-    '''
-    known_vars = {'y', 'z'}
-    print deindent(code)
-    print 'known_vars:', known_vars
-    print
-    r = abstract_code_dependencies(code, known_vars)
-    for k, v in r.__dict__.items():
-        print k+':', ', '.join(list(v))
+    return namedtuple('AbstractCodeDependencies', list(results.keys()))(**results)

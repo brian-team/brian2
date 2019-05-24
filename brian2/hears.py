@@ -16,6 +16,7 @@ Not working examples:
 * time_varying_filter1 (care with units)
 '''
 
+from __future__ import absolute_import
 try:
     import brian as b1
     import brian.hears as b1h
@@ -108,16 +109,16 @@ def wrap_units_class(_C):
     Wrap a class to convert units into a form that Brian 1 can handle in all methods
     '''
     class new_class(_C):
-        for _k in _C.__dict__.keys():
+        for _k in _C.__dict__:
             _v = getattr(_C, _k)
             if hasattr(ndarray, _k) and getattr(ndarray, _k) is _v:
                 continue
             if ismethod(_v):
                 _v = wrap_units(_v)
-                exec '%s = _v' % _k
+                exec('%s = _v' % _k)
             elif isinstance(_v, property):
                 _v = wrap_units_property(_v)
-                exec '%s = _v' % _k
+                exec('%s = _v' % _k)
         del _k
         del _v
     return new_class
@@ -176,7 +177,7 @@ class FilterbankGroup(NeuronGroup):
 
 handled_explicitly = {'Sound', 'FilterbankGroup'}
 
-__all__ = [k for k in b1h.__dict__.keys() if not k.startswith('_')]
+__all__ = [k for k in b1h.__dict__ if not k.startswith('_')]
 for k in __all__:
     if k in handled_explicitly:
         continue
@@ -186,7 +187,7 @@ for k in __all__:
             curobj = wrap_units_class(curobj)
         else:
             curobj = wrap_units(curobj)
-    exec '%s = curobj' % k
+    exec('%s = curobj' % k)
 
 __all__.extend(['convert_unit_b1_to_b2',
                 'convert_unit_b2_to_b1',

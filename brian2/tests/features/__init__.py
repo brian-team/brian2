@@ -1,12 +1,13 @@
+from __future__ import absolute_import
 __all__ = ['FeatureTest',
            'SpeedTest',
            'InaccuracyError',
            'Configuration',
            'run_feature_tests']
 
-from base import *
-import neurongroup
-import synapses
-import monitors
-import input
-import speed
+from .base import *
+from . import neurongroup
+from . import synapses
+from . import monitors
+from . import input
+from . import speed

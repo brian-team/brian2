@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 '''
 Classes used to specify the type of a function, variable or common
 sub-expression.
@@ -8,6 +9,7 @@ import numbers
 
 import numpy as np
 import sympy
+from past.builtins import basestring
 
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
@@ -86,7 +88,7 @@ def get_dtype_str(val):
 
 def variables_by_owner(variables, owner):
     owner_name = getattr(owner, 'name', None)
-    return dict([(varname, var) for varname, var in variables.iteritems()
+    return dict([(varname, var) for varname, var in variables.items()
                  if getattr(var.owner, 'name', None) is owner_name])
 
 
@@ -969,7 +971,7 @@ class VariableView(object):
             else:
                 index_groups = item
 
-            for varname, var in variables.iteritems():
+            for varname, var in variables.items():
                 for index_group in index_groups:
                     if not hasattr(index_group, 'variables'):
                         continue
@@ -1059,7 +1061,7 @@ class VariableView(object):
         '''
         Gets a variable using a string expression. Is called by
         `VariableView.get_item` for statements such as
-        ``print G.v['g_syn > 0']``.
+        ``print(G.v['g_syn > 0'])``.
 
         Parameters
         ----------
@@ -1144,7 +1146,7 @@ class VariableView(object):
         variables['_group_idx'].set_value(indices)
         # Force the use of this variable as a replacement for the original
         # index variable
-        using_orig_index = [varname for varname, index in self.group.variables.indices.iteritems()
+        using_orig_index = [varname for varname, index in self.group.variables.indices.items()
                             if index == self.index_var_name and index != '0']
         for varname in using_orig_index:
             variables.indices[varname] = '_idx'

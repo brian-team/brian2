@@ -3,6 +3,7 @@ Module defining `CodeString`, a class for a string of code together with
 information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
+from __future__ import absolute_import
 import collections
 
 import sympy
@@ -149,7 +150,7 @@ class Expression(CodeString):
 
         f_expr = None
         stochastic_expressions = {}
-        for var, s_expr in collected.iteritems():
+        for var, s_expr in collected.items():
             expr = Expression(sympy_expression=s_expr)
             if var == 1:
                 if any(s_expr.has(s) for s in stochastic_symbols):

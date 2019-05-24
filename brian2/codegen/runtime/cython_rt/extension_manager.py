@@ -4,6 +4,8 @@ Cython automatic extension builder/manager
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 '''
+from __future__ import absolute_import
+
 import glob
 import imp
 import os

@@ -2,6 +2,7 @@
 Module containing the `Device` base class as well as the `RuntimeDevice`
 implementation and some helper functions to access/set devices.
 '''
+from __future__ import absolute_import
 from weakref import WeakKeyDictionary
 import numbers
 
@@ -296,7 +297,7 @@ class Device(object):
         scalar_code, vector_code, kwds = generator.translate(abstract_code,
                                                              dtype=prefs['core.default_float_dtype'])
         # Add the array names as keywords as well
-        for varname, var in variables.iteritems():
+        for varname, var in variables.items():
             if isinstance(var, ArrayVariable):
                 pointer_name = generator.get_array_name(var)
                 if var.scalar:
@@ -604,7 +605,7 @@ def reinit_devices():
     '''
     from brian2 import restore_initial_state  # avoids circular import
 
-    for device in all_devices.itervalues():
+    for device in all_devices.values():
         device.reinit()
 
     if active_device is not None:

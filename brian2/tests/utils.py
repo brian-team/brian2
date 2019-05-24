@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import numpy as np
 from numpy.testing.utils import assert_allclose as numpy_allclose
 

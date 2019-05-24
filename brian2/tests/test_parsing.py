@@ -2,6 +2,7 @@
 Tests the brian2.parsing package
 '''
 from __future__ import division  # Make sure that we use Python 3 semantics in Python 2
+from __future__ import absolute_import
 from collections import namedtuple
 
 from nose.plugins.attrib import attr
@@ -93,7 +94,7 @@ def parse_expressions(renderer, evaluator, numvalues=10):
     for varids, funcids, expr in exprs:
         pexpr = renderer.render_expr(expr)
         n = 0
-        for _ in xrange(numvalues):
+        for _ in range(numvalues):
             # assign some random values
             ns = {}
             for v in varids:
@@ -120,7 +121,7 @@ def numpy_evaluator(expr, userns):
     #exec 'from numpy import logical_not' in ns
     ns['logical_not'] = np.logical_not
     ns.update(**userns)
-    for k in userns.keys():
+    for k in userns:
         if not k.startswith('_'):
             ns[k] = np.array([userns[k]])
     try:
@@ -141,7 +142,7 @@ def cpp_evaluator(expr, ns):
                                  extra_compile_args,
                                  extra_link_args)
     with std_silent():
-        return weave.inline('return_val = %s;' % expr, ns.keys(), local_dict=ns,
+        return weave.inline('return_val = %s;' % expr, list(ns), local_dict=ns,
                             support_code=CPPCodeGenerator.universal_support_code,
                             compiler=compiler,
                             extra_compile_args=extra_compile_args,
@@ -434,10 +435,10 @@ def test_substitute_abstract_code_functions():
     for x, y in [(0, 1), (1, 0), (0.124323, 0.4549483)]:
         ns1 = {'x':x, 'y':y, 'f':f, 'g':g}
         ns2 = {'x':x, 'y':y}
-        exec deindent(code) in ns1
-        exec subcode in ns2
+        exec(deindent(code), ns1)
+        exec(subcode, ns2)
         for k in ['z', 'w', 'h', 'p']:
-            assert ns1[k]==ns2[k]
+            assert ns1[k] == ns2[k]
 
 
 @attr('codegen-independent')

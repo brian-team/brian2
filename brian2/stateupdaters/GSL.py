@@ -2,6 +2,7 @@
 Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
 '''
+from __future__ import absolute_import
 import sys
 
 from .base import (StateUpdateMethod, UnsupportedEquationsException, extract_method_options)
@@ -100,7 +101,7 @@ class GSLContainer(object):
                                        "'cpp_standalone' device."
                                        ).format(target_name=target_name))
         else:
-            device_name = [name for name, dev in all_devices.iteritems()
+            device_name = [name for name, dev in all_devices.items()
                            if dev is device]
             assert len(device_name) == 1
             raise NotImplementedError(("GSL integration has not been implemented for "

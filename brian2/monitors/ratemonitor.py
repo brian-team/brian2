@@ -1,4 +1,9 @@
+from __future__ import absolute_import
+'''
+Module defining `PopulationRateMonitor`.
+'''
 import numpy as np
+from past.builtins import basestring
 
 from brian2.utils.logger import get_logger
 from brian2.core.variables import Variables

@@ -7,6 +7,8 @@ Instead edit the template:
 
     dev/tools/static_codegen/units_template.py
 '''
+import itertools
+
 from .fundamentalunits import (Unit, get_or_create_dimension,
                                standard_unit_register,
                                additional_unit_register)
@@ -7944,5 +7946,7 @@ celsius = _Celsius()
 
 Unit.automatically_register_units = True
 
-map(standard_unit_register.add, powered_units + scaled_units + base_units)
-map(additional_unit_register.add, additional_units)
+for unit in itertools.chain(powered_units, scaled_units, base_units):
+    standard_unit_register.add(unit)
+for unit in additional_units:
+    additional_unit_register.add(unit)

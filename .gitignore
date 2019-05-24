@@ -30,6 +30,9 @@ nosetests.xml
 .idea
 /Brian2.egg-info
 
+# VisualStudio Code
+.vscode/
+
 # vim files
 *.swp
 .rope*

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import weakref
 import copy
 import logging
@@ -87,8 +88,6 @@ def test_network_two_objects():
     net = Network()
     net.add([x, [y]]) # check that a funky way of adding objects work correctly
     net.run(1*ms)
-    assert_equal(net.objects[0].order, 5)
-    assert_equal(net.objects[1].order, 6)
     assert_equal(len(net.objects), 2)
     assert_equal(x.count, 10)
     assert_equal(y.count, 10)
@@ -804,12 +803,16 @@ def test_magic_collect():
     assert len(objects) == 6, ('expected %d objects, got %d' % (6, len(objects)))
 
 from contextlib import contextmanager
-from StringIO import StringIO
+from io import StringIO, BytesIO
 import sys
 
 @contextmanager
 def captured_output():
-    new_out, new_err = StringIO(), StringIO()
+    if sys.version_info[0] == 2:
+        # in Python 2, stdout/stderr works with bytes and not with unicode
+        new_out, new_err = BytesIO(), BytesIO()
+    else:
+        new_out, new_err = StringIO(), StringIO()
     old_out, old_err = sys.stdout, sys.stderr
     try:
         sys.stdout, sys.stderr = new_out, new_err
@@ -1399,6 +1402,27 @@ def test_small_runs():
     assert_allclose(mon_1.t_[:], mon_2.t_[:])
     assert_allclose(mon_1.v_[:], mon_2.v_[:])
 
+@attr('codegen-independent')
+def test_both_equal():
+    #check all objects added by Network.add() also have their contained_objects added to 'Network'
+    tau = 10*ms
+    diff_eqn='''dv/dt = (1-v)/tau : 1'''
+    chg_code='''v = 2*v'''
+
+    Ng = NeuronGroup(1,diff_eqn,method='exact')
+    M1 = StateMonitor(Ng, 'v', record=True)
+    netObj = Network(Ng,M1)
+    Ng.run_regularly(chg_code, dt=20*ms)
+    netObj.run(100*ms)
+
+    start_scope()
+    Ng = NeuronGroup(1,diff_eqn,method='exact')
+    M2 = StateMonitor(Ng, 'v', record=True)
+    Ng.run_regularly(chg_code, dt=20*ms)
+    run(100*ms)
+
+    assert (M1.v == M2.v).all()
+
 
 @attr('codegen-independent')
 @with_setup(teardown=reinit_devices)
@@ -1498,6 +1522,7 @@ if __name__ == '__main__':
             test_magic_scope,
             test_runtime_rounding,
             test_small_runs,
+            test_both_equal,
             test_long_run_dt_change,
             test_multiple_runs_constant_change,
             test_multiple_runs_function_change

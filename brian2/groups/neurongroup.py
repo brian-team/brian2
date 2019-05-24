@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
@@ -6,6 +7,7 @@ import numbers
 import string
 
 import numpy as np
+from past.builtins import basestring
 import sympy
 from pyparsing import Word
 
@@ -29,6 +31,7 @@ from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
+
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
@@ -69,8 +72,8 @@ def _guess_membrane_potential(equations):
     for threshold or reset.
     '''
     if len(equations) == 1:
-        return equations.keys()[0]
-    for name, eq in equations.iteritems():
+        return list(equations.keys())[0]
+    for name, eq in equations.items():
         if name in ['V', 'v', 'Vm', 'vm']:
             return name
 
@@ -517,7 +520,7 @@ class NeuronGroup(Group, SpikeSource):
             model = add_refractoriness(model)
         uses_refractoriness = len(model) and any(
             ['unless refractory' in eq.flags
-             for eq in model.itervalues()
+             for eq in model.values()
              if eq.type == DIFFERENTIAL_EQUATION])
 
         # Separate subexpressions depending whether they are considered to be
@@ -557,7 +560,7 @@ class NeuronGroup(Group, SpikeSource):
         # Setup variables
         # Since we have to create _spikespace and possibly other "eventspace"
         # variables, we pass the supported events
-        self._create_variables(dtype, events=events.keys())
+        self._create_variables(dtype, events=list(events.keys()))
 
         #: Events supported by this group
         self.events = events
@@ -572,7 +575,7 @@ class NeuronGroup(Group, SpikeSource):
         #: user-defined events)
         self.resetter = {}
 
-        for event_name in events.iterkeys():
+        for event_name in events.keys():
             if not isinstance(event_name, basestring):
                 raise TypeError(('Keys in the "events" dictionary have to be '
                                  'strings, not type %s.') % type(event_name))
@@ -824,7 +827,7 @@ class NeuronGroup(Group, SpikeSource):
         # Add the clock variables
         self.variables.create_clock_variables(self._clock)
 
-        for eq in self.equations.itervalues():
+        for eq in self.equations.values():
             dtype = get_dtype(eq, user_dtype)
             check_identifier_pre_post(eq.varname)
             if eq.type in (DIFFERENTIAL_EQUATION, PARAMETER):
@@ -853,7 +856,7 @@ class NeuronGroup(Group, SpikeSource):
         # Add the conditional-write attribute for variables with the
         # "unless refractory" flag
         if self._refractory is not False:
-            for eq in self.equations.itervalues():
+            for eq in self.equations.values():
                 if (eq.type == DIFFERENTIAL_EQUATION and
                             'unless refractory' in eq.flags):
                     not_refractory_var = self.variables['not_refractory']
@@ -865,7 +868,7 @@ class NeuronGroup(Group, SpikeSource):
             self.variables.add_auxiliary_variable(xi, dimensions=(second ** -0.5).dim)
 
         # Check scalar subexpressions
-        for eq in self.equations.itervalues():
+        for eq in self.equations.values():
             if eq.type == SUBEXPRESSION and 'shared' in eq.flags:
                 var = self.variables[eq.varname]
                 for identifier in var.identifiers:

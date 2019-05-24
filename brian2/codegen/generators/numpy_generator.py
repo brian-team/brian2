@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import itertools
 
 import numpy as np
@@ -51,7 +52,7 @@ class NumpyCodeGenerator(CodeGenerator):
             used_boolvars = statement.used_boolean_variables
             bool_simp = statement.boolean_simplified_expressions
             boolvar = used_boolvars[0]
-            for bool_assigns, simp_expr in bool_simp.iteritems():
+            for bool_assigns, simp_expr in bool_simp.items():
                 _, boolval = bool_assigns[0]
                 if boolval:
                     expr_true = simp_expr
@@ -74,7 +75,7 @@ class NumpyCodeGenerator(CodeGenerator):
 
         # See https://github.com/brian-team/brian2/pull/531 for explanation
         used = set(get_identifiers(statement.expr))
-        used = used.intersection(k for k in variables.keys() if k in indices and indices[k]!='_idx')
+        used = used.intersection(k for k in list(variables.keys()) if k in indices and indices[k]!='_idx')
         used_variables.update(used)
         if statement.var in used_variables:
             raise VectorisationError()
@@ -235,7 +236,7 @@ class NumpyCodeGenerator(CodeGenerator):
             # we don't want to end up with lines like x[not_refractory[not_refractory]] when
             # multiple substitution passes are invoked
             repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
-            for varname, var in variables.items():
+            for varname, var in list(variables.items()):
                 if isinstance(var, ArrayVariable) and not var.scalar:
                     subs[varname] = varname + '[' + repl_string + ']'
             # all newly created vars are arrays and will need indexing

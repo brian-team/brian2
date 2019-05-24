@@ -2,6 +2,7 @@
 File system tools
 '''
 
+from __future__ import absolute_import
 import os
 import sys
 from contextlib import contextmanager

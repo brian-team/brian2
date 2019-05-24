@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from pyparsing import (CharsNotIn, Optional, Suppress, Word, Regex,
                        ParseException, alphas, nums)
 

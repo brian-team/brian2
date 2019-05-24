@@ -2,6 +2,7 @@
 Module implementing Brian's refractory mechanism.
 '''
 
+from __future__ import absolute_import
 from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
 from brian2.units.allunits import second
 
@@ -56,7 +57,7 @@ def add_refractoriness(eqs):
     new_equations = []
     
     # replace differential equations having the active flag    
-    for eq in eqs.itervalues():
+    for eq in eqs.values():
         if eq.type == DIFFERENTIAL_EQUATION and 'unless refractory' in eq.flags:
             # the only case where we have to change anything
             new_code = 'int(not_refractory)*(' + eq.expr.code + ')'

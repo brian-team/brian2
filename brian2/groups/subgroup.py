@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
@@ -72,7 +73,7 @@ class Subgroup(Group, SpikeSource):
         self.variables.add_constant('N', value=self._N)
         self.variables.add_constant('_source_N', value=len(source))
         # add references for all variables in the original group
-        self.variables.add_references(source, source.variables.keys())
+        self.variables.add_references(source, list(source.variables.keys()))
 
         # Only the variable _sub_idx itself is stored in the subgroup
         # and needs the normal index for this group
@@ -83,7 +84,7 @@ class Subgroup(Group, SpikeSource):
         self._indices = Indexing(self, self.variables['_sub_idx'])
 
         # Deal with special indices
-        for key, value in self.source.variables.indices.iteritems():
+        for key, value in self.source.variables.indices.items():
             if value == '0':
                 self.variables.indices[key] = '0'
             elif value == '_idx':

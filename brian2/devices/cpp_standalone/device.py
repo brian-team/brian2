@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 '''
 Module implementing the C++ "standalone" device.
 '''
@@ -7,13 +9,14 @@ import subprocess
 import sys
 import inspect
 import struct
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, Mapping
 import itertools
 import numbers
 import tempfile
 from distutils import ccompiler
 
 import numpy as np
+from past.builtins import basestring
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
@@ -21,6 +24,7 @@ from brian2.codegen.cpp_prefs import get_compiler_and_args
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.functions import Function
+from brian2.core.base import BrianObject
 from brian2.core.variables import *
 from brian2.core.namespace import get_local_namespace
 from brian2.groups.group import Group
@@ -112,7 +116,7 @@ class CPPWriter(object):
 
 
 def invert_dict(x):
-    return dict((v, k) for k, v in x.iteritems())
+    return dict((v, k) for k, v in x.items())
 
 
 class CPPStandaloneDevice(Device):
@@ -352,7 +356,7 @@ class CPPStandaloneDevice(Device):
         else:
             orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
             suffix = 0
-            while (array_name in self.arrays.values()):
+            while array_name in self.arrays.values():
                 suffix += 1
                 array_name = orig_array_name + '_%d' % suffix
             self.arrays[var] = array_name
@@ -602,7 +606,7 @@ class CPPStandaloneDevice(Device):
         written_readonly_vars = ({codeobj.variables[varname]
                                   for varname in template.writes_read_only} |
                                  getattr(owner, 'written_readonly_vars', set()))
-        for var in codeobj.variables.itervalues():
+        for var in codeobj.variables.values():
             if (isinstance(var, ArrayVariable) and
                     (not var.read_only or var in written_readonly_vars)):
                 self.array_cache[var] = None
@@ -634,7 +638,7 @@ class CPPStandaloneDevice(Device):
                         get_array_filename=self.get_array_filename,
                         get_array_name=self.get_array_name,
                         profiled_codeobjects=self.profiled_codeobjects,
-                        code_objects=self.code_objects.values())
+                        code_objects=list(self.code_objects.values()))
         writer.write('objects.*', arr_tmp)
 
     def generate_main_source(self, writer):
@@ -724,7 +728,7 @@ class CPPStandaloneDevice(Device):
         self.runfuncs = runfuncs
 
         # generate the finalisations
-        for codeobj in self.code_objects.itervalues():
+        for codeobj in self.code_objects.values():
             if hasattr(codeobj.code, 'main_finalise'):
                 main_lines.append(codeobj.code.main_finalise)
 
@@ -732,7 +736,7 @@ class CPPStandaloneDevice(Device):
         main_tmp = self.code_object_class().templater.main(None, None,
                                                            main_lines=main_lines,
                                                            code_lines=self.code_lines,
-                                                           code_objects=self.code_objects.values(),
+                                                           code_objects=list(self.code_objects.values()),
                                                            report_func=self.report_func,
                                                            dt=float(self.defaultclock.dt),
                                                            user_headers=user_headers
@@ -742,9 +746,9 @@ class CPPStandaloneDevice(Device):
     def generate_codeobj_source(self, writer):
                 # Generate data for non-constant values
         code_object_defs = defaultdict(list)
-        for codeobj in self.code_objects.itervalues():
+        for codeobj in self.code_objects.values():
             lines = []
-            for k, v in codeobj.variables.iteritems():
+            for k, v in codeobj.variables.items():
                 if isinstance(v, ArrayVariable):
                     try:
                         if isinstance(v, DynamicArrayVariable):
@@ -769,7 +773,7 @@ class CPPStandaloneDevice(Device):
                     code_object_defs[codeobj.name].append(line)
 
         # Generate the code objects
-        for codeobj in self.code_objects.itervalues():
+        for codeobj in self.code_objects.values():
             ns = codeobj.variables
             # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
             code = self.freeze(codeobj.code.cpp_file, ns)
@@ -792,7 +796,7 @@ class CPPStandaloneDevice(Device):
 
     def generate_run_source(self, writer):
         run_tmp = self.code_object_class().templater.run(None, None, run_funcs=self.runfuncs,
-                                                        code_objects=self.code_objects.values(),
+                                                        code_objects=list(self.code_objects.values()),
                                                         user_headers=self.headers,
                                                         array_specs=self.arrays,
                                                         clocks=self.clocks
@@ -888,13 +892,13 @@ class CPPStandaloneDevice(Device):
         if func_namespace is not None:
             namespace.update(func_namespace)
         if impl.dependencies is not None:
-            for dep in impl.dependencies.itervalues():
+            for dep in impl.dependencies.values():
                 self._insert_func_namespace(dep, code_object, namespace)
 
     def write_static_arrays(self, directory):
         # Write Function namespaces as static arrays
-        for code_object in self.code_objects.itervalues():
-            for var in code_object.variables.itervalues():
+        for code_object in self.code_objects.values():
+            for var in code_object.variables.values():
                 if isinstance(var, Function):
                     self._insert_func_namespace(var, code_object,
                                                 self.static_arrays)
@@ -906,7 +910,7 @@ class CPPStandaloneDevice(Device):
             arr.tofile(os.path.join(directory, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
         self.static_array_specs = static_array_specs
-            
+
     def find_synapses(self):
         # Write the global objects
         networks = [net() for net in Network.__instances__()
@@ -925,7 +929,7 @@ class CPPStandaloneDevice(Device):
                 from distutils import msvc9compiler
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
                 if vcvars_loc == '':
-                    for version in xrange(16, 8, -1):
+                    for version in range(16, 8, -1):
                         fname = msvc9compiler.find_vcvarsall(version)
                         if fname:
                             vcvars_loc = fname
@@ -961,7 +965,7 @@ class CPPStandaloneDevice(Device):
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             with open('winmake.log', 'r') as f:
-                                print f.read()
+                                print(f.read())
                         error_message = ('Project compilation failed (error '
                                          'code: %u).') % x
                         if not clean:
@@ -1000,8 +1004,8 @@ class CPPStandaloneDevice(Device):
         with in_directory(directory):
             # Set environment variables
 
-            for key, value in itertools.chain(prefs['devices.cpp_standalone.run_environment_variables'].iteritems(),
-                                              self.run_environment_variables.iteritems()):
+            for key, value in itertools.chain(prefs['devices.cpp_standalone.run_environment_variables'].items(),
+                                              self.run_environment_variables.items()):
                 if key in os.environ and os.environ[key] != value:
                     logger.info('Overwriting environment variable '
                                 '"{key}"'.format(key=key),
@@ -1020,14 +1024,16 @@ class CPPStandaloneDevice(Device):
                     stdout.close()
                 if os.path.exists('results/stdout.txt'):
                     with open('results/stdout.txt', 'r') as f:
-                        print f.read()
+                        print(f.read())
                 raise RuntimeError("Project run failed (project directory: "
                                    "%s)" % os.path.abspath(directory))
             self.has_been_run = True
             if os.path.isfile('results/last_run_info.txt'):
                 with open('results/last_run_info.txt', 'r') as f:
                     last_run_info = f.read()
-                self._last_run_time, self._last_run_completed_fraction = map(float, last_run_info.split())
+                run_time, completed_fraction = last_run_info.split()
+                self._last_run_time = float(run_time)
+                self._last_run_completed_fraction = float(completed_fraction)
 
         # Make sure that integration did not create NaN or very large values
         owners = [var.owner for var in self.arrays]
@@ -1131,7 +1137,7 @@ class CPPStandaloneDevice(Device):
         extra_link_args = self.extra_link_args + prefs['codegen.cpp.extra_link_args']
 
         codeobj_define_macros = [macro for codeobj in
-                                 self.code_objects.itervalues()
+                                 self.code_objects.values()
                                  for macro in
                                  codeobj.compiler_kwds.get('define_macros', [])]
         define_macros = (self.define_macros +
@@ -1139,7 +1145,7 @@ class CPPStandaloneDevice(Device):
                          codeobj_define_macros)
 
         codeobj_include_dirs = [include_dir for codeobj in
-                                self.code_objects.itervalues()
+                                self.code_objects.values()
                                 for include_dir in
                                 codeobj.compiler_kwds.get('include_dirs', [])]
         include_dirs = (self.include_dirs +
@@ -1147,7 +1153,7 @@ class CPPStandaloneDevice(Device):
                         codeobj_include_dirs)
 
         codeobj_library_dirs = [library_dir for codeobj in
-                                self.code_objects.itervalues()
+                                self.code_objects.values()
                                 for library_dir in
                                 codeobj.compiler_kwds.get('library_dirs', [])]
         library_dirs = (self.library_dirs +
@@ -1155,7 +1161,7 @@ class CPPStandaloneDevice(Device):
                         codeobj_library_dirs)
 
         codeobj_runtime_dirs = [runtime_dir for codeobj in
-                                self.code_objects.itervalues()
+                                self.code_objects.values()
                                 for runtime_dir in
                                 codeobj.compiler_kwds.get('runtime_library_dirs', [])]
         runtime_library_dirs = (self.runtime_library_dirs +
@@ -1163,7 +1169,7 @@ class CPPStandaloneDevice(Device):
                                 codeobj_runtime_dirs)
 
         codeobj_libraries = [library for codeobj in
-                             self.code_objects.itervalues()
+                             self.code_objects.values()
                              for library in
                              codeobj.compiler_kwds.get('libraries', [])]
         libraries = (self.libraries +
@@ -1181,7 +1187,7 @@ class CPPStandaloneDevice(Device):
                         extra_link_args)
 
         codeobj_source_files = [source_file for codeobj in
-                                self.code_objects.itervalues()
+                                self.code_objects.values()
                                 for source_file in
                                 codeobj.compiler_kwds.get('sources', [])]
         additional_source_files += (codeobj_source_files +
@@ -1214,7 +1220,7 @@ class CPPStandaloneDevice(Device):
 
         # Check that all names are globally unique
         names = [obj.name for net in self.networks for obj in net.objects]
-        non_unique_names = [name for name, count in Counter(names).iteritems()
+        non_unique_names = [name for name, count in Counter(names).items()
                             if count > 1]
         if len(non_unique_names):
             formatted_names = ', '.join("'%s'" % name
@@ -1254,8 +1260,8 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
-
-        net._clocks = {obj.clock for obj in net.objects}
+        all_objects = net.sorted_objects
+        net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
         for clock in net._clocks:
             clock.set_interval(net.t, t_end)
@@ -1278,7 +1284,7 @@ class CPPStandaloneDevice(Device):
         # Note that since we ran the Network object, these CodeObjects will be sorted into the right
         # running order, assuming that there is only one clock
         code_objects = []
-        for obj in net.objects:
+        for obj in all_objects:
             if obj.active:
                 for codeobj in obj._code_objects:
                     code_objects.append((obj.clock, codeobj))

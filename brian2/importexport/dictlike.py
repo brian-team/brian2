@@ -2,8 +2,9 @@
 Module providing `DictImportExport` and `PandasImportExport` (requiring a
 working installation of pandas).
 '''
+from __future__ import absolute_import
 import numpy as np
-from importexport import ImportExport
+from .importexport import ImportExport
 
 
 class DictImportExport(ImportExport):
@@ -25,7 +26,7 @@ class DictImportExport(ImportExport):
 
     @staticmethod
     def import_data(group, data, units=True, level=0):
-        for key, value in data.iteritems():
+        for key, value in data.items():
             if getattr(group.variables[key], 'read_only'):
                 raise TypeError('Variable {} is read-only.'.format(key))
             group.state(key, use_units=units, level=level+1)[:] = value

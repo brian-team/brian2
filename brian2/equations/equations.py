@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 '''
 Differential equations for Brian models.
 '''
@@ -6,11 +7,12 @@ import keyword
 import re
 import string
 
-import sympy
-from brian2.utils.stringtools import get_identifiers
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
+import sympy
+from past.builtins import basestring
 
+from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import (DEFAULT_FUNCTIONS,
                                    DEFAULT_CONSTANTS,
                                    DEFAULT_UNITS)
@@ -246,7 +248,8 @@ def dimensions_and_type_from_string(unit_string):
                     base_units_for_dims[unit.dim] = [repr(unit)]
                     if unit_name != repr(unit):
                         base_units_for_dims[unit.dim].append(unit_name)
-        alternatives = sorted([tuple(values) for values in base_units_for_dims.itervalues()])
+        alternatives = sorted([tuple(values)
+                               for values in base_units_for_dims.values()])
         _base_units = dict([(v, DEFAULT_UNITS[v])
                             for values in alternatives for v in values])
         # Create a string that lists all allowed base units
@@ -571,7 +574,7 @@ class Equations(collections.Hashable, collections.Mapping):
 
         # Check for special symbol xi (stochastic term)
         uses_xi = None
-        for eq in self._equations.itervalues():
+        for eq in self._equations.values():
             if not eq.expr is None and 'xi' in eq.expr.identifiers:
                 if not eq.type == DIFFERENTIAL_EQUATION:
                     raise EquationError(('The equation defining %s contains the '
@@ -596,7 +599,7 @@ class Equations(collections.Hashable, collections.Mapping):
             return self._equations
 
         new_equations = {}
-        for eq in self.itervalues():
+        for eq in self.values():
             # Replace the name of a model variable (works only for strings)
             if eq.varname in replacements:
                 new_varname = replacements[eq.varname]
@@ -617,7 +620,7 @@ class Equations(collections.Hashable, collections.Mapping):
             if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
                 # Replace values in the RHS of the equation
                 new_code = eq.expr.code
-                for to_replace, replacement in replacements.iteritems():
+                for to_replace, replacement in replacements.items():
                     if to_replace in eq.identifiers:
                         if isinstance(replacement, basestring):
                             # replace the name with another name
@@ -648,7 +651,7 @@ class Equations(collections.Hashable, collections.Mapping):
         return new_equations
 
     def substitute(self, **kwds):
-        return Equations(self._substitute(kwds).values())
+        return Equations(list(self._substitute(kwds).values()))
 
     def __iter__(self):
         return iter(self._equations)
@@ -665,10 +668,10 @@ class Equations(collections.Hashable, collections.Mapping):
         elif not isinstance(other_eqns, Equations):
             return NotImplemented
 
-        return Equations(self.values() + other_eqns.values())
+        return Equations(list(self.values()) + list(other_eqns.values()))
 
     def __hash__(self):
-        return hash(frozenset(self._equations.iteritems()))
+        return hash(frozenset(self._equations.items()))
 
     #: A set of functions that are used to check identifiers (class attribute).
     #: Functions can be registered with the static method
@@ -803,7 +806,7 @@ class Equations(collections.Hashable, collections.Mapping):
         for _, expr in self.get_substituted_expressions():
             _, stochastic = expr.split_stochastic()
             if stochastic is not None:
-                for factor in stochastic.itervalues():
+                for factor in stochastic.values():
                     if 't' in factor.identifiers:
                         # noise factor depends on time
                         return 'multiplicative'
@@ -821,20 +824,20 @@ class Equations(collections.Hashable, collections.Mapping):
     ############################################################################
 
     # Lists of equations or (variable, expression tuples)
-    ordered = property(lambda self: sorted(self._equations.itervalues(),
+    ordered = property(lambda self: sorted(self._equations.values(),
                                            key=lambda key: key.update_order),
                                            doc='A list of all equations, sorted '
                                            'according to the order in which they should '
                                            'be updated')
 
     diff_eq_expressions = property(lambda self: [(varname, eq.expr) for
-                                                 varname, eq in self.iteritems()
+                                                 varname, eq in self.items()
                                                  if eq.type == DIFFERENTIAL_EQUATION],
                                   doc='A list of (variable name, expression) '
                                   'tuples of all differential equations.')
 
     eq_expressions = property(lambda self: [(varname, eq.expr) for
-                                            varname, eq in self.iteritems()
+                                            varname, eq in self.items()
                                             if eq.type in (SUBEXPRESSION,
                                                               DIFFERENTIAL_EQUATION)],
                               doc='A list of (variable name, expression) '
@@ -863,13 +866,13 @@ class Equations(collections.Hashable, collections.Mapping):
                                doc='All parameter names.')
 
     dimensions = property(lambda self: dict([(var, eq.dim) for var, eq in
-                                             self._equations.iteritems()]),
+                                             self._equations.items()]),
                           doc='Dictionary of all internal variables and their '
                               'corresponding physical dimensions.')
 
 
     identifiers = property(lambda self: set().union(*[eq.identifiers for
-                                                      eq in self._equations.itervalues()]) -
+                                                      eq in self._equations.values()]) -
                            self.names,
                            doc=('Set of all identifiers used in the equations, '
                                 'excluding the variables defined in the equations'))
@@ -894,7 +897,7 @@ class Equations(collections.Hashable, collections.Mapping):
         # Get a dictionary of all the dependencies on other subexpressions,
         # i.e. ignore dependencies on parameters and differential equations
         static_deps = {}
-        for eq in self._equations.itervalues():
+        for eq in self._equations.values():
             if eq.type == SUBEXPRESSION:
                 static_deps[eq.varname] = [dep for dep in eq.identifiers if
                                            dep in self._equations and
@@ -911,7 +914,7 @@ class Equations(collections.Hashable, collections.Mapping):
             self._equations[static_variable].update_order = order
 
         # Sort differential equations and parameters after subexpressions
-        for eq in self._equations.itervalues():
+        for eq in self._equations.values():
             if eq.type == DIFFERENTIAL_EQUATION:
                 eq.update_order = len(sorted_eqs)
             elif eq.type == PARAMETER:
@@ -945,7 +948,7 @@ class Equations(collections.Hashable, collections.Mapping):
                                                user_identifiers=external)  # all variables are user defined
 
         all_variables.update(resolved_namespace)
-        for var, eq in self._equations.iteritems():
+        for var, eq in self._equations.items():
             if eq.type == PARAMETER:
                 # no need to check units for parameters
                 continue
@@ -1000,7 +1003,7 @@ class Equations(collections.Hashable, collections.Mapping):
         if incompatible_flags is None:
             incompatible_flags = []
 
-        for eq in self.itervalues():
+        for eq in self.values():
             for flag in eq.flags:
                 if not eq.type in allowed_flags or len(allowed_flags[eq.type]) == 0:
                     raise ValueError('Equations of type "%s" cannot have any flags.' % eq.type)
@@ -1034,7 +1037,7 @@ class Equations(collections.Hashable, collections.Mapping):
     def _latex(self, *args):        
         equations = []
         t = sympy.Symbol('t')
-        for eq in self._equations.itervalues():
+        for eq in self._equations.values():
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)
             if eq.type == DIFFERENTIAL_EQUATION:
@@ -1069,7 +1072,7 @@ class Equations(collections.Hashable, collections.Mapping):
         if cycle:
             # Should never happen
             raise AssertionError('Cyclical call of Equations._repr_pretty_')
-        for eq in self._equations.itervalues():
+        for eq in self._equations.values():
             p.pretty(eq)
             p.breakable('\n')
 

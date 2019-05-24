@@ -3,7 +3,10 @@ Brian 2
 '''
 # Import setuptools to do some monkey patching of distutils, necessary for
 # working weave/Cython on Windows with the Python for C++ compiler
+from __future__ import absolute_import
 import setuptools as _setuptools
+from past.builtins import basestring
+
 
 def _check_dependencies():
     '''Check basic dependencies'''
@@ -71,8 +74,8 @@ from brian2.only import test
 # Check for outdated dependency versions
 def _check_dependency_version(name, version):
     from distutils.version import LooseVersion
-    from core.preferences import prefs
-    from utils.logger import get_logger
+    from .core.preferences import prefs
+    from .utils.logger import get_logger
     import sys
     logger = get_logger(__name__)
 

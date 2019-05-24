@@ -1,6 +1,7 @@
 '''
 Check that the features of `NeuronGroup` are available and correct.
 '''
+from __future__ import absolute_import
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
 
@@ -22,7 +23,8 @@ class NeuronGroupIntegrationLinear(FeatureTest):
         v_correct = self.v_init*exp(-self.duration/self.tau)
         return v_correct, self.G.v[:]
             
-    def check(self, maxrelerr, (v_correct, v_end)):
+    def check(self, maxrelerr, correct_end):
+        v_correct, v_end = correct_end
         err = amax(abs(v_end-v_correct)/v_correct)
         if err>maxrelerr:
             raise InaccuracyError(err)

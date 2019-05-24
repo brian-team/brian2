@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from future import builtins
+
 from nose.plugins.attrib import attr
 
 from brian2.utils.environment import running_from_ipython
@@ -8,13 +12,6 @@ def test_environment():
     '''
     Test information about the environment we are running under.
     '''
-    try:
-        # Python 2
-        import __builtin__ as builtins
-    except ImportError:
-        # Python 3
-        import builtins
-    
     if hasattr(builtins, '__IPYTHON__'):
         testing_under_ipython = True
         del builtins.__IPYTHON__
