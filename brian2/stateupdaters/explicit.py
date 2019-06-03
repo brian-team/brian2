@@ -13,7 +13,7 @@ from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
 from past.builtins import basestring
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
-
+from brian2.equations.codestrings import is_constant_over_dt
 from .base import (StateUpdateMethod, UnsupportedEquationsException,
                    extract_method_options)
 
@@ -581,18 +581,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
         method_options = extract_method_options(method_options, {})
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
-        if eqs.is_stochastic:
-            if self.stochastic is None:
-                raise UnsupportedEquationsException('Cannot integrate '
-                                                    'stochastic equations with '
-                                                    'this state updater.')
-            if (self.stochastic != 'multiplicative' and
-                        eqs.stochastic_type == 'multiplicative'):
-                raise UnsupportedEquationsException('Cannot integrate '
-                                                    'equations with '
-                                                    'multiplicative noise with '
-                                                    'this state updater.')
-
+        if eqs.is_stochastic and self.stochastic is None:
+            raise UnsupportedEquationsException('Cannot integrate '
+                                                'stochastic equations with '
+                                                'this state updater.')
         if self.custom_check:
             self.custom_check(eqs, variables)
         # The final list of statements
@@ -639,6 +631,17 @@ class ExplicitStateUpdater(StateUpdateMethod):
         # Process the "return" line of the stateupdater description
         non_stochastic_expr, stochastic_expr = split_expression(self.output)
         
+        dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None
+        # check whether noise is dependent on function of t, which is not constant 
+        # over the defined time step
+        if stochastic_expr is not None:                       
+            if (self.stochastic != 'multiplicative' and eqs.stochastic_type == 'multiplicative'):
+                if not is_constant_over_dt(stochastic_expr, variables, dt_value): 
+                    raise UnsupportedEquationsException('Cannot integrate '
+                                                        'equations with '
+                                                        'multiplicative noise with '
+                                                        'this state updater.')
+
         # Assign a value to all the model variables described by differential
         # equations
         for var, expr in substituted_expressions:
