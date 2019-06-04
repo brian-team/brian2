@@ -8,7 +8,7 @@ import tempfile
 
 from nose import with_setup
 from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_raises, assert_equal
+from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
@@ -370,6 +370,21 @@ def test_spikegenerator_multiple_runs():
     assert spike_mon.num_spikes == 5
 
 
+def test_spikegenerator_restore():
+    # Check whether SpikeGeneratorGroup works with store/restore
+    # See github issue #1084
+    gen = SpikeGeneratorGroup(1, [0, 0, 0], [0, 1, 2]*ms)
+    mon = SpikeMonitor(gen)
+    store()
+    run(3*ms)
+    assert_array_equal(mon.i, [0, 0, 0])
+    assert_allclose(mon.t, [0, 1, 2] * ms)
+    restore()
+    run(3 * ms)
+    assert_array_equal(mon.i, [0, 0, 0])
+    assert_allclose(mon.t, [0, 1, 2]*ms)
+
+
 if __name__ == '__main__':
     import time
     start = time.time()
@@ -391,4 +406,5 @@ if __name__ == '__main__':
     test_spikegenerator_rounding_period()
     test_spikegenerator_multiple_spikes_per_bin()
     test_spikegenerator_multiple_runs()
+    test_spikegenerator_restore()
     print('Tests took', time.time()-start)
