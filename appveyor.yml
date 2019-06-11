@@ -8,48 +8,12 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\continuous-integration\\appveyor\\run_with_env.cmd"
 
   matrix:
-    - PYTHON: "C:\\Miniconda"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "TRUE"
 
-    - PYTHON: "C:\\Miniconda35"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      CONDA_PY: "35"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda35-x64"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "FALSE"
-      CONDA_PY: "35"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda36"
-      PYTHON_VERSION: "3.6"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      CONDA_PY: "36"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda36-x64"
-      PYTHON_VERSION: "3.6"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "FALSE"
-      CONDA_PY: "36"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
     - PYTHON: "C:\\Miniconda"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
@@ -57,15 +21,7 @@ environment:
       STANDALONE: "FALSE"
       CONDA_PY: "27"
       DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "1"
-
-    - PYTHON: "C:\\Miniconda"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      DO_CONDA_BUILD: "FALSE"
-      SPLIT_RUN: "2"
+      SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Miniconda-x64"
       PYTHON_VERSION: "2.7"
@@ -74,41 +30,69 @@ environment:
       STANDALONE: "FALSE"
       CONDA_PY: "27"
       DO_CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+    - PYTHON: "C:\\Miniconda37"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "FALSE"
+      CONDA_PY: "37"
+      DO_CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "FALSE"
+      DO_CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "FALSE"
+      CONDA_PY: "37"
+      DO_CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       DO_CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
 
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
-      CONDA_PY: "27"
+      CONDA_PY: "37"
       DO_CONDA_BUILD: "FALSE"
       FLOAT_DTYPE_32: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       DO_CONDA_BUILD: "FALSE"
       FLOAT_DTYPE_32: "TRUE"
       SPLIT_RUN: "2"
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "TRUE"
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "TRUE"
