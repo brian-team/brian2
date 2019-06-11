@@ -633,10 +633,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # check whether noise is dependent on function of t, which is not constant 
         # over the defined time step
-        if eqs.is_stochastic:                       
-            if (self.stochastic != 'multiplicative' and eqs.stochastic_type == 'multiplicative'):
-                dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None
-                if not is_constant_over_dt(stochastic_expr, variables, dt_value): 
+        if eqs.is_stochastic and (self.stochastic != 'multiplicative' and eqs.stochastic_type == 'multiplicative'):
+            dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None
+            for exp in eqs.diff_eq_expressions:
+                n_stoch, stoch = exp[1].split_stochastic()
+                if not is_constant_over_dt(str_to_sympy(str(stoch['xi'])), variables, dt_value) or exp[0] in str(stoch['xi']): 
                     raise UnsupportedEquationsException('Cannot integrate '
                                                         'equations with '
                                                         'multiplicative noise with '

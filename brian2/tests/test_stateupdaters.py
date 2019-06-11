@@ -183,6 +183,27 @@ def test_multiple_noise_variables_deterministic_noise():
             assert_allclose(mon.y[:], no_noise_y,
                             err_msg='Method %s gave incorrect results' % method_name)
 
+@attr('codegen-independent')
+def test_multiplicative_noise():
+    
+    Ta = TimedArray([0, 1], dt=defaultclock.dt*10)
+    Eq = Equations('dv/dt = ta(t)*xi*(5*ms)**-0.5 :1')
+    group = NeuronGroup(1, Eq, method='euler')
+    net = Network(group)
+    net.run(10*ms)
+    
+    Eq1 = Equations('dv/dt = v*xi*(5*ms)**-0.5 :1')
+    group1 = NeuronGroup(1, Eq1, method = 'euler')
+    net1 = Network(group1)
+    net1.run(10*ms)
+    assert_raises(UnsupportedEquationsException)
+    
+    Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
+    group2 = NeuronGroup(1, Eq2, method = 'euler')
+    net2 = Network(group2)
+    net2.run(10*ms)
+    assert_raises(UnsupportedEquationsException)
+    
 
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_pure_noise_deterministic():
