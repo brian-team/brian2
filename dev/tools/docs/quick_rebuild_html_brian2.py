@@ -1,8 +1,14 @@
 import os
 import shutil
 import sphinx
+if not sphinx.version_info >= (1, 7):
+    raise ImportError('Need sphinx version 1.7')
+from sphinx.cmd.build import main as sphinx_main
 import sys
 
 os.environ['BRIAN2_DOCS_QUICK_REBUILD'] = '1'
+
 os.chdir('../../../docs_sphinx')
-sys.exit(sphinx.main(['sphinx-build', '-b', 'html', '.', '../docs']))
+if os.path.exists('../docs'):
+    shutil.rmtree('../docs')
+sys.exit(sphinx_main(['-b', 'html', '.', '../docs']))
