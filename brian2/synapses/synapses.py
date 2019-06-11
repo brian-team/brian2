@@ -2,8 +2,11 @@ from __future__ import absolute_import
 '''
 Module providing the `Synapses` class and related helper classes/functions.
 '''
-import collections
 from collections import defaultdict
+try:
+    from collections.abc import Sequence, MutableMapping, Mapping
+except ImportError:  # Python 2
+    from collections import Sequence, MutableMapping, Mapping
 import functools
 import weakref
 import re
@@ -522,7 +525,7 @@ class SynapticIndexing(object):
 
         if (not isinstance(index, (tuple, basestring)) and
                 (isinstance(index, (numbers.Integral, np.ndarray, slice,
-                                   collections.Sequence))
+                                   Sequence))
                  or hasattr(index, '_indices'))):
             if hasattr(index, '_indices'):
                 final_indices = index._indices(index_var=index_var).astype(np.int32)
@@ -713,7 +716,7 @@ class Synapses(Group):
 
         if dtype is None:
             dtype = {}
-        if isinstance(dtype, collections.MutableMapping):
+        if isinstance(dtype, MutableMapping):
             dtype['lastupdate'] = self._clock.variables['t'].dtype
 
         #: remember whether connect was called to raise an error if an
@@ -829,7 +832,7 @@ class Synapses(Group):
 
         if isinstance(delay, Quantity):
             delay = {'pre': delay}
-        elif not isinstance(delay, collections.Mapping):
+        elif not isinstance(delay, Mapping):
             raise TypeError('Delay argument has to be a quantity or a '
                             'dictionary, is type %s instead.' % type(delay))
 
@@ -839,9 +842,9 @@ class Synapses(Group):
         self._pathways = []
 
         if isinstance(on_event, basestring):
-            events_dict = collections.defaultdict(lambda: on_event)
+            events_dict = defaultdict(lambda: on_event)
         else:
-            events_dict = collections.defaultdict(lambda: 'spike')
+            events_dict = defaultdict(lambda: 'spike')
             events_dict.update(on_event)
 
         #: "Events" for all the pathways
@@ -853,7 +856,7 @@ class Synapses(Group):
                 pathway_delay = delay.get(prepost, None)
                 self._add_updater(argument, prepost, delay=pathway_delay,
                                   event=self.events[prepost])
-            elif isinstance(argument, collections.Mapping):
+            elif isinstance(argument, Mapping):
                 for key, value in argument.items():
                     if not isinstance(key, basestring):
                         err_msg = ('Keys for the "on_{}" argument'
@@ -1291,13 +1294,13 @@ class Synapses(Group):
                             "connect(i=..., j=...).")
         if i is not None and (not (isinstance(i, (numbers.Integral,
                                                  np.ndarray,
-                                                 collections.Sequence)) or
+                                                 Sequence)) or
                                    hasattr(i, '_indices')) or
                               isinstance(i, basestring)):
             raise TypeError("i argument must be int or array")
         if j is not None and not (isinstance(j, (numbers.Integral,
                                                 np.ndarray,
-                                                collections.Sequence)) or
+                                                Sequence)) or
                                   hasattr(j, '_indices')):
             raise TypeError("j argument must be int, array or string")
         # TODO: eliminate these restrictions
