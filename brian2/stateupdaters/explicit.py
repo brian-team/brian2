@@ -630,18 +630,33 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 
         # Process the "return" line of the stateupdater description
         non_stochastic_expr, stochastic_expr = split_expression(self.output)
-        
-        # check whether noise is dependent on function of t, which is not constant 
-        # over the defined time step
-        if eqs.is_stochastic and (self.stochastic != 'multiplicative' and eqs.stochastic_type == 'multiplicative'):
+
+        if eqs.is_stochastic and (self.stochastic != 'multiplicative' and
+                                  eqs.stochastic_type == 'multiplicative'):
+            # The equations are marked as having multiplicative noise and the
+            # current state updater does not support such equations. However,
+            # it is possible that the equations do not use multiplicative noise
+            # at all. They could depend on time via a function that is constant
+            # over a single time step (most likely, a TimedArray). In that case
+            # we can integrate the equations
             dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None
-            for exp in eqs.diff_eq_expressions:
-                n_stoch, stoch = exp[1].split_stochastic()
-                if not is_constant_over_dt(str_to_sympy(str(stoch['xi'])), variables, dt_value) or exp[0] in str(stoch['xi']): 
-                    raise UnsupportedEquationsException('Cannot integrate '
-                                                        'equations with '
-                                                        'multiplicative noise with '
-                                                        'this state updater.')
+            for _, expr in substituted_expressions:
+                _, stoch = expr.split_stochastic()
+                if stoch is None:
+                    continue
+                # There could be more than one stochastic variable (e.g. xi_1, xi_2)
+                for _, stoch_expr in stoch.items():
+                    sympy_expr = str_to_sympy(stoch_expr.code)
+                    # The equation really has multiplicative noise, if it depends
+                    # on time (and not only via a function that is constant
+                    # over dt), or if it depends on another variable defined
+                    # via differential equations.
+                    if (not is_constant_over_dt(sympy_expr, variables, dt_value)
+                            or len(stoch_expr.identifiers & eqs.diff_eq_names)):
+                        raise UnsupportedEquationsException('Cannot integrate '
+                                                            'equations with '
+                                                            'multiplicative noise with '
+                                                            'this state updater.')
 
         # Assign a value to all the model variables described by differential
         # equations

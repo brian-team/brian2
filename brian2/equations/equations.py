@@ -797,9 +797,7 @@ class Equations(collections.Hashable, collections.Mapping):
             time), ``'multiplicative'`` (at least one of the noise factors
             depends on other state variables and/or time).
         '''
-        
-        # TODO: Add debug output
-        
+
         if not self.is_stochastic:
             return None
         
