@@ -278,6 +278,21 @@ act as a container for other objects (e.g. a `NeuronGroup` which contains a
 ``when``, but pass on the given values for ``dt`` and ``order`` to their
 containing objects.
 
+Suppose, if you want your simulation object to run only for a particular time
+period of the whole simulation, `active` attribute can be used. 
+Inactive objects will not have their `update` method called in `Network.run()`.
+This can be useful when you want your monitors to be active only for the 
+required time of long simulation::
+    
+    # Set the network
+    # ...
+    monitor = SpikeMonitor(...)
+    run(long_time*seconds)
+    monitor.active = True
+    run(required_time*seconds)
+    monitor.active = False
+    # ...
+    
 To see how the objects in a network are scheduled, you can use the
 `scheduling_summary` function::
 
