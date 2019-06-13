@@ -3,6 +3,10 @@ from __future__ import absolute_import
 Differential equations for Brian models.
 '''
 import collections
+try:
+    from collections.abc import Mapping
+except ImportError:  # Python 2
+    from collections import Mapping
 import keyword
 import re
 import string
@@ -524,7 +528,7 @@ class SingleEquation(collections.Hashable, CacheKey):
         return '$' + sympy.latex(self) + '$'
 
 
-class Equations(collections.Hashable, collections.Mapping):
+class Equations(collections.Hashable, Mapping):
     """
     Container that stores equations from which models can be created.
     

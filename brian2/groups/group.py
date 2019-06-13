@@ -6,7 +6,10 @@ for objects that in addition to storing state variables also execute code, i.e.
 objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 `CodeRunner`, a class to run code in the context of a `Group`.
 '''
-import collections
+try:
+    from collections.abc import Mapping
+except ImportError:  # Python 2
+    from collections import Mapping
 from collections import OrderedDict
 import weakref
 import numbers
@@ -128,7 +131,7 @@ def get_dtype(equation, dtype=None):
         The dtype for the variable defined in `equation`
     '''
     # Check explicitly provided dtype for compatibility with the variable type
-    if isinstance(dtype, collections.Mapping):
+    if isinstance(dtype, Mapping):
         if equation.varname in dtype:
             BASIC_TYPES = {BOOLEAN: 'b',
                            INTEGER: 'iu',
@@ -732,7 +735,7 @@ class Group(VariableOwner, BrianObject):
         '''
         if user_identifiers is None:
             user_identifiers = identifiers
-        assert isinstance(run_namespace, collections.Mapping)
+        assert isinstance(run_namespace, Mapping)
         resolved = {}
         for identifier in identifiers:
             resolved[identifier] = self._resolve(identifier,

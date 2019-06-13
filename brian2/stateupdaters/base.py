@@ -6,7 +6,10 @@ return a suitable stateupdater object for a given set of equations. This is used
 for example in `NeuronGroup` when no state updater is given explicitly.
 '''
 from abc import abstractmethod, ABCMeta
-import collections
+try:
+    from collections.abc import Iterable
+except ImportError:  # Python 2
+    from collections import Iterable
 import time
 
 from past.builtins import basestring
@@ -168,7 +171,7 @@ class StateUpdateMethod(object):
         abstract_code : str
             The code integrating the given equations.
         '''
-        if (isinstance(method, collections.Iterable) and
+        if (isinstance(method, Iterable) and
                 not isinstance(method, basestring)):
             the_method = None
             start_time = time.time()

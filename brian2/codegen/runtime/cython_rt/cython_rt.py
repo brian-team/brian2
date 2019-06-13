@@ -116,6 +116,7 @@ class CythonCodeObject(NumpyCodeObject):
         try:
             compiler, extra_compile_args = get_compiler_and_args()
             code = '''
+            #cython: language_level=3
             def main():
                 cdef int x
                 x = 0'''

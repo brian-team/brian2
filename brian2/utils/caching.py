@@ -6,7 +6,10 @@ decorator.
 from __future__ import absolute_import
 import functools
 import collections
-import weakref
+try:
+    from collections.abc import Mapping
+except ImportError:  # Python 2
+    from collections import Mapping
 
 
 class CacheKey(object):
@@ -117,7 +120,7 @@ def _hashable(obj):
     if hasattr(obj, '_state_tuple'):
         return _hashable(obj._state_tuple)
     obj_type = type(obj)
-    if _of_type(obj_type, collections.Mapping):
+    if _of_type(obj_type, Mapping):
         return frozenset((_hashable(key), _hashable(value))
                          for key, value in obj.items())
     elif _of_type(obj_type, set):

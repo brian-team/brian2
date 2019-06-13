@@ -1,5 +1,8 @@
 from __future__ import absolute_import
-import collections
+try:
+    from collections.abc import Mapping
+except ImportError:  # Python 2
+    from collections import Mapping
 import inspect
 import types
 
@@ -256,7 +259,7 @@ class FunctionImplementation(object):
             return self._namespace
 
 
-class FunctionImplementationContainer(collections.Mapping):
+class FunctionImplementationContainer(Mapping):
     '''
     Helper object to store implementations and give access in a dictionary-like
     fashion, using `CodeGenerator` implementations as a fallback for `CodeObject`
