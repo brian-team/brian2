@@ -1,5 +1,9 @@
 from __future__ import absolute_import
-import collections
+
+try:
+    from collections.abc import Sequence
+except ImportError:  # Python 2
+    from collections import Sequence
 import numbers
 
 import numpy as np
@@ -290,7 +294,7 @@ class StateMonitor(Group, CodeRunner):
         dtype = get_dtype(item)
         if np.issubdtype(dtype, np.signedinteger):
             return StateMonitorView(self, item)
-        elif isinstance(item, collections.Sequence):
+        elif isinstance(item, Sequence):
             index_array = np.array(item)
             if not np.issubdtype(index_array.dtype, np.signedinteger):
                 raise TypeError('Index has to be an integer or a sequence '

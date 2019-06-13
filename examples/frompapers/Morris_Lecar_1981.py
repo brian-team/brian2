@@ -3,6 +3,7 @@
 Morris-Lecar model
 
 Reproduces Fig. 9 of:
+
 Catherine Morris and Harold Lecar.
 “Voltage Oscillations in the Barnacle Giant Muscle Fiber.”
 Biophysical Journal 35, no. 1 (1981): 193–213.

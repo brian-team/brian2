@@ -3,7 +3,10 @@ Module providing `NumpyCodeObject`.
 '''
 from __future__ import absolute_import
 import sys
-from collections import Iterable
+try:
+    from collections.abc import Iterable
+except ImportError:  # Python 2
+    from collections import Iterable
 
 import numpy as np
 

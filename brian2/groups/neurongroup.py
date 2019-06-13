@@ -3,6 +3,10 @@ from __future__ import absolute_import
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
 import collections
+try:
+    from collections.abc import Sequence, MutableMapping
+except ImportError:  # Python 2
+    from collections import Sequence, MutableMapping
 import numbers
 import string
 
@@ -137,7 +141,7 @@ def to_start_stop(item, N):
         start = item
         stop = item + 1
         step = 1
-    elif (isinstance(item, (collections.Sequence, np.ndarray)) and
+    elif (isinstance(item, (Sequence, np.ndarray)) and
           not isinstance(item, basestring)):
         if not (len(item) > 0 and np.all(np.diff(item) == 1)):
             raise IndexError('Subgroups can only be constructed using '
@@ -481,7 +485,7 @@ class NeuronGroup(Group, SpikeSource):
                        name=name)
         if dtype is None:
             dtype = {}
-        if isinstance(dtype, collections.MutableMapping):
+        if isinstance(dtype, MutableMapping):
             dtype['lastspike'] = self._clock.variables['t'].dtype
 
         self.codeobj_class = codeobj_class

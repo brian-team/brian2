@@ -1,6 +1,7 @@
 '''
 Reproduces Figure 12 (simplified three-compartment model) from the following
 paper:
+
 Dendritic Low-Threshold Calcium Currents in Thalamic Relay Cells
 Alain Destexhe, Mike Neubig, Daniel Ulrich, John Huguenard
 Journal of Neuroscience 15 May 1998, 18 (10) 3574-3588
@@ -8,6 +9,7 @@ Journal of Neuroscience 15 May 1998, 18 (10) 3574-3588
 The original NEURON code is available on ModelDB: https://senselab.med.yale.edu/modeldb/ShowModel.cshtml?model=279 
 
 Reference for the original morphology:
+
 Rat VB neuron (thalamocortical cell), given by J. Huguenard, stained with
 biocytin and traced by A. Destexhe, December 1992.  The neuron is described
 in: J.R. Huguenard & D.A. Prince, A novel T-type current underlies prolonged
@@ -15,6 +17,7 @@ calcium-dependent burst firing in GABAergic neurons of rat thalamic reticular
 nucleus.  J. Neurosci. 12: 3804-3817, 1992.
 
 Available at NeuroMorpho.org:
+
 http://neuromorpho.org/neuron_info.jsp?neuron_name=tc200
 NeuroMorpho.Org ID :NMO_00881
 

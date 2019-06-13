@@ -184,6 +184,49 @@ def test_multiple_noise_variables_deterministic_noise():
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
+@attr('codegen-independent')
+def test_multiplicative_noise():
+    # Noise is not multiplicative (constant over time step)
+    ta = TimedArray([0, 1], dt=defaultclock.dt*10)
+    Eq = Equations('dv/dt = ta(t)*xi*(5*ms)**-0.5 :1')
+    group = NeuronGroup(1, Eq, method='euler')
+    net = Network(group)
+    net.run(0*ms)  # no error
+    
+    # Noise is multiplicative (multiplied with time-varying variable)
+    Eq1 = Equations('dv/dt = v*xi*(5*ms)**-0.5 :1')
+    group1 = NeuronGroup(1, Eq1, method='euler')
+    net1 = Network(group1)
+    assert_raises(UnsupportedEquationsException, net1.run, 0*ms)
+
+    # Noise is multiplicative (multiplied with time)
+    Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
+    group2 = NeuronGroup(1, Eq2, method='euler')
+    net2 = Network(group2)
+    assert_raises(UnsupportedEquationsException, net2.run, 0*ms)
+
+    # Noise is multiplicative (multiplied with time-varying variable)
+    Eq3 = Equations('''dv/dt = w*xi*(5*ms)**-0.5 :1
+                       dw/dt = -w/(10*ms) : 1''')
+    group3 = NeuronGroup(1, Eq3, method='euler')
+    net3 = Network(group3)
+    assert_raises(UnsupportedEquationsException, net3.run, 0*ms)
+
+    # One of the equations has multiplicative noise
+    Eq4 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
+                       dw/dt = (t/ms)*xi_2*(5*ms)**-0.5 :1''')
+    group4 = NeuronGroup(1, Eq4, method='euler')
+    net4 = Network(group4)
+    assert_raises(UnsupportedEquationsException, net4.run, 0*ms)
+
+    # One of the equations has multiplicative noise
+    Eq5 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
+                       dw/dt = v*xi_2*(5*ms)**-0.5 :1''')
+    group5 = NeuronGroup(1, Eq5, method='euler')
+    net5 = Network(group4)
+    assert_raises(UnsupportedEquationsException, net5.run, 0*ms)
+
+
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_pure_noise_deterministic():
     DEFAULT_FUNCTIONS['randn'] = fake_randn
@@ -749,6 +792,7 @@ if __name__ == '__main__':
     test_explicit_stateupdater_parsing()
     test_non_autonomous_equations()
     test_str_repr()
+    test_multiplicative_noise()
     test_multiple_noise_variables_basic()
     test_multiple_noise_variables_extended()
     store_randn()

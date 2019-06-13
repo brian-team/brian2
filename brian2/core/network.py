@@ -11,7 +11,11 @@ from __future__ import absolute_import
 import os
 import sys
 import time
-from collections import defaultdict, Sequence, Counter, Mapping, namedtuple
+from collections import defaultdict, Counter, namedtuple
+try:
+    from collections.abc import Sequence, Mapping
+except ImportError:  # Python 2
+    from collections import Sequence, Mapping
 import pickle as pickle
 
 from brian2.synapses.synapses import SummedVariableUpdater

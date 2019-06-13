@@ -105,13 +105,21 @@ _check_dependency_versions()
 BrianLogger.initialize()
 logger = get_logger(__name__)
 
+
 # Check the caches
 def _get_size_recursively(dirname):
     import os
     total_size = 0
     for dirpath, _, filenames in os.walk(dirname):
         for fname in filenames:
-            total_size += os.path.getsize(os.path.join(dirpath, fname))
+            # When other simulations are running, files may disappear while
+            # we walk through the directory (in particular with Cython, where
+            # we delete the source files after compilation by default)
+            try:
+                size = os.path.getsize(os.path.join(dirpath, fname))
+                total_size += size
+            except (OSError, IOError):
+                pass  # ignore the file
     return total_size
 
 #: Stores the cache directory for code generation targets
@@ -184,7 +192,7 @@ def _check_caches():
     from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions
 
     for target, (dirname, extensions) in [('weave', (get_weave_cache_dir(), get_weave_extensions())),
-                                         ('cython', (get_cython_cache_dir(), get_cython_extensions()))]:
+                                          ('cython', (get_cython_cache_dir(), get_cython_extensions()))]:
         _cache_dirs_and_extensions[target] = (dirname, extensions)
         if prefs.codegen.max_cache_dir_size > 0:
             check_cache(target)

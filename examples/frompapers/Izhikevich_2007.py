@@ -5,6 +5,7 @@
 STDP modulated with reward
 
 Adapted from Fig. 1c of:
+
 Eugene M. Izhikevich 
 Solving the distal reward problem through linkage of STDP and dopamine signaling. 
 Cerebral cortex 17, no. 10 (2007): 2443-2452.

@@ -4,6 +4,10 @@ Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
 import collections
+try:
+    from collections.abc import Mapping
+except ImportError:  # Python 2
+    from collections import Mapping
 import functools
 import numbers
 
@@ -1380,7 +1384,7 @@ class VariableView(object):
         return self.get_item(slice(None), level=1).dtype
 
 
-class Variables(collections.Mapping):
+class Variables(Mapping):
     '''
     A container class for storing `Variable` objects. Instances of this class
     are used as the `Group.variables` attribute and can be accessed as

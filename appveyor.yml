@@ -8,48 +8,12 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\continuous-integration\\appveyor\\run_with_env.cmd"
 
   matrix:
-    - PYTHON: "C:\\Miniconda"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "32"
       platform: x86
       STANDALONE: "TRUE"
 
-    - PYTHON: "C:\\Miniconda35"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      CONDA_PY: "35"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda35-x64"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "FALSE"
-      CONDA_PY: "35"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda36"
-      PYTHON_VERSION: "3.6"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      CONDA_PY: "36"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
-    - PYTHON: "C:\\Miniconda36-x64"
-      PYTHON_VERSION: "3.6"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "FALSE"
-      CONDA_PY: "36"
-      DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "FALSE"
-
     - PYTHON: "C:\\Miniconda"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "32"
@@ -57,15 +21,7 @@ environment:
       STANDALONE: "FALSE"
       CONDA_PY: "27"
       DO_CONDA_BUILD: "TRUE"
-      SPLIT_RUN: "1"
-
-    - PYTHON: "C:\\Miniconda"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "32"
-      platform: x86
-      STANDALONE: "FALSE"
-      DO_CONDA_BUILD: "FALSE"
-      SPLIT_RUN: "2"
+      SPLIT_RUN: "FALSE"
 
     - PYTHON: "C:\\Miniconda-x64"
       PYTHON_VERSION: "2.7"
@@ -74,41 +30,69 @@ environment:
       STANDALONE: "FALSE"
       CONDA_PY: "27"
       DO_CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "FALSE"
+
+    - PYTHON: "C:\\Miniconda37"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "FALSE"
+      CONDA_PY: "37"
+      DO_CONDA_BUILD: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "32"
+      platform: x86
+      STANDALONE: "FALSE"
+      DO_CONDA_BUILD: "FALSE"
+      SPLIT_RUN: "2"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "FALSE"
+      CONDA_PY: "37"
+      DO_CONDA_BUILD: "TRUE"
+      SPLIT_RUN: "1"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       DO_CONDA_BUILD: "FALSE"
       SPLIT_RUN: "2"
 
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
-      CONDA_PY: "27"
+      CONDA_PY: "37"
       DO_CONDA_BUILD: "FALSE"
       FLOAT_DTYPE_32: "TRUE"
       SPLIT_RUN: "1"
 
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "FALSE"
       DO_CONDA_BUILD: "FALSE"
       FLOAT_DTYPE_32: "TRUE"
       SPLIT_RUN: "2"
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "TRUE"
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7"
+
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "TRUE"
@@ -125,7 +109,7 @@ install:
   - 'conda config --append channels conda-forge'
   # Install the build dependencies of the project via conda
   - 'appveyor-retry conda update -c conda-forge --yes conda'
-  - 'set PYTHON_PACKAGES=nose "sphinx<1.6.3" "sympy>=1.1.1" pyparsing jinja2 ipython setuptools cython "py-cpuinfo=3" "gsl>1.15" future'
+  - 'set PYTHON_PACKAGES=nose "sympy>=1.1.1" pyparsing jinja2 ipython setuptools cython "py-cpuinfo>=3" "gsl>1.15" future'
   # Install the weave package for Python 2
   - 'if "%PYTHON_VERSION:~0,1%" == "2" set PYTHON_PACKAGES=%PYTHON_PACKAGES% weave'
   # weave 0.16 is the only available version for 32 bit Windows, and it is not compatible with numpy 0.16

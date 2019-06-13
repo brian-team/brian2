@@ -5,7 +5,10 @@ object ``prefs``.
 from __future__ import absolute_import
 import re
 import os
-from collections import MutableMapping
+try:
+    from collections.abc import MutableMapping
+except ImportError:  # Python 2
+    from collections import MutableMapping
 from io import BytesIO
 
 from brian2.utils.stringtools import deindent, indent

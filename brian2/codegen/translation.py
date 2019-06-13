@@ -16,7 +16,10 @@ The input information needed:
 '''
 from __future__ import absolute_import
 import re
-import collections
+try:
+    from collections.abc import Mapping
+except ImportError:  # Python 2
+    from collections import Mapping
 
 import numpy as np
 import sympy
@@ -83,7 +86,7 @@ def analyse_identifiers(code, variables, recursive=False):
         it and not previously known. Should correspond to variables in the
         external namespace.
     '''
-    if isinstance(variables, collections.Mapping):
+    if isinstance(variables, Mapping):
         known = set(k for k, v in variables.items()
                     if not isinstance(k, AuxiliaryVariable))
     else:
@@ -98,7 +101,7 @@ def analyse_identifiers(code, variables, recursive=False):
     if len(stmts) == 0:
         allids = set()
     elif recursive:
-        if not isinstance(variables, collections.Mapping):
+        if not isinstance(variables, Mapping):
             raise TypeError('Have to specify a variables dictionary.')
         allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
                                              variables) | set([stmt.var

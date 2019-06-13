@@ -10,6 +10,8 @@ Selected improvements and bug fixes
 * `~brian2.groups.group.Group.run_regularly` operations are now included in the network, even if they are
   created after the parent object was added to the network (:issue:`1009`).
   Contributed by `Vigneswaran Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_.
+* No longer incorrectly classify some equations as having "multiplicative noise" (:issue:`968`).
+  Contributed by `Vigneswaran Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_.
 
 Backward-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

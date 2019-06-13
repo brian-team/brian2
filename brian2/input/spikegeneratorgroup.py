@@ -145,6 +145,20 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         self.variables['period'].set_value(period)
 
+    def _full_state(self):
+        state = super(SpikeGeneratorGroup, self)._full_state()
+        # Store the internal information we use to decide whether to rebuild
+        # the time bins
+        state['_previous_dt'] = self._previous_dt
+        state['_spikes_changed'] = self._spikes_changed
+        return state
+
+    def _restore_from_full_state(self, state):
+        state = state.copy()  # copy to avoid errors for multiple restores
+        self._previous_dt = state.pop('_previous_dt')
+        self._spikes_changed = state.pop('_spikes_changed')
+        super(SpikeGeneratorGroup, self)._restore_from_full_state(state)
+
     def before_run(self, run_namespace):
         # Do some checks on the period vs. dt
         dt = self.dt_[:]  # make a copy

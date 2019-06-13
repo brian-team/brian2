@@ -3,6 +3,7 @@
 Reliability of spike timing
 ---------------------------
 Adapted from Fig. 10D,E of
+
 Brette R and E Guigon (2003). Reliability of Spike Timing Is a General Property
 of Spiking Model Neurons. Neural Computation 15, 279-308.
 
