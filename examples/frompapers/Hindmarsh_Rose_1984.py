@@ -1,6 +1,7 @@
 # encoding: utf8
 """
 Burst generation in the Hinsmarsh-Rose model. Reproduces Figure 6 of:
+
 Hindmarsh, J. L., and R. M. Rose.
 “A Model of Neuronal Bursting Using Three Coupled First Order Differential Equations.”
 Proceedings of the Royal Society of London. Series B, Biological Sciences 221, no. 1222 (1984): 87–102.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 '''
 Reliability of spike timing.
+
 See e.g. Mainen & Sejnowski (1995) for experimental results in vitro.
 '''
 from brian2 import *

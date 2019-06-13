@@ -3,6 +3,7 @@
 Phase locking in leaky integrate-and-fire model
 -----------------------------------------------
 Fig. 2A from:
+
 Brette R (2004). Dynamics of one-dimensional spiking neuron models.
 J Math Biol 48(1): 38-56.
 

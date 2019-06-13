@@ -6,6 +6,7 @@ J Neurosci 31(29):10689-700.
 
 Development of direction maps with pinwheels in the barrel cortex.
 Whiskers are deflected with random moving bars.
+
 N.B.: network construction can be long.
 '''
 from brian2 import *

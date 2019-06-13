@@ -1,5 +1,6 @@
 '''
 Input-Frequency curve of a HH model.
+
 Network: 100 unconnected Hodgin-Huxley neurons with an input current I.
 The input is set differently for each neuron.
 
