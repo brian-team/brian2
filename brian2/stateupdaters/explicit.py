@@ -13,7 +13,7 @@ from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
 from past.builtins import basestring
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
-
+from brian2.equations.codestrings import is_constant_over_dt
 from .base import (StateUpdateMethod, UnsupportedEquationsException,
                    extract_method_options)
 
@@ -581,18 +581,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
         method_options = extract_method_options(method_options, {})
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
-        if eqs.is_stochastic:
-            if self.stochastic is None:
-                raise UnsupportedEquationsException('Cannot integrate '
-                                                    'stochastic equations with '
-                                                    'this state updater.')
-            if (self.stochastic != 'multiplicative' and
-                        eqs.stochastic_type == 'multiplicative'):
-                raise UnsupportedEquationsException('Cannot integrate '
-                                                    'equations with '
-                                                    'multiplicative noise with '
-                                                    'this state updater.')
-
+        if eqs.is_stochastic and self.stochastic is None:
+            raise UnsupportedEquationsException('Cannot integrate '
+                                                'stochastic equations with '
+                                                'this state updater.')
         if self.custom_check:
             self.custom_check(eqs, variables)
         # The final list of statements
@@ -638,7 +630,34 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 
         # Process the "return" line of the stateupdater description
         non_stochastic_expr, stochastic_expr = split_expression(self.output)
-        
+
+        if eqs.is_stochastic and (self.stochastic != 'multiplicative' and
+                                  eqs.stochastic_type == 'multiplicative'):
+            # The equations are marked as having multiplicative noise and the
+            # current state updater does not support such equations. However,
+            # it is possible that the equations do not use multiplicative noise
+            # at all. They could depend on time via a function that is constant
+            # over a single time step (most likely, a TimedArray). In that case
+            # we can integrate the equations
+            dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None
+            for _, expr in substituted_expressions:
+                _, stoch = expr.split_stochastic()
+                if stoch is None:
+                    continue
+                # There could be more than one stochastic variable (e.g. xi_1, xi_2)
+                for _, stoch_expr in stoch.items():
+                    sympy_expr = str_to_sympy(stoch_expr.code)
+                    # The equation really has multiplicative noise, if it depends
+                    # on time (and not only via a function that is constant
+                    # over dt), or if it depends on another variable defined
+                    # via differential equations.
+                    if (not is_constant_over_dt(sympy_expr, variables, dt_value)
+                            or len(stoch_expr.identifiers & eqs.diff_eq_names)):
+                        raise UnsupportedEquationsException('Cannot integrate '
+                                                            'equations with '
+                                                            'multiplicative noise with '
+                                                            'this state updater.')
+
         # Assign a value to all the model variables described by differential
         # equations
         for var, expr in substituted_expressions:
