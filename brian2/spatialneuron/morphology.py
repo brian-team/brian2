@@ -1913,7 +1913,8 @@ class Section(Morphology):
         self._y = np.delete(self._y, i + 1)
         self._z = np.delete(self._z, i + 1)
         self._diameter = np.delete(self._diameter, i + 1) * meter
-        self._length = np.concatenate((self._length[:i], [self._length[i] + self._length[i + 1]], self._length[i + 2:]))
+        self._length = np.concatenate((self._length[:i], [self._length[i] + self._length[i + 1]],
+                                       self._length[i + 2:])) * meter
         self._n = self._n - 1
 
     @property
