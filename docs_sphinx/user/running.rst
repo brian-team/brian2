@@ -187,7 +187,10 @@ In these checks, "non-invalidating" objects (i.e. objects that have
 `BrianObject.invalidates_magic_network` set to ``False``) are ignored, e.g.
 creating new monitors is always possible.
 
-You can also refer :ref:`Scheduling <Scheduling>` for more details about scheduling your simulations.
+Note that if you do not want to run an object for the complete duration of your
+simulation, you can create the object in the beginning of your simulation
+and then set its `~.BrianObject.active` attribute. For details, see the
+:ref:`Scheduling <Scheduling>` section below.
 
 Changing the simulation time step
 ---------------------------------
@@ -281,18 +284,17 @@ act as a container for other objects (e.g. a `NeuronGroup` which contains a
 containing objects.
 
 If you want your simulation object to run only for a particular time
-period of the whole simulation, `~BrianObject.active` attribute can be used. 
-This shall be useful when you want your monitors to be active only for the 
-specific time of long simulation::
+period of the whole simulation, you can use the `~.BrianObject.active`
+attribute. For example, this can be useful when you want a monitor to be
+active only for some time out of a long simulation::
     
-    # Set the network
+    # Set up the network
     # ...
     monitor = SpikeMonitor(...)
-    run(long_time*seconds)
-    monitor.active = True
-    run(required_time*seconds)
     monitor.active = False
-    # ...
+    run(long_time*seconds)  # not recording
+    monitor.active = True
+    run(required_time*seconds)  # recording
     
 To see how the objects in a network are scheduled, you can use the
 `scheduling_summary` function::
