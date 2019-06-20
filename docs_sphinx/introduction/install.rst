@@ -33,8 +33,8 @@ the Anaconda distribution. You should have access to the ``conda`` command in
 a terminal and running ``python`` (e.g. from your IDE) should show a header like
 this, indicating that you are using Anaconda's Python interpreter::
 
-    Python 3.7.3 (default, Mar 27 2019, 22:11:17) 
-    [GCC 7.3.0] :: Anaconda, Inc. on linux
+    Python 2.7.10 |Anaconda 2.3.0 (64-bit)| (default, May 28 2015, 17:02:03)
+    [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] on linux2
     Type "help", "copyright", "credits" or "license" for more information.
 
 Here's some documentation on how to set up some popular IDEs for Anaconda:
@@ -80,7 +80,7 @@ them from anaconda, simply do::
 
 You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
-install it with pip or anaconda, similar to Brian 2 itself (but as of now, it is   # is it available now??
+install it with pip or anaconda, similar to Brian 2 itself (but as of now, it is
 not included in the ``conda-forge`` channel, you therefore have to install it
 from our own ``brian-team`` channel), e.g. with::
 
@@ -174,7 +174,7 @@ or put them in a batch file::
 **Python 3.5 and 3.6**
 
 * Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
-* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or #should update version number?
+* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or 
   ``pip install --upgrade setuptools`` when using pip).
 
 
