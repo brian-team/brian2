@@ -48,7 +48,7 @@ Installing Brian 2
     :ref:`installation_from_source` instead.
 
 You can either install Brian 2 in the Anaconda root environment, or create a
-new environment for Brian 2 (https://docs.anaconda.com/anaconda/navigator/tutorials/manage-environments/).
+new environment for Brian 2 (https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 The latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 

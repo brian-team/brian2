@@ -4,7 +4,9 @@ Documentation
 It is very important to maintain documentation. We use the
 `Sphinx documentation generator <http://www.sphinx-doc.org/en/stable/>`__
 tools. The documentation is all hand written. Sphinx source files are stored in the
-``docs_sphinx`` folder.                                                      
+``docs_sphinx`` folder. The HTML files can be generated via the script
+``dev/tools/docs/build_html_brian2.py`` and end
+up in the ``docs`` folder (currently: ``dev/tools/docs``).
 
 Most of the documentation is stored directly in the Sphinx
 source text files, but reference documentation for important Brian classes and
@@ -45,7 +47,7 @@ is obvious what it does. For example, there is normally no need to document
 ``__str__`` with "Return a string representation.".
 
 For the docstring format, we use the our own sphinx extension (in
-`brian2/sphinxext`) based on                 
+`brian2/sphinxext`) based on
 `numpydoc <https://pypi.python.org/pypi/numpydoc/>`__, allowing to write
 docstrings that are well readable both in sourcecode as well as in the
 rendered HTML. We generally follow the `format used by numpy
