@@ -174,7 +174,7 @@ or put them in a batch file::
 **Python 3.5 and 3.6**
 
 * Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
-* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or 
+* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
   ``pip install --upgrade setuptools`` when using pip).
 
 
