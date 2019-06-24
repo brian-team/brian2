@@ -6,7 +6,7 @@ It is very important to maintain documentation. We use the
 tools. The documentation is all hand written. Sphinx source files are stored in the
 ``docs_sphinx`` folder. The HTML files can be generated via the script
 ``dev/tools/docs/build_html_brian2.py`` and end
-up in the ``docs`` folder (currently: ``dev/tools/docs``).
+up in the ``docs`` folder.
 
 Most of the documentation is stored directly in the Sphinx
 source text files, but reference documentation for important Brian classes and
