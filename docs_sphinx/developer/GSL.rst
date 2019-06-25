@@ -4,7 +4,7 @@ Solving differential equations with the GNU Scientific Library
 Conventionally, Brian generates its own code performing :doc:`../user/numerical_integration`
 according to the chosen algorithm (see the section on :doc:`codegen`).
 Another option is to let the differential equation solvers defined in the
-`GNU Scientific Library (GSL) <https://www.gnu.org/software/gsl/manual/html_node/Ordinary-Differential-Equations.html>`_
+`GNU Scientific Library (GSL) <https://www.gnu.org/software/gsl/doc/html/ode-initval.html>`_
 solve the given equations. In addition to offering a few extra integration methods,
 the GSL integrator comes with the option of having an adaptable timestep. The
 latter functionality can have benefits for the speed with which large simulations

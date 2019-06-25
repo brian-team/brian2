@@ -5,7 +5,7 @@ Installation
     :local:
     :depth: 1
 
-We recommend users to use the `Anaconda distribution <https://www.continuum.io/downloads>`_
+We recommend users to use the `Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
 they don't have to be build from the source code at your machine. Furthermore,
@@ -15,7 +15,7 @@ configuration.
 
 However, Brian 2 can also be installed independent of Anaconda, either with
 other Python distributions (`Enthought Canopy <https://www.enthought.com/products/canopy/>`_,
-`Python(x,y) for Windows <https://code.google.com/p/pythonxy/>`_, ...) or simply
+`Python(x,y) for Windows <http://python-xy.github.io>`_, ...) or simply
 based on Python and ``pip`` (see :ref:`installation_from_source` below).
 
 Installation with Anaconda
@@ -23,7 +23,7 @@ Installation with Anaconda
 
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
-`Download the Anaconda distribution <https://continuum.io/downloads>`_
+`Download the Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_
 for your Operating System. Note that the choice between Python 2.7 and Python
 3.x is not very important at this stage, Anaconda allows you to create a Python
 3 environment from Python 2 Anaconda and vice versa.
@@ -36,11 +36,9 @@ this, indicating that you are using Anaconda's Python interpreter::
     Python 2.7.10 |Anaconda 2.3.0 (64-bit)| (default, May 28 2015, 17:02:03)
     [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] on linux2
     Type "help", "copyright", "credits" or "license" for more information.
-    Anaconda is brought to you by Continuum Analytics.
-    Please check out: http://continuum.io/thanks and https://binstar.org
 
 Here's some documentation on how to set up some popular IDEs for Anaconda:
-https://docs.continuum.io/anaconda/ide_integration
+https://docs.anaconda.com/anaconda/user-guide/tasks/integration
 
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
@@ -50,8 +48,8 @@ Installing Brian 2
     :ref:`installation_from_source` instead.
 
 You can either install Brian 2 in the Anaconda root environment, or create a
-new environment for Brian 2 (http://conda.pydata.org/docs/using/envs.html). The
-latter has the advantage that you can update (or not update) the dependencies
+new environment for Brian 2 (https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
+The latter has the advantage that you can update (or not update) the dependencies
 of Brian 2 independently from the rest of your system.
 
 Brian 2 is not part of the main Anaconda distribution, but built using the

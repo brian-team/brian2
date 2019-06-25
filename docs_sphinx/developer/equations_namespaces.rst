@@ -6,7 +6,7 @@ Equation parsing
 Parsing is done via `pyparsing`_, for now find the grammar at the top of the
 `brian2.equations.equations` file.
 
-.. _pyparsing: http://pyparsing.wikispaces.com/
+.. _pyparsing: https://pythonhosted.org/pyparsing/pyparsing-module.html
 
 Variables
 ----------
