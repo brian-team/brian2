@@ -1092,6 +1092,12 @@ class Morphology(object):
             Morphology._replace_three_point_soma(child,
                                                  all_compartments)
 
+    def index_structure(self):
+        index_list = [self.indices[:]]
+        for c in self.children:
+            index_list += c.index_structure()
+        return index_list
+
     def condense(self, lam=0.1):
         '''
         Condense the morphology section by section, controlled by parameter lambda
@@ -1102,14 +1108,21 @@ class Morphology(object):
         :param lam:
         :return:
         '''
+        original_compartment_indices = self.index_structure()
 
         if type(self) == Soma:
+            local_index_maps = [np.array([[0], [0]])]
             for c in self._children:
-                c.condense_section(lam)
+                local_index_maps += c.condense_section(lam)
         else:
-            self.condense_section(lam)
-
-        return self
+            local_index_maps = self.condense_section(lam)
+        new_compartment_indices = self.index_structure()
+        final_index_list = np.empty([2, 0])
+        for s in range(self.total_sections):
+            section_index_list = np.vstack((original_compartment_indices[s],
+                                            new_compartment_indices[s][local_index_maps[s][1, :]]))
+            final_index_list = np.concatenate((final_index_list, section_index_list),axis=1)
+        return final_index_list.astype(int)
 
     @staticmethod
     def from_points(points, spherical_soma=True):
@@ -1867,6 +1880,7 @@ class Section(Morphology):
                        length=length, type=self.type)
 
     def condense_section(self, lam):
+        section_index_map = np.tile(np.arange(self.n), (2, 1))
         for lamcrit in np.array([0.2, 0.4, 0.6, 0.8, 1.0]) * lam:
             run_condensation = True
             k = 0
@@ -1876,17 +1890,17 @@ class Section(Morphology):
                 if n == 1:
                     break
                 for i in range(n - 1):
-                    # print(np.sqrt(self._area[i] / (self._r_length_2[i] + self._r_length_1[i + 1]) / meter))
                     if (np.sqrt(self._area[i] / (self._r_length_2[i] + self._r_length_1[i + 1]) / meter) < lamcrit) \
                             or (np.sqrt(self._area[i + 1] / (self._r_length_2[i] + self._r_length_1[i + 1]) / meter) < lamcrit):
-                        # print('condensing \n', self.n)
                         self.condensation_update(i)
-                        # print('condensed \n', self.n)
+                        section_index_map[1, section_index_map[1, :] > i] -= 1
                         break
                 if n == self.n:
                     run_condensation = False
+        index_maps = [section_index_map]
         for c in self._children:
-            c.condense_section(lam)
+            index_maps += c.condense_section(lam)
+        return index_maps
 
     def condensation_update(self, i):
         '''
