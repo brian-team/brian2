@@ -291,6 +291,41 @@ the indices.
 
     |
 
+Synaptic connection/weight matrices
+-----------------------------------
+
+Brian does not directly support specifying synapses by using a
+matrix, you always have to use a "sparse" format, where each
+connection is defined by its source and target indices. However,
+you can easily convert between the two formats. Assuming you have
+a connection matrix :math:`C` of size :math:`N \times M`, where
+:math:`N` is the number of presynaptic cells, and :math:`M` the
+number of postsynaptic cells, with each entry being 1 for a
+connection, and 0 otherwise. You can convert this matrix to arrays of
+source and target indices, which you can then provide to Brian's
+`~.Synapses.connect` function::
+
+    C = ...  # The connection matrix as a numpy array of 0's and 1's
+    sources, targets = C.nonzero()
+    synapses = Synapses(...)
+    synapses.connect(i=sources, j=targets)
+
+Similarly, you can transform the flat array of values stored in a
+synapse into a matrix form. For example, to get a matrix with all
+the weight values ``w``, with ``NaN`` values where no synapse
+exists::
+
+    synapses = Synapses(source_group, target_group,
+                        '''...
+                           w : 1  # synaptic weight''', ...)
+    # ...
+    # Run e.g. a simulation with plasticity that changes the weights
+    run(...)
+    # Create a matrix to store the weights and fill it with NaN
+    W = np.full((len(source_group), len(target_group)), np.nan)
+    # Insert the values from the Synapses object
+    W[synapses.i[:], synapses.j[:]] = synapses.w[:]
+
 Creating synapses with the generator syntax
 -------------------------------------------
 
@@ -414,7 +449,7 @@ Multiple pathways
 
 It is possible to have multiple pathways with different update codes from the same presynaptic neuron group.
 This may be interesting in cases when different operations must be applied at different times for the same
-presynaptic spike. To do this, specify a dictionary of pathway names and codes::
+presynaptic spike, e.g. for a STDP rule that shifted in time. To do this, specify a dictionary of pathway names and codes::
 
     on_pre={'pre_transmission': 'ge+=w',
             'pre_plasticity': '''w=clip(w+Apost,0,inf)
@@ -429,8 +464,8 @@ of the source and target groups in the ``pre_plasticity`` pathway::
 	S.pre_plasticity.delay[0,0] = 3*ms
 
 As mentioned above, ``pre`` pathways are generally executed before ``post``
-pathways. The order of execution of several ``pre`` (or ``post``) pathways is
-however arbitrary, and simply based on the alphabetical ordering of their names
+pathways. The order of execution of several ``pre`` (or ``post``) pathways with the
+same delay is however arbitrary, and simply based on the alphabetical ordering of their names
 (i.e. ``pre_plasticity`` will be executed before ``pre_transmission``). To
 explicitly specify the order, set the ``order`` attribute of the pathway, e.g.::
 
@@ -438,6 +473,15 @@ explicitly specify the order, set the ``order`` attribute of the pathway, e.g.::
 
 will make sure that the ``pre_transmission`` code is executed before the
 ``pre_plasticity`` code in each time step.
+
+Multiple pathways can also be useful for abstract models of synaptic currents, e.g.
+modelling them as rectangular currents::
+
+    synapses = Synapses(...,
+                        on_pre={'up': 'I_syn_post += 1*nA',
+                                'down': 'I_syn_post -= 1*nA'},
+                        delays={'up': 0*ms, 'down': 5*ms}  # 5ms-wide rectangular current
+                        )
 
 Numerical integration
 ---------------------
