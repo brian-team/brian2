@@ -101,23 +101,6 @@ You might want to add the ``--user`` flag, to install Brian 2 for the local user
 only, which means that you don't need administrator privileges for the
 installation.
 
-If you have an older version of pip, first update pip itself::
-
-    # On Linux/MacOsX:
-    pip install -U pip
-
-    # On Windows
-    python -m pip install -U pip
-
-If you don't have ``pip`` but you have the ``easy_install`` utility, you can use
-it to install ``pip``::
-
-    easy_install pip
-
-If you have neither ``pip`` nor ``easy_install``, use the approach described
-here to install ``pip``: https://pip.pypa.io/en/latest/installing/
-
-
 .. _installation_cpp:
 
 Requirements for C++ code generation
