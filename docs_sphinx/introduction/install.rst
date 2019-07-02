@@ -101,6 +101,11 @@ You might want to add the ``--user`` flag, to install Brian 2 for the local user
 only, which means that you don't need administrator privileges for the
 installation.
 
+Note that when installing ``brian2`` from source with pip, support for using
+:ref:`numerical integration with the GSL <gsl_integration>` requires a working
+installation of the GSL development libraries (e.g. the package ``libgsl-dev``
+on Debian/Ubuntu Linux).
+
 .. _installation_cpp:
 
 Requirements for C++ code generation
