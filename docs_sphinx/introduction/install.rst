@@ -117,12 +117,6 @@ it to install ``pip``::
 If you have neither ``pip`` nor ``easy_install``, use the approach described
 here to install ``pip``: https://pip.pypa.io/en/latest/installing/
 
-Alternatively, you can download the source package directly and uncompress it.
-You can then either run ``python setup.py install`` or
-``python setup.py develop`` to install it, or simply add
-the source directory to your ``PYTHONPATH`` (this will only work for Python
-2.x).
-
 
 .. _installation_cpp:
 
@@ -187,34 +181,13 @@ installation to make sure everything is working as expected.
 Development version
 -------------------
 
-To run the latest development code, you can install from brian-team's "dev"
-channel with Anaconda. Note that if you previously added the ``brian-team``
-channel to your list of channels, you have to first remove it::
+To run the latest development code, you can directly clone the git repository at github
+(https://github.com/brian-team/brian2) and then run ``pip install -e .``, to install
+Brian in "development mode". With this installation, updating the git repository is in
+general enough to keep up with changes in the code, i.e. it is not necessary to install
+it again.
 
-    conda config --remove channels brian-team -f
-
-Also uninstall any version of Brian 2 that you might have previously installed::
-
-    conda remove brian2
-
-Finally, install the ``brian2`` package from the development channel::
-
-    conda install -c brian-team/channel/dev brian2
-
-If this fails with an error message about the ``py-cpuinfo`` package (a
-dependency that we provide in the main brian-team channel), install it
-from the main channel::
-
-    conda install -c brian-team py-cpuinfo
-
-Then repeat the command to install Brian 2 from the development channel.
-
-You can also directly clone the git repository at github
-(https://github.com/brian-team/brian2) and then run ``python setup.py install``
-or ``python setup.py develop`` or simply add the source directory to your
-``PYTHONPATH`` (this will only work for Python 2.x).
-
-Finally, another option is to use ``pip`` to directly install from github::
+Another option is to use ``pip`` to directly install from github::
 
     pip install https://github.com/brian-team/brian2/archive/master.zip
 
