@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import shutil
 import glob
@@ -27,7 +29,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     output_ipynb_fname = os.path.join(target_dir, fname)
     output_rst_fname = os.path.join(target_dir, basename + '.rst')
 
-    print 'Running', fname
+    print('Running', fname)
     with open(os.path.join(src_dir, fname), 'r') as f:
         notebook = reads(f.read())
 
@@ -41,7 +43,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     notebook, _ = preprocessor.preprocess(notebook,
                                           {'metadata': {'path': src_dir}})
 
-    print 'Saving notebook and converting to RST'
+    print('Saving notebook and converting to RST')
     exporter = NotebookExporter()
     output, _ = exporter.from_notebook_node(notebook)
     with codecs.open(output_ipynb_fname, 'w', encoding='utf-8') as f:
@@ -74,11 +76,11 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     with codecs.open(output_rst_fname, 'w', encoding='utf-8') as f:
         f.write(output)
 
-    for image_name, image_data in resources['outputs'].iteritems():
+    for image_name, image_data in resources['outputs'].items():
         with open(os.path.join(target_dir, image_name), 'wb') as f:
             f.write(image_data)
 
-print 'Generating index.rst'
+print('Generating index.rst')
 
 text = '''
 ..

@@ -166,5 +166,102 @@ Getting all data
 ----------------
 
 Note that all monitors are implement as "groups", so you can get all the stored
-values in a monitor with the `Group.get_states` method, which can be useful to
-dump all recorded data to disk, for example.
+values in a monitor with the `~.VariableOwner.get_states` method, which can be useful to
+dump all recorded data to disk, for example::
+
+    import pickle
+    group = NeuronGroup(...)
+    state_mon = StateMonitor(group, 'v', record=...)
+    run(...)
+    data = state_mon.get_states(['t', 'v'])
+    with open('state_mon.pickle', 'w') as f:
+        pickle.dump(data, f)
+
+
+Recording values for a subset of the run
+----------------------------------------
+
+Monitors can be created and deleted between runs, e.g. to ignore the first second
+of your simulation in your recordings you can do::
+
+    # Set up network without monitor
+    run(1*second)
+    state_mon = StateMonitor(....)
+    run(...)  # Continue run and record with the StateMonitor
+
+Alternatively, you can set the monitor's `~.BrianObject.active` attribute as
+explained in the :ref:`scheduling` section.
+
+Freeing up memory in long recordings
+----------------------------------------
+
+Creating and deleting monitors can also be useful to free memory during a
+long recording. The following will do a simulation run, dump the monitor
+data to disk, delete the monitor and finally continue the run with a new
+monitor::
+
+    import pickle
+    # Set up network
+    state_mon = StateMonitor(...)
+    run(...)  # a long run
+    data = state_mon.get_states(...)
+    with open('first_part.data', 'w') as f:
+        pickle.dump(data, f)
+    del state_mon
+    del data
+    state_mon = StateMonitor(...)
+    run(...)  # another long run
+
+Note that this technique cannot be applied in :ref:`standalone mode <cpp_standalone>`.
+
+Recording random subsets of neurons
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In large networks, you might only be interested in the activity of a
+random subset of neurons. While you can specify a ``record`` argument
+for a `StateMonitor` that allows you to select a subset of neurons, this
+is not possible for `SpikeMonitor`/`EventMonitor` and `PopulationRateMonitor`.
+However, Brian allows you to record with these monitors from a subset of neurons
+by using a :ref:`subgroup <subgroups>`::
+
+    group = NeuronGroup(1000, ...)
+    spike_mon = SpikeMonitor(group[:100])  # only record first 100 neurons
+
+It might seem like a restriction that such a subgroup has to be contiguous, but
+the order of neurons in a group does not have any meaning as such; in a randomly
+ordered group of neurons, any contiguous group of neurons can be considered a
+random subset. If some aspects of your model *do* depend on the position of the
+neuron in a group (e.g. a ring model, where neurons are connected based on their
+distance in the ring, or a model where initial values or parameters span a
+range of values in a regular fashion), then this requires an extra step: instead
+of using the order of neurons in the group directly, or depending on the neuron
+index ``i``, create a new, shuffled, index variable as part of the model
+definition and then depend on this index instead::
+
+    group = NeuronGroup(10000, '''....
+                                  index : integer (constant)''')
+    indices = group.i[:]
+    np.random.shuffle(indices)
+    group.index = indices
+    # Then use 'index' in string expressions or use it as an index array
+    # for initial values/parameters defined as numpy arrays
+
+If this solution is not feasible for some reason, there is another approach that
+works for a `SpikeMonitor`/`EventMonitor`. You can add an additional flag to
+each neuron, stating whether it should be recorded or not. Then, you define a
+new :doc:`custom event </advanced/custom_events>` that is identical to the event you are
+interested in, but additionally requires the flag to be set. E.g. to only record
+the spikes of neurons with the ``to_record`` attribute set::
+
+    group = NeuronGroup(..., '''...
+                                to_record : boolean (constant)''',
+                        threshold='...', reset='...',
+                        events={'recorded_spike': '... and to_record'})
+    group.to_record = ...
+    mon_events = EventMonitor(group, 'recorded_spike')
+
+Note that this solution will evaluate the threshold condition for each neuron
+twice, and is therefore slightly less efficient. There's one additional caveat:
+you'll have to manually include ``and not_refractory`` in your ``events``
+definition if your neuron uses refractoriness. This is done automatically
+for the ``threshold`` condition, but not for any user-defined events.

@@ -153,6 +153,8 @@ You can also set the value only if a condition holds, for example:
     >>> G.v
     <neurongroup.v: array([-70., -70., -70., -70., -70., -60., -60., -60., -60., -60.]) * mvolt>
 
+.. _subgroups:
+
 Subgroups
 ---------
 It is often useful to refer to a subset of neurons, this can be achieved using

@@ -76,7 +76,7 @@ Brian. These include: matplotlib_ (for plotting), nose_ (for running the test
 suite), ipython_ and jupyter_-notebook (for an interactive console). To install
 them from anaconda, simply do::
 
-    conda install matplotlib nose ipython jupyter
+    conda install matplotlib nose ipython notebook
 
 You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
@@ -101,28 +101,10 @@ You might want to add the ``--user`` flag, to install Brian 2 for the local user
 only, which means that you don't need administrator privileges for the
 installation.
 
-If you have an older version of pip, first update pip itself::
-
-    # On Linux/MacOsX:
-    pip install -U pip
-
-    # On Windows
-    python -m pip install -U pip
-
-If you don't have ``pip`` but you have the ``easy_install`` utility, you can use
-it to install ``pip``::
-
-    easy_install pip
-
-If you have neither ``pip`` nor ``easy_install``, use the approach described
-here to install ``pip``: https://pip.pypa.io/en/latest/installing/
-
-Alternatively, you can download the source package directly and uncompress it.
-You can then either run ``python setup.py install`` or
-``python setup.py develop`` to install it, or simply add
-the source directory to your ``PYTHONPATH`` (this will only work for Python
-2.x).
-
+Note that when installing ``brian2`` from source with pip, support for using
+:ref:`numerical integration with the GSL <gsl_integration>` requires a working
+installation of the GSL development libraries (e.g. the package ``libgsl-dev``
+on Debian/Ubuntu Linux).
 
 .. _installation_cpp:
 
@@ -138,9 +120,11 @@ using ``pip install cython`` or ``pip install weave``.
 
 Linux and OS X
 ~~~~~~~~~~~~~~
-On Linux and Mac OS X, you will most likely already have a working C++ compiler
-installed (try calling ``g++ --version`` in a terminal). If not, use your
-distribution's package manager to install a ``g++`` package.
+On Linux and Mac OS X, the conda package will automatically install a C++ compiler.
+But even if you install Brian from source, you will most likely already have a
+working C++ compiler installed on your system (try calling ``g++ --version``
+in a terminal). If not, use your distribution's package manager to install a
+``g++`` package.
 
 .. _compiler_setup_windows:
 
@@ -150,33 +134,13 @@ On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to wor
 depend on the Python version you are using (also see the
 `notes in the Python wiki <https://wiki.python.org/moin/WindowsCompilers#Compilers_Installation_and_configuration>`_):
 
-**Python 2.7**
+* **Python >= 3.5**
+    * Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
+    * Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
+        ``pip install --upgrade setuptools`` when using pip).
 
-* Download and install the `Microsoft Visual C++ Compiler for Python 2.7  <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
-
-This should be all you need.
-
-**Python 3.4**
-
-* Follow the `instructions to install Microsoft Visual C++ 10.0 <https://wiki.python.org/moin/WindowsCompilers#Microsoft_Visual_C.2B-.2B-_10.0_standalone:_Windows_SDK_7.1_.28x86.2C_x64.2C_ia64.29>`_
-  in the Python wiki.
-
-For 64 Bit Windows with Python 3.4, you have to additionally set up your
-environment correctly every time you run your Brian script (this is why we
-recommend against using this combination on Windows). To do this, run the
-following commands (assuming the default installation path) at the CMD prompt,
-or put them in a batch file::
-
-    setlocal EnableDelayedExpansion
-    CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 /release
-    set DISTUTILS_USE_SDK=1
-
-**Python 3.5 and 3.6**
-
-* Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
-* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
-  ``pip install --upgrade setuptools`` when using pip).
-
+* **Python 2.7**
+    * Download and install the `Microsoft Visual C++ Compiler for Python 2.7  <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
 
 For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio -- in this
 case, the Python version does not matter.
@@ -187,34 +151,13 @@ installation to make sure everything is working as expected.
 Development version
 -------------------
 
-To run the latest development code, you can install from brian-team's "dev"
-channel with Anaconda. Note that if you previously added the ``brian-team``
-channel to your list of channels, you have to first remove it::
+To run the latest development code, you can directly clone the git repository at github
+(https://github.com/brian-team/brian2) and then run ``pip install -e .``, to install
+Brian in "development mode". With this installation, updating the git repository is in
+general enough to keep up with changes in the code, i.e. it is not necessary to install
+it again.
 
-    conda config --remove channels brian-team -f
-
-Also uninstall any version of Brian 2 that you might have previously installed::
-
-    conda remove brian2
-
-Finally, install the ``brian2`` package from the development channel::
-
-    conda install -c brian-team/channel/dev brian2
-
-If this fails with an error message about the ``py-cpuinfo`` package (a
-dependency that we provide in the main brian-team channel), install it
-from the main channel::
-
-    conda install -c brian-team py-cpuinfo
-
-Then repeat the command to install Brian 2 from the development channel.
-
-You can also directly clone the git repository at github
-(https://github.com/brian-team/brian2) and then run ``python setup.py install``
-or ``python setup.py develop`` or simply add the source directory to your
-``PYTHONPATH`` (this will only work for Python 2.x).
-
-Finally, another option is to use ``pip`` to directly install from github::
+Another option is to use ``pip`` to directly install from github::
 
     pip install https://github.com/brian-team/brian2/archive/master.zip
 

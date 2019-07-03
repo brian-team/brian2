@@ -83,6 +83,8 @@ objects will use ``'exact'``, ``'exponential_euler'``, ``'rk2'`` or ``'heun'``.
 You can also define your own numerical integrators, see
 :doc:`../advanced/state_update` for details.
 
+.. _gsl_integration:
+
 GSL stateupdaters
 -----------------
 The stateupdaters preceded with the gsl tag use ODE solvers defined in the GNU
