@@ -22,9 +22,11 @@ at :doc:`a simple example </examples/CUBA>`, or run our
 
 Once you have a feel for what is involved in using Brian, we recommend you
 start by following the
-:doc:`installation instructions </introduction/install>`, then going
-through the :doc:`tutorials </resources/tutorials/index>`, and finally
-reading the :doc:`User Guide </user/index>`.
+:doc:`installation instructions </introduction/install>`, and in case you are
+new to the Python programming language, having a look at
+:doc:`introduction/scripts`. Then, go through the
+:doc:`tutorials </resources/tutorials/index>`, and finally
+read the :doc:`User Guide </user/index>`.
 
 While reading the documentation, you will see the names of certain functions
 and classes are highlighted links (e.g. `PoissonGroup`). Clicking on these
