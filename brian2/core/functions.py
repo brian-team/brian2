@@ -110,6 +110,15 @@ class Function(object):
         always returns the same output when called with the same arguments.
         This is true for mathematical functions but not true for ``rand()``, for
         example. Defaults to ``True``.
+    auto_vectorise : bool, optional
+        Whether the implementations of this function should get an additional
+        argument (not specified in abstract code) that can be used to determine
+        the number of values that should be returned (for the numpy target), or
+        an index potentially useful for generating deterministic values
+        independent of the order of vectorisation (for all other targets). The
+        main use case are random number functions, e.g. equations refer to
+        ``rand()``, but the generate code will actually call
+        ``rand(_vectorisation_idx)``. Defaults to ``False``.
 
     Notes
     -----
@@ -121,7 +130,7 @@ class Function(object):
     def __init__(self, pyfunc, sympy_func=None,
                  arg_units=None, return_unit=None,
                  arg_types=None, return_type=None,
-                 stateless=True):
+                 stateless=True, auto_vectorise=False):
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         self._arg_units = arg_units
@@ -133,6 +142,7 @@ class Function(object):
         self._arg_types = arg_types
         self._return_type = return_type
         self.stateless = stateless
+        self.auto_vectorise = auto_vectorise
         if self._arg_units is None:
             if not hasattr(pyfunc, '_arg_units'):
                 raise ValueError(('The Python function "%s" does not specify '
@@ -636,8 +646,8 @@ DEFAULT_FUNCTIONS = {
     'sign': Function(pyfunc=np.sign, sympy_func=sympy.sign, return_type='highest',
                      arg_units=[None], return_unit=1),
     # functions that need special treatment
-    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False),
-    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False),
+    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
+    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
     'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
                      return_type='highest',
                      return_unit=lambda u1, u2, u3: u1,),

@@ -66,7 +66,7 @@ class CythonCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return CythonNodeRenderer().render_expr(expr, self.variables).strip()
+        return CythonNodeRenderer(auto_vectorise=self.auto_vectorise).render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,

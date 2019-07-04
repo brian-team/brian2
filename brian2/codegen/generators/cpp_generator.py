@@ -181,7 +181,7 @@ class CPPCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return CPPNodeRenderer().render_expr(expr).strip()
+        return CPPNodeRenderer(auto_vectorise=self.auto_vectorise).render_expr(expr).strip()
 
     def translate_statement(self, statement):
         var, op, expr, comment = (statement.var, statement.op,

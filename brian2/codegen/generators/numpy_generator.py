@@ -34,7 +34,7 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
+        return NumpyNodeRenderer(auto_vectorise=self.auto_vectorise).render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
@@ -79,8 +79,7 @@ class NumpyCodeGenerator(CodeGenerator):
         used_variables.update(used)
         if statement.var in used_variables:
             raise VectorisationError()
-
-        expr = NumpyNodeRenderer().render_expr(statement.expr)
+        expr = NumpyNodeRenderer(auto_vectorise=self.auto_vectorise).render_expr(statement.expr)
 
         if statement.op == ':=' or indices[statement.var] == '_idx' or not statement.inplace:
             if statement.op == ':=':

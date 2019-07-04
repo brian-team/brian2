@@ -142,7 +142,8 @@ def restore_randn():
                 ''')
 @check_units(N=Unit(1), result=Unit(1))
 def fake_randn(N):
-    return 0.5*ones(N)
+    return 0.5*np.ones_like(N)
+fake_randn.auto_vectorise = True
 
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_multiple_noise_variables_deterministic_noise():
