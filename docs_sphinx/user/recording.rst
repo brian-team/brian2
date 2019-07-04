@@ -193,7 +193,7 @@ Alternatively, you can set the monitor's `~.BrianObject.active` attribute as
 explained in the :ref:`scheduling` section.
 
 Freeing up memory in long recordings
-----------------------------------------
+------------------------------------
 
 Creating and deleting monitors can also be useful to free memory during a
 long recording. The following will do a simulation run, dump the monitor
@@ -215,7 +215,7 @@ monitor::
 Note that this technique cannot be applied in :ref:`standalone mode <cpp_standalone>`.
 
 Recording random subsets of neurons
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
 In large networks, you might only be interested in the activity of a
 random subset of neurons. While you can specify a ``record`` argument
