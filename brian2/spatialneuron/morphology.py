@@ -1923,9 +1923,10 @@ class Section(Morphology):
             (self._volume[:i], [self._volume[i] + self._volume[i + 1]], self._volume[i + 2:])) * meter ** 3
         self._r_length_1 = np.concatenate((self._r_length_1[:i], [new_r_length_1], self._r_length_1[i + 2:])) * meter
         self._r_length_2 = np.concatenate((self._r_length_2[:i], [new_r_length_2], self._r_length_2[i + 2:])) * meter
-        self._x = np.delete(self._x, i + 1)
-        self._y = np.delete(self._y, i + 1)
-        self._z = np.delete(self._z, i + 1)
+        if self._x is not None:
+            self._x = np.delete(self._x, i + 1)
+            self._y = np.delete(self._y, i + 1)
+            self._z = np.delete(self._z, i + 1)
         self._diameter = np.delete(self._diameter, i + 1) * meter
         self._length = np.concatenate((self._length[:i], [self._length[i] + self._length[i + 1]],
                                        self._length[i + 2:])) * meter
@@ -2231,6 +2232,14 @@ class Cylinder(Section):
                              (self.end_z - self.start_z) ** 2)
             self._length = length
 
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
+        d_mid = 0.5 * (d_1 + d_2)
+        self._area = np.pi / 2 * (d_1 + d_2) * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length ** 2)
+        self._volume = np.pi * self._length * (d_1 ** 2 + d_1 * d_2 + d_2 ** 2) / 12
+        self._r_length_1 = np.pi / 2 * (d_1 * d_mid) / self._length
+        self._r_length_2 = np.pi / 2 * (d_mid * d_2) / self._length
+
     def __repr__(self):
         s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
                                                diam=self.diameter[0])
@@ -2266,7 +2275,8 @@ class Cylinder(Section):
         diameter. Note that this surface area does not contain the area of
         the two disks at the two sides of the cylinder.
         '''
-        return np.pi * self._diameter * self.length
+        # return np.pi * self._diameter * self.length
+        return self._area
 
     @property
     def start_diameter(self):
@@ -2298,7 +2308,8 @@ class Cylinder(Section):
         where :math:`l` is the length of the compartment, and :math:`d` is its
         diameter.
         '''
-        return np.pi * (self._diameter/2)**2 * self.length
+        # return np.pi * (self._diameter/2)**2 * self.length
+        return self._volume
 
     @property
     def r_length_1(self):
@@ -2307,7 +2318,8 @@ class Cylinder(Section):
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         '''
-        return np.pi/2 * (self._diameter**2)/self.length
+        # return np.pi/2 * (self._diameter**2)/self.length
+        return self._r_length_1
 
     @property
     def r_length_2(self):
@@ -2316,4 +2328,5 @@ class Cylinder(Section):
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         '''
-        return np.pi/2 * (self._diameter**2)/self.length
+        # return np.pi/2 * (self._diameter**2)/self.length
+        return self._r_length_2
