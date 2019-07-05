@@ -1100,13 +1100,25 @@ class Morphology(object):
 
     def condense(self, lam=0.1):
         '''
-        Condense the morphology section by section, controlled by parameter lambda
-        Has to be a recursive process, probably call a condense function in each section?
-        problems to solve:
-        - get mapper between old/new compartment indices
-        - create new morphology or change old one?
-        :param lam:
-        :return:
+        Condense the morphology section by section, controlled by parameter lam. The
+        recursive condensation process is taken care of by the function
+        `Section.condense_section`.
+
+        Once the condensation is done a map between old and new compartment indices
+        is assembled that can be used to set variables of a spatial neuron compartment-
+        wise without knowing the new indices.
+
+        Parameters
+        ----------
+        lam : float
+            Parameter defining the degree of condensation. Small lam leaves
+            more compartments, larger lam results in stronger condensation.
+
+        Returns
+        -------
+        global_index_map : numpy.array
+            A 2 x self.n array containing the indices of all original compartments
+            (0 to n) and the ones of the corresponding new compartments.
         '''
         original_compartment_indices = self.index_structure()
 
@@ -1117,12 +1129,12 @@ class Morphology(object):
         else:
             local_index_maps = self.condense_section(lam)
         new_compartment_indices = self.index_structure()
-        final_index_list = np.empty([2, 0])
+        global_index_map = np.empty([2, 0])
         for s in range(self.total_sections):
-            section_index_list = np.vstack((original_compartment_indices[s],
-                                            new_compartment_indices[s][local_index_maps[s][1, :]]))
-            final_index_list = np.concatenate((final_index_list, section_index_list),axis=1)
-        return final_index_list.astype(int)
+            section_index_map = np.vstack((original_compartment_indices[s],
+                                           new_compartment_indices[s][local_index_maps[s][1, :]]))
+            global_index_map = np.concatenate((global_index_map, section_index_map),axis=1)
+        return global_index_map.astype(int)
 
     @staticmethod
     def from_points(points, spherical_soma=True):
@@ -1880,6 +1892,23 @@ class Section(Morphology):
                        length=length, type=self.type)
 
     def condense_section(self, lam):
+        '''
+        Function to recursively condense compartments section by section.
+        It Condenses compartments in the current section and continues with
+        all child sections.
+
+        Parameters
+        ----------
+        lam : float
+            Parameter defining the degree of condensation. Small lam leaves
+            more compartments, larger lam results in stronger condensation.
+        Returns
+        -------
+        index_maps : list
+            List that maps original local compartment indices (0, 1, ...)
+            to the new condensed compartments. It is used in the function
+            `condense` to assemble a global map of compartment indices.
+        '''
         section_index_map = np.tile(np.arange(self.n), (2, 1))
         for lamcrit in np.array([0.2, 0.4, 0.6, 0.8, 1.0]) * lam:
             run_condensation = True
@@ -1904,15 +1933,14 @@ class Section(Morphology):
 
     def condensation_update(self, i):
         '''
-        condenses compartment i+1 into compartment i, it's not important which one is the origin and which the target
-        :param i:
-        :return:
+        Condense two compartments by merging compartment i and i+1 and
+        calculate parameters of the new compartment.
+
+        Parameters
+        ----------
+        i : int
+            Index of the compartment within the section
         '''
-        #
-        # attention: need to catch cases where i-1,i+2 do not exist!
-        # calculate new r_length_1: distribute internal resistance between
-        # proportionally to r_m_2/(r_m_1 + r_m_2)
-        # check formulas!
         new_r_length_1 = 1 / (1 / self._r_length_1[i] + (1 / self._r_length_2[i] + 1 / self._r_length_1[i + 1])
                               * self._area[i] / (self._area[i] + self._area[i + 1]))
         new_r_length_2 = 1 / (1 / self._r_length_2[i + 1] + (1 / self._r_length_2[i] + 1 / self._r_length_1[i + 1])
