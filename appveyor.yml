@@ -133,6 +133,7 @@ test_script:
 
 after_test:
   - 'IF "%DO_CONDA_BUILD%" == "TRUE" (
+          conda config --set restore_free_channel true &&
           appveyor-retry pip install wheel &&
           cd %SRC_DIR% &&
           %CMD_IN_ENV% python setup.py bdist_wheel &&

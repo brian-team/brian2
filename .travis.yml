@@ -102,7 +102,7 @@ before_install:
 # When we are installing the 32 Bit conda on a 64 Bit system, the miniconda
 # installer will ask for a "yes" despite the -b flag, so we pipe in a yes
 - yes | ./miniconda.sh -b -p ~/miniconda
-- export PATH=~/miniconda/bin:$PATH
+- source ~/miniconda/etc/profile.d/conda.sh
 
 # command to install dependencies
 install:
@@ -127,13 +127,14 @@ install:
         PYTHON_PACKAGES="$PYTHON_PACKAGES weave scipy";
       fi;
       PYTHON_PACKAGES="$PYTHON_PACKAGES bsddb";
+      conda config --set restore_free_channel true;
     else
       PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
     fi
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES coveralls"; fi
   # Install packages into a new environment
   - travis_retry conda create --quiet --yes -n travis_conda $PYTHON_PACKAGES
-  - source activate travis_conda
+  - conda activate travis_conda
   - python setup.py install --fail-on-error --single-version-externally-managed --record=record.txt
   - if [[ $DOCS_ONLY == 'yes' ]]; then
       python setup.py sdist;
@@ -143,9 +144,9 @@ install:
 script:
 - export MACOSX_DEPLOYMENT_TARGET=10.9  # Prevents build errors linked when using isinf
 - if [[ $DO_CONDA_BUILD == 'yes' ]]; then
-    source deactivate;
+    conda deactivate;
     conda build --quiet -c conda-forge dev/conda-recipe;
-    source activate travis_conda;
+    conda activate travis_conda;
   fi
 - if [[ $DOCS_ONLY == 'yes' ]]; then
     cd dist;
