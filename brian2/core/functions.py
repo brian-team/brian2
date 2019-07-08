@@ -648,6 +648,8 @@ DEFAULT_FUNCTIONS = {
     # functions that need special treatment
     'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
     'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
+    'poisson': Function(pyfunc=np.random.poisson, arg_units=[1], return_unit=1, return_type='integer',
+                        stateless=False, auto_vectorise=True),
     'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
                      return_type='highest',
                      return_unit=lambda u1, u2, u3: u1,),

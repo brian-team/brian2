@@ -896,6 +896,27 @@ def test_binomial():
     assert np.var(mon[0].y) > 0
 
 
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_devices)
+def test_poisson():
+    # Just check that it does not raise an error and that it produces some
+    # values
+    G = NeuronGroup(5, '''l : 1
+                          x : integer
+                          y : integer
+                          z : integer
+                          ''')
+    G.l = [0, 1, 5, 15, 25]
+    G.run_regularly('''x = poisson(l)
+                       y = poisson(5)
+                       z = poisson(0)''')
+    mon = StateMonitor(G, ['x', 'y', 'z'], record=True)
+    run(100*defaultclock.dt)
+    assert_equal(mon.x[0], 0)
+    assert all(np.var(mon.x[1:], axis=1) > 0)
+    assert all(np.var(mon.y, axis=1) > 0)
+    assert_equal(mon.z, 0)
+
 def test_declare_types():
     if prefs.codegen.target != 'numpy':
         raise SkipTest('numpy-only test')
@@ -1003,6 +1024,7 @@ if __name__ == '__main__':
             test_function_dependencies_cython,
             test_repeated_function_dependencies,
             test_binomial,
+            test_poisson,
             test_declare_types,
             test_multiple_stateless_function_calls,
             ]:

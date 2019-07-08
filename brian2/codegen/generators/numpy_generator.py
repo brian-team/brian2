@@ -317,11 +317,20 @@ def rand_func(vectorisation_idx):
         # scalar value
         return np.random.rand()
 
+def poisson_func(lam, vectorisation_idx):
+    try:
+        N = len(vectorisation_idx)
+        return np.random.poisson(lam, size=N)
+    except TypeError:
+        # scalar value
+        return np.random.poisson(lam)
 
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumpyCodeGenerator,
                                                               code=randn_func)
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(NumpyCodeGenerator,
                                                              code=rand_func)
+DEFAULT_FUNCTIONS['poisson'].implementations.add_implementation(NumpyCodeGenerator,
+                                                                code=poisson_func)
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(NumpyCodeGenerator,
                                                              code=clip_func)
