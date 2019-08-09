@@ -39,15 +39,15 @@ class NumpyCodeGenerator(CodeGenerator):
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
         # operations like a=b+c -> add(b, c, a)
-        var, op, expr, comment = (statement.var, statement.op,
-                                  statement.expr, statement.comment)
+        vars, op, expr, comment = (statement.vars, statement.op,
+                                   statement.expr, statement.comment)
         origop = op
         if op == ':=':
             op = '='
         # For numpy we replace complex expressions involving a single boolean variable into a
         # where(boolvar, expr_if_true, expr_if_false)
-        if (statement.used_boolean_variables is not None and len(statement.used_boolean_variables)==1
-                and brian_dtype_from_dtype(statement.dtype)=='float'
+        if (len(vars) == 1 and statement.used_boolean_variables is not None and len(statement.used_boolean_variables)==1
+                and all(brian_dtype_from_dtype(dtype)=='float' for dtype in statement.dtype)
                 and statement.complexity_std>sum(statement.complexities.values())):
             used_boolvars = statement.used_boolean_variables
             bool_simp = statement.boolean_simplified_expressions
@@ -59,9 +59,9 @@ class NumpyCodeGenerator(CodeGenerator):
                 else:
                     expr_false = simp_expr
             code = '{var} {op} _numpy.where({boolvar}, {expr_true}, {expr_false})'.format(
-                        var=var, op=op, boolvar=boolvar, expr_true=expr_true, expr_false=expr_false)
+                        var=vars[0], op=op, boolvar=boolvar, expr_true=expr_true, expr_false=expr_false)
         else:
-            code = var + ' ' + op + ' ' + self.translate_expression(expr)
+            code = ','.join(vars) + ' ' + op + ' ' + self.translate_expression(expr)
         if len(comment):
             code += ' # ' + comment
         return code
@@ -77,17 +77,18 @@ class NumpyCodeGenerator(CodeGenerator):
         used = set(get_identifiers(statement.expr))
         used = used.intersection(k for k in list(variables.keys()) if k in indices and indices[k]!='_idx')
         used_variables.update(used)
-        if statement.var in used_variables:
+        if any(var in used_variables for var in statement.vars):
             raise VectorisationError()
 
         expr = NumpyNodeRenderer().render_expr(statement.expr)
 
-        if statement.op == ':=' or indices[statement.var] == '_idx' or not statement.inplace:
+        if statement.op == ':=' or all(indices[var] == '_idx' for var in statement.vars) or not statement.inplace:
             if statement.op == ':=':
                 op = '='
             else:
                 op = statement.op
-            line = '{var} {op} {expr}'.format(var=statement.var, op=op, expr=expr)
+            line = '{var} {op} {expr}'.format(var=','.join(statement.vars),
+                                              op=op, expr=expr)
         elif statement.inplace:
             if statement.op == '+=':
                 ufunc_name = '_numpy.add'
@@ -102,8 +103,8 @@ class NumpyCodeGenerator(CodeGenerator):
 
             line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(
                 ufunc_name=ufunc_name,
-                array_name=device.get_array_name(variables[statement.var]),
-                idx=indices[statement.var],
+                array_name=device.get_array_name(variables[statement.vars[0]]),
+                idx=indices[statement.vars[0]],
                 expr=expr)
             line = self.conditional_write(line, statement, variables,
                                           conditional_write_vars=conditional_write_vars,
@@ -117,12 +118,14 @@ class NumpyCodeGenerator(CodeGenerator):
         return line
 
     def vectorise_code(self, statements, variables, variable_indices, index='_idx'):
-        created_vars = {stmt.var for stmt in statements if stmt.op == ':='}
+        created_vars = {var for stmt in statements
+                        for var in stmt.vars
+                        if stmt.op == ':='}
         try:
             lines = []
             used_variables = set()
             for statement in statements:
-                lines.append('#  Abstract code:  {var} {op} {expr}'.format(var=statement.var,
+                lines.append('#  Abstract code:  {var} {op} {expr}'.format(var=','.join(statement.vars),
                                                                            op=statement.op,
                                                                            expr=statement.expr))
                 # We treat every statement individually with its own read and write code
@@ -134,9 +137,9 @@ class NumpyCodeGenerator(CodeGenerator):
                 # No need to load a variable if it is only in read because of
                 # the in-place operation
                 if (statement.inplace and
-                            variable_indices[statement.var] != '_idx' and
-                            statement.var not in get_identifiers(statement.expr)):
-                    read = read - {statement.var}
+                            variable_indices[statement.vars[0]] != '_idx' and
+                            statement.vars[0] not in get_identifiers(statement.expr)):
+                    read = read - {statement.vars[0]}
                 ufunc_lines.extend(self.read_arrays(read, write, indices,
                                               variables, variable_indices))
                 ufunc_lines.append(self.ufunc_at_vectorisation(statement,
@@ -148,8 +151,8 @@ class NumpyCodeGenerator(CodeGenerator):
                                                                ))
                 # Do not write back such values, the ufuncs have modified the
                 # underlying array already
-                if statement.inplace and variable_indices[statement.var] != '_idx':
-                    write = write - {statement.var}
+                if statement.inplace and variable_indices[statement.vars[0]] != '_idx':
+                    write = write - {statement.vars[0]}
                 ufunc_lines.extend(self.write_arrays([statement], read, write,
                                                      variables,
                                                      variable_indices))
@@ -214,7 +217,7 @@ class NumpyCodeGenerator(CodeGenerator):
             else:
                 all_inplace = True
                 for stmt in statements:
-                    if stmt.var == varname and not stmt.inplace:
+                    if any(var == varname for var in stmt.vars) and not stmt.inplace:
                         all_inplace = False
                         break
             if not all_inplace:
@@ -229,24 +232,25 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def conditional_write(self, line, stmt, variables, conditional_write_vars,
                           created_vars):
-        if stmt.var in conditional_write_vars:
-            subs = {}
-            index = conditional_write_vars[stmt.var]
-            # we replace all var with var[index], but actually we use this repl_string first because
-            # we don't want to end up with lines like x[not_refractory[not_refractory]] when
-            # multiple substitution passes are invoked
-            repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
-            for varname, var in list(variables.items()):
-                if isinstance(var, ArrayVariable) and not var.scalar:
+        for stmt_var in stmt.vars:
+            if stmt_var in conditional_write_vars:
+                subs = {}
+                index = conditional_write_vars[stmt_var]
+                # we replace all vars with vars[index], but actually we use this repl_string first because
+                # we don't want to end up with lines like x[not_refractory[not_refractory]] when
+                # multiple substitution passes are invoked
+                repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
+                for varname, var in list(variables.items()):
+                    if isinstance(var, ArrayVariable) and not var.scalar:
+                        subs[varname] = varname + '[' + repl_string + ']'
+                # all newly created vars are arrays and will need indexing
+                for varname in created_vars:
                     subs[varname] = varname + '[' + repl_string + ']'
-            # all newly created vars are arrays and will need indexing
-            for varname in created_vars:
-                subs[varname] = varname + '[' + repl_string + ']'
-            # Also index _vectorisation_idx so that e.g. rand() works correctly
-            subs['_vectorisation_idx'] = '_vectorisation_idx' + '[' + repl_string + ']'
+                # Also index _vectorisation_idx so that e.g. rand() works correctly
+                subs['_vectorisation_idx'] = '_vectorisation_idx' + '[' + repl_string + ']'
 
-            line = word_substitute(line, subs)
-            line = line.replace(repl_string, index)
+                line = word_substitute(line, subs)
+                line = line.replace(repl_string, index)
         return line
 
     def translate_one_statement_sequence(self, statements, scalar=False):
@@ -261,7 +265,8 @@ class NumpyCodeGenerator(CodeGenerator):
             # Simple translation
             lines.extend(self.read_arrays(read, write, indices, variables,
                                           variable_indices))
-            created_vars = {stmt.var for stmt in statements if stmt.op == ':='}
+            created_vars = {var for stmt in statements if stmt.op == ':='
+                            for var in stmt.vars}
             for stmt in statements:
 
                 line = self.translate_statement(stmt)

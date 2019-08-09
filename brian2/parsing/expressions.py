@@ -302,17 +302,8 @@ def parse_expression_dimensions(expr, variables):
                         get_dimensions(arg_unit), get_dimensions(expected_unit))
                     raise DimensionMismatchError(msg)
 
-        if func._return_unit == bool:
-            return DIMENSIONLESS
-        elif isinstance(func._return_unit, (Unit, int)):
-            # Function always returns the same unit
-            return getattr(func._return_unit, 'dim', DIMENSIONLESS)
-        else:
-            # Function returns a unit that depends on the arguments
-            arg_units = [parse_expression_dimensions(arg, variables)
-                         for arg in expr.args]
-            return func._return_unit(*arg_units).dim
-
+        dim = _return_unit(func._return_unit, expr, variables)
+        return dim
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
         left_dim = parse_expression_dimensions(expr.left, variables)
@@ -362,3 +353,20 @@ def parse_expression_dimensions(expr, variables):
             return u
     else:
         raise SyntaxError('Unsupported operation ' + str(expr.__class__))
+
+
+def _return_unit(return_unit, expr, variables):
+    if isinstance(return_unit, tuple):
+        return tuple(_return_unit(tuple_element, expr, variables)
+                     for tuple_element in return_unit)
+    elif return_unit == bool:
+        dim = DIMENSIONLESS
+    elif isinstance(return_unit, (Unit, int)):
+        # Function always returns the same unit
+        dim = getattr(return_unit, 'dim', DIMENSIONLESS)
+    else:
+        # Function returns a unit that depends on the arguments
+        arg_units = [parse_expression_dimensions(arg, variables)
+                     for arg in expr.args]
+        dim = return_unit(*arg_units).dim
+    return dim

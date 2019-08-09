@@ -140,9 +140,10 @@ class CodeGenerator(object):
             ids = get_identifiers(stmt.expr)
             # if the operation is inplace this counts as a read.
             if stmt.inplace:
-                ids.add(stmt.var)
+                for var in stmt.vars:
+                    ids.add(var)
             read = read.union(ids)
-            if stmt.scalar or variable_indices[stmt.var] == '0':
+            if stmt.scalar or all(variable_indices[var] == '0' for var in stmt.vars):
                 if stmt.op != ':=' and not self.allows_scalar_write:
                     raise SyntaxError(('Writing to scalar variable %s '
                                        'not allowed in this context.' % stmt.var))
@@ -153,8 +154,9 @@ class CodeGenerator(object):
                         raise SyntaxError(('Cannot write to scalar variable %s '
                                            'with an expression referring to '
                                            'vector variable %s') %
-                                          (stmt.var, name))
-            write.add(stmt.var)
+                                          (stmt.vars, name))
+            for var in stmt.vars:
+                write.add(var)
         read = set(varname for varname, var in list(variables.items())
                    if isinstance(var, ArrayVariable) and varname in read)
         write = set(varname for varname, var in list(variables.items())

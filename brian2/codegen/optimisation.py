@@ -84,7 +84,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
     for stmt in vector_statements:
         # Carry out constant evaluation, arithmetic simplification and loop invariants
         new_expr = simplifier.render_expr(stmt.expr)
-        new_stmt = Statement(stmt.var, stmt.op, new_expr, stmt.comment,
+        new_stmt = Statement(stmt.vars, stmt.op, new_expr, stmt.comment,
                              dtype=stmt.dtype,
                              constant=stmt.constant,
                              subexpression=stmt.subexpression,
@@ -123,7 +123,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
             dtype = int
         else:
             dtype = prefs.core.default_float_dtype
-        new_stmt = Statement(name, ':=', expr, '',
+        new_stmt = Statement((name, ), ':=', expr, '',
                              dtype=dtype,
                              constant=True,
                              subexpression=False,

@@ -103,7 +103,7 @@ def test_repeated_subexpressions():
     '''
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
-    assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'y']
+    assert [stmt.vars[0] for stmt in vector_stmts] == ['a', 'x', 'y']
     assert vector_stmts[0].constant
 
     code = '''
@@ -112,7 +112,7 @@ def test_repeated_subexpressions():
     '''
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
-    assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'z']
+    assert [stmt.vars[0] for stmt in vector_stmts] == ['a', 'x', 'z']
     # Note that we currently do not mark the subexpression as constant in this
     # case, because its use after the "z *=2" line would actually redefine it.
     # Our algorithm is currently not smart enough to detect that it is actually
@@ -127,7 +127,7 @@ def test_repeated_subexpressions():
     '''
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
-    assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'z', 'a', 'y']
+    assert [stmt.vars[0] for stmt in vector_stmts] == ['a', 'x', 'z', 'a', 'y']
     assert not any(stmt.constant for stmt in vector_stmts)
 
 

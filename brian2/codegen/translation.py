@@ -97,18 +97,21 @@ def analyse_identifiers(code, variables, recursive=False):
     known |= STANDARD_IDENTIFIERS
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float64, optimise=False)
     stmts = scalar_stmts + vector_stmts
-    defined = set(stmt.var for stmt in stmts if stmt.op == ':=')
+    defined = set(var for stmt in stmts for var in stmt.vars if stmt.op == ':=')
     if len(stmts) == 0:
         allids = set()
     elif recursive:
         if not isinstance(variables, Mapping):
             raise TypeError('Have to specify a variables dictionary.')
         allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
-                                             variables) | set([stmt.var
-                                                               for stmt in stmts])
+                                             variables) | set([var
+                                                               for stmt in stmts
+                                                               for var in stmt.vars])
     else:
         allids = set.union(*[get_identifiers(stmt.expr)
-                             for stmt in stmts]) | set([stmt.var for stmt in stmts])
+                             for stmt in stmts]) | set([var
+                                                        for stmt in stmts
+                                                        for var in stmt.vars])
     dependent = allids.difference(defined, known)
     used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
     return defined, used_known, dependent
@@ -225,30 +228,35 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                   if not isinstance(v, AuxiliaryVariable))
     for line in lines:
         statement = None
-        # parse statement into "var op expr"
-        var, op, expr, comment = parse_statement(line.code)
-        if var in variables and isinstance(variables[var], Subexpression):
-            raise SyntaxError("Illegal line '{line}' in abstract code. "
-                              "Cannot write to subexpression "
-                              "'{var}'.".format(line=line.code,
-                                                var=var))
+        # parse statement into "vars op expr"
+        stmt_vars, op, expr, comment = parse_statement(line.code)
+        # Note that `vars` is a tuple of variables, since we allow functions that
+        # return tuples and statements like `x, y = foo(z)`
+        for var in stmt_vars:
+            if var in variables and isinstance(variables[var], Subexpression):
+                raise SyntaxError("Illegal line '{line}' in abstract code. "
+                                  "Cannot write to subexpression "
+                                  "'{var}'.".format(line=line.code,
+                                                    var=var))
         if op == '=':
-            if var not in defined:
-                op = ':='
-                defined.add(var)
-                if var not in variables:
-                    annotated_ast = brian_ast(expr, variables)
-                    is_scalar = annotated_ast.scalar
-                    if annotated_ast.dtype == 'boolean':
-                        use_dtype = bool
-                    elif annotated_ast.dtype == 'integer':
-                        use_dtype = int
-                    else:
-                        use_dtype = dtype
-                    new_var = AuxiliaryVariable(var, dtype=use_dtype,
-                                                scalar=is_scalar)
-                    variables[var] = new_var
-            elif not variables[var].is_boolean:
+            for var in stmt_vars:
+                if var not in defined:
+                    op = ':='
+                    defined.add(var)
+                    if var not in variables:
+                        annotated_ast = brian_ast(expr, variables)
+                        is_scalar = annotated_ast.scalar
+                        if annotated_ast.dtype == 'boolean':
+                            use_dtype = bool
+                        elif annotated_ast.dtype == 'integer':
+                            use_dtype = int
+                        else:
+                            use_dtype = dtype
+                        new_var = AuxiliaryVariable(var, dtype=use_dtype,
+                                                    scalar=is_scalar)
+                        variables[var] = new_var
+            if len(stmt_vars) == 1 and not variables[stmt_vars[0]].is_boolean:
+                var = stmt_vars[0]
                 sympy_expr = str_to_sympy(expr, variables)
                 sympy_var = sympy.Symbol(var, real=True)
                 try:
@@ -275,14 +283,15 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                                           comment,
                                           dtype=variables[var].dtype,
                                           scalar=variables[var].scalar)
+
         if statement is None:
-            statement = Statement(var, op, expr, comment,
-                                  dtype=variables[var].dtype,
-                                  scalar=variables[var].scalar)
+            statement = Statement(stmt_vars, op, expr, comment,
+                                  dtype=tuple(variables[var].dtype for var in stmt_vars),
+                                  scalar=all(variables[var].scalar for var in stmt_vars))
 
         line.statement = statement
         # for each line will give the variable being written to
-        line.write = var 
+        line.write = stmt_vars
         # each line will give a set of variables which are read
         line.read = get_identifiers_recursively([expr], variables)
 
@@ -291,11 +300,11 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     scalar_write_done = False
     for line in lines:
         stmt = line.statement
-        if stmt.op != ':=' and variables[stmt.var].scalar and scalar_write_done:
+        if (stmt.op != ':=' and stmt.scalar and scalar_write_done):
             raise SyntaxError(('All writes to scalar variables in a code block '
                                'have to be made before writes to vector '
                                'variables. Illegal write to %s.') % line.write)
-        elif not variables[stmt.var].scalar:
+        elif not stmt.scalar:
             scalar_write_done = True
 
     # all variables which are written to at some point in the code block
@@ -359,15 +368,15 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                                   scalar=variables[var].scalar)
             statements.append(statement)
 
-        var, op, expr, comment = stmt.var, stmt.op, stmt.expr, stmt.comment
+        vars, op, expr, comment = stmt.vars, stmt.op, stmt.expr, stmt.comment
 
         # constant only if we are declaring a new variable and we will not
         # write to it again
-        constant = op == ':=' and var not in will_write
-        statement = Statement(var, op, expr, comment,
-                              dtype=variables[var].dtype,
+        constant = op == ':=' and all(var not in will_write for var in vars)
+        statement = Statement(vars, op, expr, comment,
+                              dtype=tuple(variables[var].dtype for var in vars),
                               constant=constant,
-                              scalar=variables[var].scalar)
+                              scalar=stmt.scalar)
         statements.append(statement)
 
     scalar_statements = [s for s in statements if s.scalar]

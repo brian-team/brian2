@@ -84,33 +84,33 @@ def check_units_statements(code, variables):
         if not len(line):
             continue  # skip empty lines
         
-        varname, op, expr, comment = parse_statement(line)
-        if op in ('+=', '-=', '*=', '/=', '%='):
+        varnames, op, expr, comment = parse_statement(line)
+        if op in ('+=', '-=', '*=', '/=', '%=') and len(varnames) == 1:
             # Replace statements such as "w *=2" by "w = w * 2"
-            expr = '{var} {op_first} {expr}'.format(var=varname,
+            expr = '{var} {op_first} {expr}'.format(var=varnames[0],
                                                     op_first=op[0],
                                                     expr=expr)
             op = '='
-        elif op == '=':
-            pass
-        else:
-            raise AssertionError('Unknown operator "%s"' % op) 
 
-        expr_unit = parse_expression_dimensions(expr, variables)
-
-        if varname in variables:
-            expected_unit = variables[varname].dim
-            fail_for_dimension_mismatch(expr_unit, expected_unit,
-                                        ('The right-hand-side of code '
-                                         'statement ""%s" does not have the '
-                                         'expected unit %r') % (line,
-                                                               expected_unit))
-        elif varname in newly_defined:
-            # note the unit for later
-            variables[varname] = Variable(name=varname,
-                                          dimensions=get_dimensions(expr_unit),
-                                          scalar=False)
-        else:
-            raise AssertionError(('Variable "%s" is neither in the variables '
-                                  'dictionary nor in the list of undefined '
-                                  'variables.' % varname))
+        expr_units = parse_expression_dimensions(expr, variables)
+        try:
+            len(expr_units)
+        except TypeError:
+            expr_units = (expr_units, )
+        for varname, expr_unit in zip(varnames, expr_units):
+            if varname in variables:
+                expected_unit = variables[varname].dim
+                fail_for_dimension_mismatch(expr_unit, expected_unit,
+                                            ('The right-hand-side of code '
+                                             'statement ""%s" does not have the '
+                                             'expected unit %r') % (line,
+                                                                   expected_unit))
+            elif varname in newly_defined:
+                # note the unit for later
+                variables[varname] = Variable(name=varname,
+                                              dimensions=get_dimensions(expr_unit),
+                                              scalar=False)
+            else:
+                raise AssertionError(('Variable "%s" is neither in the variables '
+                                      'dictionary nor in the list of undefined '
+                                      'variables.' % varname))

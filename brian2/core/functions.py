@@ -381,7 +381,7 @@ class FunctionImplementationContainer(Mapping):
                                         'to return a boolean '
                                         'value ' % (orig_func.__name__,
                                                     result))
-                elif return_unit is 1 or return_unit.dim is DIMENSIONLESS:
+                elif return_unit is 1 or getattr(return_unit, 'dim', None) is DIMENSIONLESS:
                     fail_for_dimension_mismatch(result,
                                                 return_unit,
                                                 'The function %s returned '

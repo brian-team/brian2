@@ -1,6 +1,8 @@
 '''
 Module providing the `Statement` class.
 '''
+from past.types import basestring
+
 
 class Statement(object):
     '''
@@ -10,7 +12,7 @@ class Statement(object):
 
     Parameters
     ----------
-    var : str
+    vars : str
         The left hand side of the statement, the value being written to.
     op : str
         The operation, can be any of the standard Python operators (including
@@ -61,12 +63,16 @@ class Statement(object):
     simplified. It is optional to use this (e.g. the numpy codegen does
     not, but the weave and cython ones do).
     '''
-    def __init__(self, var, op, expr, comment, dtype,
+    def __init__(self, vars, op, expr, comment, dtype,
                  constant=False, subexpression=False, scalar=False):
-        self.var = var.strip()
+        if isinstance(vars, basestring):
+            vars = (vars, )
+        self.vars = vars
         self.op = op.strip()
         self.expr = expr
         self.comment = comment
+        if not isinstance(dtype, tuple):
+            dtype = (dtype, )
         self.dtype = dtype
         self.constant = constant
         self.subexpression = subexpression
@@ -81,7 +87,7 @@ class Statement(object):
         self.boolean_simplified_expressions = None
 
     def __str__(self):
-        s = self.var+' '+self.op+' '+str(self.expr)
+        s = ','.join(self.vars) +' '+self.op+' '+str(self.expr)
         if self.constant:
             s += ' (constant)'
         if self.subexpression:

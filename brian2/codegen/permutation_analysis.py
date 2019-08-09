@@ -50,16 +50,17 @@ def check_for_order_independence(statements, variables, indices):
     permutation_dependent_aux_vars = set()
     changed_permutation_independent = True
     for statement in statements:
-        if statement.op == ':=' and statement.var not in all_variables:
-            main_index_variables.add(statement.var)
-            all_variables.append(statement.var)
+        for var in statement.vars:
+            if statement.op == ':=' and var not in all_variables:
+                main_index_variables.add(var)
+                all_variables.append(var)
 
     while changed_permutation_independent:
         changed_permutation_independent = False
         for statement in statements:
             vars_in_expr = get_identifiers(statement.expr).intersection(all_variables)
             # any time a statement involves a LHS and RHS which only depend on itself, this doesn't change anything
-            if set([statement.var]) == vars_in_expr:
+            if set(statement.vars) == vars_in_expr:
                 continue
             nonsyn_vars_in_expr = vars_in_expr.intersection(different_index_variables)
             permdep = any(var not in permutation_independent
@@ -72,26 +73,28 @@ def check_for_order_independence(statements, variables, indices):
                         permutation_dependent_aux_vars.add(statement.var)
                         changed_permutation_independent = True
                 continue
-            elif statement.var in main_index_variables:
+            elif any(var in main_index_variables for var in statement.vars):
                 if permdep:
                     raise OrderDependenceError()
-            elif statement.var in different_index_variables:
+            elif any(var in different_index_variables for var in statement.vars):
                 if statement.op in ('+=', '*=', '-=', '/='):
                     if permdep:
                         raise OrderDependenceError()
-                    if statement.var in permutation_independent:
-                        permutation_independent.remove(statement.var)
-                        changed_permutation_independent = True
+                    for var in statement.vars:
+                        if var in permutation_independent:
+                            permutation_independent.remove(var)
+                            changed_permutation_independent = True
                 elif statement.op == '=':
-                    otheridx = [v for v in variables
-                                if indices[v] not in (indices[statement.var],
-                                                      '_idx', '0')]
-                    if any(var in otheridx for var in vars_in_expr):
-                        raise OrderDependenceError()
-                    if permdep:
-                        raise OrderDependenceError()
-                    if any(var in main_index_variables for var in vars_in_expr):
-                        raise OrderDependenceError()
+                    for statement_var in statement.vars:
+                        otheridx = [v for v in variables
+                                    if indices[v] not in (indices[statement_var],
+                                                          '_idx', '0')]
+                        if any(var in otheridx for var in vars_in_expr):
+                            raise OrderDependenceError()
+                        if permdep:
+                            raise OrderDependenceError()
+                        if any(var in main_index_variables for var in vars_in_expr):
+                            raise OrderDependenceError()
                 else:
                     raise OrderDependenceError()
             else:
