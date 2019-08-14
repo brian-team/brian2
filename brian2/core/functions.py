@@ -370,12 +370,16 @@ class FunctionImplementationContainer(Mapping):
                                                                     compiler_kwds=None)
         else:
             def wrapper_function(*args):
-                if not len(args) == len(self._function._arg_units):
+                arg_units = list(self._function._arg_units)
+
+                if self._function.auto_vectorise:
+                    arg_units += [DIMENSIONLESS]
+                if not len(args) == len(arg_units):
                     raise ValueError(('Function %s got %d arguments, '
                                       'expected %d') % (self._function.pyfunc.__name__, len(args),
-                                                        len(self._function._arg_units)))
+                                                        len(arg_units)))
                 new_args = []
-                for arg, arg_unit in zip(args, self._function._arg_units):
+                for arg, arg_unit in zip(args, arg_units):
                     if arg_unit == bool:
                         new_args.append(arg)
                     else:

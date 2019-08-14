@@ -128,22 +128,20 @@ def restore_randn():
     DEFAULT_FUNCTIONS['randn'] = old_randn
 
 # The "random" values are always 0.5
-@implementation('cpp',
-                '''
-                double randn(int vectorisation_idx)
-                {
-                    return 0.5;
-                }
-                ''')
-@implementation('cython',
-                '''
-                cdef double randn(int vectorisation_idx):
-                    return 0.5
-                ''')
-@check_units(N=Unit(1), result=Unit(1))
-def fake_randn(N):
-    return 0.5*np.ones_like(N)
-fake_randn.auto_vectorise = True
+def fake_randn(vectorisation_idx):
+    return 0.5*np.ones_like(vectorisation_idx)
+fake_randn = Function(fake_randn, arg_units=[], return_unit=1, auto_vectorise=True,
+                      stateless=False)
+fake_randn.implementations.add_implementation('cpp', '''
+                                              double randn(int vectorisation_idx)
+                                              {
+                                                  return 0.5;
+                                              }
+                                              ''')
+fake_randn.implementations.add_implementation('cython','''
+                                    cdef double randn(int vectorisation_idx):
+                                        return 0.5
+                                    ''')
 
 @with_setup(setup=store_randn, teardown=restore_randn)
 def test_multiple_noise_variables_deterministic_noise():
