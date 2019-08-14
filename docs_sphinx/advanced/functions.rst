@@ -22,9 +22,11 @@ Default functions
 The following functions (stored in the `DEFAULT_FUNCTIONS` dictionary) are
 ready for use:
 
-* Random numbers: ``rand()``, ``randn()`` (Note that these functions should be
-  called without arguments, the code generation process will take care of
-  generating an array of numbers for numpy).
+* Random numbers: ``rand`` (random numbers drawn from a uniform distribution
+  between 0 and 1), ``randn`` (random numbers drawn from the standard normal
+  distribution, i.e. with mean 0 and standard deviation 1),
+  and ``poisson` (discrete random numbers from a Poisson distribution with rate
+  parameter :math:`\lambda`)
 * Elementary functions: ``sqrt``, ``exp``, ``log``, ``log10``, ``abs``, ``sign``
 * Trigonometric functions: ``sin``, ``cos``, ``tan``, ``sinh``, ``cosh``,
   ``tanh``, ``arcsin``, ``arccos``, ``arctan``
@@ -146,6 +148,28 @@ The same sort of approach as for C++ works for Cython using the
     def piecewise_linear(I):
         return clip((I-1*nA) * 50*Hz/nA, 0*Hz, 100*Hz)
 
+Dependencies between functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The code generation mechanism for user-defined functions only adds the source
+code for a function when it is necessary. If a user-defined function refers to
+another function in its source code, it therefore has to explicitly state this
+dependency so that the code of the dependency is added as well::
+
+    @implementation('cpp','''
+        double rectified_linear(double x)
+        {
+            return clip(x, 0, INFINITY);
+        }''',
+        dependencies={'clip': DEFAULT_FUNCTIONS['clip']}
+        )
+    @check_units(x=1, result=1)
+    def rectified_linear(x):
+        return np.clip(x, 0, np.inf)
+
+.. note::
+    The dependency mechanism is unnecessary for the ``numpy`` code generation
+    target, since functions are defined as actual Python functions and not as
+    code given in a string.
 
 Additional compiler arguments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -199,6 +223,45 @@ will therefore be called several times with a single value each time.
 In both cases, the function will only receive the "relevant" values, meaning
 that if for example a function is evaluated as part of a reset statement, it
 will only receive values for the neurons that just spiked.
+
+Functions with context-dependent return values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When using the ``numpy`` target, functions have to return an array of values
+(e.g. one value for each neuron). In some cases, the number of values to return
+cannot be deduced from the function's arguments. Most importantly, this is the
+case for random numbers: a call to `rand()` has to return one value for each
+neuron if it is part of a neuron's equations, but only one value for each neuron
+that spiked during the time step if it is part of the reset statement. Such
+function are said to "auto vectorise", which means that their implementation
+receives an additional array argument ``_vectorisation_idx``; the length of this
+array determines the number of values the function should return. This argument
+is also provided to functions for other code generation targets, but in these
+cases it is a single value (e.g. the index of the neuron), and is currently
+ignored. To enable this property on a user-defined function, you'll currently
+have to manually create a `Function` object::
+
+    def exponential_rand(l, _vectorisation_idx):
+        '''Generate a number from an exponential distribution using inverse
+           transform sampling'''
+        uniform = np.random.rand(len(_vectorisation_idx))
+        return -(1/l)*np.log(1 - uniform)
+
+    exponential_rand = Function(exponential_rand, arg_units=[1], return_unit=1,
+                                stateless=False, auto_vectorise=True)
+
+Implementations for other code generation targets can then be added using the
+`~FunctionImplementationContainer.add_implementation` mechanism::
+
+    cpp_code = '''
+    double exponential_rand(double l, int _vectorisation_idx)
+    {
+        double uniform = rand(_vectorisation_idx);
+        return -(1/l)*log(1 - uniform);
+    }
+    '''
+    exponential_rand.implementations.add_implementation('cpp', cpp_code,
+                                                        dependencies={'rand' : DEFAULT_FUNCTIONS['rand'],
+                                                                      'log': DEFAULT_FUNCTIONS['log']})
 
 Additional namespace
 ~~~~~~~~~~~~~~~~~~~~
