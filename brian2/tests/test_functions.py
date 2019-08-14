@@ -798,6 +798,39 @@ def test_function_dependencies_weave():
     assert_allclose(G.v_[:], 84*0.001)
 
 
+def test_function_dependencies_weave_rename():
+    if prefs.codegen.target != 'weave':
+        raise SkipTest('weave-only test')
+
+    @implementation('cpp', '''
+    float _foo(float x)
+    {
+        return 42*0.001;
+    }''', name='_foo')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for numpy and an
+    # implementation for C++ that makes use of the previous function.
+
+    @implementation('cpp', '''
+    float bar(float x)
+    {
+        return 2*my_foo(x);
+    }''', dependencies={'my_foo': foo})
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 84*mV
+
+    G = NeuronGroup(5, 'v : volt')
+    G.run_regularly('v = bar(v)')
+    net = Network(G)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
+
+
 def test_function_dependencies_cython():
     if prefs.codegen.target != 'cython':
         raise SkipTest('cython-only test')
@@ -828,6 +861,36 @@ def test_function_dependencies_cython():
 
     assert_allclose(G.v_[:], 84*0.001)
 
+
+def test_function_dependencies_cython_rename():
+    if prefs.codegen.target != 'cython':
+        raise SkipTest('cython-only test')
+
+    @implementation('cython', '''
+    cdef float _foo(float x):
+        return 42*0.001
+    ''', name='_foo')
+    @check_units(x=volt, result=volt)
+    def foo(x):
+        return 42*mV
+
+    # Second function with an independent implementation for numpy and an
+    # implementation for C++ that makes use of the previous function.
+
+    @implementation('cython', '''
+    cdef float bar(float x):
+        return 2*my_foo(x)
+    ''', dependencies={'my_foo': foo})
+    @check_units(x=volt, result=volt)
+    def bar(x):
+        return 84*mV
+
+    G = NeuronGroup(5, 'v : volt')
+    G.run_regularly('v = bar(v)')
+    net = Network(G)
+    net.run(defaultclock.dt)
+
+    assert_allclose(G.v_[:], 84*0.001)
 
 def test_function_dependencies_numpy():
     if prefs.codegen.target != 'numpy':
@@ -1021,7 +1084,9 @@ if __name__ == '__main__':
             test_function_implementation_container,
             test_function_dependencies_numpy,
             test_function_dependencies_weave,
+            test_function_dependencies_weave_rename,
             test_function_dependencies_cython,
+            test_function_dependencies_cython_rename,
             test_repeated_function_dependencies,
             test_binomial,
             test_poisson,

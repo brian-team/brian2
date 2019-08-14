@@ -308,6 +308,8 @@ class CPPCodeGenerator(CodeGenerator):
 
         assert set(sc_statements.keys()) == set(ve_statements.keys())
 
+        kwds = self.determine_keywords()
+
         sc_code = {}
         ve_code = {}
 
@@ -342,7 +344,6 @@ class CPPCodeGenerator(CodeGenerator):
                 lines += self.translate_to_write_arrays(write)
                 code[block_name] = stripped_deindented_lines('\n'.join(lines))
 
-        kwds = self.determine_keywords()
         return sc_code, ve_code, kwds
 
 
@@ -365,6 +366,14 @@ class CPPCodeGenerator(CodeGenerator):
         user_functions = [(varname, variable)]
         funccode = impl.get_code(self.owner)
         if isinstance(funccode, str):
+            # Rename references to any dependencies if necessary
+            for dep_name, dep in impl.dependencies.items():
+                dep_impl = dep.implementations[self.codeobj_class]
+                dep_impl_name = dep_impl.name
+                if dep_impl_name is None:
+                    dep_impl_name = dep.pyfunc.__name__
+                if dep_name != dep_impl_name:
+                    funccode = word_substitute(funccode, {dep_name: dep_impl_name})
             funccode = {'support_code': funccode}
         if funccode is not None:
             # To make namespace variables available to functions, we
@@ -393,6 +402,9 @@ class CPPCodeGenerator(CodeGenerator):
             for dep_name, dep in impl.dependencies.items():
                 if dep_name not in self.variables:
                     self.variables[dep_name] = dep
+                    dep_impl = dep.implementations[self.codeobj_class]
+                    if dep_name != dep_impl.name:
+                        self.func_name_replacements[dep_name] = dep_impl.name
                     hd, ps, sc, uf = self._add_user_function(dep_name, dep)
                     dep_hash_defines.extend(hd)
                     dep_pointers.extend(ps)

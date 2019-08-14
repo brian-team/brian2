@@ -250,6 +250,8 @@ class FunctionImplementation(object):
         if compiler_kwds is None:
             compiler_kwds = {}
         self.name = name
+        if dependencies is None:
+            dependencies = {}
         self.dependencies = dependencies
         self._code = code
         self._namespace = namespace
@@ -455,7 +457,7 @@ class FunctionImplementationContainer(Mapping):
 
 
 def implementation(target, code=None, namespace=None, dependencies=None,
-                   discard_units=None, **compiler_kwds):
+                   discard_units=None, name=None, **compiler_kwds):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
@@ -491,6 +493,9 @@ def implementation(target, code=None, namespace=None, dependencies=None,
         units indirectly (e.g. uses ``brian2.ms`` instead of ``ms``). If no
         value is given, defaults to the preference setting
         `codegen.runtime.numpy.discard_units`.
+    name : str, optional
+        The name of the function in the target language. Should only be
+        specified if the function has to be renamed for the target language.
     compiler_kwds : dict, optional
         Additional keyword arguments will be transferred to the code generation
         stage, e.g. for C++-based targets, the code can make use of additional
@@ -541,6 +546,7 @@ def implementation(target, code=None, namespace=None, dependencies=None,
             function.implementations.add_implementation(target, code=code,
                                                         dependencies=dependencies,
                                                         namespace=namespace,
+                                                        name=name,
                                                         compiler_kwds=compiler_kwds)
         # # copy any annotation attributes
         # if hasattr(func, '_annotation_attributes'):

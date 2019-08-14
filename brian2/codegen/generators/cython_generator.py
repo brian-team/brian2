@@ -254,6 +254,15 @@ class CythonCodeGenerator(CodeGenerator):
                                         numpy_dtype=get_numpy_dtype(
                                             ns_value.dtype),
                                         var_name=ns_key))
+                # Rename references to any dependencies if necessary
+                for dep_name, dep in impl.dependencies.items():
+                    dep_impl = dep.implementations[self.codeobj_class]
+                    dep_impl_name = dep_impl.name
+                    if dep_impl_name is None:
+                        dep_impl_name = dep.pyfunc.__name__
+                    if dep_name != dep_impl_name:
+                        func_code = word_substitute(func_code,
+                                                    {dep_name: dep_impl_name})
                 support_code.append(deindent(func_code))
             elif callable(func_code):
                 self.variables[varname] = func_code
