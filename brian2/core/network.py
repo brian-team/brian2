@@ -865,7 +865,10 @@ class Network(Nameable):
 
         for obj in all_objects:
             if obj.active:
-                obj.before_run(run_namespace)
+                try:
+                    obj.before_run(run_namespace)
+                except Exception as ex:
+                    raise brian_object_exception("An error occurred when preparing an object.", obj, ex)
 
         # Check that no object has been run as part of another network before
         for obj in all_objects:
