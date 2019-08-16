@@ -25,7 +25,7 @@ ready for use:
 * Random numbers: ``rand`` (random numbers drawn from a uniform distribution
   between 0 and 1), ``randn`` (random numbers drawn from the standard normal
   distribution, i.e. with mean 0 and standard deviation 1),
-  and ``poisson` (discrete random numbers from a Poisson distribution with rate
+  and ``poisson`` (discrete random numbers from a Poisson distribution with rate
   parameter :math:`\lambda`)
 * Elementary functions: ``sqrt``, ``exp``, ``log``, ``log10``, ``abs``, ``sign``
 * Trigonometric functions: ``sin``, ``cos``, ``tan``, ``sinh``, ``cosh``,
@@ -33,7 +33,7 @@ ready for use:
 * General utility functions: ``clip``, ``floor``, ``ceil``
 
 Brian also provides a special purpose function ``int``, which can be used to
-convert a an expression or variable into an integer value. This is especially
+convert an expression or variable into an integer value. This is especially
 useful for boolean values (which will be converted into 0 or 1), for example to
 have a conditional evaluation as part of an equation or statement which
 sometimes allows to circumvent the lack of an ``if`` statement. For
