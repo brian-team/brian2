@@ -1338,7 +1338,9 @@ class Synapses(Group):
                 else:
                     j = None
                     if isinstance(p, basestring):
-                        p_dep = self._expression_index_dependence(p)
+                        if namespace is None:
+                            namespace = get_local_namespace(level=level + 1)
+                        p_dep = self._expression_index_dependence(p, namespace=namespace)
                         if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
                             j = ('_k for _k in range(N_post) '
                                  'if ({expr}) and '
@@ -1560,16 +1562,24 @@ class Synapses(Group):
                                         run_namespace={})
         codeobj()
 
-    def _expression_index_dependence(self, expr, additional_indices=None):
+    def _expression_index_dependence(self, expr, namespace,
+                                     additional_indices=None):
         '''
         Returns the set of synaptic indices that expr depends on
         '''
-        nr = NodeRenderer(use_vectorisation_idx=True)
+        nr = NodeRenderer()
         expr = nr.render_expr(expr)
         deps = set()
         if additional_indices is None:
             additional_indices = {}
-        for varname in get_identifiers_recursively([expr], self.variables):
+        identifiers = get_identifiers_recursively([expr], self.variables)
+        variables = self.resolve_all({name for name in identifiers
+                                      if not name in additional_indices},
+                                     namespace)
+        if any(getattr(var, 'auto_vectorise', False) for var in variables.values()):
+            identifiers.add('_vectorisation_idx')
+
+        for varname in identifiers:
             # Special handling of i and j -- they do not actually use pre-/
             # postsynaptic indices (except for subgroups), they *are* the
             # pre-/postsynaptic indices
@@ -1611,7 +1621,8 @@ class Synapses(Group):
         setupiter = ''
         for k, v in parsed['iterator_kwds'].items():
             if v is not None and k!='sample_size':
-                deps = self._expression_index_dependence(v, additional_indices)
+                deps = self._expression_index_dependence(v, namespace=namespace,
+                                                         additional_indices=additional_indices)
                 if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
                     raise ValueError('Expression "{}" depends on postsynaptic '
                                      'index or iterator'.format(v))
@@ -1625,7 +1636,8 @@ class Synapses(Group):
         postsynaptic_variable_used = False
         if parsed['if_expression'] is not None:
             deps = self._expression_index_dependence(parsed['if_expression'],
-                                                     additional_indices)
+                                                     namespace=namespace,
+                                                     additional_indices=additional_indices)
             if '_postsynaptic_idx' in deps:
                 postsynaptic_condition = True
                 postsynaptic_variable_used = True

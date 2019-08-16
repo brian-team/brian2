@@ -1147,7 +1147,11 @@ def test_scalar_subexpression():
                                                           sub = freq + array*Hz : Hz (shared)'''))
 
     # A scalar subexpresion cannot refer to implicitly vectorized functions
-    assert_raises(SyntaxError, lambda: NeuronGroup(10, 'sub = rand() : 1 (shared)'))
+    group = NeuronGroup(10, '''x : 1
+                               sub = rand() : 1 (shared)''')
+    group.run_regularly('x = sub')
+    net = Network(group)
+    assert_raises(SyntaxError, net.run, 0*ms)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_devices)

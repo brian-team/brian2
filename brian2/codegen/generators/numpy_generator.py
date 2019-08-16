@@ -34,7 +34,7 @@ class NumpyCodeGenerator(CodeGenerator):
 
     def translate_expression(self, expr):
         expr = word_substitute(expr, self.func_name_replacements)
-        return NumpyNodeRenderer().render_expr(expr, self.variables).strip()
+        return NumpyNodeRenderer(auto_vectorise=self.auto_vectorise).render_expr(expr, self.variables).strip()
 
     def translate_statement(self, statement):
         # TODO: optimisation, translate arithmetic to a sequence of inplace
@@ -79,8 +79,7 @@ class NumpyCodeGenerator(CodeGenerator):
         used_variables.update(used)
         if statement.var in used_variables:
             raise VectorisationError()
-
-        expr = NumpyNodeRenderer().render_expr(statement.expr)
+        expr = NumpyNodeRenderer(auto_vectorise=self.auto_vectorise).render_expr(statement.expr)
 
         if statement.op == ':=' or indices[statement.var] == '_idx' or not statement.inplace:
             if statement.op == ':=':
@@ -318,11 +317,20 @@ def rand_func(vectorisation_idx):
         # scalar value
         return np.random.rand()
 
+def poisson_func(lam, vectorisation_idx):
+    try:
+        N = len(vectorisation_idx)
+        return np.random.poisson(lam, size=N)
+    except TypeError:
+        # scalar value
+        return np.random.poisson(lam)
 
 DEFAULT_FUNCTIONS['randn'].implementations.add_implementation(NumpyCodeGenerator,
                                                               code=randn_func)
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(NumpyCodeGenerator,
                                                              code=rand_func)
+DEFAULT_FUNCTIONS['poisson'].implementations.add_implementation(NumpyCodeGenerator,
+                                                                code=poisson_func)
 clip_func = lambda array, a_min, a_max: np.clip(array, a_min, a_max)
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(NumpyCodeGenerator,
                                                              code=clip_func)

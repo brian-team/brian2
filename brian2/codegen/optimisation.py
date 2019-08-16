@@ -317,7 +317,7 @@ class Simplifier(BrianASTRenderer):
         self.loop_invariants = OrderedDict()
         self.loop_invariant_dtypes = {}
         self.n = 0
-        self.node_renderer = NodeRenderer(use_vectorisation_idx=False)
+        self.node_renderer = NodeRenderer()
         self.arithmetic_simplifier = ArithmeticSimplifier(variables)
         self.scalar_statements = scalar_statements
         if extra_lio_prefix is None:
@@ -416,7 +416,7 @@ def cancel_identical_terms(primary, inverted):
     inverted : list of AST nodes
         Inverted nodes after cancellation
     '''
-    nr = NodeRenderer(use_vectorisation_idx=False)
+    nr = NodeRenderer()
     expressions = dict((node, nr.render_node(node)) for node in primary)
     expressions.update(dict((node, nr.render_node(node)) for node in inverted))
     new_primary = []

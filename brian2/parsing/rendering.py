@@ -45,8 +45,10 @@ class NodeRenderer(object):
       'AugMod': '%=',
       }
 
-    def __init__(self, use_vectorisation_idx=True):
-        self.use_vectorisation_idx = use_vectorisation_idx
+    def __init__(self, auto_vectorise=None):
+        if auto_vectorise is None:
+            auto_vectorise = set()
+        self.auto_vectorise = auto_vectorise
 
     def render_expr(self, expr, strip=True):
         if strip:
@@ -87,15 +89,15 @@ class NodeRenderer(object):
             raise ValueError("Variable number of arguments not supported")
         elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
-        if len(node.args) == 0 and self.use_vectorisation_idx:
-            # argument-less function call such as randn() are transformed into
-            # randn(_vectorisation_idx) -- this is important for Python code
-            # in particular, because it has to return an array of values.
-            return '%s(%s)' % (self.render_func(node.func),
-                               '_vectorisation_idx')
         else:
+            if node.func.id in self.auto_vectorise:
+                vectorisation_idx = ast.Name()
+                vectorisation_idx.id = '_vectorisation_idx'
+                args = node.args + [vectorisation_idx]
+            else:
+                args = node.args
             return '%s(%s)' % (self.render_func(node.func),
-                           ', '.join(self.render_node(arg) for arg in node.args))
+                           ', '.join(self.render_node(arg) for arg in args))
 
     def render_element_parentheses(self, node):
         '''
@@ -220,7 +222,7 @@ class SympyNodeRenderer(NodeRenderer):
         elif getattr(node, 'kwargs', None) is not None:
             raise ValueError("Keyword arguments not supported")
         elif len(node.args) == 0:
-            return self.render_func(node.func)(sympy.Symbol('_vectorisation_idx'))
+            return self.render_func(node.func)(sympy.Symbol('_placeholder_arg'))
         else:
             return self.render_func(node.func)(*(self.render_node(arg)
                                                  for arg in node.args))

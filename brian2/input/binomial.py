@@ -183,7 +183,8 @@ class BinomialFunction(Function, Nameable):
                 return np.random.binomial(n, p, size=N)
 
         Function.__init__(self, pyfunc=lambda: sample_function(1),
-                          arg_units=[], return_unit=1, stateless=False)
+                          arg_units=[], return_unit=1, stateless=False,
+                          auto_vectorise=True)
 
         self.implementations.add_implementation('numpy', sample_function)
 
