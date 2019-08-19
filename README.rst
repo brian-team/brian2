@@ -26,6 +26,10 @@ If you use Brian for your published research, we suggest that you cite one of ou
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg
         :target: https://doi.org/10.5281/zenodo.654861
 
+.. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
+        :target: code-of-conduct.md
+        :alt: Contributor Covenant
+
 .. image:: https://badges.gitter.im/Join%20Chat.svg
    :alt: Join the chat at https://gitter.im/brian-team/brian2
    :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
@@ -48,3 +52,7 @@ Testing status for master branch
 
 .. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg?style=flat-square
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
+
+.. image:: https://readthedocs.org/projects/brian2/badge/?version=stable
+  :target: https://brian2.readthedocs.io/en/stable/?badge=stable
+  :alt: Documentation Status
