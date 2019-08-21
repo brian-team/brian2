@@ -11,10 +11,10 @@ Documentation for Brian2 can be found at http://brian2.readthedocs.org
 
 Brian2 is released under the terms of the `CeCILL 2.1 license <https://opensource.org/licenses/CECILL-2.1>`_.
 
-If you use Brian for your published research, we suggest that you cite one of our introductory articles:
+If you use Brian for your published research, we kindly ask you to cite our article:
 
-* Goodman DFM and Brette R (2009). The Brian simulator. Front Neurosci `doi: 10.3389/neuro.01.026.2009 <http://dx.doi.org/10.3389/neuro.01.026.2009>`_
-* Stimberg M, Goodman DFM, Benichoux V, Brette R (2014). Equation-oriented specification of neural models for simulations. Frontiers Neuroinf, `doi: 10.3389/fninf.2014.00006 <http://dx.doi.org/10.3389/fninf.2014.00006>`_.
+Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neural Simulator.” eLife 8 (2019): e47314. `doi: 10.7554/eLife.47314 <https://doi.org/10.7554/eLife.47314>`_.
+
 
 
 .. image:: https://img.shields.io/pypi/v/Brian2.svg?style=flat-square
