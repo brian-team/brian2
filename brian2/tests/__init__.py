@@ -8,6 +8,7 @@ from io import StringIO
 
 from past.builtins import basestring
 
+import brian2
 from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices, set_device, reset_device
 
@@ -175,6 +176,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         sys.stderr.write('for targets %s' % (', '.join(codegen_targets)))
     ex_in = 'including' if long_tests else 'excluding'
     sys.stderr.write(' (%s long tests)\n' % ex_in)
+
+    sys.stderr.write("Running Brian version {} "
+                     "from '{}'\n".format(brian2.__version__,
+                                          os.path.dirname(brian2.__file__)))
 
     all_targets = set(codegen_targets)
 
