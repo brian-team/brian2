@@ -110,6 +110,15 @@ class Function(object):
         always returns the same output when called with the same arguments.
         This is true for mathematical functions but not true for ``rand()``, for
         example. Defaults to ``True``.
+    auto_vectorise : bool, optional
+        Whether the implementations of this function should get an additional
+        argument (not specified in abstract code) that can be used to determine
+        the number of values that should be returned (for the numpy target), or
+        an index potentially useful for generating deterministic values
+        independent of the order of vectorisation (for all other targets). The
+        main use case are random number functions, e.g. equations refer to
+        ``rand()``, but the generate code will actually call
+        ``rand(_vectorisation_idx)``. Defaults to ``False``.
 
     Notes
     -----
@@ -121,7 +130,7 @@ class Function(object):
     def __init__(self, pyfunc, sympy_func=None,
                  arg_units=None, return_unit=None,
                  arg_types=None, return_type=None,
-                 stateless=True):
+                 stateless=True, auto_vectorise=False):
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         self._arg_units = arg_units
@@ -133,6 +142,7 @@ class Function(object):
         self._arg_types = arg_types
         self._return_type = return_type
         self.stateless = stateless
+        self.auto_vectorise = auto_vectorise
         if self._arg_units is None:
             if not hasattr(pyfunc, '_arg_units'):
                 raise ValueError(('The Python function "%s" does not specify '
@@ -240,6 +250,8 @@ class FunctionImplementation(object):
         if compiler_kwds is None:
             compiler_kwds = {}
         self.name = name
+        if dependencies is None:
+            dependencies = {}
         self.dependencies = dependencies
         self._code = code
         self._namespace = namespace
@@ -360,12 +372,16 @@ class FunctionImplementationContainer(Mapping):
                                                                     compiler_kwds=None)
         else:
             def wrapper_function(*args):
-                if not len(args) == len(self._function._arg_units):
+                arg_units = list(self._function._arg_units)
+
+                if self._function.auto_vectorise:
+                    arg_units += [DIMENSIONLESS]
+                if not len(args) == len(arg_units):
                     raise ValueError(('Function %s got %d arguments, '
                                       'expected %d') % (self._function.pyfunc.__name__, len(args),
-                                                        len(self._function._arg_units)))
+                                                        len(arg_units)))
                 new_args = []
-                for arg, arg_unit in zip(args, self._function._arg_units):
+                for arg, arg_unit in zip(args, arg_units):
                     if arg_unit == bool:
                         new_args.append(arg)
                     else:
@@ -441,7 +457,7 @@ class FunctionImplementationContainer(Mapping):
 
 
 def implementation(target, code=None, namespace=None, dependencies=None,
-                   discard_units=None, **compiler_kwds):
+                   discard_units=None, name=None, **compiler_kwds):
     '''
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
@@ -477,6 +493,9 @@ def implementation(target, code=None, namespace=None, dependencies=None,
         units indirectly (e.g. uses ``brian2.ms`` instead of ``ms``). If no
         value is given, defaults to the preference setting
         `codegen.runtime.numpy.discard_units`.
+    name : str, optional
+        The name of the function in the target language. Should only be
+        specified if the function has to be renamed for the target language.
     compiler_kwds : dict, optional
         Additional keyword arguments will be transferred to the code generation
         stage, e.g. for C++-based targets, the code can make use of additional
@@ -527,6 +546,7 @@ def implementation(target, code=None, namespace=None, dependencies=None,
             function.implementations.add_implementation(target, code=code,
                                                         dependencies=dependencies,
                                                         namespace=namespace,
+                                                        name=name,
                                                         compiler_kwds=compiler_kwds)
         # # copy any annotation attributes
         # if hasattr(func, '_annotation_attributes'):
@@ -636,8 +656,10 @@ DEFAULT_FUNCTIONS = {
     'sign': Function(pyfunc=np.sign, sympy_func=sympy.sign, return_type='highest',
                      arg_units=[None], return_unit=1),
     # functions that need special treatment
-    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False),
-    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False),
+    'rand': Function(pyfunc=rand, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
+    'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
+    'poisson': Function(pyfunc=np.random.poisson, arg_units=[1], return_unit=1, return_type='integer',
+                        stateless=False, auto_vectorise=True),
     'clip': Function(pyfunc=np.clip, arg_units=[None, None, None],
                      return_type='highest',
                      return_unit=lambda u1, u2, u3: u1,),

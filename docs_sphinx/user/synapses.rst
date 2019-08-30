@@ -27,7 +27,7 @@ The ``on_pre`` keyword defines what happens when a presynaptic spike arrives at
 a synapse. In this case, the constant ``w`` is added to variable ``v``.
 Because ``v`` is not defined as a synaptic variable, it is assumed by default
 that it is a postsynaptic variable, defined in the target `NeuronGroup` Q.
-Note that this does not does create synapses (see `Creating Synapses`_), only the
+Note that this does not create synapses (see `Creating Synapses`_), only the
 synaptic models.
 
 To define more complex models, models can be described as string equations,

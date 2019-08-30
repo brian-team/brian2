@@ -184,7 +184,8 @@ class BrianASTRenderer(object):
             funcvar = self.variables[node.func.id]
             # sometimes this attribute doesn't exist, if so assume it's not stateless
             node.stateless = getattr(funcvar, 'stateless', False)
-            if node.stateless:
+            node.auto_vectorise = getattr(funcvar, 'auto_vectorise', False)
+            if node.stateless and not node.auto_vectorise:
                 node.scalar = logical_all(subnode.scalar for subnode in node.args)
             # check that argument types are valid
             node_arg_types = [subnode.dtype for subnode in node.args]

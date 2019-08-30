@@ -55,6 +55,15 @@ class CodeGenerator(object):
         self.allows_scalar_write = allows_scalar_write
         self.name = name
         self.template_name = template_name
+        # Gather the names of functions that should get an additional
+        # "_vectorisation_idx" argument in the generated code. Take care
+        # of storing their translated name (e.g. "_rand" instead of "rand")
+        # if necessary
+        self.auto_vectorise = {self.func_name_replacements.get(name, name)
+                               for name in self.variables
+                               if getattr(self.variables[name],
+                                          'auto_vectorise', False)}
+
 
     @staticmethod
     def get_array_name(var, access_data=True):

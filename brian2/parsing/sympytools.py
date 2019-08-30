@@ -154,8 +154,8 @@ def sympy_to_str(sympy_expr):
                              name, c in DEFAULT_CONSTANTS.items()
                              if str(c.sympy_obj) != name))
 
-    # Replace _vectorisation_idx by an empty symbol
-    replacements[sympy.Symbol('_vectorisation_idx')] = sympy.Symbol('')
+    # Replace the placeholder argument by an empty symbol
+    replacements[sympy.Symbol('_placeholder_arg')] = sympy.Symbol('')
     atoms = (sympy_expr.atoms() |
              {f.func for f in sympy_expr.atoms(sympy.Function)})
     for old, new in replacements.items():

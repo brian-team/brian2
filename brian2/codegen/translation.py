@@ -316,6 +316,26 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
 
     subexpressions = dict((name, val) for name, val in variables.items()
                           if isinstance(val, Subexpression))
+    # Check that no scalar subexpression refers to a vectorised function
+    # (e.g. rand()) -- otherwise it would be differently interpreted depending
+    # on whether it is used in a scalar or a vector context (i.e., even though
+    # the subexpression is supposed to be scalar, it would be vectorised when
+    # used as part of non-scalar expressions)
+    for name, subexpr in subexpressions.items():
+        if subexpr.scalar:
+            identifiers = get_identifiers(subexpr.expr)
+            for identifier in identifiers:
+                if (identifier in variables and
+                        getattr(variables[identifier],
+                                'auto_vectorise', False)):
+                    raise SyntaxError(('The scalar subexpression {} refers to '
+                                       'the implicitly vectorised function {} '
+                                       '-- this is not allowed since it leads '
+                                       'to different interpretations of this '
+                                       'subexpression depending on whether it '
+                                       'is used in a scalar or vector '
+                                       'context.').format(name, identifier))
+
     # sort subexpressions into an order so that subexpressions that don't depend
     # on other subexpressions are first
     subexpr_deps = dict((name, [dep for dep in subexpr.identifiers
