@@ -216,6 +216,7 @@ class CPPStandaloneDevice(Device):
         if sys.platform == 'win32':
             self.libraries += ['advapi32']
         self.extra_link_args = []
+        self.writer = None
 
     def reinit(self):
         # Remember the build_on_run setting and its options -- important during
@@ -1198,7 +1199,7 @@ class CPPStandaloneDevice(Device):
         for d in ['code_objects', 'results', 'static_arrays']:
             ensure_directory(os.path.join(directory, d))
 
-        writer = CPPWriter(directory)
+        self.writer = CPPWriter(directory)
 
         # Get the number of threads if specified in an openmp context
         nb_threads = prefs.devices.cpp_standalone.openmp_threads
@@ -1231,19 +1232,19 @@ class CPPStandaloneDevice(Device):
                              'standalone mode, the following name(s) were used '
                              'more than once: %s' % formatted_names)
 
-        self.generate_objects_source(writer, self.arange_arrays,
+        self.generate_objects_source(self.writer, self.arange_arrays,
                                      self.net_synapses, self.static_array_specs,
                                      self.networks)
-        self.generate_main_source(writer)
-        self.generate_codeobj_source(writer)
-        self.generate_network_source(writer, compiler)
-        self.generate_synapses_classes_source(writer)
-        self.generate_run_source(writer)
-        self.copy_source_files(writer, directory)
+        self.generate_main_source(self.writer)
+        self.generate_codeobj_source(self.writer)
+        self.generate_network_source(self.writer, compiler)
+        self.generate_synapses_classes_source(self.writer)
+        self.generate_run_source(self.writer)
+        self.copy_source_files(self.writer, directory)
 
-        writer.source_files.extend(additional_source_files)
+        self.writer.source_files.extend(additional_source_files)
 
-        self.generate_makefile(writer, compiler,
+        self.generate_makefile(self.writer, compiler,
                                compiler_flags=' '.join(compiler_flags),
                                linker_flags=' '.join(linker_flags),
                                nb_threads=nb_threads,
@@ -1254,13 +1255,102 @@ class CPPStandaloneDevice(Device):
             if run:
                 self.run(directory, with_output, run_args)
 
-    def delete_data(self):
+    def delete(self, code=True, data=True, directory=True, force=False):
         if self.project_dir is None:
             return  # Nothing to delete
 
-        logger.debug('Deleting standalone directory '
-                     '"{}"'.format(self.project_dir))
-        shutil.rmtree(self.project_dir)
+        if directory and not (code and data):
+            raise ValueError('When deleting the directory, code and data will'
+                             'be deleted as well. Set the corresponding '
+                             'parameters to True.')
+
+        fnames = []
+
+        # Delete data
+        if data:
+            logger.debug('Deleting data files in '
+                         '"{}"'.format(os.path.join(self.project_dir,
+                                                    'results')))
+            fnames.append(os.path.join('results', 'last_run_info.txt'))
+            if self.profiled_codeobjects:
+                fnames.append(os.path.join('results', 'profiling_info.txt'))
+            for var in self.arrays:
+                fnames.append(self.get_array_filename(var))
+
+        # Delete code
+        if code:
+            logger.debug('Deleting code files in '
+                         '"{}"'.format(self.project_dir))
+            if sys.platform == 'win32':
+                fnames.exentd(['sourcefiles.txt', 'win_makefile', 'main.exe'])
+            else:
+                fnames.extend(['make.deps', 'makefile', 'main'])
+
+            fnames.extend([os.path.join('brianlib', 'spikequeue.h'),
+                           os.path.join('brianlib', 'randomkit', 'randomkit.h'),
+                           os.path.join('brianlib', 'stdint_compat.h')])
+            fnames.extend(self.writer.header_files)
+
+            for source_file in self.writer.source_files:
+                fnames.append(source_file)
+                base_name, _ = os.path.splitext(source_file)
+                if sys.platform == 'win32':
+                    fnames.append(base_name + '.obj')
+                else:
+                    fnames.append(base_name + '.o')
+
+            for static_array_name in self.static_arrays:
+                fnames.append(os.path.join('static_arrays', static_array_name))
+
+        for fname in fnames:
+            full_fname = os.path.join(self.project_dir, fname)
+            try:
+                os.remove(full_fname)
+            except (OSError, IOError) as ex:
+                logger.debug('File "{}" could not be deleted: '
+                             '{}'.format(full_fname, str(ex)))
+
+        # Delete directories
+
+        if directory:
+            directories = [os.path.join('brianlib', 'randomkit'), 'brianlib',
+                           'code_objects',
+                           'results',
+                           'static_arrays',
+                           '']
+            full_directories = [os.path.join(self.project_dir, directory)
+                                for directory in directories]
+            for full_directory in full_directories:
+                try:
+                    os.rmdir(full_directory)
+                except OSError as ex:
+                    if not os.path.exists(full_directory):
+                        continue
+
+                    # The directory is not empty:
+                    if force:
+                        logger.debug('Directory "{}" is not empty, but '
+                                     'deleting it due to the use of the force '
+                                     'option.')
+                        shutil.rmtree(full_directory)
+                    else:
+                        # We only give a warning if there is a file or a
+                        # directory we do not know about. We do not want to e.g.
+                        # complain about an unknown file in the results
+                        # directory and then again complain about the results
+                        # directory when deleting the main directory
+                        still_present = [name
+                                         for name in os.listdir(full_directory)
+                                         if os.path.isfile(name) or
+                                         os.path.join(full_directory, name) not in full_directories]
+                        if len(still_present):
+                            still_present = ", ".join('"{}"'.format(name)
+                                                      for name in still_present)
+                            logger.warn('Not deleting the "{}" directory, '
+                                        'because it contains files/directories '
+                                        'not added by Brian: {}'.format(full_directory,
+                                                                        still_present))
+
 
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, profile=False, level=0, **kwds):
