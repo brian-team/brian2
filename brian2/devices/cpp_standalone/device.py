@@ -1282,7 +1282,7 @@ class CPPStandaloneDevice(Device):
             logger.debug('Deleting code files in '
                          '"{}"'.format(self.project_dir))
             if sys.platform == 'win32':
-                fnames.exentd(['sourcefiles.txt', 'win_makefile', 'main.exe'])
+                fnames.extend(['sourcefiles.txt', 'win_makefile', 'main.exe'])
             else:
                 fnames.extend(['make.deps', 'makefile', 'main'])
 
