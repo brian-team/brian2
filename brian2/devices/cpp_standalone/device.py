@@ -1282,7 +1282,8 @@ class CPPStandaloneDevice(Device):
             logger.debug('Deleting code files in '
                          '"{}"'.format(self.project_dir))
             if sys.platform == 'win32':
-                fnames.extend(['sourcefiles.txt', 'win_makefile', 'main.exe'])
+                fnames.extend(['sourcefiles.txt', 'win_makefile', 'main.exe',
+                               'main.ilk', 'main.pdb', 'winmake.log'])
             else:
                 fnames.extend(['make.deps', 'makefile', 'main'])
 
@@ -1349,7 +1350,8 @@ class CPPStandaloneDevice(Device):
                             logger.warn('Not deleting the "{}" directory, '
                                         'because it contains files/directories '
                                         'not added by Brian: {}'.format(full_directory,
-                                                                        still_present))
+                                                                        still_present),
+                                        name_suffix='delete_skips_directory')
 
 
     def network_run(self, net, duration, report=None, report_period=10*second,
