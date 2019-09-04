@@ -12,13 +12,13 @@ from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
@@ -45,7 +45,7 @@ def test_spikegenerator_connected():
     assert all(mon[1].v[(mon.t>=4*ms+offset)] == 2)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_basic():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -59,7 +59,7 @@ def test_spikegenerator_basic():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_basic_sorted():
     '''
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
@@ -73,7 +73,7 @@ def test_spikegenerator_basic_sorted():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_basic_sorted_with_sorted():
     '''
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
@@ -87,7 +87,7 @@ def test_spikegenerator_basic_sorted_with_sorted():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -121,7 +121,7 @@ def test_spikegenerator_extreme_period():
     assert len(l) == 1 and l[0][1].endswith('spikegenerator_long_period')
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_period_rounding():
     # See discussion in PR #1042
     # The last spike will be considered to be in the time step *after* 1s, due
@@ -138,7 +138,7 @@ def test_spikegenerator_period_rounding():
     net = Network(s)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_period_repeat():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -166,7 +166,7 @@ def _compare_spikes(N, indices, times, recorded, start_time=0*ms, end_time=1e100
         assert_allclose(generator_spikes, recorded_spikes)
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_change_spikes():
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
@@ -192,7 +192,7 @@ def test_spikegenerator_change_spikes():
     _compare_spikes(5, indices3, times3, s_mon, 10*ms)
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_change_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -264,7 +264,7 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     assert_raises(ValueError, lambda: net.run(0*ms))
 
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_rounding():
     # all spikes should fall into the first time bin
     indices = np.arange(100)
@@ -292,7 +292,7 @@ def test_spikegenerator_rounding():
     assert_equal(mon[0].count, np.ones(10000))
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_rounding_long():
     # all spikes should fall in separate bins
     dt = 0.1*ms
@@ -310,7 +310,7 @@ def test_spikegenerator_rounding_long():
     assert all(np.diff(mon[0].count[:]) == 1)
 
 @attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_rounding_period():
     # all spikes should fall in separate bins
     dt = 0.1*ms
@@ -352,7 +352,7 @@ def test_spikegenerator_multiple_spikes_per_bin():
     assert_raises(ValueError, lambda: net.run(0*ms))
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spikegenerator_multiple_runs():
     indices = np.zeros(5)
     times = np.arange(5)*ms

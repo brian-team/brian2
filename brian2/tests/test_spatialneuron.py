@@ -7,7 +7,7 @@ from nose import with_setup, SkipTest
 from nose.plugins.attrib import attr
 
 from brian2 import *
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
 
@@ -33,7 +33,7 @@ def test_custom_events():
     assert_allclose(G.event_time1[:], [0.1, 0, 0]*ms)
 
 @attr('codegen-independent')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_construction():
     BrianLogger.suppress_name('resolution_conflict')
     morpho = Soma(diameter=30*um)
@@ -88,7 +88,7 @@ def test_construction():
 
 
 @attr('codegen-independent')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_construction_coordinates():
     # Same as test_construction, but uses coordinates instead of lengths to
     # set up everything
@@ -154,7 +154,7 @@ def test_construction_coordinates():
 
 
 @attr('long')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_infinitecable():
     '''
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
@@ -198,7 +198,7 @@ def test_infinitecable():
     assert_allclose(v[t>0.5*ms],theory[t>0.5*ms], rtol=1e14, atol=1e10) # high error tolerance (not exact because not infinite cable)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
@@ -241,7 +241,7 @@ def test_finitecable():
     assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_rallpack1():
     '''
     Rallpack 1
@@ -302,7 +302,7 @@ def test_rallpack1():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_rallpack2():
     '''
     Rallpack 2
@@ -386,7 +386,7 @@ def test_rallpack2():
 
 
 @attr('long', 'standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_rallpack3():
     '''
     Rallpack 3
@@ -468,7 +468,7 @@ def test_rallpack3():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
@@ -539,7 +539,7 @@ def test_rall():
     assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_basic_diffusion():
     # A very basic test that shows that propagation is working in a very basic
     # sense, testing all morphological classes
@@ -773,7 +773,7 @@ def test_spatialneuron_morphology_assignment():
     assert_allclose(neuron.sec1.sec12.v[:], np.zeros(2)*volt)
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_spatialneuron_capacitive_currents():
     if prefs.core.default_float_dtype is np.float32:
         raise SkipTest('Need double precision for this test')

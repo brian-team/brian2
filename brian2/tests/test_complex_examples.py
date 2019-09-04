@@ -3,10 +3,10 @@ from nose import with_setup
 from nose.plugins.attrib import attr
 
 from brian2 import *
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_cuba():
     taum = 20*ms
     taue = 5*ms

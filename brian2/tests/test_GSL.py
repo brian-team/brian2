@@ -8,7 +8,7 @@ from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_raises
 
 from brian2 import *
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.core.preferences import PreferenceError
 
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
@@ -28,7 +28,7 @@ def skip_if_not_implemented(func):
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_stateupdater_basic():
     # just the adaptive_threshold example: run for exponential_euler and GSL and see
@@ -65,7 +65,7 @@ def test_GSL_stateupdater_basic():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_different_clocks():
     vt = 10*mV
@@ -77,7 +77,7 @@ def test_GSL_different_clocks():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_default_function():
         # phase_locking example
@@ -109,7 +109,7 @@ def test_GSL_default_function():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_user_defined_function():
     # phase_locking example with user_defined sin
@@ -158,7 +158,7 @@ def test_GSL_user_defined_function():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_x_variable():
     neurons = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
@@ -191,7 +191,7 @@ def test_GSL_stochastic():
                                             'sigma': sigma})
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_unit():
     eqs = '''
@@ -206,7 +206,7 @@ def test_GSL_error_dimension_mismatch_unit():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_dimensionless1():
     eqs = '''
@@ -221,7 +221,7 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_dimensionless2():
     eqs = '''
@@ -236,7 +236,7 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_nonexisting_variable():
     eqs = '''
@@ -251,7 +251,7 @@ def test_GSL_error_nonexisting_variable():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_incorrect_error_format():
     eqs = '''
@@ -271,7 +271,7 @@ def test_GSL_error_incorrect_error_format():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_nonODE_variable():
     eqs = '''
@@ -286,7 +286,7 @@ def test_GSL_error_nonODE_variable():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_error_bounds():
     runtime = 50*ms
@@ -323,7 +323,7 @@ def test_GSL_error_bounds():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_non_autonomous():
     eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
@@ -341,7 +341,7 @@ def test_GSL_non_autonomous():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_non_autonomous():
     eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
@@ -358,7 +358,7 @@ def test_GSL_non_autonomous():
     assert np.max(abs_err) < max_allowed
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_refractory():
     eqs = '''dv/dt = 99.99*Hz : 1 (unless refractory)'''
@@ -406,7 +406,7 @@ I : amp/metre**2
 ''')
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_fixed_timestep_big_dt_small_error():
     # should raise integration error
@@ -428,7 +428,7 @@ def test_GSL_internal_variable():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_method_options_neurongroup():
     neuron1 = NeuronGroup(1, model='dp/dt = 300*Hz : 1', method='gsl',
@@ -443,7 +443,7 @@ def test_GSL_method_options_neurongroup():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 @skip_if_not_implemented
 def test_GSL_method_options_spatialneuron():
     morpho = Soma(30*um)

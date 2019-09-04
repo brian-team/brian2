@@ -7,12 +7,12 @@ from nose.plugins.attrib import attr
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.utils.logger import catch_logs
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_single_rates():
     # Specifying single rates
     P0 = PoissonGroup(10, 0*Hz)
@@ -28,7 +28,7 @@ def test_single_rates():
     assert_equal(spikes_Pfull.count, 2 * np.ones(len(P0)))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_rate_arrays():
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)
     spikes = SpikeMonitor(P)
@@ -53,7 +53,7 @@ def test_rate_unit_check():
                   lambda: net.run(0 * ms))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_time_dependent_rate():
     # The following two groups should show the same behaviour
     timed_array = TimedArray(np.array([[0, 0],
@@ -73,7 +73,7 @@ def test_time_dependent_rate():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_propagation():
     # Using a PoissonGroup as a source for Synapses should work as expected
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)
@@ -86,7 +86,7 @@ def test_propagation():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_poissongroup_subgroup():
     # It should be possible to take a subgroup of a PoissonGroup
     P = PoissonGroup(4, [0, 0, 0, 0]*Hz)

@@ -20,7 +20,7 @@ from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     PoissonGroup, Hz, collect, store, restore, BrianLogger,
                     start_scope, prefs, profiling_summary, Quantity, TimedArray)
 from brian2.core.network import schedule_propagation_offset, scheduling_summary
-from brian2.devices.device import (reinit_devices, Device, all_devices,
+from brian2.devices.device import (reinit_and_delete, Device, all_devices,
                                    set_device, get_device, reset_device, device)
 from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
@@ -208,7 +208,7 @@ def test_network_incorrect_schedule():
     assert_raises(ValueError, setattr, net, 'schedule', ['before_start', 'start'])
 
 @attr('codegen-independent')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_schedule_warning():
     previous_device = get_device()
     from uuid import uuid4
@@ -887,7 +887,7 @@ def test_progress_report_incorrect():
 
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_runs_report_standalone():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
@@ -896,7 +896,7 @@ def test_multiple_runs_report_standalone():
 
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_runs_report_standalone_2():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms)
@@ -905,7 +905,7 @@ def test_multiple_runs_report_standalone_2():
 
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_runs_report_standalone_3():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
@@ -916,7 +916,7 @@ def test_multiple_runs_report_standalone_3():
 # This tests a specific limitation of the C++ standalone mode (cannot mix
 # multiple report methods)
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_runs_report_standalone_incorrect():
     set_device('cpp_standalone', build_on_run=False)
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
@@ -1197,7 +1197,7 @@ def test_defaultclock_dt_changes():
         assert_equal(mon.t[:], [0, dt/ms]*ms)
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_dt_changes_between_runs():
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'v:1')
@@ -1307,7 +1307,7 @@ def test_multiple_runs_defaultclock_incorrect():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_profile():
     G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
                     reset='v=0', name='profile_test')
@@ -1330,7 +1330,7 @@ def test_profile():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_profile_off():
     G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
                     reset='v=0', name='profile_test')
@@ -1368,7 +1368,7 @@ def test_magic_scope():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_runtime_rounding():
     # Test that runtime and standalone round in the same way, see github issue
     # #695 for details
@@ -1425,7 +1425,7 @@ def test_both_equal():
 
 
 @attr('codegen-independent')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_long_run_dt_change():
     # Check that the dt check is not too restrictive, see issue #730 for details
     group = NeuronGroup(1, '')  # does nothing...
@@ -1436,7 +1436,7 @@ def test_long_run_dt_change():
     run(1*second)
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_runs_constant_change():
     const_v = 1
     group = NeuronGroup(1, 'v = const_v : 1')
@@ -1449,7 +1449,7 @@ def test_multiple_runs_constant_change():
 
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_runs_function_change():
     inp = TimedArray([1, 2], dt=defaultclock.dt)
     group = NeuronGroup(1, 'v = inp(t) : 1')
@@ -1529,4 +1529,4 @@ if __name__ == '__main__':
             ]:
         set_device(all_devices['runtime'])
         t()
-        reinit_devices()
+        reinit_and_delete()

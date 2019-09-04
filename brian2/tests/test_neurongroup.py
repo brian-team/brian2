@@ -12,7 +12,7 @@ from brian2.core.variables import linked_var
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.clocks import defaultclock
-from brian2.devices.device import reinit_devices, seed
+from brian2.devices.device import reinit_and_delete, seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -126,7 +126,7 @@ def test_variableview_calculations():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_stochastic_variable():
     '''
     Test that a NeuronGroup with a stochastic variable can be simulated. Only
@@ -137,7 +137,7 @@ def test_stochastic_variable():
     run(defaultclock.dt)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_stochastic_variable_multiplicative():
     '''
     Test that a NeuronGroup with multiplicative noise can be simulated. Only
@@ -169,7 +169,7 @@ def test_scalar_variable():
     net.run(defaultclock.dt)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_referred_scalar_variable():
     '''
     Test the correct handling of referred scalar variables in subexpressions
@@ -185,7 +185,7 @@ def test_referred_scalar_variable():
     assert_allclose(G2.out[:], np.arange(10)+1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_variable_correct():
     '''
     Test correct uses of linked variables.
@@ -227,7 +227,7 @@ def test_linked_variable_incorrect():
     assert_raises(TypeError, lambda: setattr(G3, 'not_linked', linked_var(G1.x)))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_variable_scalar():
     '''
     Test linked variable from a size 1 group.
@@ -382,7 +382,7 @@ def test_linked_subgroup2():
     assert_allclose(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_subexpression():
     '''
     Test a subexpression referring to a linked variable.
@@ -403,7 +403,7 @@ def test_linked_subexpression():
     assert all((all(mon[i+5].I == mon[5].I) for i in range(5)))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_subexpression_2():
     '''
     Test a linked variable referring to a subexpression without indices
@@ -423,7 +423,7 @@ def test_linked_subexpression_2():
     assert all(mon[1].I_l == mon1[1].I)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_subexpression_3():
     '''
     Test a linked variable referring to a subexpression with indices
@@ -505,7 +505,7 @@ def test_linked_synapses():
     assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_var_in_reset():
     G1 = NeuronGroup(3, 'x:1')
     G2 = NeuronGroup(3, '''x_linked : 1 (linked)
@@ -519,7 +519,7 @@ def test_linked_var_in_reset():
     assert_allclose(G1.x[:], [0, 1, 0])
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_linked_var_in_reset_size_1():
     G1 = NeuronGroup(1, 'x:1')
     G2 = NeuronGroup(1, '''x_linked : 1 (linked)
@@ -648,7 +648,7 @@ def test_namespace_warnings():
         assert len(l) == 0, 'got %s as warnings' % str(l)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_threshold_reset():
     '''
     Test that threshold and reset work in the expected way.
@@ -911,7 +911,7 @@ def test_state_variable_access_strings():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_state_variable_set_strings():
     # Instead of overwriting the same variable over and over, we have one
     # variable for each assignment so that we can test everything in the end
@@ -1154,7 +1154,7 @@ def test_scalar_subexpression():
     assert_raises(SyntaxError, net.run, 0*ms)
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_sim_with_scalar_variable():
     G = NeuronGroup(10, '''tau : second (shared)
                            dv/dt = -v/tau : 1''', method='exact')
@@ -1165,7 +1165,7 @@ def test_sim_with_scalar_variable():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_sim_with_scalar_subexpression():
     G = NeuronGroup(10, '''tau = 10*ms : second (shared)
                            dv/dt = -v/tau : 1''', method='exact')
@@ -1175,7 +1175,7 @@ def test_sim_with_scalar_subexpression():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_constant_variable_subexpression():
     G = NeuronGroup(10, '''dv1/dt = -v1**2 / (10*ms) : 1
                            dv2/dt = -v_const**2 / (10*ms) : 1
@@ -1451,7 +1451,7 @@ def test_random_vector_values():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_random_values_random_seed():
     G = NeuronGroup(100, '''v1 : 1
                             v2 : 1''')
@@ -1466,7 +1466,7 @@ def test_random_values_random_seed():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_random_values_fixed_seed():
     G = NeuronGroup(100, '''v1 : 1
                             v2 : 1''')
@@ -1518,7 +1518,7 @@ def test_no_code():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_run_regularly_scheduling():
     G = NeuronGroup(1, '''v1 : 1
                           v2 : 1
@@ -1533,7 +1533,7 @@ def test_run_regularly_scheduling():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_run_regularly_dt():
     G = NeuronGroup(1, 'v : 1')
     G.run_regularly('v += 1', dt=2*defaultclock.dt)
@@ -1544,7 +1544,7 @@ def test_run_regularly_dt():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_semantics_floor_division():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''a : integer
@@ -1575,7 +1575,7 @@ def test_semantics_floor_division():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_semantics_floating_point_division():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''x1 : 1
@@ -1610,7 +1610,7 @@ def test_semantics_floating_point_division():
 
 
 @attr('standalone-compatible')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_semantics_mod():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''a : integer

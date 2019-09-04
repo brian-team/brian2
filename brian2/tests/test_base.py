@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from brian2 import *
-from brian2.devices.device import reinit_devices
+from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
 from numpy.testing import assert_raises, assert_equal
@@ -67,7 +67,7 @@ def test_duplicate_names():
 
 
 @attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_active_flag():
     G = NeuronGroup(1, 'dv/dt = 1/ms : 1')
     mon = StateMonitor(G, 'v', record=0)

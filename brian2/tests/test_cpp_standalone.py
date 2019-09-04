@@ -1,15 +1,18 @@
 from __future__ import absolute_import
+import os
+
 from nose import with_setup
 from nose.plugins.attrib import attr
 from numpy.testing.utils import assert_equal, assert_raises
 
 from brian2 import *
-from brian2.devices.device import reinit_devices, set_device, reset_device
+from brian2.devices.device import reinit_and_delete, set_device, reset_device
 from brian2.tests.utils import assert_allclose
+from brian2.utils.logger import catch_logs
 
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_cpp_standalone():
     set_device('cpp_standalone', build_on_run=False)
     ##### Define the model
@@ -45,7 +48,7 @@ def test_cpp_standalone():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_multiple_connects():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
@@ -58,7 +61,7 @@ def test_multiple_connects():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_storing_loading():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, '''v : volt
@@ -95,7 +98,7 @@ def test_storing_loading():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_openmp_consistency():
     previous_device = get_device()
     n_cells    = 100
@@ -139,7 +142,7 @@ def test_openmp_consistency():
         set_device(devicename, build_on_run=False, with_output=False)
         Synapses.__instances__().clear()
         if devicename == 'cpp_standalone':
-            reinit_devices()
+            reinit_and_delete()
         prefs.devices.cpp_standalone.openmp_threads = n_threads
         P    = NeuronGroup(n_cells, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
         Q    = SpikeGeneratorGroup(n_cells, sources, times)
@@ -191,7 +194,7 @@ def test_openmp_consistency():
     reset_device(previous_device)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_duplicate_names_across_nets():
     set_device('cpp_standalone', build_on_run=False)
     # In standalone mode, names have to be globally unique, not just unique
@@ -209,7 +212,7 @@ def test_duplicate_names_across_nets():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_openmp_scalar_writes():
     # Test that writing to a scalar variable only is done once in an OpenMP
     # setting (see github issue #551)
@@ -224,7 +227,7 @@ def test_openmp_scalar_writes():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_time_after_run():
     set_device('cpp_standalone', build_on_run=False)
     # Check that the clock and network time after a run is correct, even if we
@@ -252,7 +255,7 @@ def test_time_after_run():
     reset_device()
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_array_cache():
     # Check that variables are only accessible from Python when they should be
     set_device('cpp_standalone', build_on_run=False)
@@ -317,7 +320,7 @@ def test_array_cache():
     assert_allclose(S.weight, 7)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_run_with_debug():
     # We just want to make sure that it works for now (i.e. not fails with a
     # compilation or runtime error), capturing the output is actually
@@ -331,7 +334,7 @@ def test_run_with_debug():
     run(defaultclock.dt)
 
 @attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_devices)
+@with_setup(teardown=reinit_and_delete)
 def test_changing_profile_arg():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10000, 'v : 1')
@@ -382,6 +385,49 @@ def test_changing_profile_arg():
     assert ('op3_codeobject_1' in profiling_dict and
             profiling_dict['op3_codeobject_1'] > 0*second)
 
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_and_delete)
+def test_delete_code_data():
+    set_device('cpp_standalone', build_on_run=True, directory=None)
+    group = NeuronGroup(10, 'dv/dt = -v / (10*ms) : volt', method='exact')
+    group.v = np.arange(10)*mV  # uses the static array mechanism
+    run(defaultclock.dt)
+    results_dir = os.path.join(device.project_dir, 'results')
+    assert os.path.exists(results_dir) and os.path.isdir(results_dir)
+    # There should be 3 files for the clock, 2 for the neurongroup (index + v),
+    # and the "last_run_info.txt" file
+    assert len(os.listdir(results_dir)) == 6
+    device.delete(data=True, code=False, directory=False)
+    assert os.path.exists(results_dir) and os.path.isdir(results_dir)
+    assert len(os.listdir(results_dir)) == 0
+    assert len(os.listdir(os.path.join(device.project_dir, 'static_arrays'))) > 0
+    assert len(os.listdir(os.path.join(device.project_dir, 'code_objects'))) > 0
+    device.delete(data=False, code=True, directory=False)
+    assert len(os.listdir(os.path.join(device.project_dir, 'static_arrays'))) == 0
+    assert len(os.listdir(os.path.join(device.project_dir, 'code_objects'))) == 0
+
+
+@attr('cpp_standalone', 'standalone-only')
+@with_setup(teardown=reinit_and_delete)
+def test_delete_directory():
+    set_device('cpp_standalone', build_on_run=True, directory=None)
+    group = NeuronGroup(10, 'dv/dt = -v / (10*ms) : volt', method='exact')
+    group.v = np.arange(10)*mV  # uses the static array mechanism
+    run(defaultclock.dt)
+    # Add a new file
+    dummy_file = os.path.join(device.project_dir, 'results', 'dummy.txt')
+    open(dummy_file, 'w').flush()
+    assert os.path.isfile(dummy_file)
+    with catch_logs() as logs:
+        device.delete(directory=True)
+    assert len(logs) == 1
+    assert os.path.isfile(dummy_file)
+    with catch_logs() as logs:
+        device.delete(directory=True, force=True)
+    assert len(logs) == 0
+    # everything should be deleted
+    assert not os.path.exists(device.project_dir)
+
 
 if __name__=='__main__':
     for t in [
@@ -395,6 +441,8 @@ if __name__=='__main__':
              test_array_cache,
              test_run_with_debug,
              test_changing_profile_arg,
+             test_delete_code_data,
+             test_delete_directory
              ]:
         t()
-        reinit_devices()
+        reinit_and_delete()
