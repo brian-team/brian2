@@ -199,6 +199,39 @@ file, e.g. to use `clang <https://clang.llvm.org/>`_ instead of the default
 
 .. _compiler_settings:
 
+Cleaning up after a run
+~~~~~~~~~~~~~~~~~~~~~~~
+Standalone simulations store all results of a simulation (final state variable
+values and values stored in monitors) to disk. These results can take up quite
+significant amount of space, and you might therefore want to delete these
+results when you do not need them anymore. You can do this by using the device's
+`~.Device.delete` method::
+
+    device.delete()
+
+Be aware that deleting the data will make all access to state variables fail,
+including the access to values in monitors. You should therefore only delete the
+data after doing all analysis/plotting that you are interested in.
+
+By default, this function will delete both the generated code and the data, i.e.
+the full project directory. If you want to keep the code (which typically takes
+up little space compared to the results), exclude it from the deletion::
+
+    device.delete(code=False)
+
+If you added any additional files to the project directory manually, these will
+not be deleted by default. To delete the full directory regardless of its
+content, use the ``force`` option::
+
+    device.delete(force=True)
+
+.. note::
+    When you initialize state variables with concrete values (and not with
+    a string expression), they will be stored to disk from your Python script
+    and loaded from disk at the beginning of the standalone run. Since these
+    values are necessary for the compiled binary file to run, they are
+    considered "code" from the point of view of the `~.Device.delete` function.
+
 Compiler settings
 -----------------
 
