@@ -266,7 +266,7 @@ understood as slots in the respective positions. The default
 for the ``when`` attribute is a sensible value for most objects (resets will
 happen in the ``reset`` slot, etc.) but sometimes it make sense to change it,
 e.g. if one would like a `StateMonitor`, which by default records in the
-``end`` slot, to record the membrane potential before a reset is applied
+``start`` slot, to record the membrane potential before a reset is applied
 (otherwise no threshold crossings will be observed in the membrane potential
 traces).
 
