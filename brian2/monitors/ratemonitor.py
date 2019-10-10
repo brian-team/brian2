@@ -74,7 +74,9 @@ class PopulationRateMonitor(Group, CodeRunner):
         self._enable_group_attributes()
 
     def resize(self, new_size):
-        self.variables['N'].set_value(new_size)
+        # Note that this does not set N, this has to be done in the template
+        # since we use a restricted pointer to access it (which promises that
+        # we only change the value through this pointer)
         self.variables['rate'].resize(new_size)
         self.variables['t'].resize(new_size)
 

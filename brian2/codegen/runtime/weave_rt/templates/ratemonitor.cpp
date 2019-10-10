@@ -1,7 +1,7 @@
 {% import 'common_macros.cpp' as common with context %}
 {% macro main() %}
     {{ common.insert_group_preamble() }}
-    {# USES_VARIABLES { t, rate, _clock_t, _clock_dt, _spikespace,
+    {# USES_VARIABLES { N, t, rate, _clock_t, _clock_dt, _spikespace,
                         _num_source_neurons, _source_start, _source_stop } #}
 	int _num_spikes = {{_spikespace}}[_num_spikespace-1];
     // For subgroups, we do not want to record all spikes
@@ -42,7 +42,7 @@
     //Set the new values
     t_data[_new_len - 1] = {{_clock_t}};
     rate_data[_new_len - 1] = 1.0 * _num_spikes / {{_clock_dt}} / _num_source_neurons;
-
+    {{N}} = _new_len;
 {% endmacro %}
 
 {% macro support_code() %}
