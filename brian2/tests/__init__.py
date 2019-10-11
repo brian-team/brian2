@@ -283,7 +283,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 multiprocess._instantiate_plugins.append(OurDoctestPlugin)
             success.append(nose.run(argv=argv,
                                     addplugins=plugins+[OurDoctestPlugin()]))
-            multiprocess._instantiate_plugins.remove(OurDoctestPlugin)
+            if 'codegen_independent' in test_in_parallel:
+                multiprocess._instantiate_plugins.remove(OurDoctestPlugin)
             clear_caches()
 
         for target in codegen_targets:
