@@ -42,8 +42,10 @@ try:
         def _get_test(self, obj, name, module, globs, source_lines):
             if getattr(obj, '_do_not_run_doctests', False):
                 return None
-            return super(OurDoctestFinder, self)._get_test(obj, name, module,
-                                                           globs, source_lines)
+            # note that doctest.DocTestFinder is an old-style class in Python 2,
+            # we therefore cannot use the super mechanism
+            return doctest.DocTestFinder._get_test(self, obj, name, module,
+                                                   globs, source_lines)
 
     class OurDoctestPlugin(doctests.Doctest):
         name = 'ourdoctest'
