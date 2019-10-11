@@ -7,5 +7,6 @@ _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]
 _new_len = {{N}} + 1
 _owner.resize(_new_len)
+{{N}} = _new_len
 {{_dynamic_t}}[-1] = {{_clock_t}}
 {{_dynamic_rate}}[-1] = 1.0 * len(_spikes) / {{_clock_dt}} / _num_source_neurons

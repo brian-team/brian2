@@ -1,7 +1,7 @@
 {% extends 'common.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { t, rate, _clock_t, _clock_dt, _spikespace,
+    {# USES_VARIABLES { N, t, rate, _clock_t, _clock_dt, _spikespace,
                         _num_source_neurons, _source_start, _source_stop } #}
 
     cdef int _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
@@ -32,6 +32,7 @@
 
     # Resize the arrays
     _owner.resize(_new_len)
+    {{N}} = _new_len
 
     # Set the new values
     {{_dynamic_t}}.data[_new_len-1] = {{_clock_t}}

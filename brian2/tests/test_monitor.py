@@ -57,6 +57,10 @@ def test_spike_monitor():
     assert_raises(KeyError, lambda: spike_trains[-1])
     assert_raises(KeyError, lambda: spike_trains['string'])
 
+    # Check that indexing into the VariableView works (this fails if we do not
+    # update the N variable correctly)
+    assert_allclose(mon.t[:5], [0.9, 1.9, 2.9, 3.9, 4.9]*ms)
+
 
 def test_spike_monitor_indexing():
     generator = SpikeGeneratorGroup(3, [0, 0, 0, 1], [0, 1, 2, 1]*ms)
@@ -433,8 +437,12 @@ def test_rate_monitor_1():
 
     assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
     assert_allclose(rate_mon.t_, np.arange(10) * defaultclock.dt_)
+    assert_allclose(rate_mon.t, np.arange(10) * defaultclock.dt)
     assert_allclose(rate_mon.rate, np.ones(10) / defaultclock.dt)
     assert_allclose(rate_mon.rate_, np.asarray(np.ones(10) / defaultclock.dt_))
+    # Check that indexing into the VariableView works (this fails if we do not
+    # update the N variable correctly)
+    assert_allclose(rate_mon.t[:5], np.arange(5) * defaultclock.dt)
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_and_delete)
