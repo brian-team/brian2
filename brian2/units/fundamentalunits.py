@@ -211,6 +211,7 @@ def wrap_function_dimensionless(func):
     f._return_unit = 1
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
+    f._do_not_run_doctests = True
     return f
 
 
@@ -231,6 +232,7 @@ def wrap_function_keep_dimensions(func):
     f._return_unit = lambda u : u
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
+    f._do_not_run_doctests = True
     return f
 
 
@@ -254,6 +256,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
     f._return_unit = change_dim_func
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
+    f._do_not_run_doctests = True
     return f
 
 
@@ -273,6 +276,7 @@ def wrap_function_remove_dimensions(func):
     f._return_unit = 1
     f.__name__ = func.__name__
     f.__doc__ = func.__doc__
+    f._do_not_run_doctests = True
     return f
 
 
@@ -1666,11 +1670,13 @@ class Quantity(np.ndarray, object):
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).fill(values)
     fill.__doc__ = np.ndarray.fill.__doc__
+    fill._do_not_run_doctests = True
 
     def put(self, indices, values, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, values, 'fill')
         super(Quantity, self).put(indices, values, *args, **kwds)
     put.__doc__ = np.ndarray.put.__doc__
+    put._do_not_run_doctests = True
 
     def clip(self, a_min, a_max, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, a_min, 'clip')
@@ -1681,18 +1687,21 @@ class Quantity(np.ndarray, object):
                                 *args, **kwds),
                         self.dim)
     clip.__doc__ = np.ndarray.clip.__doc__
+    clip._do_not_run_doctests = True
 
     def dot(self, other, **kwds): # pylint: disable=C0111
         return Quantity(np.array(self).dot(np.array(other),
                                            **kwds),
                         self.dim*get_dimensions(other))
     dot.__doc__ = np.ndarray.dot.__doc__
+    dot._do_not_run_doctests = True
 
     def searchsorted(self, v, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(self, v, 'searchsorted')
         return super(Quantity, self).searchsorted(np.array(v, copy=False),
                                                   **kwds)
     searchsorted.__doc__ = np.ndarray.searchsorted.__doc__
+    searchsorted._do_not_run_doctests = True
 
     def prod(self, *args, **kwds): # pylint: disable=C0111
         prod_result = super(Quantity, self).prod(*args, **kwds)
@@ -1712,6 +1721,7 @@ class Quantity(np.ndarray, object):
         return Quantity(np.array(prod_result, copy=False),
                         self.dim ** dim_exponent)
     prod.__doc__ = np.ndarray.prod.__doc__
+    prod._do_not_run_doctests = True
 
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
         if not self.is_dimensionless:
@@ -1719,7 +1729,7 @@ class Quantity(np.ndarray, object):
                             'with dimensions is not possible.')
         return Quantity(np.array(self, copy=False).cumprod(*args, **kwds))
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
-
+    cumprod._do_not_run_doctests = True
 
 class Unit(Quantity):
     r'''

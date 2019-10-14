@@ -15,6 +15,8 @@ from brian2.devices.device import all_devices, set_device, reset_device
 try:
     import nose
     from nose.plugins.errorclass import ErrorClassPlugin, ErrorClass
+    import nose.plugins.doctests as doctests
+    import doctest
 
     class NotImplementedPlugin(ErrorClassPlugin):
         enabled = True
@@ -36,6 +38,26 @@ try:
             # For some reason, this only works if this method exists...
             pass
 
+    class OurDoctestFinder(doctest.DocTestFinder):
+        def _get_test(self, obj, name, module, globs, source_lines):
+            if getattr(obj, '_do_not_run_doctests', False):
+                return None
+            # note that doctest.DocTestFinder is an old-style class in Python 2,
+            # we therefore cannot use the super mechanism
+            return doctest.DocTestFinder._get_test(self, obj, name, module,
+                                                   globs, source_lines)
+
+    class OurDoctestPlugin(doctests.Doctest):
+        name = 'ourdoctest'
+        enabled = True
+
+        def configure(self, options, config):
+            super(OurDoctestPlugin, self).configure(options, config)
+            self.finder = OurDoctestFinder()
+
+        def options(self, parser, env):
+            pass  # do not register any options
+
 except ImportError:
     nose = None
 
@@ -47,7 +69,7 @@ def clear_caches():
     make_statements._cache.clear()
 
 
-def make_argv(dirnames, attributes, doctests=False):
+def make_argv(dirnames, attributes):
     '''
     Create the list of arguments for the ``nosetests`` call.
 
@@ -73,8 +95,6 @@ def make_argv(dirnames, attributes, doctests=False):
              '--nologcapture',
              '--exe',
              '--stop'])
-    if doctests:
-        argv += ['--with-doctest']
     return argv
 
 
@@ -259,11 +279,14 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 np.set_printoptions(legacy='1.13')
             except TypeError:
                 pass  # using a numpy version < 1.14
-            argv = make_argv(dirnames, "codegen-independent", doctests=True)
+            argv = make_argv(dirnames, "codegen-independent")
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
+                multiprocess._instantiate_plugins.append(OurDoctestPlugin)
             success.append(nose.run(argv=argv,
-                                    addplugins=plugins))
+                                    addplugins=plugins+[OurDoctestPlugin()]))
+            if 'codegen_independent' in test_in_parallel:
+                multiprocess._instantiate_plugins.remove(OurDoctestPlugin)
             clear_caches()
 
         for target in codegen_targets:
