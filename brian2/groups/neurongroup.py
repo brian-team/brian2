@@ -20,10 +20,12 @@ from brian2.core.preferences import prefs
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import (Variables, LinkedVariable,
                                    DynamicArrayVariable, Subexpression)
+from brian2.core.namespace import get_local_namespace
 from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         SUBEXPRESSION, PARAMETER,
                                         check_subexpressions,
-                                        extract_constant_subexpressions)
+                                        extract_constant_subexpressions,
+                                        SingleEquation)
 from brian2.equations.refractory import add_refractoriness
 from brian2.parsing.expressions import (parse_expression_dimensions,
                                         is_boolean_expression)
@@ -35,10 +37,11 @@ from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
-
+from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
+from scipy.optimize import root
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
@@ -923,3 +926,85 @@ class NeuronGroup(Group, SpikeSource):
                 add_event_to_text(event)
 
         return '\n'.join(text)
+
+    def resting_state(self, x0):
+        '''
+        Calculate resting state of the system. 
+
+        Parameters
+        ----------
+        x0 : dict
+            Initial guess for the state variables. If any of the system's state variables are not
+            added, default value of 0 is mapped as the initial guess to the missing state variables.
+            Note: Time elapsed to locate the resting state would be lesser for better initial guesses.
+
+        Returns
+        -------
+        rest_state : dict
+            Dictioary with pair of state variables and resting state values. Returned values 
+            are represented in SI units.
+        '''
+        self.namespace = get_local_namespace(1)      
+
+        if(x0.keys() - self.equations.diff_eq_names):
+            raise KeyError("Unknown State Variable: {}".format(next(iter(x0.keys() - self.equations.diff_eq_names))))
+        
+        # Add 0 as the intial value for non-mentioned state variables in x0
+        x0.update({name : 0 for name in self.equations.diff_eq_names - x0.keys()})
+        
+        return dict(zip(sorted(self.equations.diff_eq_names), root(_wrapper, list(dict(sorted(x0.items())).values()), 
+            args = (self.equations, self.namespace )).x))
+
+def _evaluate_rhs(eqs, values, namespace=None, level=0):
+        """
+        Evaluates the RHS of a system of differential equations for given state
+        variable values. External constants can be provided via the namespace or
+        will be taken from the local namespace.
+        This function could be used for example to find a resting state of the
+        system, i.e. a fixed point where the RHS of all equations are approximately
+        0.
+        Parameters
+        ----------
+        eqs : `Equations`
+            The equations
+        values : dict-like
+            Values for each of the state variables (differential equations and
+            parameters).
+        Returns
+        -------
+        rhs : dict
+            A dictionary with the names of all variables defined by differential
+            equations as keys and the respective RHS of the equations as values.
+        """
+        # Make a new set of equations, where differential equations are replaced
+        # by parameters, and a new subexpression defines their RHS.
+        # E.g. for 'dv/dt = -v / tau : volt' use:
+        # '''v : volt
+        #    RHS_v = -v / tau : volt'''
+        new_equations = []
+        for eq in eqs.values():
+            if eq.type == DIFFERENTIAL_EQUATION:
+                new_equations.append(SingleEquation(PARAMETER, eq.varname,
+                                                    dimensions=eq.dim,
+                                                    var_type=eq.var_type))
+                new_equations.append(SingleEquation(SUBEXPRESSION, 'RHS_'+eq.varname,
+                                                    dimensions=eq.dim/second.dim,
+                                                    var_type=eq.var_type,
+                                                    expr=eq.expr))
+            else:
+                new_equations.append(eq)
+        # TODO: Hide this from standalone mode
+        group = NeuronGroup(1, model=Equations(new_equations),
+                            codeobj_class=NumpyCodeObject,
+                            namespace=namespace)
+
+        # Set the values of the state variables/parameters and units are not taken into account
+        group.set_states(values, units = False)
+
+        # Get the values of all RHS_... subexpressions
+        states = ['RHS_' + name for name in eqs.diff_eq_names]
+        return group.get_states(states)
+
+def _wrapper(args, equations, namespace): 
+    rhs = _evaluate_rhs(equations, {name : arg for name, arg in zip(sorted(equations.diff_eq_names), args)}, namespace)
+    return [float(rhs['RHS_{}'.format(name)]) for name in sorted(equations.diff_eq_names)]
