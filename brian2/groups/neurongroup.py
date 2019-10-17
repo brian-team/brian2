@@ -924,7 +924,7 @@ class NeuronGroup(Group, SpikeSource):
 
         return '\n'.join(text)
 
-    def resting_state(self, x0):
+    def resting_state(self, x0 = {}):
         '''
         Calculate resting state of the system. 
 
@@ -941,7 +941,6 @@ class NeuronGroup(Group, SpikeSource):
             Dictioary with pair of state variables and resting state values. Returned values 
             are represented in SI units.
         '''
-        self.namespace = get_local_namespace(1)      
 
         if(x0.keys() - self.equations.diff_eq_names):
             raise KeyError("Unknown State Variable: {}".format(next(iter(x0.keys() - self.equations.diff_eq_names))))
@@ -950,9 +949,9 @@ class NeuronGroup(Group, SpikeSource):
         x0.update({name : 0 for name in self.equations.diff_eq_names - x0.keys()})
         
         return dict(zip(sorted(self.equations.diff_eq_names), root(_wrapper, list(dict(sorted(x0.items())).values()), 
-            args = (self.equations, self.namespace )).x))
+            args = (self.equations, get_local_namespace(1))).x))
 
-def _evaluate_rhs(eqs, values, namespace=None, level=0):
+def _evaluate_rhs(eqs, values, namespace=None):
         """
         Evaluates the RHS of a system of differential equations for given state
         variable values. External constants can be provided via the namespace or
