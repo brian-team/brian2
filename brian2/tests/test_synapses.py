@@ -1900,9 +1900,9 @@ def test_synaptic_equations():
 @with_setup(teardown=reinit_and_delete)
 def test_synapse_with_run_regularly():
     # Check that integration works for synaptic equations
-    G = NeuronGroup(10, '')
+    G = NeuronGroup(10, 'v : 1', threshold='False')
     tau = 10*ms
-    S = Synapses(G, G, 'w : 1')
+    S = Synapses(G, G, 'w : 1', on_pre='v += w')
     S.connect(j='i')
     S.run_regularly('w = i')
     run(defaultclock.dt)
