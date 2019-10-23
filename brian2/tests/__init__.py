@@ -93,8 +93,7 @@ def make_argv(dirnames, attributes):
              '-I', '^_',
              "-a", attributes,
              '--nologcapture',
-             '--exe',
-             '--stop'])
+             '--exe'])
     return argv
 
 
