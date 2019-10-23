@@ -1046,9 +1046,11 @@ class Synapses(Group):
 
         # Standard variables always present
         self.variables.add_dynamic_array('_synaptic_pre', size=0,
-                                         dtype=np.int32)
+                                         dtype=np.int32, constant=True,
+                                         read_only=True)
         self.variables.add_dynamic_array('_synaptic_post', size=0,
-                                         dtype=np.int32)
+                                         dtype=np.int32, constant=True,
+                                         read_only=True)
         self.variables.create_clock_variables(self._clock,
                                               prefix='_clock_')
         if '_offset' in self.target.variables:

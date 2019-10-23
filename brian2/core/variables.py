@@ -1783,7 +1783,8 @@ class Variables(Mapping):
 
         if (self.owner is not None and self.owner.name != group.name and
                     index in self.owner.variables):
-            if (not self.owner.variables[index].read_only and
+            if ((not self.owner.variables[index].read_only or
+                 isinstance(self.owner.variables[index], DynamicArrayVariable)) and
                     group.variables.indices[varname] != group.variables.default_index):
                 raise TypeError(('Cannot link variable %s to %s in group %s -- '
                                  'need to precalculate direct indices but '
