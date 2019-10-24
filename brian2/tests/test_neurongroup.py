@@ -1534,6 +1534,40 @@ def test_run_regularly_scheduling():
 
 @attr('standalone-compatible')
 @with_setup(teardown=reinit_and_delete)
+def test_run_regularly_scheduling_2():
+    # This form is relevant for Brian2GeNN, where we are not allowed to change
+    # the "when" attribute, but can change the order.
+    G = NeuronGroup(1, '''v1 : 1
+                          v2 : 1
+                          v3 : 1''')
+    # The order should be:
+    # 0: 'v3 = v1'
+    # 1: monitor 1 (v1)
+    # 2: v1 += 1
+    # 3: monitor 2 (v1)
+    # 4: monitor 3 (v2)
+    # 5: v2 = v1
+    # 6: monitor 4 (v2)
+    mon_1 = StateMonitor(G, 'v1', record=0, order=1)
+    mon_2 = StateMonitor(G, 'v1', record=0, order=3)
+    mon_3 = StateMonitor(G, 'v2', record=0, order=4)
+    mon_4 = StateMonitor(G, 'v2', record=0, order=6)
+    G.run_regularly('v3 = v1', order=0)
+    G.run_regularly('v1 += 1', order=2)
+    G.run_regularly('v2 = v1', order=5)
+
+    run(2*defaultclock.dt)
+    assert_allclose(G.v1[:], 2)
+    assert_allclose(G.v2[:], 2)
+    assert_allclose(G.v3[:], 1)
+    assert_allclose(mon_1.v1[0], [0, 1])
+    assert_allclose(mon_2.v1[0], [1, 2])
+    assert_allclose(mon_3.v2[0], [0, 1])
+    assert_allclose(mon_4.v2[0], [1, 2])
+
+
+@attr('standalone-compatible')
+@with_setup(teardown=reinit_and_delete)
 def test_run_regularly_dt():
     G = NeuronGroup(1, 'v : 1')
     G.run_regularly('v += 1', dt=2*defaultclock.dt)
@@ -1710,6 +1744,7 @@ if __name__ == '__main__':
     test_random_values_fixed_and_random()
     test_no_code()
     test_run_regularly_scheduling()
+    test_run_regularly_scheduling_2()
     test_run_regularly_dt()
     test_semantics_floor_division()
     test_semantics_floating_point_division()
