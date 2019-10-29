@@ -109,7 +109,7 @@ class TextReport(object):
                                '%s\n') % (start, duration))
         else:
             report_msg = ('{t} ({percent}%) simulated in '
-                          '{real_t}').format(t=completed*duration,
+                          '{real_t}').format(t=str(completed*duration),
                                              percent=int(completed*100.),
                                              real_t=_format_time(float(elapsed)))
             if completed < 1.0:
