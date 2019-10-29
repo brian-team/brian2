@@ -1032,7 +1032,7 @@ class Network(Nameable):
                 current = time.time()
                 if current > next_report_time:
                     report_callback((current-start_time)*second,
-                                    (self.t_ - float(t_start))/float(t_end),
+                                    (self.t_ - float(t_start))/float(t_end - t_start),
                                     t_start, duration)
                     next_report_time = current + report_period
 
