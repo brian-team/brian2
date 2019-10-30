@@ -109,7 +109,7 @@ class TextReport(object):
                                '%s\n') % (start, duration))
         else:
             report_msg = ('{t} ({percent}%) simulated in '
-                          '{real_t}').format(t=completed*duration,
+                          '{real_t}').format(t=str(completed*duration),
                                              percent=int(completed*100.),
                                              real_t=_format_time(float(elapsed)))
             if completed < 1.0:
@@ -1032,7 +1032,7 @@ class Network(Nameable):
                 current = time.time()
                 if current > next_report_time:
                     report_callback((current-start_time)*second,
-                                    (self.t_ - float(t_start))/float(t_end),
+                                    (self.t_ - float(t_start))/float(t_end - t_start),
                                     t_start, duration)
                     next_report_time = current + report_period
 
