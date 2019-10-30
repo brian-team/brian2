@@ -5,8 +5,7 @@ from __future__ import division  # Make sure that we use Python 3 semantics in P
 from __future__ import absolute_import
 from collections import namedtuple
 
-from nose.plugins.attrib import attr
-from nose import SkipTest
+import pytest
 from numpy.testing import assert_raises
 import numpy as np
 
@@ -151,23 +150,23 @@ def cpp_evaluator(expr, ns):
                             include_dirs=prefs['codegen.cpp.include_dirs']
                             )
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_parse_expressions_python():
     parse_expressions(NodeRenderer(), eval)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_parse_expressions_numpy():
     parse_expressions(NumpyNodeRenderer(), numpy_evaluator)
 
 
 def test_parse_expressions_cpp():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
     parse_expressions(CPPNodeRenderer(), cpp_evaluator)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_parse_expressions_sympy():
     # sympy is about symbolic calculation, the string returned by the renderer
     # contains "Symbol('a')" etc. so we cannot simply evaluate it in a
@@ -190,7 +189,7 @@ def test_parse_expressions_sympy():
     parse_expressions(SympyRenderer(), evaluator)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_abstract_code_dependencies():
     code = '''
     a = b+c
@@ -225,7 +224,7 @@ def test_abstract_code_dependencies():
                                         k, getattr(res, k), set(v)))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_is_boolean_expression():
     # dummy "Variable" class
     Var = namedtuple("Var", ['is_boolean'])
@@ -278,7 +277,7 @@ def test_is_boolean_expression():
                   variables)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_parse_expression_unit():
     Var = namedtuple('Var', ['dim', 'dtype'])
     variables = {'a': Var(dim=(volt*amp).dim, dtype=np.float64),
@@ -341,7 +340,7 @@ def test_parse_expression_unit():
         assert_raises(SyntaxError, parse_expression_dimensions, expr, all_variables)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_value_from_expression():
     # This function is used to get the value of an exponent, necessary for unit checking
 
@@ -372,7 +371,7 @@ def test_value_from_expression():
                                                                        variables))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_abstract_code_from_function():
     # test basic functioning
     def f(x):
@@ -398,7 +397,7 @@ def test_abstract_code_from_function():
     assert_raises(SyntaxError, abstract_code_from_function, f)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_extract_abstract_code_functions():
     code = '''
     def f(x):
@@ -414,7 +413,7 @@ def test_extract_abstract_code_functions():
     assert funcs['g'].args == ['V']
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_substitute_abstract_code_functions():
     def f(x):
         y = x*x
@@ -441,7 +440,7 @@ def test_substitute_abstract_code_functions():
             assert ns1[k] == ns2[k]
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_sympytools():
     # sympy_to_str(str_to_sympy(x)) should equal x
 
@@ -459,7 +458,7 @@ def test_sympytools():
         expr2 = sympy_to_str(str_to_sympy(expr))
         assert expr.replace(' ', '') == expr2.replace(' ', ''), '%s != %s' % (expr, expr2)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_error_messages():
     nr = NodeRenderer()
     expr_expected = [('3^2', '^', '**'),
@@ -477,7 +476,7 @@ def test_error_messages():
             assert expected_2 in message
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_sympy_infinity():
     # See github issue #1061
     assert sympy_to_str(str_to_sympy('inf')) == 'inf'
@@ -485,11 +484,12 @@ def test_sympy_infinity():
 
 
 if __name__=='__main__':
+    from _pytest.outcomes import Skipped
     test_parse_expressions_python()
     test_parse_expressions_numpy()
     try:
         test_parse_expressions_cpp()
-    except SkipTest:
+    except Skipped:
         pass
     test_parse_expressions_sympy()
     test_abstract_code_dependencies()

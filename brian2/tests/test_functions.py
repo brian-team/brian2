@@ -1,22 +1,19 @@
 from __future__ import print_function
-
 from __future__ import absolute_import
 import os
 
-from nose import SkipTest, with_setup
-from nose.plugins.attrib import attr
+import pytest
 from numpy.testing import assert_equal, assert_raises
 
 from brian2 import *
 from brian2.core.functions import timestep
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
-from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 from brian2.codegen.generators import CodeGenerator
 from brian2.codegen.codeobject import CodeObject
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_constants_sympy():
     '''
     Make sure that symbolic constants are understood correctly by sympy
@@ -25,8 +22,7 @@ def test_constants_sympy():
     assert sympy_to_str(str_to_sympy('sin(pi)')) == '0'
     assert sympy_to_str(str_to_sympy('log(e)')) == '1'
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_constants_values():
     '''
     Make sure that symbolic constants use the correct values in code
@@ -100,8 +96,7 @@ def test_math_functions():
                             err_msg='Function %s did not return the correct values' % func.__name__)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_clip():
     G = NeuronGroup(4, '''
                        clipexpr1 = clip(integer_var1, 0, 1) : integer
@@ -126,8 +121,7 @@ def test_clip():
     assert_allclose(s_mon.clipexpr4.flatten(), [0, 1, -0.5, 1.5])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_bool_to_int():
     # Test that boolean expressions and variables are correctly converted into
     # integers
@@ -144,7 +138,7 @@ def test_bool_to_int():
     assert_equal(s_mon.intexpr1.flatten(), [1, 0])
     assert_equal(s_mon.intexpr2.flatten(), [1, 0])
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_timestep_function():
     dt = defaultclock.dt_
     # Check that multiples of dt end up in the correct time step
@@ -160,8 +154,7 @@ def test_timestep_function():
     assert ts.shape == (1,) and ts == 5
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_timestep_function_during_run():
     group = NeuronGroup(2, '''ref_t : second
                               ts = timestep(ref_t, dt) + timestep(t, dt) : integer''')
@@ -172,8 +165,7 @@ def test_timestep_function_during_run():
     assert_equal(mon.ts[1], [5, 6, 7, 8, 9])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_user_defined_function():
     @implementation('cpp',"""
                 inline double usersin(double x)
@@ -199,14 +191,12 @@ def test_user_defined_function():
     run(default_dt)
     assert_allclose(np.sin(test_array), mon.func_.flatten())
 
-
-@with_setup(teardown=reinit_and_delete)
 def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
     '''
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     def nothing_specified(x, y, z):
         return x*(y+z)
@@ -279,7 +269,7 @@ def test_simple_user_defined_function():
 
 def test_manual_user_defined_function():
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     default_dt = defaultclock.dt
 
@@ -343,7 +333,7 @@ def test_manual_user_defined_function():
 
 def test_manual_user_defined_function_weave():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     # User defined function without any decorators
     def foo(x, y):
@@ -372,8 +362,8 @@ def test_manual_user_defined_function_weave():
     assert mon[0].func == [6] * volt
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_manual_user_defined_function_cpp_standalone_compiler_args():
     set_device('cpp_standalone', directory=None)
 
@@ -402,8 +392,8 @@ def test_manual_user_defined_function_cpp_standalone_compiler_args():
     assert mon[0].func == [6] * volt
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
     set_device('cpp_standalone', directory=None)
 
@@ -426,8 +416,8 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
                                                  namespace={'foo': foo}))
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
     set_device('cpp_standalone', directory=None)
 
@@ -452,7 +442,7 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
 
 def test_manual_user_defined_function_weave_compiler_args():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     @implementation('cpp', '''
     static inline double foo(const double x, const double y)
@@ -481,7 +471,7 @@ def test_manual_user_defined_function_weave_compiler_args():
 
 def test_manual_user_defined_function_weave_wrong_compiler_args1():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     @implementation('cpp', '''
     static inline double foo(const double x, const double y)
@@ -504,7 +494,7 @@ def test_manual_user_defined_function_weave_wrong_compiler_args1():
 
 def test_manual_user_defined_function_weave_wrong_compiler_args2():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     @implementation('cpp', '''
     static inline double foo(const double x, const double y)
@@ -527,7 +517,7 @@ def test_manual_user_defined_function_weave_wrong_compiler_args2():
 
 def test_manual_user_defined_function_cython_compiler_args():
     if prefs.codegen.target != 'cython':
-        raise SkipTest('Cython-only test')
+        pytest.skip('Cython-only test')
 
     @implementation('cython', '''
     cdef double foo(double x, const double y):
@@ -552,7 +542,7 @@ def test_manual_user_defined_function_cython_compiler_args():
 
 def test_manual_user_defined_function_cython_wrong_compiler_args1():
     if prefs.codegen.target != 'cython':
-        raise SkipTest('Cython-only test')
+        pytest.skip('Cython-only test')
 
     @implementation('cython', '''
     cdef double foo(double x, const double y):
@@ -574,7 +564,7 @@ def test_manual_user_defined_function_cython_wrong_compiler_args1():
 
 def test_manual_user_defined_function_cython_wrong_compiler_args2():
     if prefs.codegen.target != 'cython':
-        raise SkipTest('Cython-only test')
+        pytest.skip('Cython-only test')
 
     @implementation('cython', '''
     cdef double foo(double x, const double y):
@@ -596,7 +586,7 @@ def test_manual_user_defined_function_cython_wrong_compiler_args2():
 
 def test_external_function_cython():
     if prefs.codegen.target != 'cython':
-        raise SkipTest('Cython-only test')
+        pytest.skip('Cython-only test')
 
     this_dir = os.path.abspath(os.path.dirname(__file__))
     @implementation('cython', 'from func_def_cython cimport foo',
@@ -619,7 +609,7 @@ def test_external_function_cython():
 
 def test_external_function_weave():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     this_dir = os.path.abspath(os.path.dirname(__file__))
     @implementation('cpp', '//all code in func_def_cpp.cpp',
@@ -642,8 +632,8 @@ def test_external_function_weave():
     assert mon[0].func == [6] * volt
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_external_function_cpp_standalone():
     set_device('cpp_standalone', directory=None)
     this_dir = os.path.abspath(os.path.dirname(__file__))
@@ -667,7 +657,7 @@ def test_external_function_cpp_standalone():
     assert mon[0].func == [6] * volt
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_user_defined_function_discarding_units():
     # A function with units that should discard units also inside the function
     @implementation('numpy', discard_units=True)
@@ -681,7 +671,7 @@ def test_user_defined_function_discarding_units():
     assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_user_defined_function_discarding_units_2():
     # Add a numpy implementation explicitly (as in TimedArray)
     unit = volt
@@ -701,7 +691,7 @@ def test_user_defined_function_discarding_units_2():
     assert foo.implementations[NumpyCodeObject].get_code(None)(5) == 8
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_function_implementation_container():
     import brian2.codegen.targets as targets
 
@@ -767,7 +757,7 @@ def test_function_implementation_container():
 
 def test_function_dependencies_weave():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     @implementation('cpp', '''
     float foo(float x)
@@ -800,7 +790,7 @@ def test_function_dependencies_weave():
 
 def test_function_dependencies_weave_rename():
     if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
+        pytest.skip('weave-only test')
 
     @implementation('cpp', '''
     float _foo(float x)
@@ -833,7 +823,7 @@ def test_function_dependencies_weave_rename():
 
 def test_function_dependencies_cython():
     if prefs.codegen.target != 'cython':
-        raise SkipTest('cython-only test')
+        pytest.skip('cython-only test')
 
     @implementation('cython', '''
     cdef float foo(float x):
@@ -864,7 +854,7 @@ def test_function_dependencies_cython():
 
 def test_function_dependencies_cython_rename():
     if prefs.codegen.target != 'cython':
-        raise SkipTest('cython-only test')
+        pytest.skip('cython-only test')
 
     @implementation('cython', '''
     cdef float _foo(float x):
@@ -894,7 +884,7 @@ def test_function_dependencies_cython_rename():
 
 def test_function_dependencies_numpy():
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     @implementation('cpp', '''
     float foo(float x)
@@ -929,8 +919,7 @@ def test_function_dependencies_numpy():
     assert_allclose(G.v_[:], 84*0.001)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_repeated_function_dependencies():
     # each of the binomial functions adds randn as a depency, see #988
     test_neuron = NeuronGroup(1, 'x : 1',
@@ -941,8 +930,7 @@ def test_repeated_function_dependencies():
     run(0 * ms)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_binomial():
     binomial_f_approximated = BinomialFunction(100, 0.1, approximate=True)
     binomial_f = BinomialFunction(100, 0.1, approximate=False)
@@ -959,8 +947,7 @@ def test_binomial():
     assert np.var(mon[0].y) > 0
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_poisson():
     # Just check that it does not raise an error and that it produces some
     # values
@@ -982,7 +969,7 @@ def test_poisson():
 
 def test_declare_types():
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     @declare_types(a='integer', b='float', result='highest')
     def f(a, b):
@@ -1064,6 +1051,7 @@ if __name__ == '__main__':
     from brian2 import prefs
     # prefs.codegen.target = 'numpy'
     import time
+    from _pytest.outcomes import Skipped
     for f in [
             test_constants_sympy,
             test_constants_values,
@@ -1097,5 +1085,5 @@ if __name__ == '__main__':
             start = time.time()
             f()
             print('Test', f.__name__, 'took', time.time()-start)
-        except SkipTest as e:
+        except Skipped as e:
             print('Skipping test', f.__name__, e)

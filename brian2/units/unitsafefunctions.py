@@ -182,12 +182,3 @@ trace.__module__ = __name__
 dot.__module__ = __name__
 arange.__module__ = __name__
 linspace.__module__ = __name__
-
-def setup():
-    '''
-    Setup function for doctests (used by nosetest).
-    We do not want to test this module's docstrings as they
-    are inherited from numpy.
-    '''
-    from nose import SkipTest
-    raise SkipTest('Do not test numpy docstrings')

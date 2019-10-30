@@ -4,18 +4,16 @@ import re
 import logging
 
 from numpy.testing.utils import assert_equal, assert_raises
-from nose.plugins.attrib import attr
-from nose import with_setup
+import pytest
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
-from brian2.devices.device import reinit_and_delete
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import assert_allclose
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_explicit_stateupdater_parsing():
     '''
     Test the parsing of explicit state updater descriptions.
@@ -51,7 +49,7 @@ def test_explicit_stateupdater_parsing():
     updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
     assert_raises(ValueError, lambda: updater(Equations('')))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_non_autonomous_equations():
     # Check that non-autonmous equations are handled correctly in multi-step
     # updates
@@ -60,7 +58,7 @@ def test_non_autonomous_equations():
     # very crude test
     assert '0.5*dt' in update_step
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     '''
     Assure that __str__ and __repr__ do not raise errors 
@@ -70,7 +68,7 @@ def test_str_repr():
         assert len(repr(integrator))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_multiple_noise_variables_basic():
     # Very basic test, only to make sure that stochastic state updaters handle
     # multiple noise variables at all
@@ -120,34 +118,7 @@ def test_multiple_noise_variables_extended():
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
-old_randn = None
-def store_randn():
-    global old_randn
-    old_randn = DEFAULT_FUNCTIONS['randn']
-def restore_randn():
-    DEFAULT_FUNCTIONS['randn'] = old_randn
-
-# The "random" values are always 0.5
-def fake_randn(vectorisation_idx):
-    return 0.5*np.ones_like(vectorisation_idx)
-fake_randn = Function(fake_randn, arg_units=[], return_unit=1, auto_vectorise=True,
-                      stateless=False)
-fake_randn.implementations.add_implementation('cpp', '''
-                                              double randn(int vectorisation_idx)
-                                              {
-                                                  return 0.5;
-                                              }
-                                              ''')
-fake_randn.implementations.add_implementation('cython','''
-                                    cdef double randn(int vectorisation_idx):
-                                        return 0.5
-                                    ''')
-
-@with_setup(setup=store_randn, teardown=restore_randn)
-def test_multiple_noise_variables_deterministic_noise():
-
-    DEFAULT_FUNCTIONS['randn'] = fake_randn
-
+def test_multiple_noise_variables_deterministic_noise(fake_randn_randn_fixture):
     all_eqs = ['''dx/dt = y : 1
                           dy/dt = -y / (10*ms) + dt**-.5*0.5*ms**-1.5 + dt**-.5*0.5*ms**-1.5: Hz
                      ''',
@@ -183,7 +154,7 @@ def test_multiple_noise_variables_deterministic_noise():
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_multiplicative_noise():
     # Noise is not multiplicative (constant over time step)
     ta = TimedArray([0, 1], dt=defaultclock.dt*10)
@@ -226,9 +197,7 @@ def test_multiplicative_noise():
     assert_raises(UnsupportedEquationsException, net5.run, 0*ms)
 
 
-@with_setup(setup=store_randn, teardown=restore_randn)
-def test_pure_noise_deterministic():
-    DEFAULT_FUNCTIONS['randn'] = fake_randn
+def test_pure_noise_deterministic(fake_randn_randn_fixture):
     sigma = 3
     eqs = Equations('dx/dt = sigma*xi/sqrt(ms) : 1')
     dt = 0.1*ms
@@ -239,7 +208,7 @@ def test_pure_noise_deterministic():
                         err_msg='method %s did not give the expected result' % method)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_temporary_variables():
     '''
     Make sure that the code does the distinction between temporary variables
@@ -260,7 +229,7 @@ def test_temporary_variables():
     assert converted == converted2.replace('k_var', 'k_2')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_temporary_variables2():
     '''
     Make sure that the code does the distinction between temporary variables
@@ -282,7 +251,7 @@ def test_temporary_variables2():
     assert converted == converted2.replace('k_var', 'k')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
@@ -318,7 +287,7 @@ def test_integrator_code():
             assert code_var == code_v, "'%s' does not match '%s'" % (code_var, code_v)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_integrator_code2():
     '''
     Test integration for a simple model with several state variables.
@@ -342,7 +311,7 @@ def test_integrator_code2():
         for variable in variables:
             assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_illegal_calls():
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     clock = Clock(dt=0.1*ms)
@@ -386,7 +355,7 @@ def check_integration(eqs, variables, can_integrate):
                                      'integrator {}'.format(eqs,
                                                             integrator.__class__.__name__))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
@@ -452,7 +421,7 @@ def test_priority():
     check_integration(eqs, variables, can_integrate)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_registration():
     '''
     Test state updater registration.
@@ -480,7 +449,7 @@ def test_registration():
     StateUpdateMethod.stateupdaters = before 
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_determination():
     '''
     Test the determination of suitable state updaters.
@@ -600,8 +569,7 @@ def test_determination():
         assert len(logs) == 1
         assert "'heun'" in logs[0][2]
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_subexpressions_basic():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -647,7 +615,7 @@ def test_subexpressions():
         assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_locally_constant_check():
     default_dt = defaultclock.dt
     # The linear state update can handle additive time-dependent functions
@@ -731,10 +699,8 @@ def test_refractory():
                         err_msg=('Results with and without refractoriness '
                                  'differ for method %s.') % method)
 
-@with_setup(setup=store_randn, teardown=restore_randn)
-def test_refractory_stochastic():
-    # Fake stochastictiy, the random number generator always returns 0.5
-    DEFAULT_FUNCTIONS['randn'] = fake_randn
+
+def test_refractory_stochastic(fake_randn_randn_fixture):
 
     eqs_base = 'dv/dt = -v/(10*ms) + second**-.5*xi : 1'
 
@@ -750,8 +716,7 @@ def test_refractory_stochastic():
                         err_msg=('Results with and without refractoriness '
                                  'differ for method %s.') % method)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_check_for_invalid_values_linear_integrator():
     # A differential equation that cannot be solved by the linear
     # integrator should return nan values to warn the user, and not silently
@@ -794,12 +759,6 @@ if __name__ == '__main__':
     test_multiplicative_noise()
     test_multiple_noise_variables_basic()
     test_multiple_noise_variables_extended()
-    store_randn()
-    test_multiple_noise_variables_deterministic_noise()
-    restore_randn()
-    store_randn()
-    test_pure_noise_deterministic()
-    restore_randn()
     test_temporary_variables()
     test_temporary_variables2()
     test_integrator_code()
@@ -810,8 +769,9 @@ if __name__ == '__main__':
     test_subexpressions()
     test_locally_constant_check()
     test_refractory()
-    store_randn()
-    test_refractory_stochastic()
-    restore_randn()
+    # # Need the fake random number generator from tests/conftest.py
+    # test_refractory_stochastic()
+    # test_multiple_noise_variables_deterministic_noise()
+    # test_pure_noise_deterministic()
     test_check_for_invalid_values_linear_integrator()
     print('Tests took', time.time()-start)

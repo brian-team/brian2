@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from brian2.core.network import schedule_propagation_offset
-from nose import with_setup
-from nose.plugins.attrib import attr
+
+import pytest
 from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
 
 from brian2 import *
@@ -10,7 +10,7 @@ from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     '''
     Test the string representation of a subgroup.
@@ -60,8 +60,7 @@ def test_state_variables():
     # Indexing with subgroups
     assert_equal(G.v[SG], SG.v[:])
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_variables_simple():
     G = NeuronGroup(10, '''a : 1
                            b : 1
@@ -99,7 +98,7 @@ def test_state_variables_string_indices():
 
     assert_allclose(G.v[:], [0, 1, 2, 3, 4, 5, 6, 7, 40, 9] * mV)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_state_variables_group_as_index():
     G = NeuronGroup(10, 'v : 1')
     SG = G[4:9]
@@ -110,7 +109,7 @@ def test_state_variables_group_as_index():
     assert_equal(G.v[:], np.array([1, 1, 1, 1, 2, 2, 2, 2, 2, 1]))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_state_variables_group_as_index_problematic():
     G = NeuronGroup(10, 'v : 1')
     SG = G[4:9]
@@ -126,8 +125,7 @@ def test_state_variables_group_as_index_problematic():
             assert all([entry[1].endswith('ambiguous_string_expression')
                         for entry in l])
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_monitor():
     G = NeuronGroup(10, 'v : volt')
     G.v = np.arange(10) * volt
@@ -151,8 +149,7 @@ def test_shared_variable():
     assert SG.v == 1*volt
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synapse_creation():
     G1 = NeuronGroup(10, '', threshold='False')
     G2 = NeuronGroup(20, '', threshold='False')
@@ -175,8 +172,7 @@ def test_synapse_creation():
     assert all(S.N_incoming[:, 2] == 1)
     assert all(S.N_incoming[:, 5] == 1)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synapse_creation_state_vars():
     G1 = NeuronGroup(10, 'v : 1', threshold='False')
     G2 = NeuronGroup(20, 'v : 1', threshold='False')
@@ -211,8 +207,7 @@ def test_synapse_creation_state_vars():
     assert all(S5.v_pre[:] < 25)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synapse_creation_generator():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -260,8 +255,7 @@ def test_synapse_creation_generator():
     assert all(S5.v_pre[:] < 25)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synapse_creation_generator_multiple_synapses():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -319,8 +313,7 @@ def test_synapse_creation_generator_multiple_synapses():
         assert_equal(S10.i[:, source], np.arange(3, len(SG2)).repeat(2))
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synapse_creation_generator_complex_ranges():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -354,8 +347,7 @@ def test_synapse_creation_generator_complex_ranges():
     assert all(S3.v_pre[:] > 22)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synapse_creation_generator_random():
     G1 = NeuronGroup(10, 'v:1', threshold='False')
     G2 = NeuronGroup(20, 'v:1', threshold='False')
@@ -433,7 +425,7 @@ def test_synapses_access_subgroups():
     assert_equal(S.w['not (j>=4 and j<9)'], 0)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_synapses_access_subgroups_problematic():
     G1 = NeuronGroup(5, 'x:1')
     G2 = NeuronGroup(10, 'y:1')
@@ -470,8 +462,7 @@ def test_synapses_access_subgroups_problematic():
             assert all([entry[1].endswith('ambiguous_string_expression')
                         for entry in l])
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_subgroup_summed_variable():
     # Check in particular that only neurons targeted are reset to 0 (see github issue #925)
     source = NeuronGroup(1, "")
@@ -567,8 +558,7 @@ def test_subexpression_no_references():
     assert_equal(S3.x[:], np.arange(5)*2+1)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synaptic_propagation():
     G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G1.v['i%2==1'] = 1.1 # odd numbers should spike
@@ -584,8 +574,7 @@ def test_synaptic_propagation():
     assert_equal(np.asarray(G2.v).flatten(), expected)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_synaptic_propagation_2():
     # This tests for the bug in github issue #461
     source = NeuronGroup(100, '', threshold='True')
@@ -597,8 +586,7 @@ def test_synaptic_propagation_2():
     assert target.v[0] == 1.0
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_run_regularly():
     # See github issue #922
 
@@ -620,8 +608,7 @@ def test_run_regularly():
     assert_array_equal(group.v, [24, 24, 20, 20, 18, 18, 17, 17, 16, 16])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spike_monitor():
     G = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G.v[0] = 1.1
@@ -648,7 +635,7 @@ def test_spike_monitor():
     assert_equal(sub_s_mon2.count, np.array([1, 0, 1]))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_wrong_indexing():
     G = NeuronGroup(10, 'v:1')
     assert_raises(TypeError, lambda: G['string'])
@@ -666,7 +653,7 @@ def test_wrong_indexing():
     assert_raises(TypeError, lambda: G[[2.5, 3.5, 4.5]])
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_alternative_indexing():
     G = NeuronGroup(10, 'v : integer')
     G.v = 'i'
@@ -684,8 +671,7 @@ def test_no_reference_1():
     assert_equal(G[:5].v[:], G.v[:5])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_no_reference_2():
     '''
     Using subgroups without keeping an explicit reference. Monitors
@@ -702,8 +688,7 @@ def test_no_reference_2():
     assert_equal(rate_mon.rate[:], np.array([0.5, 0])/defaultclock.dt)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_no_reference_3():
     '''
     Using subgroups without keeping an explicit reference. Monitors
@@ -716,8 +701,7 @@ def test_no_reference_3():
     assert_equal(G.v[:], np.array([0, 1]))
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_no_reference_4():
     '''
     Using subgroups without keeping an explicit reference. Synapses

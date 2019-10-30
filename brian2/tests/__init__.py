@@ -1,65 +1,84 @@
 from __future__ import absolute_import
+from __future__ import print_function
+
 '''
 Package contain all unit/integration tests for the `brian2` package.
 '''
 import os
 import sys
 from io import StringIO
+import tempfile
 
 from past.builtins import basestring
 
 import brian2
 from brian2.core.preferences import prefs
-from brian2.devices.device import all_devices, set_device, reset_device
+from brian2.devices.device import all_devices, reset_device, reinit_and_delete
 
 try:
-    import nose
-    from nose.plugins.errorclass import ErrorClassPlugin, ErrorClass
-    import nose.plugins.doctests as doctests
-    import doctest
-
-    class NotImplementedPlugin(ErrorClassPlugin):
-        enabled = True
-        notimplemented = ErrorClass(NotImplementedError,
-                                    label='NOT_IMPLEMENTED',
-                                    isfailure=True)
-
-        def configure(self, options, conf):
-            # For some reason, this only works if this method exists...
-            pass
-
-    class NotImplementedNoFailurePlugin(ErrorClassPlugin):
-        enabled = True
-        notimplemented = ErrorClass(NotImplementedError,
-                                    label='NOT_IMPLEMENTED',
-                                    isfailure=False)
-
-        def configure(self, options, conf):
-            # For some reason, this only works if this method exists...
-            pass
-
-    class OurDoctestFinder(doctest.DocTestFinder):
-        def _get_test(self, obj, name, module, globs, source_lines):
-            if getattr(obj, '_do_not_run_doctests', False):
-                return None
-            # note that doctest.DocTestFinder is an old-style class in Python 2,
-            # we therefore cannot use the super mechanism
-            return doctest.DocTestFinder._get_test(self, obj, name, module,
-                                                   globs, source_lines)
-
-    class OurDoctestPlugin(doctests.Doctest):
-        name = 'ourdoctest'
-        enabled = True
-
-        def configure(self, options, config):
-            super(OurDoctestPlugin, self).configure(options, config)
-            self.finder = OurDoctestFinder()
-
-        def options(self, parser, env):
-            pass  # do not register any options
+    import pytest
+    # from nose.plugins.errorclass import ErrorClassPlugin, ErrorClass
+    # import nose.plugins.doctests as doctests
+    # import doctest
+    #
+    # class NotImplementedPlugin(ErrorClassPlugin):
+    #     enabled = True
+    #     notimplemented = ErrorClass(NotImplementedError,
+    #                                 label='NOT_IMPLEMENTED',
+    #                                 isfailure=True)
+    #
+    #     def configure(self, options, conf):
+    #         # For some reason, this only works if this method exists...
+    #         pass
+    #
+    # class NotImplementedNoFailurePlugin(ErrorClassPlugin):
+    #     enabled = True
+    #     notimplemented = ErrorClass(NotImplementedError,
+    #                                 label='NOT_IMPLEMENTED',
+    #                                 isfailure=False)
+    #
+    #     def configure(self, options, conf):
+    #         # For some reason, this only works if this method exists...
+    #         pass
+    #
+    # class OurDoctestFinder(doctest.DocTestFinder):
+    #     def _get_test(self, obj, name, module, globs, source_lines):
+    #         if getattr(obj, '_do_not_run_doctests', False):
+    #             return None
+    #         # note that doctest.DocTestFinder is an old-style class in Python 2,
+    #         # we therefore cannot use the super mechanism
+    #         return doctest.DocTestFinder._get_test(self, obj, name, module,
+    #                                                globs, source_lines)
+    #
+    # class OurDoctestPlugin(doctests.Doctest):
+    #     name = 'ourdoctest'
+    #     enabled = True
+    #
+    #     def configure(self, options, config):
+    #         super(OurDoctestPlugin, self).configure(options, config)
+    #         self.finder = OurDoctestFinder()
+    #
+    #     def options(self, parser, env):
+    #         pass  # do not register any options
 
 except ImportError:
-    nose = None
+    pytest = None
+
+
+class PreferencePlugin(object):
+    def __init__(self, prefs):
+        self._prefs = prefs
+
+    def pytest_configure(self, config):
+        config.brian_prefs = dict(self._prefs)
+
+    def pytest_configure_node(self, node):
+        """xdist hook"""
+        prefs = dict(self._prefs)
+        for k, v in prefs.items():
+            if isinstance(v, type):
+                prefs[k] = ('TYPE', repr(v))
+        node.slaveinput['brian_prefs'] = prefs
 
 
 def clear_caches():
@@ -69,31 +88,28 @@ def clear_caches():
     make_statements._cache.clear()
 
 
-def make_argv(dirnames, attributes):
+def make_argv(dirnames, markers):
     '''
-    Create the list of arguments for the ``nosetests`` call.
+    Create the list of arguments for the ``pytests`` call.
 
     Parameters
     ----------
-    dirnames : list of str
-        The list of directory names to check for tests.
-    attributes : str
-        The attributes of the tests to include.
+    markers : str
+        The markers of the tests to include.
 
     Returns
     -------
     argv : list of str
-        The arguments for `nose.main`.
+        The arguments for `pytest.main`.
 
     '''
-    argv = (['nosetests'] + dirnames +
-            ['-c=',  # no config file loading
-             '-I', '^hears\.py$',
-             '-I', '^\.',
-             '-I', '^_',
-             "-a", attributes,
-             '--nologcapture',
-             '--exe'])
+    argv = dirnames + [
+        '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
+        '-k', 'test_',
+        '--quiet',
+        '-m', '{}'.format(markers),
+        '-x',
+        ]
     return argv
 
 
@@ -103,7 +119,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         reset_preferences=True, fail_for_not_implemented=True,
         build_options=None, extra_test_dirs=None, float_dtype=None):
     '''
-    Run brian's test suite. Needs an installation of the nose testing tool.
+    Run brian's test suite. Needs an installation of the pytest testing tool.
 
     For testing, the preferences will be reset to the default preferences.
     After testing, the user preferences will be restored.
@@ -150,8 +166,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         Set the dtype to use for floating point variables to a value different
         from the default `core.default_float_dtype` setting.
     '''
-    if nose is None:
-        raise ImportError('Running the test suite requires the "nose" package.')
+    if pytest is None:
+        raise ImportError('Running the test suite requires the "pytest" package.')
 
     if build_options is None:
         build_options = {}
@@ -164,9 +180,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     elif isinstance(extra_test_dirs, basestring):
         extra_test_dirs = [extra_test_dirs]
 
-    multiprocess_arguments = ['--processes=-1',
-                              '--process-timeout=3600',  # we don't want them to time out
-                              '--process-restartworker']
+    # multiprocess_arguments = ['--processes=-1',
+    #                           '--process-timeout=3600',  # we don't want them to time out
+    #                           '--process-restartworker']
+    multiprocess_arguments = ['-n', 'auto']
+    # multiprocess_arguments = []
 
     if codegen_targets is None:
         codegen_targets = ['numpy']
@@ -189,16 +207,19 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     dirnames = [dirname] + extra_test_dirs
-    # We write to stderr since nose does all of its output on stderr as well
-    sys.stderr.write('Running tests in %s ' % (', '.join(dirnames)))
-    if codegen_targets:
-        sys.stderr.write('for targets %s' % (', '.join(codegen_targets)))
-    ex_in = 'including' if long_tests else 'excluding'
-    sys.stderr.write(' (%s long tests)\n' % ex_in)
 
-    sys.stderr.write("Running Brian version {} "
-                     "from '{}'\n".format(brian2.__version__,
-                                          os.path.dirname(brian2.__file__)))
+    pref_filed, pref_filename = tempfile.mkstemp('brian_prefs', text=True)
+    pref_file = os.fdopen(pref_filed, 'w')
+
+    print('Running tests in %s ' % (', '.join(dirnames)), end='')
+    if codegen_targets:
+        print('for targets %s' % (', '.join(codegen_targets)), end='')
+    ex_in = 'including' if long_tests else 'excluding'
+    print(' (%s long tests)' % ex_in)
+
+    print("Running Brian version {} "
+          "from '{}'".format(brian2.__version__,
+                               os.path.dirname(brian2.__file__)))
 
     all_targets = set(codegen_targets)
 
@@ -211,23 +232,28 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                              'device. Known devices are: '
                              '%s' % (test_standalone,
                                      ', '.join(repr(d) for d in all_devices)))
-        sys.stderr.write('Testing standalone \n')
+        print('Testing standalone')
         all_targets.add(test_standalone)
     if test_codegen_independent:
-        sys.stderr.write('Testing codegen-independent code \n')
+        print('Testing codegen-independent code')
         all_targets.add('codegen_independent')
 
     parallel_tests = all_targets.intersection(set(test_in_parallel))
     if parallel_tests:
-        sys.stderr.write('Testing with multiple processes for %s\n' % ', '.join(parallel_tests))
+        try:
+            import xdist
+            print('Testing with multiple processes for %s' % ', '.join(
+                parallel_tests))
+        except ImportError:
+            test_in_parallel = []
 
     if reset_preferences:
-        sys.stderr.write('Resetting to default preferences\n')
+        print('Resetting to default preferences')
 
     if reset_preferences:
-        # Store the currently set preferences and reset to default preferences
         stored_prefs = prefs.as_file
         prefs.read_preference_file(StringIO(prefs.defaults_as_file))
+
 
     # Avoid failures in the tests for user-registered units
     import copy
@@ -236,12 +262,12 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     fundamentalunits.user_unit_register = fundamentalunits.UnitRegistry()
 
     if float_dtype is not None:
-        sys.stderr.write('Setting dtype for floating point variables to: '
-                         '{}\n'.format(float_dtype.__name__))
-        prefs['core.default_float_dtype'] = float_dtype
-    prefs._backup()
+        print('Setting dtype for floating point variables to: '
+                         '{}'.format(float_dtype.__name__))
 
-    sys.stderr.write('\n')
+        prefs['core.default_float_dtype'] = float_dtype
+
+    print()
 
     # Suppress INFO log messages during testing
     from brian2.utils.logger import BrianLogger, LOG_LEVELS
@@ -250,27 +276,27 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     # Switch off code optimization to get faster compilation times
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
-    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
+    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['-w', '-O0'])
 
-    if fail_for_not_implemented:
-        not_implemented_plugin = NotImplementedPlugin
-    else:
-        not_implemented_plugin = NotImplementedNoFailurePlugin
-    # This hack is needed to get the NotImplementedPlugin working for multiprocessing
-    import nose.plugins.multiprocess as multiprocess
-    multiprocess._instantiate_plugins = [not_implemented_plugin]
-
-    plugins = [not_implemented_plugin()]
+    # if fail_for_not_implemented:
+    #     not_implemented_plugin = NotImplementedPlugin
+    # else:
+    #     not_implemented_plugin = NotImplementedNoFailurePlugin
+    # # This hack is needed to get the NotImplementedPlugin working for multiprocessing
+    # import nose.plugins.multiprocess as multiprocess
+    # multiprocess._instantiate_plugins = [not_implemented_plugin]
+    #
+    # plugins = [not_implemented_plugin()]
 
     from brian2.devices import set_device
     set_device('runtime')
+    pref_plugin = PreferencePlugin(prefs)
     try:
         success = []
         if test_codegen_independent:
-            sys.stderr.write('Running tests that do not use code generation\n')
+            print('Running tests that do not use code generation')
             # Some doctests do actually use code generation, use numpy for that
-            prefs.codegen.target = 'numpy'
-            prefs._backup()
+            prefs['codegen.target'] = 'numpy'
             # Print output changed in numpy 1.14, stick with the old format to
             # avoid doctest failures
             import numpy as np
@@ -278,62 +304,61 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 np.set_printoptions(legacy='1.13')
             except TypeError:
                 pass  # using a numpy version < 1.14
-            argv = make_argv(dirnames, "codegen-independent")
+            argv = make_argv(dirnames, "codegen_independent")
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-                multiprocess._instantiate_plugins.append(OurDoctestPlugin)
-            success.append(nose.run(argv=argv,
-                                    addplugins=plugins+[OurDoctestPlugin()]))
-            if 'codegen_independent' in test_in_parallel:
-                multiprocess._instantiate_plugins.remove(OurDoctestPlugin)
+            #     multiprocess._instantiate_plugins.append(OurDoctestPlugin)
+            print('executing with', argv)
+            pref_file.truncate(0)
+            pref_file.write(prefs.as_file)
+            pref_file.flush()
+            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            # if 'codegen_independent' in test_in_parallel:
+            #     multiprocess._instantiate_plugins.remove(OurDoctestPlugin)
             clear_caches()
 
         for target in codegen_targets:
-            sys.stderr.write('Running tests for target %s:\n' % target)
-            prefs.codegen.target = target
+            print('Running tests for target %s:' % target)
             # Also set the target for string-expressions -- otherwise we'd only
             # ever test numpy for those
-            prefs.codegen.string_expression_target = target
-            prefs._backup()
-            exclude_str = "!standalone-only,!codegen-independent"
+            prefs['codegen.target'] = target
+
+            markers = "not standalone_only and not codegen_independent"
             if not long_tests:
-                exclude_str += ',!long'
+                markers += ' and not long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
             # doctest search will import it, failing on Python 3
-            argv = make_argv(dirnames, exclude_str)
+            argv = make_argv(dirnames, markers)
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv,
-                                    addplugins=plugins))
+            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
             clear_caches()
 
         if test_standalone:
             from brian2.devices.device import get_device, set_device
             set_device(test_standalone, directory=None,  # use temp directory
                        with_output=False, **build_options)
-            sys.stderr.write('Testing standalone device "%s"\n' % test_standalone)
-            sys.stderr.write('Running standalone-compatible standard tests (single run statement)\n')
-            exclude_str = ',!long' if not long_tests else ''
-            exclude_str += ',!multiple-runs'
-            argv = make_argv(dirnames, 'standalone-compatible'+exclude_str)
+            print('Testing standalone device "%s"' % test_standalone)
+            print('Running standalone-compatible standard tests (single run statement)')
+            markers = 'and not long' if not long_tests else ''
+            markers += ' and not multiple_runs'
+            argv = make_argv(dirnames, 'standalone_compatible ' + markers)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv,
-                                    addplugins=plugins))
+            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
             clear_caches()
 
             reset_device()
 
-            sys.stderr.write('Running standalone-compatible standard tests (multiple run statements)\n')
+            print('Running standalone-compatible standard tests (multiple run statements)')
             set_device(test_standalone, directory=None,  # use temp directory
                        with_output=False, build_on_run=False, **build_options)
-            exclude_str = ',!long' if not long_tests else ''
-            exclude_str += ',multiple-runs'
-            argv = make_argv(dirnames, 'standalone-compatible'+exclude_str)
+            markers = ' and not long' if not long_tests else ''
+            markers += ' and multiple_runs'
+            argv = make_argv(dirnames, 'standalone_compatible'+markers)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv,
-                                    addplugins=plugins))
+            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
             clear_caches()
             reset_device()
 
@@ -341,50 +366,45 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 # Run all the standalone compatible tests again with 4 threads
                 set_device(test_standalone, directory=None, # use temp directory
                            with_output=False, **build_options)
-                prefs.devices.cpp_standalone.openmp_threads = 4
-                prefs._backup()
-                sys.stderr.write('Running standalone-compatible standard tests with OpenMP (single run statements)\n')
-                exclude_str = ',!long' if not long_tests else ''
-                exclude_str += ',!multiple-runs'
+                prefs['devices.cpp_standalone.openmp_threads'] = 4
+                print('Running standalone-compatible standard tests with OpenMP (single run statements)')
+                markers = ' and not long' if not long_tests else ''
+                markers += ' and not multiple_runs'
                 argv = make_argv(dirnames,
-                                 'standalone-compatible' + exclude_str)
-                success.append(nose.run(argv=argv,
-                                        addplugins=plugins))
+                                 'standalone_compatible' + markers)
+                success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
                 clear_caches()
                 reset_device()
 
                 set_device(test_standalone, directory=None, # use temp directory
                            with_output=False, build_on_run=False, **build_options)
-                sys.stderr.write('Running standalone-compatible standard tests with OpenMP (multiple run statements)\n')
-                exclude_str = ',!long' if not long_tests else ''
-                exclude_str += ',multiple-runs'
+                print('Running standalone-compatible standard tests with OpenMP (multiple run statements)')
+                markers = ' and not long' if not long_tests else ''
+                markers += ' and multiple_runs'
                 argv = make_argv(dirnames,
-                                 'standalone-compatible' + exclude_str)
-                success.append(nose.run(argv=argv,
-                                        addplugins=plugins))
+                                 'standalone_compatible' + markers)
+                success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
                 clear_caches()
-                prefs.devices.cpp_standalone.openmp_threads = 0
-                prefs._backup()
+                prefs['devices.cpp_standalone.openmp_threads'] = 0
 
                 reset_device()
 
-            sys.stderr.write('Running standalone-specific tests\n')
-            exclude_openmp = ',!openmp' if not test_openmp else ''
+            print('Running standalone-specific tests')
+            exclude_openmp = ' and not openmp' if not test_openmp else ''
             argv = make_argv(dirnames, test_standalone+exclude_openmp)
             if test_standalone in test_in_parallel:
-                argv.extend(multiprocess_arguments)
-            success.append(nose.run(argv=argv,
-                                    addplugins=plugins))
+                argv.extend(multiprocess_arguments, plugins=[pref_plugin])
+            success.append(pytest.main(argv) == 0)
             clear_caches()
 
         all_success = all(success)
         if not all_success:
-            sys.stderr.write(('ERROR: %d/%d test suite(s) did not complete '
-                              'successfully (see above).\n') % (len(success) - sum(success),
-                                                                len(success)))
+            print(('ERROR: %d/%d test suite(s) did not complete '
+                   'successfully (see above).') % (len(success) - sum(success),
+                                                   len(success)))
         else:
-            sys.stderr.write(('OK: %d/%d test suite(s) did complete '
-                              'successfully.\n') % (len(success), len(success)))
+            print(('OK: %d/%d test suite(s) did complete '
+                   'successfully.') % (len(success), len(success)))
         return all_success
 
     finally:

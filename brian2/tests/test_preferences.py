@@ -8,11 +8,9 @@ from brian2.core.preferences import (DefaultValidator, BrianPreference,
                                      BrianGlobalPreferencesView)
 
 from numpy.testing import assert_equal, assert_raises
-from nose import with_setup
-from nose.plugins.attrib import attr
+import pytest
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_defaultvalidator():
     # Test that the default validator checks the class
     validator = DefaultValidator(5)
@@ -27,8 +25,7 @@ def test_defaultvalidator():
     assert not validator(1*amp)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_brianpreference():
     # check default args
     pref = BrianPreference(1./3, 'docs')
@@ -38,8 +35,7 @@ def test_brianpreference():
     assert pref.representor(pref.default)==repr(1./3)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_preference_name_checking():
     '''
     Test that you cannot set illegal preference names.
@@ -74,8 +70,7 @@ def test_preference_name_checking():
                                                                    ))
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_brianglobalpreferences():
     # test that pre-setting a nonexistent preference in a subsequently
     # existing base name raises an error at the correct point
@@ -168,8 +163,7 @@ def test_brianglobalpreferences():
     gp.load_preferences()
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_preference_name_access():
     '''
     Test various ways of accessing preferences
@@ -268,8 +262,7 @@ def test_preference_name_access():
     assert gp.main._basename == 'main'
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_str_repr():
     # Just test whether str and repr do not throw an error and return something
     gp = BrianGlobalPreferences()    

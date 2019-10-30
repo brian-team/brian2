@@ -4,7 +4,7 @@ import uuid
 import sympy
 import numpy
 from numpy.testing.utils import assert_raises
-from nose.plugins.attrib import attr
+import pytest
 
 from brian2.core.variables import Constant
 from brian2.core.namespace import get_local_namespace
@@ -29,7 +29,7 @@ def _assert_one_warning(l):
     assert l[0][0] == 'WARNING', "expected a WARNING, got %s instead" % l[0][0]
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_default_content():
     '''
     Test that the default namespace contains standard units and functions.
@@ -56,7 +56,7 @@ def test_default_content():
     assert group._resolve('inf', {}).get_value() == numpy.inf
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_explicit_namespace():
     ''' Test resolution with an explicitly provided namespace '''
     group = SimpleGroup(namespace={'variable': 42}, variables={})
@@ -73,7 +73,7 @@ def test_explicit_namespace():
         assert len(l) == 0
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_errors():
     # No explicit namespace
     group = SimpleGroup(namespace=None, variables={})
@@ -84,7 +84,7 @@ def test_errors():
     assert_raises(KeyError, lambda: group._resolve('nonexisting_variable', {}))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_resolution():
     # implicit namespace
     tau = 10*ms
@@ -107,7 +107,7 @@ def test_resolution():
     assert resolved['tau'].get_value_with_unit() == 20 * ms
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_warning():
     from brian2.core.functions import DEFAULT_FUNCTIONS
     from brian2.units.stdunits import cm as brian_cm
@@ -127,7 +127,7 @@ def test_warning():
         assert len(l) == 1, 'got warnings: %s' % str(l)
         assert l[0][1].endswith('.resolution_conflict')
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_warning_internal_variables():
     group1 = SimpleGroup(namespace=None,
                          variables={'N': Constant('N', 5)})

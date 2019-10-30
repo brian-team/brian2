@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from numpy.testing.utils import assert_equal, assert_raises
-from nose import with_setup
-from nose.plugins.attrib import attr
+import pytest
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete
@@ -9,8 +8,7 @@ from brian2.core.network import schedule_propagation_offset
 from brian2.tests.utils import assert_allclose
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_poissoninput():
     # Test extreme cases and do a very basic test of an intermediate case, we
     # don't want tests to be stochastic
@@ -49,7 +47,7 @@ def test_poissoninput():
     assert all(np.var(mon.z2[:], axis=0) > 0)  # variability over neurons
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_poissoninput_errors():
     # Targeting non-existing variable
     G = NeuronGroup(10, '''x : volt
@@ -71,8 +69,7 @@ def test_poissoninput_errors():
     defaultclock.dt = old_dt
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_poissoninput_refractory():
     eqs = '''
     dv/dt = 0/second : 1 (unless refractory)

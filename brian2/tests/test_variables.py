@@ -4,7 +4,7 @@ Some basic tests for the `Variable` system
 from __future__ import absolute_import
 from collections import namedtuple
 
-from nose.plugins.attrib import attr
+import pytest
 import numpy as np
 from numpy.testing import assert_raises
 
@@ -14,7 +14,7 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
     assert_raises(ValueError, lambda: Variable(name='name', dimensions=second.dim,
@@ -29,7 +29,7 @@ def test_construction_errors():
                                                            needs_reference_update=True))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
@@ -48,7 +48,7 @@ def test_str_repr():
         assert len(repr(var)) and var.__class__.__name__ in repr(var)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dtype_str():
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')

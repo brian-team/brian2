@@ -3,7 +3,7 @@ import itertools
 import warnings
 import pickle
 
-from nose.plugins.attrib import attr
+import pytest
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 
@@ -52,7 +52,7 @@ def assert_quantity(q, values, unit):
                                             get_dimensions(unit)))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_construction():
     ''' Test the construction of quantity objects '''
     q = 500 * ms
@@ -106,7 +106,7 @@ def test_construction():
                                                             1 * volt]))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_dimensions():
     '''
     Test various ways of getting/comparing the dimensions of a quantity.
@@ -138,7 +138,7 @@ def test_get_dimensions():
     assert_raises(TypeError, lambda: get_or_create_dimension(42))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_display():
     '''
     Test displaying a quantity in different units
@@ -150,7 +150,7 @@ def test_display():
     # A bit artificial...
     assert_equal(in_unit(10.0, Unit(10.0, scale=1)), '1.0')
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_scale():
     # Check that unit scaling is implemented correctly
     from brian2.core.namespace import DEFAULT_UNITS
@@ -183,7 +183,7 @@ def test_scale():
             assert_allclose(5 * scaled_unit / base_unit, 5 * siprefixes[prefix])
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_pickling():
     '''
     Test pickling of units.
@@ -197,7 +197,7 @@ def test_pickling():
         assert_equal(unpickled, q)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     '''
     Test that str representations do not raise any errors and that repr
@@ -250,7 +250,7 @@ def test_str_repr():
         assert len(repr(error))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_slicing():
     # Slicing and indexing, setting items
     quantity = np.reshape(np.arange(6), (2, 3)) * mV
@@ -265,7 +265,7 @@ def test_slicing():
                  np.asarray(quantity)[bool_matrix] * volt)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_setting():
     quantity = np.reshape(np.arange(6), (2, 3)) * mV
     quantity[0, 1] = 10 * mV
@@ -287,7 +287,7 @@ def test_setting():
                                                                 np.ones((2, 3))))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_multiplication_division():
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     q2 = 5 * second
@@ -327,7 +327,7 @@ def test_multiplication_division():
         assert_raises(TypeError, lambda: q * 'string')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_addition_subtraction():
     quantities = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     q2 = 5 * volt
@@ -387,7 +387,7 @@ def test_addition_subtraction():
         assert_raises(TypeError, lambda: q - 'string')
         assert_raises(TypeError, lambda: 'string' - q)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_unary_operations():
     from operator import neg, pos
 
@@ -396,7 +396,7 @@ def test_unary_operations():
             assert_quantity(op(x*kilogram), op(x), kilogram)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_binary_operations():
     ''' Test whether binary operations work when they should and raise
     DimensionMismatchErrors when they should.
@@ -500,7 +500,7 @@ def test_binary_operations():
         assert np.all(-np.inf < value)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_power():
     '''
     Test raising quantities to a power.
@@ -515,7 +515,7 @@ def test_power():
         assert_raises(TypeError, lambda: value ** np.array([2, 3]))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_inplace_operations():
     q = np.arange(10) * volt
     q_orig = q.copy()
@@ -574,7 +574,7 @@ def test_inplace_operations():
         assert_raises(TypeError, lambda: inplace_op(volt.dimensions))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_unit_discarding_functions():
     '''
     Test functions that discard units.
@@ -589,7 +589,7 @@ def test_unit_discarding_functions():
         assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_unitsafe_functions():
     '''
     Test the unitsafe functions wrapping their numpy counterparts.
@@ -630,7 +630,7 @@ def test_unitsafe_functions():
                 assert_equal(func(val), np_func(val))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_special_case_numpy_functions():
     '''
     Test a couple of functions/methods that need special treatment.
@@ -728,7 +728,7 @@ def test_special_case_numpy_functions():
 
 
 # Functions that should not change units
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_numpy_functions_same_dimensions():
     values = [np.array([1, 2]), np.ones((3, 3))]
     units = [volt, second, siemens, mV, kHz]
@@ -762,7 +762,7 @@ def test_numpy_functions_same_dimensions():
                                                get_dimensions(test_ar)))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_numpy_functions_indices():
     '''
     Check numpy functions that return indices.
@@ -786,7 +786,7 @@ def test_numpy_functions_indices():
                                                   func.__name__))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_numpy_functions_dimensionless():
     '''
     Test that numpy functions that should work on dimensionless quantities only
@@ -830,7 +830,7 @@ def test_numpy_functions_dimensionless():
                                            globals(), {'value': value}))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_numpy_functions_change_dimensions():
     '''
     Test some numpy functions that change the dimensions of the quantity.
@@ -846,7 +846,7 @@ def test_numpy_functions_change_dimensions():
                         1.0 / volt)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_numpy_functions_typeerror():
     '''
     Assures that certain numpy functions raise a TypeError when called on
@@ -867,7 +867,7 @@ def test_numpy_functions_typeerror():
                                                    globals(), {'value': value}))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_numpy_functions_logical():
     '''
     Assure that logical numpy functions work on all quantities and return
@@ -901,7 +901,7 @@ def test_numpy_functions_logical():
             assert_equal(result_units, result_array)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_arange_linspace():
     # For dimensionless values, the unit-safe functions should give the same results
     assert_equal(brian2.arange(5), np.arange(5))
@@ -935,7 +935,7 @@ def test_arange_linspace():
     assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, step=2))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_list():
     '''
     Test converting to and from a list.
@@ -949,7 +949,7 @@ def test_list():
         assert_equal(from_list, value)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_check_units():
     '''
     Test the check_units decorator
@@ -1007,7 +1007,7 @@ def test_check_units():
     assert_raises(TypeError, c_function, False, 1)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_unit():
     '''
     Test get_unit
@@ -1022,7 +1022,7 @@ def test_get_unit():
         assert float(unit) == 1.
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_best_unit():
     # get_best_unit should not check all values for long arrays, since it is
     # a function used for display purposes only. Instead, only the first and
@@ -1038,7 +1038,7 @@ def test_get_best_unit():
         assert str(expected_unit) in ar.in_best_unit()
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_switching_off_unit_checks():
     '''
     Check switching off unit checks (used for external functions).
@@ -1055,7 +1055,7 @@ def test_switching_off_unit_checks():
     fundamentalunits.unit_checking = True
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_fail_for_dimension_mismatch():
     '''
     Test the fail_for_dimension_mismatch function.
@@ -1079,7 +1079,7 @@ def test_fail_for_dimension_mismatch():
     assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_deepcopy():
     d = {'x': 1*second}
     from copy import deepcopy
@@ -1090,7 +1090,7 @@ def test_deepcopy():
     assert d['x'] == 1*second
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_inplace_on_scalars():
     # We want "copy semantics" for in-place operations on scalar quantities
     # in the same way as for Python scalars
@@ -1140,7 +1140,7 @@ def test_units_vs_quantities():
     assert type(meter - meter) == Quantity
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_all_units_list():
     from brian2.units.allunits import all_units
     assert meter in all_units
@@ -1149,7 +1149,7 @@ def test_all_units_list():
     assert Hz in all_units
     assert all(isinstance(u, Unit) for u in all_units)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_constants():
     import brian2.units.constants as constants
     # Check that the expected names exist and have the correct dimensions

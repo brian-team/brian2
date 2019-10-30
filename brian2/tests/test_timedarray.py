@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from numpy.testing.utils import assert_raises
-from nose import with_setup
-from nose.plugins.attrib import attr
+import pytest
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete
@@ -9,7 +8,7 @@ from brian2.tests.utils import assert_allclose
 from brian2.utils.caching import _hashable
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_timedarray_direct_use():
     ta = TimedArray(np.linspace(0, 10, 11), 1*ms)
     assert ta(-1*ms) == 0
@@ -30,8 +29,7 @@ def test_timedarray_direct_use():
     assert_allclose(ta2d(15*ms, [0, 1, 2]), [9, 10, 11]*amp)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_timedarray_semantics():
     # Make sure that timed arrays are interpreted as specifying the values
     # between t and t+dt (not between t-dt/2 and t+dt/2 as in Brian1)
@@ -42,8 +40,7 @@ def test_timedarray_semantics():
     assert_allclose(mon[0].value, [0, 0, 0, 0, 1, 1, 1, 1])
     assert_allclose(mon[0].value, ta(mon.t))
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_timedarray_no_units():
     ta = TimedArray(np.arange(10), dt=0.1*ms)
     G = NeuronGroup(1, 'value = ta(t) + 1: 1', dt=0.1*ms)
@@ -51,8 +48,7 @@ def test_timedarray_no_units():
     run(1.1*ms)
     assert_allclose(mon[0].value_, np.clip(np.arange(len(mon[0].t)), 0, 9) + 1)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_timedarray_with_units():
     ta = TimedArray(np.arange(10)*amp, dt=0.1*ms)
     G = NeuronGroup(1, 'value = ta(t) + 2*nA: amp', dt=0.1*ms)
@@ -60,8 +56,7 @@ def test_timedarray_with_units():
     run(1.1*ms)
     assert_allclose(mon[0].value, np.clip(np.arange(len(mon[0].t)), 0, 9)*amp + 2*nA)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_timedarray_2d():
     # 4 time steps, 3 neurons
     ta2d = TimedArray(np.arange(12).reshape(4, 3), dt=0.1*ms)
@@ -73,7 +68,7 @@ def test_timedarray_2d():
     assert_allclose(mon[2].value_, np.array([2, 5, 8, 11, 11]) + 1)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_timedarray_incorrect_use():
     ta = TimedArray(np.linspace(0, 10, 11), 1*ms)
     ta2d = TimedArray((np.linspace(0, 11, 12)*amp).reshape(4, 3), 1*ms)
@@ -86,8 +81,7 @@ def test_timedarray_incorrect_use():
     assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta*amp')))
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_timedarray_no_upsampling():
     # Test a TimedArray where no upsampling is necessary because the monitor's
     # dt is bigger than the TimedArray's
@@ -98,8 +92,7 @@ def test_timedarray_no_upsampling():
     assert_allclose(mon[0].value, [0, 9, 9])
 
 
-#@attr('standalone-compatible')  # see FIXME comment below
-@with_setup(teardown=reinit_and_delete)
+#@pytest.mark.standalone_compatible  # see FIXME comment below
 def test_long_timedarray():
     '''
     Use a very long timedarray (with a big dt), where the upsampling can lead

@@ -8,8 +8,7 @@ try:
     from IPython.lib.pretty import pprint
 except ImportError:
     pprint = None
-from nose import SkipTest
-from nose.plugins.attrib import attr
+import pytest
 from past.builtins import basestring
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre
@@ -40,7 +39,7 @@ class SimpleGroup(Group):
         self.variables = variables
         self.namespace = namespace
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_utility_functions():
     unit_namespace = DEFAULT_UNITS
 
@@ -68,7 +67,7 @@ def test_utility_functions():
     assert_raises(ValueError, lambda: dimensions_and_type_from_string('farad / cm**2'))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_identifier_checks():
     legal_identifiers = ['v', 'Vm', 'V', 'x', 'ge', 'g_i', 'a2', 'gaba_123']
     illegal_identifiers = ['_v', '1v', 'ü', 'ge!', 'v.x', 'for', 'else', 'if']
@@ -123,7 +122,7 @@ def test_identifier_checks():
     assert_raises(ValueError,
                   lambda: Equations.register_identifier_check('no function'))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_parse_equations():
     ''' Test the parsing of equation strings '''
     # A simple equation
@@ -178,7 +177,7 @@ def test_parse_equations():
                       lambda: parse_string_equations(error_eqs))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_correct_replacements():
     ''' Test replacing variables via keyword arguments '''
     # replace a variable name with a new name
@@ -193,7 +192,7 @@ def test_correct_replacements():
     assert not 'tau' in eqs['v'].identifiers
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
     # Replacing a variable name with an illegal new name
@@ -220,7 +219,7 @@ def test_wrong_replacements():
                                                  tau=np.arange(5)))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_substitute():
     # Check that Equations.substitute returns an independent copy
     eqs = Equations('dx/dt = x : 1')
@@ -236,7 +235,7 @@ def test_substitute():
 
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_construction_errors():
     '''
     Test that the Equations constructor raises errors correctly
@@ -314,7 +313,7 @@ def test_construction_errors():
     assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : integer'))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_unit_checking():
     # dummy Variable class
     class S(object):
@@ -352,7 +351,7 @@ def test_unit_checking():
                   lambda: eqs.check_units(group, {}))
     
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_properties():
     '''
     Test accessing the various properties of equation objects
@@ -409,7 +408,7 @@ def test_properties():
     assert eqs.stochastic_type == 'multiplicative'
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_concatenation():
     eqs1 = Equations('''dv/dt = -(v + I) / tau : volt
                         I = sin(2*pi*freq*t) : volt
@@ -440,7 +439,7 @@ def test_concatenation():
     assert str(eqs3) == str(eqs4)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_extract_subexpressions():
     eqs = Equations('''dv/dt = -v / (10*ms) : 1
                        s1 = 2*v : 1
@@ -453,7 +452,7 @@ def test_extract_subexpressions():
     assert constant['s2'].type == SUBEXPRESSION
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_repeated_construction():
     eqs1 = Equations('dx/dt = x : 1')
     eqs2 = Equations('dx/dt = x : 1', x='y')
@@ -465,7 +464,7 @@ def test_repeated_construction():
     assert eqs2['y'].expr == Expression('y')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     '''
     Test the string representation (only that it does not throw errors).
@@ -483,14 +482,13 @@ def test_str_repr():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
+@pytest.mark.skipif(pprint is None, reason='ipython is not installed')
 def test_ipython_pprint():
     try:
         from cStringIO import StringIO  # Python 2
     except ImportError:
         from io import StringIO  # Python 3
-    if pprint is None:
-        raise SkipTest('ipython is not available')
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f : Hz''')

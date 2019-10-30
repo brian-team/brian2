@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from nose.plugins.attrib import attr
+import pytest
 from numpy.testing.utils import assert_equal, assert_raises
 import tempfile
 import os
@@ -10,7 +10,7 @@ from brian2 import numpy as np
 from brian2.tests.utils import assert_allclose
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_soma():
     soma = Soma(diameter=10*um)
     assert isinstance(soma, Morphology)
@@ -41,7 +41,7 @@ def test_attributes_soma():
     assert soma.end_z is None
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_soma_coordinates():
     # Specify only one of the coordinates
     xyz = {'x', 'y', 'z'}
@@ -80,7 +80,7 @@ def test_attributes_soma_coordinates():
     assert_equal(soma.end_z, 3*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_cylinder():
     n = 10
     cylinder = Cylinder(n=n, diameter=10*um, length=200*um)
@@ -112,7 +112,7 @@ def test_attributes_cylinder():
     assert cylinder.end_z is None
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_cylinder_coordinates():
     # Specify only the end-point of the section
     n = 10
@@ -152,7 +152,7 @@ def test_attributes_cylinder_coordinates():
         assert_allclose(getattr(cylinder, 'end_' + coord), np.arange(n)*val[1]/n + val[1]/n)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_section():
     n = 10
     # No difference to a cylinder
@@ -188,7 +188,7 @@ def test_attributes_section():
     assert sec.end_z is None
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_section_coordinates_single():
     # Specify only the end-point of the section  (no difference to cylinder)
     n = 10
@@ -234,7 +234,7 @@ def test_attributes_section_coordinates_single():
         assert_allclose(getattr(sec, 'end_' + coord), np.arange(n)*val/n + val/n)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_section_coordinates_all():
     n = 3
     # Specify all coordinates
@@ -363,7 +363,7 @@ def _check_tree_cables(morphology, coordinates=False):
         assert_allclose(morphology['22'].end_z, -(np.arange(5) * step + step))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_cables_schematic():
     cable = Cylinder(n=10, diameter=10*um, length=100*um)
     cable.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um, length=np.ones(5)*20*um)  # tapering truncated cones
@@ -373,7 +373,7 @@ def test_tree_cables_schematic():
 
     _check_tree_cables(cable)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_cables_coordinates():
     # The lengths of the sections should be identical to the previous test
     cable = Cylinder(n=10, x=[0, 100]*um, diameter=10*um)
@@ -392,7 +392,7 @@ def test_tree_cables_coordinates():
     _check_tree_cables(cable, coordinates=True)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_cables_from_points():
     # The coordinates should be identical to the previous test
     points = [ # cable
@@ -551,7 +551,7 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
             assert_allclose(morphology['2'].z, np.zeros(5) * um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_schematic():
     soma = Soma(diameter=30*um)
     soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
@@ -561,7 +561,7 @@ def test_tree_soma_schematic():
     _check_tree_soma(soma)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_coordinates():
     soma = Soma(diameter=30*um, x=100*um)
     soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
@@ -573,7 +573,7 @@ def test_tree_soma_coordinates():
     _check_tree_soma(soma, coordinates=True)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_points():
     # The coordinates should be identical to the previous test
     points = [ # soma
@@ -595,7 +595,7 @@ def test_tree_soma_from_points():
     _check_tree_soma(cable, coordinates=True, use_cylinders=False)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_points_3_point_soma():
     # The coordinates should be identical to the previous test
     points = [ # soma
@@ -621,7 +621,7 @@ def test_tree_soma_from_points_3_point_soma():
     assert isinstance(cable, Soma)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_points_3_point_soma_incorrect():
     # Inconsistent diameters
     points = [ # soma
@@ -652,7 +652,7 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
     assert_raises(ValueError, lambda: Morphology.from_points(points))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_swc():
     swc_content = '''
 # Test file
@@ -676,7 +676,7 @@ def test_tree_soma_from_swc():
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_swc_3_point_soma():
     swc_content = '''
 # Test file
@@ -702,7 +702,7 @@ def test_tree_soma_from_swc_3_point_soma():
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_construction_incorrect_arguments():
     ### Morphology
     dummy_self = Soma(10*um)  # To allow testing of Morphology.__init__
@@ -776,7 +776,7 @@ def test_construction_incorrect_arguments():
                                              x=[0, 10, 20, 30]*um))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_from_points_minimal():
     points = [(1, 'soma', 10, 20, 30,  30,  -1)]
     morph = Morphology.from_points(points)
@@ -787,7 +787,7 @@ def test_from_points_minimal():
     assert_allclose(morph.z, 30*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_from_points_incorrect():
     # The coordinates should be identical to the previous test
     points = [
@@ -816,7 +816,7 @@ def test_from_points_incorrect():
     assert_raises(ValueError, lambda: Morphology.from_points(points4))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subtree_deletion():
     soma = Soma(diameter=30*um)
     first_dendrite = Cylinder(n=5, diameter=5*um, length=50*um)
@@ -849,7 +849,7 @@ def test_subtree_deletion():
     assert_raises(AttributeError, lambda: soma.dend3.L.L)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subgroup_indices():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
@@ -871,7 +871,7 @@ def test_subgroup_indices():
     assert_equal(morpho.L.indices[3:], [4, 5, 6, 7, 8, 9, 10])
     assert_equal(morpho.L.indices[:5], [1, 2, 3, 4, 5])
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subgroup_attributes():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
@@ -937,7 +937,7 @@ def test_subgroup_attributes():
     assert_allclose(morpho.L[3.5*um:4.5*um].distance, [3.5, 4.5]*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subgroup_incorrect():
     # Incorrect indexing
     morpho = Soma(diameter=30*um)
@@ -965,7 +965,7 @@ def test_subgroup_incorrect():
     assert_raises(IndexError, lambda: morpho.L[10])
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_topology():
     soma = Soma(diameter=30*um)
     soma.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -982,7 +982,7 @@ def test_topology():
         assert name in line
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_copy_section_soma():
     soma = Soma(diameter=30*um)
     soma_copy = soma.copy_section()
@@ -1001,7 +1001,7 @@ def test_copy_section_soma():
     assert soma_copy.type == 'soma'
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_copy_section_section():
     # No coordinates
     sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
@@ -1031,7 +1031,7 @@ def test_copy_section_section():
 
     assert sec_copy.type is None
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_copy_section_cylinder():
     # no coordinates
     sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
@@ -1068,7 +1068,7 @@ def _check_length_coord_consistency(morph_with_coords):
         _check_length_coord_consistency(child)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_deterministic():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1096,7 +1096,7 @@ def test_generate_coordinates_deterministic():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_random_sections():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1122,7 +1122,7 @@ def test_generate_coordinates_random_sections():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_random_compartments():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1148,7 +1148,7 @@ def test_generate_coordinates_random_compartments():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_random_all():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1175,7 +1175,7 @@ def test_generate_coordinates_random_all():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_no_overwrite():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1203,7 +1203,7 @@ def test_generate_coordinates_no_overwrite():
         assert_allclose(new.z, old.z)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_overwrite():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1234,7 +1234,7 @@ def test_generate_coordinates_overwrite():
     _check_length_coord_consistency(morph_with_coords2)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_mixed_overwrite():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1271,7 +1271,7 @@ def test_generate_coordinates_mixed_overwrite():
     _check_length_coord_consistency(morph_with_coords2)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     # A very basic test, make sure that the str/repr functions return
     # something and do not raise an error

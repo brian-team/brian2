@@ -1,5 +1,7 @@
 from __future__ import absolute_import
-from nose.plugins.attrib import attr
+
+import pytest
+
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
 import sympy
@@ -21,7 +23,7 @@ def sympy_equals(expr1, expr2):
     s_expr2 = sympy.sympify(expr2).expand()
     return s_expr1 == s_expr2
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_expr_creation():
     '''
     Test creating expressions.
@@ -33,7 +35,7 @@ def test_expr_creation():
     assert_raises(SyntaxError, lambda: Expression('v 5 * mV'))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_split_stochastic():
     tau = 5 * ms
     expr = Expression('(-v + I) / tau')
@@ -66,7 +68,7 @@ def test_split_stochastic():
     assert_raises(ValueError, expr.split_stochastic)
     
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     '''
     Test the string representation of expressions and statements. Assumes that

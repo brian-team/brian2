@@ -1,14 +1,12 @@
 from __future__ import print_function
-
 from __future__ import absolute_import
+
 import functools
 
-from nose import with_setup, SkipTest
-from nose.plugins.attrib import attr
+import pytest
 from numpy.testing.utils import assert_raises
 
 from brian2 import *
-from brian2.devices.device import reinit_and_delete
 from brian2.core.preferences import PreferenceError
 
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
@@ -23,12 +21,11 @@ def skip_if_not_implemented(func):
         try:
             func()
         except NotImplementedError:
-            raise SkipTest('GSL support for numpy has not been implemented yet')
+            pytest.skip('GSL support for numpy has not been implemented yet')
     return wrapped
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_stateupdater_basic():
     # just the adaptive_threshold example: run for exponential_euler and GSL and see
@@ -64,8 +61,7 @@ def test_GSL_stateupdater_basic():
                                                              'exponential euler')
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_different_clocks():
     vt = 10*mV
@@ -76,8 +72,7 @@ def test_GSL_different_clocks():
     run(0*ms)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_default_function():
         # phase_locking example
@@ -108,8 +103,7 @@ def test_GSL_default_function():
                 ('difference between conventional and GSL output is larger than max_difference')
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_user_defined_function():
     # phase_locking example with user_defined sin
@@ -157,8 +151,7 @@ def test_GSL_user_defined_function():
     #         ('output of GSL stateupdater is exactly the same as Brians stateupdater (unlikely to be right)')
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_x_variable():
     neurons = NeuronGroup(2, 'dx/dt = 300*Hz : 1', threshold='x>1', reset='x=0',
@@ -167,7 +160,7 @@ def test_GSL_x_variable():
     run(0*ms)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_GSL_failing_directory():
     def set_dir(arg):
         prefs.GSL.directory = arg
@@ -176,7 +169,7 @@ def test_GSL_failing_directory():
     assert_raises(PreferenceError, set_dir, '/usr/blablabla/')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 @skip_if_not_implemented
 def test_GSL_stochastic():
     tau = 20*ms
@@ -190,8 +183,7 @@ def test_GSL_stochastic():
                   net.run, 0*ms, namespace={'tau': tau,
                                             'sigma': sigma})
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_unit():
     eqs = '''
@@ -205,8 +197,7 @@ def test_GSL_error_dimension_mismatch_unit():
     assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_dimensionless1():
     eqs = '''
@@ -220,8 +211,7 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
     assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_dimension_mismatch_dimensionless2():
     eqs = '''
@@ -235,8 +225,7 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
     assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_nonexisting_variable():
     eqs = '''
@@ -250,8 +239,7 @@ def test_GSL_error_nonexisting_variable():
     assert_raises(KeyError, net.run, 0*ms, namespace={})
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_incorrect_error_format():
     eqs = '''
@@ -270,8 +258,7 @@ def test_GSL_error_incorrect_error_format():
     assert_raises(TypeError, net2.run, 0 * ms, namespace={})
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_nonODE_variable():
     eqs = '''
@@ -285,8 +272,7 @@ def test_GSL_error_nonODE_variable():
     assert_raises(KeyError, net.run, 0*ms, namespace={})
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_error_bounds():
     runtime = 50*ms
@@ -322,8 +308,7 @@ def test_GSL_error_bounds():
     assert max(err2) > max(err3), ("The simulation with smaller error bound produced a bigger maximum error")
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_non_autonomous():
     eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
@@ -340,8 +325,7 @@ def test_GSL_non_autonomous():
     assert np.max(abs_err) < max_allowed
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_non_autonomous():
     eqs = '''dv/dt = sin(2*pi*freq*t)/ms : 1
@@ -357,8 +341,7 @@ def test_GSL_non_autonomous():
     max_allowed = 1000 * np.finfo(prefs.core.default_float_dtype).eps
     assert np.max(abs_err) < max_allowed
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_refractory():
     eqs = '''dv/dt = 99.99*Hz : 1 (unless refractory)'''
@@ -405,8 +388,7 @@ dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*
 I : amp/metre**2
 ''')
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_fixed_timestep_big_dt_small_error():
     # should raise integration error
@@ -421,14 +403,13 @@ def test_GSL_fixed_timestep_big_dt_small_error():
     assert_raises((RuntimeError, IntegrationError), net.run, 10*ms)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 @skip_if_not_implemented
 def test_GSL_internal_variable():
     assert_raises(SyntaxError, Equations, 'd_p/dt = 300*Hz : 1')
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_method_options_neurongroup():
     neuron1 = NeuronGroup(1, model='dp/dt = 300*Hz : 1', method='gsl',
@@ -442,8 +423,7 @@ def test_GSL_method_options_neurongroup():
         'This neuron should call gsl_odeiv2_driver_apply_fixed_step()'
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 @skip_if_not_implemented
 def test_GSL_method_options_spatialneuron():
     morpho = Soma(30*um)
@@ -506,6 +486,7 @@ def test_GSL_method_options_synapses():
 
 
 if __name__ == '__main__':
+    from _pytest.outcomes import Skipped
     for t in [test_GSL_stateupdater_basic,
               test_GSL_different_clocks,
               test_GSL_default_function,
@@ -530,5 +511,5 @@ if __name__ == '__main__':
               ]:
         try:
             t()
-        except SkipTest as ex:
+        except Skipped as ex:
             print('Skipped: {} ({})'.format(t.__name__, str(ex)))

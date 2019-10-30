@@ -3,9 +3,8 @@ from collections import namedtuple
 import os
 
 import numpy as np
-from nose.plugins.skip import SkipTest
 from numpy.testing.utils import assert_raises
-from nose.plugins.attrib import attr
+import pytest
 
 from brian2 import prefs, clear_cache, _cache_dirs_and_extensions
 from brian2.codegen.optimisation import optimise_statements
@@ -25,13 +24,13 @@ from brian2.units import second, ms
 
 FakeGroup = namedtuple('FakeGroup', ['variables'])
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_auto_target():
     # very basic test that the "auto" codegen target is useable
     assert issubclass(auto_target(), CodeObject)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_analyse_identifiers():
     '''
     Test that the analyse_identifiers function works on a simple clear example.
@@ -52,7 +51,7 @@ def test_analyse_identifiers():
     assert dependent == {'e', 'f'}
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_identifiers_recursively():
     '''
     Test finding identifiers including subexpressions.
@@ -71,7 +70,7 @@ def test_get_identifiers_recursively():
     assert identifiers == {'x', '_x', 'y', 'z', 'sub1', 'sub2'}
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_write_to_subexpression():
     variables = {
         'a': Subexpression(name='a', dtype=np.float32,
@@ -85,7 +84,7 @@ def test_write_to_subexpression():
     assert_raises(SyntaxError, make_statements, code, variables, np.float32)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_repeated_subexpressions():
     variables = {
         'a': Subexpression(name='a', dtype=np.float32,
@@ -131,7 +130,7 @@ def test_repeated_subexpressions():
     assert not any(stmt.constant for stmt in vector_stmts)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_nested_subexpressions():
     '''
     This test checks that code translation works with nested subexpressions.
@@ -161,7 +160,7 @@ def test_nested_subexpressions():
     # use cases)
     assert evalorder == 'baxcbaxdbax'
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation():
     variables = {'v': Variable('v', scalar=False),
                  'w': Variable('w', scalar=False),
@@ -178,7 +177,7 @@ def test_apply_loop_invariant_optimisation():
     assert len(vector) == 2
     assert all('_lio_' in stmt.expr for stmt in vector)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation_integer():
     variables = {'v': Variable('v', scalar=False),
                  'N': Constant('N', 10),
@@ -209,7 +208,7 @@ def test_apply_loop_invariant_optimisation_integer():
     expr = scalar[2].expr.replace(' ', '')
     assert expr=='(y*w)/z' or expr=='(w*y)/z'
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation_boolean():
     variables = {'v1': Variable('v1', scalar=False),
                  'v2': Variable('v2', scalar=False),
@@ -240,7 +239,7 @@ def test_apply_loop_invariant_optimisation_boolean():
     assert vector[2].expr == '_lio_3'
     assert vector[3].expr == 'foo(_lio_4)'
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation_no_optimisation():
     variables = {'v1': Variable('v1', scalar=False),
                  'v2': Variable('v2', scalar=False),
@@ -268,7 +267,7 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
     for vs in vector[3:]:
         assert vs.expr.count('rand()') == 1, 'Expression should still contain a rand() call, but got ' + str(vs)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation_simplification():
     variables = {'v1': Variable('v1', scalar=False),
                  'v2': Variable('v2', scalar=False),
@@ -342,7 +341,7 @@ def test_apply_loop_invariant_optimisation_simplification():
         assert expr == 'i1//1.0'
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation_constant_evaluation():
     variables = {'v1': Variable('v1', scalar=False),
                  'v2': Variable('v2', scalar=False),
@@ -370,7 +369,7 @@ def test_apply_loop_invariant_optimisation_constant_evaluation():
     assert vector[2].expr == 'v1'
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_automatic_augmented_assignments():
     # We test that statements that could be rewritten as augmented assignments
     # are correctly rewritten (using sympy to test for symbolic equality)
@@ -423,39 +422,21 @@ def test_automatic_augmented_assignments():
             raise AssertionError('Transformation for statement "%s" gave an unexpected result: %s' % (orig, str(ex)))
 
 
-def test_clear_cache_numpy():
-    if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
-    assert 'numpy' not in _cache_dirs_and_extensions
-    assert_raises(ValueError, clear_cache, 'numpy')
+def test_clear_cache():
+    target = prefs.codegen.target
+    if target == 'numpy':
+        assert 'numpy' not in _cache_dirs_and_extensions
+        assert_raises(ValueError, clear_cache, 'numpy')
+    else:
+        assert target in _cache_dirs_and_extensions
+        cache_dir, _ = _cache_dirs_and_extensions[target]
+        # Create a file that should not be there
+        fname = os.path.join(cache_dir, 'some_file.py')
+        open(fname, 'w').close()
+        # clear_cache should refuse to clear the directory
+        assert_raises(IOError, clear_cache, target)
 
-
-def test_clear_cache_weave():
-    if prefs.codegen.target != 'weave':
-        raise SkipTest('weave-only test')
-    assert 'weave' in _cache_dirs_and_extensions
-    cache_dir, _ = _cache_dirs_and_extensions['weave']
-    # Create a file that should not be there
-    fname = os.path.join(cache_dir, 'some_file.py')
-    open(fname, 'w').close()
-    # clear_cache should refuse to clear the directory
-    assert_raises(IOError, clear_cache, 'weave')
-
-    os.remove(fname)
-
-
-def test_clear_cache_cython():
-    if prefs.codegen.target != 'cython':
-        raise SkipTest('Cython-only test')
-    assert 'cython' in _cache_dirs_and_extensions
-    cache_dir, _ = _cache_dirs_and_extensions['cython']
-    # Create a file that should not be there
-    fname = os.path.join(cache_dir, 'some_file.py')
-    open(fname, 'w').close()
-    # clear_cache should refuse to clear the directory
-    assert_raises(IOError, clear_cache, 'cython')
-
-    os.remove(fname)
+        os.remove(fname)
 
 
 if __name__ == '__main__':
@@ -472,10 +453,5 @@ if __name__ == '__main__':
     test_apply_loop_invariant_optimisation_simplification()
     test_apply_loop_invariant_optimisation_constant_evaluation()
     test_automatic_augmented_assignments()
-    for t in [test_clear_cache_numpy,
-              test_clear_cache_weave,
-              test_clear_cache_cython]:
-        try:
-            t()
-        except SkipTest:
-            pass
+    test_clear_cache()
+

@@ -2,12 +2,10 @@ from __future__ import absolute_import
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from numpy.testing import assert_raises, assert_equal, assert_array_equal
-from nose import with_setup
-from nose.plugins.attrib import attr
+import pytest
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_clock_attributes():
     clock = Clock(dt=1*ms)
     assert_array_equal(clock.t, 0*second)
@@ -15,8 +13,7 @@ def test_clock_attributes():
     assert_array_equal(clock.dt, 1*ms)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_clock_dt_change():
     clock = Clock(dt=1*ms)
     # at time 0s, all dt changes should be allowed
@@ -40,15 +37,13 @@ def test_clock_dt_change():
     assert_raises(ValueError, lambda: clock._set_t_update_dt(target_t=0.1*ms))
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
-def test_defaultclock():
+@pytest.mark.codegen_independent
+def test_defaultclock(restore_clock_teardown):
     defaultclock.dt = 1*ms
     assert_equal(defaultclock.dt, 1*ms)
     assert defaultclock.name == 'defaultclock'
 
-
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_interval_warning():
     clock = Clock(dt=0.1*ms)
     with catch_logs() as logs:

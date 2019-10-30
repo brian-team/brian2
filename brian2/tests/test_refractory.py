@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 from collections import Counter
 
-from nose import SkipTest, with_setup
-from nose.plugins.attrib import attr
+import pytest
 from numpy.testing.utils import assert_equal, assert_raises
 
 from brian2.core.functions import timestep
@@ -12,7 +11,7 @@ from brian2.equations.refractory import add_refractoriness
 from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_add_refractoriness():
     eqs = Equations('''
     dv/dt = -x*v/second : volt (unless refractory)
@@ -26,7 +25,7 @@ def test_add_refractoriness():
     assert 'lastspike' in eqs
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_missing_refractory_warning():
     # Forgotten refractory argument
     with catch_logs() as l:
@@ -36,8 +35,7 @@ def test_missing_refractory_warning():
     assert l[0][0] == 'WARNING' and l[0][1].endswith('no_refractory')
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_refractoriness_basic():
     G = NeuronGroup(1, '''
                        dv/dt = 99.999*Hz : 1 (unless refractory)
@@ -63,8 +61,7 @@ def test_refractoriness_basic():
     assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_refractoriness_variables():
     # Try a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
@@ -109,8 +106,7 @@ def test_refractoriness_variables():
             raise
             raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_refractoriness_threshold_basic():
     G = NeuronGroup(1, '''
     dv/dt = 199.99*Hz : 1
@@ -123,8 +119,7 @@ def test_refractoriness_threshold_basic():
     assert_allclose(spike_mon.t, [5, 15] * ms)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_refractoriness_repeated():
     # Create a group that spikes whenever it can
     group = NeuronGroup(1, '', threshold='True', refractory=10*defaultclock.dt)
@@ -134,11 +129,10 @@ def test_refractoriness_repeated():
     assert_allclose(np.diff(spike_mon.t), 10*defaultclock.dt)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_refractoriness_repeated_legacy():
     if prefs.core.default_float_dtype == np.float32:
-        raise SkipTest('Not testing legacy refractory mechanism with single '
+        pytest.skip('Not testing legacy refractory mechanism with single '
                        'precision floats.')
     # Switch on behaviour from versions <= 2.1.2
     prefs.legacy.refractory_timing = True
@@ -156,8 +150,7 @@ def test_refractoriness_repeated_legacy():
     prefs.legacy.refractory_timing = False
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_refractoriness_threshold():
     # Try a quantity, a string evaluating to a quantity an an explicit boolean
     # condition -- all should do the same thing
@@ -182,7 +175,7 @@ def test_refractoriness_threshold():
         assert_allclose(spike_mon.t, [5, 15] * ms)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_refractoriness_types():
     # make sure that using a wrong type of refractoriness does not work
     group = NeuronGroup(1, '', refractory='3*Hz')
@@ -194,7 +187,7 @@ def test_refractoriness_types():
     group = NeuronGroup(1, 'ref: 1', refractory='ref')
     assert_raises(TypeError, lambda: Network(group).run(0*ms))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_conditional_write_set():
     '''
     Test that the conditional_write attribute is set correctly
@@ -204,8 +197,7 @@ def test_conditional_write_set():
     assert G.variables['v'].conditional_write is G.variables['not_refractory']
     assert G.variables['w'].conditional_write is None
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_conditional_write_behaviour():
     H = NeuronGroup(1, 'v:1', threshold='v>-1')
 
@@ -237,8 +229,7 @@ def test_conditional_write_behaviour():
     assert G.v[0] < 1.1
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_conditional_write_automatic_and_manual():
     source = NeuronGroup(1, '', threshold='True')  # spiking all the time
     target = NeuronGroup(2, '''dv/dt = 0/ms : 1 (unless refractory)

@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 import numpy as np
-from nose.plugins.attrib import attr
+import pytest
 
 from brian2.devices.device import (Device, all_devices, set_device, get_device,
-                                   reset_device, runtime_device, previous_devices)
+                                   reset_device, runtime_device)
 
 class ATestDevice(Device):
     def activate(self, build_on_run, **kwargs):
@@ -20,9 +20,9 @@ class ATestDevice(Device):
     def fill_with_array(self, var, arr):
         pass
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_reset_device_implicit():
-    import brian2.devices.device as device_module
+    from brian2.devices import device_module
     old_prev_devices = list(device_module.previous_devices)
     device_module.previous_devices = []
     test_device1 = ATestDevice()
@@ -51,7 +51,7 @@ def test_set_reset_device_implicit():
     device_module.previous_devices = old_prev_devices
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_reset_device_explicit():
     original_device = get_device()
     test_device1 = ATestDevice()

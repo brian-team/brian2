@@ -1,11 +1,11 @@
 from __future__ import absolute_import
-from nose.plugins.attrib import attr
+import pytest
 import numpy as np
 from numpy.testing.utils import assert_equal
 
 from brian2.memory.dynamicarray import DynamicArray, DynamicArray1D
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_1d_access():
     da = DynamicArray1D(10)
     da[:] = np.arange(10)
@@ -19,7 +19,7 @@ def test_dynamic_array_1d_access():
     assert all(da[:] == (np.arange(10) + 2))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_1d_resize_up_down():
     for numpy_resize in [True, False]:
         da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
@@ -34,7 +34,7 @@ def test_dynamic_array_1d_resize_up_down():
         assert da.shape == (5, )
         assert all(da[:] == np.arange(5))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_1d_resize_down_up():
     for numpy_resize in [True, False]:
         da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
@@ -49,7 +49,7 @@ def test_dynamic_array_1d_resize_down_up():
         assert all(da[:5] == np.arange(5))
         assert all(da[5:] == 0)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_1d_shrink():
     for numpy_resize in [True, False]:
         da = DynamicArray1D(10, use_numpy_resize=numpy_resize)
@@ -61,7 +61,7 @@ def test_dynamic_array_1d_shrink():
         assert len(da._data) == 5
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_2d_access():
     da = DynamicArray1D((10, 20))
     da[:, :] = np.arange(200).reshape((10, 20))
@@ -74,7 +74,7 @@ def test_dynamic_array_2d_access():
     assert_equal(da[:, :], np.arange(200).reshape((10, 20)) + 2)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_2d_resize_up_down():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
@@ -93,7 +93,7 @@ def test_dynamic_array_2d_resize_up_down():
         assert_equal(da[:, :], np.arange(200).reshape((10, 20)))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_2d_resize_down_up():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
@@ -113,7 +113,7 @@ def test_dynamic_array_2d_resize_down_up():
         assert_equal(da[5:, 15:], 0)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dynamic_array_2d_shrink():
     for numpy_resize in [True, False]:
         da = DynamicArray((10, 20), use_numpy_resize=numpy_resize)
