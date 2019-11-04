@@ -1,3 +1,6 @@
+'''
+Module containing fixtures and hooks used by the pytest test suite.
+'''
 import re
 
 import numpy as np
