@@ -71,7 +71,7 @@ def test_spike_monitor_indexing():
 
 
 @pytest.mark.standalone_compatible
-def test_spike_monitor_variables(device_teardown):
+def test_spike_monitor_variables():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate : Hz
                           prev_spikes : integer''',
@@ -99,7 +99,7 @@ def test_spike_monitor_variables(device_teardown):
     assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
 
 @pytest.mark.standalone_compatible
-def test_spike_monitor_get_states(device_teardown):
+def test_spike_monitor_get_states():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate : Hz
                           prev_spikes : integer''',
@@ -120,7 +120,7 @@ def test_spike_monitor_get_states(device_teardown):
 
 
 @pytest.mark.standalone_compatible
-def test_spike_monitor_subgroups(device_teardown):
+def test_spike_monitor_subgroups():
     G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
     G.do_spike = [True, False, False, False, True, True]
     spikes_all = SpikeMonitor(G)
@@ -153,7 +153,7 @@ def test_spike_monitor_bug_824():
 
 
 @pytest.mark.standalone_compatible
-def test_event_monitor(device_teardown):
+def test_event_monitor():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', events={'my_event': 'v>1'})
     G.run_on_event('my_event', 'v=0')
@@ -192,7 +192,7 @@ def test_event_monitor(device_teardown):
 
 
 @pytest.mark.standalone_compatible
-def test_event_monitor_no_record(device_teardown):
+def test_event_monitor_no_record():
     # Check that you can switch off recording spike times/indices
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', events={'my_event': 'v>1'},
@@ -226,7 +226,7 @@ def test_event_monitor_no_record(device_teardown):
 
 
 @pytest.mark.standalone_compatible
-def test_spike_trains(device_teardown):
+def test_spike_trains():
     # An arbitrary combination of indices that has been shown to sort in an
     # unstable way with quicksort and therefore lead to out-of-order values
     # in the dictionary returned by spike_trains() of several neurons (see #725)
@@ -261,7 +261,7 @@ def test_synapses_state_monitor():
     assert_allclose(synapse_mon2.w[1], 1*nS)
 
 @pytest.mark.standalone_compatible
-def test_state_monitor(device_teardown):
+def test_state_monitor():
     # Unique name to get the warning even for repeated runs of the test
     unique_name = 'neurongroup_' + str(uuid.uuid4()).replace('-', '_')
     # Check that all kinds of variables can be recorded

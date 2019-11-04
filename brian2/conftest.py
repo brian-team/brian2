@@ -1,9 +1,7 @@
-import pytest
-
 import re
-from io import StringIO
 
 import numpy as np
+import pytest
 
 from brian2.units import ms
 from brian2.core.clocks import defaultclock
@@ -18,20 +16,6 @@ def pytest_ignore_collect(path, config):
     # Do not test brian2.hears bridge (needs Brian1)
     if str(path).endswith('hears.py'):
         return True
-
-
-@pytest.fixture
-def device_teardown():
-    # This fixture is not doing anything before the test
-    yield None
-    # clean up after the test
-    reinit_and_delete()
-
-@pytest.fixture
-def restore_clock_teardown():
-    # This fixture is not doing anything before the test
-    yield None
-    defaultclock.dt = 0.1 * ms
 
 
 # The "random" values are always 0.5
@@ -49,6 +33,7 @@ fake_randn.implementations.add_implementation('cython','''
                                     cdef double randn(int vectorisation_idx):
                                         return 0.5
                                     ''')
+
 @pytest.fixture
 def fake_randn_randn_fixture():
     orig_randn = DEFAULT_FUNCTIONS['randn']
@@ -56,8 +41,10 @@ def fake_randn_randn_fixture():
     yield None
     DEFAULT_FUNCTIONS['randn'] = orig_randn
 
+# Fixture that is used for all tests
 @pytest.fixture(autouse=True)
-def set_preferences_fixture(request):
+def setup_and_teardown(request):
+    # Set preferences before each test
     import brian2
     if hasattr(request.config, 'slaveinput'):
         for key, value in request.config.slaveinput['brian_prefs'].items():
@@ -87,6 +74,16 @@ def set_preferences_fixture(request):
     except TypeError:
         pass  # using a numpy version < 1.14
 
+    yield  # run test
+
+    # clean up after the test
+    reinit_and_delete()
+    # Reset defaultclock.dt to be sure
+    defaultclock.dt = 0.1*ms
+
+
+# (Optionally) mark tests raising NotImplementedError as skipped (mostly used
+# for testing Brian2GeNN)
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     if hasattr(item.config, 'slaveinput'):
