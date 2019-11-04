@@ -586,7 +586,9 @@ def test_unit_discarding_functions():
         assert_equal(np.sign(value), np.sign(np.asarray(value)))
         assert_equal(zeros_like(value), np.zeros_like(np.asarray(value)))
         assert_equal(ones_like(value), np.ones_like(np.asarray(value)))
-        assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
+        # Calling non-zero on a 0d array is deprecated, don't test it:
+        if value.ndim > 0:
+            assert_equal(np.nonzero(value), np.nonzero(np.asarray(value)))
 
 
 @pytest.mark.codegen_independent
