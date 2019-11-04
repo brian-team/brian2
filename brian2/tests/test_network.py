@@ -321,27 +321,34 @@ def test_scheduling_summary():
                                       name=basename + '_sm_ia',
                                       when='after_end')
     inactive_state_mon.active = False
-    net = Network(group, state_mon, inactive_state_mon)
+    @network_operation(name=basename + '_net_op', when='before_end')
+    def foo():
+        pass
+    net = Network(group, state_mon, inactive_state_mon, foo)
     summary_before = scheduling_summary(net)
     assert [entry.name for entry in summary_before.entries] == [basename+'_sm',
                                                                 basename+'_stateupdater',
                                                                 basename+'_thresholder',
                                                                 basename+'_resetter',
+                                                                basename+'_net_op',
                                                                 basename+'_run_regularly',
                                                                 basename+'_sm_ia']
     assert [entry.when for entry in summary_before.entries] == ['start',
                                                                 'groups',
                                                                 'thresholds',
                                                                 'resets',
+                                                                'before_end',
                                                                 'end',
                                                                 'after_end']
     assert [entry.dt for entry in summary_before.entries] == [defaultclock.dt,
                                                               defaultclock.dt,
                                                               defaultclock.dt,
                                                               defaultclock.dt,
+                                                              defaultclock.dt,
                                                               defaultclock.dt*10,
                                                               defaultclock.dt]
     assert [entry.active for entry in summary_before.entries] == [True,
+                                                                  True,
                                                                   True,
                                                                   True,
                                                                   True,

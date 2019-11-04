@@ -161,13 +161,24 @@ class SchedulingSummary(object):
                                    field_names=['when', 'order', 'dt',
                                                 'name', 'type', 'active',
                                                 'owner_name', 'owner_type'])
-        self.entries = [ScheduleEntry(when=obj.when, order=obj.order,
-                                      dt=obj.clock.dt, name=obj.name,
-                                      type=obj.__class__.__name__,
-                                      active=obj.active,
-                                      owner_name=obj.group.name,
-                                      owner_type=obj.group.__class__.__name__)
-                        for obj in objects if not len(obj.contained_objects)]
+        entries = []
+        for obj in objects:
+            if len(obj.contained_objects):
+                continue
+            owner = getattr(obj, 'group', None)
+            if owner is None:
+                owner_name, owner_type = None, None
+            else:
+                owner_name = owner.name
+                owner_type = owner.__class__.__name__
+            entries.append(ScheduleEntry(when=obj.when, order=obj.order,
+                                         dt=obj.clock.dt, name=obj.name,
+                                         type=obj.__class__.__name__,
+                                         active=obj.active,
+                                         owner_name=owner_name,
+                                         owner_type=owner_type))
+        self.entries = entries
+
         self.all_dts = sorted({float(entry.dt) for entry in self.entries})
         # How many steps compared to the fastest clock?
         self.steps = {float(dt): int(dt / self.all_dts[0]) for dt in self.all_dts}
@@ -175,7 +186,8 @@ class SchedulingSummary(object):
     def __repr__(self):
         return _format_table(['object', 'part of', 'Clock dt', 'when', 'order', 'active'],
                              [['{} ({})'.format(entry.name, entry.type),
-                               '{} ({})'.format(entry.owner_name, entry.owner_type),
+                               '{} ({})'.format(entry.owner_name, entry.owner_type)
+                               if entry.owner_name is not None else '--',
                                '{} (every {})'.format(entry.dt,
                                                      'step' if self.steps[float(entry.dt)] == 1
                                                      else '{} steps'.format(self.steps[float(entry.dt)])),
@@ -195,7 +207,8 @@ class SchedulingSummary(object):
             <td style="text-align: center;">{}</td>
         </tr>
         '''.format('<b>{}</b> (<em>{}</em>)'.format(entry.name, entry.type),
-                   '{} (<em>{}</em>)'.format(entry.owner_name, entry.owner_type),
+                   '{} (<em>{}</em>)'.format(entry.owner_name, entry.owner_type)
+                   if entry.owner_name is not None else '&ndash;',
                    '{} (every {})'.format(entry.dt,
                                           'step' if self.steps[float(entry.dt)] == 1
                                           else '{} steps'.format(self.steps[float(entry.dt)])),
