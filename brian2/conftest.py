@@ -10,6 +10,13 @@ from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
 from brian2.devices.device import reinit_and_delete
 
+
+def pytest_ignore_collect(path, config):
+    if config.option.doctestmodules:
+        if 'tests' in str(path):
+            return True  # Ignore tests package for doctests
+
+
 @pytest.fixture
 def device_teardown():
     # This fixture is not doing anything before the test
@@ -70,6 +77,13 @@ def set_preferences_fixture(request):
     else:
         for k, v in request.config.brian_prefs.items():
             brian2.prefs[k] = v
+    # Print output changed in numpy 1.14, stick with the old format to
+    # avoid doctest failures
+    try:
+        np.set_printoptions(legacy='1.13')
+    except TypeError:
+        pass  # using a numpy version < 1.14
+
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):

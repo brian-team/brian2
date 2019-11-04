@@ -17,6 +17,27 @@ from brian2.devices.device import all_devices, reset_device, reinit_and_delete
 
 try:
     import pytest
+    from _pytest import doctest as pytest_doctest
+    import importlib
+    _orig_collect = pytest_doctest.DoctestModule.collect
+
+    class OurDoctestModule(pytest.Module):
+        def collect(self):
+            for item in _orig_collect(self):
+                # Check the object for exclusion from doctests
+                full_name = item.name.split('.')
+                test_name = []
+                while full_name[-1] != os.path.splitext(self.name)[0]:
+                    test_name.append(full_name.pop())
+                tested_obj = self.obj
+                for name in reversed(test_name):
+                    tested_obj = getattr(tested_obj, name)
+                if not getattr(tested_obj, '_do_not_run_doctests', False):
+                    yield item
+
+    # Monkey patch pytest
+    pytest_doctest.DoctestModule = OurDoctestModule
+
     # from nose.plugins.errorclass import ErrorClassPlugin, ErrorClass
     # import nose.plugins.doctests as doctests
     # import doctest
@@ -80,6 +101,10 @@ class PreferencePlugin(object):
                 prefs[k] = ('TYPE', repr(v))
         node.slaveinput['brian_prefs'] = prefs
 
+    # def pytest_ignore_collect(self, path, config):
+    #     if str(path).endswith('hears.py'):
+    #         return True
+    #     return False
 
 def clear_caches():
     from brian2.utils.logger import BrianLogger
@@ -88,7 +113,7 @@ def clear_caches():
     make_statements._cache.clear()
 
 
-def make_argv(dirnames, markers):
+def make_argv(dirnames, markers=None, doctests=False):
     '''
     Create the list of arguments for the ``pytests`` call.
 
@@ -103,13 +128,25 @@ def make_argv(dirnames, markers):
         The arguments for `pytest.main`.
 
     '''
-    argv = dirnames + [
-        '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
-        '-k', 'test_',
-        '--quiet',
-        '-m', '{}'.format(markers),
-        '-x',
+    if doctests:
+        if markers is not None:
+            raise TypeError('Cannot give markers for doctests')
+        argv = dirnames + [
+            '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
+            '--quiet',
+            '--doctest-modules',
+            '-x',
+            '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
+            '--pyargs', 'brian2'
         ]
+    else:
+        argv = dirnames + [
+            '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
+            '--quiet',
+            '-m', '{}'.format(markers),
+            '-x',
+            '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            ]
     return argv
 
 
@@ -180,11 +217,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     elif isinstance(extra_test_dirs, basestring):
         extra_test_dirs = [extra_test_dirs]
 
-    # multiprocess_arguments = ['--processes=-1',
-    #                           '--process-timeout=3600',  # we don't want them to time out
-    #                           '--process-restartworker']
     multiprocess_arguments = ['-n', 'auto']
-    # multiprocess_arguments = []
 
     if codegen_targets is None:
         codegen_targets = ['numpy']
@@ -208,9 +241,6 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     dirnames = [dirname] + extra_test_dirs
 
-    pref_filed, pref_filename = tempfile.mkstemp('brian_prefs', text=True)
-    pref_file = os.fdopen(pref_filed, 'w')
-
     print('Running tests in %s ' % (', '.join(dirnames)), end='')
     if codegen_targets:
         print('for targets %s' % (', '.join(codegen_targets)), end='')
@@ -219,7 +249,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     print("Running Brian version {} "
           "from '{}'".format(brian2.__version__,
-                               os.path.dirname(brian2.__file__)))
+                             os.path.dirname(brian2.__file__)))
 
     all_targets = set(codegen_targets)
 
@@ -278,43 +308,25 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
     prefs['codegen.cpp.extra_compile_args_msvc'].extend(['-w', '-O0'])
 
-    # if fail_for_not_implemented:
-    #     not_implemented_plugin = NotImplementedPlugin
-    # else:
-    #     not_implemented_plugin = NotImplementedNoFailurePlugin
-    # # This hack is needed to get the NotImplementedPlugin working for multiprocessing
-    # import nose.plugins.multiprocess as multiprocess
-    # multiprocess._instantiate_plugins = [not_implemented_plugin]
-    #
-    # plugins = [not_implemented_plugin()]
-
     from brian2.devices import set_device
     set_device('runtime')
     pref_plugin = PreferencePlugin(prefs)
     try:
         success = []
         if test_codegen_independent:
-            print('Running tests that do not use code generation')
+            print('Running doctests')
             # Some doctests do actually use code generation, use numpy for that
             prefs['codegen.target'] = 'numpy'
-            # Print output changed in numpy 1.14, stick with the old format to
-            # avoid doctest failures
-            import numpy as np
-            try:
-                np.set_printoptions(legacy='1.13')
-            except TypeError:
-                pass  # using a numpy version < 1.14
+            argv = make_argv(dirnames, doctests=True)
+            if 'codegen_independent' in test_in_parallel:
+                argv.extend(multiprocess_arguments)
+            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+
+            print('Running tests that do not use code generation')
             argv = make_argv(dirnames, "codegen_independent")
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            #     multiprocess._instantiate_plugins.append(OurDoctestPlugin)
-            print('executing with', argv)
-            pref_file.truncate(0)
-            pref_file.write(prefs.as_file)
-            pref_file.flush()
             success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
-            # if 'codegen_independent' in test_in_parallel:
-            #     multiprocess._instantiate_plugins.remove(OurDoctestPlugin)
             clear_caches()
 
         for target in codegen_targets:
