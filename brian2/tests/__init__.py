@@ -360,8 +360,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             exclude_openmp = ' and not openmp' if not test_openmp else ''
             argv = make_argv(dirnames, test_standalone+exclude_openmp)
             if test_standalone in test_in_parallel:
-                argv.extend(multiprocess_arguments, plugins=[pref_plugin])
-            success.append(pytest.main(argv) == 0)
+                argv.extend(multiprocess_arguments)
+            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
             clear_caches()
 
         all_success = all(success)
