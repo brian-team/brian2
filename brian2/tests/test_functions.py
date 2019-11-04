@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 
 import pytest
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal
 
 from brian2 import *
 from brian2.core.functions import timestep
@@ -215,16 +215,16 @@ def test_user_defined_function_units():
     net = Network(G)
     net.run(0*ms)  # make sure we have a clock and therefore a t
     G.c = 'all_specified(a, b, t)'
-    assert_raises(ValueError,
-                  lambda: setattr(G, 'c', 'one_arg_missing(a, b, t)'))
-    assert_raises(ValueError,
-                  lambda: setattr(G, 'c', 'no_result_unit(a, b, t)'))
-    assert_raises(KeyError,
-                  lambda: setattr(G, 'c', 'nothing_specified(a, b, t)'))
-    assert_raises(DimensionMismatchError,
-                  lambda: setattr(G, 'a', 'all_specified(a, b, t)'))
-    assert_raises(DimensionMismatchError,
-                  lambda: setattr(G, 'a', 'all_specified(b, a, t)'))
+    with pytest.raises(ValueError):
+        setattr(G, 'c', 'one_arg_missing(a, b, t)')
+    with pytest.raises(ValueError):
+        setattr(G, 'c', 'no_result_unit(a, b, t)')
+    with pytest.raises(KeyError):
+        setattr(G, 'c', 'nothing_specified(a, b, t)')
+    with pytest.raises(DimensionMismatchError):
+        setattr(G, 'a', 'all_specified(a, b, t)')
+    with pytest.raises(DimensionMismatchError):
+        setattr(G, 'a', 'all_specified(b, a, t)')
 
 
 def test_simple_user_defined_function():
@@ -259,10 +259,8 @@ def test_simple_user_defined_function():
         mon = StateMonitor(G, 'func', record=True,
                            codeobj_class=WeaveCodeObject)
         net = Network(G, mon)
-        # This looks a bit odd -- we have to get usersin into the namespace of
-        # the lambda expression
-        assert_raises(NotImplementedError,
-                      lambda usersin: net.run(0.1*ms), usersin)
+        with pytest.raises(NotImplementedError):
+            net.run(0.1*ms)
     except ImportError:
         pass
 
@@ -279,8 +277,10 @@ def test_manual_user_defined_function():
     orig_foo = foo
     # Since the function is not annotated with check units, we need to specify
     # both the units of the arguments and the return unit
-    assert_raises(ValueError, lambda: Function(foo, return_unit=volt))
-    assert_raises(ValueError, lambda: Function(foo, arg_units=[volt, volt]))
+    with pytest.raises(ValueError):
+        Function(foo, return_unit=volt)
+    with pytest.raises(ValueError):
+        Function(foo, arg_units=[volt, volt])
     foo = Function(foo, arg_units=[volt, volt], return_unit=volt)
 
     assert foo(1*volt, 2*volt) == 6*volt
@@ -291,8 +291,8 @@ def test_manual_user_defined_function():
                        x : 1
                        y : 1''')
     net = Network(group)
-    assert_raises(DimensionMismatchError,
-                  lambda: net.run(0*ms, namespace={ 'foo': foo}))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms, namespace={ 'foo': foo})
 
     # Incorrect output unit
     group = NeuronGroup(1, '''
@@ -300,8 +300,8 @@ def test_manual_user_defined_function():
                        x : volt
                        y : volt''')
     net = Network(group)
-    assert_raises(DimensionMismatchError,
-                  lambda: net.run(0*ms, namespace={'foo': foo}))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms, namespace={'foo': foo})
 
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt
@@ -412,8 +412,8 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    assert_raises(ValueError, lambda: net.run(defaultclock.dt,
-                                                 namespace={'foo': foo}))
+    with pytest.raises(ValueError):
+        net.run(defaultclock.dt, namespace={'foo': foo})
 
 
 @pytest.mark.cpp_standalone
@@ -436,8 +436,8 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    assert_raises(TypeError, lambda: net.run(defaultclock.dt,
-                                                 namespace={'foo': foo}))
+    with pytest.raises(TypeError):
+        net.run(defaultclock.dt, namespace={'foo': foo})
 
 
 def test_manual_user_defined_function_weave_compiler_args():
@@ -488,8 +488,8 @@ def test_manual_user_defined_function_weave_wrong_compiler_args1():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    assert_raises(ValueError, lambda: net.run(defaultclock.dt,
-                                                 namespace={'foo': foo}))
+    with pytest.raises(ValueError):
+        net.run(defaultclock.dt, namespace={'foo': foo})
 
 
 def test_manual_user_defined_function_weave_wrong_compiler_args2():
@@ -511,8 +511,8 @@ def test_manual_user_defined_function_weave_wrong_compiler_args2():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    assert_raises(TypeError, lambda: net.run(defaultclock.dt,
-                                                 namespace={'foo': foo}))
+    with pytest.raises(TypeError):
+        net.run(defaultclock.dt, namespace={'foo': foo})
 
 
 def test_manual_user_defined_function_cython_compiler_args():
@@ -558,8 +558,8 @@ def test_manual_user_defined_function_cython_wrong_compiler_args1():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    assert_raises(ValueError, lambda: net.run(defaultclock.dt,
-                                              namespace={'foo': foo}))
+    with pytest.raises(ValueError):
+        net.run(defaultclock.dt, namespace={'foo': foo})
 
 
 def test_manual_user_defined_function_cython_wrong_compiler_args2():
@@ -580,8 +580,8 @@ def test_manual_user_defined_function_cython_wrong_compiler_args2():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    assert_raises(TypeError, lambda: net.run(defaultclock.dt,
-                                             namespace={'foo': foo}))
+    with pytest.raises(TypeError):
+        net.run(defaultclock.dt, namespace={'foo': foo})
 
 
 def test_external_function_cython():
@@ -744,7 +744,8 @@ def test_function_implementation_container():
     assert container['B'].get_code(None) == 'implementation B CodeObject'
     assert container[BCodeObject].get_code(None) == 'implementation B CodeObject'
 
-    assert_raises(KeyError, lambda: container['unknown'])
+    with pytest.raises(KeyError):
+        container['unknown']
 
     # some basic dictionary properties
     assert len(container) == 4
@@ -987,13 +988,15 @@ def test_declare_types():
         @declare_types(b='floating')
         def f(a, b, c):
             return a*b*c
-    assert_raises(ValueError, bad_argtype)
+    with pytest.raises(ValueError):
+        bad_argtype()
 
     def bad_argname():
         @declare_types(d='floating')
         def f(a, b, c):
             return a*b*c
-    assert_raises(ValueError, bad_argname)
+    with pytest.raises(ValueError):
+        bad_argname()
 
     @check_units(a=volt, b=1)
     @declare_types(a='float', b='integer')
@@ -1015,7 +1018,8 @@ def test_declare_types():
         '''
         G = NeuronGroup(1, eqs)
         Network(G).run(1*ms)
-    assert_raises(TypeError, bad_units)
+    with pytest.raises(TypeError):
+        bad_units()
 
     def bad_type():
         @implementation('numpy', discard_units=True)
@@ -1029,7 +1033,8 @@ def test_declare_types():
         '''
         G = NeuronGroup(1, eqs)
         Network(G).run(1*ms)
-    assert_raises(TypeError, bad_type)
+    with pytest.raises(TypeError):
+        bad_type()
 
 
 def test_multiple_stateless_function_calls():
@@ -1037,14 +1042,17 @@ def test_multiple_stateless_function_calls():
     # simplified to 2*rand()) raise an error
     G = NeuronGroup(1, 'dv/dt = (rand() - rand())/second : 1')
     net = Network(G)
-    assert_raises(NotImplementedError, lambda: net.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
     G2 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=rand() - rand()')
     net2 = Network(G2)
-    assert_raises(NotImplementedError, lambda: net2.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net2.run(0*ms)
     G3 = NeuronGroup(1, 'v:1')
     G3.run_regularly('v = rand() - rand()')
     net3 = Network(G3)
-    assert_raises(NotImplementedError, lambda: net3.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net3.run(0*ms)
 
 
 if __name__ == '__main__':

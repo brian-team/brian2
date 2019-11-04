@@ -7,7 +7,7 @@ import os
 import uuid
 
 import numpy as np
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal
 import pytest
 
 from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
@@ -27,18 +27,24 @@ from brian2.tests.utils import assert_allclose
 @pytest.mark.codegen_independent
 def test_incorrect_network_use():
     '''Test some wrong uses of `Network` and `MagicNetwork`'''
-    assert_raises(TypeError, lambda: Network(name='mynet',
-                                             anotherkwd='does not exist'))
-    assert_raises(TypeError, lambda: Network('not a BrianObject'))
+    with pytest.raises(TypeError):
+        Network(name='mynet', anotherkwd='does not exist')
+    with pytest.raises(TypeError):
+        Network('not a BrianObject')
     net = Network()
-    assert_raises(TypeError, lambda: net.add('not a BrianObject'))
-    assert_raises(ValueError, lambda: MagicNetwork())
+    with pytest.raises(TypeError):
+        net.add('not a BrianObject')
+    with pytest.raises(ValueError):
+        MagicNetwork()
     G = NeuronGroup(10, 'v:1')
     net.add(G)
-    assert_raises(TypeError, lambda: net.remove(object()))
-    assert_raises(MagicError, lambda: magic_network.add(G))
-    assert_raises(MagicError, lambda: magic_network.remove(G))
-
+    with pytest.raises(TypeError):
+        net.remove(object())
+    with pytest.raises(MagicError):
+        magic_network.add(G)
+    with pytest.raises(MagicError):
+        magic_network.remove(G)
+        
 
 @pytest.mark.codegen_independent
 def test_network_contains():
@@ -186,17 +192,23 @@ def test_network_incorrect_schedule():
     # Test that incorrect arguments provided to schedule raise errors
     net = Network()
     # net.schedule = object()
-    assert_raises(TypeError, setattr, net, 'schedule', object())
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', object())
     # net.schedule = 1
-    assert_raises(TypeError, setattr, net, 'schedule', 1)
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', 1)
     # net.schedule = {'slot1', 'slot2'}
-    assert_raises(TypeError, setattr, net, 'schedule', {'slot1', 'slot2'})
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', {'slot1', 'slot2'})
     # net.schedule = ['slot', 1]
-    assert_raises(TypeError, setattr, net, 'schedule', ['slot', 1])
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', ['slot', 1])
     # net.schedule = ['start', 'after_start']
-    assert_raises(ValueError, setattr, net, 'schedule', ['start', 'after_start'])
+    with pytest.raises(ValueError):
+        setattr(net, 'schedule', ['start', 'after_start'])
     # net.schedule = ['before_start', 'start']
-    assert_raises(ValueError, setattr, net, 'schedule', ['before_start', 'start'])
+    with pytest.raises(ValueError):
+        setattr(net, 'schedule', ['before_start', 'start'])
 
 @pytest.mark.codegen_independent
 def test_schedule_warning():
@@ -452,8 +464,10 @@ def test_incorrect_network_operations():
             pass
     c = Container()
 
-    assert_raises(TypeError, lambda: NetworkOperation(func))
-    assert_raises(TypeError, lambda: NetworkOperation(c.func))
+    with pytest.raises(TypeError):
+        NetworkOperation(func)
+    with pytest.raises(TypeError):
+        NetworkOperation(c.func)
 
     # Incorrect use of @network_operation -- it does not work on an instance
     # method
@@ -476,6 +490,8 @@ def test_network_operations_name():
     def f2():
         seq.append('b')
 
+    def x():
+        pass
     op = NetworkOperation(lambda: x)
     assert_equal(op.name, 'networkoperation')
 
@@ -554,7 +570,8 @@ def test_incorrect_dt_defaultclock():
     net = Network(G)
     net.run(0.5*ms)
     defaultclock.dt = 1*ms
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
 @pytest.mark.codegen_independent
@@ -564,7 +581,8 @@ def test_incorrect_dt_custom_clock():
     net = Network(G)
     net.run(0.5*ms)
     clock.dt = 1*ms
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
 @pytest.mark.codegen_independent
@@ -690,18 +708,24 @@ def test_network_access():
 
     # accessing objects
     assert net['counter'] is x
-    assert_raises(TypeError, lambda: net[123])
-    assert_raises(TypeError, lambda: net[1:3])
-    assert_raises(KeyError, lambda: net['non-existing'])
+    with pytest.raises(TypeError):
+        net[123]
+    with pytest.raises(TypeError):
+        net[1:3]
+    with pytest.raises(KeyError):
+        net['non-existing']
 
     objects = [obj for obj in net]
     assert set(objects) == set(net.objects)
 
     # deleting objects
     del net['counter']
-    assert_raises(TypeError, lambda: net.__delitem__(123))
-    assert_raises(TypeError, lambda: net.__delitem__(slice(1, 3)))
-    assert_raises(KeyError, lambda: net.__delitem__('counter'))
+    with pytest.raises(TypeError):
+        net.__delitem__(123)
+    with pytest.raises(TypeError):
+        net.__delitem__(slice(1, 3))
+    with pytest.raises(KeyError):
+        net.__delitem__('counter')
 
 
 @pytest.mark.codegen_independent
@@ -719,7 +743,8 @@ def test_dependency_check():
     dependent_objects = create_net()
     # Trying to simulate the monitors/synapses without the group should fail
     for obj in dependent_objects:
-        assert_raises(ValueError, lambda: Network(obj).run(0*ms))
+        with pytest.raises(ValueError):
+            Network(obj).run(0*ms)
 
     # simulation with a magic network should work when we have an explicit
     # reference to one of the objects, but the object should be inactive and
@@ -863,8 +888,10 @@ def test_progress_report_incorrect():
     '''
     G = NeuronGroup(1, '')
     net = Network(G)
-    assert_raises(ValueError, lambda: net.run(1*ms, report='unknown'))
-    assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
+    with pytest.raises(ValueError):
+        net.run(1*ms, report='unknown')
+    with pytest.raises(TypeError):
+        net.run(1*ms, report=object())
 
 
 @pytest.mark.standalone_compatible
@@ -902,7 +929,8 @@ def test_multiple_runs_report_standalone_incorrect():
     set_device('cpp_standalone', build_on_run=False)
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
-    assert_raises(NotImplementedError, lambda: run(1*ms, report='stderr'))
+    with pytest.raises(NotImplementedError):
+        run(1*ms, report='stderr')
 
 
 @pytest.mark.codegen_independent
@@ -1059,10 +1087,12 @@ def test_store_restore_to_file_differing_nets():
                                    name='source_2')
     mon = SpikeMonitor(source_2, name='monitor')
     net = Network(source_2, mon)
-    assert_raises(KeyError, lambda: net.restore(filename=filename))
+    with pytest.raises(KeyError):
+        net.restore(filename=filename)
 
     net = Network(source)  # Without the monitor
-    assert_raises(KeyError, lambda: net.restore(filename=filename))
+    with pytest.raises(KeyError):
+        net.restore(filename=filename)
 
 @pytest.mark.codegen_independent
 def test_store_restore_magic():
@@ -1275,7 +1305,8 @@ def test_multiple_runs_defaultclock_incorrect():
     # The new dt is not compatible with the previous time since we cannot
     # continue at 0.5ms with a dt of 1ms
     defaultclock.dt = 1*ms
-    assert_raises(ValueError, lambda: net.run(1*ms))
+    with pytest.raises(ValueError):
+        net.run(1*ms)
 
 
 @pytest.mark.standalone_compatible
@@ -1306,7 +1337,8 @@ def test_profile_off():
                     reset='v=0', name='profile_test')
     net = Network(G)
     net.run(1*ms, profile=False)
-    assert_raises(ValueError, lambda: profiling_summary(net))
+    with pytest.raises(ValueError):
+        profiling_summary(net)
 
 
 @pytest.mark.codegen_independent

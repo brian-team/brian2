@@ -6,7 +6,6 @@ from __future__ import absolute_import
 from collections import namedtuple
 
 import pytest
-from numpy.testing import assert_raises
 import numpy as np
 
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
@@ -267,14 +266,15 @@ def test_is_boolean_expression():
                                   'but was supposed to return %s') % (expr,
                                                                       ret_val,
                                                                       expect))
-    assert_raises(SyntaxError, is_boolean_expression, 'a<b and c',
+    with pytest.raises(SyntaxError):
+        is_boolean_expression('a<b and c', variables)
+    with pytest.raises(SyntaxError):
+        is_boolean_expression('a or foo', variables)
+    with pytest.raises(SyntaxError):
+        is_boolean_expression('ot a', # typo
                   variables)
-    assert_raises(SyntaxError, is_boolean_expression, 'a or foo',
-                  variables)
-    assert_raises(SyntaxError, is_boolean_expression, 'ot a', # typo
-                  variables)
-    assert_raises(SyntaxError, is_boolean_expression, 'g(c) and f(a)',
-                  variables)
+    with pytest.raises(SyntaxError):
+        is_boolean_expression('g(c) and f(a)', variables)
 
 
 @pytest.mark.codegen_independent
@@ -320,8 +320,8 @@ def test_parse_expression_unit():
                 all_variables[name] = group._resolve(name, {})
 
         if isinstance(expect, type) and issubclass(expect, Exception):
-            assert_raises(expect, parse_expression_dimensions, expr,
-                          all_variables)
+            with pytest.raises(expect):
+                parse_expression_dimensions(expr, all_variables)
         else:
             u = parse_expression_dimensions(expr, all_variables)
             assert have_same_dimensions(u, expect)
@@ -337,7 +337,8 @@ def test_parse_expression_unit():
                 all_variables[name] = variables[name]
             else:
                 all_variables[name] = group._resolve(name, {})
-        assert_raises(SyntaxError, parse_expression_dimensions, expr, all_variables)
+        with pytest.raises(SyntaxError):
+            parse_expression_dimensions(expr, all_variables)
 
 
 @pytest.mark.codegen_independent
@@ -367,8 +368,8 @@ def test_value_from_expression():
 
     wrong_expressions = ['s_non_constant', 's_non_scalar', 'c or True']
     for expr in wrong_expressions:
-        assert_raises(SyntaxError, lambda : _get_value_from_expression(expr,
-                                                                       variables))
+        with pytest.raises(SyntaxError):
+            _get_value_from_expression(expr, variables)
 
 
 @pytest.mark.codegen_independent
@@ -386,15 +387,18 @@ def test_abstract_code_from_function():
 
     def f(x):
         return x[:]
-    assert_raises(SyntaxError, abstract_code_from_function, f)
+    with pytest.raises(SyntaxError):
+        abstract_code_from_function(f)
 
     def f(x, **kwarg):
         return x
-    assert_raises(SyntaxError, abstract_code_from_function, f)
+    with pytest.raises(SyntaxError):
+        abstract_code_from_function(f)
 
     def f(x, *args):
         return x
-    assert_raises(SyntaxError, abstract_code_from_function, f)
+    with pytest.raises(SyntaxError):
+        abstract_code_from_function(f)
 
 
 @pytest.mark.codegen_independent

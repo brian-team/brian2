@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os
 import itertools
 
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 import pytest
 
 from brian2 import *
@@ -48,8 +48,8 @@ def test_construction():
     '''
 
     # Check units of currents
-    assert_raises(DimensionMismatchError, lambda: SpatialNeuron(morphology=morpho,
-                                                                model=eqs))
+    with pytest.raises(DimensionMismatchError):
+        SpatialNeuron(morphology=morpho, model=eqs)
 
     eqs='''
     Im=gL*(EL-v) : amp/meter**2
@@ -108,8 +108,8 @@ def test_construction_coordinates():
     '''
 
     # Check units of currents
-    assert_raises(DimensionMismatchError, lambda: SpatialNeuron(morphology=morpho,
-                                                                model=eqs))
+    with pytest.raises(DimensionMismatchError):
+        SpatialNeuron(morphology=morpho, model=eqs)
 
     eqs='''
     Im=gL*(EL-v) : amp/meter**2
@@ -617,7 +617,8 @@ def test_allowed_integration():
 
     for eqs in forbidden_eqs:
         # Should raise an error
-        assert_raises(TypeError, SpatialNeuron, morph, eqs)
+        with pytest.raises(TypeError):
+            SpatialNeuron(morph, eqs)
 
 @pytest.mark.codegen_independent
 def test_spatialneuron_indexing():

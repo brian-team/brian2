@@ -3,7 +3,7 @@ from brian2 import *
 from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_equal
 import pytest
 
 
@@ -21,7 +21,8 @@ def test_base():
     assert_equal(x.when, 'start')
     assert_equal(x.order, 0)
     assert_equal(len(x.contained_objects), 0)
-    assert_raises(AttributeError, lambda: setattr(x, 'contained_objects', []))
+    with pytest.raises(AttributeError):
+        setattr(x, 'contained_objects', [])
     x.contained_objects.append(y)
     assert_equal(len(x.contained_objects), 1)
     assert x.contained_objects[0] is y
@@ -59,7 +60,8 @@ def test_duplicate_names():
     # all is good
     net.run(0*ms)
     net = Network(obj3, obj4)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
 @pytest.mark.standalone_compatible

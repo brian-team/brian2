@@ -5,7 +5,7 @@ import pickle
 
 import pytest
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_equal
 
 import brian2
 from brian2.core.preferences import prefs
@@ -100,10 +100,12 @@ def test_construction():
     assert_equal(q1[0], 0.5*second)
 
     # Illegal constructor calls
-    assert_raises(TypeError, lambda: Quantity([500 * ms, 1]))
-    assert_raises(TypeError, lambda: Quantity(['some', 'nonsense']))
-    assert_raises(DimensionMismatchError, lambda: Quantity([500 * ms,
-                                                            1 * volt]))
+    with pytest.raises(TypeError):
+        Quantity([500 * ms, 1])
+    with pytest.raises(TypeError):
+        Quantity(['some', 'nonsense'])
+    with pytest.raises(DimensionMismatchError):
+        Quantity([500 * ms, 1 * volt])
 
 
 @pytest.mark.codegen_independent
@@ -131,11 +133,14 @@ def test_get_dimensions():
     assert is_scalar_type(np.array(5.0))
     assert is_scalar_type(np.float32(5.0))
     assert is_scalar_type(np.float64(5.0))
-    assert_raises(TypeError, lambda: get_dimensions('a string'))
+    with pytest.raises(TypeError):
+        get_dimensions('a string')
     # wrong number of indices
-    assert_raises(TypeError, lambda: get_or_create_dimension([1, 2, 3, 4, 5, 6]))
+    with pytest.raises(TypeError):
+        get_or_create_dimension([1, 2, 3, 4, 5, 6])
     # not a sequence
-    assert_raises(TypeError, lambda: get_or_create_dimension(42))
+    with pytest.raises(TypeError):
+        get_or_create_dimension(42)
 
 
 @pytest.mark.codegen_independent
@@ -145,7 +150,8 @@ def test_display():
     '''
     assert_equal(in_unit(3 * volt, mvolt), '3000. mV')
     assert_equal(in_unit(10 * mV, ohm * amp), '0.01 ohm A')
-    assert_raises(DimensionMismatchError, lambda: in_unit(10 * nS, ohm))
+    with pytest.raises(DimensionMismatchError):
+        in_unit(10 * nS, ohm)
     
     # A bit artificial...
     assert_equal(in_unit(10.0, Unit(10.0, scale=1)), '1.0')
@@ -281,10 +287,12 @@ def test_setting():
     def set_to_value(key, value):
         quantity[key] = value
 
-    assert_raises(DimensionMismatchError, lambda : set_to_value(0, 1))
-    assert_raises(DimensionMismatchError, lambda : set_to_value(0, 1 * second))
-    assert_raises(DimensionMismatchError, lambda : set_to_value((slice(2), slice(3)),
-                                                                np.ones((2, 3))))
+    with pytest.raises(DimensionMismatchError):
+        set_to_value(0, 1)
+    with pytest.raises(DimensionMismatchError):
+        set_to_value(0, 1 * second)
+    with pytest.raises(DimensionMismatchError):
+        set_to_value((slice(2), slice(3)), np.ones((2, 3)))
 
 
 @pytest.mark.codegen_independent
@@ -321,10 +329,14 @@ def test_multiplication_division():
         assert_quantity(q * q2, np.asarray(q) * np.asarray(q2), volt * second)
 
         # using unsupported objects should fail
-        assert_raises(TypeError, lambda: q / 'string')
-        assert_raises(TypeError, lambda: 'string' / q)
-        assert_raises(TypeError, lambda: 'string' * q)
-        assert_raises(TypeError, lambda: q * 'string')
+        with pytest.raises(TypeError):
+            q / 'string'
+        with pytest.raises(TypeError):
+            'string' / q
+        with pytest.raises(TypeError):
+            'string' * q
+        with pytest.raises(TypeError):
+            q * 'string'
 
 
 @pytest.mark.codegen_independent
@@ -342,34 +354,50 @@ def test_addition_subtraction():
         assert_quantity(q2 - q, np.asarray(q2) - np.asarray(q), volt)
         
         # mismatching units
-        assert_raises(DimensionMismatchError, lambda: q + 5 * second)
-        assert_raises(DimensionMismatchError, lambda: 5 * second + q)
-        assert_raises(DimensionMismatchError, lambda: q - 5 * second)
-        assert_raises(DimensionMismatchError, lambda: 5 * second - q)
+        with pytest.raises(DimensionMismatchError):
+            q + 5 * second
+        with pytest.raises(DimensionMismatchError):
+            5 * second + q
+        with pytest.raises(DimensionMismatchError):
+            q - 5 * second
+        with pytest.raises(DimensionMismatchError):
+            5 * second - q
         
-        # scalar        
-        assert_raises(DimensionMismatchError, lambda: q + 5)
-        assert_raises(DimensionMismatchError, lambda: 5 + q)
-        assert_raises(DimensionMismatchError, lambda: q + np.float64(5))
-        assert_raises(DimensionMismatchError, lambda: np.float64(5) + q)
-        assert_raises(DimensionMismatchError, lambda: q - 5)
-        assert_raises(DimensionMismatchError, lambda: 5 - q)
-        assert_raises(DimensionMismatchError, lambda: q - np.float64(5))
-        assert_raises(DimensionMismatchError, lambda: np.float64(5) - q)
+        # scalar
+        with pytest.raises(DimensionMismatchError):
+            q + 5
+        with pytest.raises(DimensionMismatchError):
+            5 + q
+        with pytest.raises(DimensionMismatchError):
+            q + np.float64(5)
+        with pytest.raises(DimensionMismatchError):
+            np.float64(5) + q
+        with pytest.raises(DimensionMismatchError):
+            q - 5
+        with pytest.raises(DimensionMismatchError):
+            5 - q
+        with pytest.raises(DimensionMismatchError):
+            q - np.float64(5)
+        with pytest.raises(DimensionMismatchError):
+            np.float64(5) - q
         
         # unitless array
-        assert_raises(DimensionMismatchError, lambda: q + np.array([5]))
-        assert_raises(DimensionMismatchError, lambda: np.array([5]) + q)
-        assert_raises(DimensionMismatchError,
-                      lambda: q + np.array([5], dtype=np.float64))
-        assert_raises(DimensionMismatchError,
-                      lambda: np.array([5], dtype=np.float64) + q)
-        assert_raises(DimensionMismatchError, lambda: q - np.array([5]))
-        assert_raises(DimensionMismatchError, lambda: np.array([5]) - q)
-        assert_raises(DimensionMismatchError,
-                      lambda: q - np.array([5], dtype=np.float64))
-        assert_raises(DimensionMismatchError,
-                      lambda: np.array([5], dtype=np.float64) - q)                        
+        with pytest.raises(DimensionMismatchError):
+            q + np.array([5])
+        with pytest.raises(DimensionMismatchError):
+            np.array([5]) + q
+        with pytest.raises(DimensionMismatchError):
+            q + np.array([5], dtype=np.float64)
+        with pytest.raises(DimensionMismatchError):
+            np.array([5], dtype=np.float64) + q
+        with pytest.raises(DimensionMismatchError):
+            q - np.array([5])
+        with pytest.raises(DimensionMismatchError):
+            np.array([5]) - q
+        with pytest.raises(DimensionMismatchError):
+            q - np.array([5], dtype=np.float64)
+        with pytest.raises(DimensionMismatchError):
+            np.array([5], dtype=np.float64) - q
 
         # Check that operations with 0 work
         assert_quantity(q + 0, np.asarray(q), volt)
@@ -382,10 +410,14 @@ def test_addition_subtraction():
         assert_quantity(np.float64(0) - q, -np.asarray(q), volt)
         
         # using unsupported objects should fail
-        assert_raises(TypeError, lambda: q + 'string')
-        assert_raises(TypeError, lambda: 'string' + q)
-        assert_raises(TypeError, lambda: q - 'string')
-        assert_raises(TypeError, lambda: 'string' - q)
+        with pytest.raises(TypeError):
+            q + 'string'
+        with pytest.raises(TypeError):
+            'string' + q
+        with pytest.raises(TypeError):
+            q - 'string'
+        with pytest.raises(TypeError):
+            'string' - q
 
 @pytest.mark.codegen_independent
 def test_unary_operations():
@@ -427,16 +459,20 @@ def test_binary_operations():
         # Test python builtins
         tryops = [add, sub, lt, le, gt, ge, eq, ne]
         for op in tryops:
-            assert_raises(DimensionMismatchError, lambda: op(a, b))
-            assert_raises(DimensionMismatchError, lambda: op(b, a))
+            with pytest.raises(DimensionMismatchError):
+                op(a, b)
+            with pytest.raises(DimensionMismatchError):
+                op(b, a)
 
         # Test equivalent numpy functions
         numpy_funcs = [np.add, np.subtract, np.less, np.less_equal,
                        np.greater, np.greater_equal, np.equal, np.not_equal,
                        np.maximum, np.minimum]
         for numpy_func in numpy_funcs:
-            assert_raises(DimensionMismatchError, lambda: numpy_func(a, b))
-            assert_raises(DimensionMismatchError, lambda: numpy_func(b, a))
+            with pytest.raises(DimensionMismatchError):
+                numpy_func(a, b)
+            with pytest.raises(DimensionMismatchError):
+                numpy_func(b, a)
 
     #
     # Check that consistent units work
@@ -511,8 +547,10 @@ def test_power():
         assert_quantity(value ** 3, np.asarray(value) ** 3, kilogram ** 3)
         # Test raising to a dimensionless quantity
         assert_quantity(value ** (3 * volt/volt), np.asarray(value) ** 3, kilogram ** 3)    
-        assert_raises(DimensionMismatchError, lambda: value ** (2 * volt))
-        assert_raises(TypeError, lambda: value ** np.array([2, 3]))
+        with pytest.raises(DimensionMismatchError):
+            value ** (2 * volt)
+        with pytest.raises(TypeError):
+            value ** np.array([2, 3])
 
 
 @pytest.mark.codegen_independent
@@ -537,20 +575,26 @@ def test_inplace_operations():
     def illegal_add(q2):
         q = np.arange(10) * volt
         q += q2
-    assert_raises(DimensionMismatchError, lambda: illegal_add(1 * second))
-    assert_raises(DimensionMismatchError, lambda: illegal_add(1))
+    with pytest.raises(DimensionMismatchError):
+        illegal_add(1 * second)
+    with pytest.raises(DimensionMismatchError):
+        illegal_add(1)
 
     def illegal_sub(q2):
         q = np.arange(10) * volt
         q -= q2
-    assert_raises(DimensionMismatchError, lambda: illegal_add(1 * second))
-    assert_raises(DimensionMismatchError, lambda: illegal_add(1))
+    with pytest.raises(DimensionMismatchError):
+        illegal_add(1 * second)
+    with pytest.raises(DimensionMismatchError):
+        illegal_add(1)
     
     def illegal_pow(q2):
         q = np.arange(10) * volt
         q **= q2
-    assert_raises(DimensionMismatchError, lambda: illegal_pow(1 * volt))
-    assert_raises(TypeError, lambda: illegal_pow(np.arange(10)))
+    with pytest.raises(DimensionMismatchError):
+        illegal_pow(1 * volt)
+    with pytest.raises(TypeError):
+        illegal_pow(np.arange(10))
     
     # inplace operations with unsupported objects should fail
     for inplace_op in [q.__iadd__, q.__isub__, q.__imul__,
@@ -567,11 +611,13 @@ def test_inplace_operations():
     for inplace_op in [volt.__iadd__, volt.__isub__, volt.__imul__,
                        volt.__idiv__, volt.__itruediv__, volt.__ifloordiv__,
                        volt.__imod__, volt.__ipow__]:
-        assert_raises(TypeError, lambda: inplace_op(volt))
+        with pytest.raises(TypeError):
+            inplace_op(volt)
     for inplace_op in [volt.dimensions.__imul__, volt.dimensions.__idiv__,
                        volt.dimensions.__itruediv__,
                        volt.dimensions.__ipow__]:
-        assert_raises(TypeError, lambda: inplace_op(volt.dimensions))
+        with pytest.raises(TypeError):
+            inplace_op(volt.dimensions)
 
 
 @pytest.mark.codegen_independent
@@ -617,7 +663,8 @@ def test_unitsafe_functions():
     for func, np_func in funcs:
         #make sure these functions raise errors when run on values with dimensions
         for val in unit_values:
-            assert_raises(DimensionMismatchError, lambda : func(val))
+            with pytest.raises(DimensionMismatchError):
+                func(val)
         
         # make sure the functions are equivalent to their numpy counterparts
         # when run on unitless values while ignoring warnings about invalid
@@ -710,23 +757,28 @@ def test_special_case_numpy_functions():
                  np.asarray(where(cond, ar1, ar2)))    
     
     # Check some error cases
-    assert_raises(ValueError, lambda: where(cond, ar1))
-    assert_raises(TypeError, lambda: where(cond, ar1, ar1, ar2))
-    assert_raises(DimensionMismatchError, lambda: where(cond, ar1, ar1 / ms))
+    with pytest.raises(ValueError):
+        where(cond, ar1)
+    with pytest.raises(TypeError):
+        where(cond, ar1, ar1, ar2)
+    with pytest.raises(DimensionMismatchError):
+        where(cond, ar1, ar1 / ms)
 
     # Check setasflat (for numpy < 1.7)
     if hasattr(Quantity, 'setasflat'):
         a = np.arange(10) * mV
         b = np.ones(10).reshape(5, 2) * volt
         c = np.ones(10).reshape(5, 2) * second
-        assert_raises(DimensionMismatchError, lambda: a.setasflat(c))
+        with pytest.raises(DimensionMismatchError):
+            a.setasflat(c)
         a.setasflat(b)
         assert_equal(a.flatten(), b.flatten())
 
     # Check cumprod
     a = np.arange(1, 10) * mV/mV
     assert_equal(a.cumprod(), np.asarray(a).cumprod())
-    assert_raises(TypeError, lambda: (np.arange(1, 5)*mV).cumprod())
+    with pytest.raises(TypeError):
+        (np.arange(1, 5)*mV).cumprod()
 
 
 # Functions that should not change units
@@ -815,21 +867,21 @@ def test_numpy_functions_dimensionless():
         
         for value, unitless_value in zip(unit_values, unitless_values):
             for ufunc in UFUNCS_DIMENSIONLESS:
-                assert_raises(DimensionMismatchError,
-                              lambda: eval('np.%s(value)' % ufunc,
-                                           globals(), {'value': value}))
+                with pytest.raises(DimensionMismatchError):
+                    eval('np.%s(value)' % ufunc,
+                         globals(), {'value': value})
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
-                assert_raises(DimensionMismatchError,
-                              lambda: eval('np.%s(value1, value2)' % ufunc,
-                                           globals(), {'value1': value,
-                                                       'value2': unitless_value}))
-                assert_raises(DimensionMismatchError,
-                              lambda: eval('np.%s(value2, value1)' % ufunc,
-                                           globals(), {'value1': value,
-                                                       'value2': unitless_value}))
-                assert_raises(DimensionMismatchError,
-                              lambda: eval('np.%s(value, value)' % ufunc,
-                                           globals(), {'value': value}))
+                with pytest.raises(DimensionMismatchError):
+                    eval('np.%s(value1, value2)' % ufunc,
+                         globals(), {'value1': value,
+                                     'value2': unitless_value})
+                with pytest.raises(DimensionMismatchError):
+                    eval('np.%s(value2, value1)' % ufunc,
+                         globals(), {'value1': value,
+                                     'value2': unitless_value})
+                with pytest.raises(DimensionMismatchError):
+                    eval('np.%s(value, value)' % ufunc,
+                         globals(), {'value': value})
 
 
 @pytest.mark.codegen_independent
@@ -862,11 +914,13 @@ def test_numpy_functions_typeerror():
         for ufunc in UFUNCS_INTEGERS:
             if ufunc == 'invert': 
                 # only takes one argument
-                assert_raises(TypeError, lambda: eval('np.%s(value)' % ufunc,
-                                                   globals(), {'value': value}))
+                with pytest.raises(TypeError):
+                    eval('np.%s(value)' % ufunc,
+                         globals(), {'value': value})
             else:
-                assert_raises(TypeError, lambda: eval('np.%s(value, value)' % ufunc,
-                                                   globals(), {'value': value}))
+                with pytest.raises(TypeError):
+                    eval('np.%s(value, value)' % ufunc,
+                    globals(), {'value': value})
 
 
 @pytest.mark.codegen_independent
@@ -914,12 +968,18 @@ def test_arange_linspace():
     assert_equal(brian2.linspace(0, 1, 10), np.linspace(0, 1, 10))
 
     # Make sure units are checked
-    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5))
-    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*mV))
-    assert_raises(DimensionMismatchError, lambda: brian2.arange(1, 5*mV))
-    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*ms))
-    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*mV, 5*mV, step=1*ms))
-    assert_raises(DimensionMismatchError, lambda: brian2.arange(1*ms, 5*mV))
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(1*mV, 5)
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(1*mV, 5*mV)
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(1, 5*mV)
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(1*mV, 5*ms)
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(1*mV, 5*mV, step=1*ms)
+    with pytest.raises(DimensionMismatchError):
+        brian2.arange(1*ms, 5*mV)
 
     # Check correct functioning with units
     assert_quantity(brian2.arange(5*mV, step=1*mV), float(mV)*np.arange(5, step=1), mV)
@@ -927,14 +987,22 @@ def test_arange_linspace():
     assert_quantity(brian2.linspace(1*mV, 2*mV), float(mV)*np.linspace(1, 2), mV)
 
     # Check errors for arange with incorrect numbers of arguments/duplicate arguments
-    assert_raises(TypeError, lambda: brian2.arange())
-    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, 0))
-    assert_raises(TypeError, lambda: brian2.arange(0, stop=1))
-    assert_raises(TypeError, lambda: brian2.arange(0, 5, stop=1))
-    assert_raises(TypeError, lambda: brian2.arange(0, 5, start=1))
-    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, start=1))
-    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, stop=2))
-    assert_raises(TypeError, lambda: brian2.arange(0, 5, 1, step=2))
+    with pytest.raises(TypeError):
+        brian2.arange()
+    with pytest.raises(TypeError):
+        brian2.arange(0, 5, 1, 0)
+    with pytest.raises(TypeError):
+        brian2.arange(0, stop=1)
+    with pytest.raises(TypeError):
+        brian2.arange(0, 5, stop=1)
+    with pytest.raises(TypeError):
+        brian2.arange(0, 5, start=1)
+    with pytest.raises(TypeError):
+        brian2.arange(0, 5, 1, start=1)
+    with pytest.raises(TypeError):
+        brian2.arange(0, 5, 1, stop=2)
+    with pytest.raises(TypeError):
+        brian2.arange(0, 5, 1, step=2)
 
 
 @pytest.mark.codegen_independent
@@ -974,10 +1042,14 @@ def test_check_units():
     a_function(None, None)
     
     # Try incorrect units
-    assert_raises(DimensionMismatchError, lambda: a_function(5 * second, None))
-    assert_raises(DimensionMismatchError, lambda: a_function(5, None))
-    assert_raises(TypeError, lambda: a_function(object(), None))
-    assert_raises(TypeError, lambda: a_function([1, 2*volt, 3], None))
+    with pytest.raises(DimensionMismatchError):
+        a_function(5 * second, None)
+    with pytest.raises(DimensionMismatchError):
+        a_function(5, None)
+    with pytest.raises(TypeError):
+        a_function(object(), None)
+    with pytest.raises(TypeError):
+        a_function([1, 2*volt, 3], None)
 
     @check_units(result=second)
     def b_function(return_second):
@@ -993,7 +1065,8 @@ def test_check_units():
     # Should work (returns second)
     b_function(True)
     # Should fail (returns volt)
-    assert_raises(DimensionMismatchError, lambda: b_function(False))
+    with pytest.raises(DimensionMismatchError):
+        b_function(False)
 
     @check_units(a=bool, b=1, result=bool)
     def c_function(a, b):
@@ -1004,9 +1077,12 @@ def test_check_units():
 
     assert c_function(True, 1)
     assert not c_function(True, -1)
-    assert_raises(TypeError, c_function, 1, 1)
-    assert_raises(TypeError, c_function, 1*mV, 1)
-    assert_raises(TypeError, c_function, False, 1)
+    with pytest.raises(TypeError):
+        c_function(1, 1)
+    with pytest.raises(TypeError):
+        c_function(1*mV, 1)
+    with pytest.raises(TypeError):
+        c_function(False, 1)
 
 
 @pytest.mark.codegen_independent
@@ -1048,7 +1124,8 @@ def test_switching_off_unit_checks():
     import brian2.units.fundamentalunits as fundamentalunits
     x = 3 * second
     y = 5 * volt    
-    assert_raises(DimensionMismatchError, lambda: x + y)
+    with pytest.raises(DimensionMismatchError):
+        x + y
     fundamentalunits.unit_checking = False
     # Now it should work
     assert np.asarray(x + y) == np.array(8)    
@@ -1077,8 +1154,10 @@ def test_fail_for_dimension_mismatch():
     assert dim2 is volt.dim
 
     # examples that should raise an error
-    assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt))
-    assert_raises(DimensionMismatchError, lambda: fail_for_dimension_mismatch(6 * volt, 5 * second))    
+    with pytest.raises(DimensionMismatchError):
+        fail_for_dimension_mismatch(6 * volt)
+    with pytest.raises(DimensionMismatchError):
+        fail_for_dimension_mismatch(6 * volt, 5 * second)
 
 
 @pytest.mark.codegen_independent

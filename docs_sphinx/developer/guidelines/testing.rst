@@ -80,20 +80,15 @@ and gives a nicer error message in case the assertion fails. Never make tests
 depend on external factors like random numbers -- tests should always give the
 same result when run on the same codebase. You should not only test the
 expected outcome for the correct use of functions and classes but also that
-errors are raised when expected. For that you can use the `assert_raises`
-function (also in `numpy.testing.utils`) which takes an Exception type and
-a callable as arguments::
+errors are raised when expected. For that you can use pytest's ``raises``
+function with which you can define a block of code that should raise an exception of
+a certain type::
 
-    assert_raises(DimensionMismatchError, lambda: 3*volt + 5*second)
+    with pytest.raises(DimensionMismatchError):
+        3*volt + 5*second
 
-TODO: pytest.raises
-
-Note that you cannot simply write ``3*volt + 5*second`` in the above example,
-this would raise an exception before calling assert_raises. Using a callable
-like the simple lambda expression above makes it possible for `assert_raises`
-to catch the error and compare it against the expected type. You can also check
-whether expected warnings are raised, see the documentation of the :doc:`logging
-mechanism <logging>` for details
+You can also check whether expected warnings are raised, see the documentation of the
+:doc:`logging mechanism <logging>` for details
 
 For simple functions, doctests (see below) are a great alternative to writing
 classical unit tests.

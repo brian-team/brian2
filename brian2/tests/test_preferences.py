@@ -7,7 +7,7 @@ from brian2.core.preferences import (DefaultValidator, BrianPreference,
                                      BrianGlobalPreferences, PreferenceError,
                                      BrianGlobalPreferencesView)
 
-from numpy.testing import assert_equal, assert_raises
+from numpy.testing import assert_equal
 import pytest
 
 @pytest.mark.codegen_independent
@@ -43,31 +43,31 @@ def test_preference_name_checking():
     gp = BrianGlobalPreferences()
     
     # Name that starts with an underscore
-    assert_raises(PreferenceError, lambda: gp.register_preferences('dummy', 'dummy doc',
-                                                                   _notalegalname=BrianPreference(True, 'some preference')
-                                                                   ))
+    with pytest.raises(PreferenceError):
+        gp.register_preferences('dummy', 'dummy doc',
+                                _notalegalname=BrianPreference(True, 'some preference'))
 
     # Name that clashes with a method name
-    assert_raises(PreferenceError, lambda: gp.register_preferences('dummy', 'dummy doc',
-                                                                   update=BrianPreference(True, 'some preference')
-                                                                   ))
+    with pytest.raises(PreferenceError):
+        gp.register_preferences('dummy', 'dummy doc',
+                                update=BrianPreference(True, 'some preference'))
                    
     gp.register_preferences('a', 'dummy doc',
                             b=BrianPreference(True, 'some preference'))
     
     #Trying to register a subcategory that would shadow a preference
-    assert_raises(PreferenceError, lambda: gp.register_preferences('a.b', 'dummy doc',
-                                                                   name=BrianPreference(True, 'some preference')
-                                                                   ))
+    with pytest.raises(PreferenceError):
+        gp.register_preferences('a.b', 'dummy doc',
+                                name=BrianPreference(True, 'some preference'))
 
 
     gp.register_preferences('b.c', 'dummy doc',
                             name=BrianPreference(True, 'some preference'))
         
     #Trying to register a preference that clashes with an existing category
-    assert_raises(PreferenceError, lambda: gp.register_preferences('b', 'dummy doc',
-                                                                   c=BrianPreference(True, 'some preference')
-                                                                   ))
+    with pytest.raises(PreferenceError):
+        gp.register_preferences('b', 'dummy doc',
+                                c=BrianPreference(True, 'some preference'))
 
 
 @pytest.mark.codegen_independent
@@ -77,19 +77,22 @@ def test_brianglobalpreferences():
     gp = BrianGlobalPreferences()
     
     # This shouldn't work, in user code only registered preferences can be set
-    assert_raises(PreferenceError, lambda: gp.__setitem__('a.b', 5))
+    with pytest.raises(PreferenceError):
+        gp.__setitem__('a.b', 5)
     
     # This uses the method that is used when reading preferences from a file
     gp._set_preference('a.b', 5)
     gp._set_preference('a.c', 5)
-    assert_raises(PreferenceError, gp.register_preferences, 'a', 'docs for a',
-                  b=BrianPreference(5, 'docs for b'))
+    with pytest.raises(PreferenceError):
+        gp.register_preferences('a', 'docs for a',
+                                b=BrianPreference(5, 'docs for b'))
     # test that post-setting a nonexistent preference in an existing base
     # name raises an error
     gp = BrianGlobalPreferences()
     gp.register_preferences('a', 'docs for a',
                             b=BrianPreference(5, 'docs for b'))
-    assert_raises(PreferenceError, gp.__setitem__, 'a.c', 5)
+    with pytest.raises(PreferenceError):
+        gp.__setitem__('a.c', 5)
     # Test pre and post-setting some correct names but valid and invalid values
     gp = BrianGlobalPreferences()
     gp._set_preference('a.b', 5)
@@ -102,11 +105,14 @@ def test_brianglobalpreferences():
         )
     assert gp['a.c']==1*volt
     gp['a.c'] = 2*volt
-    assert_raises(PreferenceError, gp.__setitem__, 'a.c', 3*amp)
+    with pytest.raises(PreferenceError):
+        gp.__setitem__('a.c', 3*amp)
     gp['a.d'] = 2.0
-    assert_raises(PreferenceError, gp.__setitem__, 'a.d', -1)
+    with pytest.raises(PreferenceError):
+        gp.__setitem__('a.d', -1)
     gp['a.e'] = float32
-    assert_raises(PreferenceError, gp.__setitem__, 'a.e', 0)
+    with pytest.raises(PreferenceError):
+        gp.__setitem__('a.e', 0)
     # test backup and restore
     gp._backup()
     gp['a.d'] = 10
@@ -137,12 +143,14 @@ def test_brianglobalpreferences():
         [a
         b = 10
         ''')
-    assert_raises(PreferenceError, gp.read_preference_file, pref_file)
+    with pytest.raises(PreferenceError):
+        gp.read_preference_file(pref_file)
     # test that reading a well formatted prefs file with an invalid value fails
     pref_file = StringIO(u'''
         a.b = 'oh no, not a string'
         ''')
-    assert_raises(PreferenceError, gp.read_preference_file, pref_file)
+    with pytest.raises(PreferenceError):
+        gp.read_preference_file(pref_file)
     # assert that writing the prefs to a file and loading them gives the
     # same values
     gp = BrianGlobalPreferences()
@@ -209,24 +217,38 @@ def test_preference_name_access():
     assert isinstance(gp.main.sub, BrianGlobalPreferencesView)
     
     # Setting categories shouldn't work
-    assert_raises(PreferenceError, lambda: gp.__setitem__('main', None))
-    assert_raises(PreferenceError, lambda: gp.__setattr__('main', None))
-    assert_raises(PreferenceError, lambda: gp.main.__setitem__('sub', None))
-    assert_raises(PreferenceError, lambda: gp.main.__setattr__('sub', None))
+    with pytest.raises(PreferenceError):
+        gp.__setitem__('main', None)
+    with pytest.raises(PreferenceError):
+        gp.__setattr__('main', None)
+    with pytest.raises(PreferenceError):
+        gp.main.__setitem__('sub', None)
+    with pytest.raises(PreferenceError):
+        gp.main.__setattr__('sub', None)
     
     # Neither should deleting categories or preferences
-    assert_raises(PreferenceError, lambda: gp.__delitem__('main'))
-    assert_raises(PreferenceError, lambda: gp.__delattr__('main'))
-    assert_raises(PreferenceError, lambda: gp.main.__delitem__('name'))
-    assert_raises(PreferenceError, lambda: gp.main.__delattr__('name'))
-    assert_raises(PreferenceError, lambda: gp.main.__delitem__('sub'))
-    assert_raises(PreferenceError, lambda: gp.main.__delattr__('sub'))
+    with pytest.raises(PreferenceError):
+        gp.__delitem__('main')
+    with pytest.raises(PreferenceError):
+        gp.__delattr__('main')
+    with pytest.raises(PreferenceError):
+        gp.main.__delitem__('name')
+    with pytest.raises(PreferenceError):
+        gp.main.__delattr__('name')
+    with pytest.raises(PreferenceError):
+        gp.main.__delitem__('sub')
+    with pytest.raises(PreferenceError):
+        gp.main.__delattr__('sub')
     
     #Errors for accessing non-existing preferences
-    assert_raises(KeyError, lambda: gp['main.doesnotexist'])
-    assert_raises(KeyError, lambda: gp['nonexisting.name'])
-    assert_raises(KeyError, lambda: gp.main.doesnotexist)
-    assert_raises(KeyError, lambda: gp.nonexisting.name)
+    with pytest.raises(KeyError):
+        gp['main.doesnotexist']
+    with pytest.raises(KeyError):
+        gp['nonexisting.name']
+    with pytest.raises(KeyError):
+        gp.main.doesnotexist
+    with pytest.raises(KeyError):
+        gp.nonexisting.name
 
     # Check dictionary functionality
     for name, value in gp.items():

@@ -5,8 +5,7 @@ import uuid
 import logging
 
 import pytest
-from numpy.testing.utils import (assert_equal, assert_raises,
-                                 assert_raises_regex, assert_array_equal)
+from numpy.testing.utils import assert_equal, assert_array_equal
 import sympy
 
 from brian2 import *
@@ -68,14 +67,14 @@ def test_creation():
 def test_creation_errors():
     G = NeuronGroup(42, 'v: 1', threshold='False')
     # Check that the old Synapses(..., connect=...) syntax raises an error
-    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
-                                              connect=True))
+    with pytest.raises(TypeError):
+        Synapses(G, G, 'w:1', on_pre='v+=w', connect=True)
     # Check that using pre and on_pre (resp. post/on_post) at the same time
     # raises an error
-    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', pre='v+=w',
-                                              on_pre='v+=w', connect=True))
-    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', post='v+=w',
-                                              on_post='v+=w', connect=True))
+    with pytest.raises(TypeError):
+        Synapses(G, G, 'w:1', pre='v+=w', on_pre='v+=w', connect=True)
+    with pytest.raises(TypeError):
+        Synapses(G, G, 'w:1', post='v+=w', on_post='v+=w', connect=True)
 
 @pytest.mark.codegen_independent
 def test_name_clashes():
@@ -83,19 +82,29 @@ def test_name_clashes():
     # is confusing and should be forbidden
     G1 = NeuronGroup(1, 'a : 1')
     G2 = NeuronGroup(1, 'b : 1')
-    assert_raises(ValueError, lambda: Synapses(G1, G2, 'a : 1'))
-    assert_raises(ValueError, lambda: Synapses(G1, G2, 'b : 1'))
+    with pytest.raises(ValueError):
+        Synapses(G1, G2, 'a : 1')
+    with pytest.raises(ValueError):
+        Synapses(G1, G2, 'b : 1')
 
     # Using _pre or _post as variable names is confusing (even if it is non-
     # ambiguous in unconnected NeuronGroups)
-    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_pre : 1'))
-    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_post : 1'))
-    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_pre = 1 : 1'))
-    assert_raises(ValueError, lambda: Synapses(G1, G2, 'x_post = 1 : 1'))
-    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_pre : 1'))
-    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_post : 1'))
-    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_pre = 1 : 1'))
-    assert_raises(ValueError, lambda: NeuronGroup(1, 'x_post = 1 : 1'))
+    with pytest.raises(ValueError):
+        Synapses(G1, G2, 'x_pre : 1')
+    with pytest.raises(ValueError):
+        Synapses(G1, G2, 'x_post : 1')
+    with pytest.raises(ValueError):
+        Synapses(G1, G2, 'x_pre = 1 : 1')
+    with pytest.raises(ValueError):
+        Synapses(G1, G2, 'x_post = 1 : 1')
+    with pytest.raises(ValueError):
+        NeuronGroup(1, 'x_pre : 1')
+    with pytest.raises(ValueError):
+        NeuronGroup(1, 'x_post : 1')
+    with pytest.raises(ValueError):
+        NeuronGroup(1, 'x_pre = 1 : 1')
+    with pytest.raises(ValueError):
+        NeuronGroup(1, 'x_post = 1 : 1')
 
     # this should all be ok
     Synapses(G1, G2, 'c : 1')
@@ -161,24 +170,35 @@ def test_connection_arrays():
 
     # Incorrect usage
     S = Synapses(G, G2)
-    assert_raises(TypeError, lambda: S.connect(i=[1.1, 2.2], j=[1.1, 2.2]))
-    assert_raises(TypeError, lambda: S.connect(i=[1, 2], j='string'))
-    assert_raises(TypeError, lambda: S.connect(i=[1, 2], j=[1, 2], n='i'))
-    assert_raises(TypeError, lambda: S.connect([1, 2]))
-    assert_raises(ValueError, lambda: S.connect(i=[1, 2, 3], j=[1, 2]))
-    assert_raises(ValueError, lambda: S.connect(i=np.ones((3, 3), dtype=np.int32),
-                                                j=np.ones((3, 1), dtype=np.int32)))
-    assert_raises(IndexError, lambda: S.connect(i=[41, 42], j=[0, 1]))  # source index > max
-    assert_raises(IndexError, lambda: S.connect(i=[0, 1], j=[16, 17]))  # target index > max
-    assert_raises(IndexError, lambda: S.connect(i=[0, -1], j=[0, 1]))  # source index < 0
-    assert_raises(IndexError, lambda: S.connect(i=[0, 1], j=[0, -1]))  # target index < 0
-    assert_raises(ValueError, lambda: S.connect('i==j',
-                                                j=np.arange(10)))
-    assert_raises(TypeError, lambda: S.connect('i==j',
-                                               n=object()))
-    assert_raises(TypeError, lambda: S.connect('i==j',
-                                               p=object()))
-    assert_raises(TypeError, lambda: S.connect(object()))
+    with pytest.raises(TypeError):
+        S.connect(i=[1.1, 2.2], j=[1.1, 2.2])
+    with pytest.raises(TypeError):
+        S.connect(i=[1, 2], j='string')
+    with pytest.raises(TypeError):
+        S.connect(i=[1, 2], j=[1, 2], n='i')
+    with pytest.raises(TypeError):
+        S.connect([1, 2])
+    with pytest.raises(ValueError):
+        S.connect(i=[1, 2, 3], j=[1, 2])
+    with pytest.raises(ValueError):
+        S.connect(i=np.ones((3, 3), dtype=np.int32),
+                  j=np.ones((3, 1), dtype=np.int32))
+    with pytest.raises(IndexError):
+        S.connect(i=[41, 42], j=[0, 1])  # source index > max
+    with pytest.raises(IndexError):
+        S.connect(i=[0, 1], j=[16, 17])  # target index > max
+    with pytest.raises(IndexError):
+        S.connect(i=[0, -1], j=[0, 1])  # source index < 0
+    with pytest.raises(IndexError):
+        S.connect(i=[0, 1], j=[0, -1])  # target index < 0
+    with pytest.raises(ValueError):
+        S.connect('i==j', j=np.arange(10))
+    with pytest.raises(TypeError):
+        S.connect('i==j', n=object())
+    with pytest.raises(TypeError):
+        S.connect('i==j', p=object())
+    with pytest.raises(TypeError):
+        S.connect(object())
 
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_full():
@@ -274,11 +294,13 @@ def test_connection_string_deterministic_full_custom():
                 namespace={'explicit_number': number})
 
     # check that this mistaken syntax raises an error
-    assert_raises(ValueError, lambda: S2.connect('k for k in range(1)'))
+    with pytest.raises(ValueError):
+        S2.connect('k for k in range(1)')
 
     # check that trying to connect to a neuron outside the range raises an error
     if get_device() == all_devices['runtime']:
-        assert_raises(IndexError, lambda: S2.connect(j='20'))
+        with pytest.raises(IndexError):
+            S2.connect(j='20')
 
     run(0*ms)  # for standalone
 
@@ -646,9 +668,12 @@ def test_state_variable_indexing():
     assert_equal(S.w[:, 0:3], S.w['v_post < 12.5*mV'])
 
     #invalid indices
-    assert_raises(IndexError, lambda: S.w.__getitem__((1, 2, 3, 4)))
-    assert_raises(IndexError, lambda: S.w.__getitem__(object()))
-    assert_raises(IndexError, lambda: S.w.__getitem__(1.5))
+    with pytest.raises(IndexError):
+        S.w.__getitem__((1, 2, 3, 4))
+    with pytest.raises(IndexError):
+        S.w.__getitem__(object())
+    with pytest.raises(IndexError):
+        S.w.__getitem__(1.5)
 
 
 def test_indices():
@@ -730,7 +755,8 @@ def test_equations_unit_check():
                    on_pre='v += sub2')
     syn.connect()
     net = Network(group, syn)
-    assert_raises(DimensionMismatchError, lambda: net.run(0 * ms))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0 * ms)
 
 
 def test_delay_specification():
@@ -766,14 +792,14 @@ def test_delay_specification():
     assert_allclose(S.delay[:], 20 * ms)
 
     # Invalid arguments
-    assert_raises(DimensionMismatchError, lambda: Synapses(G, G, 'w:1',
-                                                           on_pre='v+=w',
-                                                           delay=5*mV))
-    assert_raises(TypeError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
-                                              delay=object()))
-    assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', delay=5*ms))
-    assert_raises(ValueError, lambda: Synapses(G, G, 'w:1', on_pre='v+=w',
-                                               delay={'post': 5*ms}))
+    with pytest.raises(DimensionMismatchError):
+        Synapses(G, G, 'w:1', on_pre='v+=w', delay=5*mV)
+    with pytest.raises(TypeError):
+        Synapses(G, G, 'w:1', on_pre='v+=w', delay=object())
+    with pytest.raises(ValueError):
+        Synapses(G, G, 'w:1', delay=5*ms)
+    with pytest.raises(ValueError):
+        Synapses(G, G, 'w:1', on_pre='v+=w', delay={'post': 5*ms})
 
 
 def test_delays_pathways():
@@ -919,10 +945,10 @@ def test_invalid_custom_event():
     group1 = NeuronGroup(2, 'v : 1',
                          events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
     group2 = NeuronGroup(2, 'v : 1', threshold='v>1')
-    assert_raises(ValueError, lambda: Synapses(group1, group1, on_pre='v+=1',
-                                               on_event='spike'))
-    assert_raises(ValueError, lambda: Synapses(group2, group2, on_pre='v+=1',
-                                               on_event='custom'))
+    with pytest.raises(ValueError):
+        Synapses(group1, group1, on_pre='v+=1', on_event='spike')
+    with pytest.raises(ValueError):
+        Synapses(group2, group2, on_pre='v+=1', on_event='custom')
 
 
 def test_transmission():
@@ -1105,7 +1131,8 @@ def test_no_synapses():
     G2 = NeuronGroup(1, 'v:1')
     S = Synapses(G1, G2, on_pre='v+=1')
     net = Network(G1, G2, S)
-    assert_raises(TypeError, lambda: net.run(1*ms))
+    with pytest.raises(TypeError):
+        net.run(1*ms)
 
 
 @pytest.mark.codegen_independent
@@ -1115,8 +1142,10 @@ def test_no_synapses_variable_write():
     G2 = NeuronGroup(1, 'v:1')
     S = Synapses(G1, G2, 'w : 1', on_pre='v+=w')
     # Setting synaptic variables before calling connect is not allowed
-    assert_raises(TypeError, lambda: setattr(S, 'w', 1))
-    assert_raises(TypeError, lambda: setattr(S, 'delay', 1*ms))
+    with pytest.raises(TypeError):
+        setattr(S, 'w', 1)
+    with pytest.raises(TypeError):
+        setattr(S, 'delay', 1*ms)
 
 
 @pytest.mark.standalone_compatible
@@ -1204,27 +1233,32 @@ def test_summed_variable_errors():
                            p : volt''')
 
     # Using the (summed) flag for a differential equation or a parameter
-    assert_raises(ValueError, lambda: Synapses(G, G, '''dp_post/dt = -p_post / (10*ms) : volt (summed)'''))
-    assert_raises(ValueError, lambda: Synapses(G, G, '''p_post : volt (summed)'''))
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''dp_post/dt = -p_post / (10*ms) : volt (summed)''')
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''p_post : volt (summed)''')
 
     # Using the (summed) flag for a variable name without _pre or _post suffix
-    assert_raises(ValueError, lambda: Synapses(G, G, '''p = 3*volt : volt (summed)'''))
-
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''p = 3*volt : volt (summed)''')
     # Using the name of a variable that does not exist
-    assert_raises(ValueError, lambda: Synapses(G, G, '''q_post = 3*volt : volt (summed)'''))
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''q_post = 3*volt : volt (summed)''')
 
     # Target equation is not a parameter
-    assert_raises(ValueError, lambda: Synapses(G, G, '''sub_post = 3*volt : volt (summed)'''))
-    assert_raises(ValueError, lambda: Synapses(G, G, '''v_post = 3*volt : volt (summed)'''))
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''sub_post = 3*volt : volt (summed)''')
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''v_post = 3*volt : volt (summed)''')
 
     # Unit mismatch between synapses and target
-    assert_raises(DimensionMismatchError,
-                  lambda: Synapses(G, G, '''p_post = 3*second : second (summed)'''))
+    with pytest.raises(DimensionMismatchError):
+        Synapses(G, G, '''p_post = 3*second : second (summed)''')
 
     # Two summed variable equations targetting the same variable
-    assert_raises(ValueError,
-                  lambda: Synapses(G, G, '''p_post = 3*volt : volt (summed)
-                                            p_pre = 3*volt : volt (summed)'''))
+    with pytest.raises(ValueError):
+        Synapses(G, G, '''p_post = 3*volt : volt (summed)
+                          p_pre = 3*volt : volt (summed)''')
 
 @pytest.mark.codegen_independent
 def test_multiple_summed_variables():
@@ -1236,7 +1270,8 @@ def test_multiple_summed_variables():
     syn2 = Synapses(source, target, 'v_post = 1 : 1 (summed)')
     syn2.connect()
     net = Network(collect())
-    assert_raises(NotImplementedError, net.run, 0*ms)
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
 
 @pytest.mark.standalone_compatible
 def test_summed_variables_subgroups():
@@ -1265,7 +1300,8 @@ def test_summed_variables_overlapping_subgroups():
     syn2 = Synapses(source, subgroup2, 'v_post = 1 : 1 (summed)')
     syn2.connect()
     net = Network(collect())
-    assert_raises(NotImplementedError, net.run, 0*ms)
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
 
 @pytest.mark.codegen_independent
 def test_summed_variables_linked_variables():
@@ -1279,7 +1315,8 @@ def test_summed_variables_linked_variables():
     syn2 = Synapses(source, target2, 'v_post = 1 : 1 (summed)')
     syn2.connect()
     net = Network(collect())
-    assert_raises(NotImplementedError, net.run, 0 * ms)
+    with pytest.raises(NotImplementedError):
+        net.run(0 * ms)
 
 
 def test_scalar_parameter_access():
@@ -1311,15 +1348,23 @@ def test_scalar_parameter_access():
     assert_allclose(np.asanyarray(S.s), 50*Hz)
 
     # Check error messages
-    assert_raises(IndexError, lambda: S.s[0])
-    assert_raises(IndexError, lambda: S.s[1])
-    assert_raises(IndexError, lambda: S.s[0:1])
-    assert_raises(IndexError, lambda: S.s['i>5'])
+    with pytest.raises(IndexError):
+        S.s[0]
+    with pytest.raises(IndexError):
+        S.s[1]
+    with pytest.raises(IndexError):
+        S.s[0:1]
+    with pytest.raises(IndexError):
+        S.s['i>5']
 
-    assert_raises(ValueError, lambda: S.s.set_item(slice(None), [0, 1]*Hz))
-    assert_raises(IndexError, lambda: S.s.set_item(0, 100*Hz))
-    assert_raises(IndexError, lambda: S.s.set_item(1, 100*Hz))
-    assert_raises(IndexError, lambda: S.s.set_item('i>5', 100*Hz))
+    with pytest.raises(ValueError):
+        S.s.set_item(slice(None), [0, 1]*Hz)
+    with pytest.raises(IndexError):
+        S.s.set_item(0, 100*Hz)
+    with pytest.raises(IndexError):
+        S.s.set_item(1, 100*Hz)
+    with pytest.raises(IndexError):
+        S.s.set_item('i>5', 100*Hz)
 
 
 def test_scalar_subexpression():
@@ -1333,9 +1378,10 @@ def test_scalar_subexpression():
     G.number = 50
     assert S.sub[:] == 150
 
-    assert_raises(SyntaxError, lambda: Synapses(G, G, '''s : 1 (shared)
-                                                     sub = v_post + s : 1 (shared)''',
-                                                on_pre='v+=s'))
+    with pytest.raises(SyntaxError):
+        Synapses(G, G, '''s : 1 (shared)
+                          sub = v_post + s : 1 (shared)''',
+                 on_pre='v+=s')
 
 @pytest.mark.standalone_compatible
 def test_sim_with_scalar_variable():
@@ -1450,7 +1496,8 @@ def test_event_driven_dependency_error():
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
 
 @pytest.mark.codegen_independent
@@ -1464,7 +1511,8 @@ def test_event_driven_dependency_error2():
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
 @pytest.mark.codegen_independent
 def test_repr():
@@ -1771,11 +1819,13 @@ def test_permutation_analysis():
     for example in permutation_analysis_bad_examples:
         if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
             try:
-                assert_raises(OrderDependenceError, numerically_check_permutation_code, example)
+                with pytest.raises(OrderDependenceError):
+                    numerically_check_permutation_code(example)
             except AssertionError:
                 raise AssertionError("Order dependence not raised numerically for example: "+example)
         try:
-            assert_raises(OrderDependenceError, check_permutation_code, example)
+            with pytest.raises(OrderDependenceError):
+                check_permutation_code(example)
         except AssertionError:
             raise AssertionError("Order dependence not raised for example: "+example)
 
@@ -2063,17 +2113,28 @@ def test_synapse_generator_syntax():
     assert parsed['iterator_kwds']['high'] == 'i + 100'
     assert parsed['iterator_kwds']['step'] == '2'
     assert parsed['if_expression'] == 'True'
-    assert_raises(SyntaxError, parse_synapse_generator, 'mad rubbish')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k+1')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range()')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range(1,2,3,4)')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in range(1,2,3) if ')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k[1:3] for k in range(1,2,3)')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in x[1:5]')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample()')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, p=0.1, size=5)')
-    assert_raises(SyntaxError, parse_synapse_generator, 'k for k in sample(N, q=0.1)')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('mad rubbish')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k+1')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in range()')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in range(1,2,3,4)')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in range(1,2,3) if ')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k[1:3] for k in range(1,2,3)')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in x')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in x[1:5]')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in sample()')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in sample(N, p=0.1, size=5)')
+    with pytest.raises(SyntaxError):
+        parse_synapse_generator('k for k in sample(N, q=0.1)')
 
 
 def test_synapse_generator_out_of_range():
@@ -2083,7 +2144,8 @@ def test_synapse_generator_out_of_range():
     G2.v = '16 + i'
 
     S1 = Synapses(G, G2, '')
-    assert_raises(IndexError, lambda: S1.connect(j='k for k in range(0, N_post*2)'))
+    with pytest.raises(IndexError):
+        S1.connect(j='k for k in range(0, N_post*2)')
 
     # This should be fine
     S2 = Synapses(G, G, '')
@@ -2483,13 +2545,20 @@ def test_synapse_generator_range_noint():
     G = NeuronGroup(42, 'v: 1', threshold='False')
     S = Synapses(G, G, 'w:1', 'v+=w')
     msg = r'The "{}" argument of the range function was .+, but it needs to be an integer\.'
-    assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(42.0)'))
-    assert_raises_regex(TypeError, msg.format('low'), lambda: S.connect(j='k for k in range(0.0, 42)'))
-    assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(0, 42.0)'))
-    assert_raises_regex(TypeError, msg.format('step'), lambda: S.connect(j='k for k in range(0, 42, 1.0)'))
-    assert_raises_regex(TypeError, msg.format('low'), lambda: S.connect(j='k for k in range(True, 42)'))
-    assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(0, True)'))
-    assert_raises_regex(TypeError, msg.format('step'), lambda: S.connect(j='k for k in range(0, 42, True)'))
+    with pytest.raises(TypeError, match=msg.format('high')):
+        S.connect(j='k for k in range(42.0)')
+    with pytest.raises(TypeError, match=msg.format('low')):
+        S.connect(j='k for k in range(0.0, 42)')
+    with pytest.raises(TypeError, match=msg.format('high')):
+        S.connect(j='k for k in range(0, 42.0)')
+    with pytest.raises(TypeError, match=msg.format('step')):
+        S.connect(j='k for k in range(0, 42, 1.0)')
+    with pytest.raises(TypeError, match=msg.format('low')):
+        S.connect(j='k for k in range(True, 42)')
+    with pytest.raises(TypeError, match=msg.format('high')):
+        S.connect(j='k for k in range(0, True)')
+    with pytest.raises(TypeError, match=msg.format('step')):
+        S.connect(j='k for k in range(0, 42, True)')
 
 @pytest.mark.codegen_independent
 def test_missing_lastupdate_error_syn_pathway():

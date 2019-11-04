@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os
 
 import pytest
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete, set_device, reset_device
@@ -208,7 +208,8 @@ def test_duplicate_names_across_nets():
     net2 = Network(obj3, obj4)
     net1.run(0*ms)
     net2.run(0*ms)
-    assert_raises(ValueError, lambda: device.build())
+    with pytest.raises(ValueError):
+        device.build()
 
     reset_device()
 
@@ -281,7 +282,8 @@ def test_array_cache():
     assert_allclose(G.i, np.arange(10))
 
     # But the synaptic variable is not -- we don't know the number of synapses
-    assert_raises(NotImplementedError, lambda: S.weight[:])
+    with pytest.raises(NotImplementedError):
+        S.weight[:]
 
     # Setting variables with explicit values should not change anything
     G.v = np.arange(10)+1
@@ -295,18 +297,23 @@ def test_array_cache():
 
     # But setting with code should invalidate them
     G.x = 'i*2'
-    assert_raises(NotImplementedError, lambda: G.x[:])
+    with pytest.raises(NotImplementedError):
+        G.x[:]
 
     # Make sure that the array cache does not allow to use incorrectly sized
     # values to pass
-    assert_raises(ValueError, lambda: setattr(G, 'w', [0, 2]))
-    assert_raises(ValueError, lambda: G.w.__setitem__(slice(0, 4), [0, 2]))
+    with pytest.raises(ValueError):
+        setattr(G, 'w', [0, 2])
+    with pytest.raises(ValueError):
+        G.w.__setitem__(slice(0, 4), [0, 2])
 
     run(10*ms)
     # v is now no longer known without running the network
-    assert_raises(NotImplementedError, lambda: G.v[:])
+    with pytest.raises(NotImplementedError):
+        G.v[:]
     # Neither is w, it is updated in the synapse
-    assert_raises(NotImplementedError, lambda: G.w[:])
+    with pytest.raises(NotImplementedError):
+        G.w[:]
     # However, no code touches y or z
     assert_allclose(G.y, 5)
     assert_allclose(G.z, 7)

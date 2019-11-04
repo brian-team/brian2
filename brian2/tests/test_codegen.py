@@ -3,7 +3,6 @@ from collections import namedtuple
 import os
 
 import numpy as np
-from numpy.testing.utils import assert_raises
 import pytest
 
 from brian2 import prefs, clear_cache, _cache_dirs_and_extensions
@@ -81,7 +80,8 @@ def test_write_to_subexpression():
 
     # Writing to a subexpression is not allowed
     code = 'a = z'
-    assert_raises(SyntaxError, make_statements, code, variables, np.float32)
+    with pytest.raises(SyntaxError):
+        make_statements(code, variables, np.float32)
 
 
 @pytest.mark.codegen_independent
@@ -426,7 +426,8 @@ def test_clear_cache():
     target = prefs.codegen.target
     if target == 'numpy':
         assert 'numpy' not in _cache_dirs_and_extensions
-        assert_raises(ValueError, clear_cache, 'numpy')
+        with pytest.raises(ValueError):
+            clear_cache('numpy')
     else:
         assert target in _cache_dirs_and_extensions
         cache_dir, _ = _cache_dirs_and_extensions[target]
@@ -434,7 +435,8 @@ def test_clear_cache():
         fname = os.path.join(cache_dir, 'some_file.py')
         open(fname, 'w').close()
         # clear_cache should refuse to clear the directory
-        assert_raises(IOError, clear_cache, target)
+        with pytest.raises(IOError):
+            clear_cache(target)
 
         os.remove(fname)
 

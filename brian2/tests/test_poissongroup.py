@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import uuid
 
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 import pytest
 
 from brian2 import *
@@ -35,19 +35,19 @@ def test_rate_arrays():
 
 @pytest.mark.codegen_independent
 def test_rate_unit_check():
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonGroup(1, np.array([1, 2])))
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonGroup(1, np.array([1, 2])*ms))
+    with pytest.raises(DimensionMismatchError):
+        PoissonGroup(1, np.array([1, 2]))
+    with pytest.raises(DimensionMismatchError):
+        PoissonGroup(1, np.array([1, 2])*ms)
     P = PoissonGroup(1, 'i*mV')
     net = Network(P)
-    assert_raises(DimensionMismatchError,
-                  lambda: net.run(0*ms))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms)
 
     P = PoissonGroup(1, 'i')
     net = Network(P)
-    assert_raises(DimensionMismatchError,
-                  lambda: net.run(0 * ms))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0 * ms)
 
 @pytest.mark.standalone_compatible
 def test_time_dependent_rate():

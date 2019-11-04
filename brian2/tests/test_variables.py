@@ -6,7 +6,6 @@ from collections import namedtuple
 
 import pytest
 import numpy as np
-from numpy.testing import assert_raises
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import *
@@ -17,16 +16,13 @@ from brian2.units.allunits import second
 @pytest.mark.codegen_independent
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
-    assert_raises(ValueError, lambda: Variable(name='name', dimensions=second.dim,
-                                               dtype=np.bool))
+    with pytest.raises(ValueError):
+        Variable(name='name', dimensions=second.dim, dtype=np.bool)
 
     # Dynamic array variable that is constant but not constant in size
-    assert_raises(ValueError, lambda: DynamicArrayVariable(name='name',
-                                                           owner=None,
-                                                           size=0,
-                                                           device=None,
-                                                           constant=True,
-                                                           needs_reference_update=True))
+    with pytest.raises(ValueError):
+        DynamicArrayVariable(name='name', owner=None, size=0, device=None,
+                             constant=True, needs_reference_update=True)
 
 
 @pytest.mark.codegen_independent

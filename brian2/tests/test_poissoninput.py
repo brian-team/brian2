@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 import pytest
 
 from brian2 import *
@@ -52,20 +52,22 @@ def test_poissoninput_errors():
     # Targeting non-existing variable
     G = NeuronGroup(10, '''x : volt
                            y : 1''')
-    assert_raises(KeyError, lambda: PoissonInput(G, 'z', 100, 100*Hz, weight=1.0))
+    with pytest.raises(KeyError):
+        PoissonInput(G, 'z', 100, 100*Hz, weight=1.0)
 
     # Incorrect units
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonInput(G, 'x', 100, 100*Hz, weight=1.0))
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonInput(G, 'y', 100, 100*Hz, weight=1.0*volt))
+    with pytest.raises(DimensionMismatchError):
+        PoissonInput(G, 'x', 100, 100*Hz, weight=1.0)
+    with pytest.raises(DimensionMismatchError):
+        PoissonInput(G, 'y', 100, 100*Hz, weight=1.0*volt)
 
     # dt change
     old_dt = defaultclock.dt
     inp = PoissonInput(G, 'x', 100, 100*Hz, weight=1*volt)
     defaultclock.dt = 2 * old_dt
     net = Network(collect())
-    assert_raises(NotImplementedError, lambda: net.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
     defaultclock.dt = old_dt
 
 

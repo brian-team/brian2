@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 import logging
 
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 import pytest
 
 from brian2 import *
@@ -40,14 +40,17 @@ def test_explicit_stateupdater_parsing():
     
     # Examples of failed parsing
     # No x_new = ... statement
-    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x = x + dt * f(x, t)'))
+    with pytest.raises(SyntaxError):
+        ExplicitStateUpdater('x = x + dt * f(x, t)')
     # Not an assigment
-    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('''2 * x
-                                                               x_new = x + dt * f(x, t)'''))
+    with pytest.raises(SyntaxError):
+        ExplicitStateUpdater('''2 * x
+                                x_new = x + dt * f(x, t)''')
     
     # doesn't separate into stochastic and non-stochastic part
     updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
-    assert_raises(ValueError, lambda: updater(Equations('')))
+    with pytest.raises(ValueError):
+        updater(Equations(''))
 
 @pytest.mark.codegen_independent
 def test_non_autonomous_equations():
@@ -167,34 +170,39 @@ def test_multiplicative_noise():
     Eq1 = Equations('dv/dt = v*xi*(5*ms)**-0.5 :1')
     group1 = NeuronGroup(1, Eq1, method='euler')
     net1 = Network(group1)
-    assert_raises(UnsupportedEquationsException, net1.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net1.run(0*ms)
 
     # Noise is multiplicative (multiplied with time)
     Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
     group2 = NeuronGroup(1, Eq2, method='euler')
     net2 = Network(group2)
-    assert_raises(UnsupportedEquationsException, net2.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net2.run(0*ms)
 
     # Noise is multiplicative (multiplied with time-varying variable)
     Eq3 = Equations('''dv/dt = w*xi*(5*ms)**-0.5 :1
                        dw/dt = -w/(10*ms) : 1''')
     group3 = NeuronGroup(1, Eq3, method='euler')
     net3 = Network(group3)
-    assert_raises(UnsupportedEquationsException, net3.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net3.run(0*ms)
 
     # One of the equations has multiplicative noise
     Eq4 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
                        dw/dt = (t/ms)*xi_2*(5*ms)**-0.5 :1''')
     group4 = NeuronGroup(1, Eq4, method='euler')
     net4 = Network(group4)
-    assert_raises(UnsupportedEquationsException, net4.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net4.run(0*ms)
 
     # One of the equations has multiplicative noise
     Eq5 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
                        dw/dt = v*xi_2*(5*ms)**-0.5 :1''')
     group5 = NeuronGroup(1, Eq5, method='euler')
     net5 = Network(group4)
-    assert_raises(UnsupportedEquationsException, net5.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net5.run(0*ms)
 
 
 def test_pure_noise_deterministic(fake_randn_randn_fixture):
@@ -320,20 +328,20 @@ def test_illegal_calls():
                                     constant=False),
                  't': clock.variables['t'],
                  'dt': clock.variables['dt']}
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          object()))
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          group_name='my_name',
-                                                                          method=object()))
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          [object(), 'euler']))
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          group_name='my_name',
-                                                                          method=[object(), 'euler']))
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs, variables, object())
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs,
+                                             variables,
+                                             group_name='my_name',
+                                             method=object())
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs, variables, [object(), 'euler'])
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs,
+                                             variables,
+                                             group_name='my_name',
+                                             method=[object(), 'euler'])
 
 def check_integration(eqs, variables, can_integrate):
     # can_integrate maps integrators to True/False/None
@@ -402,8 +410,8 @@ def test_priority():
 
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
-    assert_raises(UnsupportedEquationsException,
-                  lambda: updater(eqs, variables))
+    with pytest.raises(UnsupportedEquationsException):
+        updater(eqs, variables)
     
     can_integrate = {linear: False, euler: True, exponential_euler: False,
                      rk2: False, rk4: False, heun: True, milstein: True}
@@ -412,8 +420,8 @@ def test_priority():
     
     # Equation with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi/(10*ms)**.5 : 1')
-    assert_raises(UnsupportedEquationsException,
-                  lambda: updater(eqs, variables))
+    with pytest.raises(UnsupportedEquationsException):
+        updater(eqs, variables)
     
     can_integrate = {linear: False, euler: False, exponential_euler: False,
                      rk2: False, rk4: False, heun: True, milstein: True}
@@ -433,17 +441,16 @@ def test_registration():
     StateUpdateMethod.register('lazy', lazy_updater)
     
     # Trying to register again
-    assert_raises(ValueError,
-                  lambda: StateUpdateMethod.register('lazy', lazy_updater))
+    with pytest.raises(ValueError):
+        StateUpdateMethod.register('lazy', lazy_updater)
     
     # Trying to register something that is not a state updater
-    assert_raises(ValueError,
-                  lambda: StateUpdateMethod.register('foo', 'just a string'))
+    with pytest.raises(ValueError):
+        StateUpdateMethod.register('foo', 'just a string')
     
     # Trying to register with an invalid index
-    assert_raises(TypeError,
-                  lambda: StateUpdateMethod.register('foo', lazy_updater,
-                                                     index='not an index'))
+    with pytest.raises(TypeError):
+        StateUpdateMethod.register('foo', lazy_updater, index='not an index')
     
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before 
@@ -474,7 +481,8 @@ def test_determination():
     # Equation with multiplicative noise, only milstein and heun should work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for integrator in (linear, independent, euler, exponential_euler, rk2, rk4):
-        assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs, variables, integrator))
+        with pytest.raises(UnsupportedEquationsException):
+            apply_stateupdater(eqs, variables, integrator)
 
     for integrator in (heun, milstein):
         with catch_logs() as logs:
@@ -508,9 +516,8 @@ def test_determination():
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for name in ['linear', 'exact', 'independent', 'euler', 'exponential_euler',
                  'rk2', 'rk4']:
-        assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs,
-                                                                                variables,
-                                                                                method=name))
+        with pytest.raises(UnsupportedEquationsException):
+            apply_stateupdater(eqs, variables, method=name)
 
     # milstein should work
     with catch_logs() as logs:
@@ -523,9 +530,8 @@ def test_determination():
         assert len(logs) == 0
     
     # non-existing name
-    assert_raises(ValueError, lambda: apply_stateupdater(eqs,
-                                                         variables,
-                                                         method='does_not_exist'))
+    with pytest.raises(ValueError):
+        apply_stateupdater(eqs, variables, method='does_not_exist')
     
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
@@ -637,7 +643,8 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+                with pytest.raises(UnsupportedEquationsException):
+                    net.run(0*ms)
 
         # multiplicative
         G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
@@ -649,31 +656,36 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+                with pytest.raises(UnsupportedEquationsException):
+                    net.run(0*ms)
 
     # If the argument is more than just "t", we cannot guarantee that it is
     # actually locally constant
     G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
                         method='exact', namespace={'ta': ta0})
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
                     method='exact')
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # Stateful functions aren't either
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
                     method='exact')
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='exact')
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',

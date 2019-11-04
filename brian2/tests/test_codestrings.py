@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import pytest
 
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_equal
 import sympy
 
 from brian2 import Expression, Statements
@@ -32,7 +32,8 @@ def test_expr_creation():
     assert expr.code == 'v > 5 * mV'
     assert ('v' in expr.identifiers and 'mV' in expr.identifiers and
             not 'V' in expr.identifiers)
-    assert_raises(SyntaxError, lambda: Expression('v 5 * mV'))
+    with pytest.raises(SyntaxError):
+        Expression('v 5 * mV')
 
 
 @pytest.mark.codegen_independent
@@ -65,7 +66,8 @@ def test_split_stochastic():
     assert sympy_equals(stochastic['xi_2'].code, 'sigma2/tau_2**.5')
     
     expr = Expression('-v / tau + 1 / xi')
-    assert_raises(ValueError, expr.split_stochastic)
+    with pytest.raises(ValueError):
+        expr.split_stochastic()
     
 
 @pytest.mark.codegen_independent

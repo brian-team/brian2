@@ -4,7 +4,6 @@ from __future__ import absolute_import
 import functools
 
 import pytest
-from numpy.testing.utils import assert_raises
 
 from brian2 import *
 from brian2.core.preferences import PreferenceError
@@ -164,9 +163,12 @@ def test_GSL_x_variable():
 def test_GSL_failing_directory():
     def set_dir(arg):
         prefs.GSL.directory = arg
-    assert_raises(PreferenceError, set_dir, 1)
-    assert_raises(PreferenceError, set_dir, '/usr/')
-    assert_raises(PreferenceError, set_dir, '/usr/blablabla/')
+    with pytest.raises(PreferenceError):
+        set_dir(1)
+    with pytest.raises(PreferenceError):
+        set_dir('/usr/')
+    with pytest.raises(PreferenceError):
+        set_dir('/usr/blablabla/')
 
 
 @pytest.mark.codegen_independent
@@ -179,9 +181,9 @@ def test_GSL_stochastic():
     '''
     neuron = NeuronGroup(1, eqs, method='gsl')
     net = Network(neuron)
-    assert_raises(UnsupportedEquationsException,
-                  net.run, 0*ms, namespace={'tau': tau,
-                                            'sigma': sigma})
+    with pytest.raises(UnsupportedEquationsException):
+                  net.run(0*ms, namespace={'tau': tau,
+                                           'sigma': sigma})
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
@@ -194,7 +196,8 @@ def test_GSL_error_dimension_mismatch_unit():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms, namespace={})
 
 
 @pytest.mark.standalone_compatible
@@ -208,7 +211,8 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
     neuron = NeuronGroup(1, eqs, threshold='v > 10', reset='v = 0',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms, namespace={})
 
 
 @pytest.mark.standalone_compatible
@@ -222,7 +226,8 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    assert_raises(DimensionMismatchError, net.run, 0*ms, namespace={})
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms, namespace={})
 
 
 @pytest.mark.standalone_compatible
@@ -236,7 +241,8 @@ def test_GSL_error_nonexisting_variable():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    assert_raises(KeyError, net.run, 0*ms, namespace={})
+    with pytest.raises(KeyError):
+        net.run(0*ms, namespace={})
 
 
 @pytest.mark.standalone_compatible
@@ -254,8 +260,10 @@ def test_GSL_error_incorrect_error_format():
     neuron2 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options2)
     net2 = Network(neuron2)
-    assert_raises(TypeError, net.run, 0*ms, namespace={})
-    assert_raises(TypeError, net2.run, 0 * ms, namespace={})
+    with pytest.raises(TypeError):
+        net.run(0*ms, namespace={})
+    with pytest.raises(TypeError):
+        net2.run(0 * ms, namespace={})
 
 
 @pytest.mark.standalone_compatible
@@ -269,7 +277,8 @@ def test_GSL_error_nonODE_variable():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    assert_raises(KeyError, net.run, 0*ms, namespace={})
+    with pytest.raises(KeyError):
+        net.run(0*ms, namespace={})
 
 
 @pytest.mark.standalone_compatible
@@ -400,13 +409,15 @@ def test_GSL_fixed_timestep_big_dt_small_error():
     neuron.I = 0.7*nA/(20000*umetre**2)
     neuron.v = HH_namespace['El']
     net = Network(neuron)
-    assert_raises((RuntimeError, IntegrationError), net.run, 10*ms)
+    with pytest.raises((RuntimeError, IntegrationError)):
+        net.run(10*ms)
 
 
 @pytest.mark.codegen_independent
 @skip_if_not_implemented
 def test_GSL_internal_variable():
-    assert_raises(SyntaxError, Equations, 'd_p/dt = 300*Hz : 1')
+    with pytest.raises(SyntaxError):
+        Equations('d_p/dt = 300*Hz : 1')
 
 
 @pytest.mark.standalone_compatible

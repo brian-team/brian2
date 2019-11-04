@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 import sys
 
-from numpy.testing import assert_raises
 import numpy as np
 try:
     from IPython.lib.pretty import pprint
@@ -59,12 +58,17 @@ def test_utility_functions():
     assert dimensions_and_type_from_string('farad / metre**2') == ((farad / metre ** 2).dim, FLOAT)
     assert dimensions_and_type_from_string('boolean') == (DIMENSIONLESS, BOOLEAN)
     assert dimensions_and_type_from_string('integer') == (DIMENSIONLESS, INTEGER)
-    assert_raises(ValueError, lambda: dimensions_and_type_from_string('metr / second'))
-    assert_raises(ValueError, lambda: dimensions_and_type_from_string('metre **'))
-    assert_raises(ValueError, lambda: dimensions_and_type_from_string('5'))
-    assert_raises(ValueError, lambda: dimensions_and_type_from_string('2 / second'))
+    with pytest.raises(ValueError):
+        dimensions_and_type_from_string('metr / second')
+    with pytest.raises(ValueError):
+        dimensions_and_type_from_string('metre **')
+    with pytest.raises(ValueError):
+        dimensions_and_type_from_string('5')
+    with pytest.raises(ValueError):
+        dimensions_and_type_from_string('2 / second')
     # Only the use of base units is allowed
-    assert_raises(ValueError, lambda: dimensions_and_type_from_string('farad / cm**2'))
+    with pytest.raises(ValueError):
+        dimensions_and_type_from_string('farad / cm**2')
 
 
 @pytest.mark.codegen_independent
@@ -81,22 +85,28 @@ def test_identifier_checks():
                                  'identifier "%s": %s' % (identifier, ex))
 
     for identifier in illegal_identifiers:
-        assert_raises(SyntaxError, lambda: check_identifier_basic(identifier))
+        with pytest.raises(SyntaxError):
+            check_identifier_basic(identifier)
 
     for identifier in ('t', 'dt', 'xi', 'i', 'N'):
-        assert_raises(SyntaxError, lambda: check_identifier_reserved(identifier))
+        with pytest.raises(SyntaxError):
+            check_identifier_reserved(identifier)
 
     for identifier in ('not_refractory', 'refractory', 'refractory_until'):
-        assert_raises(SyntaxError, lambda: check_identifier_refractory(identifier))
+        with pytest.raises(SyntaxError):
+            check_identifier_refractory(identifier)
 
     for identifier in ('exp', 'sin', 'sqrt'):
-        assert_raises(SyntaxError, lambda: check_identifier_functions(identifier))
+        with pytest.raises(SyntaxError):
+            check_identifier_functions(identifier)
 
     for identifier in ('e', 'pi', 'inf'):
-        assert_raises(SyntaxError, lambda: check_identifier_constants(identifier))
+        with pytest.raises(SyntaxError):
+            check_identifier_constants(identifier)
 
     for identifier in ('volt', 'second', 'mV', 'nA'):
-        assert_raises(SyntaxError, lambda: check_identifier_units(identifier))
+        with pytest.raises(SyntaxError):
+            check_identifier_units(identifier)
 
     # Check identifier registry
     assert check_identifier_basic in Equations.identifier_checks
@@ -115,12 +125,13 @@ def test_identifier_checks():
     Equations.check_identifier('gaba_123')
     old_checks = set(Equations.identifier_checks)
     Equations.register_identifier_check(disallow_gaba_123)
-    assert_raises(SyntaxError, lambda: Equations.check_identifier('gaba_123'))
+    with pytest.raises(SyntaxError):
+        Equations.check_identifier('gaba_123')
     Equations.identifier_checks = old_checks
 
     # registering a non-function should not work
-    assert_raises(ValueError,
-                  lambda: Equations.register_identifier_check('no function'))
+    with pytest.raises(ValueError):
+        Equations.register_identifier_check('no function')
 
 @pytest.mark.codegen_independent
 def test_parse_equations():
@@ -164,7 +175,8 @@ def test_parse_equations():
     dv/dt = -v / tau : 1
     v = 2 * t : 1
     '''
-    assert_raises(EquationError, lambda: parse_string_equations(duplicate_eqs))
+    with pytest.raises(EquationError):
+        parse_string_equations(duplicate_eqs)
     parse_error_eqs = [
     '''dv/d = -v / tau : 1
         x = 2 * t : 1''',
@@ -173,8 +185,8 @@ def test_parse_equations():
     ''' dv/dt = -v / tau : 2 * volt''',
     'dv/dt = v / second : boolean']
     for error_eqs in parse_error_eqs:
-        assert_raises((ValueError, EquationError, TypeError),
-                      lambda: parse_string_equations(error_eqs))
+        with pytest.raises((ValueError, EquationError, TypeError)):
+            parse_string_equations(error_eqs)
 
 
 @pytest.mark.codegen_independent
@@ -196,27 +208,26 @@ def test_correct_replacements():
 def test_wrong_replacements():
     '''Tests for replacements that should not work'''
     # Replacing a variable name with an illegal new name
-    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                 v='illegal name'))
-    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                 v='_reserved'))
-    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                 v='t'))
+    with pytest.raises(SyntaxError):
+        Equations('dv/dt = -v / tau : 1', v='illegal name')
+    with pytest.raises(SyntaxError):
+        Equations('dv/dt = -v / tau : 1', v='_reserved')
+    with pytest.raises(SyntaxError):
+        Equations('dv/dt = -v / tau : 1', v='t')
 
     # Replacing a variable name with a value that already exists
-    assert_raises(EquationError, lambda: Equations('''
-                                                    dv/dt = -v / tau : 1
-                                                    dx/dt = -x / tau : 1
-                                                    ''',
-                                                   v='x'))
+    with pytest.raises(EquationError):
+        Equations('''dv/dt = -v / tau : 1
+                     dx/dt = -x / tau : 1
+                  ''', v='x')
 
     # Replacing a model variable name with a value
-    assert_raises(ValueError, lambda: Equations('dv/dt = -v / tau : 1',
-                                                v=3 * mV))
+    with pytest.raises(ValueError):
+        Equations('dv/dt = -v / tau : 1', v=3 * mV)
 
     # Replacing with an illegal value
-    assert_raises(SyntaxError, lambda: Equations('dv/dt = -v/tau : 1',
-                                                 tau=np.arange(5)))
+    with pytest.raises(SyntaxError):
+        Equations('dv/dt = -v/tau : 1', tau=np.arange(5))
 
 
 @pytest.mark.codegen_independent
@@ -241,62 +252,81 @@ def test_construction_errors():
     Test that the Equations constructor raises errors correctly
     '''
     # parse error
-    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau volt'))
-    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : volt second'))
+    with pytest.raises(EquationError):
+         Equations('dv/dt = -v / tau volt')
+    with pytest.raises(EquationError):
+         Equations('dv/dt = -v / tau : volt second')
 
     # incorrect unit definition
-    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : mvolt'))
-    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : voltage'))
-    assert_raises(EquationError, lambda: Equations('dv/dt = -v / tau : 1.0*volt'))
+    with pytest.raises(EquationError):
+         Equations('dv/dt = -v / tau : mvolt')
+    with pytest.raises(EquationError):
+         Equations('dv/dt = -v / tau : voltage')
+    with pytest.raises(EquationError):
+         Equations('dv/dt = -v / tau : 1.0*volt')
 
     # Only a single string or a list of SingleEquation objects is allowed
-    assert_raises(TypeError, lambda: Equations(None))
-    assert_raises(TypeError, lambda: Equations(42))
-    assert_raises(TypeError, lambda: Equations(['dv/dt = -v / tau : volt']))
+    with pytest.raises(TypeError):
+         Equations(None)
+    with pytest.raises(TypeError):
+         Equations(42)
+    with pytest.raises(TypeError):
+         Equations(['dv/dt = -v / tau : volt'])
 
     # duplicate variable names
-    assert_raises(EquationError, lambda: Equations('''dv/dt = -v / tau : volt
-                                                    v = 2 * t/second * volt : volt'''))
+    with pytest.raises(EquationError):
+         Equations('''dv/dt = -v / tau : volt
+                       v = 2 * t/second * volt : volt''')
 
     eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt.dim,
                           expr=Expression('-v / tau')),
            SingleEquation(SUBEXPRESSION, 'v', volt.dim,
                           expr=Expression('2 * t/second * volt'))
            ]
-    assert_raises(EquationError, lambda: Equations(eqs))
+    with pytest.raises(EquationError):
+         Equations(eqs)
 
     # illegal variable names
-    assert_raises(SyntaxError, lambda: Equations('ddt/dt = -dt / tau : volt'))
-    assert_raises(SyntaxError, lambda: Equations('dt/dt = -t / tau : volt'))
-    assert_raises(SyntaxError, lambda: Equations('dxi/dt = -xi / tau : volt'))
-    assert_raises(SyntaxError, lambda: Equations('for : volt'))
-    assert_raises((EquationError, SyntaxError),
-                  lambda: Equations('d1a/dt = -1a / tau : volt'))
-    assert_raises(SyntaxError, lambda: Equations('d_x/dt = -_x / tau : volt'))
+    with pytest.raises(SyntaxError):
+         Equations('ddt/dt = -dt / tau : volt')
+    with pytest.raises(SyntaxError):
+         Equations('dt/dt = -t / tau : volt')
+    with pytest.raises(SyntaxError):
+         Equations('dxi/dt = -xi / tau : volt')
+    with pytest.raises(SyntaxError):
+         Equations('for : volt')
+    with pytest.raises((EquationError, SyntaxError)):
+        Equations('d1a/dt = -1a / tau : volt')
+    with pytest.raises(SyntaxError):
+         Equations('d_x/dt = -_x / tau : volt')
 
     # xi in a subexpression
-    assert_raises(EquationError,
-                  lambda: Equations('''dv/dt = -(v + I) / (5 * ms) : volt
-                                       I = second**-1*xi**-2*volt : volt'''))
+    with pytest.raises(EquationError):
+        Equations('''dv/dt = -(v + I) / (5 * ms) : volt
+                     I = second**-1*xi**-2*volt : volt''')
 
     # more than one xi
-    assert_raises(EquationError,
-                  lambda: Equations('''dv/dt = -v / tau + xi/tau**.5 : volt
-                                       dx/dt = -x / tau + 2*xi/tau : volt
-                                       tau : second'''))
+    with pytest.raises(EquationError):
+        Equations('''dv/dt = -v / tau + xi/tau**.5 : volt
+                     dx/dt = -x / tau + 2*xi/tau : volt
+                     tau : second''')
     # using not-allowed flags
     eqs = Equations('dv/dt = -v / (5 * ms) : volt (flag)')
     eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag']})  # allow this flag
-    assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: []}))
-    assert_raises(ValueError, lambda: eqs.check_flags({}))
-    assert_raises(ValueError, lambda: eqs.check_flags({SUBEXPRESSION: ['flag']}))
-    assert_raises(ValueError, lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']}))
+    with pytest.raises(ValueError):
+         eqs.check_flags({DIFFERENTIAL_EQUATION: []})
+    with pytest.raises(ValueError):
+         eqs.check_flags({})
+    with pytest.raises(ValueError):
+         eqs.check_flags({SUBEXPRESSION: ['flag']})
+    with pytest.raises(ValueError):
+         eqs.check_flags({DIFFERENTIAL_EQUATION: ['otherflag']})
     eqs = Equations('dv/dt = -v / (5 * ms) : volt (flag1, flag2)')
     eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']})  # allow both flags
     # Don't allow the two flags in combination
-    assert_raises(ValueError,
-                  lambda: eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
-                                          incompatible_flags=[('flag1', 'flag2')]))
+    with pytest.raises(ValueError):
+        eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
+                        incompatible_flags=[('flag1', 'flag2')])
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt (flag1)
                        dw/dt = -w / (5 * ms) : volt (flag2)''')
     # They should be allowed when used independently
@@ -304,13 +334,16 @@ def test_construction_errors():
                     incompatible_flags=[('flag1', 'flag2')])
 
     # Circular subexpression
-    assert_raises(ValueError, lambda: Equations('''dv/dt = -(v + w) / (10 * ms) : 1
-                                                   w = 2 * x : 1
-                                                   x = 3 * w : 1'''))
+    with pytest.raises(ValueError):
+         Equations('''dv/dt = -(v + w) / (10 * ms) : 1
+                      w = 2 * x : 1
+                      x = 3 * w : 1''')
 
     # Boolean/integer differential equations
-    assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : boolean'))
-    assert_raises(TypeError, lambda: Equations('dv/dt = -v / (10*ms) : integer'))
+    with pytest.raises(TypeError):
+         Equations('dv/dt = -v / (10*ms) : boolean')
+    with pytest.raises(TypeError):
+         Equations('dv/dt = -v / (10*ms) : integer')
 
 
 @pytest.mark.codegen_independent
@@ -323,32 +356,32 @@ def test_unit_checking():
     # inconsistent unit for a differential equation
     eqs = Equations('dv/dt = -v : volt')
     group = SimpleGroup({'v': S(volt)})
-    assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group, {}))
+    with pytest.raises(DimensionMismatchError):
+        eqs.check_units(group, {})
 
     eqs = Equations('dv/dt = -v / tau: volt')
     group = SimpleGroup(namespace={'tau': 5*mV}, variables={'v': S(volt)})
-    assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group, {}))
+    with pytest.raises(DimensionMismatchError):
+        eqs.check_units(group, {})
     group = SimpleGroup(namespace={'I': 3*second}, variables={'v': S(volt)})
     eqs = Equations('dv/dt = -(v + I) / (5 * ms): volt')
-    assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group, {}))
+    with pytest.raises(DimensionMismatchError):
+        eqs.check_units(group, {})
 
     eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
                        I : second''')
     group = SimpleGroup(variables={'v': S(volt),
                                    'I': S(second)}, namespace={})
-    assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group, {}))
+    with pytest.raises(DimensionMismatchError):
+        eqs.check_units(group, {})
     
     # inconsistent unit for a subexpression
     eqs = Equations('''dv/dt = -v / (5 * ms) : volt
                        I = 2 * v : amp''')
     group = SimpleGroup(variables={'v': S(volt),
                                    'I': S(second)}, namespace={})
-    assert_raises(DimensionMismatchError,
-                  lambda: eqs.check_units(group, {}))
+    with pytest.raises(DimensionMismatchError):
+        eqs.check_units(group, {})
     
 
 @pytest.mark.codegen_independent
@@ -430,7 +463,8 @@ def test_concatenation():
                freq : Hz'''
 
     # Concatenating with something that is not a string should not work
-    assert_raises(TypeError, lambda: eqs4 + 5)
+    with pytest.raises(TypeError):
+         eqs4 + 5
 
     # The string representation is canonical, therefore it should be identical
     # in all cases

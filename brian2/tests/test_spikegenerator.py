@@ -7,7 +7,7 @@ import os
 import tempfile
 
 import pytest
-from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
+from numpy.testing.utils import assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
@@ -121,15 +121,16 @@ def test_spikegenerator_period_rounding():
     # to the way our rounding works. Although probably not what the user
     # expects, this should therefore raise an error. In previous versions of
     # Brian, this did not raise any error but silently discarded the spike.
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [0, 0, 0],
-                                                          [0*ms, .9*ms, .99999*ms],
-                                                          period=1*ms, dt=0.1*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .99999*ms],
+                            period=1*ms, dt=0.1*ms)
     # This should also raise a ValueError, since the last two spikes fall into
     # the same bin
     s = SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .96*ms],
                             period=1*ms, dt=0.1*ms)
     net = Network(s)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
 def test_spikegenerator_period_repeat():
@@ -211,15 +212,20 @@ def test_spikegenerator_change_period():
 
 @pytest.mark.codegen_independent
 def test_spikegenerator_incorrect_values():
-    assert_raises(TypeError, lambda: SpikeGeneratorGroup(0, [], []*second))
+    with pytest.raises(TypeError):
+        SpikeGeneratorGroup(0, [], []*second)
     # Floating point value for N
-    assert_raises(TypeError, lambda: SpikeGeneratorGroup(1.5, [], []*second))
+    with pytest.raises(TypeError):
+        SpikeGeneratorGroup(1.5, [], []*second)
     # Negative index
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 3, -1], [0, 1, 2]*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(5, [0, 3, -1], [0, 1, 2]*ms)
     # Too high index
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 5, 1], [0, 1, 2]*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(5, [0, 5, 1], [0, 1, 2]*ms)
     # Negative time
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 1, 2], [0, -1, 2]*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(5, [0, 1, 2], [0, -1, 2]*ms)
 
 @pytest.mark.codegen_independent
 def test_spikegenerator_incorrect_period():
@@ -228,24 +234,27 @@ def test_spikegenerator_incorrect_period():
     inconsistent period and dt arguments.
     '''
     # Period is negative
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [], []*second,
-                                                          period=-1*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(1, [], []*second, period=-1*ms)
 
     # Period is smaller than the highest spike time
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [0], [2]*ms,
-                                                          period=1*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(1, [0], [2]*ms, period=1*ms)
     # Period is not an integer multiple of dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1.25*ms, dt=0.1*ms)
     net = Network(SG)
-    assert_raises(NotImplementedError, lambda: net.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=0.101 * ms, dt=0.1 * ms)
     net = Network(SG)
-    assert_raises(NotImplementedError, lambda: net.run(0 * ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0 * ms)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=3.333 * ms, dt=0.1 * ms)
     net = Network(SG)
-    assert_raises(NotImplementedError, lambda: net.run(0 * ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0 * ms)
 
     # This should not raise an error (see #1041)
     SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
@@ -255,7 +264,8 @@ def test_spikegenerator_incorrect_period():
     # Period is smaller than dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1*ms, dt=2*ms)
     net = Network(SG)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
 def test_spikegenerator_rounding():
@@ -336,7 +346,8 @@ def test_spikegenerator_multiple_spikes_per_bin():
     # This should raise an error
     SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
     net = Network(SG)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -344,7 +355,8 @@ def test_spikegenerator_multiple_spikes_per_bin():
     net = Network(SG)
     net.run(0*ms)  # all is fine
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
 @pytest.mark.standalone_compatible

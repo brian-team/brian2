@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from numpy.testing.utils import assert_raises
 import pytest
 
 from brian2 import *
@@ -73,12 +72,14 @@ def test_timedarray_incorrect_use():
     ta = TimedArray(np.linspace(0, 10, 11), 1*ms)
     ta2d = TimedArray((np.linspace(0, 11, 12)*amp).reshape(4, 3), 1*ms)
     G = NeuronGroup(3, 'I : amp')
-    # The weird formulation with the variable name is to get the variable into
-    # the surrounding namespace of the setattr call
-    assert_raises(ValueError, lambda: (ta2d, setattr(G, 'I', 'ta2d(t)*amp')))
-    assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta(t, i)*amp')))
-    assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta()*amp')))
-    assert_raises(ValueError, lambda: (ta, setattr(G, 'I', 'ta*amp')))
+    with pytest.raises(ValueError):
+        setattr(G, 'I', 'ta2d(t)*amp')
+    with pytest.raises(ValueError):
+        setattr(G, 'I', 'ta(t, i)*amp')
+    with pytest.raises(ValueError):
+        setattr(G, 'I', 'ta()*amp')
+    with pytest.raises(ValueError):
+        setattr(G, 'I', 'ta*amp')
 
 
 @pytest.mark.standalone_compatible

@@ -3,7 +3,6 @@ import uuid
 
 import sympy
 import numpy
-from numpy.testing.utils import assert_raises
 import pytest
 
 from brian2.core.variables import Constant
@@ -77,11 +76,13 @@ def test_explicit_namespace():
 def test_errors():
     # No explicit namespace
     group = SimpleGroup(namespace=None, variables={})
-    assert_raises(KeyError, lambda: group._resolve('nonexisting_variable', {}))
+    with pytest.raises(KeyError):
+        group._resolve('nonexisting_variable', {})
 
     # Empty explicit namespace
     group = SimpleGroup(namespace={}, variables={})
-    assert_raises(KeyError, lambda: group._resolve('nonexisting_variable', {}))
+    with pytest.raises(KeyError):
+        group._resolve('nonexisting_variable', {})
 
 
 @pytest.mark.codegen_independent

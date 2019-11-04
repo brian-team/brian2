@@ -3,7 +3,7 @@ import uuid
 import tempfile
 import logging
 
-from numpy.testing.utils import assert_array_equal, assert_raises
+from numpy.testing.utils import assert_array_equal
 import pytest
 
 from brian2 import *
@@ -22,11 +22,13 @@ def test_spike_monitor():
 
     mon = SpikeMonitor(G)
 
-    assert_raises(ValueError, lambda: SpikeMonitor(G, order=1))  # need to specify 'when' as well
+    with pytest.raises(ValueError):
+        SpikeMonitor(G, order=1)  # need to specify 'when' as well
     # Creating a SpikeMonitor for a Synapses object should not work
     S = Synapses(G, G, on_pre='v += 0')
     S.connect()
-    assert_raises(TypeError, lambda: SpikeMonitor(S))
+    with pytest.raises(TypeError):
+        SpikeMonitor(S)
 
     run(10*ms)
 
@@ -50,9 +52,12 @@ def test_spike_monitor():
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
 
-    assert_raises(KeyError, lambda: spike_trains[3])
-    assert_raises(KeyError, lambda: spike_trains[-1])
-    assert_raises(KeyError, lambda: spike_trains['string'])
+    with pytest.raises(KeyError):
+        spike_trains[3]
+    with pytest.raises(KeyError):
+        spike_trains[-1]
+    with pytest.raises(KeyError):
+        spike_trains['string']
 
     # Check that indexing into the VariableView works (this fails if we do not
     # update the N variable correctly)
@@ -186,9 +191,12 @@ def test_event_monitor():
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
 
-    assert_raises(KeyError, lambda: event_trains[3])
-    assert_raises(KeyError, lambda: event_trains[-1])
-    assert_raises(KeyError, lambda: event_trains['string'])
+    with pytest.raises(KeyError):
+        event_trains[3]
+    with pytest.raises(KeyError):
+        event_trains[-1]
+    with pytest.raises(KeyError):
+        event_trains['string']
 
 
 @pytest.mark.standalone_compatible
@@ -341,7 +349,8 @@ def test_state_monitor_record_single_timestep():
     G.v = 1
     mon = StateMonitor(G, 'v', record=True)
     # Recording before a run should not work
-    assert_raises(TypeError, lambda: mon.record_single_timestep())
+    with pytest.raises(TypeError):
+        mon.record_single_timestep()
     run(0.5*ms)
     mon.record_single_timestep()
     device.build(direct_call=False, **device.build_options)
@@ -374,10 +383,14 @@ def test_state_monitor_indexing():
 
     assert_allclose(mon.t[1:], Quantity([defaultclock.dt]))
 
-    assert_raises(IndexError, lambda: mon[8])
-    assert_raises(TypeError, lambda: mon['string'])
-    assert_raises(TypeError, lambda: mon[5.0])
-    assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
+    with pytest.raises(IndexError):
+        mon[8]
+    with pytest.raises(TypeError):
+        mon['string']
+    with pytest.raises(TypeError):
+        mon[5.0]
+    with pytest.raises(TypeError):
+        mon[[5.0, 6.0]]
 
 @pytest.mark.standalone_compatible
 def test_state_monitor_get_states():
@@ -487,12 +500,18 @@ def test_rate_monitor_smoothed_rate_incorrect():
     r_mon = PopulationRateMonitor(G)
     run(2*ms)
 
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window='flat'))  # no width
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(5), width=1*ms))
-    assert_raises(NotImplementedError, lambda: r_mon.smooth_rate(window='unknown', width=1*ms))
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=object()))
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(5, 2)))
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(4)))  # even number
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window='flat')  # no width
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=np.ones(5), width=1*ms)
+    with pytest.raises(NotImplementedError):
+        r_mon.smooth_rate(window='unknown', width=1*ms)
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=object())
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=np.ones(5, 2))
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=np.ones(4))  # even number
 
 
 @pytest.mark.standalone_compatible

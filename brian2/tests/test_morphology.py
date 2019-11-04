@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import pytest
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 import tempfile
 import os
 
@@ -18,7 +18,8 @@ def test_attributes_soma():
     assert soma.n == 1
     assert soma.total_sections == 1
     assert soma.total_compartments == 1
-    assert_raises(TypeError, lambda: len(soma))  # ambiguous
+    with pytest.raises(TypeError):
+         len(soma)  # ambiguous
     # Compartment attributes
     assert_equal(soma.diameter, [10]*um)
     assert_equal(soma.length, [10]*um)
@@ -89,7 +90,8 @@ def test_attributes_cylinder():
     assert cylinder.n == n
     assert cylinder.total_sections == 1
     assert cylinder.total_compartments == n
-    assert_raises(TypeError, lambda: len(cylinder))  # ambiguous
+    with pytest.raises(TypeError):
+         len(cylinder)  # ambiguous
 
     # Compartment attributes
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
@@ -164,7 +166,8 @@ def test_attributes_section():
     assert sec.n == n
     assert sec.total_sections == 1
     assert sec.total_compartments == n
-    assert_raises(TypeError, lambda: len(sec))  # ambiguous
+    with pytest.raises(TypeError):
+         len(sec)  # ambiguous
 
     # Compartment attributes
     assert_allclose(sec.diameter, np.ones(n)*10*um)
@@ -635,7 +638,8 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
               (7,  'L'   , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  6),
               (8,  'L'   , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  7)
               ]
-    assert_raises(ValueError, lambda: Morphology.from_points(points))
+    with pytest.raises(ValueError):
+         Morphology.from_points(points)
 
     # Inconsistent coordinates
     points = [  # soma
@@ -649,7 +653,8 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
         (7, 'L', 100 + 80 / np.sqrt(2), 80 / np.sqrt(2), 0, 2, 6),
         (8, 'L', 100 + 100 / np.sqrt(2), 100 / np.sqrt(2), 0, 0, 7)
     ]
-    assert_raises(ValueError, lambda: Morphology.from_points(points))
+    with pytest.raises(ValueError):
+         Morphology.from_points(points)
 
 
 @pytest.mark.codegen_independent
@@ -706,74 +711,101 @@ def test_tree_soma_from_swc_3_point_soma():
 def test_construction_incorrect_arguments():
     ### Morphology
     dummy_self = Soma(10*um)  # To allow testing of Morphology.__init__
-    assert_raises(TypeError, lambda: Morphology.__init__(dummy_self, n=1.5))
-    assert_raises(ValueError, lambda: Morphology.__init__(dummy_self, n=0))
-    assert_raises(TypeError, lambda: Morphology.__init__(dummy_self,
-                                                         'filename.swc'))
+    with pytest.raises(TypeError):
+         Morphology.__init__(dummy_self, n=1.5)
+    with pytest.raises(ValueError):
+         Morphology.__init__(dummy_self, n=0)
+    with pytest.raises(TypeError):
+         Morphology.__init__(dummy_self, 'filename.swc')
 
     ### Soma
-    assert_raises(DimensionMismatchError, lambda: Soma(10))
-    assert_raises(TypeError, lambda: Soma([10, 20]*um))
-    assert_raises(TypeError, lambda: Soma(x=[10, 20]*um))
-    assert_raises(TypeError, lambda: Soma(y=[10, 20]*um))
-    assert_raises(TypeError, lambda: Soma(z=[10, 20]*um))
-    assert_raises(DimensionMismatchError, lambda: Soma(x=10))
-    assert_raises(DimensionMismatchError, lambda: Soma(y=10))
-    assert_raises(DimensionMismatchError, lambda: Soma(z=10))
+    with pytest.raises(DimensionMismatchError):
+         Soma(10)
+    with pytest.raises(TypeError):
+         Soma([10, 20]*um)
+    with pytest.raises(TypeError):
+         Soma(x=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Soma(y=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Soma(z=[10, 20]*um)
+    with pytest.raises(DimensionMismatchError):
+         Soma(x=10)
+    with pytest.raises(DimensionMismatchError):
+         Soma(y=10)
+    with pytest.raises(DimensionMismatchError):
+         Soma(z=10)
 
     ### Cylinder
     # Diameter can only be single value
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20]*um),length=100*um)
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20, 30]*um), length=100*um)
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=np.ones(3, 2)*um), length=100*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=[10, 20]*um,length=100*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=[10, 20, 30]*um, length=100*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=np.ones(3, 2)*um, length=100*um)
     # Length can only be single value
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=np.ones(3, 2)*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=np.ones(3, 2)*um)
     # Coordinates have to be two values
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10, 20, 30]*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, x=[10]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, x=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, y=[10]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, y=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, z=[10]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, z=[10, 20, 30]*um)
     # Need either coordinates or lengths
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um)
     # But not both
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=30*um,
-                                              x=[0, 30]*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=30*um, x=[0, 30]*um)
 
     ### Section
     # Diameter have to be n+1 values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=np.ones(3)*10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30]*um, length=np.ones(3)*10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4, 2)*um), length=np.ones(3)*10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=10*um, length=np.ones(3)*10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=[10, 20, 30]*um, length=np.ones(3)*10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4, 2)*um, length=np.ones(3)*10*um)
     # Length have to be n values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=np.ones(3, 2)*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=np.ones(3, 2)*um)
     # Coordinates have to be n+1 values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             x=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             x=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             y=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             y=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             z=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             z=[10, 20, 30]*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, x=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, x=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, y=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, y=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, z=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, z=[10, 20, 30]*um)
     # Need either coordinates or lengths
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um)
     # But not both
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=[10, 20, 30]*um,
-                                             x=[0, 10, 20, 30]*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=[10, 20, 30]*um,
+                 x=[0, 10, 20, 30]*um)
 
 
 @pytest.mark.codegen_independent
@@ -810,10 +842,14 @@ def test_from_points_incorrect():
               (2,  10,                 0,                0,              10,  1),
               (3,  20,                 0,                0,              10,  2),
               ]
-    assert_raises(ValueError, lambda: Morphology.from_points(points))
-    assert_raises(ValueError, lambda: Morphology.from_points(points2))
-    assert_raises(ValueError, lambda: Morphology.from_points(points3))
-    assert_raises(ValueError, lambda: Morphology.from_points(points4))
+    with pytest.raises(ValueError):
+         Morphology.from_points(points)
+    with pytest.raises(ValueError):
+         Morphology.from_points(points2)
+    with pytest.raises(ValueError):
+         Morphology.from_points(points3)
+    with pytest.raises(ValueError):
+         Morphology.from_points(points4)
 
 
 @pytest.mark.codegen_independent
@@ -833,20 +869,26 @@ def test_subtree_deletion():
 
     del soma.dend1
     assert soma.total_compartments == 31
-    assert_raises(AttributeError, lambda: soma.dend1)
-    assert_raises(AttributeError, lambda: delattr(soma, 'dend1'))
-    assert_raises(AttributeError, lambda: soma.__delitem__('dend1'))
+    with pytest.raises(AttributeError):
+         soma.dend1
+    with pytest.raises(AttributeError):
+         delattr(soma, 'dend1')
+    with pytest.raises(AttributeError):
+         soma.__delitem__('dend1')
     assert first_dendrite not in soma.children
 
     del soma['dend2']
     assert soma.total_compartments == 16
-    assert_raises(AttributeError, lambda: soma.dend2)
+    with pytest.raises(AttributeError):
+         soma.dend2
     assert second_dendrite not in soma.children
 
     del soma.dend3.LL
     assert soma.total_compartments == 11
-    assert_raises(AttributeError, lambda: soma.dend3.LL)
-    assert_raises(AttributeError, lambda: soma.dend3.L.L)
+    with pytest.raises(AttributeError):
+         soma.dend3.LL
+    with pytest.raises(AttributeError):
+         soma.dend3.L.L
 
 
 @pytest.mark.codegen_independent
@@ -946,23 +988,34 @@ def test_subgroup_incorrect():
     morpho.right = Cylinder(length=3*um, diameter=1*um, n=7)
 
     # Non-existing branch
-    assert_raises(AttributeError, lambda: morpho.axon)
+    with pytest.raises(AttributeError):
+         morpho.axon
 
     # Incorrect indexing
     #  wrong units or mixing units
-    assert_raises(TypeError, lambda: morpho.L[3*second:5*second])
-    assert_raises(TypeError, lambda: morpho.L[3.4:5.3])
-    assert_raises(TypeError, lambda: morpho.L[3:5*um])
-    assert_raises(TypeError, lambda: morpho.L[3*um:5])
+    with pytest.raises(TypeError):
+         morpho.L[3*second:5*second]
+    with pytest.raises(TypeError):
+         morpho.L[3.4:5.3]
+    with pytest.raises(TypeError):
+         morpho.L[3:5*um]
+    with pytest.raises(TypeError):
+         morpho.L[3*um:5]
     #   providing a step
-    assert_raises(TypeError, lambda: morpho.L[3*um:5*um:2*um])
-    assert_raises(TypeError, lambda: morpho.L[3:5:2])
+    with pytest.raises(TypeError):
+         morpho.L[3*um:5*um:2*um]
+    with pytest.raises(TypeError):
+         morpho.L[3:5:2]
     #   incorrect type
-    assert_raises(TypeError, lambda: morpho.L[object()])
+    with pytest.raises(TypeError):
+         morpho.L[object()]
     # out of range
-    assert_raises(IndexError, lambda: morpho.L[-10*um])
-    assert_raises(IndexError, lambda: morpho.L[15*um])
-    assert_raises(IndexError, lambda: morpho.L[10])
+    with pytest.raises(IndexError):
+         morpho.L[-10*um]
+    with pytest.raises(IndexError):
+         morpho.L[15*um]
+    with pytest.raises(IndexError):
+         morpho.L[10]
 
 
 @pytest.mark.codegen_independent

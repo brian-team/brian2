@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from brian2 import *
 from brian2.utils.logger import catch_logs
-from numpy.testing import assert_raises, assert_equal, assert_array_equal
+from numpy.testing import assert_equal, assert_array_equal
 import pytest
 
 
@@ -34,7 +34,8 @@ def test_clock_dt_change():
     clock.dt = 0.1*ms
     clock._set_t_update_dt(target_t=0.1*ms)
     clock.dt = 0.3*ms
-    assert_raises(ValueError, lambda: clock._set_t_update_dt(target_t=0.1*ms))
+    with pytest.raises(ValueError):
+        clock._set_t_update_dt(target_t=0.1*ms)
 
 
 @pytest.mark.codegen_independent

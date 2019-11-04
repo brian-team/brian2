@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from brian2.core.network import schedule_propagation_offset
 
 import pytest
-from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
+from numpy.testing.utils import assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
@@ -28,7 +28,8 @@ def test_state_variables():
     '''
     G = NeuronGroup(10, 'v : volt')
     SG = G[4:9]
-    assert_raises(DimensionMismatchError, lambda: SG.__setattr__('v', -70))
+    with pytest.raises(DimensionMismatchError):
+        SG.__setattr__('v', -70)
     SG.v_ = float(-80*mV)
     assert_allclose(G.v,
                     np.array([0, 0, 0, 0, -80, -80, -80, -80, -80, 0])*mV)
@@ -53,9 +54,12 @@ def test_state_variables():
     SG.v *= 2
     assert_allclose(G.v[4:9], 2*(-70*mV + np.arange(5)*mV))
     # with unit checking
-    assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3*second))
-    assert_raises(DimensionMismatchError, lambda: SG.v.__iadd__(3))
-    assert_raises(DimensionMismatchError, lambda: SG.v.__imul__(3*second))
+    with pytest.raises(DimensionMismatchError):
+        SG.v.__iadd__(3*second)
+    with pytest.raises(DimensionMismatchError):
+        SG.v.__iadd__(3)
+    with pytest.raises(DimensionMismatchError):
+        SG.v.__imul__(3*second)
 
     # Indexing with subgroups
     assert_equal(G.v[SG], SG.v[:])
@@ -138,7 +142,8 @@ def test_state_monitor():
     assert_allclose(mon_0[0].v, np.array([5]) * volt)
     assert_allclose(mon_all.v.flatten(), np.arange(5, 10) * volt)
 
-    assert_raises(IndexError, lambda: mon_all[5])
+    with pytest.raises(IndexError):
+        mon_all[5]
 
 
 def test_shared_variable():
@@ -638,19 +643,31 @@ def test_spike_monitor():
 @pytest.mark.codegen_independent
 def test_wrong_indexing():
     G = NeuronGroup(10, 'v:1')
-    assert_raises(TypeError, lambda: G['string'])
+    with pytest.raises(TypeError):
+        G['string']
 
-    assert_raises(IndexError, lambda: G[10])
-    assert_raises(IndexError, lambda: G[10:])
-    assert_raises(IndexError, lambda: G[::2])
-    assert_raises(IndexError, lambda: G[3:2])
-    assert_raises(IndexError, lambda: G[[5, 4, 3]])
-    assert_raises(IndexError, lambda: G[[2, 4, 6]])
-    assert_raises(IndexError, lambda: G[[-1, 0, 1]])
-    assert_raises(IndexError, lambda: G[[9, 10, 11]])
-    assert_raises(IndexError, lambda: G[[9, 10]])
-    assert_raises(IndexError, lambda: G[[10, 11]])
-    assert_raises(TypeError, lambda: G[[2.5, 3.5, 4.5]])
+    with pytest.raises(IndexError):
+        G[10]
+    with pytest.raises(IndexError):
+        G[10:]
+    with pytest.raises(IndexError):
+        G[::2]
+    with pytest.raises(IndexError):
+        G[3:2]
+    with pytest.raises(IndexError):
+        G[[5, 4, 3]]
+    with pytest.raises(IndexError):
+        G[[2, 4, 6]]
+    with pytest.raises(IndexError):
+        G[[-1, 0, 1]]
+    with pytest.raises(IndexError):
+        G[[9, 10, 11]]
+    with pytest.raises(IndexError):
+        G[[9, 10]]
+    with pytest.raises(IndexError):
+        G[[10, 11]]
+    with pytest.raises(TypeError):
+        G[[2.5, 3.5, 4.5]]
 
 
 @pytest.mark.codegen_independent

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from collections import Counter
 
 import pytest
-from numpy.testing.utils import assert_equal, assert_raises
+from numpy.testing.utils import assert_equal
 
 from brian2.core.functions import timestep
 from brian2.utils.logger import catch_logs
@@ -179,13 +179,17 @@ def test_refractoriness_threshold():
 def test_refractoriness_types():
     # make sure that using a wrong type of refractoriness does not work
     group = NeuronGroup(1, '', refractory='3*Hz')
-    assert_raises(TypeError, lambda: Network(group).run(0*ms))
+    with pytest.raises(TypeError):
+        Network(group).run(0*ms)
     group = NeuronGroup(1, 'ref: Hz', refractory='ref')
-    assert_raises(TypeError, lambda: Network(group).run(0*ms))
+    with pytest.raises(TypeError):
+        Network(group).run(0*ms)
     group = NeuronGroup(1, '', refractory='3')
-    assert_raises(TypeError, lambda: Network(group).run(0*ms))
+    with pytest.raises(TypeError):
+        Network(group).run(0*ms)
     group = NeuronGroup(1, 'ref: 1', refractory='ref')
-    assert_raises(TypeError, lambda: Network(group).run(0*ms))
+    with pytest.raises(TypeError):
+        Network(group).run(0*ms)
 
 @pytest.mark.codegen_independent
 def test_conditional_write_set():
