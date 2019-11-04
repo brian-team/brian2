@@ -109,7 +109,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
         reset_preferences=True, fail_for_not_implemented=True,
-        build_options=None, extra_test_dirs=None, float_dtype=None):
+        build_options=None, extra_test_dirs=None, float_dtype=None,
+        additional_args=None):
     '''
     Run brian's test suite. Needs an installation of the pytest testing tool.
 
@@ -157,6 +158,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     float_dtype : np.dtype, optional
         Set the dtype to use for floating point variables to a value different
         from the default `core.default_float_dtype` setting.
+    additional_args : list of str, optional
+        Optional command line arguments to pass to ``pytest``
     '''
     if pytest is None:
         raise ImportError('Running the test suite requires the "pytest" package.')
@@ -171,6 +174,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         extra_test_dirs = []
     elif isinstance(extra_test_dirs, basestring):
         extra_test_dirs = [extra_test_dirs]
+    if additional_args is None:
+        additional_args = []
 
     multiprocess_arguments = ['-n', 'auto']
 
@@ -275,13 +280,15 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             argv = make_argv(dirnames, doctests=True)
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            success.append(pytest.main(argv + additional_args,
+                                       plugins=[pref_plugin]) == 0)
 
             print('Running tests that do not use code generation')
             argv = make_argv(dirnames, "codegen_independent")
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            success.append(pytest.main(argv + additional_args,
+                                       plugins=[pref_plugin]) == 0)
             clear_caches()
 
         for target in codegen_targets:
@@ -298,7 +305,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             argv = make_argv(dirnames, markers)
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            success.append(pytest.main(argv + additional_args,
+                                       plugins=[pref_plugin]) == 0)
             clear_caches()
 
         if test_standalone:
@@ -312,7 +320,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             argv = make_argv(dirnames, 'standalone_compatible ' + markers)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            success.append(pytest.main(argv + additional_args,
+                                       plugins=[pref_plugin]) == 0)
             clear_caches()
 
             reset_device()
@@ -325,7 +334,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             argv = make_argv(dirnames, 'standalone_compatible'+markers)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            success.append(pytest.main(argv + additional_args,
+                                       plugins=[pref_plugin]) == 0)
             clear_caches()
             reset_device()
 
@@ -339,7 +349,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers += ' and not multiple_runs'
                 argv = make_argv(dirnames,
                                  'standalone_compatible' + markers)
-                success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+                success.append(pytest.main(argv + additional_args,
+                                           plugins=[pref_plugin]) == 0)
                 clear_caches()
                 reset_device()
 
@@ -350,7 +361,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers += ' and multiple_runs'
                 argv = make_argv(dirnames,
                                  'standalone_compatible' + markers)
-                success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+                success.append(pytest.main(argv + additional_args,
+                                           plugins=[pref_plugin]) == 0)
                 clear_caches()
                 prefs['devices.cpp_standalone.openmp_threads'] = 0
 
@@ -361,7 +373,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             argv = make_argv(dirnames, test_standalone+exclude_openmp)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
-            success.append(pytest.main(argv, plugins=[pref_plugin]) == 0)
+            success.append(pytest.main(argv + additional_args,
+                                       plugins=[pref_plugin]) == 0)
             clear_caches()
 
         all_success = all(success)
