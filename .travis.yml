@@ -131,7 +131,7 @@ install:
     else
       PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
     fi
-  - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES coveralls"; fi
+  - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES pytest-cov coveralls"; fi
   # Install packages into a new environment
   - travis_retry conda create --quiet --yes -n travis_conda $PYTHON_PACKAGES
   - conda activate travis_conda
