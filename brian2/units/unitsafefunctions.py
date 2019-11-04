@@ -45,6 +45,7 @@ def where(condition, *args, **kwds):  # pylint: disable=C0111
         # illegal number of arguments, let numpy take care of this
         return np.where(condition, *args, **kwds)
 where.__doc__ = np.where.__doc__
+where._do_not_run_doctests = True
 
 # Functions that work on dimensionless quantities only
 sin = wrap_function_dimensionless(np.sin)
@@ -82,6 +83,7 @@ def wrap_function_to_method(func):
             return func(x, *args, **kwds)
     f.__doc__ = func.__doc__
     f.__name__ = func.__name__
+    f._do_not_run_doctests = True
     return f
 
 
@@ -150,7 +152,7 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
         result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
                              endpoint=endpoint, retstep=retstep, dtype=dtype)
     return Quantity(result, dim=dim, copy=False)
-
+linspace._do_not_run_doctests = True
 
 # these functions discard subclass info -- maybe a bug in numpy?
 ravel = wrap_function_to_method(np.ravel)
