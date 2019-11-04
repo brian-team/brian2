@@ -15,6 +15,9 @@ def pytest_ignore_collect(path, config):
     if config.option.doctestmodules:
         if 'tests' in str(path):
             return True  # Ignore tests package for doctests
+    # Do not test brian2.hears bridge (needs Brian1)
+    if str(path).endswith('hears.py'):
+        return True
 
 
 @pytest.fixture

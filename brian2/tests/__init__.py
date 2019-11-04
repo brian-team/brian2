@@ -60,11 +60,6 @@ class PreferencePlugin(object):
         node.slaveinput['brian_prefs'] = prefs
         node.slaveinput['fail_for_not_implemented'] = self.fail_for_not_implemented
 
-    # def pytest_ignore_collect(self, path, config):
-    #     if str(path).endswith('hears.py'):
-    #         return True
-    #     return False
-
 
 def clear_caches():
     from brian2.utils.logger import BrianLogger
