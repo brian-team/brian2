@@ -412,7 +412,7 @@ class BrianGlobalPreferences(MutableMapping):
         bases = []  # start with no base
         for line in lines:
             # Match section names, which are used as a prefix for subsequent entries
-            m = re.match('\[([^\]]*)\]', line)
+            m = re.match(r'\[([^\]]*)\]', line)
             if m:
                 bases = m.group(1).strip().split('.')
                 continue

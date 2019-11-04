@@ -2482,7 +2482,7 @@ def test_synapse_generator_range_noint():
     # arguments to `range` should only be integers (issue #781)
     G = NeuronGroup(42, 'v: 1', threshold='False')
     S = Synapses(G, G, 'w:1', 'v+=w')
-    msg = 'The "{}" argument of the range function was .+, but it needs to be an integer\.'
+    msg = r'The "{}" argument of the range function was .+, but it needs to be an integer\.'
     assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(42.0)'))
     assert_raises_regex(TypeError, msg.format('low'), lambda: S.connect(j='k for k in range(0.0, 42)'))
     assert_raises_regex(TypeError, msg.format('high'), lambda: S.connect(j='k for k in range(0, 42.0)'))
