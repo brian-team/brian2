@@ -84,13 +84,15 @@ def set_preferences_fixture(request):
     except TypeError:
         pass  # using a numpy version < 1.14
 
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    if hasattr(item.config, 'slaveinput'):
+        fail_for_not_implemented = item.config.slaveinput['fail_for_not_implemented']
+    else:
+        fail_for_not_implemented = item.config.fail_for_not_implemented
     outcome = yield
-    # TODO: make this optional
     rep = outcome.get_result()
-    if rep.outcome == 'failed':
+    if not fail_for_not_implemented and rep.outcome == 'failed':
         if call.excinfo.errisinstance(NotImplementedError):
             rep.outcome = 'skipped'
             r = call.excinfo._getreprcrash()

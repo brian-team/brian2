@@ -38,60 +38,18 @@ try:
     # Monkey patch pytest
     pytest_doctest.DoctestModule = OurDoctestModule
 
-    # from nose.plugins.errorclass import ErrorClassPlugin, ErrorClass
-    # import nose.plugins.doctests as doctests
-    # import doctest
-    #
-    # class NotImplementedPlugin(ErrorClassPlugin):
-    #     enabled = True
-    #     notimplemented = ErrorClass(NotImplementedError,
-    #                                 label='NOT_IMPLEMENTED',
-    #                                 isfailure=True)
-    #
-    #     def configure(self, options, conf):
-    #         # For some reason, this only works if this method exists...
-    #         pass
-    #
-    # class NotImplementedNoFailurePlugin(ErrorClassPlugin):
-    #     enabled = True
-    #     notimplemented = ErrorClass(NotImplementedError,
-    #                                 label='NOT_IMPLEMENTED',
-    #                                 isfailure=False)
-    #
-    #     def configure(self, options, conf):
-    #         # For some reason, this only works if this method exists...
-    #         pass
-    #
-    # class OurDoctestFinder(doctest.DocTestFinder):
-    #     def _get_test(self, obj, name, module, globs, source_lines):
-    #         if getattr(obj, '_do_not_run_doctests', False):
-    #             return None
-    #         # note that doctest.DocTestFinder is an old-style class in Python 2,
-    #         # we therefore cannot use the super mechanism
-    #         return doctest.DocTestFinder._get_test(self, obj, name, module,
-    #                                                globs, source_lines)
-    #
-    # class OurDoctestPlugin(doctests.Doctest):
-    #     name = 'ourdoctest'
-    #     enabled = True
-    #
-    #     def configure(self, options, config):
-    #         super(OurDoctestPlugin, self).configure(options, config)
-    #         self.finder = OurDoctestFinder()
-    #
-    #     def options(self, parser, env):
-    #         pass  # do not register any options
-
 except ImportError:
     pytest = None
 
 
 class PreferencePlugin(object):
-    def __init__(self, prefs):
+    def __init__(self, prefs, fail_for_not_implemented=True):
         self._prefs = prefs
+        self.fail_for_not_implemented = fail_for_not_implemented
 
     def pytest_configure(self, config):
         config.brian_prefs = dict(self._prefs)
+        config.fail_for_not_implemented = self.fail_for_not_implemented
 
     def pytest_configure_node(self, node):
         """xdist hook"""
@@ -100,11 +58,13 @@ class PreferencePlugin(object):
             if isinstance(v, type):
                 prefs[k] = ('TYPE', repr(v))
         node.slaveinput['brian_prefs'] = prefs
+        node.slaveinput['fail_for_not_implemented'] = self.fail_for_not_implemented
 
     # def pytest_ignore_collect(self, path, config):
     #     if str(path).endswith('hears.py'):
     #         return True
     #     return False
+
 
 def clear_caches():
     from brian2.utils.logger import BrianLogger
@@ -310,7 +270,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     from brian2.devices import set_device
     set_device('runtime')
-    pref_plugin = PreferencePlugin(prefs)
+    pref_plugin = PreferencePlugin(prefs, fail_for_not_implemented)
     try:
         success = []
         if test_codegen_independent:
