@@ -1,23 +1,14 @@
 Testing
 =======
 
-Brian uses the `nose package <https://nose.readthedocs.io/en/latest/>`__
-for its testing framework. To check the code coverage of the test suite, we use 
-`coverage.py <http://coverage.readthedocs.io/en/latest/>`__.
+Brian uses the `pytest package <https://https://docs.pytest.org/>`__
+for its testing framework.
 
 Running the test suite
 ----------------------
-The nosetests tool automatically finds tests in the code. When brian2 is in your
-Python path or when you are in the main brian2 directory, you can start the test
-suite with:
-
-.. code-block:: bash
-
-	$ nosetests brian2 --with-doctest
-
-This should show no errors or failures but usually a number of skipped tests.
-The recommended way however is to import brian2 and call the test function,
-which gives you convenient control over which tests are run::
+The pytest tool automatically finds tests in the code. However, to deal with the
+different code generation targets, and correctly set up tests for standalone mode, it is
+recommended to use Brian's builtin test function that calls pytest appropriately::
 
 	>>> import brian2
 	>>> brian2.test() 
@@ -49,6 +40,8 @@ tests::
 
 Checking the code coverage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+TODO
+
 To check the code coverage under Linux (with coverage and nosetests in your
 path) and generate a report, use the following commands (this assumes the
 source code of Brian with the file ``.coveragerc`` in the directory
@@ -93,6 +86,8 @@ a callable as arguments::
 
     assert_raises(DimensionMismatchError, lambda: 3*volt + 5*second)
 
+TODO: pytest.raises
+
 Note that you cannot simply write ``3*volt + 5*second`` in the above example,
 this would raise an exception before calling assert_raises. Using a callable
 like the simple lambda expression above makes it possible for `assert_raises`
@@ -108,13 +103,13 @@ targets (see `Running the test suite`_ above). This is not useful for all tests,
 some basic tests that for example test equation syntax or the use of physical
 units do not depend on code generation and need therefore not to be repeated. To
 execute such tests only once, they can be annotated with a
-``codegen-independent`` attribute, using the `~nose.plugins.attrib.attr`
+``codegen_independent`` marker, using the `~pytest.mark`
 decorator::
 
-    from nose.plugins.attrib import attr
+    import pytest
     from brian2 import NeuronGroup
 
-    @attr('codegen-independent')
+    @pytest.mark.codegen_independent
     def test_simple():
         # Test that the length of a NeuronGroup is correct
         group = NeuronGroup(5, '')
@@ -125,21 +120,14 @@ runtimes device, i.e. not for the ``cpp_standalone`` device, for example.
 However, many of those tests follow a common pattern that is compatible with
 standalone devices as well: they set up a network, run it, and check the state
 of the network afterwards. Such tests can be marked as
-``standalone-compatible``, using the `~nose.plugins.attrib.attr` decorator in
-the same way as for ``codegen-independent`` tests. Since standalone devices
-usually have an internal state where they store information about arrays,
-array assignments, etc., they need to be reinitialized after such a test. For
-that use the `~nose.with_setup` decorator and provide the
-`~brian2.devices.device.reinit_devices` function as the ``teardown`` argument::
+``standalone_compatible``, using the `~pytest.mark` decorator in
+the same way as for ``codegen_independent`` tests.::
 
-    from nose import with_setup
-    from nose.plugins.attrib import attr
+    import pytest
     from numpy.testing.utils import assert_equal
     from brian2 import *
-    from brian2.devices.device import reinit_devices
 
-    @attr('standalone-compatible')
-    @with_setup(teardown=reinit_devices)
+    @pytest.mark.standalone_compatible
     def test_simple_run():
         # Check that parameter values of a neuron don't change after a run
         group = NeuronGroup(5, 'v : volt')
@@ -150,18 +138,15 @@ that use the `~nose.with_setup` decorator and provide the
 Tests that have more than a single run function but are otherwise compatible
 with standalone mode (e.g. they don't need access to the number of synapses or
 results of the simulation before the end of the simulation), can be marked as
-``standalone-compatible`` and ``multiple-runs``. They then have to use an
+``standalone_compatible`` and ``multiple_runs``. They then have to use an
 explicit ``device.build(...)`` call of the form shown below::
 
-    from nose import with_setup
-    from nose.plugins.attrib import attr
+    import pytest
     from numpy.testing.utils import assert_equal
     from brian2 import *
-    from brian2.devices.device import reinit_devices
 
-
-    @attr('standalone-compatible', 'multiple-runs')
-    @with_setup(teardown=reinit_devices)
+    @pytest.mark.standalone_compatible
+    @pytest.mark.multiple_runs
     def test_multiple_runs():
         # Check that multiple runs advance the clock as expected
         group = NeuronGroup(5, 'v : volt')
@@ -178,18 +163,15 @@ Tests can also be written specifically for a standalone device (they then have
 to include the `~brian2.devices.device.set_device` call and possibly the
 `~brian2.devices.device.Device.build` call explicitly). In this case tests
 have to be annotated with the name of the device (e.g. ``'cpp_standalone'``)
-and with ``'standalone-only'`` to exclude this test from the runtime tests.
-Also, the device should be reset in the teardown function. Such code would look
-like this for a single `run` call, i.e. using the automatic "build on run"
-feature::
+and with ``'standalone_only'`` to exclude this test from the runtime tests.
+Such code would look like this for a single `run` call, i.e. using the automatic
+"build on run" feature::
 
-    from nose import with_setup
-    from nose.plugins.attrib import attr
+    import pytest
     from brian2 import *
-    from brian2.devices.device import reinit_devices
 
-    @attr('cpp_standalone', 'standalone-only')
-    @with_setup(teardown=reinit_devices)
+    @pytest.mark.cpp_standalone
+    @pytest.mark.standalone_only
     def test_cpp_standalone():
         set_device('cpp_standalone', directory=None)
         # set up simulation
@@ -201,13 +183,11 @@ feature::
 If the code uses more than one `run` statement, it needs an explicit
 `~brian2.devices.device.Device.build` call::
 
-    from nose import with_setup
-    from nose.plugins.attrib import attr
+    import pytest
     from brian2 import *
-    from brian2.devices.device import reinit_devices
 
-    @attr('cpp_standalone', 'standalone-only')
-    @with_setup(teardown=reinit_devices)
+    @pytest.mark.cpp_standalone
+    @pytest.mark.standalone_only
     def test_cpp_standalone():
         set_device('cpp_standalone', build_on_run=False)
         # set up simulation
@@ -222,25 +202,25 @@ If the code uses more than one `run` statement, it needs an explicit
 
 Summary
 ^^^^^^^
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
-| ``@attr`` attributes                     | Executed for devices   | needs ``teardown=reinit_devices``?  | explicit use of `device`                                    |
-+==========================================+========================+=====================================+=============================================================+
-| ``codegen-independent``                  | independent of devices | no                                  | *none*                                                      |
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
-| *none*                                   | Runtime targets        | no                                  | *none*                                                      |
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
-| ``standalone-compatible``                | Runtime and standalone | yes                                 | *none*                                                      |
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
-| ``standalone-compatible, multiple-runs`` | Runtime and standalone | yes                                 | ``device.build(direct_call=False, **device.build_options)`` |
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
-| ``cpp_standalone, standalone-only``      | C++ standalone device  | yes                                 | ``set_device('cpp_standalone')``                            |
-|                                          |                        |                                     | ``...``                                                     |
-|                                          |                        |                                     | ``device.build(directory=None)``                            |
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
-| ``my_device, standalone-only``           | "My device"            | yes                                 | ``set_device('my_device')``                                 |
-|                                          |                        |                                     | ``...``                                                     |
-|                                          |                        |                                     | ``device.build(directory=None)``                            |
-+------------------------------------------+------------------------+-------------------------------------+-------------------------------------------------------------+
++------------------------------------------+------------------------+-------------------------------------------------------------+
+| ``@pytest.mark`` marker                  | Executed for devices   | explicit use of `device`                                    |
++==========================================+========================+=============================================================+
+| ``codegen_independent``                  | independent of devices | *none*                                                      |
++------------------------------------------+------------------------+-------------------------------------------------------------+
+| *none*                                   | Runtime targets        | *none*                                                      |
++------------------------------------------+------------------------+-------------------------------------------------------------+
+| ``standalone_compatible``                | Runtime and standalone | *none*                                                      |
++------------------------------------------+------------------------+-------------------------------------------------------------+
+| ``standalone_compatible, multiple_runs`` | Runtime and standalone | ``device.build(direct_call=False, **device.build_options)`` |
++------------------------------------------+------------------------+-------------------------------------------------------------+
+| ``cpp_standalone, standalone_only``      | C++ standalone device  | ``set_device('cpp_standalone')``                            |
+|                                          |                        | ``...``                                                     |
+|                                          |                        | ``device.build(directory=None)``                            |
++------------------------------------------+------------------------+-------------------------------------------------------------+
+| ``my_device, standalone_only``           | "My device"            | ``set_device('my_device')``                                 |
+|                                          |                        | ``...``                                                     |
+|                                          |                        | ``device.build(directory=None)``                            |
++------------------------------------------+------------------------+-------------------------------------------------------------+
 
 Doctests
 ~~~~~~~~
