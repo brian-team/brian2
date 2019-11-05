@@ -19,11 +19,10 @@ try:
     import pytest
     from _pytest import doctest as pytest_doctest
     import importlib
-    _orig_collect = pytest_doctest.DoctestModule.collect
 
-    class OurDoctestModule(pytest.Module):
+    class OurDoctestModule(pytest_doctest.DoctestModule):
         def collect(self):
-            for item in _orig_collect(self):
+            for item in super(OurDoctestModule, self).collect():
                 # Check the object for exclusion from doctests
                 full_name = item.name.split('.')
                 test_name = []
