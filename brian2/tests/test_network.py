@@ -20,7 +20,8 @@ from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     start_scope, prefs, profiling_summary, Quantity, TimedArray)
 from brian2.core.network import schedule_propagation_offset, scheduling_summary
 from brian2.devices.device import (reinit_and_delete, Device, all_devices,
-                                   set_device, get_device, reset_device, device)
+                                   set_device, get_device, reset_device, device,
+                                   RuntimeDevice)
 from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
 
@@ -1190,6 +1191,26 @@ def test_store_restore_spikequeue():
     restore()
     run(2 * defaultclock.dt)
     assert target.v[0] == 1
+
+@pytest.mark.skipif(not isinstance(get_device(), RuntimeDevice),
+                    reason='Getting/setting random number state only supported '
+                           'for runtime device.')
+def test_restore_with_random_state():
+    group = NeuronGroup(10, 'dv/dt = -v/(10*ms) + (10*ms)**-0.5*xi : 1',
+                        method='euler')
+    group.v = 'rand()'
+    mon = StateMonitor(group, 'v', record=True)
+    store()
+    run(10*ms)
+    old_v = np.array(group.v)
+
+    restore()  # Random state is not restored
+    run(10 * ms)
+    assert np.var(old_v - group.v) > 0  # very basic test for difference
+
+    restore(restore_random_state=True)  # Random state is restored
+    run(10 * ms)
+    assert_equal(old_v, group.v)
 
 
 @pytest.mark.codegen_independent
