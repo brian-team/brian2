@@ -53,7 +53,7 @@ if report_coverage:
     additional_args = ['--cov-config={}'.format(os.path.join(src_dir,
                                                              '.coveragerc')),
                        '--cov-append',
-                       '--cov={}'.format(os.path.join(src_dir, 'brian2')),
+                       '--cov=brian2',
                        '--cov-report=']
 else:
     additional_args = []
