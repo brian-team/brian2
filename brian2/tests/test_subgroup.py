@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from brian2.core.network import schedule_propagation_offset
 
 import pytest
-from numpy.testing.utils import assert_equal, assert_array_equal
+from numpy.testing import assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.utils.logger import catch_logs

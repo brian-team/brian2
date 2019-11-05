@@ -6,7 +6,7 @@ import uuid
 import numpy as np
 import pytest
 import sympy
-from numpy.testing.utils import assert_equal
+from numpy.testing import assert_equal
 
 from brian2.core.clocks import defaultclock
 from brian2.core.magic import run

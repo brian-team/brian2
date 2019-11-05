@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os
 
 import pytest
-from numpy.testing.utils import assert_equal
+from numpy.testing import assert_equal
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete, set_device, reset_device

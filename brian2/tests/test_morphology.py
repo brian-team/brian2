@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import pytest
-from numpy.testing.utils import assert_equal
+from numpy.testing import assert_equal
 import tempfile
 import os
 

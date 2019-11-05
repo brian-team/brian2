@@ -7,7 +7,7 @@ import os
 import tempfile
 
 import pytest
-from numpy.testing.utils import assert_equal, assert_array_equal
+from numpy.testing import assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset

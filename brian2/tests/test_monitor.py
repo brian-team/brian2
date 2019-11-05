@@ -3,7 +3,7 @@ import uuid
 import tempfile
 import logging
 
-from numpy.testing.utils import assert_array_equal
+from numpy.testing import assert_array_equal
 import pytest
 
 from brian2 import *

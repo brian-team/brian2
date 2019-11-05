@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import os
 import itertools
 
-from numpy.testing.utils import assert_equal
+from numpy.testing import assert_equal
 import pytest
 
 from brian2 import *

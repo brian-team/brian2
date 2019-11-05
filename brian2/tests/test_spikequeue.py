@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import numpy as np
-from numpy.testing.utils import assert_equal
+from numpy.testing import assert_equal
 import pytest
 
 from brian2.synapses.spikequeue import SpikeQueue

@@ -5,7 +5,7 @@ import uuid
 import logging
 
 import pytest
-from numpy.testing.utils import assert_equal, assert_array_equal
+from numpy.testing import assert_equal, assert_array_equal
 import sympy
 
 from brian2 import *

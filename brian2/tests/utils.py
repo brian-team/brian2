@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import numpy as np
-from numpy.testing.utils import assert_allclose as numpy_allclose
+from numpy.testing import assert_allclose as numpy_allclose
 
 from brian2 import prefs
 from brian2.units.fundamentalunits import have_same_dimensions

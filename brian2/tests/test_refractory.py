@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from collections import Counter
 
 import pytest
-from numpy.testing.utils import assert_equal
+from numpy.testing import assert_equal
 
 from brian2.core.functions import timestep
 from brian2.utils.logger import catch_logs
