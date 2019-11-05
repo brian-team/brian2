@@ -2,6 +2,7 @@
 # following the example at http://nedbatchelder.com/code/coverage/config.html
 [run]
 branch = True
+source = brian2
 omit =
     */brian2/tests/*
     */brian2/sphinxext/*

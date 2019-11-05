@@ -49,15 +49,6 @@ if dtype_32_bit:
 else:
     float_dtype = None
 
-if report_coverage:
-    additional_args = ['--cov-config={}'.format(os.path.join(src_dir,
-                                                             '.coveragerc')),
-                       '--cov-append',
-                       '--cov=brian2',
-                       '--cov-report=']
-else:
-    additional_args = []
-
 if standalone:
     result = brian2.test([],
                          test_codegen_independent=False,
@@ -65,16 +56,14 @@ if standalone:
                          test_openmp=openmp,
                          test_in_parallel=in_parallel,
                          reset_preferences=reset_preferences,
-                         float_dtype=float_dtype,
-                         additional_args=additional_args)
+                         float_dtype=float_dtype)
 else:
     result = brian2.test(targets,
                          test_codegen_independent=independent,
                          test_standalone=None,
                          test_in_parallel=in_parallel,
                          reset_preferences=reset_preferences,
-                         float_dtype=float_dtype,
-                         additional_args=additional_args)
+                         float_dtype=float_dtype)
 
 if not result:
     sys.exit(1)
