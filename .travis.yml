@@ -178,3 +178,5 @@ after_success:
 
 notifications:
   email: false
+  # Tell coveralls that the coverage results should be merged now
+  webhooks: https://coveralls.io/webhook
