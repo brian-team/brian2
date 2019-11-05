@@ -167,7 +167,7 @@ after_success:
     cd ~;
     cp .coverage $SRCDIR;
     cd $SRCDIR;
-    coveralls;
+    COVERALLS_PARALLEL=true coveralls --rcfile=$SRCDIR/.coveragerc;
   fi
 # Create binary packages for pypi and upload them to AWS
 - if [[ $DO_CONDA_BUILD == 'yes' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_REPO_SLUG == 'brian-team/brian2' && $TRAVIS_BRANCH == 'master' ]]; then
