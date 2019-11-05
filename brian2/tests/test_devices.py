@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 import numpy as np
+from numpy.testing import assert_equal
 import pytest
 
+from brian2.groups.neurongroup import NeuronGroup
+from brian2.core.magic import run
+from brian2.units import ms
 from brian2.devices.device import (Device, all_devices, set_device, get_device,
-                                   reset_device, runtime_device)
+                                   reset_device, runtime_device, RuntimeDevice)
 
 class ATestDevice(Device):
     def activate(self, build_on_run, **kwargs):
@@ -75,6 +79,29 @@ def test_set_reset_device_explicit():
     del all_devices['test3']
     reset_device(original_device)
 
+
+@pytest.mark.skipif(not isinstance(get_device(), RuntimeDevice),
+                    reason='Getting/setting random number state only supported '
+                           'for runtime device.')
+def test_get_set_random_generator_state():
+    group = NeuronGroup(10, 'dv/dt = -v/(10*ms) + (10*ms)**-0.5*xi : 1',
+                        method='euler')
+    group.v = 'rand()'
+    run(10*ms)
+    assert np.var(group.v) > 0  # very basic test for randomness ;)
+    old_v = np.array(group.v)
+    random_state = get_device().get_random_state()
+    group.v = 'rand()'
+    run(10 * ms)
+    assert np.var(group.v - old_v) > 0  # just checking for *some* difference
+    old_v = np.array(group.v)
+    get_device().set_random_state(random_state)
+    group.v = 'rand()'
+    run(10 * ms)
+    assert_equal(group.v, old_v)
+
+
 if __name__ == '__main__':
     test_set_reset_device_implicit()
     test_set_reset_device_explicit()
+    test_get_set_random_generator_state()
