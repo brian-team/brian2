@@ -361,17 +361,17 @@ def test_changing_profile_arg():
     op2.active = True
     op3.active = False
     op4.active = False
-    run(100*defaultclock.dt, profile=True)
+    run(1000*defaultclock.dt, profile=True)
     op1.active = True
     op2.active = True
     op3.active = True
     op4.active = True
-    run(100*defaultclock.dt, profile=False)
+    run(1000*defaultclock.dt, profile=False)
     op1.active = False
     op2.active = True
     op3.active = True
     op4.active = False
-    run(100*defaultclock.dt, profile=True)
+    run(1000*defaultclock.dt, profile=True)
     device.build(directory=None, with_output=False)
     profiling_dict = dict(magic_network.profiling_info)
     # Note that for now, C++ standalone creates a new CodeObject for every run,
