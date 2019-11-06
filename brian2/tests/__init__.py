@@ -49,6 +49,16 @@ class PreferencePlugin(object):
     def pytest_configure(self, config):
         config.brian_prefs = dict(self._prefs)
         config.fail_for_not_implemented = self.fail_for_not_implemented
+        if config.pluginmanager.hasplugin("xdist"):
+            xdist_plugin = XDistPreferencePlugin(self._prefs,
+                                                 self.fail_for_not_implemented)
+            config.pluginmanager.register(xdist_plugin)
+
+
+class XDistPreferencePlugin(object):
+    def __init__(self, prefs, fail_for_not_implemented=True):
+        self._prefs = prefs
+        self.fail_for_not_implemented = fail_for_not_implemented
 
     def pytest_configure_node(self, node):
         """xdist hook"""
@@ -89,7 +99,6 @@ def make_argv(dirnames, markers=None, doctests=False):
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
             '--doctest-modules',
-            '-x',
             '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
             '--pyargs', 'brian2'
         ]
@@ -98,7 +107,6 @@ def make_argv(dirnames, markers=None, doctests=False):
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
             '-m', '{}'.format(markers),
-            '-x',
             '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             ]
     return argv
