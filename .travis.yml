@@ -81,6 +81,11 @@ matrix:
       env: PYTHON="2.7" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
       os: linux
 
+jobs:
+  allow_failures:
+    - python: "2.7"
+      os: osx
+
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
 # https://gist.github.com/dan-blanchard/7045057
