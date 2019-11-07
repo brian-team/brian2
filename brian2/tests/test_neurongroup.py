@@ -2,10 +2,10 @@
 
 
 import uuid
-
+import sys
+import sympy
 import numpy as np
 import pytest
-import sympy
 from numpy.testing import assert_equal
 
 from brian2.core.clocks import defaultclock
@@ -23,8 +23,9 @@ from brian2.tests.utils import assert_allclose
 from brian2.units.allunits import second, volt
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
-from brian2.units.stdunits import ms, mV, Hz
 from brian2.units.unitsafefunctions import linspace
+from brian2.units.allunits import second, volt, umetre, siemens, ufarad
+from brian2.units.stdunits import ms, mV, Hz, cm
 from brian2.utils.logger import catch_logs
 
 
@@ -1716,6 +1717,36 @@ def test_semantics_mod():
     assert_allclose(G.x[:], float_values % 3)
     assert_allclose(G.y[:], float_values % 3)
 
+def test_resting_value():
+    """
+    Test the resting state values of the system
+    """
+    # simple model with single dependent variable, here it is not necessary 
+    # to run the model as the resting value is certain
+    epsilon = sys.float_info.epsilon
+    El = - 100
+    tau = 1 * ms
+    eqs = ''' 
+    dv/dt = (El - v)/tau : 1
+    '''
+    grp = NeuronGroup(1, eqs, method = 'exact')
+    resting_state = grp.resting_state()
+    assert abs(resting_state['v'] - El) < epsilon * max(abs(resting_state['v']), abs(El))
+    
+    # one more example
+    area = 100 * umetre ** 2
+    g_L = 1e-2 * siemens * cm ** -2 * area
+    E_L = 1000
+    Cm = 1 * ufarad * cm ** -2 * area
+    grp = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
+                       I_leak = g_L*(E_L - v) : amp''')
+    resting_state = grp.resting_state({'v': float(10000)})
+    assert abs(resting_state['v'] - E_L) < epsilon * max(abs(resting_state['v']), abs(E_L))
+    
+    # check unsupported models are identified
+    tau = 10 * ms
+    grp = NeuronGroup(1, 'dv/dt = -v/tau : volt', threshold='v > -50*mV', reset='v = -70*mV')  
+    assert_raises(NotImplementedError, lambda: grp.resting_state())
 
 if __name__ == '__main__':
     test_set_states()
@@ -1792,3 +1823,4 @@ if __name__ == '__main__':
     test_semantics_floor_division()
     test_semantics_floating_point_division()
     test_semantics_mod()
+    test_resting_value()
