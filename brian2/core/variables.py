@@ -283,7 +283,8 @@ class Variable(CacheKey):
                        ' read_only={read_only})>')
         return description.format(classname=self.__class__.__name__,
                                   dimensions=repr(self.dim),
-                                  dtype=repr(self.dtype),
+                                  dtype=getattr(self.dtype, '__name__',
+                                                repr(self.dtype)),
                                   scalar=repr(self.scalar),
                                   constant=repr(self.constant),
                                   read_only=repr(self.read_only))
