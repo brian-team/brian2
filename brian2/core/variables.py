@@ -819,7 +819,7 @@ class VariableView(object):
             else:
                 values = self.get_with_index_array(item)
 
-        if self.dim is DIMENSIONLESS:
+        if self.dim is DIMENSIONLESS or self.dim is None:
             return values
         else:
             return Quantity(values, self.dim)
