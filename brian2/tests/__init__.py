@@ -288,8 +288,23 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             print('Running doctests')
             # Some doctests do actually use code generation, use numpy for that
             prefs['codegen.target'] = 'numpy'
-            sphinx_doc_dir = '/home/marcel/programming/brian2/docs_sphinx'
-            argv = make_argv(dirnames + [sphinx_doc_dir], doctests=True)
+            sphinx_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                      '..', '..', 'docs_sphinx'))
+            if os.path.exists(sphinx_dir):
+                sphinx_doc_dir = [sphinx_dir]
+            else:
+                # When running on travis, the source directory is in the SRCDIR
+                # environment variable
+                if 'SRCDIR' in os.environ:
+                    sphinx_dir = os.path.abspath(os.path.join(os.environ['SRCDIR'],
+                                                          'docs_sphinx'))
+                    if os.path.exists(sphinx_dir):
+                        sphinx_doc_dir = [sphinx_dir]
+                    else:
+                        sphinx_doc_dir = []
+                else:
+                    sphinx_doc_dir = []
+            argv = make_argv(dirnames + sphinx_doc_dir, doctests=True)
             # if 'codegen_independent' in test_in_parallel:
             #     argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
