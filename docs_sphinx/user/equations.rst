@@ -249,8 +249,8 @@ Examples of `Equation` objects
     ...                                    freq : Hz''')
     >>> eqs2 = membrane_eqs + Equations('''I : volt''')
     >>> print(eqs1)
-    dv/dt = -(v + I)/ tau : V
     I = sin(2*pi*freq*t) : V
+    dv/dt = -(v + I)/ tau : V
     freq : Hz
     >>> print(eqs2)
     dv/dt = -(v + I)/ tau : V

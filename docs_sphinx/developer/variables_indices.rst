@@ -19,14 +19,14 @@ content for a simple example::
     >>> tau = 10*ms
     >>> G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
     >>> for name, var in sorted(G.variables.items()):
-    ...     print('%r : %s' % (name, var))
+    ...     print('%s : %s' % (name, var))
     ...
-    'N' : <Constant(dimensions=Dimension(),  dtype=<class 'numpy.int64'>, scalar=True, constant=True, read_only=True)>
-    'dt' : <ArrayVariable(dimensions=second,  dtype=<class 'float'>, scalar=True, constant=True, read_only=True)>
-    'i' : <ArrayVariable(dimensions=Dimension(),  dtype=<class 'numpy.int32'>, scalar=False, constant=True, read_only=True)>
-    't' : <ArrayVariable(dimensions=second,  dtype=<class 'numpy.float64'>, scalar=True, constant=False, read_only=True)>
-    't_in_timesteps' : <ArrayVariable(dimensions=Dimension(),  dtype=<class 'numpy.int64'>, scalar=True, constant=False, read_only=True)>
-    'v' : <ArrayVariable(dimensions=metre ** 2 * kilogram * second ** -3 * amp ** -1,  dtype=<class 'numpy.float64'>, scalar=False, constant=False, read_only=False)>
+    N : <Constant(dimensions=Dimension(),  dtype=int64, scalar=True, constant=True, read_only=True)>
+    dt : <ArrayVariable(dimensions=second,  dtype=float, scalar=True, constant=True, read_only=True)>
+    i : <ArrayVariable(dimensions=Dimension(),  dtype=int32, scalar=False, constant=True, read_only=True)>
+    t : <ArrayVariable(dimensions=second,  dtype=float64, scalar=True, constant=False, read_only=True)>
+    t_in_timesteps : <ArrayVariable(dimensions=Dimension(),  dtype=int64, scalar=True, constant=False, read_only=True)>
+    v : <ArrayVariable(dimensions=metre ** 2 * kilogram * second ** -3 * amp ** -1,  dtype=float64, scalar=False, constant=False, read_only=False)>
 
 The state variable ``v`` we specified for the `NeuronGroup` is represented as an
 `ArrayVariable`, all the other variables were added automatically. There's another array ``i``, the
