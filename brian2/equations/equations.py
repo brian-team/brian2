@@ -827,7 +827,8 @@ class Equations(collections.Hashable, Mapping):
 
     # Lists of equations or (variable, expression tuples)
     ordered = property(lambda self: sorted(self._equations.values(),
-                                           key=lambda key: key.update_order),
+                                           key=lambda key: (key.update_order,
+                                                            key.varname)),
                                            doc='A list of all equations, sorted '
                                            'according to the order in which they should '
                                            'be updated')
