@@ -188,7 +188,7 @@ class SchedulingSummary(object):
                              [['{} ({})'.format(entry.name, entry.type),
                                '{} ({})'.format(entry.owner_name, entry.owner_type)
                                if entry.owner_name is not None else '--',
-                               '{} (every {})'.format(entry.dt,
+                               '{} (every {})'.format(str(entry.dt),
                                                      'step' if self.steps[float(entry.dt)] == 1
                                                      else '{} steps'.format(self.steps[float(entry.dt)])),
                                entry.when,
@@ -209,7 +209,7 @@ class SchedulingSummary(object):
         '''.format('<b>{}</b> (<em>{}</em>)'.format(entry.name, entry.type),
                    '{} (<em>{}</em>)'.format(entry.owner_name, entry.owner_type)
                    if entry.owner_name is not None else '&ndash;',
-                   '{} (every {})'.format(entry.dt,
+                   '{} (every {})'.format(str(entry.dt),
                                           'step' if self.steps[float(entry.dt)] == 1
                                           else '{} steps'.format(self.steps[float(entry.dt)])),
                    entry.when,
