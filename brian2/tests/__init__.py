@@ -99,9 +99,13 @@ def make_argv(dirnames, markers=None, doctests=False):
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
             '--doctest-modules',
+            '--doctest-glob=*.rst',
             '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
             '--pyargs', 'brian2'
         ]
+        if len(dirnames) == 2:
+            # If we are testing files in docs_sphinx, ignore conf.py
+            argv += ['--ignore=' + os.path.join(dirnames[1], 'conf.py')]
     else:
         argv = dirnames + [
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
@@ -284,9 +288,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             print('Running doctests')
             # Some doctests do actually use code generation, use numpy for that
             prefs['codegen.target'] = 'numpy'
-            argv = make_argv(dirnames, doctests=True)
-            if 'codegen_independent' in test_in_parallel:
-                argv.extend(multiprocess_arguments)
+            sphinx_doc_dir = '/home/marcel/programming/brian2/docs_sphinx'
+            argv = make_argv(dirnames + [sphinx_doc_dir], doctests=True)
+            # if 'codegen_independent' in test_in_parallel:
+            #     argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
                                        plugins=[pref_plugin]) == 0)
 
