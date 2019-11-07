@@ -305,8 +305,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 else:
                     sphinx_doc_dir = []
             argv = make_argv(dirnames + sphinx_doc_dir, doctests=True)
-            # if 'codegen_independent' in test_in_parallel:
-            #     argv.extend(multiprocess_arguments)
+            if 'codegen_independent' in test_in_parallel:
+                argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
                                        plugins=[pref_plugin]) == 0)
 
