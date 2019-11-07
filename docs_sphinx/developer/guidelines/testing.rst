@@ -11,16 +11,16 @@ different code generation targets, and correctly set up tests for standalone mod
 recommended to use Brian's builtin test function that calls pytest appropriately::
 
 	>>> import brian2
-	>>> brian2.test() 
+	>>> brian2.test()  # doctest: +SKIP
 
 By default, this runs the test suite for all available (runtime) code generation
 targets. If you only want to test a specific target, provide it as an argument::
 
-    >>> brian2.test('numpy')
+    >>> brian2.test('numpy')  # doctest: +SKIP
 
 If you want to test several targets, use a list of targets::
 
-    >>> brian2.test(['weave', 'cython'])
+    >>> brian2.test(['weave', 'cython'])  # doctest: +SKIP
 
 
 In addition to the tests specific to a code generation target, the test suite
@@ -35,7 +35,7 @@ argument to the name of a standalone device. If you provide an empty argument
 for the runtime code generation targets, you will only run the standalone
 tests::
 
-    >>> brian2.test([], test_standalone='cpp_standalone')
+    >>> brian2.test([], test_standalone='cpp_standalone')  # doctest: +SKIP
 
 
 Checking the code coverage
@@ -223,8 +223,9 @@ Doctests are executable documentation. In the ``Examples`` block of a class or
 function documentation, simply write code copied from an interactive Python
 session (to do this from ipython, use ``%doctestmode``), e.g.::
 
+    >>> from brian2.utils.stringtools import word_substitute
     >>> expr = 'a*_b+c5+8+f(A)'
-    >>> print word_substitute(expr, {'a':'banana', 'f':'func'})
+    >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
 
 During testing, the actual output will be compared to the expected output and

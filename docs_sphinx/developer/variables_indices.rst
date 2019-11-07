@@ -18,22 +18,18 @@ content for a simple example::
 
     >>> tau = 10*ms
     >>> G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
-    >>> for name, var in G.variables.items():
+    >>> for name, var in sorted(G.variables.items()):
     ...     print('%r : %s' % (name, var))
     ...
-   '_spikespace' : <ArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=False, read_only=False)>
-    'i' : <ArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=True, read_only=True)>
-    'N' : <Constant(unit=Unit(1),  dtype=<type 'numpy.int64'>, scalar=True, constant=True, read_only=True)>
-    't' : <ArrayVariable(unit=second,  dtype=<type 'numpy.float64'>, scalar=True, constant=False, read_only=True)>
-    'v' : <ArrayVariable(unit=volt,  dtype=<type 'numpy.float64'>, scalar=False, constant=False, read_only=False)>
-    'dt' : <ArrayVariable(unit=second,  dtype=<type 'float'>, scalar=True, constant=True, read_only=True)>
+    'N' : <Constant(dimensions=Dimension(),  dtype=<class 'numpy.int64'>, scalar=True, constant=True, read_only=True)>
+    'dt' : <ArrayVariable(dimensions=second,  dtype=<class 'float'>, scalar=True, constant=True, read_only=True)>
+    'i' : <ArrayVariable(dimensions=Dimension(),  dtype=<class 'numpy.int32'>, scalar=False, constant=True, read_only=True)>
+    't' : <ArrayVariable(dimensions=second,  dtype=<class 'numpy.float64'>, scalar=True, constant=False, read_only=True)>
+    't_in_timesteps' : <ArrayVariable(dimensions=Dimension(),  dtype=<class 'numpy.int64'>, scalar=True, constant=False, read_only=True)>
+    'v' : <ArrayVariable(dimensions=metre ** 2 * kilogram * second ** -3 * amp ** -1,  dtype=<class 'numpy.float64'>, scalar=False, constant=False, read_only=False)>
 
 The state variable ``v`` we specified for the `NeuronGroup` is represented as an
-`ArrayVariable`, all the other variables were added automatically. By
-convention, internal names for variables that should not be directly accessed by
-the user start with an underscore, in the above example the only variable
-of this kind is ``'_spikespace'``, the internal datastructure used to store the
-spikes that occured in the current time step. There's another array ``i``, the
+`ArrayVariable`, all the other variables were added automatically. There's another array ``i``, the
 neuronal indices (simply an array of integers from 0 to 9), that is used for
 string expressions involving neuronal indices. The constant ``N`` represents
 the total number of neurons. At the first sight it might be surprising that
@@ -48,18 +44,14 @@ The information stored in the `Variable` objects is used to do various checks
 on the level of the abstract code, i.e. before any programming language code is
 generated. Here are some examples of errors that are caught this way::
 
-    >>> G.v = 3*ms  # G.variables['v'].unit is volt   # doctest: +ELLIPSIS
+    >>> G.v = 3*ms  # G.variables['v'].unit is volt   # doctest: +ELLIPSIS  +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: v should be set with a value with units volt, but got 3. ms (unit is second).
-    >>> G.N = 5  # G.variables['N'] is read-only
+    >>> G.N = 5  # G.variables['N'] is read-only  # doctest: +ELLIPSIS +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     TypeError: Variable N is read-only
-    >>> G2 = NeuronGroup(10, 'dv/dt = -v / tau : volt', threshold='v')  #G2.variables['v'].is_bool is False
-    Traceback (most recent call last):
-    ...
-    TypeError: Threshold condition "v" is not a boolean expression
 
 Creating variables
 ------------------
@@ -81,30 +73,31 @@ References
 For each variable, only one `Variable` object exists even if it is used in
 different contexts. Let's consider the following example::
 
-    G = NeuronGroup(5, 'dv/dt = -v / tau : volt')
-    subG = G[2:]
-    S = Synapses(G, G, on_pre='v+=1*mV')
-    S.connect()
+    >>> G = NeuronGroup(5, 'dv/dt = -v / tau : volt', threshold='v > 1', reset='v = 0',
+    ...                 name='neurons')
+    >>> subG = G[2:]
+    >>> S = Synapses(G, G, on_pre='v+=1*mV', name='synapses')
+    >>> S.connect()
 
 All allow an access to the state variable `v` (note the different shapes, these
 arise from the different indices used, see below)::
 
     >>> G.v
-    <neurongroup.v: array([ 0.,  0.,  0.,  0.,  0.]) * volt>
+    <neurons.v: array([ 0.,  0.,  0.,  0.,  0.]) * volt>
     >>> subG.v
-    <neurongroup_subgroup.v: array([ 0.,  0.,  0.]) * volt>
+    <neurons_subgroup.v: array([ 0.,  0.,  0.]) * volt>
     >>> S.v
     <synapses.v: array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-        0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]) * volt>
+            0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.]) * volt>
 
 In all of these cases, the `Variables` object stores references to the same
 `ArrayVariable` object::
 
-    >>> id(G.variables['v'])
+    >>> id(G.variables['v'])  # doctest: +SKIP
     108610960
-    >>> id(subG.variables['v'])
+    >>> id(subG.variables['v'])  # doctest: +SKIP
     108610960
-    >>> id(S.variables['v'])
+    >>> id(S.variables['v'])  # doctest: +SKIP
     108610960
 
 Such a reference can be added using `Variables.add_reference`, note that the
@@ -118,8 +111,8 @@ In subgroups and especially in synapses, the transformation of abstract code
 into executable code is not straightforward because it can involve variables
 from different contexts. Here is a simple example::
 
-    G = NeuronGroup(5, 'dv/dt = -v / tau : volt')
-    S = Synapses(G, G, 'w : volt', on_pre='v+=w')
+    >>> G = NeuronGroup(5, 'dv/dt = -v / tau : volt', threshold='v > 1', reset='v = 0')
+    >>> S = Synapses(G, G, 'w : volt', on_pre='v+=w')
 
 The seemingly trivial operation ``v+=w`` involves the variable ``v`` of the
 `NeuronGroup` and the variable ``w`` of the `Synapses` object which have to be
@@ -135,8 +128,8 @@ The index ``_idx`` has a special meaning and always refers to the "natural"
 index for a group (e.g. all neurons for a `NeuronGroup`, all synapses for a
 `Synapses` object, etc.). All other indices have to refer to existing arrays::
 
-    >>> S.variables['_postsynaptic_idx']
-    <DynamicArrayVariable(unit=Unit(1),  dtype=<type 'numpy.int32'>, scalar=False, constant=False, is_bool=False, read_only=False)>
+    >>> S.variables['_postsynaptic_idx']  # doctest: +SKIP
+    <DynamicArrayVariable(dimensions=Dimension(),  dtype=<class 'numpy.int32'>, scalar=False, constant=True, read_only=True)>
 
 In this case, ``_postsynaptic_idx`` refers to a dynamic array that stores the
 postsynaptic targets for each synapse (since it is an array itself, it also has

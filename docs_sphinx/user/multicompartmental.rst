@@ -122,7 +122,7 @@ create trees::
 The above instructions create a dendritic tree with two main sections, three sections attached to the first section and
 two to the second. This can be verified with the `Morphology.topology` method::
 
-    >>> morpho.topology()
+    morpho.topology()
     ( )  [root]
        `---|  .L
             `---|  .L.1
