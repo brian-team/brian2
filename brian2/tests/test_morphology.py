@@ -702,6 +702,114 @@ def test_tree_soma_from_swc_3_point_soma():
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
 
 
+def _check_condensation(morphology, compartment_map, coordinates=False, use_cylinders=True):
+
+    # check condensed morphology
+    # number of compartments per section
+    assert morphology.n == 1
+    assert morphology['1'].n == 4
+    assert morphology['2'].n == 2
+
+    # number of compartments per subtree
+    assert morphology.total_compartments == 7
+    assert morphology['1'].total_compartments == 4
+    assert morphology['2'].total_compartments == 2
+
+    # number of sections per subtree
+    assert morphology.total_sections == 3
+    assert morphology['1'].total_sections == 1
+    assert morphology['2'].total_sections == 1
+
+    assert_allclose(morphology.diameter, [30]*um)
+
+    # Check that distances (= distance to root at midpoint)
+    # correctly follow the tree structure
+    # Note that the soma does add nothing to the distance
+    assert_equal(morphology.distance, 0 * um)
+    assert_allclose(morphology['1'].distance, [20, 50, 70, 90]*um)
+    assert_allclose(morphology['2'].distance, [10, 35]*um)
+    assert_allclose(morphology.end_distance, 0 * um)
+    assert_allclose(morphology['1'].end_distance, 100 * um)
+    assert_allclose(morphology['2'].end_distance, 50 * um)
+
+    assert_allclose(morphology.diameter, 30*um)
+    assert_allclose(morphology['1'].start_diameter, [8, 6, 4, 2]*um)
+    assert_allclose(morphology['1'].diameter, [7, 5, 3, 1]*um)
+    assert_allclose(morphology['1'].end_diameter,   [6, 4, 2, 0]*um)
+    assert_allclose(morphology['2'].start_diameter, np.ones(2) * 4*um)
+    assert_allclose(morphology['2'].diameter, np.ones(2) * 4*um)
+    assert_allclose(morphology['2'].end_diameter, np.ones(2) * 4*um)
+
+    # Check additional parameters that change during condensation
+    assert_allclose(morphology['1'].length, [40, 20, 20, 20]*um)
+    assert_allclose(morphology['2'].length, [20, 30]*um)
+    assert_allclose(morphology['1'].area, [943.02723161, 314.55171931, 188.73103159,  62.91034386]*um**2)
+    assert_allclose(morphology['2'].area, [251.32741229, 376.99111843]*um**2)
+    assert_allclose(morphology['1'].volume, [1780.23583703,  397.93506945,  146.60765717,   20.94395102]*um**3)
+    assert_allclose(morphology['2'].volume, [251.32741229, 376.99111843]*um**3)
+    assert_allclose(morphology['1'].r_length_1, [2.34645164, 2.35619449, 0.9424778 , 0.15707963]*um)
+    assert_allclose(morphology['2'].r_length_1, [1.25663706, 0.62831853]*um)
+    assert_allclose(morphology['1'].r_length_2, [1.99112587, 1.57079633, 0.4712389, 0.]*um)
+    assert_allclose(morphology['2'].r_length_2, [1.25663706, 1.25663706]*um)
+
+    # Check compartment mapping
+    assert_equal(compartment_map, np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 1, 2, 3, 4, 5, 5, 6, 6, 6]]))
+
+    if coordinates:
+        # Coordinates should be absolute
+        # section: soma
+        assert_allclose(morphology.start_x, 100*um)
+        assert_allclose(morphology.x, 100*um)
+        assert_allclose(morphology.end_x, 100*um)
+        assert_allclose(morphology.y, 0*um)
+        assert_allclose(morphology.z, 0*um)
+        # section: cable['1']
+        step = 20 / np.sqrt(2) * um
+        assert_allclose(morphology['1'].start_x, 100 * um + [0, 2, 3, 4] * step)
+        assert_allclose(morphology['1'].x, 100 * um + [0.5, 2, 3, 4] * step + step/2)
+        assert_allclose(morphology['1'].end_x, 100 * um + [1, 2, 3, 4] * step + step)
+        assert_allclose(morphology['1'].start_y, [0, 2, 3, 4] * step)
+        assert_allclose(morphology['1'].y, [0.5, 2, 3, 4] * step + step/2)
+        assert_allclose(morphology['1'].end_y, [1, 2, 3, 4] * step + step)
+        assert_allclose(morphology['1'].z, np.zeros(4) * um)
+        # section: cable['2']
+        step = 10 / np.sqrt(2) * um
+        assert_allclose(morphology['2'].start_x, 100 * um + [0, 2] * step)
+        if use_cylinders:
+            assert_allclose(morphology['2'].x, 100 * um + [0.5, 3] * step + step / 2)
+        assert_allclose(morphology['2'].end_x, 100 * um + [1, 4] * step + step)
+        assert_allclose(morphology['2'].start_y, -([0, 2] * step))
+        if use_cylinders:
+            assert_allclose(morphology['2'].y, -([0.5, 3] * step + step / 2))
+        assert_allclose(morphology['2'].end_y, -([1, 4] * step + step))
+        if use_cylinders:
+            assert_allclose(morphology['2'].z, np.zeros(2) * um)
+
+
+@attr('codegen-independent')
+def test_condensation_schematic():
+    soma = Soma(diameter=30*um)
+    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
+                     length=np.ones(5)*20*um)  # tapering truncated cones
+    soma.R = Cylinder(n=5, diameter=4*um, length=50*um)
+    compartment_map = soma.condense(0.007)
+
+    _check_condensation(soma, compartment_map)
+
+
+@attr('codegen-independent')
+def test_condensation_coordinates():
+    soma = Soma(diameter=30*um, x=100*um)
+    soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
+                     x=np.linspace(0, 100, 6)/np.sqrt(2)*um,
+                     y=np.linspace(0, 100, 6)/np.sqrt(2)*um)  # tapering truncated cones
+    soma.R = Cylinder(n=5, diameter=4*um,
+                      x=[0, 50]*um/np.sqrt(2), y=[0, -50]*um/np.sqrt(2))
+    compartment_map = soma.condense(0.007)
+
+    _check_condensation(soma, compartment_map, coordinates=True)
+
+
 @attr('codegen-independent')
 def test_construction_incorrect_arguments():
     ### Morphology
@@ -1312,6 +1420,8 @@ if __name__ == '__main__':
     test_tree_soma_from_points_3_point_soma_incorrect()
     test_tree_soma_from_swc()
     test_tree_soma_from_swc_3_point_soma()
+    test_condensation_schematic()
+    test_condensation_coordinates()
     test_construction_incorrect_arguments()
     test_from_points_minimal()
     test_from_points_incorrect()

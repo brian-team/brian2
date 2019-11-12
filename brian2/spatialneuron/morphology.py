@@ -1092,6 +1092,50 @@ class Morphology(object):
             Morphology._replace_three_point_soma(child,
                                                  all_compartments)
 
+    def index_structure(self):
+        index_list = [self.indices[:]]
+        for c in self.children:
+            index_list += c.index_structure()
+        return index_list
+
+    def condense(self, lam=0.1):
+        '''
+        Condense the morphology section by section, controlled by parameter lam. The
+        recursive condensation process is taken care of by the function
+        `Section.condense_section`.
+
+        Once the condensation is done a map between old and new compartment indices
+        is assembled that can be used to set variables of a spatial neuron compartment-
+        wise without knowing the new indices.
+
+        Parameters
+        ----------
+        lam : float
+            Parameter defining the degree of condensation. Small lam leaves
+            more compartments, larger lam results in stronger condensation.
+
+        Returns
+        -------
+        global_index_map : numpy.array
+            A 2 x self.n array containing the indices of all original compartments
+            (0 to n) and the ones of the corresponding new compartments.
+        '''
+        original_compartment_indices = self.index_structure()
+
+        if type(self) == Soma:
+            local_index_maps = [np.array([[0], [0]])]
+            for c in self._children:
+                local_index_maps += c.condense_section(lam)
+        else:
+            local_index_maps = self.condense_section(lam)
+        new_compartment_indices = self.index_structure()
+        global_index_map = np.empty([2, 0])
+        for s in range(self.total_sections):
+            section_index_map = np.vstack((original_compartment_indices[s],
+                                           new_compartment_indices[s][local_index_maps[s][1, :]]))
+            global_index_map = np.concatenate((global_index_map, section_index_map),axis=1)
+        return global_index_map.astype(int)
+
     @staticmethod
     def from_points(points, spherical_soma=True):
         '''
@@ -1808,6 +1852,14 @@ class Section(Morphology):
                              (self.end_z - self.start_z) ** 2)
             self._length = length
 
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
+        d_mid = 0.5 * (d_1 + d_2)
+        self._area = np.pi / 2 * (d_1 + d_2) * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length ** 2)
+        self._volume = np.pi * self._length * (d_1 ** 2 + d_1 * d_2 + d_2 ** 2) / 12
+        self._r_length_1 = np.pi / 2 * (d_1 * d_mid) / self._length
+        self._r_length_2 = np.pi / 2 * (d_mid * d_2) / self._length
+
     def __repr__(self):
         if all(np.abs(self.end_diameter - self.end_diameter[0]) < self.end_diameter[0]*1e-12):
             # Constant diameter
@@ -1839,6 +1891,75 @@ class Section(Morphology):
         return Section(diameter=self._diameter, n=self.n, x=x, y=y, z=z,
                        length=length, type=self.type)
 
+    def condense_section(self, lam):
+        '''
+        Function to recursively condense compartments section by section.
+        It Condenses compartments in the current section and continues with
+        all child sections.
+
+        Parameters
+        ----------
+        lam : float
+            Parameter defining the degree of condensation. Small lam leaves
+            more compartments, larger lam results in stronger condensation.
+        Returns
+        -------
+        index_maps : list
+            List that maps original local compartment indices (0, 1, ...)
+            to the new condensed compartments. It is used in the function
+            `condense` to assemble a global map of compartment indices.
+        '''
+        section_index_map = np.tile(np.arange(self.n), (2, 1))
+        for lamcrit in np.array([0.2, 0.4, 0.6, 0.8, 1.0]) * lam:
+            run_condensation = True
+            k = 0
+            while run_condensation:
+                k += 1
+                n = self.n
+                if n == 1:
+                    break
+                for i in range(n - 1):
+                    if (np.sqrt(self._area[i] / (self._r_length_2[i] + self._r_length_1[i + 1]) / meter) < lamcrit) \
+                            or (np.sqrt(self._area[i + 1] / (self._r_length_2[i] + self._r_length_1[i + 1]) / meter) < lamcrit):
+                        self.condensation_update(i)
+                        section_index_map[1, section_index_map[1, :] > i] -= 1
+                        break
+                if n == self.n:
+                    run_condensation = False
+        index_maps = [section_index_map]
+        for c in self._children:
+            index_maps += c.condense_section(lam)
+        return index_maps
+
+    def condensation_update(self, i):
+        '''
+        Condense two compartments by merging compartment i and i+1 and
+        calculate parameters of the new compartment.
+
+        Parameters
+        ----------
+        i : int
+            Index of the compartment within the section
+        '''
+        new_r_length_1 = 1 / (1 / self._r_length_1[i] + (1 / self._r_length_2[i] + 1 / self._r_length_1[i + 1])
+                              * self._area[i] / (self._area[i] + self._area[i + 1]))
+        new_r_length_2 = 1 / (1 / self._r_length_2[i + 1] + (1 / self._r_length_2[i] + 1 / self._r_length_1[i + 1])
+                              * self._area[i + 1] / (self._area[i] + self._area[i + 1]))
+        self._area = np.concatenate(
+            (self._area[:i], [self._area[i] + self._area[i + 1]], self._area[i + 2:])) * meter ** 2
+        self._volume = np.concatenate(
+            (self._volume[:i], [self._volume[i] + self._volume[i + 1]], self._volume[i + 2:])) * meter ** 3
+        self._r_length_1 = np.concatenate((self._r_length_1[:i], [new_r_length_1], self._r_length_1[i + 2:])) * meter
+        self._r_length_2 = np.concatenate((self._r_length_2[:i], [new_r_length_2], self._r_length_2[i + 2:])) * meter
+        if self._x is not None:
+            self._x = np.delete(self._x, i + 1)
+            self._y = np.delete(self._y, i + 1)
+            self._z = np.delete(self._z, i + 1)
+        self._diameter = np.delete(self._diameter, i + 1) * meter
+        self._length = np.concatenate((self._length[:i], [self._length[i] + self._length[i + 1]],
+                                       self._length[i + 2:])) * meter
+        self._n = self._n - 1
+
     @property
     def area(self):
         r'''
@@ -1850,9 +1971,10 @@ class Section(Morphology):
         respectively. Note that this surface area does not contain the area of
         the two disks at the two sides of the truncated cone.
         '''
-        d_1 = self.start_diameter
-        d_2 = self.end_diameter
-        return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
+        # d_1 = self.start_diameter
+        # d_2 = self.end_diameter
+        # return np.pi / 2 * (d_1 + d_2) * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length ** 2)
+        return self._area
 
     @property
     def volume(self):
@@ -1864,9 +1986,10 @@ class Section(Morphology):
         :math:`d_2` are the diameter at the start and end of the compartment,
         respectively.
         '''
-        d_1 = self.start_diameter
-        d_2 = self.end_diameter
-        return np.pi * self._length * (d_1**2 + d_1*d_2 + d_2**2)/12
+        # d_1 = self.start_diameter
+        # d_2 = self.end_diameter
+        # return np.pi * self._length * (d_1 ** 2 + d_1 * d_2 + d_2 ** 2) / 12
+        return self._volume
 
     @property
     def length(self):
@@ -1922,9 +2045,10 @@ class Section(Morphology):
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         '''
-        d_1 = self.start_diameter
-        d_2 = (self.start_diameter + self.end_diameter)*0.5
-        return np.pi/2 * (d_1 * d_2)/self._length
+        # d_1 = self.start_diameter
+        # d_2 = (self.start_diameter + self.end_diameter) * 0.5
+        # return np.pi / 2 * (d_1 * d_2) / self._length
+        return self._r_length_1
 
     @property
     def r_length_2(self):
@@ -1933,9 +2057,10 @@ class Section(Morphology):
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         '''
-        d_1 = (self.start_diameter + self.end_diameter)*0.5
-        d_2 = self.end_diameter
-        return np.pi/2 * (d_1 * d_2)/self._length
+        # d_1 = (self.start_diameter + self.end_diameter) * 0.5
+        # d_2 = self.end_diameter
+        # return np.pi / 2 * (d_1 * d_2) / self._length
+        return self._r_length_2
 
     @property
     def start_x_(self):
@@ -2135,6 +2260,14 @@ class Cylinder(Section):
                              (self.end_z - self.start_z) ** 2)
             self._length = length
 
+        d_1 = self.start_diameter
+        d_2 = self.end_diameter
+        d_mid = 0.5 * (d_1 + d_2)
+        self._area = np.pi / 2 * (d_1 + d_2) * np.sqrt(((d_1 - d_2) ** 2) / 4 + self._length ** 2)
+        self._volume = np.pi * self._length * (d_1 ** 2 + d_1 * d_2 + d_2 ** 2) / 12
+        self._r_length_1 = np.pi / 2 * (d_1 * d_mid) / self._length
+        self._r_length_2 = np.pi / 2 * (d_mid * d_2) / self._length
+
     def __repr__(self):
         s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
                                                diam=self.diameter[0])
@@ -2170,7 +2303,8 @@ class Cylinder(Section):
         diameter. Note that this surface area does not contain the area of
         the two disks at the two sides of the cylinder.
         '''
-        return np.pi * self._diameter * self.length
+        # return np.pi * self._diameter * self.length
+        return self._area
 
     @property
     def start_diameter(self):
@@ -2202,7 +2336,8 @@ class Cylinder(Section):
         where :math:`l` is the length of the compartment, and :math:`d` is its
         diameter.
         '''
-        return np.pi * (self._diameter/2)**2 * self.length
+        # return np.pi * (self._diameter/2)**2 * self.length
+        return self._volume
 
     @property
     def r_length_1(self):
@@ -2211,7 +2346,8 @@ class Cylinder(Section):
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         '''
-        return np.pi/2 * (self._diameter**2)/self.length
+        # return np.pi/2 * (self._diameter**2)/self.length
+        return self._r_length_1
 
     @property
     def r_length_2(self):
@@ -2220,4 +2356,5 @@ class Cylinder(Section):
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
         '''
-        return np.pi/2 * (self._diameter**2)/self.length
+        # return np.pi/2 * (self._diameter**2)/self.length
+        return self._r_length_2
