@@ -83,6 +83,15 @@ def brian_dtype_from_dtype(dtype):
     raise TypeError("Unknown dtype: "+str(dtype))
 
 
+def get_value(node):
+    '''Helper function to mask differences between Python versions'''
+    value = getattr(node, 'n', getattr(node, 'value', None))
+    if value is None:
+        raise AttributeError('Node {} has neither "n" nor "value" '
+                             'attribute'.format(node))
+    return value
+
+
 def brian_ast(expr, variables):
     '''
     Returns an AST tree representation with additional information
@@ -129,6 +138,7 @@ class BrianASTRenderer(object):
         try:
             return getattr(self, methname)(node)
         except AttributeError:
+            raise
             raise SyntaxError("Unknown syntax: " + nodename)
 
     def render_NameConstant(self, node):
@@ -159,10 +169,16 @@ class BrianASTRenderer(object):
 
     def render_Num(self, node):
         node.complexity = 0
-        node.dtype = brian_dtype_from_value(node.n)
+        node.dtype = brian_dtype_from_value(get_value(node))
         node.scalar = True
         node.stateless = True
         return node
+
+    def render_Constant(self, node):  # For literals in Python 3.8
+        if node.value is True or node.value is False or node.value is None:
+            return self.render_NameConstant(node)
+        else:
+            return self.render_Num(node)
 
     def render_Call(self, node):
         if len(node.keywords):

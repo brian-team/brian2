@@ -12,6 +12,15 @@ __all__ = ['NodeRenderer',
            ]
 
 
+def get_value(node):
+    '''Helper function to mask differences between Python versions'''
+    value = getattr(node, 'n', getattr(node, 'value', None))
+    if value is None:
+        raise AttributeError('Node {} has neither "n" nor "value" '
+                             'attribute'.format(node))
+    return value
+
+
 class NodeRenderer(object):
     expression_ops = {
       # BinOp
@@ -80,7 +89,13 @@ class NodeRenderer(object):
         return node.id
     
     def render_Num(self, node):
-        return repr(node.n)
+        return repr(get_value(node))
+
+    def render_Constant(self, node):  # For literals in Python 3.8
+        if node.value is True or node.value is False or node.value is None:
+            return self.render_NameConstant(node)
+        else:
+            return self.render_Num(node)
 
     def render_Call(self, node):
         if len(node.keywords):
@@ -106,7 +121,7 @@ class NodeRenderer(object):
         '''
         if node.__class__.__name__ in ['Name', 'NameConstant']:
             return self.render_node(node)
-        elif node.__class__.__name__ == 'Num' and node.n >= 0:
+        elif node.__class__.__name__ in ['Num', 'Constant'] and get_value(node) >= 0:
             return self.render_node(node)
         elif node.__class__.__name__ == 'Call':
             return self.render_node(node)
