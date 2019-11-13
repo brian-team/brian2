@@ -376,7 +376,7 @@ class CythonCodeGenerator(CodeGenerator):
 ################################################################################
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
-             'log10', 'sqrt', 'ceil', 'floor', 'abs']:
+             'log10', 'expm1', 'log1p', 'sqrt', 'ceil', 'floor', 'abs']:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
                                                                code=None)
 

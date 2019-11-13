@@ -13,7 +13,7 @@ from .fundamentalunits import (Quantity, wrap_function_dimensionless,
                                DIMENSIONLESS)
 
 __all__ = [
-         'log', 'log10', 'exp',
+         'log', 'log10', 'exp', 'expm1', 'log1p',
          'sin', 'cos', 'tan',
          'arcsin', 'arccos', 'arctan',
          'sinh', 'cosh', 'tanh',
@@ -64,6 +64,8 @@ arctanh = wrap_function_dimensionless(np.arctanh)
 log = wrap_function_dimensionless(np.log)
 log10 = wrap_function_dimensionless(np.log10)
 exp = wrap_function_dimensionless(np.exp)
+expm1 = wrap_function_dimensionless(np.expm1)
+log1p = wrap_function_dimensionless(np.log1p)
 
 ones_like = wrap_function_remove_dimensions(np.ones_like)
 zeros_like = wrap_function_remove_dimensions(np.zeros_like)
