@@ -8,6 +8,7 @@ import types
 
 import numpy as np
 import sympy
+from sympy.codegen import cfunctions as sympy_cfunctions
 from numpy.random import randn, rand
 from sympy import Function as sympy_Function
 from sympy import S
@@ -634,6 +635,10 @@ DEFAULT_FUNCTIONS = {
                     sympy_func=sympy.functions.elementary.exponential.log),
     'log10': Function(unitsafe.log10,
                       sympy_func=log10),
+    'expm1': Function(unitsafe.expm1,
+                      sympy_func=sympy_cfunctions.expm1),
+    'log1p': Function(unitsafe.log1p,
+                      sympy_func=sympy_cfunctions.log1p),
     'sqrt': Function(np.sqrt,
                      sympy_func=sympy.functions.elementary.miscellaneous.sqrt,
                      arg_units=[None], return_unit=lambda u: u**0.5),
