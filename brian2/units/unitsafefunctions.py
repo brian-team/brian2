@@ -10,10 +10,10 @@ import numpy as np
 from .fundamentalunits import (Quantity, wrap_function_dimensionless,
                                wrap_function_remove_dimensions,
                                fail_for_dimension_mismatch, is_dimensionless,
-                               DIMENSIONLESS)
+                               DIMENSIONLESS, check_units)
 
 __all__ = [
-         'log', 'log10', 'exp', 'expm1', 'log1p',
+         'log', 'log10', 'exp', 'expm1', 'log1p', 'exprel',
          'sin', 'cos', 'tan',
          'arcsin', 'arccos', 'arctan',
          'sinh', 'cosh', 'tanh',
@@ -65,6 +65,32 @@ log10 = wrap_function_dimensionless(np.log10)
 exp = wrap_function_dimensionless(np.exp)
 expm1 = wrap_function_dimensionless(np.expm1)
 log1p = wrap_function_dimensionless(np.log1p)
+
+
+@check_units(x=1, result=1)
+def exprel(x):
+    x = np.asarray(x)
+    if issubclass(x.dtype.type, np.integer):
+        result = np.empty_like(x, dtype=np.float64)
+    else:
+        result = np.empty_like(x)
+    # Following the implementation of exprel from scipy.special
+    if x.shape == ():
+        if np.abs(x) < 1e-16:
+            return 1.0
+        elif x > 717:
+            return np.inf
+        else:
+            return np.expm1(x)/x
+    else:
+        small = np.abs(x) < 1e-16
+        big = x > 717
+        in_between = np.logical_not(small | big)
+        result[small] = 1.0
+        result[big] = np.inf
+        result[in_between] = np.expm1(x[in_between])/x[in_between]
+        return result
+
 
 ones_like = wrap_function_remove_dimensions(np.ones_like)
 zeros_like = wrap_function_remove_dimensions(np.zeros_like)

@@ -571,16 +571,65 @@ class SymbolicConstant(Constant):
 # Standard functions and constants
 ################################################################################
 
-# sympy does not have a log10 function, so let's define one
-class log10(sympy_Function):
+def _exprel(x):
+    if x.is_zero:
+        return S.One
+    else:
+        return (sympy.exp(x) - S.One)/x
+
+class exprel(sympy_Function):
+    """
+    Represents ``(exp(x) - 1)/x``.
+
+    The benefit of using ``exprel(x)`` over ``(exp(x) - 1)/x``
+    is that the latter is prone to cancellation under finite precision
+    arithmetic when x is close to zero, and cannot be evaluated when x is
+    equal to zero.
+    """
     nargs = 1
 
-    @classmethod
-    def eval(cls, args):
-        return sympy.functions.elementary.exponential.log(args, 10)
+    def fdiff(self, argindex=1):
+        """
+        Returns the first derivative of this function.
+        """
+        if argindex == 1:
+            return (sympy.exp(*self.args)*(self.args[0] - S.One) + S.One)/self.args[0]**2
+        else:
+            raise sympy.ArgumentIndexError(self, argindex)
 
+
+    def _eval_expand_func(self, **hints):
+        return _exprel(*self.args)
+
+    def _eval_rewrite_as_exp(self, arg, **kwargs):
+        if arg.is_zero:
+            return S.One
+        else:
+            return (sympy.exp(arg) - S.One)/arg
+
+    _eval_rewrite_as_tractable = _eval_rewrite_as_exp
+
+    @classmethod
+    def eval(cls, arg):
+        if arg is None:
+            return None
+        if arg.is_zero:
+            return S.One
+
+        exp_arg = sympy.exp.eval(arg)
+        if exp_arg is not None:
+            return (exp_arg - S.One)/arg
+        else:
+            return (sympy.exp(arg) - S.One)/arg
+
+    def _eval_is_real(self):
+        return self.args[0].is_real
+
+    def _eval_is_finite(self):
+        return self.args[0].is_finite
 
 _infinity_int = 1073741823  # maximum 32bit integer divided by 2
+
 
 def timestep(t, dt):
     '''
@@ -634,9 +683,11 @@ DEFAULT_FUNCTIONS = {
     'log': Function(unitsafe.log,
                     sympy_func=sympy.functions.elementary.exponential.log),
     'log10': Function(unitsafe.log10,
-                      sympy_func=log10),
+                      sympy_func=sympy_cfunctions.log10),
     'expm1': Function(unitsafe.expm1,
                       sympy_func=sympy_cfunctions.expm1),
+    'exprel': Function(unitsafe.exprel,
+                       sympy_func=exprel),
     'log1p': Function(unitsafe.log1p,
                       sympy_func=sympy_cfunctions.log1p),
     'sqrt': Function(np.sqrt,

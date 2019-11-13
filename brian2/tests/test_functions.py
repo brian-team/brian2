@@ -55,7 +55,7 @@ def test_math_functions():
         for func in [cos, tan, sinh, cosh, tanh,
                      arcsin, arccos, arctan,
                      log, log10, log1p,
-                     exp, np.sqrt, expm1,
+                     exp, np.sqrt, expm1, exprel,
                      np.ceil, np.floor, np.sign, int_]:
 
             # Calculate the result directly

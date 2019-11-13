@@ -488,6 +488,20 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
+exprel_code = '''
+static inline double _exprel(double x)
+{
+    if (fabs(x) < 1e-16)
+        return 1.0;
+    if (x > 717)
+        return INFINITY;
+    return expm1(x)/x;
+}
+'''
+DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CPPCodeGenerator,
+                                                               code=exprel_code,
+                                                               name='_exprel')
+
 abs_code = '''
 #define _brian_abs std::abs
 '''

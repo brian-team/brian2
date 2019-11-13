@@ -9,7 +9,7 @@ import sympy
 from sympy.printing.precedence import precedence
 from sympy.printing.str import StrPrinter
 
-from brian2.core.functions import (DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS, log10,
+from brian2.core.functions import (DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS,
                                    Function)
 from brian2.parsing.rendering import SympyNodeRenderer
 from brian2.utils.caching import cached

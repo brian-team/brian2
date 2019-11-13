@@ -388,6 +388,18 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
+exprel_code = '''
+cdef inline double _exprel(double x) nogil:
+    if fabs(x) < 1e-16:
+        return 1.0
+    elif x > 717:  # near log(DBL_MAX)
+        return NPY_INFINITY
+    else:
+        return expm1(x) / x
+'''
+DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CythonCodeGenerator,
+                                                               code=exprel_code,
+                                                               name='_exprel')
 _BUFFER_SIZE = 20000
 
 rand_code = '''
