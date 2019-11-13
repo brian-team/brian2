@@ -7,7 +7,7 @@ from __future__ import division
 
 import numpy as _numpy
 cimport numpy as _numpy
-from libc.math cimport sin, cos, tan, sinh, cosh, tanh, exp, log, log10, expm1, log1p, sqrt, asin, acos, atan, fmod, floor, ceil, isinf
+from libc.math cimport fabs, sin, cos, tan, sinh, cosh, tanh, exp, log, log10, expm1, log1p, sqrt, asin, acos, atan, fmod, floor, ceil, isinf
 cdef extern from "math.h":
     double M_PI
 # Import the two versions of std::abs
@@ -23,6 +23,7 @@ from libc.stdlib cimport free
 
 cdef extern from "numpy/npy_math.h":
     bint npy_isinf(double x)
+    double NPY_INFINITY
 
 cdef extern from "stdint_compat.h":
     # Longness only used for type promotion

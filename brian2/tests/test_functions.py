@@ -43,7 +43,7 @@ int_.__name__ = 'int'
 @pytest.mark.parametrize('func', [cos, tan, sinh, cosh, tanh,
                                   arcsin, arccos, arctan,
                                   log, log10, log1p,
-                                  exp, np.sqrt, expm1,
+                                  exp, np.sqrt, expm1, exprel,
                                   np.ceil, np.floor, np.sign, int_])
 @pytest.mark.standalone_compatible
 def test_math_functions(func):
