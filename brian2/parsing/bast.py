@@ -11,7 +11,7 @@ import weakref
 import numpy
 from builtins import all as logical_all  # defensive programming against numpy import
 
-from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.rendering import NodeRenderer, get_node_value
 from brian2.utils.logger import get_logger
 
 __all__ = ['brian_ast', 'BrianASTRenderer', 'dtype_hierarchy']
@@ -81,15 +81,6 @@ def brian_dtype_from_dtype(dtype):
     elif is_boolean_dtype(dtype):
         return 'boolean'
     raise TypeError("Unknown dtype: "+str(dtype))
-
-
-def get_value(node):
-    '''Helper function to mask differences between Python versions'''
-    value = getattr(node, 'n', getattr(node, 'value', None))
-    if value is None:
-        raise AttributeError('Node {} has neither "n" nor "value" '
-                             'attribute'.format(node))
-    return value
 
 
 def brian_ast(expr, variables):
@@ -169,7 +160,7 @@ class BrianASTRenderer(object):
 
     def render_Num(self, node):
         node.complexity = 0
-        node.dtype = brian_dtype_from_value(get_value(node))
+        node.dtype = brian_dtype_from_value(get_node_value(node))
         node.scalar = True
         node.stateless = True
         return node

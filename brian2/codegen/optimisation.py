@@ -12,7 +12,7 @@ from brian2.core.functions import DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.core.variables import AuxiliaryVariable
 from brian2.parsing.bast import (brian_ast, BrianASTRenderer, dtype_hierarchy,
                                  brian_dtype_from_dtype, brian_dtype_from_value)
-from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.rendering import NodeRenderer, get_node_value
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.units.fundamentalunits import DIMENSIONLESS
 from brian2.core.preferences import prefs
@@ -42,15 +42,6 @@ def evaluate_expr(expr, ns):
 
 def expression_complexity(expr, variables):
     return brian_ast(expr, variables).complexity
-
-
-def get_value(node):
-    '''Helper function to mask differences between Python versions'''
-    value = getattr(node, 'n', getattr(node, 'value', None))
-    if value is None:
-        raise AttributeError('Node {} has neither "n" nor "value" '
-                             'attribute'.format(node))
-    return value
 
 
 def optimise_statements(scalar_statements, vector_statements, variables, blockname=''):
@@ -249,7 +240,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
             for operand, other in [(left, right),
                                    (right, left)]:
                 if operand.__class__.__name__ in ['Num', 'Constant']:
-                    op_value = get_value(operand)
+                    op_value = get_node_value(operand)
                     if op_value == 0:
                         # Do not remove stateful functions
                         if node.stateless:
@@ -260,16 +251,16 @@ class ArithmeticSimplifier(BrianASTRenderer):
                             return other
         # Handle division by 1, or 0/x
         elif op.__class__.__name__ == 'Div':
-            if left.__class__.__name__ in ['Num', 'Constant'] and get_value(left) == 0:  # 0/x
+            if left.__class__.__name__ in ['Num', 'Constant'] and get_node_value(left) == 0:  # 0/x
                 if node.stateless:
                     # Do not remove stateful functions
                     return _replace_with_zero(left, node)
-            if right.__class__.__name__ in ['Num', 'Constant'] and get_value(right) == 1:  # x/1
+            if right.__class__.__name__ in ['Num', 'Constant'] and get_node_value(right) == 1:  # x/1
                 # only simplify this if the type wouldn't be cast by the operation
                 if dtype_hierarchy[right.dtype] <= dtype_hierarchy[left.dtype]:
                     return left
         elif op.__class__.__name__ == 'FloorDiv':
-            if left.__class__.__name__ in ['Num', 'Constant'] and get_value(left) == 0:  # 0//x
+            if left.__class__.__name__ in ['Num', 'Constant'] and get_node_value(left) == 0:  # 0//x
                 if node.stateless:
                     # Do not remove stateful functions
                     return _replace_with_zero(left, node)
@@ -277,19 +268,19 @@ class ArithmeticSimplifier(BrianASTRenderer):
             # for floating point values, floor division by 1 changes the value,
             # and division by 1.0 can change the type for an integer value
             if (left.dtype == right.dtype == 'integer' and
-                    right.__class__.__name__ in ['Num', 'Constant'] and get_value(right) == 1):  # x//1
+                    right.__class__.__name__ in ['Num', 'Constant'] and get_node_value(right) == 1):  # x//1
                     return left
         # Handle addition of 0
         elif op.__class__.__name__ == 'Add':
             for operand, other in [(left, right),
                                    (right, left)]:
-                if operand.__class__.__name__ in ['Num', 'Constant'] and get_value(operand) == 0:
+                if operand.__class__.__name__ in ['Num', 'Constant'] and get_node_value(operand) == 0:
                     # only simplify this if the type wouldn't be cast by the operation
                     if dtype_hierarchy[operand.dtype]<=dtype_hierarchy[other.dtype]:
                         return other
         # Handle subtraction of 0
         elif op.__class__.__name__ == 'Sub':
-            if right.__class__.__name__ in ['Num', 'Constant'] and get_value(right) == 0:
+            if right.__class__.__name__ in ['Num', 'Constant'] and get_node_value(right) == 0:
                 # only simplify this if the type wouldn't be cast by the operation
                 if dtype_hierarchy[right.dtype]<=dtype_hierarchy[left.dtype]:
                     return left
@@ -299,10 +290,10 @@ class ArithmeticSimplifier(BrianASTRenderer):
         if node.dtype=='float' and op.__class__.__name__ in ['Mult', 'Add', 'Sub', 'Div']:
             for subnode in [node.left, node.right]:
                 if (subnode.__class__.__name__ in ['Num', 'Constant'] and
-                        not (get_value(subnode) is True or
-                             get_value(subnode) is False)):
+                        not (get_node_value(subnode) is True or
+                             get_node_value(subnode) is False)):
                     subnode.dtype = 'float'
-                    subnode.value = prefs.core.default_float_dtype(get_value(subnode))
+                    subnode.value = prefs.core.default_float_dtype(get_node_value(subnode))
         return node
 
 
