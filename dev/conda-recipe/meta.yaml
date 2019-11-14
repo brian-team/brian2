@@ -22,7 +22,7 @@ requirements:
     # still ABI-compatible
     - numpy >=1.10  # [py < 36]
     - numpy >=1.11  # [py >= 36]
-    - sympy >1.1.0
+    - sympy >=1.2
     - pyparsing
     - scipy >=0.13.3
     - weave  # [py2k]
