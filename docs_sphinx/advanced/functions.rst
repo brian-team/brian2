@@ -30,6 +30,10 @@ ready for use:
 * Elementary functions: ``sqrt``, ``exp``, ``log``, ``log10``, ``abs``, ``sign``
 * Trigonometric functions: ``sin``, ``cos``, ``tan``, ``sinh``, ``cosh``,
   ``tanh``, ``arcsin``, ``arccos``, ``arctan``
+* Functions for improved numerical accuracy: ``expm1`` (calculates ``exp(x) - 1``, more accurate
+  for ``x`` close to 0), ``log1p`` (calculates ``log(1 + x)``, more accurate for ``x`` close to 0),
+  and ``exprel`` (calculates ``(exp(x) - 1)/x``, more accurate for ``x`` close to 0, and returning
+  1.0 instead of ``NaN`` for ``x == 0``
 * General utility functions: ``clip``, ``floor``, ``ceil``
 
 Brian also provides a special purpose function ``int``, which can be used to
