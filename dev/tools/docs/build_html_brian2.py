@@ -1,8 +1,8 @@
 import os
 import shutil
 import sphinx
-if not sphinx.version_info >= (1, 7):
-    raise ImportError('Need sphinx version 1.7')
+if not sphinx.version_info >= (1, 8):
+    raise ImportError('Need sphinx version 1.8')
 from sphinx.cmd.build import main as sphinx_main
 import sys
 

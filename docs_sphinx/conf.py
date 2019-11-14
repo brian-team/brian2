@@ -72,7 +72,7 @@ if 'BRIAN2_DOCS_QUICK_REBUILD' not in os.environ:
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.7'
+needs_sphinx = '1.8'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -316,7 +316,7 @@ intersphinx_mapping = {
     'https://nose.readthedocs.io/en/latest/': None
 }
 
-autodoc_default_flags = ['show-inheritance']
+autodoc_default_options = {'show-inheritance': True}
 
 doctest_global_setup = 'from brian2 import *'
 highlight_language = 'python'  # instead of python3 (default for sphinx>=1.4)
