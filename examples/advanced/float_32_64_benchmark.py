@@ -67,14 +67,11 @@ def run_benchmark(name):
         dh/dt = alpha_h*(1-h)-beta_h*h : 1
         dge/dt = -ge*(1./taue) : siemens
         dgi/dt = -gi*(1./taui) : siemens
-        alpha_m = 0.32*(mV**-1)*(13*mV-v+VT)/
-                 (exp((13*mV-v+VT)/(4*mV))-1.)/ms : Hz
-        beta_m = 0.28*(mV**-1)*(v-VT-40*mV)/
-                (exp((v-VT-40*mV)/(5*mV))-1)/ms : Hz
+        alpha_m = 0.32*(mV**-1)*4*mV/exprel((13*mV-v+VT)/(4*mV))/ms : Hz
+        beta_m = 0.28*(mV**-1)*5*mV/exprel((v-VT-40*mV)/(5*mV))/ms : Hz
         alpha_h = 0.128*exp((17*mV-v+VT)/(18*mV))/ms : Hz
         beta_h = 4./(1+exp((40*mV-v+VT)/(5*mV)))/ms : Hz
-        alpha_n = 0.032*(mV**-1)*(15*mV-v+VT)/
-                 (exp((15*mV-v+VT)/(5*mV))-1.)/ms : Hz
+        alpha_n = 0.032*(mV**-1)*5*mV/exprel((15*mV-v+VT)/(5*mV))/ms : Hz
         beta_n = .5*exp((10*mV-v+VT)/(40*mV))/ms : Hz
         ''')
 

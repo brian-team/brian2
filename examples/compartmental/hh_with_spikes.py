@@ -26,11 +26,11 @@ I : amp (point current) # applied current
 dm/dt = alpham * (1-m) - betam * m : 1
 dn/dt = alphan * (1-n) - betan * n : 1
 dh/dt = alphah * (1-h) - betah * h : 1
-alpham = (0.1/mV) * (-v+25*mV) / (exp((-v+25*mV) / (10*mV)) - 1)/ms : Hz
+alpham = (0.1/mV) * 10*mV/exprel((-v+25*mV)/(10*mV))/ms : Hz
 betam = 4 * exp(-v/(18*mV))/ms : Hz
 alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
 betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz
-alphan = (0.01/mV) * (-v+10*mV) / (exp((-v+10*mV) / (10*mV)) - 1)/ms : Hz
+alphan = (0.01/mV) * 10*mV/exprel((-v+10*mV)/(10*mV))/ms : Hz
 betan = 0.125*exp(-v/(80*mV))/ms : Hz
 gNa : siemens/meter**2
 '''
