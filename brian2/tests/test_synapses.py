@@ -1964,7 +1964,6 @@ def test_synapses_to_synapses_statevar_access():
 
 @pytest.mark.standalone_compatible
 def test_synapses_to_synapses_different_sizes():
-    prefs.codegen.target = 'numpy'
     source = NeuronGroup(100, 'v : 1', threshold='False')
     source.v = 'i'
     modulator = NeuronGroup(1, 'v : 1', threshold='False')
