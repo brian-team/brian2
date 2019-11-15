@@ -2262,7 +2262,7 @@ def get_unit_for_display(d):
     if d is 1 or d is DIMENSIONLESS:
         return '1'
     else:
-        return repr(get_unit(d))
+        return str(get_unit(d))
 
 #### DECORATORS
 

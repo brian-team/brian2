@@ -7,13 +7,12 @@ import os
 import uuid
 
 import numpy as np
-from numpy.testing import assert_equal, assert_raises
-from nose import with_setup
-from nose.plugins.attrib import attr
+from numpy.testing import assert_equal
+import pytest
 
 from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
                     run, stop, NetworkOperation, network_operation,
-                    restore_initial_state, MagicError, Synapses,
+                    MagicError, Synapses,
                     NeuronGroup, StateMonitor, SpikeMonitor,
                     SpikeGeneratorGroup,
                     PopulationRateMonitor, MagicNetwork, magic_network,
@@ -25,23 +24,29 @@ from brian2.devices.device import (reinit_and_delete, Device, all_devices,
 from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_incorrect_network_use():
     '''Test some wrong uses of `Network` and `MagicNetwork`'''
-    assert_raises(TypeError, lambda: Network(name='mynet',
-                                             anotherkwd='does not exist'))
-    assert_raises(TypeError, lambda: Network('not a BrianObject'))
+    with pytest.raises(TypeError):
+        Network(name='mynet', anotherkwd='does not exist')
+    with pytest.raises(TypeError):
+        Network('not a BrianObject')
     net = Network()
-    assert_raises(TypeError, lambda: net.add('not a BrianObject'))
-    assert_raises(ValueError, lambda: MagicNetwork())
+    with pytest.raises(TypeError):
+        net.add('not a BrianObject')
+    with pytest.raises(ValueError):
+        MagicNetwork()
     G = NeuronGroup(10, 'v:1')
     net.add(G)
-    assert_raises(TypeError, lambda: net.remove(object()))
-    assert_raises(MagicError, lambda: magic_network.add(G))
-    assert_raises(MagicError, lambda: magic_network.remove(G))
+    with pytest.raises(TypeError):
+        net.remove(object())
+    with pytest.raises(MagicError):
+        magic_network.add(G)
+    with pytest.raises(MagicError):
+        magic_network.remove(G)
+        
 
-
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_network_contains():
     '''
     Test `Network.__contains__`.
@@ -52,8 +57,7 @@ def test_network_contains():
     assert 'neurongroup' not in net
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_empty_network():
     # Check that an empty network functions correctly
     net = Network()
@@ -69,8 +73,7 @@ class Counter(BrianObject):
         self.count += 1
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_single_object():
     # Check that a network with a single object functions correctly
     x = Counter()
@@ -79,8 +82,7 @@ def test_network_single_object():
     assert_equal(x.count, 10)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_two_objects():
     # Check that a network with two objects and the same clock function correctly
     x = Counter(order=5)
@@ -93,8 +95,7 @@ def test_network_two_objects():
     assert_equal(y.count, 10)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_from_dict():
     # Check that a network from a dictionary works
     x = Counter()
@@ -119,8 +120,7 @@ class NameLister(BrianObject):
         NameLister.updates.append(self.name)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_different_clocks():
     NameLister.updates[:] = []
     # Check that a network with two different clocks functions correctly
@@ -132,8 +132,7 @@ def test_network_different_clocks():
     assert updates == ('xxxxxxxxxxy'*100000)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_different_when():
     # Check that a network with different when attributes functions correctly
     NameLister.updates[:] = []
@@ -143,8 +142,7 @@ def test_network_different_when():
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'xyxyxy')
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_default_schedule():
     net = Network()
     assert net.schedule == ['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']
@@ -152,8 +150,7 @@ def test_network_default_schedule():
     prefs.core.network.default_schedule = list(reversed(['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']))
     assert net.schedule == list(reversed(['start', 'groups', 'thresholds', 'synapses', 'resets', 'end']))
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_schedule_change():
     # Check that a changed schedule is taken into account correctly
     NameLister.updates[:] = []
@@ -167,7 +164,7 @@ def test_network_schedule_change():
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'yxyxyx')
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_network_before_after_schedule():
     # Test that before... and after... slot names can be used
     NameLister.updates[:] = []
@@ -178,7 +175,7 @@ def test_network_before_after_schedule():
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'yxyxyx')
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_network_custom_slots():
     # Check that custom slots can be inserted into the schedule
     NameLister.updates[:] = []
@@ -190,25 +187,30 @@ def test_network_custom_slots():
     net.run(0.3*ms)
     assert_equal(''.join(NameLister.updates), 'xyzxyzxyz')
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_network_incorrect_schedule():
     # Test that incorrect arguments provided to schedule raise errors
     net = Network()
     # net.schedule = object()
-    assert_raises(TypeError, setattr, net, 'schedule', object())
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', object())
     # net.schedule = 1
-    assert_raises(TypeError, setattr, net, 'schedule', 1)
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', 1)
     # net.schedule = {'slot1', 'slot2'}
-    assert_raises(TypeError, setattr, net, 'schedule', {'slot1', 'slot2'})
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', {'slot1', 'slot2'})
     # net.schedule = ['slot', 1]
-    assert_raises(TypeError, setattr, net, 'schedule', ['slot', 1])
+    with pytest.raises(TypeError):
+        setattr(net, 'schedule', ['slot', 1])
     # net.schedule = ['start', 'after_start']
-    assert_raises(ValueError, setattr, net, 'schedule', ['start', 'after_start'])
+    with pytest.raises(ValueError):
+        setattr(net, 'schedule', ['start', 'after_start'])
     # net.schedule = ['before_start', 'start']
-    assert_raises(ValueError, setattr, net, 'schedule', ['before_start', 'start'])
+    with pytest.raises(ValueError):
+        setattr(net, 'schedule', ['before_start', 'start'])
 
-@attr('codegen-independent')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.codegen_independent
 def test_schedule_warning():
     previous_device = get_device()
     from uuid import uuid4
@@ -267,7 +269,7 @@ def test_schedule_warning():
     reset_device(previous_device)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_scheduling_summary_magic():
     basename = 'name' + str(uuid.uuid4()).replace('-', '_')
     group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
@@ -310,7 +312,7 @@ def test_scheduling_summary_magic():
     assert summary_after._repr_html_() == summary_before._repr_html_()
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_scheduling_summary():
     basename = 'name' + str(uuid.uuid4()).replace('-', '_')
     group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
@@ -377,8 +379,7 @@ class Preparer(BrianObject):
         self.did_post_run = True        
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_magic_network():
     # test that magic network functions correctly
     x = Counter()
@@ -402,8 +403,7 @@ class Stopper(BrianObject):
         if self.stoptime<=0:
             self.stopfunc()
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_stop():
     # test that Network.stop and global stop() work correctly
     net = Network()
@@ -418,8 +418,7 @@ def test_network_stop():
     assert_equal(defaultclock.t, 1*ms)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_operations():
     # test NetworkOperation and network_operation
     seq = []
@@ -454,7 +453,7 @@ def test_network_operations():
 
     assert_equal(''.join(seq), 'bBacC'*10)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_incorrect_network_operations():
     # Network operations with more than one argument are not allowed
     def func(x, y):
@@ -465,8 +464,10 @@ def test_incorrect_network_operations():
             pass
     c = Container()
 
-    assert_raises(TypeError, lambda: NetworkOperation(func))
-    assert_raises(TypeError, lambda: NetworkOperation(c.func))
+    with pytest.raises(TypeError):
+        NetworkOperation(func)
+    with pytest.raises(TypeError):
+        NetworkOperation(c.func)
 
     # Incorrect use of @network_operation -- it does not work on an instance
     # method
@@ -479,8 +480,7 @@ def test_incorrect_network_operations():
     except TypeError:
         pass  # this is what we expected
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_operations_name():
     # test NetworkOperation name input
     seq = []
@@ -490,6 +490,8 @@ def test_network_operations_name():
     def f2():
         seq.append('b')
 
+    def x():
+        pass
     op = NetworkOperation(lambda: x)
     assert_equal(op.name, 'networkoperation')
 
@@ -506,8 +508,7 @@ def test_network_operations_name():
     assert_equal(''.join(seq), 'aba'*10)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_active_flag():
     # test that the BrianObject.active flag is recognised by Network.run
     x = Counter()
@@ -518,8 +519,7 @@ def test_network_active_flag():
     assert_equal(y.count, 0)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_t():
     # test that Network.t works as expected
     x = Counter(dt=1*ms)
@@ -563,30 +563,29 @@ def test_network_t():
     assert_equal(y.count, 5)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_incorrect_dt_defaultclock():
     defaultclock.dt = 0.5*ms
     G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
     net = Network(G)
     net.run(0.5*ms)
     defaultclock.dt = 1*ms
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_incorrect_dt_custom_clock():
     clock = Clock(dt=0.5*ms)
     G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1', clock=clock)
     net = Network(G)
     net.run(0.5*ms)
     clock.dt = 1*ms
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_remove():
     x = Counter()
     y = Counter()
@@ -610,8 +609,7 @@ class NoninvalidatingCounter(Counter):
     add_to_magic_network = True
     invalidates_magic_network = False
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_invalid_magic_network():
     x = Counter()
     run(1*ms)
@@ -644,8 +642,7 @@ def test_invalid_magic_network():
     assert_equal(y.count, 10) 
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_multiple_networks_invalid():
     x = Counter()
     net = Network(x)
@@ -663,8 +660,7 @@ def test_multiple_networks_invalid():
         pass  # this is expected
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_magic_weak_reference():
     '''
     Test that holding a weak reference to an object does not make it get
@@ -683,8 +679,7 @@ def test_magic_weak_reference():
         assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_magic_unused_object():
     '''Test that creating unused objects does not affect the magic system.'''
     def create_group():
@@ -703,8 +698,7 @@ def test_magic_unused_object():
         assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_network_access():
     x = Counter(name='counter')
     net = Network(x)
@@ -714,22 +708,27 @@ def test_network_access():
 
     # accessing objects
     assert net['counter'] is x
-    assert_raises(TypeError, lambda: net[123])
-    assert_raises(TypeError, lambda: net[1:3])
-    assert_raises(KeyError, lambda: net['non-existing'])
+    with pytest.raises(TypeError):
+        net[123]
+    with pytest.raises(TypeError):
+        net[1:3]
+    with pytest.raises(KeyError):
+        net['non-existing']
 
     objects = [obj for obj in net]
     assert set(objects) == set(net.objects)
 
     # deleting objects
     del net['counter']
-    assert_raises(TypeError, lambda: net.__delitem__(123))
-    assert_raises(TypeError, lambda: net.__delitem__(slice(1, 3)))
-    assert_raises(KeyError, lambda: net.__delitem__('counter'))
+    with pytest.raises(TypeError):
+        net.__delitem__(123)
+    with pytest.raises(TypeError):
+        net.__delitem__(slice(1, 3))
+    with pytest.raises(KeyError):
+        net.__delitem__('counter')
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_dependency_check():
     def create_net():
         G = NeuronGroup(10, 'v: 1', threshold='False')
@@ -744,7 +743,8 @@ def test_dependency_check():
     dependent_objects = create_net()
     # Trying to simulate the monitors/synapses without the group should fail
     for obj in dependent_objects:
-        assert_raises(ValueError, lambda: Network(obj).run(0*ms))
+        with pytest.raises(ValueError):
+            Network(obj).run(0*ms)
 
     # simulation with a magic network should work when we have an explicit
     # reference to one of the objects, but the object should be inactive and
@@ -759,7 +759,6 @@ def test_dependency_check():
         assert not obj.active
 
 
-@with_setup(teardown=restore_initial_state)
 def test_loop():
     '''
     Somewhat realistic test with a loop of magic networks
@@ -792,7 +791,7 @@ def test_loop():
         assert '4 objects' in magic_objects
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_magic_collect():
     '''
     Make sure all expected objects are collected in a magic network
@@ -828,7 +827,7 @@ def captured_output():
         sys.stdout, sys.stderr = old_out, old_err
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_progress_report():
     '''
     Very basic test of progress reporting
@@ -882,19 +881,21 @@ def test_progress_report():
     assert len(calls) >= 2 and calls[0][1] == 0.0 and calls[-1][1] == 1.0
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_progress_report_incorrect():
     '''
     Test wrong use of the report option
     '''
     G = NeuronGroup(1, '')
     net = Network(G)
-    assert_raises(ValueError, lambda: net.run(1*ms, report='unknown'))
-    assert_raises(TypeError, lambda: net.run(1*ms, report=object()))
+    with pytest.raises(ValueError):
+        net.run(1*ms, report='unknown')
+    with pytest.raises(TypeError):
+        net.run(1*ms, report=object())
 
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_multiple_runs_report_standalone():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
@@ -902,8 +903,8 @@ def test_multiple_runs_report_standalone():
     device.build(direct_call=False, **device.build_options)
 
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_multiple_runs_report_standalone_2():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms)
@@ -911,8 +912,8 @@ def test_multiple_runs_report_standalone_2():
     device.build(direct_call=False, **device.build_options)
 
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_multiple_runs_report_standalone_3():
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
@@ -922,16 +923,17 @@ def test_multiple_runs_report_standalone_3():
 
 # This tests a specific limitation of the C++ standalone mode (cannot mix
 # multiple report methods)
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_multiple_runs_report_standalone_incorrect():
     set_device('cpp_standalone', build_on_run=False)
     group = NeuronGroup(1, 'dv/dt = 1*Hz : 1')
     run(1*ms, report='text')
-    assert_raises(NotImplementedError, lambda: run(1*ms, report='stderr'))
+    with pytest.raises(NotImplementedError):
+        run(1*ms, report='stderr')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_store_restore():
     source = NeuronGroup(10, '''dv/dt = rates : 1
                                 rates : Hz''', threshold='v>1', reset='v=0')
@@ -973,7 +975,7 @@ def test_store_restore():
     assert net.t == 10 * ms
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_store_restore_to_file():
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
     source = NeuronGroup(10, '''dv/dt = rates : 1
@@ -1015,7 +1017,7 @@ def test_store_restore_to_file():
     except OSError:
         pass
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_store_restore_to_file_new_objects():
     # A more realistic test where the objects are completely re-created
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
@@ -1069,7 +1071,7 @@ def test_store_restore_to_file_new_objects():
         pass
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_store_restore_to_file_differing_nets():
     # Check that the store/restore mechanism is not used with differing
     # networks
@@ -1085,13 +1087,14 @@ def test_store_restore_to_file_differing_nets():
                                    name='source_2')
     mon = SpikeMonitor(source_2, name='monitor')
     net = Network(source_2, mon)
-    assert_raises(KeyError, lambda: net.restore(filename=filename))
+    with pytest.raises(KeyError):
+        net.restore(filename=filename)
 
     net = Network(source)  # Without the monitor
-    assert_raises(KeyError, lambda: net.restore(filename=filename))
+    with pytest.raises(KeyError):
+        net.restore(filename=filename)
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_store_restore_magic():
     source = NeuronGroup(10, '''dv/dt = rates : 1
                                 rates : Hz''', threshold='v>1', reset='v=0')
@@ -1128,8 +1131,7 @@ def test_store_restore_magic():
     assert_equal(spike_times, spike_mon.t_[:])
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_store_restore_magic_to_file():
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
     source = NeuronGroup(10, '''dv/dt = rates : 1
@@ -1171,8 +1173,7 @@ def test_store_restore_magic_to_file():
         pass
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_store_restore_spikequeue():
     # See github issue #938
     source = SpikeGeneratorGroup(1, [0], [0] * ms)
@@ -1191,8 +1192,7 @@ def test_store_restore_spikequeue():
     assert target.v[0] == 1
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_defaultclock_dt_changes():
     BrianLogger.suppress_name('resolution_conflict')
     for dt in [0.1*ms, 0.01*ms, 0.5*ms, 1*ms, 3.3*ms]:
@@ -1203,8 +1203,8 @@ def test_defaultclock_dt_changes():
         net.run(2*dt)
         assert_equal(mon.t[:], [0, dt/ms]*ms)
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_dt_changes_between_runs():
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'v:1')
@@ -1219,8 +1219,7 @@ def test_dt_changes_between_runs():
     assert_allclose(mon.t[:],
                     [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 1., 1.1, 1.2, 1.3, 1.4]*ms)
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_dt_restore():
     defaultclock.dt = 0.5*ms
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1')
@@ -1240,8 +1239,7 @@ def test_dt_restore():
     assert_equal(mon.t[:], [0, 0.5]*ms)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_continuation():
     defaultclock.dt = 1*ms
     G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
@@ -1262,8 +1260,7 @@ def test_continuation():
     assert_equal(mon.v[:], mon2.v[:])
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_get_set_states():
     G = NeuronGroup(10, 'v:1', name='a_neurongroup')
     G.v = 'i'
@@ -1283,8 +1280,7 @@ def test_get_set_states():
     assert_equal(G.v, np.arange(10))
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_multiple_runs_defaultclock():
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
@@ -1299,8 +1295,7 @@ def test_multiple_runs_defaultclock():
     net.run(1*ms)
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_multiple_runs_defaultclock_incorrect():
     defaultclock.dt = 0.1*ms
     G = NeuronGroup(1, 'dv/dt = -v / (10*ms) : 1')
@@ -1310,11 +1305,11 @@ def test_multiple_runs_defaultclock_incorrect():
     # The new dt is not compatible with the previous time since we cannot
     # continue at 0.5ms with a dt of 1ms
     defaultclock.dt = 1*ms
-    assert_raises(ValueError, lambda: net.run(1*ms))
+    with pytest.raises(ValueError):
+        net.run(1*ms)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_profile():
     G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
                     reset='v=0', name='profile_test')
@@ -1336,17 +1331,17 @@ def test_profile():
     assert all([t>=0*second for _, t in info])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_profile_off():
     G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
                     reset='v=0', name='profile_test')
     net = Network(G)
     net.run(1*ms, profile=False)
-    assert_raises(ValueError, lambda: profiling_summary(net))
+    with pytest.raises(ValueError):
+        profiling_summary(net)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_profile_ipython_html():
     G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1', threshold='v>1',
                     reset='v=0', name='profile_test')
@@ -1357,8 +1352,7 @@ def test_profile_ipython_html():
     assert len(summary._repr_html_())
 
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+@pytest.mark.codegen_independent
 def test_magic_scope():
     '''
     Check that `start_scope` works as expected.
@@ -1374,8 +1368,7 @@ def test_magic_scope():
     assert objs2=={'G3', 'G4'}
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_runtime_rounding():
     # Test that runtime and standalone round in the same way, see github issue
     # #695 for details
@@ -1385,7 +1378,7 @@ def test_runtime_rounding():
     run(defaultclock.dt * 250)
     assert len(mon.t) == 250
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_small_runs():
     # One long run and multiple small runs should give the same results
     group_1 = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1')
@@ -1409,7 +1402,7 @@ def test_small_runs():
     assert_allclose(mon_1.t_[:], mon_2.t_[:])
     assert_allclose(mon_1.v_[:], mon_2.v_[:])
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_both_equal():
     #check all objects added by Network.add() also have their contained_objects added to 'Network'
     tau = 10*ms
@@ -1431,8 +1424,7 @@ def test_both_equal():
     assert (M1.v == M2.v).all()
 
 
-@attr('codegen-independent')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.codegen_independent
 def test_long_run_dt_change():
     # Check that the dt check is not too restrictive, see issue #730 for details
     group = NeuronGroup(1, '')  # does nothing...
@@ -1442,8 +1434,8 @@ def test_long_run_dt_change():
     defaultclock.dt = 0.01*ms
     run(1*second)
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_multiple_runs_constant_change():
     const_v = 1
     group = NeuronGroup(1, 'v = const_v : 1')
@@ -1455,8 +1447,8 @@ def test_multiple_runs_constant_change():
     assert_equal(mon.v[0], [1, 2])
 
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_multiple_runs_function_change():
     inp = TimedArray([1, 2], dt=defaultclock.dt)
     group = NeuronGroup(1, 'v = inp(t) : 1')

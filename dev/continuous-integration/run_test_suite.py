@@ -18,6 +18,7 @@ operating_system = os.environ.get('TRAVIS_OS_NAME', 'windows').lower()
 cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() in ['yes', 'true']
 report_coverage = os.environ.get('REPORT_COVERAGE', 'no').lower() in ['yes', 'true']
 dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
+src_dir = os.environ.get('SRCDIR')
 
 if split_run == '1':
     if python_version.startswith('2'):
@@ -32,7 +33,7 @@ else:
     targets = None
     independent = True
 
-if operating_system == 'windows' or report_coverage or standalone:
+if operating_system == 'windows' or standalone:
     in_parallel = []
 else:
     in_parallel = ['codegen_independent', 'numpy', 'cpp_standalone']

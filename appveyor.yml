@@ -109,7 +109,7 @@ install:
   - 'conda config --append channels conda-forge'
   # Install the build dependencies of the project via conda
   - 'appveyor-retry conda update -c conda-forge --yes conda'
-  - 'set PYTHON_PACKAGES=nose "sympy>=1.1.1" pyparsing jinja2 ipython setuptools cython "py-cpuinfo>=3" "gsl>1.15" future'
+  - 'set PYTHON_PACKAGES=pytest "sympy>=1.1.1" pyparsing jinja2 ipython setuptools cython "py-cpuinfo>=3" "gsl>1.15" future sphinx'
   # Install the weave package for Python 2
   - 'if "%PYTHON_VERSION:~0,1%" == "2" set PYTHON_PACKAGES=%PYTHON_PACKAGES% weave'
   # weave 0.16 is the only available version for 32 bit Windows, and it is not compatible with numpy 0.16

@@ -128,12 +128,12 @@ analysing data with external tools), use an underscore after the name:
 .. doctest::
 
     >>> G = NeuronGroup(10, '''dv/dt = -v/tau : volt
-    ...                        tau : second''')
+    ...                        tau : second''', name='neurons')
     >>> G.v = -70*mV
     >>> G.v
-    <neurongroup.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
+    <neurons.v: array([-70., -70., -70., -70., -70., -70., -70., -70., -70., -70.]) * mvolt>
     >>> G.v_  # values without units
-    <neurongroup.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
+    <neurons.v_: array([-0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07, -0.07])>
 
 The value of state variables can also be set using string expressions that can
 refer to units and external variables, other state variables or mathematical
@@ -143,7 +143,7 @@ functions:
 
     >>> G.tau = '5*ms + (1.0*i/N)*5*ms'
     >>> G.tau
-    <neurongroup.tau: array([ 5. ,  5.5,  6. ,  6.5,  7. ,  7.5,  8. ,  8.5,  9. ,  9.5]) * msecond>
+    <neurons.tau: array([ 5. ,  5.5,  6. ,  6.5,  7. ,  7.5,  8. ,  8.5,  9. ,  9.5]) * msecond>
 
 You can also set the value only if a condition holds, for example:
 
@@ -151,7 +151,7 @@ You can also set the value only if a condition holds, for example:
 
     >>> G.v['tau>7.25*ms'] = -60*mV
     >>> G.v
-    <neurongroup.v: array([-70., -70., -70., -70., -70., -60., -60., -60., -60., -60.]) * mvolt>
+    <neurons.v: array([-70., -70., -70., -70., -70., -60., -60., -60., -60., -60.]) * mvolt>
 
 .. _subgroups:
 
@@ -202,11 +202,13 @@ Sometimes it can also be useful to introduce shared variables or subexpressions,
 i.e. variables that have a common value for all neurons. In contrast to
 external variables (such as ``Cm`` above), such variables can change during a
 run, e.g. by using :meth:`~brian2.groups.group.Group.run_regularly`. This can be
-for example used for an external stimulus that changes in the course of a run::
+for example used for an external stimulus that changes in the course of a run:
 
-    G = NeuronGroup(10, '''shared_input : volt (shared)
-                           dv/dt = (-v + shared_input)/tau : volt
-                           tau : second''')
+.. doctest::
+
+    >>> G = NeuronGroup(10, '''shared_input : volt (shared)
+    ...                        dv/dt = (-v + shared_input)/tau : volt
+    ...                        tau : second''', name='neurons')
 
 Note that there are several restrictions around the use of shared variables:
 they cannot be written to in contexts where statements apply only to a subset
@@ -229,7 +231,7 @@ For shared variables, setting by string expressions can only refer to shared val
 
     >>> G.shared_input = '(4.0/N)*mV'
     >>> G.shared_input
-    <neurongroup.shared_input: 0.4 * mvolt>
+    <neurons.shared_input: 0.4 * mvolt>
 
 .. _storing_state_variables:
 
@@ -245,7 +247,7 @@ a group on disk. This can be done with the
 .. doctest::
 
     >>> group = NeuronGroup(5, '''dv/dt = -v/tau : 1
-    ...                           tau : second''')
+    ...                           tau : second''', name='neurons')
     >>> initial_values = {'v': [0, 1, 2, 3, 4],
     ...                   'tau': [10, 20, 10, 20, 10]*ms}
     >>> group.set_states(initial_values)
@@ -260,25 +262,25 @@ a group on disk. This can be done with the
 The data (without physical units) can also be exported/imported to/from
 `Pandas <http://pandas.pydata.org/>`_ data frames (needs an installation of ``pandas``)::
 
-    >>> df = group.get_states(units=False, format='pandas')
-    >>> df
+    >>> df = group.get_states(units=False, format='pandas')  # doctest: +SKIP
+    >>> df  # doctest: +SKIP
        N      dt  i    t   tau    v
     0  5  0.0001  0  0.0  0.01  0.0
     1  5  0.0001  1  0.0  0.02  1.0
     2  5  0.0001  2  0.0  0.01  2.0
     3  5  0.0001  3  0.0  0.02  3.0
     4  5  0.0001  4  0.0  0.01  4.0
-    >>> df['tau']
+    >>> df['tau']  # doctest: +SKIP
     0    0.01
     1    0.02
     2    0.01
     3    0.02
     4    0.01
     Name: tau, dtype: float64
-    >>> df['tau'] *= 2
-    >>> group.set_states(df[['tau']], units=False, format='pandas')
-    >>> group.tau
-    <neurongroup.tau: array([ 20.,  40.,  20.,  40.,  20.]) * msecond>
+    >>> df['tau'] *= 2  # doctest: +SKIP
+    >>> group.set_states(df[['tau']], units=False, format='pandas')  # doctest: +SKIP
+    >>> group.tau  # doctest: +SKIP
+    <neurons.tau: array([ 20.,  40.,  20.,  40.,  20.]) * msecond>
 
 
 .. _linked_variables:

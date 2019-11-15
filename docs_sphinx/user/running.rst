@@ -231,7 +231,7 @@ a string summary can be obtained by calling `profiling_summary`. The
 following example shows profiling output after running the CUBA example (where
 the neuronal state updates take up the most time)::
 
-    >>> profiling_summary(show=5)  # show the 5 objects that took the longest
+    >>> profiling_summary(show=5)  # show the 5 objects that took the longest  # doctest: +SKIP
     Profiling summary
     =================
     neurongroup_stateupdater    5.54 s    61.32 %
@@ -302,7 +302,7 @@ To see how the objects in a network are scheduled, you can use the
     >>> group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v > 1',
     ...                     reset='v = 0')
     >>> mon = StateMonitor(group, 'v', record=True, dt=1*ms)
-    >>> scheduling_summary()
+    >>> scheduling_summary()  # doctest: +SKIP
                     object                  |           part of           |        Clock dt        |    when    | order | active
     ----------------------------------------+-----------------------------+------------------------+------------+-------+-------
     statemonitor (StateMonitor)             | statemonitor (StateMonitor) | 1. ms (every 10 steps) | start      |     0 |  yes
