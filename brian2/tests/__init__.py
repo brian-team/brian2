@@ -11,6 +11,8 @@ import tempfile
 
 from past.builtins import basestring
 
+import numpy as np
+
 import brian2
 from brian2.core.preferences import prefs
 from brian2.devices.device import all_devices, reset_device, reinit_and_delete
@@ -288,6 +290,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             print('Running doctests')
             # Some doctests do actually use code generation, use numpy for that
             prefs['codegen.target'] = 'numpy'
+            # Always test doctests with 64 bit, to avoid differences in print output
+            if float_dtype is not None:
+                prefs['core.default_float_dtype'] = np.float64
             sphinx_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                       '..', '..', 'docs_sphinx'))
             if os.path.exists(sphinx_dir):
@@ -309,6 +314,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
                                        plugins=[pref_plugin]) == 0)
+            # Set float_dtype back again if necessary
+            if float_dtype is not None:
+                prefs['core.default_float_dtype'] = float_dtype
 
             print('Running tests that do not use code generation')
             argv = make_argv(dirnames, "codegen_independent")
