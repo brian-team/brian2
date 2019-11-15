@@ -70,6 +70,7 @@ def setup_and_teardown(request):
     else:
         for k, v in request.config.brian_prefs.items():
             brian2.prefs[k] = v
+    brian2.prefs._backup()
     # Print output changed in numpy 1.14, stick with the old format to
     # avoid doctest failures
     try:
