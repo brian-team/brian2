@@ -179,7 +179,7 @@ def shall_skip(module):
     return path.getsize(module) <= 2
 
 
-def recurse_tree(rootpath, excludes, destdir):
+def recurse_tree(rootpath, exclude_dirs, exclude_files, destdir):
     """
     Look for every file in the directory tree and create the corresponding
     ReST files.
@@ -196,11 +196,12 @@ def recurse_tree(rootpath, excludes, destdir):
 
     toplevels = []
     for root, subs, files in os.walk(rootpath):
-        if is_excluded(root, excludes):
+        if is_excluded(root, exclude_dirs):
             del subs[:]
             continue
         # document only Python module files
-        py_files = sorted([f for f in files if path.splitext(f)[1] == '.py'])
+        py_files = sorted([f for f in files if (path.splitext(f)[1] == '.py'
+                                                and not f in exclude_files)])
         is_pkg = INITPY in py_files
         if is_pkg:
             py_files.remove(INITPY)
@@ -219,7 +220,7 @@ def recurse_tree(rootpath, excludes, destdir):
                 subpackage = root[len(rootpath):].lstrip(path.sep).\
                     replace(path.sep, '.')
                 create_package_file(root, root_package, subpackage,
-                                    py_files, subs, destdir, excludes)
+                                    py_files, subs, destdir, exclude_dirs)
                 toplevels.append(makename(root_package, subpackage))
         else:
             raise AssertionError('Expected it to be a package')
@@ -258,10 +259,10 @@ def is_excluded(root, excludes):
     return False
 
 
-def main(rootpath, excludes, destdir):
+def main(rootpath, exclude_dirs, exclude_files, destdir):
     if not os.path.exists(destdir):
         os.makedirs(destdir)
 
-    excludes = normalize_excludes(rootpath, excludes)
-    modules = recurse_tree(rootpath, excludes, destdir)
+    exclude_dirs = normalize_excludes(rootpath, exclude_dirs)
+    modules = recurse_tree(rootpath, exclude_dirs, exclude_files, destdir)
 
