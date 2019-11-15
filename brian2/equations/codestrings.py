@@ -4,7 +4,10 @@ information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
 from __future__ import absolute_import
-import collections
+try:
+    from collections.abc import Hashable
+except ImportError:
+    from collections import Hashable
 
 import sympy
 
@@ -17,7 +20,7 @@ __all__ = ['Expression', 'Statements']
 logger = get_logger(__name__)
 
 
-class CodeString(collections.Hashable):
+class CodeString(Hashable):
     '''
     A class for representing "code strings", i.e. a single Python expression
     or a sequence of Python statements.
