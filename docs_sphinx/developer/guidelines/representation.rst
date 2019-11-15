@@ -39,7 +39,7 @@ to work, they should use an underscore for subscripts and two underscores for su
 
     >>> from sympy import latex, Symbol
     >>> tau_1__e = Symbol('tau_1__e')
-    >>> print latex(tau_1__e)
+    >>> print(latex(tau_1__e))
     \tau^{e}_{1}
 
 Sympy's printer supports formatting arbitrary objects, all they have to do is to implement a

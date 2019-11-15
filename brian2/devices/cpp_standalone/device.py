@@ -9,7 +9,7 @@ import subprocess
 import sys
 import inspect
 import struct
-from collections import defaultdict, Counter, Mapping
+from collections import defaultdict, Counter
 import itertools
 import numbers
 import tempfile

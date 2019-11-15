@@ -3,18 +3,15 @@ import uuid
 import tempfile
 import logging
 
-from numpy.testing.utils import assert_array_equal, assert_raises
-from nose import with_setup, SkipTest
-from nose.plugins.attrib import attr
+from numpy.testing import assert_array_equal
+import pytest
 
 from brian2 import *
-from brian2.devices.device import reinit_and_delete
 from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spike_monitor():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', threshold='v>1', reset='v=0')
@@ -25,11 +22,13 @@ def test_spike_monitor():
 
     mon = SpikeMonitor(G)
 
-    assert_raises(ValueError, lambda: SpikeMonitor(G, order=1))  # need to specify 'when' as well
+    with pytest.raises(ValueError):
+        SpikeMonitor(G, order=1)  # need to specify 'when' as well
     # Creating a SpikeMonitor for a Synapses object should not work
     S = Synapses(G, G, on_pre='v += 0')
     S.connect()
-    assert_raises(TypeError, lambda: SpikeMonitor(S))
+    with pytest.raises(TypeError):
+        SpikeMonitor(S)
 
     run(10*ms)
 
@@ -53,9 +52,12 @@ def test_spike_monitor():
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
 
-    assert_raises(KeyError, lambda: spike_trains[3])
-    assert_raises(KeyError, lambda: spike_trains[-1])
-    assert_raises(KeyError, lambda: spike_trains['string'])
+    with pytest.raises(KeyError):
+        spike_trains[3]
+    with pytest.raises(KeyError):
+        spike_trains[-1]
+    with pytest.raises(KeyError):
+        spike_trains['string']
 
     # Check that indexing into the VariableView works (this fails if we do not
     # update the N variable correctly)
@@ -73,8 +75,7 @@ def test_spike_monitor_indexing():
     assert_array_equal(mon.i['t > 1.5 * ms'], [0]*ms)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spike_monitor_variables():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate : Hz
@@ -102,8 +103,7 @@ def test_spike_monitor_variables():
     assert_array_equal(mon2.prev_spikes[mon2.i == 1], [])
     assert_array_equal(mon2.prev_spikes[mon2.i == 2], np.arange(10)+1)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spike_monitor_get_states():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate : Hz
@@ -124,8 +124,7 @@ def test_spike_monitor_get_states():
     assert_array_equal(all_states['N'], mon1.N)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spike_monitor_subgroups():
     G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
     G.do_spike = [True, False, False, False, True, True]
@@ -147,7 +146,7 @@ def test_spike_monitor_subgroups():
 def test_spike_monitor_bug_824():
     # See github issue #824
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
     G.do_spike = [True, False, False, True, False, False]
@@ -158,8 +157,7 @@ def test_spike_monitor_bug_824():
     assert_array_equal(spikes_2.count, [4, 0, 0])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_event_monitor():
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', events={'my_event': 'v>1'})
@@ -193,13 +191,15 @@ def test_event_monitor():
     assert_array_equal(t, mon.t)
     assert_array_equal(t_, mon.t_)
 
-    assert_raises(KeyError, lambda: event_trains[3])
-    assert_raises(KeyError, lambda: event_trains[-1])
-    assert_raises(KeyError, lambda: event_trains['string'])
+    with pytest.raises(KeyError):
+        event_trains[3]
+    with pytest.raises(KeyError):
+        event_trains[-1]
+    with pytest.raises(KeyError):
+        event_trains['string']
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_event_monitor_no_record():
     # Check that you can switch off recording spike times/indices
     G = NeuronGroup(3, '''dv/dt = rate : 1
@@ -233,8 +233,7 @@ def test_event_monitor_no_record():
     assert len(event_mon2.rate) == event_mon.num_events
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spike_trains():
     # An arbitrary combination of indices that has been shown to sort in an
     # unstable way with quicksort and therefore lead to out-of-order values
@@ -269,8 +268,7 @@ def test_synapses_state_monitor():
     assert_allclose(synapse_mon2[S['i==0 and j==1']].w, 1*nS)
     assert_allclose(synapse_mon2.w[1], 1*nS)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_monitor():
     # Unique name to get the warning even for repeated runs of the test
     unique_name = 'neurongroup_' + str(uuid.uuid4()).replace('-', '_')
@@ -344,14 +342,15 @@ def test_state_monitor():
     assert_allclose(synapse_mon.w[:], np.tile(S.j[:]*nS,
                                               (synapse_mon.w[:].shape[1], 1)).T)
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_state_monitor_record_single_timestep():
     G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1')
     G.v = 1
     mon = StateMonitor(G, 'v', record=True)
     # Recording before a run should not work
-    assert_raises(TypeError, lambda: mon.record_single_timestep())
+    with pytest.raises(TypeError):
+        mon.record_single_timestep()
     run(0.5*ms)
     mon.record_single_timestep()
     device.build(direct_call=False, **device.build_options)
@@ -362,8 +361,7 @@ def test_state_monitor_record_single_timestep():
     assert mon[0].v[-1] == G.v
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_monitor_indexing():
     # Check indexing semantics
     G = NeuronGroup(10, 'v:volt')
@@ -385,13 +383,16 @@ def test_state_monitor_indexing():
 
     assert_allclose(mon.t[1:], Quantity([defaultclock.dt]))
 
-    assert_raises(IndexError, lambda: mon[8])
-    assert_raises(TypeError, lambda: mon['string'])
-    assert_raises(TypeError, lambda: mon[5.0])
-    assert_raises(TypeError, lambda: mon[[5.0, 6.0]])
+    with pytest.raises(IndexError):
+        mon[8]
+    with pytest.raises(TypeError):
+        mon['string']
+    with pytest.raises(TypeError):
+        mon[5.0]
+    with pytest.raises(TypeError):
+        mon[[5.0, 6.0]]
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_monitor_get_states():
     G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
                           f = clip(v, 0.1, 0.9) : 1
@@ -409,8 +410,7 @@ def test_state_monitor_get_states():
     assert_array_equal(all_states['t'], mon.t[:])
     assert_array_equal(all_states['N'], mon.N)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_monitor_resize():
     # Test for issue #518 (weave/cython did not resize the Variable object)
     G = NeuronGroup(2, 'v : 1')
@@ -427,8 +427,7 @@ def test_state_monitor_resize():
     # variable that is visible to the user
     assert mon.variables['v'].size == (10, 2)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_rate_monitor_1():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
@@ -444,8 +443,7 @@ def test_rate_monitor_1():
     # update the N variable correctly)
     assert_allclose(rate_mon.t[:5], np.arange(5) * defaultclock.dt)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_rate_monitor_2():
     G = NeuronGroup(10, 'v : 1', threshold='v>1') # no reset
     G.v['i<5'] = 1.1  # Half of the neurons fire every time step
@@ -455,7 +453,7 @@ def test_rate_monitor_2():
     assert_allclose(rate_mon.rate, 0.5 * np.ones(10) / defaultclock.dt)
     assert_allclose(rate_mon.rate_, 0.5 *np.asarray(np.ones(10) / defaultclock.dt_))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_rate_monitor_smoothed_rate():
     # Test the filter response by having a single spiking neuron
     G = SpikeGeneratorGroup(1, [0], [1]*ms)
@@ -495,23 +493,28 @@ def test_rate_monitor_smoothed_rate():
     assert_allclose(smoothed_flat, smoothed_custom)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_rate_monitor_smoothed_rate_incorrect():
     # Test the filter response by having a single spiking neuron
     G = SpikeGeneratorGroup(1, [0], [1]*ms)
     r_mon = PopulationRateMonitor(G)
     run(2*ms)
 
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window='flat'))  # no width
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(5), width=1*ms))
-    assert_raises(NotImplementedError, lambda: r_mon.smooth_rate(window='unknown', width=1*ms))
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=object()))
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(5, 2)))
-    assert_raises(TypeError, lambda: r_mon.smooth_rate(window=np.ones(4)))  # even number
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window='flat')  # no width
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=np.ones(5), width=1*ms)
+    with pytest.raises(NotImplementedError):
+        r_mon.smooth_rate(window='unknown', width=1*ms)
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=object())
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=np.ones(5, 2))
+    with pytest.raises(TypeError):
+        r_mon.smooth_rate(window=np.ones(4))  # even number
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_rate_monitor_get_states():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
     G.v = 1.1 # All neurons spike every time step
@@ -524,8 +527,7 @@ def test_rate_monitor_get_states():
     assert_array_equal(all_states['N'], rate_mon.N)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
@@ -543,8 +545,7 @@ def test_rate_monitor_subgroups():
     defaultclock.dt = old_dt
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_rate_monitor_subgroups_2():
     G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
     G.do_spike = [True, False, False, False, True, True]
@@ -559,13 +560,14 @@ def test_rate_monitor_subgroups_2():
     assert_allclose(rate_3.rate, 1 / defaultclock.dt)
 
 if __name__ == '__main__':
+    from _pytest.outcomes import Skipped
     test_spike_monitor()
     test_spike_monitor_indexing()
     test_spike_monitor_get_states()
     test_spike_monitor_subgroups()
     try:
         test_spike_monitor_bug_824()
-    except SkipTest:
+    except Skipped:
         pass
     test_spike_monitor_variables()
     test_event_monitor()

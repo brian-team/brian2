@@ -23,7 +23,7 @@ from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
 from brian2.core.base import BrianObject, brian_object_exception
 from brian2.core.clocks import Clock, defaultclock
-from brian2.devices.device import get_device, all_devices
+from brian2.devices.device import get_device, all_devices, RuntimeDevice
 from brian2.groups.group import Group
 from brian2.units.fundamentalunits import check_units, Quantity
 from brian2.units.allunits import second, msecond
@@ -188,7 +188,7 @@ class SchedulingSummary(object):
                              [['{} ({})'.format(entry.name, entry.type),
                                '{} ({})'.format(entry.owner_name, entry.owner_type)
                                if entry.owner_name is not None else '--',
-                               '{} (every {})'.format(entry.dt,
+                               '{} (every {})'.format(str(entry.dt),
                                                      'step' if self.steps[float(entry.dt)] == 1
                                                      else '{} steps'.format(self.steps[float(entry.dt)])),
                                entry.when,
@@ -209,7 +209,7 @@ class SchedulingSummary(object):
         '''.format('<b>{}</b> (<em>{}</em>)'.format(entry.name, entry.type),
                    '{} (<em>{}</em>)'.format(entry.owner_name, entry.owner_type)
                    if entry.owner_name is not None else '&ndash;',
-                   '{} (every {})'.format(entry.dt,
+                   '{} (every {})'.format(str(entry.dt),
                                           'step' if self.steps[float(entry.dt)] == 1
                                           else '{} steps'.format(self.steps[float(entry.dt)])),
                    entry.when,
@@ -411,7 +411,7 @@ class Network(Nameable):
     @property
     def profiling_info(self):
         '''
-        The time spent in executing the various `CodeObject`\ s.
+        The time spent in executing the various `CodeObject` s.
 
         A list of ``(name, time)`` tuples, containing the name of the
         `CodeObject` and the total execution time for simulations of this object
@@ -571,6 +571,10 @@ class Network(Nameable):
             clock._set_t_update_dt(target_t=self.t)
 
         state = self._full_state()
+        # Store the state of the random number generator
+        dev = get_device()
+        state['_random_generator_state'] = dev.get_random_state()
+
         if filename is None:
             self._stored_state[name] = state
         else:
@@ -587,9 +591,10 @@ class Network(Nameable):
                 pickle.dump(store_state, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     @device_override('network_restore')
-    def restore(self, name='default', filename=None):
+    def restore(self, name='default', filename=None,
+                restore_random_state=False):
         '''
-        restore(name='default', filename=None)
+        restore(name='default', filename=None, restore_random_state=False)
 
         Retore the state of the network and all included objects.
 
@@ -603,6 +608,16 @@ class Network(Nameable):
             not specified, it is expected that the state exist in memory
             (i.e. `Network.store` was previously called without the ``filename``
             argument).
+        restore_random_state : bool, optional
+            Whether to restore the state of the random number generator. If set
+            to ``True``, going back to an earlier state of the simulation will
+            continue exactly where it left off, even if the simulation is
+            stochastic. If set to ``False`` (the default), random numbers are
+            independent between runs (except for explicitly set random seeds),
+            regardless of whether `store`/`restore` has been used or not. Note
+            that this also restores numpy's random number generator (since it is
+            used internally by Brian), but it does *not* restore Python's
+            builtin random number generator in the ``random`` module.
         '''
         all_objects = _get_all_objects(self.objects)
         if filename is None:
@@ -611,6 +626,9 @@ class Network(Nameable):
             with open(filename, 'rb') as f:
                 state = pickle.load(f)[name]
         self.t_ = state['0_t']
+        if restore_random_state:
+            dev = get_device()
+            dev.set_random_state(state['_random_generator_state'])
         clocks = {obj.clock for obj in all_objects}
         restored_objects = set()
         for obj in all_objects:
@@ -626,7 +644,8 @@ class Network(Nameable):
             clock._restore_from_full_state(state[clock.name])
         clock_names = {c.name for c in clocks}
 
-        unnused = set(state.keys()) - restored_objects - clock_names - {'0_t'}
+        unnused = (set(state.keys()) - restored_objects - clock_names -
+                   {'0_t', '_random_generator_state'})
         if len(unnused):
             raise KeyError('The stored state contains the state of the '
                            'following objects which were not present in the '

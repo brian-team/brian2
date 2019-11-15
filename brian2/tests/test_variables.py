@@ -4,9 +4,8 @@ Some basic tests for the `Variable` system
 from __future__ import absolute_import
 from collections import namedtuple
 
-from nose.plugins.attrib import attr
+import pytest
 import numpy as np
-from numpy.testing import assert_raises
 
 from brian2.core.preferences import prefs
 from brian2.core.variables import *
@@ -14,22 +13,19 @@ from brian2.units.fundamentalunits import Unit
 from brian2.units.allunits import second
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
-    assert_raises(ValueError, lambda: Variable(name='name', dimensions=second.dim,
-                                               dtype=np.bool))
+    with pytest.raises(ValueError):
+        Variable(name='name', dimensions=second.dim, dtype=np.bool)
 
     # Dynamic array variable that is constant but not constant in size
-    assert_raises(ValueError, lambda: DynamicArrayVariable(name='name',
-                                                           owner=None,
-                                                           size=0,
-                                                           device=None,
-                                                           constant=True,
-                                                           needs_reference_update=True))
+    with pytest.raises(ValueError):
+        DynamicArrayVariable(name='name', owner=None, size=0, device=None,
+                             constant=True, needs_reference_update=True)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     # Basic test that the str/repr methods work
     FakeGroup = namedtuple('G', ['name'])
@@ -48,7 +44,7 @@ def test_str_repr():
         assert len(repr(var)) and var.__class__.__name__ in repr(var)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_dtype_str():
     FakeGroup = namedtuple('G', ['name'])
     group = FakeGroup(name='groupname')

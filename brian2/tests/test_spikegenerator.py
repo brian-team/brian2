@@ -6,9 +6,8 @@ Tests for `SpikeGeneratorGroup`
 import os
 import tempfile
 
-from nose import with_setup
-from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_raises, assert_equal, assert_array_equal
+import pytest
+from numpy.testing import assert_equal, assert_array_equal
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
@@ -17,8 +16,7 @@ from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spikegenerator_connected():
     '''
     Test that `SpikeGeneratorGroup` connects properly.
@@ -44,8 +42,7 @@ def test_spikegenerator_connected():
     assert all(mon[1].v[(mon.t>=3*ms+offset) & (mon.t<4*ms+offset)] == 1)
     assert all(mon[1].v[(mon.t>=4*ms+offset)] == 2)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spikegenerator_basic():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -58,8 +55,7 @@ def test_spikegenerator_basic():
     _compare_spikes(5, indices, times, s_mon)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spikegenerator_basic_sorted():
     '''
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
@@ -72,8 +68,7 @@ def test_spikegenerator_basic_sorted():
     _compare_spikes(5, indices, times, s_mon)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spikegenerator_basic_sorted_with_sorted():
     '''
     Basic test for `SpikeGeneratorGroup` with already sorted spike events.
@@ -86,8 +81,7 @@ def test_spikegenerator_basic_sorted_with_sorted():
     _compare_spikes(5, indices, times, s_mon)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spikegenerator_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -104,7 +98,7 @@ def test_spikegenerator_period():
         assert_allclose(generator_spikes, recorded_spikes)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_spikegenerator_extreme_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -120,25 +114,25 @@ def test_spikegenerator_extreme_period():
     assert_allclose(s_mon.t, [0, 1, 2]*ms)
     assert len(l) == 1 and l[0][1].endswith('spikegenerator_long_period')
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_spikegenerator_period_rounding():
     # See discussion in PR #1042
     # The last spike will be considered to be in the time step *after* 1s, due
     # to the way our rounding works. Although probably not what the user
     # expects, this should therefore raise an error. In previous versions of
     # Brian, this did not raise any error but silently discarded the spike.
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [0, 0, 0],
-                                                          [0*ms, .9*ms, .99999*ms],
-                                                          period=1*ms, dt=0.1*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .99999*ms],
+                            period=1*ms, dt=0.1*ms)
     # This should also raise a ValueError, since the last two spikes fall into
     # the same bin
     s = SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .96*ms],
                             period=1*ms, dt=0.1*ms)
     net = Network(s)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
-@with_setup(teardown=reinit_and_delete)
+
 def test_spikegenerator_period_repeat():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -165,8 +159,8 @@ def _compare_spikes(N, indices, times, recorded, start_time=0*ms, end_time=1e100
         recorded_spikes = sorted([(idx, time) for time in recorded.t[recorded.i==idx] if time >= start_time and time < end_time])
         assert_allclose(generator_spikes, recorded_spikes)
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_spikegenerator_change_spikes():
     indices1 = np.array([3, 2, 1, 1, 2, 3, 3, 2, 1])
     times1   = np.array([1, 4, 4, 3, 2, 4, 2, 3, 2]) * ms
@@ -191,8 +185,8 @@ def test_spikegenerator_change_spikes():
     _compare_spikes(5, indices2, times2, s_mon, 5*ms, 10*ms)
     _compare_spikes(5, indices3, times3, s_mon, 10*ms)
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_spikegenerator_change_period():
     '''
     Basic test for `SpikeGeneratorGroup`.
@@ -216,43 +210,51 @@ def test_spikegenerator_change_period():
                     s_mon, 0*ms, 10*ms)
     _compare_spikes(5, indices2, times2, s_mon, 10*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_spikegenerator_incorrect_values():
-    assert_raises(TypeError, lambda: SpikeGeneratorGroup(0, [], []*second))
+    with pytest.raises(TypeError):
+        SpikeGeneratorGroup(0, [], []*second)
     # Floating point value for N
-    assert_raises(TypeError, lambda: SpikeGeneratorGroup(1.5, [], []*second))
+    with pytest.raises(TypeError):
+        SpikeGeneratorGroup(1.5, [], []*second)
     # Negative index
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 3, -1], [0, 1, 2]*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(5, [0, 3, -1], [0, 1, 2]*ms)
     # Too high index
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 5, 1], [0, 1, 2]*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(5, [0, 5, 1], [0, 1, 2]*ms)
     # Negative time
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(5, [0, 1, 2], [0, -1, 2]*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(5, [0, 1, 2], [0, -1, 2]*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_spikegenerator_incorrect_period():
     '''
     Test that you cannot provide incorrect period arguments or combine
     inconsistent period and dt arguments.
     '''
     # Period is negative
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [], []*second,
-                                                          period=-1*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(1, [], []*second, period=-1*ms)
 
     # Period is smaller than the highest spike time
-    assert_raises(ValueError, lambda: SpikeGeneratorGroup(1, [0], [2]*ms,
-                                                          period=1*ms))
+    with pytest.raises(ValueError):
+        SpikeGeneratorGroup(1, [0], [2]*ms, period=1*ms)
     # Period is not an integer multiple of dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1.25*ms, dt=0.1*ms)
     net = Network(SG)
-    assert_raises(NotImplementedError, lambda: net.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=0.101 * ms, dt=0.1 * ms)
     net = Network(SG)
-    assert_raises(NotImplementedError, lambda: net.run(0 * ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0 * ms)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=3.333 * ms, dt=0.1 * ms)
     net = Network(SG)
-    assert_raises(NotImplementedError, lambda: net.run(0 * ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0 * ms)
 
     # This should not raise an error (see #1041)
     SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
@@ -262,9 +264,10 @@ def test_spikegenerator_incorrect_period():
     # Period is smaller than dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1*ms, dt=2*ms)
     net = Network(SG)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
-@with_setup(teardown=reinit_and_delete)
+
 def test_spikegenerator_rounding():
     # all spikes should fall into the first time bin
     indices = np.arange(100)
@@ -291,8 +294,9 @@ def test_spikegenerator_rounding():
     net.run(10000*dt)
     assert_equal(mon[0].count, np.ones(10000))
 
-@attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_and_delete)
+
+@pytest.mark.standalone_compatible
+@pytest.mark.long
 def test_spikegenerator_rounding_long():
     # all spikes should fall in separate bins
     dt = 0.1*ms
@@ -309,8 +313,9 @@ def test_spikegenerator_rounding_long():
     assert spikes.count[0] == N, 'expected %d spikes, got %d' % (N, spikes.count[0])
     assert all(np.diff(mon[0].count[:]) == 1)
 
-@attr('standalone-compatible', 'long')
-@with_setup(teardown=reinit_and_delete)
+
+@pytest.mark.standalone_compatible
+@pytest.mark.long
 def test_spikegenerator_rounding_period():
     # all spikes should fall in separate bins
     dt = 0.1*ms
@@ -329,8 +334,8 @@ def test_spikegenerator_rounding_period():
     assert_equal(spikes.count[0], N*repeats)
     assert all(np.diff(mon[0].count[:]) == 1)
 
-@attr('codegen-independent')
-@with_setup(teardown=restore_initial_state)
+
+@pytest.mark.codegen_independent
 def test_spikegenerator_multiple_spikes_per_bin():
     # Multiple spikes per bin are of course fine if they don't belong to the
     # same neuron
@@ -341,7 +346,8 @@ def test_spikegenerator_multiple_spikes_per_bin():
     # This should raise an error
     SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
     net = Network(SG)
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -349,10 +355,12 @@ def test_spikegenerator_multiple_spikes_per_bin():
     net = Network(SG)
     net.run(0*ms)  # all is fine
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
-    assert_raises(ValueError, lambda: net.run(0*ms))
+    with pytest.raises(ValueError):
+        net.run(0*ms)
 
-@attr('standalone-compatible', 'multiple-runs')
-@with_setup(teardown=reinit_and_delete)
+
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_spikegenerator_multiple_runs():
     indices = np.zeros(5)
     times = np.arange(5)*ms

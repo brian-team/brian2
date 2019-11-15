@@ -1,7 +1,6 @@
 from __future__ import absolute_import
-from numpy.testing.utils import assert_equal, assert_raises
-from nose import with_setup
-from nose.plugins.attrib import attr
+from numpy.testing import assert_equal
+import pytest
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete
@@ -9,8 +8,7 @@ from brian2.core.network import schedule_propagation_offset
 from brian2.tests.utils import assert_allclose
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_poissoninput():
     # Test extreme cases and do a very basic test of an intermediate case, we
     # don't want tests to be stochastic
@@ -49,30 +47,31 @@ def test_poissoninput():
     assert all(np.var(mon.z2[:], axis=0) > 0)  # variability over neurons
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_poissoninput_errors():
     # Targeting non-existing variable
     G = NeuronGroup(10, '''x : volt
                            y : 1''')
-    assert_raises(KeyError, lambda: PoissonInput(G, 'z', 100, 100*Hz, weight=1.0))
+    with pytest.raises(KeyError):
+        PoissonInput(G, 'z', 100, 100*Hz, weight=1.0)
 
     # Incorrect units
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonInput(G, 'x', 100, 100*Hz, weight=1.0))
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonInput(G, 'y', 100, 100*Hz, weight=1.0*volt))
+    with pytest.raises(DimensionMismatchError):
+        PoissonInput(G, 'x', 100, 100*Hz, weight=1.0)
+    with pytest.raises(DimensionMismatchError):
+        PoissonInput(G, 'y', 100, 100*Hz, weight=1.0*volt)
 
     # dt change
     old_dt = defaultclock.dt
     inp = PoissonInput(G, 'x', 100, 100*Hz, weight=1*volt)
     defaultclock.dt = 2 * old_dt
     net = Network(collect())
-    assert_raises(NotImplementedError, lambda: net.run(0*ms))
+    with pytest.raises(NotImplementedError):
+        net.run(0*ms)
     defaultclock.dt = old_dt
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_poissoninput_refractory():
     eqs = '''
     dv/dt = 0/second : 1 (unless refractory)

@@ -239,12 +239,14 @@ class MagicNetwork(Network):
         super(MagicNetwork, self).store(name=name, filename=filename)
         self.objects.clear()
 
-    def restore(self, name='default', filename=None, level=0):
+    def restore(self, name='default', filename=None, restore_random_state=False,
+                level=0):
         '''
-        See `Network.store`.
+        See `Network.restore`.
         '''
         self._update_magic_objects(level=level+1)
-        super(MagicNetwork, self).restore(name=name, filename=filename)
+        super(MagicNetwork, self).restore(name=name, filename=filename,
+                                          restore_random_state=restore_random_state)
         self.objects.clear()
 
     def get_states(self, units=True, format='dict', subexpressions=False,
@@ -392,7 +394,7 @@ def store(name='default', filename=None):
     magic_network.store(name=name, filename=filename, level=1)
 
 
-def restore(name='default', filename=None):
+def restore(name='default', filename=None, restore_random_state=False):
     '''
     Restore the state of the network and all included objects.
 
@@ -406,12 +408,22 @@ def restore(name='default', filename=None):
         not specified, it is expected that the state exist in memory
         (i.e. `Network.store` was previously called without the ``filename``
         argument).
-
+    restore_random_state : bool, optional
+        Whether to restore the state of the random number generator. If set
+        to ``True``, going back to an earlier state of the simulation will
+        continue exactly where it left off, even if the simulation is
+        stochastic. If set to ``False`` (the default), random numbers are
+        independent between runs (except for explicitly set random seeds),
+        regardless of whether `store`/`restore` has been used or not. Note
+        that this also restores numpy's random number generator (since it is
+        used internally by Brian), but it does *not* restore Python's
+        builtin random number generator in the ``random`` module.
     See Also
     --------
     Network.restore
     '''
-    magic_network.restore(name=name, filename=filename, level=1)
+    magic_network.restore(name=name, filename=filename,
+                          restore_random_state=restore_random_state, level=1)
 
 
 def stop():

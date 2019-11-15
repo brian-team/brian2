@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import numpy as np
-from numpy.testing.utils import assert_equal
-from nose.plugins.attrib import attr
+from numpy.testing import assert_equal
+import pytest
 
 from brian2.synapses.spikequeue import SpikeQueue
 from brian2.units.stdunits import ms
@@ -34,7 +34,7 @@ def create_one_to_one(N, dt):
     return synapses, delays
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_spikequeue():
     N = 100
     dt = float(0.1*ms)

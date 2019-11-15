@@ -3,19 +3,17 @@ from __future__ import absolute_import
 import re
 import logging
 
-from numpy.testing.utils import assert_equal, assert_raises
-from nose.plugins.attrib import attr
-from nose import with_setup
+from numpy.testing import assert_equal
+import pytest
 
 from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
-from brian2.devices.device import reinit_and_delete
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import assert_allclose
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_explicit_stateupdater_parsing():
     '''
     Test the parsing of explicit state updater descriptions.
@@ -42,16 +40,19 @@ def test_explicit_stateupdater_parsing():
     
     # Examples of failed parsing
     # No x_new = ... statement
-    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('x = x + dt * f(x, t)'))
+    with pytest.raises(SyntaxError):
+        ExplicitStateUpdater('x = x + dt * f(x, t)')
     # Not an assigment
-    assert_raises(SyntaxError, lambda: ExplicitStateUpdater('''2 * x
-                                                               x_new = x + dt * f(x, t)'''))
+    with pytest.raises(SyntaxError):
+        ExplicitStateUpdater('''2 * x
+                                x_new = x + dt * f(x, t)''')
     
     # doesn't separate into stochastic and non-stochastic part
     updater = ExplicitStateUpdater('''x_new = x + dt * f(x, t) * g(x, t) * dW''')
-    assert_raises(ValueError, lambda: updater(Equations('')))
+    with pytest.raises(ValueError):
+        updater(Equations(''))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_non_autonomous_equations():
     # Check that non-autonmous equations are handled correctly in multi-step
     # updates
@@ -60,7 +61,7 @@ def test_non_autonomous_equations():
     # very crude test
     assert '0.5*dt' in update_step
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     '''
     Assure that __str__ and __repr__ do not raise errors 
@@ -70,7 +71,7 @@ def test_str_repr():
         assert len(repr(integrator))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_multiple_noise_variables_basic():
     # Very basic test, only to make sure that stochastic state updaters handle
     # multiple noise variables at all
@@ -120,34 +121,7 @@ def test_multiple_noise_variables_extended():
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
-old_randn = None
-def store_randn():
-    global old_randn
-    old_randn = DEFAULT_FUNCTIONS['randn']
-def restore_randn():
-    DEFAULT_FUNCTIONS['randn'] = old_randn
-
-# The "random" values are always 0.5
-def fake_randn(vectorisation_idx):
-    return 0.5*np.ones_like(vectorisation_idx)
-fake_randn = Function(fake_randn, arg_units=[], return_unit=1, auto_vectorise=True,
-                      stateless=False)
-fake_randn.implementations.add_implementation('cpp', '''
-                                              double randn(int vectorisation_idx)
-                                              {
-                                                  return 0.5;
-                                              }
-                                              ''')
-fake_randn.implementations.add_implementation('cython','''
-                                    cdef double randn(int vectorisation_idx):
-                                        return 0.5
-                                    ''')
-
-@with_setup(setup=store_randn, teardown=restore_randn)
-def test_multiple_noise_variables_deterministic_noise():
-
-    DEFAULT_FUNCTIONS['randn'] = fake_randn
-
+def test_multiple_noise_variables_deterministic_noise(fake_randn_randn_fixture):
     all_eqs = ['''dx/dt = y : 1
                           dy/dt = -y / (10*ms) + dt**-.5*0.5*ms**-1.5 + dt**-.5*0.5*ms**-1.5: Hz
                      ''',
@@ -183,7 +157,7 @@ def test_multiple_noise_variables_deterministic_noise():
                             err_msg='Method %s gave incorrect results' % method_name)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_multiplicative_noise():
     # Noise is not multiplicative (constant over time step)
     ta = TimedArray([0, 1], dt=defaultclock.dt*10)
@@ -196,39 +170,42 @@ def test_multiplicative_noise():
     Eq1 = Equations('dv/dt = v*xi*(5*ms)**-0.5 :1')
     group1 = NeuronGroup(1, Eq1, method='euler')
     net1 = Network(group1)
-    assert_raises(UnsupportedEquationsException, net1.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net1.run(0*ms)
 
     # Noise is multiplicative (multiplied with time)
     Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
     group2 = NeuronGroup(1, Eq2, method='euler')
     net2 = Network(group2)
-    assert_raises(UnsupportedEquationsException, net2.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net2.run(0*ms)
 
     # Noise is multiplicative (multiplied with time-varying variable)
     Eq3 = Equations('''dv/dt = w*xi*(5*ms)**-0.5 :1
                        dw/dt = -w/(10*ms) : 1''')
     group3 = NeuronGroup(1, Eq3, method='euler')
     net3 = Network(group3)
-    assert_raises(UnsupportedEquationsException, net3.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net3.run(0*ms)
 
     # One of the equations has multiplicative noise
     Eq4 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
                        dw/dt = (t/ms)*xi_2*(5*ms)**-0.5 :1''')
     group4 = NeuronGroup(1, Eq4, method='euler')
     net4 = Network(group4)
-    assert_raises(UnsupportedEquationsException, net4.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net4.run(0*ms)
 
     # One of the equations has multiplicative noise
     Eq5 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
                        dw/dt = v*xi_2*(5*ms)**-0.5 :1''')
     group5 = NeuronGroup(1, Eq5, method='euler')
     net5 = Network(group4)
-    assert_raises(UnsupportedEquationsException, net5.run, 0*ms)
+    with pytest.raises(UnsupportedEquationsException):
+        net5.run(0*ms)
 
 
-@with_setup(setup=store_randn, teardown=restore_randn)
-def test_pure_noise_deterministic():
-    DEFAULT_FUNCTIONS['randn'] = fake_randn
+def test_pure_noise_deterministic(fake_randn_randn_fixture):
     sigma = 3
     eqs = Equations('dx/dt = sigma*xi/sqrt(ms) : 1')
     dt = 0.1*ms
@@ -239,7 +216,7 @@ def test_pure_noise_deterministic():
                         err_msg='method %s did not give the expected result' % method)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_temporary_variables():
     '''
     Make sure that the code does the distinction between temporary variables
@@ -260,7 +237,7 @@ def test_temporary_variables():
     assert converted == converted2.replace('k_var', 'k_2')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_temporary_variables2():
     '''
     Make sure that the code does the distinction between temporary variables
@@ -282,7 +259,7 @@ def test_temporary_variables2():
     assert converted == converted2.replace('k_var', 'k')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_integrator_code():
     '''
     Check whether the returned abstract code is as expected.
@@ -318,7 +295,7 @@ def test_integrator_code():
             assert code_var == code_v, "'%s' does not match '%s'" % (code_var, code_v)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_integrator_code2():
     '''
     Test integration for a simple model with several state variables.
@@ -342,7 +319,7 @@ def test_integrator_code2():
         for variable in variables:
             assert variable in rhs, '%s not in RHS: "%s"' % (variable, rhs)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_illegal_calls():
     eqs = Equations('dv/dt = -v / (10*ms) : 1')
     clock = Clock(dt=0.1*ms)
@@ -351,20 +328,20 @@ def test_illegal_calls():
                                     constant=False),
                  't': clock.variables['t'],
                  'dt': clock.variables['dt']}
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          object()))
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          group_name='my_name',
-                                                                          method=object()))
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          [object(), 'euler']))
-    assert_raises(TypeError, lambda: StateUpdateMethod.apply_stateupdater(eqs,
-                                                                          variables,
-                                                                          group_name='my_name',
-                                                                          method=[object(), 'euler']))
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs, variables, object())
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs,
+                                             variables,
+                                             group_name='my_name',
+                                             method=object())
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs, variables, [object(), 'euler'])
+    with pytest.raises(TypeError):
+        StateUpdateMethod.apply_stateupdater(eqs,
+                                             variables,
+                                             group_name='my_name',
+                                             method=[object(), 'euler'])
 
 def check_integration(eqs, variables, can_integrate):
     # can_integrate maps integrators to True/False/None
@@ -386,7 +363,7 @@ def check_integration(eqs, variables, can_integrate):
                                      'integrator {}'.format(eqs,
                                                             integrator.__class__.__name__))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_priority():
     updater = ExplicitStateUpdater('x_new = x + dt * f(x, t)')
     # Equations that work for the state updater
@@ -433,8 +410,8 @@ def test_priority():
 
     # Equation with additive noise
     eqs = Equations('dv/dt = -v / (10*ms) + xi/(10*ms)**.5 : 1')
-    assert_raises(UnsupportedEquationsException,
-                  lambda: updater(eqs, variables))
+    with pytest.raises(UnsupportedEquationsException):
+        updater(eqs, variables)
     
     can_integrate = {linear: False, euler: True, exponential_euler: False,
                      rk2: False, rk4: False, heun: True, milstein: True}
@@ -443,8 +420,8 @@ def test_priority():
     
     # Equation with multiplicative noise
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi/(10*ms)**.5 : 1')
-    assert_raises(UnsupportedEquationsException,
-                  lambda: updater(eqs, variables))
+    with pytest.raises(UnsupportedEquationsException):
+        updater(eqs, variables)
     
     can_integrate = {linear: False, euler: False, exponential_euler: False,
                      rk2: False, rk4: False, heun: True, milstein: True}
@@ -452,7 +429,7 @@ def test_priority():
     check_integration(eqs, variables, can_integrate)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_registration():
     '''
     Test state updater registration.
@@ -464,23 +441,22 @@ def test_registration():
     StateUpdateMethod.register('lazy', lazy_updater)
     
     # Trying to register again
-    assert_raises(ValueError,
-                  lambda: StateUpdateMethod.register('lazy', lazy_updater))
+    with pytest.raises(ValueError):
+        StateUpdateMethod.register('lazy', lazy_updater)
     
     # Trying to register something that is not a state updater
-    assert_raises(ValueError,
-                  lambda: StateUpdateMethod.register('foo', 'just a string'))
+    with pytest.raises(ValueError):
+        StateUpdateMethod.register('foo', 'just a string')
     
     # Trying to register with an invalid index
-    assert_raises(TypeError,
-                  lambda: StateUpdateMethod.register('foo', lazy_updater,
-                                                     index='not an index'))
+    with pytest.raises(TypeError):
+        StateUpdateMethod.register('foo', lazy_updater, index='not an index')
     
     # reset to state before the test
     StateUpdateMethod.stateupdaters = before 
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_determination():
     '''
     Test the determination of suitable state updaters.
@@ -505,7 +481,8 @@ def test_determination():
     # Equation with multiplicative noise, only milstein and heun should work
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for integrator in (linear, independent, euler, exponential_euler, rk2, rk4):
-        assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs, variables, integrator))
+        with pytest.raises(UnsupportedEquationsException):
+            apply_stateupdater(eqs, variables, integrator)
 
     for integrator in (heun, milstein):
         with catch_logs() as logs:
@@ -539,9 +516,8 @@ def test_determination():
     eqs = Equations('dv/dt = -v / (10*ms) + v*xi*second**-.5: 1')
     for name in ['linear', 'exact', 'independent', 'euler', 'exponential_euler',
                  'rk2', 'rk4']:
-        assert_raises(UnsupportedEquationsException, lambda: apply_stateupdater(eqs,
-                                                                                variables,
-                                                                                method=name))
+        with pytest.raises(UnsupportedEquationsException):
+            apply_stateupdater(eqs, variables, method=name)
 
     # milstein should work
     with catch_logs() as logs:
@@ -554,9 +530,8 @@ def test_determination():
         assert len(logs) == 0
     
     # non-existing name
-    assert_raises(ValueError, lambda: apply_stateupdater(eqs,
-                                                         variables,
-                                                         method='does_not_exist'))
+    with pytest.raises(ValueError):
+        apply_stateupdater(eqs, variables, method='does_not_exist')
     
     # Automatic state updater choice should return linear for linear equations,
     # euler for non-linear, non-stochastic equations and equations with
@@ -600,8 +575,7 @@ def test_determination():
         assert len(logs) == 1
         assert "'heun'" in logs[0][2]
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_subexpressions_basic():
     '''
     Make sure that the integration of a (non-stochastic) differential equation
@@ -647,7 +621,7 @@ def test_subexpressions():
         assert_equal(mon1.v, mon2.v, 'Results for method %s differed!' % method)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_locally_constant_check():
     default_dt = defaultclock.dt
     # The linear state update can handle additive time-dependent functions
@@ -669,7 +643,8 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+                with pytest.raises(UnsupportedEquationsException):
+                    net.run(0*ms)
 
         # multiplicative
         G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
@@ -681,31 +656,36 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+                with pytest.raises(UnsupportedEquationsException):
+                    net.run(0*ms)
 
     # If the argument is more than just "t", we cannot guarantee that it is
     # actually locally constant
     G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
                         method='exact', namespace={'ta': ta0})
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
                     method='exact')
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # Stateful functions aren't either
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
                     method='exact')
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='exact')
     net = Network(G)
-    assert_raises(UnsupportedEquationsException, lambda: net.run(0*ms))
+    with pytest.raises(UnsupportedEquationsException):
+        net.run(0*ms)
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
@@ -731,10 +711,8 @@ def test_refractory():
                         err_msg=('Results with and without refractoriness '
                                  'differ for method %s.') % method)
 
-@with_setup(setup=store_randn, teardown=restore_randn)
-def test_refractory_stochastic():
-    # Fake stochastictiy, the random number generator always returns 0.5
-    DEFAULT_FUNCTIONS['randn'] = fake_randn
+
+def test_refractory_stochastic(fake_randn_randn_fixture):
 
     eqs_base = 'dv/dt = -v/(10*ms) + second**-.5*xi : 1'
 
@@ -750,8 +728,7 @@ def test_refractory_stochastic():
                         err_msg=('Results with and without refractoriness '
                                  'differ for method %s.') % method)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_check_for_invalid_values_linear_integrator():
     # A differential equation that cannot be solved by the linear
     # integrator should return nan values to warn the user, and not silently
@@ -794,12 +771,6 @@ if __name__ == '__main__':
     test_multiplicative_noise()
     test_multiple_noise_variables_basic()
     test_multiple_noise_variables_extended()
-    store_randn()
-    test_multiple_noise_variables_deterministic_noise()
-    restore_randn()
-    store_randn()
-    test_pure_noise_deterministic()
-    restore_randn()
     test_temporary_variables()
     test_temporary_variables2()
     test_integrator_code()
@@ -810,8 +781,9 @@ if __name__ == '__main__':
     test_subexpressions()
     test_locally_constant_check()
     test_refractory()
-    store_randn()
-    test_refractory_stochastic()
-    restore_randn()
+    # # Need the fake random number generator from tests/conftest.py
+    # test_refractory_stochastic()
+    # test_multiple_noise_variables_deterministic_noise()
+    # test_pure_noise_deterministic()
     test_check_for_invalid_values_linear_integrator()
     print('Tests took', time.time()-start)

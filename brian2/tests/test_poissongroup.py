@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 import uuid
 
-from numpy.testing.utils import assert_equal, assert_raises
-from nose import with_setup
-from nose.plugins.attrib import attr
+from numpy.testing import assert_equal
+import pytest
 
 from brian2 import *
 from brian2.core.network import schedule_propagation_offset
@@ -11,8 +10,7 @@ from brian2.devices.device import reinit_and_delete
 from brian2.utils.logger import catch_logs
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_single_rates():
     # Specifying single rates
     P0 = PoissonGroup(10, 0*Hz)
@@ -27,8 +25,7 @@ def test_single_rates():
     assert_equal(spikes_P0.count, np.zeros(len(P0)))
     assert_equal(spikes_Pfull.count, 2 * np.ones(len(P0)))
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_rate_arrays():
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)
     spikes = SpikeMonitor(P)
@@ -36,24 +33,23 @@ def test_rate_arrays():
 
     assert_equal(spikes.count, np.array([0, 2]))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_rate_unit_check():
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonGroup(1, np.array([1, 2])))
-    assert_raises(DimensionMismatchError,
-                  lambda: PoissonGroup(1, np.array([1, 2])*ms))
+    with pytest.raises(DimensionMismatchError):
+        PoissonGroup(1, np.array([1, 2]))
+    with pytest.raises(DimensionMismatchError):
+        PoissonGroup(1, np.array([1, 2])*ms)
     P = PoissonGroup(1, 'i*mV')
     net = Network(P)
-    assert_raises(DimensionMismatchError,
-                  lambda: net.run(0*ms))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0*ms)
 
     P = PoissonGroup(1, 'i')
     net = Network(P)
-    assert_raises(DimensionMismatchError,
-                  lambda: net.run(0 * ms))
+    with pytest.raises(DimensionMismatchError):
+        net.run(0 * ms)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_time_dependent_rate():
     # The following two groups should show the same behaviour
     timed_array = TimedArray(np.array([[0, 0],
@@ -72,8 +68,7 @@ def test_time_dependent_rate():
     assert sum(spikes_2.t < 1*ms) == 0
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_propagation():
     # Using a PoissonGroup as a source for Synapses should work as expected
     P = PoissonGroup(2, np.array([0, 1./defaultclock.dt])*Hz)
@@ -85,8 +80,7 @@ def test_propagation():
     assert_equal(G.v[:], np.array([0., 2.]))
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_poissongroup_subgroup():
     # It should be possible to take a subgroup of a PoissonGroup
     P = PoissonGroup(4, [0, 0, 0, 0]*Hz)
@@ -103,7 +97,7 @@ def test_poissongroup_subgroup():
     assert_equal(G.v[:], np.array([0., 0., 2., 2.]))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_poissongroup_namespace():
     rate_const = 0*Hz
     P = PoissonGroup(1, rates='rate_const', namespace={'rate_const':

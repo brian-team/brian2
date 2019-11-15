@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_raises
+import pytest
+from numpy.testing import assert_equal
 import tempfile
 import os
 
@@ -10,7 +10,7 @@ from brian2 import numpy as np
 from brian2.tests.utils import assert_allclose
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_soma():
     soma = Soma(diameter=10*um)
     assert isinstance(soma, Morphology)
@@ -18,7 +18,8 @@ def test_attributes_soma():
     assert soma.n == 1
     assert soma.total_sections == 1
     assert soma.total_compartments == 1
-    assert_raises(TypeError, lambda: len(soma))  # ambiguous
+    with pytest.raises(TypeError):
+         len(soma)  # ambiguous
     # Compartment attributes
     assert_equal(soma.diameter, [10]*um)
     assert_equal(soma.length, [10]*um)
@@ -41,7 +42,7 @@ def test_attributes_soma():
     assert soma.end_z is None
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_soma_coordinates():
     # Specify only one of the coordinates
     xyz = {'x', 'y', 'z'}
@@ -80,7 +81,7 @@ def test_attributes_soma_coordinates():
     assert_equal(soma.end_z, 3*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_cylinder():
     n = 10
     cylinder = Cylinder(n=n, diameter=10*um, length=200*um)
@@ -89,7 +90,8 @@ def test_attributes_cylinder():
     assert cylinder.n == n
     assert cylinder.total_sections == 1
     assert cylinder.total_compartments == n
-    assert_raises(TypeError, lambda: len(cylinder))  # ambiguous
+    with pytest.raises(TypeError):
+         len(cylinder)  # ambiguous
 
     # Compartment attributes
     assert_equal(cylinder.diameter, np.ones(n)*10*um)
@@ -112,7 +114,7 @@ def test_attributes_cylinder():
     assert cylinder.end_z is None
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_cylinder_coordinates():
     # Specify only the end-point of the section
     n = 10
@@ -152,7 +154,7 @@ def test_attributes_cylinder_coordinates():
         assert_allclose(getattr(cylinder, 'end_' + coord), np.arange(n)*val[1]/n + val[1]/n)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_section():
     n = 10
     # No difference to a cylinder
@@ -164,7 +166,8 @@ def test_attributes_section():
     assert sec.n == n
     assert sec.total_sections == 1
     assert sec.total_compartments == n
-    assert_raises(TypeError, lambda: len(sec))  # ambiguous
+    with pytest.raises(TypeError):
+         len(sec)  # ambiguous
 
     # Compartment attributes
     assert_allclose(sec.diameter, np.ones(n)*10*um)
@@ -188,7 +191,7 @@ def test_attributes_section():
     assert sec.end_z is None
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_section_coordinates_single():
     # Specify only the end-point of the section  (no difference to cylinder)
     n = 10
@@ -234,7 +237,7 @@ def test_attributes_section_coordinates_single():
         assert_allclose(getattr(sec, 'end_' + coord), np.arange(n)*val/n + val/n)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_attributes_section_coordinates_all():
     n = 3
     # Specify all coordinates
@@ -363,7 +366,7 @@ def _check_tree_cables(morphology, coordinates=False):
         assert_allclose(morphology['22'].end_z, -(np.arange(5) * step + step))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_cables_schematic():
     cable = Cylinder(n=10, diameter=10*um, length=100*um)
     cable.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um, length=np.ones(5)*20*um)  # tapering truncated cones
@@ -373,7 +376,7 @@ def test_tree_cables_schematic():
 
     _check_tree_cables(cable)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_cables_coordinates():
     # The lengths of the sections should be identical to the previous test
     cable = Cylinder(n=10, x=[0, 100]*um, diameter=10*um)
@@ -392,7 +395,7 @@ def test_tree_cables_coordinates():
     _check_tree_cables(cable, coordinates=True)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_cables_from_points():
     # The coordinates should be identical to the previous test
     points = [ # cable
@@ -551,7 +554,7 @@ def _check_tree_soma(morphology, coordinates=False, use_cylinders=True):
             assert_allclose(morphology['2'].z, np.zeros(5) * um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_schematic():
     soma = Soma(diameter=30*um)
     soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
@@ -561,7 +564,7 @@ def test_tree_soma_schematic():
     _check_tree_soma(soma)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_coordinates():
     soma = Soma(diameter=30*um, x=100*um)
     soma.L = Section(n=5, diameter=[8, 8, 6, 4, 2, 0]*um,
@@ -573,7 +576,7 @@ def test_tree_soma_coordinates():
     _check_tree_soma(soma, coordinates=True)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_points():
     # The coordinates should be identical to the previous test
     points = [ # soma
@@ -595,7 +598,7 @@ def test_tree_soma_from_points():
     _check_tree_soma(cable, coordinates=True, use_cylinders=False)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_points_3_point_soma():
     # The coordinates should be identical to the previous test
     points = [ # soma
@@ -621,7 +624,7 @@ def test_tree_soma_from_points_3_point_soma():
     assert isinstance(cable, Soma)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_points_3_point_soma_incorrect():
     # Inconsistent diameters
     points = [ # soma
@@ -635,7 +638,8 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
               (7,  'L'   , 100+80/np.sqrt(2),  80/np.sqrt(2),    0,              2 ,  6),
               (8,  'L'   , 100+100/np.sqrt(2), 100/np.sqrt(2),   0,              0 ,  7)
               ]
-    assert_raises(ValueError, lambda: Morphology.from_points(points))
+    with pytest.raises(ValueError):
+         Morphology.from_points(points)
 
     # Inconsistent coordinates
     points = [  # soma
@@ -649,10 +653,11 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
         (7, 'L', 100 + 80 / np.sqrt(2), 80 / np.sqrt(2), 0, 2, 6),
         (8, 'L', 100 + 100 / np.sqrt(2), 100 / np.sqrt(2), 0, 0, 7)
     ]
-    assert_raises(ValueError, lambda: Morphology.from_points(points))
+    with pytest.raises(ValueError):
+         Morphology.from_points(points)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_swc():
     swc_content = '''
 # Test file
@@ -676,7 +681,7 @@ def test_tree_soma_from_swc():
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_tree_soma_from_swc_3_point_soma():
     swc_content = '''
 # Test file
@@ -702,81 +707,108 @@ def test_tree_soma_from_swc_3_point_soma():
     _check_tree_soma(soma, coordinates=True, use_cylinders=False)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_construction_incorrect_arguments():
     ### Morphology
     dummy_self = Soma(10*um)  # To allow testing of Morphology.__init__
-    assert_raises(TypeError, lambda: Morphology.__init__(dummy_self, n=1.5))
-    assert_raises(ValueError, lambda: Morphology.__init__(dummy_self, n=0))
-    assert_raises(TypeError, lambda: Morphology.__init__(dummy_self,
-                                                         'filename.swc'))
+    with pytest.raises(TypeError):
+         Morphology.__init__(dummy_self, n=1.5)
+    with pytest.raises(ValueError):
+         Morphology.__init__(dummy_self, n=0)
+    with pytest.raises(TypeError):
+         Morphology.__init__(dummy_self, 'filename.swc')
 
     ### Soma
-    assert_raises(DimensionMismatchError, lambda: Soma(10))
-    assert_raises(TypeError, lambda: Soma([10, 20]*um))
-    assert_raises(TypeError, lambda: Soma(x=[10, 20]*um))
-    assert_raises(TypeError, lambda: Soma(y=[10, 20]*um))
-    assert_raises(TypeError, lambda: Soma(z=[10, 20]*um))
-    assert_raises(DimensionMismatchError, lambda: Soma(x=10))
-    assert_raises(DimensionMismatchError, lambda: Soma(y=10))
-    assert_raises(DimensionMismatchError, lambda: Soma(z=10))
+    with pytest.raises(DimensionMismatchError):
+         Soma(10)
+    with pytest.raises(TypeError):
+         Soma([10, 20]*um)
+    with pytest.raises(TypeError):
+         Soma(x=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Soma(y=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Soma(z=[10, 20]*um)
+    with pytest.raises(DimensionMismatchError):
+         Soma(x=10)
+    with pytest.raises(DimensionMismatchError):
+         Soma(y=10)
+    with pytest.raises(DimensionMismatchError):
+         Soma(z=10)
 
     ### Cylinder
     # Diameter can only be single value
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20]*um),length=100*um)
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=[10, 20, 30]*um), length=100*um)
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=np.ones(3, 2)*um), length=100*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=[10, 20]*um,length=100*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=[10, 20, 30]*um, length=100*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=np.ones(3, 2)*um, length=100*um)
     # Length can only be single value
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=np.ones(3, 2)*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=np.ones(3, 2)*um)
     # Coordinates have to be two values
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, x=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, y=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10]*um))
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, z=[10, 20, 30]*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, x=[10]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, x=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, y=[10]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, y=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, z=[10]*um)
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, z=[10, 20, 30]*um)
     # Need either coordinates or lengths
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um)
     # But not both
-    assert_raises(TypeError, lambda: Cylinder(n=3, diameter=10*um, length=30*um,
-                                              x=[0, 30]*um))
+    with pytest.raises(TypeError):
+         Cylinder(n=3, diameter=10*um, length=30*um, x=[0, 30]*um)
 
     ### Section
     # Diameter have to be n+1 values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=10*um, length=np.ones(3)*10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=[10, 20, 30]*um, length=np.ones(3)*10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4, 2)*um), length=np.ones(3)*10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=10*um, length=np.ones(3)*10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=[10, 20, 30]*um, length=np.ones(3)*10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4, 2)*um, length=np.ones(3)*10*um)
     # Length have to be n values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=[10, 20]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=np.ones(3, 2)*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=[10, 20]*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=np.ones(3, 2)*um)
     # Coordinates have to be n+1 values
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             x=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             x=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             y=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             y=[10, 20, 30]*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             z=10*um))
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             z=[10, 20, 30]*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, x=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, x=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, y=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, y=[10, 20, 30]*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, z=10*um)
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, z=[10, 20, 30]*um)
     # Need either coordinates or lengths
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um)
     # But not both
-    assert_raises(TypeError, lambda: Section(n=3, diameter=np.ones(4)*10*um,
-                                             length=[10, 20, 30]*um,
-                                             x=[0, 10, 20, 30]*um))
+    with pytest.raises(TypeError):
+         Section(n=3, diameter=np.ones(4)*10*um, length=[10, 20, 30]*um,
+                 x=[0, 10, 20, 30]*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_from_points_minimal():
     points = [(1, 'soma', 10, 20, 30,  30,  -1)]
     morph = Morphology.from_points(points)
@@ -787,7 +819,7 @@ def test_from_points_minimal():
     assert_allclose(morph.z, 30*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_from_points_incorrect():
     # The coordinates should be identical to the previous test
     points = [
@@ -810,13 +842,17 @@ def test_from_points_incorrect():
               (2,  10,                 0,                0,              10,  1),
               (3,  20,                 0,                0,              10,  2),
               ]
-    assert_raises(ValueError, lambda: Morphology.from_points(points))
-    assert_raises(ValueError, lambda: Morphology.from_points(points2))
-    assert_raises(ValueError, lambda: Morphology.from_points(points3))
-    assert_raises(ValueError, lambda: Morphology.from_points(points4))
+    with pytest.raises(ValueError):
+         Morphology.from_points(points)
+    with pytest.raises(ValueError):
+         Morphology.from_points(points2)
+    with pytest.raises(ValueError):
+         Morphology.from_points(points3)
+    with pytest.raises(ValueError):
+         Morphology.from_points(points4)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subtree_deletion():
     soma = Soma(diameter=30*um)
     first_dendrite = Cylinder(n=5, diameter=5*um, length=50*um)
@@ -833,23 +869,29 @@ def test_subtree_deletion():
 
     del soma.dend1
     assert soma.total_compartments == 31
-    assert_raises(AttributeError, lambda: soma.dend1)
-    assert_raises(AttributeError, lambda: delattr(soma, 'dend1'))
-    assert_raises(AttributeError, lambda: soma.__delitem__('dend1'))
+    with pytest.raises(AttributeError):
+         soma.dend1
+    with pytest.raises(AttributeError):
+         delattr(soma, 'dend1')
+    with pytest.raises(AttributeError):
+         soma.__delitem__('dend1')
     assert first_dendrite not in soma.children
 
     del soma['dend2']
     assert soma.total_compartments == 16
-    assert_raises(AttributeError, lambda: soma.dend2)
+    with pytest.raises(AttributeError):
+         soma.dend2
     assert second_dendrite not in soma.children
 
     del soma.dend3.LL
     assert soma.total_compartments == 11
-    assert_raises(AttributeError, lambda: soma.dend3.LL)
-    assert_raises(AttributeError, lambda: soma.dend3.L.L)
+    with pytest.raises(AttributeError):
+         soma.dend3.LL
+    with pytest.raises(AttributeError):
+         soma.dend3.L.L
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subgroup_indices():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
@@ -871,7 +913,7 @@ def test_subgroup_indices():
     assert_equal(morpho.L.indices[3:], [4, 5, 6, 7, 8, 9, 10])
     assert_equal(morpho.L.indices[:5], [1, 2, 3, 4, 5])
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subgroup_attributes():
     morpho = Soma(diameter=30*um)
     morpho.L = Cylinder(length=10*um, diameter=1*um, n=10)
@@ -937,7 +979,7 @@ def test_subgroup_attributes():
     assert_allclose(morpho.L[3.5*um:4.5*um].distance, [3.5, 4.5]*um)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subgroup_incorrect():
     # Incorrect indexing
     morpho = Soma(diameter=30*um)
@@ -946,26 +988,37 @@ def test_subgroup_incorrect():
     morpho.right = Cylinder(length=3*um, diameter=1*um, n=7)
 
     # Non-existing branch
-    assert_raises(AttributeError, lambda: morpho.axon)
+    with pytest.raises(AttributeError):
+         morpho.axon
 
     # Incorrect indexing
     #  wrong units or mixing units
-    assert_raises(TypeError, lambda: morpho.L[3*second:5*second])
-    assert_raises(TypeError, lambda: morpho.L[3.4:5.3])
-    assert_raises(TypeError, lambda: morpho.L[3:5*um])
-    assert_raises(TypeError, lambda: morpho.L[3*um:5])
+    with pytest.raises(TypeError):
+         morpho.L[3*second:5*second]
+    with pytest.raises(TypeError):
+         morpho.L[3.4:5.3]
+    with pytest.raises(TypeError):
+         morpho.L[3:5*um]
+    with pytest.raises(TypeError):
+         morpho.L[3*um:5]
     #   providing a step
-    assert_raises(TypeError, lambda: morpho.L[3*um:5*um:2*um])
-    assert_raises(TypeError, lambda: morpho.L[3:5:2])
+    with pytest.raises(TypeError):
+         morpho.L[3*um:5*um:2*um]
+    with pytest.raises(TypeError):
+         morpho.L[3:5:2]
     #   incorrect type
-    assert_raises(TypeError, lambda: morpho.L[object()])
+    with pytest.raises(TypeError):
+         morpho.L[object()]
     # out of range
-    assert_raises(IndexError, lambda: morpho.L[-10*um])
-    assert_raises(IndexError, lambda: morpho.L[15*um])
-    assert_raises(IndexError, lambda: morpho.L[10])
+    with pytest.raises(IndexError):
+         morpho.L[-10*um]
+    with pytest.raises(IndexError):
+         morpho.L[15*um]
+    with pytest.raises(IndexError):
+         morpho.L[10]
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_topology():
     soma = Soma(diameter=30*um)
     soma.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -982,7 +1035,7 @@ def test_topology():
         assert name in line
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_copy_section_soma():
     soma = Soma(diameter=30*um)
     soma_copy = soma.copy_section()
@@ -1001,7 +1054,7 @@ def test_copy_section_soma():
     assert soma_copy.type == 'soma'
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_copy_section_section():
     # No coordinates
     sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
@@ -1031,7 +1084,7 @@ def test_copy_section_section():
 
     assert sec_copy.type is None
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_copy_section_cylinder():
     # no coordinates
     sec = Section(diameter=[10, 5, 4, 3, 2, 1]*um, n=5,
@@ -1068,7 +1121,7 @@ def _check_length_coord_consistency(morph_with_coords):
         _check_length_coord_consistency(child)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_deterministic():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1096,7 +1149,7 @@ def test_generate_coordinates_deterministic():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_random_sections():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1122,7 +1175,7 @@ def test_generate_coordinates_random_sections():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_random_compartments():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1148,7 +1201,7 @@ def test_generate_coordinates_random_compartments():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_random_all():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1175,7 +1228,7 @@ def test_generate_coordinates_random_all():
     _check_length_coord_consistency(morph_with_coords)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_no_overwrite():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1203,7 +1256,7 @@ def test_generate_coordinates_no_overwrite():
         assert_allclose(new.z, old.z)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_overwrite():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1234,7 +1287,7 @@ def test_generate_coordinates_overwrite():
     _check_length_coord_consistency(morph_with_coords2)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_generate_coordinates_mixed_overwrite():
     morph = Soma(diameter=30*um)
     morph.L = Section(n=5, diameter=[10, 8, 6, 4, 2, 0]*um,
@@ -1271,7 +1324,7 @@ def test_generate_coordinates_mixed_overwrite():
     _check_length_coord_consistency(morph_with_coords2)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_str_repr():
     # A very basic test, make sure that the str/repr functions return
     # something and do not raise an error

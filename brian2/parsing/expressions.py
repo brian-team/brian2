@@ -71,12 +71,13 @@ def is_boolean_expression(expr, variables):
             return True
         else:
             raise SyntaxError("Expression ought to be boolean but is not (e.g. 'x<y and 3')")
-    elif expr.__class__ is getattr(ast, 'NameConstant', None):
+    elif expr.__class__ in [getattr(ast, 'NameConstant', None),
+                            getattr(ast, 'Constant', None)]:
         value = expr.value
         if value is True or value is False:
             return True
-        else:
-            raise ValueError('Do not know how to deal with value %s' % value)
+        elif value is None:
+            raise ValueError('Do not know how to deal with "None"')
     elif expr.__class__ is ast.Name:
         name = expr.id
         if name in variables:
@@ -144,8 +145,14 @@ def _get_value_from_expression(expr, variables):
             return 1.0 if value else 0.0
         else:
             raise ValueError('Do not know how to deal with value %s' % value)
-    elif expr.__class__ is ast.Num:
-        return expr.n
+    elif (expr.__class__ is ast.Num or
+          expr.__class__ is getattr(ast, 'Constant', None)):  # Python 3.8
+        # In Python 3.8, boolean values are represented by Constant, not by
+        # NameConstant
+        if expr.n is True or expr.n is False:
+            return 1.0 if expr.n else 0.0
+        else:
+            return expr.n
     elif expr.__class__ is ast.BoolOp:
         raise SyntaxError('Cannot determine the numerical value for a boolean operation.')
     elif expr.__class__ is ast.Compare:
@@ -236,7 +243,8 @@ def parse_expression_dimensions(expr, variables):
             return DIMENSIONLESS
         else:
             raise KeyError('Unknown identifier %s' % name)
-    elif expr.__class__ is ast.Num:
+    elif (expr.__class__ is ast.Num or
+          expr.__class__ is getattr(ast, 'Constant', None)):  # Python 3.8
         return DIMENSIONLESS
     elif expr.__class__ is ast.BoolOp:
         # check that the units are valid in each subexpression

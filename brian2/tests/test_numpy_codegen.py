@@ -1,11 +1,13 @@
 from __future__ import absolute_import
-from nose.plugins.skip import SkipTest
+
+import pytest
 
 from brian2 import *
 
+
 def test_error_message():
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     @check_units(x=1, result=1)
     def foo(x):
