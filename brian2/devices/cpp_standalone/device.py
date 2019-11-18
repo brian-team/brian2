@@ -123,6 +123,8 @@ class CPPStandaloneDevice(Device):
     '''
     The `Device` used for C++ standalone simulations.
     '''
+    msvc_env = None  #: cached environment variables for MSVC
+
     def __init__(self):
         super(CPPStandaloneDevice, self).__init__()
         #: Dictionary mapping `ArrayVariable` objects to their globally
@@ -942,13 +944,17 @@ class CPPStandaloneDevice(Device):
                         arch_name = 'x86'
                 vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
                 if vcvars_loc == '':
-                    try:
-                        msvc_env = msvc.msvc14_get_vc_env(arch_name)
-                    except distutils.errors.DistutilsPlatformError as ex:
-                        raise IOError("Cannot find Microsoft Visual Studio, You "
-                                      "can try to set the path to vcvarsall.bat "
-                                      "via the codegen.cpp.msvc_vars_location "
-                                      "preference explicitly.")
+                    msvc_env = CPPStandaloneDevice.msvc_env
+                    if msvc_env is None:
+                        try:
+                            msvc_env = msvc.msvc14_get_vc_env(arch_name)
+                            # Cache the result
+                            CPPStandaloneDevice.msvc_env = msvc_env
+                        except distutils.errors.DistutilsPlatformError as ex:
+                            raise IOError("Cannot find Microsoft Visual Studio, You "
+                                          "can try to set the path to vcvarsall.bat "
+                                          "via the codegen.cpp.msvc_vars_location "
+                                          "preference explicitly.")
                 if vcvars_loc:
                     vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
                             vcvars_loc=vcvars_loc, arch_name=arch_name)
