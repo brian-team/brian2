@@ -175,11 +175,11 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo;platform_system=="Windows"',
-                        'setuptools>=21',
+                        'setuptools>=24',
                         'future'
                        ],
       setup_requires=['numpy>=1.10',
-                      'setuptools>=21'
+                      'setuptools>=24'
                       ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],

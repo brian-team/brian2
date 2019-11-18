@@ -927,22 +927,11 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
+        from setuptools import msvc
+        import distutils
         num_threads = prefs.devices.cpp_standalone.openmp_threads
         with in_directory(directory):
             if compiler == 'msvc':
-                from distutils import msvc9compiler
-                vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-                if vcvars_loc == '':
-                    for version in range(16, 8, -1):
-                        fname = msvc9compiler.find_vcvarsall(version)
-                        if fname:
-                            vcvars_loc = fname
-                            break
-                if vcvars_loc == '':
-                    raise IOError("Cannot find vcvarsall.bat on standard "
-                                  "search path. Set the "
-                                  "codegen.cpp.msvc_vars_location preference "
-                                  "explicitly.")
                 # TODO: copy vcvars and make replacements for 64 bit automatically
                 arch_name = prefs['codegen.cpp.msvc_architecture']
                 if arch_name == '':
@@ -951,21 +940,42 @@ class CPPStandaloneDevice(Device):
                         arch_name = 'x86_amd64'
                     else:
                         arch_name = 'x86'
-                
-                vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
-                        vcvars_loc=vcvars_loc, arch_name=arch_name)
+                vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
+                if vcvars_loc == '':
+                    try:
+                        msvc_env = msvc.msvc14_get_vc_env(arch_name)
+                    except distutils.errors.DistutilsPlatformError as ex:
+                        raise IOError("Cannot find Microsoft Visual Studio, You "
+                                      "can try to set the path to vcvarsall.bat "
+                                      "via the codegen.cpp.msvc_vars_location "
+                                      "preference explicitly.")
+                if vcvars_loc:
+                    vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
+                            vcvars_loc=vcvars_loc, arch_name=arch_name)
                 make_cmd = 'nmake /f win_makefile'
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
                 if os.path.exists('winmake.log'):
                     os.remove('winmake.log')
-                with open('winmake.log', 'w') as f:
-                    f.write(vcvars_cmd + '\n')
+                if vcvars_loc:
+                    with open('winmake.log', 'w') as f:
+                        f.write(vcvars_cmd + '\n')
+                else:
+                    with open('winmake.log', 'w') as f:
+                        f.write('MSVC environment: \n')
+                        for key, value in msvc_env.items():
+                            f.write('{}={}\n'.format(key, value))
                 with std_silent(debug):
-                    if clean:
-                        os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
-                    x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
-                                                                                        make_cmd,
-                                                                                        make_args))
+                    if vcvars_loc:
+                        if clean:
+                            os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
+                        x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
+                                                                                            make_cmd,
+                                                                                            make_args))
+                    else:
+                        os.environ.update(msvc_env)
+                        if clean:
+                            os.system('%s clean > NUL 2>&1' % make_cmd)
+                        x = os.system('%s %s>>winmake.log 2>&1' % (make_cmd, make_args))
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             with open('winmake.log', 'r') as f:
