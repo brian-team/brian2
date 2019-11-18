@@ -66,7 +66,7 @@ test:
     - 'python -c "from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()"'
 
   requires:
-    - nose
+    - pytest
 
 about:
   home: http://www.briansimulator.org/
