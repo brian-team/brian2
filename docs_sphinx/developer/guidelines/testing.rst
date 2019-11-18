@@ -1,7 +1,7 @@
 Testing
 =======
 
-Brian uses the `pytest package <https://https://docs.pytest.org/>`__
+Brian uses the `pytest package <https://docs.pytest.org/>`__
 for its testing framework.
 
 Running the test suite
@@ -36,24 +36,6 @@ for the runtime code generation targets, you will only run the standalone
 tests::
 
     >>> brian2.test([], test_standalone='cpp_standalone')  # doctest: +SKIP
-
-
-Checking the code coverage
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-TODO
-
-To check the code coverage under Linux (with coverage and nosetests in your
-path) and generate a report, use the following commands (this assumes the
-source code of Brian with the file ``.coveragerc`` in the directory
-/path/to/brian):
-
-.. code-block:: bash
-
-    $ coverage run --rcfile=/path/to/brian/.coveragerc $(which nosetests) --with-doctest brian2
-    $ coverage report
-
-Using ``coverage html`` you can also generate a HTML report which will end up
-in the directory ``htmlcov``.
 
 
 Writing tests
