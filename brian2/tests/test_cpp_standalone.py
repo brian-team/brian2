@@ -120,7 +120,7 @@ def test_openmp_consistency():
     dApre     *=  0.1*gmax
 
     connectivity = numpy.random.randn(n_cells, n_cells)
-    sources      = numpy.random.random_integers(0, n_cells-1, 10*n_cells)
+    sources      = numpy.random.randint(0, n_cells-1, 10*n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
     # has more than one spike in a time step)
     times        = numpy.random.choice(numpy.arange(10*n_cells), 10*n_cells,
