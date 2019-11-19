@@ -228,6 +228,8 @@ In both cases, the function will only receive the "relevant" values, meaning
 that if for example a function is evaluated as part of a reset statement, it
 will only receive values for the neurons that just spiked.
 
+.. _function_vectorisation:
+
 Functions with context-dependent return values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 When using the ``numpy`` target, functions have to return an array of values

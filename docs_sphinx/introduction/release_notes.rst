@@ -1,9 +1,33 @@
 Release notes
 =============
 
-Next release
-------------
-...
+Brian 2.3
+---------
+This release contains the usual mix of bug fixes and new features (see below), but
+also makes some important changes to the Brian 2 code base to pave the way for
+the full Python 2 -> 3 transition (the source code is now directly compatible with
+Python 2 and Python 3, without the need for any translation at install time). Please
+note that this release will be the last release that supports
+Python 2, given that Python 2 reaches end-of-life in January 2020. Brian now also uses
+`pytest <https://docs.pytest.org>`_ as its testing framework, since the previously used
+``nose`` package is not maintained anymore. Since `brian2hears <https://brian2hears.readthedocs.io>`_
+has been released as an independent package, using `brian2.hears` as a "bridge" to
+Brian 1's ``brian.hears`` package is now deprecated.
+
+Finally, the Brian project has adopted the "Contributor Covenant"
+:doc:`code_of_conduct`, pledging "to make participation in our community a
+harassment-free experience for everyone".
+
+New features
+~~~~~~~~~~~~
+* The `restore` function can now also restore the state of the random number generator,
+  allowing for exact reproducibility of stochastic simulations (:issue:`1134`)
+* The functions `expm1`, `log1p`, and `exprel` can now be used (:issue:`1133`)
+* The system for calling random number generating functions has been generalized (see
+  :ref:`function_vectorisation`), and a new `poisson` function for Poisson-distrubted
+  random numbers has been added (:issue:`1111`)
+* New versions of Visual Studio are now supported for standalone mode on Windows
+  (:issue:`1135`)
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12,11 +36,19 @@ Selected improvements and bug fixes
   Contributed by `Vigneswaran Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_.
 * No longer incorrectly classify some equations as having "multiplicative noise" (:issue:`968`).
   Contributed by `Vigneswaran Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_.
+* Brian is now compatible with Python 3.8 (:issue:`1130`), and doctests are compatible
+  with numpy 1.17 (:issue:`1120`)
+* Progress reports for repeated runs have been fixed (:issue:`1116`), thanks to Ronaldo
+  Nunes for reporting the issue.
+* `SpikeGeneratorGroup` now correctly works with `restore` (:issue:`1084`), thanks to
+  Tom Achache for reporting the issue.
+* An indexing problem in `PopulationRateMonitor` has been fixed (:issue:`1119`).
+* Handling of equations referring to ``-inf`` has been fixed (:issue:`1061`).
 
 Backward-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-* The fix to :issue:`1009` (see above) entails a change in how objects are
-  stored within `Network` objects. Previously, `Network.objects` stored a
+* The fix for `~brian2.groups.group.Group.run_regularly` operations (:issue:`1009`, see above) entails
+  a change in how objects are stored within `Network` objects. Previously, `Network.objects` stored a
   complete list of all objects, including objects such as `~brian2.groups.neurongroup.StateUpdater` that
   – often invisible to the user – are a part of major objects such as
   `NeuronGroup`. Now, `Network.objects` only stores the objects directly
@@ -24,7 +56,52 @@ Backward-incompatible changes
   dependent objects (`~brian2.groups.neurongroup.StateUpdater`, `~brian2.groups.neurongroup.Thresholder`, ...) are taken into account
   at the time of the run. This might break code in some corner cases, e.g.
   when removing a `~brian2.groups.neurongroup.StateUpdater` from `Network.objects` via `Network.remove`.
+* The `brian2.hears` interface to Brian 1's ``brian.hears`` package has been deprecated.
 
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* The same code base is used on Python 2 and Python 3 (:issue:`1073`).
+* The test framework uses ``pytest`` (:issue:`1127`).
+* We have adapoted a Code of Conduct (:issue:`1113`), thanks to Tapasweni Pathak for the
+  suggestion.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Vigneswaran Chandrasekaran (`@Vigneswaran-Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_)
+* Moritz Orth (`@morth <https://github.com/morth>`_)
+* Tristan Stöber (`@tristanstoeber <https://github.com/tristanstoeber>`_)
+* `@ulyssek <https://github.com/ulyssek>`_
+* Wilhelm Braun (`@wilhelmbraun <https://github.com/wilhelmbraun>`_)
+* `@flomlo <https://github.com/flomlo>`_
+* `@sdeiss <https://github.com/sdeiss>`_
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Tapasweni Pathak (`@tapaswenipathak <https://github.com/tapaswenipathak>`_)
+* `@jonathanoesterle <https://github.com/jonathanoesterle>`_
+* Richard C Gerkin (`@rgerkin <https://github.com/rgerkin>`_)
+* Christian Behrens (`@chbehrens <https://github.com/chbehrens>`_)
+* Romain Brette (`@romainbrette <https://github.com/romainbrette>`_)
+* XiaoquinNUDT (`@XiaoquinNUDT <https://github.com/XiaoquinNUDT>`_)
+* Dylan Muir (`@DylanMuir <https://github.com/DylanMuir>`_)
+* Aleksandra Teska (`@alTeska <https://github.com/alTeska>`_)
+* Felix Z. Hoffmann (`@felix11h <https://github.com/felix11h>`__)
+* `@baixiaotian63648995 <https://github.com/baixiaotian63648995>`_
+* Carlos de la Torre (`@c-torre <https://github.com/c-torre>`_)
+* Sam Mathias (`@sammosummo <https://github.com/sammosummo>`_)
+* `@Marghepano <https://github.com/Marghepano>`_
+* Simon Brodeur (`@sbrodeur <https://github.com/sbrodeur>`_)
+* Alex Dimitrov (`@adimitr <https://github.com/adimitr>`_)
+
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Ronaldo Nunes
+* Tom Achache
 
 Brian 2.2.2.1
 -------------
