@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from brian2.devices import reinit_devices
 from brian2.units import ms
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
@@ -83,8 +84,6 @@ def setup_and_teardown(request):
 
     yield  # run test
 
-    # clean up after the test
-    reinit_and_delete()
     # Reset defaultclock.dt to be sure
     defaultclock.dt = 0.1*ms
 
@@ -99,8 +98,13 @@ def pytest_runtest_makereport(item, call):
         fail_for_not_implemented = item.config.fail_for_not_implemented
     outcome = yield
     rep = outcome.get_result()
-    if not fail_for_not_implemented and rep.outcome == 'failed':
-        if call.excinfo.errisinstance(NotImplementedError):
-            rep.outcome = 'skipped'
-            r = call.excinfo._getreprcrash()
-            rep.longrepr = (str(r.path), r.lineno, r.message)
+    if rep.outcome == 'failed':
+        reinit_devices()
+        if not fail_for_not_implemented:
+            if call.excinfo.errisinstance(NotImplementedError):
+                rep.outcome = 'skipped'
+                r = call.excinfo._getreprcrash()
+                rep.longrepr = (str(r.path), r.lineno, r.message)
+    else:
+        # clean up after the test (delete directory for standalone)
+        reinit_and_delete()
