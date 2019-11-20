@@ -240,6 +240,12 @@ class FunctionImplementation(object):
     dependencies : dict-like, optional
         A mapping of names to `Function` objects, for additional functions
         needed by this function.
+    availability_check : callable, optional
+        A function that will be called to check whether the function should be
+        made available (e.g. depending on whether it is supported by the
+        compiler). The function should do nothing if the function is
+        available, or raise a ``NotImplementedError`` with a message
+        explaining why it isn't.
     dynamic : bool, optional
         Whether this `code`/`namespace` is dynamic, i.e. generated for each
         new context it is used in. If set to ``True``, `code` and `namespace`
@@ -247,7 +253,8 @@ class FunctionImplementation(object):
         to return the final `code` and `namespace`. Defaults to ``False``.
     '''
     def __init__(self, name=None, code=None, namespace=None,
-                 dependencies=None, dynamic=False, compiler_kwds=None):
+                 dependencies=None, availability_check=None,
+                 dynamic=False, compiler_kwds=None):
         if compiler_kwds is None:
             compiler_kwds = {}
         self.name = name
@@ -258,8 +265,11 @@ class FunctionImplementation(object):
         self._namespace = namespace
         self.dynamic = dynamic
         self.compiler_kwds = compiler_kwds
+        self.availability_check = availability_check
 
     def get_code(self, owner):
+        if self.availability_check is not None:
+            self.availability_check()
         if self.dynamic:
             return self._code(owner)
         else:
@@ -422,16 +432,18 @@ class FunctionImplementationContainer(Mapping):
                                                                     dependencies=dependencies)
 
     def add_implementation(self, target, code, namespace=None,
-                           dependencies=None, name=None, compiler_kwds=None):
+                           dependencies=None, availability_check=None,
+                           name=None, compiler_kwds=None):
         self._implementations[target] = FunctionImplementation(name=name,
                                                                code=code,
                                                                dependencies=dependencies,
+                                                               availability_check=availability_check,
                                                                namespace=namespace,
                                                                compiler_kwds=compiler_kwds)
 
     def add_dynamic_implementation(self, target, code, namespace=None,
-                                   dependencies=None, name=None,
-                                   compiler_kwds=None):
+                                   dependencies=None, availability_check=None,
+                                   name=None, compiler_kwds=None):
         '''
         Adds an "dynamic implementation" for this function. `code` and `namespace`
         arguments are expected to be callables that will be called in
@@ -447,6 +459,7 @@ class FunctionImplementationContainer(Mapping):
                                                                code=code,
                                                                namespace=namespace,
                                                                dependencies=dependencies,
+                                                               availability_check=availability_check,
                                                                dynamic=True,
                                                                compiler_kwds=compiler_kwds)
 
