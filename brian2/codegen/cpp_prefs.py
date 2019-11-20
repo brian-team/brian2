@@ -12,15 +12,17 @@ import json
 import os
 import platform
 import socket
+import struct
 import subprocess
 import sys
+import tempfile
 
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 
 from .codeobject import sys_info
 
-__all__ = ['get_compiler_and_args']
+__all__ = ['get_compiler_and_args', 'get_msvc_env']
 
 
 logger = get_logger(__name__)
@@ -236,3 +238,43 @@ def update_for_cross_compilation(library_dirs, extra_compile_args,
         library_dirs += ['/lib32', '/usr/lib32']
         extra_compile_args += ['-m32']
         extra_link_args += ['-m32']
+
+
+_msvc_env = None
+def get_msvc_env():
+    global _msvc_env
+    from setuptools import msvc
+    import distutils
+    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
+    if vcvars_loc:
+        return vcvars_loc, None
+    arch_name = prefs['codegen.cpp.msvc_architecture']
+    if arch_name == '':
+        bits = struct.calcsize('P') * 8
+        if bits == 64:
+            arch_name = 'x86_amd64'
+        else:
+            arch_name = 'x86'
+    if _msvc_env is None:
+        try:
+            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
+        except distutils.errors.DistutilsPlatformError:
+            # Use the old way of searching for MSVC
+            # FIXME: Remove this when we remove Python 2 support
+            #        and require Visual Studio 2015?
+            for version in range(16, 8, -1):
+                fname = msvc.msvc9_find_vcvarsall(version)
+                if fname:
+                    vcvars_loc = fname
+                    break
+            if vcvars_loc == '':
+                raise IOError("Cannot find Microsoft Visual Studio, You "
+                              "can try to set the path to vcvarsall.bat "
+                              "via the codegen.cpp.msvc_vars_location "
+                              "preference explicitly.")
+    if vcvars_loc:
+        vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(vcvars_loc=vcvars_loc,
+                                                         arch_name=arch_name)
+    else:
+        vcvars_cmd = None
+    return _msvc_env, vcvars_cmd
