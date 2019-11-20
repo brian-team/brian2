@@ -950,11 +950,20 @@ class CPPStandaloneDevice(Device):
                             msvc_env = msvc.msvc14_get_vc_env(arch_name)
                             # Cache the result
                             CPPStandaloneDevice.msvc_env = msvc_env
-                        except distutils.errors.DistutilsPlatformError as ex:
-                            raise IOError("Cannot find Microsoft Visual Studio, You "
-                                          "can try to set the path to vcvarsall.bat "
-                                          "via the codegen.cpp.msvc_vars_location "
-                                          "preference explicitly.")
+                        except distutils.errors.DistutilsPlatformError:
+                            # Use the old way of searching for MSVC
+                            # FIXME: Remove this when we remove Python 2 support
+                            #        and require Visual Studio 2015?
+                            for version in range(16, 8, -1):
+                                fname = msvc.msvc9_find_vcvarsall(version)
+                                if fname:
+                                    vcvars_loc = fname
+                                    break
+                            if vcvars_loc == '':
+                                raise IOError("Cannot find Microsoft Visual Studio, You "
+                                              "can try to set the path to vcvarsall.bat "
+                                              "via the codegen.cpp.msvc_vars_location "
+                                              "preference explicitly.")
                 if vcvars_loc:
                     vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
                             vcvars_loc=vcvars_loc, arch_name=arch_name)
