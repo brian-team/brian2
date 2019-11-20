@@ -117,8 +117,7 @@ def make_argv(dirnames, markers=None, doctests=False):
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
             '-m', '{}'.format(markers),
-            '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
-            '-x'
+            '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             ]
     return argv
 
@@ -352,8 +351,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         pref_plugin.device = test_standalone
         if test_standalone:
             from brian2.devices.device import get_device, set_device
-            pref_plugin.device_options = {'directory': None, 'with_output': True,
-                                          'debug': True}
+            pref_plugin.device_options = {'directory': None, 'with_output': False}
             pref_plugin.device_options.update(build_options)
             print('Testing standalone device "%s"' % test_standalone)
             print('Running standalone-compatible standard tests (single run statement)')
