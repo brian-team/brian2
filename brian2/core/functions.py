@@ -632,8 +632,6 @@ class exprel(sympy_Function):
         exp_arg = sympy.exp.eval(arg)
         if exp_arg is not None:
             return (exp_arg - S.One)/arg
-        else:
-            return (sympy.exp(arg) - S.One)/arg
 
     def _eval_is_real(self):
         return self.args[0].is_real
