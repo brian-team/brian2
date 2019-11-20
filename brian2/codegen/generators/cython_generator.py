@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import itertools
 
+from brian2.codegen.cpp_prefs import C99Check
 from brian2.devices.device import all_devices
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
@@ -376,9 +377,15 @@ class CythonCodeGenerator(CodeGenerator):
 ################################################################################
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
-             'log10', 'expm1', 'log1p', 'sqrt', 'ceil', 'floor', 'abs']:
+             'log10', 'sqrt', 'ceil', 'floor', 'abs']:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
                                                                code=None)
+DEFAULT_FUNCTIONS['expm1'].implementations.add_implementation(CythonCodeGenerator,
+                                                              code=None,
+                                                              availability_check=C99Check('expm1'))
+DEFAULT_FUNCTIONS['log1p'].implementations.add_implementation(CythonCodeGenerator,
+                                                              code=None,
+                                                              availability_check=C99Check('log1p'))
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
@@ -399,7 +406,8 @@ cdef inline double _exprel(double x) nogil:
 '''
 DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CythonCodeGenerator,
                                                                code=exprel_code,
-                                                               name='_exprel')
+                                                               name='_exprel',
+                                                               availability_check=C99Check('exprel'))
 _BUFFER_SIZE = 20000
 
 rand_code = '''

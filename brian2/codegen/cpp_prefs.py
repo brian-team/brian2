@@ -22,7 +22,8 @@ from brian2.utils.logger import get_logger
 
 from .codeobject import sys_info
 
-__all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99']
+__all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
+           'C99Check']
 
 
 logger = get_logger(__name__)
@@ -306,3 +307,17 @@ def compiler_supports_c99():
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
     return _compiler_supports_c99
+
+
+class C99Check(object):
+    '''
+    Helper class to create objects that can be passed as an ``availability_check`` to
+    a `FunctionImplementation`.
+    '''
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, *args, **kwargs):
+        if not compiler_supports_c99():
+            raise NotImplementedError('The "{}" function needs C99 compiler '
+                                      'support'.format(self.name))
