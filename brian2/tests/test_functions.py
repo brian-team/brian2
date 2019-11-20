@@ -6,7 +6,9 @@ import pytest
 from numpy.testing import assert_equal
 
 from brian2 import *
+from brian2.codegen.cpp_prefs import compiler_supports_c99
 from brian2.core.functions import timestep
+from brian2.devices import RuntimeDevice
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
 from brian2.tests.utils import assert_allclose
@@ -39,18 +41,23 @@ def int_(x):
     return array(x, dtype=int)
 int_.__name__ = 'int'
 
-
-@pytest.mark.parametrize('func', [cos, tan, sinh, cosh, tanh,
-                                  arcsin, arccos, arctan,
-                                  log, log10, log1p,
-                                  exp, np.sqrt, expm1, exprel,
-                                  np.ceil, np.floor, np.sign, int_])
+@pytest.mark.parametrize('func,needs_c99_support',
+                         [(cos, False), (tan, False), (sinh, False),
+                          (cosh, False), (tanh, False),
+                          (arcsin, False), (arccos, False), (arctan, False),
+                          (log, False), (log10, False), (log1p, True),
+                          (exp, False), (np.sqrt, False), (expm1, True), (exprel, True),
+                          (np.ceil, False), (np.floor, False), (np.sign, False), (int_, False)])
 @pytest.mark.standalone_compatible
-def test_math_functions(func):
+def test_math_functions(func, needs_c99_support):
     '''
     Test that math functions give the same result, regardless of whether used
     directly or in generated Python or C++ code.
     '''
+    if not get_device() == RuntimeDevice or prefs.codegen.target != 'numpy':
+        if needs_c99_support and not compiler_supports_c99():
+            pytest.skip('Support for function "{}" needs a compiler with C99 '
+                        'support.')
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values
