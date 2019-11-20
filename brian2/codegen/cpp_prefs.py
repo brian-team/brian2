@@ -22,7 +22,7 @@ from brian2.utils.logger import get_logger
 
 from .codeobject import sys_info
 
-__all__ = ['get_compiler_and_args', 'get_msvc_env']
+__all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99']
 
 
 logger = get_logger(__name__)
@@ -278,3 +278,31 @@ def get_msvc_env():
     else:
         vcvars_cmd = None
     return _msvc_env, vcvars_cmd
+
+
+_compiler_supports_c99 = None
+def compiler_supports_c99():
+    global _compiler_supports_c99
+    if _compiler_supports_c99 is None:
+        if platform.system() == 'Windows':
+            f, tmp_file = tempfile.mkstemp(suffix='.cpp')
+            f.write('''
+            #if _MSC_VER < 1800
+            #error
+            #endif
+            ''')
+            f.close()
+            msvc_env, vcvars_cmd = get_msvc_env()
+            if vcvars_cmd:
+                cmd = '{} && cl /E mytest.cpp > NUL 2>&1'.format(vcvars_cmd)
+            else:
+                os.environ.update(msvc_env)
+            return_value = os.system(cmd)
+            _compiler_supports_c99 = return_value == 0
+            os.remove(tmp_file)
+        else:
+            cmd = ('echo "#if (__STDC_VERSION__ < 199901L)\n#error\n#endif" | '
+                  'cc -xc -c - > /dev/null 2>&1')
+            return_value = os.system(cmd)
+            _compiler_supports_c99 = return_value == 0
+    return _compiler_supports_c99
