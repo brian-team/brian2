@@ -439,7 +439,7 @@ class CPPCodeGenerator(CodeGenerator):
                     continue  # multidimensional (dynamic) arrays have to be treated differently
                 restrict = self.restrict
                 # turn off restricted pointers for scalars for safety
-                if var.scalar:
+                if var.scalar or var.size == 1:
                     restrict = ' '
                 line = '{0}* {1} {2} = {3};'.format(self.c_data_type(var.dtype),
                                                     restrict,
