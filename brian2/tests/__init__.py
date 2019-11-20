@@ -284,7 +284,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     # Switch off code optimization to get faster compilation times
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
-    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['-w', '-O0'])
+    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
 
     pref_plugin = PreferencePlugin(prefs, fail_for_not_implemented)
     try:
