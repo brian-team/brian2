@@ -286,18 +286,19 @@ def compiler_supports_c99():
     global _compiler_supports_c99
     if _compiler_supports_c99 is None:
         if platform.system() == 'Windows':
-            f, tmp_file = tempfile.mkstemp(suffix='.cpp')
-            f.write('''
+            fd, tmp_file = tempfile.mkstemp(suffix='.cpp')
+            os.write(fd, '''
             #if _MSC_VER < 1800
             #error
             #endif
-            ''')
-            f.close()
+            '''.encode())
+            os.close(fd)
             msvc_env, vcvars_cmd = get_msvc_env()
             if vcvars_cmd:
                 cmd = '{} && cl /E mytest.cpp > NUL 2>&1'.format(vcvars_cmd)
             else:
                 os.environ.update(msvc_env)
+                cmd = 'cl /E mytest.cpp > NUL 2>&1'
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
             os.remove(tmp_file)
