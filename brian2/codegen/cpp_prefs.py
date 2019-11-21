@@ -258,8 +258,9 @@ def get_msvc_env():
             arch_name = 'x86'
     if _msvc_env is None:
         try:
+            # This will fail on Python 2 with an AttributError
             _msvc_env = msvc.msvc14_get_vc_env(arch_name)
-        except distutils.errors.DistutilsPlatformError:
+        except (distutils.errors.DistutilsPlatformError, AttributeError):
             # Use the old way of searching for MSVC
             # FIXME: Remove this when we remove Python 2 support
             #        and require Visual Studio 2015?
