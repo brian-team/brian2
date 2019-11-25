@@ -44,6 +44,9 @@ Selected improvements and bug fixes
   Tom Achache for reporting the issue.
 * An indexing problem in `PopulationRateMonitor` has been fixed (:issue:`1119`).
 * Handling of equations referring to ``-inf`` has been fixed (:issue:`1061`).
+* Long simulations recording more than ~2 billion data points no longer crash with a
+  segmentation fault (:issue:`1136`), thanks to Rike-Benjamin Schuppner for reporting
+  the issue.
 
 Backward-incompatible changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,6 +81,7 @@ contributions):
 * `@ulyssek <https://github.com/ulyssek>`_
 * Wilhelm Braun (`@wilhelmbraun <https://github.com/wilhelmbraun>`_)
 * `@flomlo <https://github.com/flomlo>`_
+* Rike-Benjamin Schuppner (`@Debilski <https://github.com/Debilski>`_)
 * `@sdeiss <https://github.com/sdeiss>`_
 * Ben Evans (`@bdevans <https://github.com/bdevans>`_)
 * Tapasweni Pathak (`@tapaswenipathak <https://github.com/tapaswenipathak>`_)
