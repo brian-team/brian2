@@ -790,7 +790,7 @@ class Network(Nameable):
         the schedule, automatic slot names starting with ``before_`` and
         ``after_`` can be used (e.g. the slots ``['groups', 'thresholds']``
         allow to use ``['before_groups', 'groups', 'after_groups',
-        'before_thresholds', 'thresholds', 'after_thresholds']`).
+        'before_thresholds', 'thresholds', 'after_thresholds']``).
 
         Final ties are resolved using the objects' names, leading to an
         arbitrary but deterministic sorting.
