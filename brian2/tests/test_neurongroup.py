@@ -1,35 +1,35 @@
-from __future__ import division
 from __future__ import absolute_import
-import uuid
-import sys
-import sympy
-import numpy as np
-from numpy.testing.utils import assert_raises, assert_equal
-from nose import SkipTest, with_setup
-from nose.plugins.attrib import attr
+from __future__ import division
 
-from brian2.core.variables import linked_var
+import uuid
+
+import numpy as np
+import pytest
+import sympy
+from numpy.testing import assert_equal
+
+from brian2.core.clocks import defaultclock
+from brian2.core.magic import run
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
-from brian2.core.clocks import defaultclock
-from brian2.devices.device import reinit_and_delete, seed
+from brian2.core.variables import linked_var
+from brian2.devices.device import seed
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
-from brian2.core.magic import run
-from brian2.synapses.synapses import Synapses
 from brian2.monitors.statemonitor import StateMonitor
+from brian2.synapses.synapses import Synapses
+from brian2.tests.utils import assert_allclose
+from brian2.units.allunits import second, volt
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
+from brian2.units.stdunits import ms, mV, Hz, cm
 from brian2.units.unitsafefunctions import linspace
 from brian2.units.allunits import second, volt, umetre, siemens, ufarad
-from brian2.units.stdunits import ms, mV, Hz, cm
 from brian2.utils.logger import catch_logs
 
-from brian2.tests.utils import assert_allclose
 
-
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_creation():
     '''
     A basic test that creating a NeuronGroup works.
@@ -42,18 +42,22 @@ def test_creation():
     # --------------------------
     
     # Model equations as first argument (no number of neurons)
-    assert_raises(TypeError, lambda: NeuronGroup('dv/dt = 5*Hz : 1', 1))
+    with pytest.raises(TypeError):
+        NeuronGroup('dv/dt = 5*Hz : 1', 1)
     
     # Not a number as first argument
-    assert_raises(TypeError, lambda: NeuronGroup(object(), 'dv/dt = 5*Hz : 1'))
+    with pytest.raises(TypeError):
+        NeuronGroup(object(), 'dv/dt = 5*Hz : 1')
     
     # Illegal number
-    assert_raises(ValueError, lambda: NeuronGroup(0, 'dv/dt = 5*Hz : 1'))
+    with pytest.raises(ValueError):
+        NeuronGroup(0, 'dv/dt = 5*Hz : 1')
     
     # neither string nor Equations object as model description
-    assert_raises(TypeError, lambda: NeuronGroup(1, object()))
+    with pytest.raises(TypeError):
+        NeuronGroup(1, object())
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_integer_variables_and_mod():
     '''
     Test that integer operations and variable definitions work.
@@ -73,7 +77,7 @@ def test_integer_variables_and_mod():
     assert_equal(G.k[:], G.i[:]//n)
     assert_equal(G.a[:], G.v[:]%(G.i[:]+1))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_variables():
     '''
     Test the correct creation of the variables dictionary.
@@ -89,7 +93,7 @@ def test_variables():
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', refractory=5*ms)
     assert 'not_refractory' in G.variables and 'lastspike' in G.variables
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_variableview_calculations():
     # Check that you can directly calculate with "variable views"
     G = NeuronGroup(10, '''x : 1
@@ -116,17 +120,23 @@ def test_variableview_calculations():
     assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV)
 
     # incorrect units
-    assert_raises(DimensionMismatchError, lambda: G.x + G.y)
-    assert_raises(DimensionMismatchError, lambda: G.x[:] + G.y)
-    assert_raises(DimensionMismatchError, lambda: G.x + G.y[:])
-    assert_raises(DimensionMismatchError, lambda: G.x + 3*mV)
-    assert_raises(DimensionMismatchError, lambda: 3*mV + G.x)
-    assert_raises(DimensionMismatchError, lambda: G.y + 3)
-    assert_raises(DimensionMismatchError, lambda: 3 + G.y)
+    with pytest.raises(DimensionMismatchError):
+        G.x + G.y
+    with pytest.raises(DimensionMismatchError):
+        G.x[:] + G.y
+    with pytest.raises(DimensionMismatchError):
+        G.x + G.y[:]
+    with pytest.raises(DimensionMismatchError):
+        G.x + 3*mV
+    with pytest.raises(DimensionMismatchError):
+        3*mV + G.x
+    with pytest.raises(DimensionMismatchError):
+        G.y + 3
+    with pytest.raises(DimensionMismatchError):
+        3 + G.y
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_stochastic_variable():
     '''
     Test that a NeuronGroup with a stochastic variable can be simulated. Only
@@ -136,8 +146,7 @@ def test_stochastic_variable():
     G = NeuronGroup(1, 'dv/dt = -v/tau + xi*tau**-0.5: 1')
     run(defaultclock.dt)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_stochastic_variable_multiplicative():
     '''
     Test that a NeuronGroup with multiplicative noise can be simulated. Only
@@ -168,8 +177,7 @@ def test_scalar_variable():
     net = Network(G)
     net.run(defaultclock.dt)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_referred_scalar_variable():
     '''
     Test the correct handling of referred scalar variables in subexpressions
@@ -184,8 +192,7 @@ def test_referred_scalar_variable():
     run(.25*second)
     assert_allclose(G2.out[:], np.arange(10)+1)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_variable_correct():
     '''
     Test correct uses of linked variables.
@@ -205,7 +212,7 @@ def test_linked_variable_correct():
     assert len(str(G2.v[:])) > 0
     assert len(repr(G2.v[:])) > 0
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_variable_incorrect():
     '''
     Test incorrect uses of linked variables.
@@ -217,17 +224,21 @@ def test_linked_variable_incorrect():
                             not_linked : volt''')
 
     # incorrect unit
-    assert_raises(DimensionMismatchError, lambda: setattr(G3, 'l', linked_var(G1.y)))
+    with pytest.raises(DimensionMismatchError):
+        setattr(G3, 'l', linked_var(G1.y))
     # incorrect group size
-    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G2.x)))
+    with pytest.raises(ValueError):
+        setattr(G3, 'l', linked_var(G2.x))
     # incorrect use of linked_var
-    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G1.x, 'x')))
-    assert_raises(ValueError, lambda: setattr(G3, 'l', linked_var(G1)))
+    with pytest.raises(ValueError):
+        setattr(G3, 'l', linked_var(G1.x, 'x'))
+    with pytest.raises(ValueError):
+        setattr(G3, 'l', linked_var(G1))
     # Not a linked variable
-    assert_raises(TypeError, lambda: setattr(G3, 'not_linked', linked_var(G1.x)))
+    with pytest.raises(TypeError):
+        setattr(G3, 'not_linked', linked_var(G1.x))
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_variable_scalar():
     '''
     Test linked variable from a size 1 group.
@@ -255,7 +266,7 @@ def test_linked_variable_scalar():
     assert sg2.x == G2.x
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_variable_indexed():
     '''
     Test linking a variable with an index specified as an array
@@ -268,7 +279,7 @@ def test_linked_variable_indexed():
     # G.y should refer to an inverted version of G.x
     assert_allclose(G.y[:], np.arange(10)[::-1]*0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_variable_repeat():
     '''
     Test a "repeat"-like connection between two groups of different size
@@ -279,7 +290,7 @@ def test_linked_variable_repeat():
     G1.w = np.arange(5) * 0.1
     assert_allclose(G2.v[:], np.arange(5).repeat(2) * 0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_double_linked1():
     '''
     Linked to a linked variable, without indices
@@ -293,7 +304,7 @@ def test_linked_double_linked1():
     G1.x = np.arange(10)
     assert_allclose(G3.z[:], np.arange(10))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_double_linked2():
     '''
     Linked to a linked variable, first without indices, second with indices
@@ -308,7 +319,7 @@ def test_linked_double_linked2():
     G1.x = np.arange(5)*0.1
     assert_allclose(G3.z[:], np.arange(5).repeat(2)*0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_double_linked3():
     '''
     Linked to a linked variable, first with indices, second without indices
@@ -322,7 +333,7 @@ def test_linked_double_linked3():
     G1.x = np.arange(5)*0.1
     assert_allclose(G3.z[:], np.arange(5).repeat(2)*0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_double_linked4():
     '''
     Linked to a linked variable, both use indices
@@ -336,7 +347,7 @@ def test_linked_double_linked4():
     G1.x = np.arange(5)*0.1
     assert_allclose(G3.z[:], np.arange(5).repeat(2)[::-1]*0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_triple_linked():
     '''
     Link to a linked variable that links to a linked variable, all use indices
@@ -355,7 +366,7 @@ def test_linked_triple_linked():
     G1.a = np.arange(2)*0.1
     assert_allclose(G4.d[:], np.arange(2).repeat(2)[::-1].repeat(2)*0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_subgroup():
     '''
     Test linking a variable from a subgroup
@@ -368,7 +379,7 @@ def test_linked_subgroup():
 
     assert_allclose(G3.y[:], (np.arange(5)+3)*0.1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_subgroup2():
     '''
     Test linking a variable from a subgroup with indexing
@@ -381,8 +392,7 @@ def test_linked_subgroup2():
 
     assert_allclose(G3.y[:], (np.arange(5)+3).repeat(2)*0.1)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_subexpression():
     '''
     Test a subexpression referring to a linked variable.
@@ -402,8 +412,7 @@ def test_linked_subexpression():
     assert all((all(mon[i].I == mon[0].I) for i in range(5)))
     assert all((all(mon[i+5].I == mon[5].I) for i in range(5)))
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_subexpression_2():
     '''
     Test a linked variable referring to a subexpression without indices
@@ -422,8 +431,7 @@ def test_linked_subexpression_2():
     assert all(mon[0].I_l == mon1[0].I)
     assert all(mon[1].I_l == mon1[1].I)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_subexpression_3():
     '''
     Test a linked variable referring to a subexpression with indices
@@ -468,7 +476,7 @@ def test_linked_subexpression_synapse():
     assert 'x_post' not in S.variables
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_variable_indexed_incorrect():
     '''
     Test errors when providing incorrect index arrays
@@ -477,23 +485,18 @@ def test_linked_variable_indexed_incorrect():
                            y : 1 (linked)''')
 
     G.x = np.arange(10)*0.1
-    assert_raises(TypeError,
-                  lambda: setattr(G, 'y',
-                                  linked_var(G.x, index=np.arange(10)*1.0)))
-    assert_raises(TypeError,
-                  lambda: setattr(G, 'y',
-                                  linked_var(G.x, index=np.arange(10).reshape(5, 2))))
-    assert_raises(TypeError,
-                  lambda: setattr(G, 'y',
-                                  linked_var(G.x, index=np.arange(5))))
-    assert_raises(ValueError,
-                  lambda: setattr(G, 'y',
-                                  linked_var(G.x, index=np.arange(10)-1)))
-    assert_raises(ValueError,
-                  lambda: setattr(G, 'y',
-                                  linked_var(G.x, index=np.arange(10)+1)))
+    with pytest.raises(TypeError):
+        setattr(G, 'y', linked_var(G.x, index=np.arange(10)*1.0))
+    with pytest.raises(TypeError):
+        setattr(G, 'y', linked_var(G.x, index=np.arange(10).reshape(5, 2)))
+    with pytest.raises(TypeError):
+        setattr(G, 'y', linked_var(G.x, index=np.arange(5)))
+    with pytest.raises(ValueError):
+        setattr(G, 'y', linked_var(G.x, index=np.arange(10)-1))
+    with pytest.raises(ValueError):
+        setattr(G, 'y', linked_var(G.x, index=np.arange(10)+1))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_synapses():
     '''
     Test linking to a synaptic variable (should raise an error).
@@ -502,10 +505,10 @@ def test_linked_synapses():
     S = Synapses(G, G, 'w:1')
     S.connect()
     G2 = NeuronGroup(100, 'x : 1 (linked)')
-    assert_raises(NotImplementedError, lambda: setattr(G2, 'x', linked_var(S, 'w')))
+    with pytest.raises(NotImplementedError):
+        setattr(G2, 'x', linked_var(S, 'w'))
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_var_in_reset():
     G1 = NeuronGroup(3, 'x:1')
     G2 = NeuronGroup(3, '''x_linked : 1 (linked)
@@ -518,8 +521,7 @@ def test_linked_var_in_reset():
     run(3*defaultclock.dt)
     assert_allclose(G1.x[:], [0, 1, 0])
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_linked_var_in_reset_size_1():
     G1 = NeuronGroup(1, 'x:1')
     G2 = NeuronGroup(1, '''x_linked : 1 (linked)
@@ -532,7 +534,7 @@ def test_linked_var_in_reset_size_1():
     run(3*defaultclock.dt)
     assert_allclose(G1.x[:], 1)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_linked_var_in_reset_incorrect():
     # Raise an error if a scalar variable (linked variable from a group of size
     # 1 is set in a reset statement of a group with size > 1)
@@ -545,9 +547,10 @@ def test_linked_var_in_reset_incorrect():
     net = Network(G1, G2)
     # It is not well-defined what x_linked +=1 means in this context
     # (as for any other shared variable)
-    assert_raises(SyntaxError, lambda: net.run(0*ms))
+    with pytest.raises(SyntaxError):
+        net.run(0*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_incomplete_namespace():
     '''
     Test that the namespace does not have to be complete at creation time.
@@ -564,25 +567,28 @@ def test_incomplete_namespace():
     net = Network(G)
     net.run(0*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_namespace_errors():
 
     # model equations use unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1')
     net = Network(G)
-    assert_raises(KeyError, lambda: net.run(1*ms))
+    with pytest.raises(KeyError):
+        net.run(1*ms)
 
     # reset uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='False', reset='v = v_r')
     net = Network(G)
-    assert_raises(KeyError, lambda: net.run(1*ms))
+    with pytest.raises(KeyError):
+        net.run(1*ms)
 
     # threshold uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='v > v_th')
     net = Network(G)
-    assert_raises(KeyError, lambda: net.run(1*ms))
+    with pytest.raises(KeyError):
+        net.run(1*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_namespace_warnings():
     G = NeuronGroup(1, '''x : 1
                           y : 1''',
@@ -647,8 +653,7 @@ def test_namespace_warnings():
         net.run(0*ms)
         assert len(l) == 0, 'got %s as warnings' % str(l)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_threshold_reset():
     '''
     Test that threshold and reset work in the expected way.
@@ -660,22 +665,22 @@ def test_threshold_reset():
     run(defaultclock.dt)
     assert_allclose(G.v[:], np.array([0, 1, 0.5]))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_unit_errors_threshold_reset():
     '''
     Test that unit errors in thresholds and resets are detected.
     '''
     # Unit error in threshold
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', threshold='v > -20*mV')
-    assert_raises(DimensionMismatchError,
-                  lambda: Network(group).run(0*ms))
+    with pytest.raises(DimensionMismatchError):
+        Network(group).run(0*ms)
 
     # Unit error in reset
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='True',
                         reset='v = -65*mV')
-    assert_raises(DimensionMismatchError,
-                  lambda: Network(group).run(0*ms))
+    with pytest.raises(DimensionMismatchError):
+        Network(group).run(0*ms)
 
     # More complicated unit reset with an intermediate variable
     # This should pass
@@ -696,8 +701,8 @@ def test_unit_errors_threshold_reset():
                         threshold='False',
                         reset='''temp_var = -65*mV
                                  v = temp_var''')
-    assert_raises(DimensionMismatchError,
-                  lambda: Network(group).run(0*ms))
+    with pytest.raises(DimensionMismatchError):
+        Network(group).run(0*ms)
 
     # Resets with an in-place modification
     # This should work
@@ -710,10 +715,10 @@ def test_unit_errors_threshold_reset():
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='False',
                         reset='''v -= 60*mV''')
-    assert_raises(DimensionMismatchError,
-              lambda: Network(group).run(0*ms))
+    with pytest.raises(DimensionMismatchError):
+        Network(group).run(0*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_syntax_errors():
     '''
     Test that syntax errors are already caught at initialization time.
@@ -725,15 +730,17 @@ def test_syntax_errors():
     # Syntax error in threshold
     group = NeuronGroup(1, 'dv/dt = 5*Hz : 1',
                         threshold='>1')
-    assert_raises(Exception, lambda: Network(group).run(0*ms))
+    with pytest.raises(Exception):
+        Network(group).run(0*ms)
 
     # Syntax error in reset
     group = NeuronGroup(1, 'dv/dt = 5*Hz : 1',
                         threshold='True',
                         reset='0')
-    assert_raises(Exception, lambda: Network(group).run(0*ms))
+    with pytest.raises(Exception):
+        Network(group).run(0*ms)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_custom_events():
     G = NeuronGroup(2, '''event_time1 : second
                           event_time2 : second''',
@@ -763,21 +770,25 @@ def test_custom_events_schedule():
     assert_allclose(G.event_time[:], [1, 2]*ms)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_incorrect_custom_event_definition():
     # Incorrect event name
-    assert_raises(TypeError, lambda: NeuronGroup(1, '', events={'1event': 'True'}))
+    with pytest.raises(TypeError):
+        NeuronGroup(1, '', events={'1event': 'True'})
     # duplicate definition of 'spike' event
-    assert_raises(ValueError, lambda: NeuronGroup(1, '', threshold='True',
-                                                  events={'spike': 'False'}))
+    with pytest.raises(ValueError):
+        NeuronGroup(1, '', threshold='True', events={'spike': 'False'})
     # not a threshold
     G = NeuronGroup(1, '', events={'my_event': 10*mV})
-    assert_raises(TypeError, lambda: Network(G).run(0*ms))
+    with pytest.raises(TypeError):
+        Network(G).run(0*ms)
     # schedule for a non-existing event
     G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
-    assert_raises(ValueError, lambda: G.set_event_schedule('another_event'))
+    with pytest.raises(ValueError):
+        G.set_event_schedule('another_event')
     # code for a non-existing event
-    assert_raises(ValueError, lambda: G.run_on_event('another_event', ''))
+    with pytest.raises(ValueError):
+        G.run_on_event('another_event', '')
 
 
 def test_state_variables():
@@ -789,11 +800,14 @@ def test_state_variables():
     # The variable N should be always present
     assert G.N == 10
     # But it should be read-only
-    assert_raises(TypeError, lambda: G.__setattr__('N', 20))
-    assert_raises(TypeError, lambda: G.__setattr__('N_', 20))
+    with pytest.raises(TypeError):
+        G.__setattr__('N', 20)
+    with pytest.raises(TypeError):
+        G.__setattr__('N_', 20)
 
     G.v = -70*mV
-    assert_raises(DimensionMismatchError, lambda: G.__setattr__('v', -70))
+    with pytest.raises(DimensionMismatchError):
+        G.__setattr__('v', -70)
     G.v_ = float(-70*mV)
     assert_allclose(G.v[:], -70*mV)
     G.v = -70*mV + np.arange(10)*mV
@@ -801,8 +815,10 @@ def test_state_variables():
     G.v = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] * volt
     assert_allclose(G.v[:], np.arange(10) * volt)
     # incorrect size
-    assert_raises(ValueError, lambda: G.__setattr__('v', [0, 1]*volt))
-    assert_raises(ValueError, lambda: G.__setattr__('v', np.arange(11)*volt))
+    with pytest.raises(ValueError):
+        G.__setattr__('v', [0, 1]*volt)
+    with pytest.raises(ValueError):
+        G.__setattr__('v', np.arange(11)*volt)
 
     G.v = -70*mV
     # Numpy methods should be able to deal with state variables
@@ -819,10 +835,10 @@ def test_state_variables():
     assert_allclose(G.v[:], -70*mV + np.arange(10)*mV)
 
     # And it should raise an unit error if the units are incorrect
-    assert_raises(DimensionMismatchError,
-                  lambda: G.__setattr__('v', '70 + i'))
-    assert_raises(DimensionMismatchError,
-                  lambda: G.__setattr__('v', '70 + i*mV'))
+    with pytest.raises(DimensionMismatchError):
+        G.__setattr__('v', '70 + i')
+    with pytest.raises(DimensionMismatchError):
+        G.__setattr__('v', '70 + i*mV')
 
     # Calculating with state variables should work too
     # With units
@@ -855,18 +871,25 @@ def test_state_variables():
     G.v /= 2.0
 
     # with unit checking
-    assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3*second))
-    assert_raises(DimensionMismatchError, lambda: G.v.__iadd__(3))
-    assert_raises(DimensionMismatchError, lambda: G.v.__imul__(3*second))
+    with pytest.raises(DimensionMismatchError):
+        G.v.__iadd__(3*second)
+    with pytest.raises(DimensionMismatchError):
+        G.v.__iadd__(3)
+    with pytest.raises(DimensionMismatchError):
+        G.v.__imul__(3*second)
 
     # in-place modification with strings should not work
-    assert_raises(TypeError, lambda: G.v.__iadd__('string'))
-    assert_raises(TypeError, lambda: G.v.__imul__('string'))
-    assert_raises(TypeError, lambda: G.v.__idiv__('string'))
-    assert_raises(TypeError, lambda: G.v.__isub__('string'))
+    with pytest.raises(TypeError):
+        G.v.__iadd__('string')
+    with pytest.raises(TypeError):
+        G.v.__imul__('string')
+    with pytest.raises(TypeError):
+        G.v.__idiv__('string')
+    with pytest.raises(TypeError):
+        G.v.__isub__('string')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_state_variable_access():
     G = NeuronGroup(10, 'v:volt')
     G.v = np.arange(10) * volt
@@ -883,10 +906,14 @@ def test_state_variable_access():
     assert_allclose(G.v_[[0, 5]], np.array([0, 5]))
 
     # Illegal indexing
-    assert_raises(IndexError, lambda: G.v[0, 0])
-    assert_raises(IndexError, lambda: G.v_[0, 0])
-    assert_raises(TypeError, lambda: G.v[object()])
-    assert_raises(TypeError, lambda: G.v_[object()])
+    with pytest.raises(IndexError):
+        G.v[0, 0]
+    with pytest.raises(IndexError):
+        G.v_[0, 0]
+    with pytest.raises(TypeError):
+        G.v[object()]
+    with pytest.raises(TypeError):
+        G.v_[object()]
 
     # A string representation should not raise any error
     assert len(str(G.v))
@@ -906,12 +933,13 @@ def test_state_variable_access_strings():
     assert_allclose(G.v['v >= 3*volt'], G.v[3:])
     assert_allclose(G.v_['v >= 3*volt'], G.v_[3:])
     # Should also check for units
-    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3'])
-    assert_raises(DimensionMismatchError, lambda: G.v['v >= 3*second'])
+    with pytest.raises(DimensionMismatchError):
+        G.v['v >= 3']
+    with pytest.raises(DimensionMismatchError):
+        G.v['v >= 3*second']
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_state_variable_set_strings():
     # Instead of overwriting the same variable over and over, we have one
     # variable for each assignment so that we can test everything in the end
@@ -1025,12 +1053,13 @@ def test_state_variable_set_strings():
     assert_allclose(G.v11[:3], [1, 2, 3]*volt)
     assert np.isinf(G.v11_[3])
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_unknown_state_variables():
     # Test how setting attribute names that do not correspond to a state
     # variable are handled
     G = NeuronGroup(10, 'v : 1')
-    assert_raises(AttributeError, lambda: setattr(G, 'unknown', 42))
+    with pytest.raises(AttributeError):
+        setattr(G, 'unknown', 42)
 
     # Creating a new private attribute should be fine
     G._unknown = 42
@@ -1041,7 +1070,7 @@ def test_unknown_state_variables():
     G.unknown = 42
     assert G.unknown == 42
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subexpression():
     G = NeuronGroup(10, '''dv/dt = freq : 1
                            freq : Hz
@@ -1051,7 +1080,7 @@ def test_subexpression():
     G.array = 5
     assert_allclose(G.expr[:], 2*10*np.arange(10)*Hz + 5*Hz)
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subexpression_with_constant():
         g = 2
         G = NeuronGroup(1, '''x : 1
@@ -1087,8 +1116,10 @@ def test_subexpression_with_constant():
         assert len(G.I) == 1
 
         # These will not work
-        assert_raises(KeyError, lambda: np.array(G.I))
-        assert_raises(KeyError, lambda: np.mean(G.I))
+        with pytest.raises(KeyError):
+            np.array(G.I)
+        with pytest.raises(KeyError):
+            np.mean(G.I)
         # But these should
         assert_allclose(np.array(G.I[:]), G.I[:])
         assert np.mean(G.I[:]) == 2
@@ -1098,7 +1129,7 @@ def test_subexpression_with_constant():
         assert(len(str(G.I)))
         assert(len(repr(G.I)))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_scalar_parameter_access():
     G = NeuronGroup(10, '''dv/dt = freq : 1
                            freq : Hz (shared)
@@ -1119,18 +1150,26 @@ def test_scalar_parameter_access():
     assert_allclose(np.asanyarray(G.freq), 50*Hz)
 
     # Check error messages
-    assert_raises(IndexError, lambda: G.freq[0])
-    assert_raises(IndexError, lambda: G.freq[1])
-    assert_raises(IndexError, lambda: G.freq[0:1])
-    assert_raises(IndexError, lambda: G.freq['i>5'])
+    with pytest.raises(IndexError):
+        G.freq[0]
+    with pytest.raises(IndexError):
+        G.freq[1]
+    with pytest.raises(IndexError):
+        G.freq[0:1]
+    with pytest.raises(IndexError):
+        G.freq['i>5']
 
-    assert_raises(ValueError, lambda: G.freq.set_item(slice(None), [0, 1]*Hz))
-    assert_raises(IndexError, lambda: G.freq.set_item(0, 100*Hz))
-    assert_raises(IndexError, lambda: G.freq.set_item(1, 100*Hz))
-    assert_raises(IndexError, lambda: G.freq.set_item('i>5', 100*Hz))
+    with pytest.raises(ValueError):
+        G.freq.set_item(slice(None), [0, 1]*Hz)
+    with pytest.raises(IndexError):
+        G.freq.set_item(0, 100*Hz)
+    with pytest.raises(IndexError):
+        G.freq.set_item(1, 100*Hz)
+    with pytest.raises(IndexError):
+        G.freq.set_item('i>5', 100*Hz)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_scalar_subexpression():
     G = NeuronGroup(10, '''dv/dt = freq : 1
                            freq : Hz (shared)
@@ -1141,20 +1180,21 @@ def test_scalar_subexpression():
     G.number = 50
     assert G.sub[:] == 150*Hz
 
-    assert_raises(SyntaxError, lambda: NeuronGroup(10, '''dv/dt = freq : 1
-                                                          freq : Hz (shared)
-                                                          array : 1
-                                                          sub = freq + array*Hz : Hz (shared)'''))
+    with pytest.raises(SyntaxError):
+        NeuronGroup(10, '''dv/dt = freq : 1
+                           freq : Hz (shared)
+                           array : 1
+                           sub = freq + array*Hz : Hz (shared)''')
 
     # A scalar subexpresion cannot refer to implicitly vectorized functions
     group = NeuronGroup(10, '''x : 1
                                sub = rand() : 1 (shared)''')
     group.run_regularly('x = sub')
     net = Network(group)
-    assert_raises(SyntaxError, net.run, 0*ms)
+    with pytest.raises(SyntaxError):
+        net.run(0*ms)
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_sim_with_scalar_variable():
     G = NeuronGroup(10, '''tau : second (shared)
                            dv/dt = -v/tau : 1''', method='exact')
@@ -1164,8 +1204,7 @@ def test_sim_with_scalar_variable():
     assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_sim_with_scalar_subexpression():
     G = NeuronGroup(10, '''tau = 10*ms : second (shared)
                            dv/dt = -v/tau : 1''', method='exact')
@@ -1174,8 +1213,7 @@ def test_sim_with_scalar_subexpression():
     assert_allclose(G.v[:], np.exp(-0.1)*np.linspace(0, 1, 10, endpoint=False))
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_constant_variable_subexpression():
     G = NeuronGroup(10, '''dv1/dt = -v1**2 / (10*ms) : 1
                            dv2/dt = -v_const**2 / (10*ms) : 1
@@ -1200,7 +1238,7 @@ def test_constant_variable_subexpression():
     assert np.sum((G.v2 - G.v1)**2) > 1e-10
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_constant_subexpression_order():
     G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
                            s1 = v : 1 (constant over dt)
@@ -1213,7 +1251,7 @@ def test_constant_subexpression_order():
     assert code_lines[2].startswith('s2')
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_subexpression_checks():
     group = NeuronGroup(1, '''dv/dt = -v / (10*ms) : volt
                               y = rand() : 1 (constant over dt)
@@ -1227,10 +1265,11 @@ def test_subexpression_checks():
                               y = rand() : 1
                               z = 17*v**2 : volt**2''')
     net = Network(group)
-    assert_raises(SyntaxError, net.run, 0 * ms)
+    with pytest.raises(SyntaxError):
+        net.run(0 * ms)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_repr():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
                            Inp = sin(2*pi*freq*t) : volt
@@ -1243,7 +1282,7 @@ def test_repr():
         for eq in G.equations.values():
             assert len(func(eq))
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_ipython_html():
     G = NeuronGroup(10, '''dv/dt = -(v + Inp) / tau : volt
                            Inp = sin(2*pi*freq*t) : volt
@@ -1253,7 +1292,7 @@ def test_ipython_html():
     assert len(G._repr_html_())
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_indices():
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
@@ -1269,10 +1308,11 @@ def test_indices():
     # index, then synaptic variables will allow indexing in such a way. This
     # makes plotting in matplotlib 1.5.1 fail with a non-obivous error
     # See https://groups.google.com/d/msg/briansupport/yRA4PHKAvN8/cClOEUlOAQAJ
-    assert_raises(TypeError, G.indices.__getitem__, None)
+    with pytest.raises(TypeError):
+        G.indices.__getitem__(None)
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_dtype():
     '''
     Check the utility function get_dtype
@@ -1307,11 +1347,15 @@ def test_get_dtype():
 
     # Test that incorrect types raise an error
     # incorrect general dtype
-    assert_raises(TypeError, lambda: get_dtype(eqs['v'], np.int32))
+    with pytest.raises(TypeError):
+        get_dtype(eqs['v'], np.int32)
     # incorrect specific types
-    assert_raises(TypeError, lambda: get_dtype(eqs['v'], {'v': np.int32}))
-    assert_raises(TypeError, lambda: get_dtype(eqs['n'], {'n': np.float32}))
-    assert_raises(TypeError, lambda: get_dtype(eqs['b'], {'b': np.int32}))
+    with pytest.raises(TypeError):
+        get_dtype(eqs['v'], {'v': np.int32})
+    with pytest.raises(TypeError):
+        get_dtype(eqs['n'], {'n': np.float32})
+    with pytest.raises(TypeError):
+        get_dtype(eqs['b'], {'b': np.int32})
 
 
 def test_aliasing_in_statements():
@@ -1319,7 +1363,7 @@ def test_aliasing_in_statements():
     Test an issue around variables aliasing other variables (#259)
     '''
     if prefs.codegen.target != 'numpy':
-        raise SkipTest('numpy-only test')
+        pytest.skip('numpy-only test')
 
     runner_code = '''x_1 = x_0
                      x_0 = -1'''
@@ -1332,7 +1376,7 @@ def test_aliasing_in_statements():
     assert_allclose(g.x_1_[:], np.array([0]))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_states():
     G = NeuronGroup(10, '''v : volt
                            x : 1
@@ -1361,7 +1405,7 @@ def test_get_states():
                                       't_in_timesteps', 'subexpr', 'subexpr2'}
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_states():
     G = NeuronGroup(10, '''v : volt
                            x : 1
@@ -1369,11 +1413,15 @@ def test_set_states():
                            subexpr2 = x*volt + v : volt''')
     G.v = 'i*volt'
     G.x = '10*i'
-    assert_raises(ValueError, lambda: G.set_states({'v': np.arange(2, 11)*volt}, units=True))
+    with pytest.raises(ValueError):
+        G.set_states({'v': np.arange(2, 11)*volt}, units=True)
     # we test if function prevents from setting read_only variables
-    assert_raises(TypeError, lambda: G.set_states({'N': 1}))
-    assert_raises(DimensionMismatchError, lambda: G.set_states({'x': np.arange(2, 12)*volt}, units=True))
-    assert_raises(DimensionMismatchError, lambda: G.set_states({'v': np.arange(2, 12)}, units=True))
+    with pytest.raises(TypeError):
+        G.set_states({'N': 1})
+    with pytest.raises(DimensionMismatchError):
+        G.set_states({'x': np.arange(2, 12)*volt}, units=True)
+    with pytest.raises(DimensionMismatchError):
+        G.set_states({'v': np.arange(2, 12)}, units=True)
     G.set_states({'v': np.arange(2, 12)}, units=False)
     assert_allclose(G.v, np.arange(2, 12)*volt)
     G.set_states({'v': np.arange(2, 12)*volt}, units=True)
@@ -1384,19 +1432,20 @@ def test_set_states():
     assert_allclose(G.x, np.arange(2, 12))
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_get_states_pandas():
     try:
         import pandas as pd
     except ImportError:
-        raise SkipTest('Cannot test export to Pandas data frame, Pandas is not installed.')
+        pytest.skip('Cannot test export to Pandas data frame, Pandas is not installed.')
     G = NeuronGroup(10, '''v : volt
                            x : 1
                            subexpr = x + v/volt : 1
                            subexpr2 = x*volt + v : volt''')
     G.v = 'i*volt'
     G.x = '10*i'
-    assert_raises(NotImplementedError, lambda: G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True, format='pandas'))
+    with pytest.raises(NotImplementedError):
+        G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=True, format='pandas')
     states = G.get_states(['v', 'x', 'subexpr', 'subexpr2'], units=False, format='pandas')
     assert_allclose(states['v'].values, np.arange(10))
     assert_allclose(states['x'].values, 10*np.arange(10))
@@ -1411,12 +1460,12 @@ def test_get_states_pandas():
                                        't_in_timesteps', 'subexpr', 'subexpr2'}
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_states_pandas():
     try:
         import pandas as pd
     except ImportError:
-        raise SkipTest('Cannot test export to Pandas data frame, Pandas is not installed.')
+        pytest.skip('Cannot test export to Pandas data frame, Pandas is not installed.')
     G = NeuronGroup(10, '''v : volt
                            x : 1
                            subexpr = x + v/volt : 1
@@ -1424,11 +1473,14 @@ def test_set_states_pandas():
     G.v = 'i*volt'
     G.x = '10*i'
     df = pd.DataFrame(np.arange(2, 11), columns=['v'])
-    assert_raises(NotImplementedError, lambda: G.set_states(df, units=True, format='pandas'))
-    assert_raises(ValueError, lambda: G.set_states(df, units=False, format='pandas'))
+    with pytest.raises(NotImplementedError):
+        G.set_states(df, units=True, format='pandas')
+    with pytest.raises(ValueError):
+        G.set_states(df, units=False, format='pandas')
     # we test if function prevents from setting read_only variables
     df = pd.DataFrame(np.array([1]), columns=['N'])
-    assert_raises(TypeError, lambda: G.set_states(df, units=False, format='pandas'))
+    with pytest.raises(TypeError):
+        G.set_states(df, units=False, format='pandas')
     df = pd.DataFrame(np.vstack((np.arange(2, 12), np.arange(2, 12))).T)
     df.columns = ['v', 'x']
     G.set_states(df, units=False, format='pandas')
@@ -1450,8 +1502,7 @@ def test_random_vector_values():
     assert np.var(G.v[:]) > 0
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_random_values_random_seed():
     G = NeuronGroup(100, '''v1 : 1
                             v2 : 1''')
@@ -1465,8 +1516,7 @@ def test_random_values_random_seed():
     assert np.var(G.v1[:] - G.v2[:]) > 0
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_random_values_fixed_seed():
     G = NeuronGroup(100, '''v1 : 1
                             v2 : 1''')
@@ -1502,7 +1552,7 @@ def test_random_values_fixed_and_random():
     assert np.var(first_run_values[:, 1] - mon.v[:, 1]) > 0
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_no_code():
     # Make sure that we are not unncessarily creating code objects for a state
     # updater that has nothing to do
@@ -1517,8 +1567,7 @@ def test_no_code():
     assert group_2.state_updater.codeobj is not None
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_run_regularly_scheduling():
     G = NeuronGroup(1, '''v1 : 1
                           v2 : 1
@@ -1532,8 +1581,7 @@ def test_run_regularly_scheduling():
     assert_allclose(G.v3[:], 1)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_run_regularly_scheduling_2():
     # This form is relevant for Brian2GeNN, where we are not allowed to change
     # the "when" attribute, but can change the order.
@@ -1566,8 +1614,7 @@ def test_run_regularly_scheduling_2():
     assert_allclose(mon_4.v2[0], [1, 2])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_run_regularly_dt():
     G = NeuronGroup(1, 'v : 1')
     G.run_regularly('v += 1', dt=2*defaultclock.dt)
@@ -1577,8 +1624,7 @@ def test_run_regularly_dt():
     assert_allclose(np.diff(M.v[0]), np.tile([0, 1], 5)[:-1])
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_semantics_floor_division():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''a : integer
@@ -1608,8 +1654,7 @@ def test_semantics_floor_division():
     assert_allclose(G.y[:], float_values // 3)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_semantics_floating_point_division():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''x1 : 1
@@ -1643,8 +1688,7 @@ def test_semantics_floating_point_division():
     assert_allclose(G.y2[:], float_values / 3)
 
 
-@attr('standalone-compatible')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.standalone_compatible
 def test_semantics_mod():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''a : integer
@@ -1673,13 +1717,12 @@ def test_semantics_mod():
     assert_allclose(G.x[:], float_values % 3)
     assert_allclose(G.y[:], float_values % 3)
 
-def test_resting_value():
+def test_simple_resting_value():
     """
     Test the resting state values of the system
     """
     # simple model with single dependent variable, here it is not necessary 
     # to run the model as the resting value is certain
-    epsilon = sys.float_info.epsilon
     El = - 100
     tau = 1 * ms
     eqs = ''' 
@@ -1687,7 +1730,7 @@ def test_resting_value():
     '''
     grp = NeuronGroup(1, eqs, method = 'exact')
     resting_state = grp.resting_state()
-    assert abs(resting_state['v'] - El) < epsilon * max(abs(resting_state['v']), abs(El))
+    assert_allclose(resting_state['v'], El)
     
     # one more example
     area = 100 * umetre ** 2
@@ -1697,9 +1740,37 @@ def test_resting_value():
     grp = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                        I_leak = g_L*(E_L - v) : amp''')
     resting_state = grp.resting_state({'v': float(10000)})
-    assert abs(resting_state['v'] - E_L) < epsilon * max(abs(resting_state['v']), abs(E_L))
+    assert_allclose(resting_state['v'], El)
     
-    # check unsupported models are identified
+def test_failed_resting_state():
+    # check the failed to converge system is correctly notified to the user
+    area = 20000 * umetre ** 2
+    Cm = 1 * ufarad * cm ** -2 * area
+    gl = 5e-5 * siemens * cm ** -2 * area
+    El = -65 * mV
+    EK = -90 * mV
+    ENa = 50 * mV
+    g_na = 100 * msiemens * cm ** -2 * area
+    g_kd = 30 * msiemens * cm ** -2 * area
+    VT = -63 * mV
+    I = 0.01*nA
+    eqs = Equations('''
+    dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
+    dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
+        (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
+        (exp((v-VT-40.*mV)/(5.*mV))-1.)/ms*m : 1
+    dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
+        (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
+    dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
+    ''')
+    group = NeuronGroup(1, eqs, method='exponential_euler')
+    group.v = -70*mV
+    # very poor choice of initial values causing the convergence to fail
+    assert_raises(Exception, lambda: group.resting_state({'v': 0, 'm': 100000000, 'n': 1000000, 'h': 100000000}))
+
+def test_unsupported_resting_state():
+    # check unsupported models are identified and raise NotImplementedError
+    # As a simple example the model with pure resetting or event-driven 
     tau = 10 * ms
     grp = NeuronGroup(1, 'dv/dt = -v/tau : volt', threshold='v > -50*mV', reset='v = -70*mV')  
     assert_raises(NotImplementedError, lambda: grp.resting_state())
@@ -1779,4 +1850,6 @@ if __name__ == '__main__':
     test_semantics_floor_division()
     test_semantics_floating_point_division()
     test_semantics_mod()
-    test_resting_value()
+    test_simple_resting_value()
+    test_failed_resting_state()
+    test_unsupported_resting_state
