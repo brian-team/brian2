@@ -102,9 +102,9 @@ def check_units_statements(code, variables):
             expected_unit = variables[varname].dim
             fail_for_dimension_mismatch(expr_unit, expected_unit,
                                         ('The right-hand-side of code '
-                                         'statement ""%s" does not have the '
-                                         'expected unit %r') % (line,
-                                                               expected_unit))
+                                         'statement "%s" does not have the '
+                                         'expected unit {expected}') % line,
+                                        expected=expected_unit)
         elif varname in newly_defined:
             # note the unit for later
             variables[varname] = Variable(name=varname,

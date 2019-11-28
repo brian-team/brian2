@@ -14,7 +14,7 @@ from brian2.units.fundamentalunits import (Unit,
                                            get_dimensions,
                                            DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
-                                           get_unit)
+                                           get_unit, get_unit_for_display)
 
 __all__ = ['parse_expression_dimensions']
 
@@ -331,8 +331,8 @@ def parse_expression_dimensions(expr, variables):
                 op_symbol = {'Add': '+', 'Sub': '-', 'Mod': '%'}.get(op)
                 left_str = NodeRenderer().render_node(expr.left)
                 right_str = NodeRenderer().render_node(expr.right)
-                left_unit = repr(get_unit(left_dim))
-                right_unit = repr(get_unit(right_dim))
+                left_unit = get_unit_for_display(left_dim)
+                right_unit = get_unit_for_display(right_dim)
                 error_msg = ('Expression "{left} {op} {right}" uses '
                              'inconsistent units ("{left}" has unit '
                              '{left_unit}; "{right}" '
