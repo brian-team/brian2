@@ -953,6 +953,9 @@ class NeuronGroup(Group, SpikeSource):
         x0.update({name : 0 for name in self.equations.diff_eq_names - x0.keys()})
         sorted_variable_values = list(dict(sorted(x0.items())).values())
         result = root(_wrapper, sorted_variable_values, args = (self.equations, get_local_namespace(1)))
+        # check the result message for the status of convergence
+        if result.success == False:
+            raise Exception("The model failed to converge at a resting state. Trying better initial guess shall fix the problem")
         return dict(zip(sorted(self.equations.diff_eq_names), result.x))
 
 def _evaluate_rhs(eqs, values, namespace=None):
@@ -1006,5 +1009,8 @@ def _evaluate_rhs(eqs, values, namespace=None):
         return group.get_states(states)
 
 def _wrapper(args, equations, namespace): 
+    """
+    Function for which root needs to be calculated. Callable function of scipy.optimize.root()
+    """
     rhs = _evaluate_rhs(equations, {name : arg for name, arg in zip(sorted(equations.diff_eq_names), args)}, namespace)
     return [float(rhs['RHS_{}'.format(name)]) for name in sorted(equations.diff_eq_names)]

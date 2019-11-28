@@ -1,11 +1,19 @@
+<<<<<<< HEAD
 
 
+=======
+from __future__ import absolute_import
+from __future__ import division
+>>>>>>> Test case refactoring and syncing
 
 import uuid
-import sys
-import sympy
+
 import numpy as np
 import pytest
+<<<<<<< HEAD
+=======
+import sympy
+>>>>>>> Test case refactoring and syncing
 from numpy.testing import assert_equal
 
 from brian2.core.clocks import defaultclock
@@ -23,9 +31,9 @@ from brian2.tests.utils import assert_allclose
 from brian2.units.allunits import second, volt
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
+from brian2.units.stdunits import ms, mV, Hz, cm
 from brian2.units.unitsafefunctions import linspace
 from brian2.units.allunits import second, volt, umetre, siemens, ufarad
-from brian2.units.stdunits import ms, mV, Hz, cm
 from brian2.utils.logger import catch_logs
 
 
@@ -1717,13 +1725,12 @@ def test_semantics_mod():
     assert_allclose(G.x[:], float_values % 3)
     assert_allclose(G.y[:], float_values % 3)
 
-def test_resting_value():
+def test_simple_resting_value():
     """
     Test the resting state values of the system
     """
     # simple model with single dependent variable, here it is not necessary 
     # to run the model as the resting value is certain
-    epsilon = sys.float_info.epsilon
     El = - 100
     tau = 1 * ms
     eqs = ''' 
@@ -1731,7 +1738,7 @@ def test_resting_value():
     '''
     grp = NeuronGroup(1, eqs, method = 'exact')
     resting_state = grp.resting_state()
-    assert abs(resting_state['v'] - El) < epsilon * max(abs(resting_state['v']), abs(El))
+    assert_allclose(resting_state['v'], El)
     
     # one more example
     area = 100 * umetre ** 2
@@ -1741,9 +1748,37 @@ def test_resting_value():
     grp = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                        I_leak = g_L*(E_L - v) : amp''')
     resting_state = grp.resting_state({'v': float(10000)})
-    assert abs(resting_state['v'] - E_L) < epsilon * max(abs(resting_state['v']), abs(E_L))
+    assert_allclose(resting_state['v'], El)
     
-    # check unsupported models are identified
+def test_failed_resting_state():
+    # check the failed to converge system is correctly notified to the user
+    area = 20000 * umetre ** 2
+    Cm = 1 * ufarad * cm ** -2 * area
+    gl = 5e-5 * siemens * cm ** -2 * area
+    El = -65 * mV
+    EK = -90 * mV
+    ENa = 50 * mV
+    g_na = 100 * msiemens * cm ** -2 * area
+    g_kd = 30 * msiemens * cm ** -2 * area
+    VT = -63 * mV
+    I = 0.01*nA
+    eqs = Equations('''
+    dv/dt = (gl*(El-v) - g_na*(m*m*m)*h*(v-ENa) - g_kd*(n*n*n*n)*(v-EK) + I)/Cm : volt
+    dm/dt = 0.32*(mV**-1)*(13.*mV-v+VT)/
+        (exp((13.*mV-v+VT)/(4.*mV))-1.)/ms*(1-m)-0.28*(mV**-1)*(v-VT-40.*mV)/
+        (exp((v-VT-40.*mV)/(5.*mV))-1.)/ms*m : 1
+    dn/dt = 0.032*(mV**-1)*(15.*mV-v+VT)/
+        (exp((15.*mV-v+VT)/(5.*mV))-1.)/ms*(1.-n)-.5*exp((10.*mV-v+VT)/(40.*mV))/ms*n : 1
+    dh/dt = 0.128*exp((17.*mV-v+VT)/(18.*mV))/ms*(1.-h)-4./(1+exp((40.*mV-v+VT)/(5.*mV)))/ms*h : 1
+    ''')
+    group = NeuronGroup(1, eqs, method='exponential_euler')
+    group.v = -70*mV
+    # very poor choice of initial values causing the convergence to fail
+    assert_raises(Exception, lambda: group.resting_state({'v': 0, 'm': 100000000, 'n': 1000000, 'h': 100000000}))
+
+def test_unsupported_resting_state():
+    # check unsupported models are identified and raise NotImplementedError
+    # As a simple example the model with pure resetting or event-driven 
     tau = 10 * ms
     grp = NeuronGroup(1, 'dv/dt = -v/tau : volt', threshold='v > -50*mV', reset='v = -70*mV')  
     assert_raises(NotImplementedError, lambda: grp.resting_state())
@@ -1823,4 +1858,6 @@ if __name__ == '__main__':
     test_semantics_floor_division()
     test_semantics_floating_point_division()
     test_semantics_mod()
-    test_resting_value()
+    test_simple_resting_value()
+    test_failed_resting_state()
+    test_unsupported_resting_state
