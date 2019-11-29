@@ -49,8 +49,8 @@ cdef extern from "stdint_compat.h":
 {% endblock %}
 
 def main(_namespace):
-    cdef int _idx
-    cdef int _vectorisation_idx
+    cdef size_t _idx
+    cdef size_t _vectorisation_idx
     {{ load_namespace | autoindent }}
     if '_owner' in _namespace:
         _owner = _namespace['_owner']

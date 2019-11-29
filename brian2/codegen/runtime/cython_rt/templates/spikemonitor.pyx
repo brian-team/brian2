@@ -7,8 +7,8 @@
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
 
-    cdef int _num_events = {{_eventspace}}[_num{{_eventspace}}-1]
-    cdef int _start_idx, _end_idx, _curlen, _newlen, _j
+    cdef size_t _num_events = {{_eventspace}}[_num{{_eventspace}}-1]
+    cdef size_t _start_idx, _end_idx, _curlen, _newlen, _j
     {% for varname, var in record_variables | dictsort %}
     cdef {{cpp_dtype(var.dtype)}}[:] _{{varname}}_view
     {% endfor %}

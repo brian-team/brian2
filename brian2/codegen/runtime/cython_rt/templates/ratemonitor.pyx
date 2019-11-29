@@ -4,13 +4,13 @@
     {# USES_VARIABLES { N, t, rate, _clock_t, _clock_dt, _spikespace,
                         _num_source_neurons, _source_start, _source_stop } #}
 
-    cdef int _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
+    cdef size_t _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
     
     # For subgroups, we do not want to record all spikes
     # We assume that spikes are ordered
     cdef int _start_idx = -1
     cdef int _end_idx = -1
-    cdef int _j
+    cdef size_t _j
     for _j in range(_num_spikes):
         _idx = {{_spikespace}}[_j]
         if _idx >= _source_start:
@@ -28,7 +28,7 @@
     _num_spikes = _end_idx - _start_idx
     
     # Calculate the new length for the arrays
-    cdef int _new_len = {{_dynamic_t}}.shape[0] + 1
+    cdef size_t _new_len = {{_dynamic_t}}.shape[0] + 1
 
     # Resize the arrays
     _owner.resize(_new_len)

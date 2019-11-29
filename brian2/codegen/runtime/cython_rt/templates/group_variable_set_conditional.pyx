@@ -4,7 +4,7 @@
 {# ALLOWS_SCALAR_WRITE #}
 
 {% block maincode %}
-    cdef int _N = {{constant_or_scalar('N', variables['N'])}}
+    cdef size_t _N = {{constant_or_scalar('N', variables['N'])}}
     _vectorisation_idx = 1
     
     {{scalar_code['condition']|autoindent}}

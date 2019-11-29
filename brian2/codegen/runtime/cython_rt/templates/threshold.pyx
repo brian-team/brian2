@@ -10,7 +10,7 @@
     _vectorisation_idx = 1
     {{ scalar_code | autoindent }}
 
-    cdef long _cpp_numevents = 0
+    cdef size_t _cpp_numevents = 0
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
