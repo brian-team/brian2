@@ -12,9 +12,9 @@
 
     if (_num_events > 0)
     {
-        int _start_idx = _num_events;
-        int _end_idx = _num_events;
-        for(int _j=0; _j<_num_events; _j++)
+        size_t _start_idx = _num_events;
+        size_t _end_idx = _num_events;
+        for(size_t _j=0; _j<_num_events; _j++)
         {
             const int _idx = {{_eventspace}}[_j];
             if (_idx >= _source_start) {
@@ -22,7 +22,7 @@
                 break;
             }
         }
-        for(int _j=_num_events-1; _j>=_start_idx; _j--)
+        for(size_t _j=_num_events-1; _j>=_start_idx; _j--)
         {
             const int _idx = {{_eventspace}}[_j];
             if (_idx < _source_stop) {
@@ -32,12 +32,12 @@
         }
         _num_events = _end_idx - _start_idx;
         if (_num_events > 0) {
-             const int _vectorisation_idx = 1;
+            const size_t _vectorisation_idx = 1;
             {{scalar_code|autoindent}}
-            for(int _j=_start_idx; _j<_end_idx; _j++)
+            for(size_t _j=_start_idx; _j<_end_idx; _j++)
             {
-                const int _idx = {{_eventspace}}[_j];
-                const int _vectorisation_idx = _idx;
+                const size_t _idx = {{_eventspace}}[_j];
+                const size_t _vectorisation_idx = _idx;
                 {{vector_code|autoindent}}
                 {% for varname, var in record_variables | dictsort %}
                 {{get_array_name(var, access_data=False)}}.push_back(_to_record_{{varname}});

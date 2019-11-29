@@ -16,7 +16,7 @@
 
     int32_t _cpp_numspikes = 0;
 
-    for(int _idx={{_lastindex}}; _idx < _num_timebins; _idx++)
+    for(size_t _idx={{_lastindex}}; _idx < _num_timebins; _idx++)
     {
         if ({{_timebins}}[_idx] > _timebin)
             break;

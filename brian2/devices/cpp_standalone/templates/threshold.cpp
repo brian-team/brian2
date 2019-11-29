@@ -16,9 +16,9 @@
     {% set _eventspace = get_array_name(eventspace_variable) %}
 
     long _count = 0;
-    for(int _idx=0; _idx<N; _idx++)
+    for(size_t _idx=0; _idx<N; _idx++)
     {
-        const int _vectorisation_idx = _idx;
+        const size_t _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
         if(_cond) {
             {{_eventspace}}[_count++] = _idx;

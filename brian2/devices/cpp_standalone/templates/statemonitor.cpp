@@ -5,7 +5,7 @@
     {# WRITES_TO_READ_ONLY_VARIABLES { t, N } #}
     {{_dynamic_t}}.push_back({{_clock_t}});
 
-    const int _new_size = {{_dynamic_t}}.size();
+    const size_t _new_size = {{_dynamic_t}}.size();
     // Resize the dynamic arrays
     {% for varname, var in _recorded_variables | dictsort %}
     {% set _recorded =  get_array_name(var, access_data=False) %}
@@ -13,15 +13,15 @@
     {% endfor %}
 
     // scalar code
-    const int _vectorisation_idx = -1;
+    const size_t _vectorisation_idx = -1;
     {{scalar_code|autoindent}}
 
     {{ openmp_pragma('parallel-static') }}
-    for (int _i = 0; _i < _num_indices; _i++)
+    for (size_t _i = 0; _i < _num_indices; _i++)
     {
         // vector code
-        const int _idx = {{_indices}}[_i];
-        const int _vectorisation_idx = _idx;
+        const size_t _idx = {{_indices}}[_i];
+        const size_t _vectorisation_idx = _idx;
         {% block maincode_inner %}
             {{ super() }}
 
