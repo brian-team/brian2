@@ -13,18 +13,18 @@
     int *const _prebuf = new int[_buffer_size];
     int *const _postbuf = new int[_buffer_size];
     int _curbuf = 0;
-    const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
-    const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
+    const size_t _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
+    const size_t _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
     int _raw_pre_idx, _raw_post_idx;
     const int oldsize = {{_dynamic__synaptic_pre}}.size();
 
     // scalar code
-    const int _vectorisation_idx = 1;
+    const size_t _vectorisation_idx = 1;
     {{scalar_code['setup_iterator']|autoindent}}
     {{scalar_code['create_j']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update_post']|autoindent}}
-    for(int _i=0; _i<_N_pre; _i++)
+    for(size_t _i=0; _i<_N_pre; _i++)
     {
         bool __cond, _cond;
         _raw_pre_idx = _i + _source_offset;
@@ -66,7 +66,7 @@
             {% endif %}
         }
         {% if iterator_func=='range' %}
-        for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
+        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
         if(_uiter_p==0) continue;
@@ -77,19 +77,19 @@
         else
             _log1p = 1.0; // will be ignored
         const double _pconst = 1.0/_log1p;
-        for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
+        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
         {
             if(_jump_algo) {
                 const double _r = _rand(_vectorisation_idx);
                 if(_r==0.0) break;
-                const int _jump = floor(log(_r)*_pconst)*_uiter_step;
+                const size_t _jump = floor(log(_r)*_pconst)*_uiter_step;
                 {{iteration_variable}} += _jump;
                 if({{iteration_variable}}>=_uiter_high) continue;
             } else {
                 if(_rand(_vectorisation_idx)>=_uiter_p) continue;
             }
         {% endif %}
-            long __j, _j, _pre_idx, __pre_idx;
+            size_t __j, _j, _pre_idx, __pre_idx;
             {
                 {{vector_code['create_j']|autoindent}}
                 __j = _j; // pick up the locally scoped _j and store in __j
@@ -136,7 +136,7 @@
             {% endif %}
             {{vector_code['update_post']|autoindent}}
 
-            for (int _repetition=0; _repetition<_n; _repetition++) {
+            for (size_t _repetition=0; _repetition<_n; _repetition++) {
                 _prebuf[_curbuf] = (int)_pre_idx;
                 _postbuf[_curbuf] = (int)_post_idx;
                 _curbuf++;

@@ -6,19 +6,19 @@
     // Get the spikes
     const PyArrayObject *_spiking_synapses_obj = (PyArrayObject *)PyObject_CallMethod(_queue, "peek", "");
     const npy_int32 *_spiking_synapses = (npy_int32 *)_spiking_synapses_obj->data;
-    const int _num_spiking_synapses = _spiking_synapses_obj->dimensions[0];
+    const size_t _num_spiking_synapses = _spiking_synapses_obj->dimensions[0];
 
     // scalar code
-    const int _vectorisation_idx = 1;
+    const size_t _vectorisation_idx = 1;
     {{scalar_code|autoindent}}
 
-    for(int _spiking_synapse_idx=0;
+    for(size_t _spiking_synapse_idx=0;
         _spiking_synapse_idx<_num_spiking_synapses;
         _spiking_synapse_idx++)
     {
         // vector code
-        const int _idx = _spiking_synapses[_spiking_synapse_idx];
-        const int _vectorisation_idx = _idx;
+        const size_t _idx = _spiking_synapses[_spiking_synapse_idx];
+        const size_t _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
     }
 

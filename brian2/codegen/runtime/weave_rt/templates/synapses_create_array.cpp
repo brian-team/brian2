@@ -19,13 +19,13 @@ _arg_tuple_new[0] = _new_num_synapses;
 int *_synaptic_pre_data = (int*)(((PyArrayObject*)(PyObject*){{_dynamic__synaptic_pre}}.attr("data"))->data);
 int *_synaptic_post_data = (int*)(((PyArrayObject*)(PyObject*){{_dynamic__synaptic_post}}.attr("data"))->data);
 
-for (int _idx=0; _idx<_numsources; _idx++) {
+for (size_t _idx=0; _idx<_numsources; _idx++) {
     {# After this code has been executed, the arrays _real_sources and
        _real_variables contain the final indices. Having any code here it all is
        only necessary for supporting subgroups #}
     {{vector_code|autoindent}}
-    _synaptic_pre_data[_idx + _old_num_synapses] = _real_sources;
-    _synaptic_post_data[_idx + _old_num_synapses] = _real_targets;
+    _synaptic_pre_data[_idx + {{N}}] = _real_sources;
+    _synaptic_post_data[_idx + {{N}}] = _real_targets;
 }
 
 // now we need to resize all registered variables and set the total number of
@@ -33,6 +33,6 @@ for (int _idx=0; _idx<_numsources; _idx++) {
 _owner.mcall("_resize", _arg_tuple_new);
 
 // And update N_incoming, N_outgoing and synapse_number
-//_arg_tuple[0] = _old_num_synapses;
+//_arg_tuple[0] = {{N}};
 _owner.mcall("_update_synapse_numbers", _arg_tuple_old);
 {% endblock %}
