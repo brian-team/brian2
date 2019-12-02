@@ -763,11 +763,11 @@ class CPPStandaloneDevice(Device):
                                 line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
                                                    dyn_array_name=dyn_array_name)
                                 lines.append(line)
-                                line = 'const int _num{k} = {dyn_array_name}.size();'
+                                line = 'const size_t _num{k} = {dyn_array_name}.size();'
                                 line = line.format(k=k, dyn_array_name=dyn_array_name)
                                 lines.append(line)
                         else:
-                            lines.append('const int _num%s = %s;' % (k, v.size))
+                            lines.append('const size_t _num%s = %s;' % (k, v.size))
                     except TypeError:
                         pass
             for line in lines:

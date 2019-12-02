@@ -11,7 +11,7 @@
         {{_invr}}[_i] = 1.0/(_Ri*(1/{{r_length_2}}[_i-1] + 1/{{r_length_1}}[_i]));
     // Cut sections
     {{ openmp_pragma('parallel-static') }}
-    for (int _i=0; _i<_num_starts; _i++)
+    for (size_t _i=0; _i<_num_starts; _i++)
         {{_invr}}[{{_starts}}[_i]] = 0;
 
     // Linear systems
@@ -29,7 +29,7 @@
     }
 
     // Set the boundary conditions
-    for (int _counter=0; _counter<_num_starts; _counter++)
+    for (size_t _counter=0; _counter<_num_starts; _counter++)
     {
         const int _first = {{_starts}}[_counter];
         const int _last = {{_ends}}[_counter] - 1;  // the compartment indices are in the interval [starts, ends[
