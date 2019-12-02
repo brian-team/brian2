@@ -13,7 +13,7 @@
 	{{scalar_code|autoindent}}
 
 	{{ openmp_pragma('parallel-static') }}
-	for(size_t _index_events=0; _index_events<_num_events; _index_events++)
+	for(int32_t _index_events=0; _index_events<_num_events; _index_events++)
 	{
 	    // vector code
 		const size_t _idx = _events[_index_events];

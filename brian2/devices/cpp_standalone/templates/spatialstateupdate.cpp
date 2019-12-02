@@ -38,7 +38,7 @@
     // (independent: branches)
 
     {{ openmp_pragma('parallel-static') }}
-    for (size_t _i=0; _i<_num_B - 1; _i++)
+    for (int _i=0; _i<(int)_num_B - 1; _i++)
     {
         // first and last index of the i-th section
         const int _j_start = {{_starts}}[_i];

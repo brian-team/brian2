@@ -20,12 +20,12 @@
     {{ openmp_pragma('parallel') }}
     {
     std::vector<int> *_spiking_synapses = {{pathway.name}}.peek();
-    const size_t _num_spiking_synapses = _spiking_synapses->size();
+    const int _num_spiking_synapses = _spiking_synapses->size();
 
     {% if _non_synaptic %}
     {{ openmp_pragma('master') }}
     {
-        for(size_t _spiking_synapse_idx=0;
+        for(int _spiking_synapse_idx=0;
             _spiking_synapse_idx<_num_spiking_synapses;
             _spiking_synapse_idx++)
         {
@@ -36,7 +36,7 @@
     }
     {% else %}
     {{ openmp_pragma('static') }}
-    for(size_t _spiking_synapse_idx=0;
+    for(int _spiking_synapse_idx=0;
         _spiking_synapse_idx<_num_spiking_synapses;
         _spiking_synapse_idx++)
     {

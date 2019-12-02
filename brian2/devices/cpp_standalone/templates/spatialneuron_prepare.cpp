@@ -11,7 +11,7 @@
         {{_invr}}[_i] = 1.0/(_Ri*(1/{{r_length_2}}[_i-1] + 1/{{r_length_1}}[_i]));
     // Cut sections
     {{ openmp_pragma('parallel-static') }}
-    for (size_t _i=0; _i<_num_starts; _i++)
+    for (int _i=0; _i<(int)_num_starts; _i++)
         {{_invr}}[{{_starts}}[_i]] = 0;
 
     // Linear systems

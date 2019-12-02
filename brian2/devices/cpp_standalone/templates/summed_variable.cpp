@@ -6,11 +6,11 @@
     {% set _index_array = get_array_name(_index_var) %}
     //// MAIN CODE ////////////
     {# This enables summed variables for connections to a synapse #}
-    const size_t _target_size = {{constant_or_scalar(_target_size_name, variables[_target_size_name])}};
+    const int _target_size = {{constant_or_scalar(_target_size_name, variables[_target_size_name])}};
 
     // Set all the target variable values to zero
     {{ openmp_pragma('parallel-static') }}
-    for (size_t _target_idx=0; _target_idx<_target_size; _target_idx++)
+    for (int _target_idx=0; _target_idx<_target_size; _target_idx++)
     {
         {{_target_var_array}}[_target_idx + {{_target_start}}] = 0;
     }

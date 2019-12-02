@@ -8,7 +8,7 @@
     {{scalar_code|autoindent}}
 
     {{ openmp_pragma('parallel-static') }}
-	for(size_t _idx_group_idx=0; _idx_group_idx<_num_group_idx; _idx_group_idx++)
+	for(int _idx_group_idx=0; _idx_group_idx<(int)_num_group_idx; _idx_group_idx++)
 	{
 	    // vector code
 		const size_t _idx = {{_group_idx}}[_idx_group_idx];

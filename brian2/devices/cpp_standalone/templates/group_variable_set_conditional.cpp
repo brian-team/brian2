@@ -43,10 +43,10 @@ void _run_{{codeobj_name}}()
     {# N is a constant in most cases (NeuronGroup, etc.), but a scalar array for
        synapses, we therefore have to take care to get its value in the right
        way. #}
-	const size_t _N = {{constant_or_scalar('N', variables['N'])}};
+	const int _N = {{constant_or_scalar('N', variables['N'])}};
 
 	{{ openmp_pragma('parallel-static') }}
-	for(size_t _idx=0; _idx<_N; _idx++)
+	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
 		const size_t _vectorisation_idx = _idx;
