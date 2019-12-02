@@ -135,7 +135,7 @@
     // use efficient O(n) solution of the sparse linear system (structure-specific Gaussian elemination)
 
     // part 1: lower triangularization
-    for (size_t _i=_num_B-1; _i>=0; _i--) {
+    for (int _i=_num_B-1; _i>=0; _i--) {
         const int _num_children = {{_morph_children_num}}[_i];
         
         // for every child eliminate the corresponding matrix element of row i
