@@ -35,65 +35,69 @@ def test_constants_values():
     assert_allclose(G.v[:], [np.pi, np.e, np.inf])
 
 
-def test_math_functions():
+def int_(x):
+    return array(x, dtype=int)
+int_.__name__ = 'int'
+
+
+@pytest.mark.parametrize('func', [cos, tan, sinh, cosh, tanh,
+                                  arcsin, arccos, arctan,
+                                  log, log10,
+                                  exp, np.sqrt,
+                                  np.ceil, np.floor, np.sign, int_])
+@pytest.mark.standalone_compatible
+def test_math_functions(func):
     '''
     Test that math functions give the same result, regardless of whether used
     directly or in generated Python or C++ code.
     '''
-    default_dt = defaultclock.dt
     test_array = np.array([-1, -0.5, 0, 0.5, 1])
-    def int_(x):
-        return array(x, dtype=int)
-    int_.__name__ = 'int'
 
     with catch_logs() as _:  # Let's suppress warnings about illegal values
-        # Functions with a single argument
-        for func in [cos, tan, sinh, cosh, tanh,
-                     arcsin, arccos, arctan,
-                     log, log10,
-                     exp, np.sqrt,
-                     np.ceil, np.floor, np.sign, int_]:
+        # Calculate the result directly
+        numpy_result = func(test_array)
 
-            # Calculate the result directly
-            numpy_result = func(test_array)
+        # Calculate the result in a somewhat complicated way by using a
+        # subexpression in a NeuronGroup
+        if func.__name__ == 'absolute':
+            # we want to use the name abs instead of absolute
+            func_name = 'abs'
+        else:
+            func_name = func.__name__
+        G = NeuronGroup(len(test_array),
+                        '''func = {func}(variable) : 1
+                           variable : 1'''.format(func=func_name))
+        G.variable = test_array
+        mon = StateMonitor(G, 'func', record=True)
+        net = Network(G, mon)
+        net.run(defaultclock.dt)
 
-            # Calculate the result in a somewhat complicated way by using a
-            # subexpression in a NeuronGroup
-            if func.__name__ == 'absolute':
-                # we want to use the name abs instead of absolute
-                func_name = 'abs'
-            else:
-                func_name = func.__name__
-            G = NeuronGroup(len(test_array),
-                            '''func = {func}(variable) : 1
-                               variable : 1'''.format(func=func_name))
-            G.variable = test_array
-            mon = StateMonitor(G, 'func', record=True)
-            net = Network(G, mon)
-            net.run(default_dt)
+        assert_allclose(numpy_result, mon.func_.flatten(),
+                        err_msg='Function %s did not return the correct values' % func.__name__)
 
-            assert_allclose(numpy_result, mon.func_.flatten(),
-                            err_msg='Function %s did not return the correct values' % func.__name__)
+@pytest.mark.standalone_compatible
+@pytest.mark.parametrize("func,operator", [(np.power, '**'), (np.mod, '%')])
+def test_math_operators(func, operator):
+    default_dt = defaultclock.dt
+    test_array = np.array([-1, -0.5, 0, 0.5, 1])
+    # Functions/operators
+    scalar = 3
 
-        # Functions/operators
-        scalar = 3
-        for func, operator in [(np.power, '**'), (np.mod, '%')]:
+    # Calculate the result directly
+    numpy_result = func(test_array, scalar)
 
-            # Calculate the result directly
-            numpy_result = func(test_array, scalar)
+    # Calculate the result in a somewhat complicated way by using a
+    # subexpression in a NeuronGroup
+    G = NeuronGroup(len(test_array),
+                    '''func = variable {op} scalar : 1
+                       variable : 1'''.format(op=operator))
+    G.variable = test_array
+    mon = StateMonitor(G, 'func', record=True)
+    net = Network(G, mon)
+    net.run(defaultclock.dt)
 
-            # Calculate the result in a somewhat complicated way by using a
-            # subexpression in a NeuronGroup
-            G = NeuronGroup(len(test_array),
-                            '''func = variable {op} scalar : 1
-                               variable : 1'''.format(op=operator))
-            G.variable = test_array
-            mon = StateMonitor(G, 'func', record=True)
-            net = Network(G, mon)
-            net.run(default_dt)
-
-            assert_allclose(numpy_result, mon.func_.flatten(),
-                            err_msg='Function %s did not return the correct values' % func.__name__)
+    assert_allclose(numpy_result, mon.func_.flatten(),
+                    err_msg='Function %s did not return the correct values' % func.__name__)
 
 
 @pytest.mark.standalone_compatible

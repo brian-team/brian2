@@ -45,31 +45,35 @@ except ImportError:
 
 class PreferencePlugin(object):
     def __init__(self, prefs, fail_for_not_implemented=True):
-        self._prefs = prefs
+        self.prefs = prefs
+        self.device = 'runtime'
+        self.device_options = {}
         self.fail_for_not_implemented = fail_for_not_implemented
 
     def pytest_configure(self, config):
-        config.brian_prefs = dict(self._prefs)
+        config.brian_prefs = dict(self.prefs)
         config.fail_for_not_implemented = self.fail_for_not_implemented
+        config.device = self.device
+        config.device_options = self.device_options
         if config.pluginmanager.hasplugin("xdist"):
-            xdist_plugin = XDistPreferencePlugin(self._prefs,
-                                                 self.fail_for_not_implemented)
+            xdist_plugin = XDistPreferencePlugin(self)
             config.pluginmanager.register(xdist_plugin)
 
 
 class XDistPreferencePlugin(object):
-    def __init__(self, prefs, fail_for_not_implemented=True):
-        self._prefs = prefs
-        self.fail_for_not_implemented = fail_for_not_implemented
+    def __init__(self, pref_plugin):
+        self._pref_plugin = pref_plugin
 
     def pytest_configure_node(self, node):
         """xdist hook"""
-        prefs = dict(self._prefs)
+        prefs = dict(self._pref_plugin.prefs)
         for k, v in prefs.items():
             if isinstance(v, type):
                 prefs[k] = ('TYPE', repr(v))
         node.slaveinput['brian_prefs'] = prefs
-        node.slaveinput['fail_for_not_implemented'] = self.fail_for_not_implemented
+        node.slaveinput['fail_for_not_implemented'] = self._pref_plugin.fail_for_not_implemented
+        node.slaveinput['device'] = self._pref_plugin.device
+        node.slaveinput['device_options'] = self._pref_plugin.device_options
 
 
 def clear_caches():
@@ -279,13 +283,13 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     # Switch off code optimization to get faster compilation times
     prefs['codegen.cpp.extra_compile_args_gcc'].extend(['-w', '-O0'])
-    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['-w', '-O0'])
+    prefs['codegen.cpp.extra_compile_args_msvc'].extend(['/Od'])
 
-    from brian2.devices import set_device
-    set_device('runtime')
     pref_plugin = PreferencePlugin(prefs, fail_for_not_implemented)
     try:
         success = []
+        pref_plugin.device = 'runtime'
+        pref_plugin.device_options = {}
         if test_codegen_independent:
             print('Running doctests')
             # Some doctests do actually use code generation, use numpy for that
@@ -344,10 +348,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                                        plugins=[pref_plugin]) == 0)
             clear_caches()
 
+        pref_plugin.device = test_standalone
         if test_standalone:
             from brian2.devices.device import get_device, set_device
-            set_device(test_standalone, directory=None,  # use temp directory
-                       with_output=False, **build_options)
+            pref_plugin.device_options = {'directory': None, 'with_output': False}
+            pref_plugin.device_options.update(build_options)
             print('Testing standalone device "%s"' % test_standalone)
             print('Running standalone-compatible standard tests (single run statement)')
             markers = 'and not long' if not long_tests else ''
@@ -362,8 +367,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             reset_device()
 
             print('Running standalone-compatible standard tests (multiple run statements)')
-            set_device(test_standalone, directory=None,  # use temp directory
-                       with_output=False, build_on_run=False, **build_options)
+            pref_plugin.device_options = {'directory': None,
+                                          'with_output': False,
+                                          'build_on_run': False}
+            pref_plugin.device_options.update(build_options)
             markers = ' and not long' if not long_tests else ''
             markers += ' and multiple_runs'
             argv = make_argv(dirnames, 'standalone_compatible'+markers)
@@ -376,8 +383,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
             if test_openmp and test_standalone == 'cpp_standalone':
                 # Run all the standalone compatible tests again with 4 threads
-                set_device(test_standalone, directory=None, # use temp directory
-                           with_output=False, **build_options)
+                pref_plugin.device_options = {'directory': None,
+                                              'with_output': False}
+                pref_plugin.device_options.update(build_options)
                 prefs['devices.cpp_standalone.openmp_threads'] = 4
                 print('Running standalone-compatible standard tests with OpenMP (single run statements)')
                 markers = ' and not long' if not long_tests else ''
@@ -389,8 +397,10 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 clear_caches()
                 reset_device()
 
-                set_device(test_standalone, directory=None, # use temp directory
-                           with_output=False, build_on_run=False, **build_options)
+                pref_plugin.device_options = {'directory': None,
+                                              'with_output': False,
+                                              'build_on_run': False}
+                pref_plugin.device_options.update(build_options)
                 print('Running standalone-compatible standard tests with OpenMP (multiple run statements)')
                 markers = ' and not long' if not long_tests else ''
                 markers += ' and multiple_runs'

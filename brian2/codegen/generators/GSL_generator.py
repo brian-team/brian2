@@ -395,7 +395,7 @@ class GSLCodeGenerator(object):
                 restrict = self.generator.restrict
             except AttributeError:
                 restrict = ''
-            if var_obj.scalar:
+            if var_obj.scalar or var_obj.size == 1:
                 restrict = ''
             return '%s* %s %s{end_statement}'%(dtype, restrict, pointer_name)
         else:

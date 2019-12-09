@@ -8,6 +8,13 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\dev\\continuous-integration\\appveyor\\run_with_env.cmd"
 
   matrix:
+    - PYTHON: "C:\\Miniconda37-x64"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "64"
+      platform: x64
+      STANDALONE: "TRUE"
+      FLOAT_DTYPE_32: "TRUE"
+
     - PYTHON: "C:\\Miniconda37"
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "32"
@@ -90,13 +97,6 @@ environment:
       PYTHON_ARCH: "64"
       platform: x64
       STANDALONE: "TRUE"
-
-    - PYTHON: "C:\\Miniconda37-x64"
-      PYTHON_VERSION: "3.7"
-      PYTHON_ARCH: "64"
-      platform: x64
-      STANDALONE: "TRUE"
-      FLOAT_DTYPE_32: "TRUE"
 
 install:
   # Add the paths

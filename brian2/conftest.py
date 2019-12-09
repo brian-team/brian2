@@ -6,10 +6,11 @@ import re
 import numpy as np
 import pytest
 
+from brian2.devices import reinit_devices
 from brian2.units import ms
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
-from brian2.devices.device import reinit_and_delete
+from brian2.devices.device import reinit_and_delete, set_device
 
 
 def pytest_ignore_collect(path, config):
@@ -50,7 +51,8 @@ def setup_and_teardown(request):
     # Set preferences before each test
     import brian2
     if hasattr(request.config, 'slaveinput'):
-        for key, value in request.config.slaveinput['brian_prefs'].items():
+        config = request.config.slaveinput
+        for key, value in config['brian_prefs'].items():
             if isinstance(value, tuple) and value[0] == 'TYPE':
                 matches = re.match(r"<(type|class) 'numpy\.(.+)'>", value[1])
                 if matches is None or len(matches.groups()) != 2:
@@ -67,9 +69,11 @@ def setup_and_teardown(request):
                     value = np.int32
 
             brian2.prefs[key] = value
+        set_device(config['device'], **config['device_options'])
     else:
         for k, v in request.config.brian_prefs.items():
             brian2.prefs[k] = v
+        set_device(request.config.device, **request.config.device_options)
     brian2.prefs._backup()
     # Print output changed in numpy 1.14, stick with the old format to
     # avoid doctest failures
@@ -80,8 +84,6 @@ def setup_and_teardown(request):
 
     yield  # run test
 
-    # clean up after the test
-    reinit_and_delete()
     # Reset defaultclock.dt to be sure
     defaultclock.dt = 0.1*ms
 
@@ -96,8 +98,13 @@ def pytest_runtest_makereport(item, call):
         fail_for_not_implemented = item.config.fail_for_not_implemented
     outcome = yield
     rep = outcome.get_result()
-    if not fail_for_not_implemented and rep.outcome == 'failed':
-        if call.excinfo.errisinstance(NotImplementedError):
-            rep.outcome = 'skipped'
-            r = call.excinfo._getreprcrash()
-            rep.longrepr = (str(r.path), r.lineno, r.message)
+    if rep.outcome == 'failed':
+        reinit_devices()
+        if not fail_for_not_implemented:
+            if call.excinfo.errisinstance(NotImplementedError):
+                rep.outcome = 'skipped'
+                r = call.excinfo._getreprcrash()
+                rep.longrepr = (str(r.path), r.lineno, r.message)
+    else:
+        # clean up after the test (delete directory for standalone)
+        reinit_and_delete()
