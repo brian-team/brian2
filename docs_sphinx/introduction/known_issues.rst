@@ -96,3 +96,10 @@ Cython fails with compilation error on OS X: ``error: use of undeclared identifi
 --------------------------------------------------------------------------------------------
 
 Try setting the environment variable ``MACOSX_DEPLOYMENT_TARGET=10.9``.
+
+CMD windows open when running Brian on Windows with the Spyder 3 IDE
+--------------------------------------------------------------------
+
+This is due to the interaction with the integrated ipython terminal. Either change the
+run configuration to "Execute in an external system terminal" or patch the internal
+Python function used to spawn processes as described in github issue :issue:`1140`.
