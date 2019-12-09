@@ -947,10 +947,13 @@ class CPPStandaloneDevice(Device):
                     msvc_env = CPPStandaloneDevice.msvc_env
                     if msvc_env is None:
                         try:
+                            # Note that the following seems to fail on Python 2 (at least
+                            # under some configurations), we catch the AttributeError that
+                            # gets raised below
                             msvc_env = msvc.msvc14_get_vc_env(arch_name)
                             # Cache the result
                             CPPStandaloneDevice.msvc_env = msvc_env
-                        except distutils.errors.DistutilsPlatformError:
+                        except (AttributeError, distutils.errors.DistutilsPlatformError):
                             # Use the old way of searching for MSVC
                             # FIXME: Remove this when we remove Python 2 support
                             #        and require Visual Studio 2015?
