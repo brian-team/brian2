@@ -1778,7 +1778,7 @@ def test_failed_resting_state():
 
 def test_unsupported_resting_state():
     # check unsupported models are identified and raise NotImplementedError
-    # As a simple example the model with pure resetting or event-driven 
+    # As a simple example the model with pure resetting or event driven 
     tau = 10 * ms
     grp = NeuronGroup(1, 'dv/dt = -v/tau : volt', threshold='v > -50*mV', reset='v = -70*mV')  
     assert_raises(NotImplementedError, lambda: grp.resting_state())
@@ -1860,4 +1860,4 @@ if __name__ == '__main__':
     test_semantics_mod()
     test_simple_resting_value()
     test_failed_resting_state()
-    test_unsupported_resting_state
+    test_unsupported_resting_state()
