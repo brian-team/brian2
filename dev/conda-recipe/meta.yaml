@@ -12,7 +12,7 @@ requirements:
   host:
     - python
     - cython >=0.29
-    - setuptools >=21
+    - setuptools >=24
     # we build against the oldest supported numpy version
     - numpy 1.10  # [py < 36]
     - numpy 1.11  # [py >= 36]
@@ -30,7 +30,7 @@ requirements:
     - gsl >1.15
     - cython >=0.29
     - jinja2 >=2.7
-    - setuptools >=21
+    - setuptools >=24
     - py-cpuinfo  # [win]
     - future
 
@@ -66,7 +66,7 @@ test:
     - 'python -c "from brian2.tests.test_synapses import test_transmission_simple; test_transmission_simple()"'
 
   requires:
-    - nose
+    - pytest
 
 about:
   home: http://www.briansimulator.org/

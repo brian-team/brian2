@@ -94,10 +94,10 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
         if text and (not '~' in text):
             try:
                 # A simple class or function name
-                if not '.' in text:
+                if '.' not in text:
                     module = __import__('brian2', fromlist=[str(text)])
                     imported = getattr(module, str(text), None)
-                    if hasattr(imported, '__module__'):
+                    if getattr(imported, '__module__', None):
                         text = '~' + imported.__module__ + '.' + text
                         if inspect.isfunction(imported):
                             text += '()'

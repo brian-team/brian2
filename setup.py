@@ -151,13 +151,14 @@ setup(name='Brian2',
                     # include test template files
                     'brian2.tests.test_templates.fake_package_1': ['templates/*.txt'],
                     'brian2.tests.test_templates.fake_package_2': ['templates/*.txt'],
-                    # Include RALLPACK test data and external code
+                    # Include RALLPACK test data, external code, and pytest config
                     'brian2.tests': ['rallpack_data/README',
                                      'rallpack_data/ref_*',
                                      'func_def_cpp.cpp',
                                      'func_def_cpp.h',
                                      'func_def_cython.pyx',
-                                     'func_def_cython.pxd'],
+                                     'func_def_cython.pxd',
+                                     'pytest.ini'],
                     # include C++/Cython version of spike queue
                     'brian2.synapses': ['cspikequeue.cpp',
                                         'cythonspikequeue.pyx',
@@ -174,15 +175,16 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo;platform_system=="Windows"',
-                        'setuptools>=21',
+                        'setuptools>=24',
                         'future'
                        ],
       setup_requires=['numpy>=1.10',
-                      'setuptools>=21'
+                      'setuptools>=24'
                       ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
-      extras_require={'test': ['nose>=1.0'],
+      extras_require={'test': ['pytest',
+                               'pytest-xdist'],
                       'docs': ['sphinx>=1.7',
                                'ipython>=5']},
       use_2to3=False,

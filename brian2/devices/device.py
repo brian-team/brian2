@@ -75,6 +75,7 @@ def auto_target():
 
     return _auto_target
 
+
 class Device(object):
     '''
     Base Device object.
@@ -390,6 +391,36 @@ class Device(object):
         '''
         pass
 
+    def get_random_state(self):
+        '''
+        Return a (pickable) representation of the current random number
+        generator state. Providing the returned object (e.g. a dict) to
+        `.Device.set_random_state` should restore the random number generator
+        state.
+
+        Returns
+        -------
+        state
+            The state of the random number generator in a representation
+            that can be passed as an argument to `.Device.set_random_state`.
+        '''
+        raise NotImplementedError('Device does not support getting the state '
+                                  'of the random number generator.')
+
+    def set_random_state(self, state):
+        '''
+        Reset the random number generator state to a previously stored state
+        (see `.Device.get_random_state`).
+
+        Parameters
+        ----------
+        state
+            A random number generator state as provided by
+            `Device.get_random_state`.
+        '''
+        raise NotImplementedError('Device does not support setting the state '
+                                  'of the random number generator.')
+
 
 class RuntimeDevice(Device):
     '''
@@ -487,6 +518,21 @@ class RuntimeDevice(Device):
         np.random.seed(seed)
         self.rand_buffer_index[:] = 0
         self.randn_buffer_index[:] = 0
+
+    def get_random_state(self):
+        return {'numpy_state': np.random.get_state(),
+                'rand_buffer_index': np.array(self.rand_buffer_index),
+                'rand_buffer': np.array(self.rand_buffer),
+                'randn_buffer_index': np.array(self.randn_buffer_index),
+                'randn_buffer': np.array(self.randn_buffer)
+                }
+
+    def set_random_state(self, state):
+        np.random.set_state(state['numpy_state'])
+        self.rand_buffer_index[:] = state['rand_buffer_index']
+        self.rand_buffer[:] = state['rand_buffer']
+        self.randn_buffer_index[:] = state['randn_buffer_index']
+        self.randn_buffer[:] = state['randn_buffer']
 
 
 class Dummy(object):

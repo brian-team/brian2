@@ -37,18 +37,18 @@ with its physical unit::
 Brian will check the consistency of operations on units and raise an error for
 dimensionality mismatches::
 
-    >>> tau += 1  # ms? second?  # doctest: +ELLIPSIS
+    >>> tau += 1  # ms? second?  # doctest: +ELLIPSIS +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Cannot calculate ... += 1, units do not match (units are second and 1).
-    >>> 3*kgram + 3*amp   # doctest: +ELLIPSIS
+    >>> 3*kgram + 3*amp   # doctest: +ELLIPSIS +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Cannot calculate 3. kg + 3. A, units do not match (units are kilogram and amp).
 
 Most Brian functions will also complain about non-specified or incorrect units::
 
-    >>> G = NeuronGroup(10, 'dv/dt = -v/tau: volt', dt=0.5)   # doctest: +ELLIPSIS
+    >>> G = NeuronGroup(10, 'dv/dt = -v/tau: volt', dt=0.5)   # doctest: +ELLIPSIS +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Function "__init__" expected a quantitity with unit second for argument "dt" but got 0.5 (unit is 1).
@@ -56,9 +56,9 @@ Most Brian functions will also complain about non-specified or incorrect units::
 Numpy functions have been overwritten to correctly work with units (see the
 :doc:`developer documentation <../developer/units>` for more details)::
 
-    >>> print mean(rates)
+    >>> print(mean(rates))
     20. Hz
-    >>> print rates.repeat(2)
+    >>> print(rates.repeat(2))
     [ 10.  10.  20.  20.  30.  30.] Hz
 
 Removing units
@@ -77,11 +77,11 @@ analysis functions that do not correctly work with units)
 
     >>> tau/ms
     20.0
-    >> asarray(rates)
+    >>> asarray(rates)
     array([ 10.,  20.,  30.])
     >>> G = NeuronGroup(5, 'dv/dt = -v/tau: volt')
-    >>> print G.v_[:]
-    [ 0.,  0.,  0.,  0.,  0.]
+    >>> print(G.v_[:])
+    [ 0.  0.  0.  0.  0.]
 
 
 Temperatures

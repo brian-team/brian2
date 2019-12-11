@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 import os
 
-from nose import with_setup
-from nose.plugins.attrib import attr
-from numpy.testing.utils import assert_equal, assert_raises
+import pytest
+from numpy.testing import assert_equal
 
 from brian2 import *
 from brian2.devices.device import reinit_and_delete, set_device, reset_device
@@ -11,8 +10,8 @@ from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_cpp_standalone():
     set_device('cpp_standalone', build_on_run=False)
     ##### Define the model
@@ -47,8 +46,8 @@ def test_cpp_standalone():
     assert M.t[0] == 0.
     reset_device()
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_multiple_connects():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, 'v:1')
@@ -60,8 +59,8 @@ def test_multiple_connects():
     assert len(S) == 2 and len(S.w[:]) == 2
     reset_device()
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_storing_loading():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10, '''v : volt
@@ -97,8 +96,10 @@ def test_storing_loading():
     assert_allclose(S.b_syn[:], b)
     reset_device()
 
-@attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=reinit_and_delete)
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+@pytest.mark.openmp
 def test_openmp_consistency():
     previous_device = get_device()
     n_cells    = 100
@@ -119,7 +120,7 @@ def test_openmp_consistency():
     dApre     *=  0.1*gmax
 
     connectivity = numpy.random.randn(n_cells, n_cells)
-    sources      = numpy.random.random_integers(0, n_cells-1, 10*n_cells)
+    sources      = numpy.random.randint(0, n_cells-1, 10*n_cells)
     # Only use one spike per time step (to rule out that a single source neuron
     # has more than one spike in a time step)
     times        = numpy.random.choice(numpy.arange(10*n_cells), 10*n_cells,
@@ -193,8 +194,8 @@ def test_openmp_consistency():
         assert_allclose(results[key1]['s'], results[key2]['s'])
     reset_device(previous_device)
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_duplicate_names_across_nets():
     set_device('cpp_standalone', build_on_run=False)
     # In standalone mode, names have to be globally unique, not just unique
@@ -207,12 +208,15 @@ def test_duplicate_names_across_nets():
     net2 = Network(obj3, obj4)
     net1.run(0*ms)
     net2.run(0*ms)
-    assert_raises(ValueError, lambda: device.build())
+    with pytest.raises(ValueError):
+        device.build()
 
     reset_device()
 
-@attr('cpp_standalone', 'standalone-only', 'openmp')
-@with_setup(teardown=reinit_and_delete)
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+@pytest.mark.openmp
 def test_openmp_scalar_writes():
     # Test that writing to a scalar variable only is done once in an OpenMP
     # setting (see github issue #551)
@@ -226,8 +230,9 @@ def test_openmp_scalar_writes():
 
     reset_device()
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_time_after_run():
     set_device('cpp_standalone', build_on_run=False)
     # Check that the clock and network time after a run is correct, even if we
@@ -254,8 +259,8 @@ def test_time_after_run():
 
     reset_device()
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_array_cache():
     # Check that variables are only accessible from Python when they should be
     set_device('cpp_standalone', build_on_run=False)
@@ -277,7 +282,8 @@ def test_array_cache():
     assert_allclose(G.i, np.arange(10))
 
     # But the synaptic variable is not -- we don't know the number of synapses
-    assert_raises(NotImplementedError, lambda: S.weight[:])
+    with pytest.raises(NotImplementedError):
+        S.weight[:]
 
     # Setting variables with explicit values should not change anything
     G.v = np.arange(10)+1
@@ -291,18 +297,23 @@ def test_array_cache():
 
     # But setting with code should invalidate them
     G.x = 'i*2'
-    assert_raises(NotImplementedError, lambda: G.x[:])
+    with pytest.raises(NotImplementedError):
+        G.x[:]
 
     # Make sure that the array cache does not allow to use incorrectly sized
     # values to pass
-    assert_raises(ValueError, lambda: setattr(G, 'w', [0, 2]))
-    assert_raises(ValueError, lambda: G.w.__setitem__(slice(0, 4), [0, 2]))
+    with pytest.raises(ValueError):
+        setattr(G, 'w', [0, 2])
+    with pytest.raises(ValueError):
+        G.w.__setitem__(slice(0, 4), [0, 2])
 
     run(10*ms)
     # v is now no longer known without running the network
-    assert_raises(NotImplementedError, lambda: G.v[:])
+    with pytest.raises(NotImplementedError):
+        G.v[:]
     # Neither is w, it is updated in the synapse
-    assert_raises(NotImplementedError, lambda: G.w[:])
+    with pytest.raises(NotImplementedError):
+        G.w[:]
     # However, no code touches y or z
     assert_allclose(G.y, 5)
     assert_allclose(G.z, 7)
@@ -319,8 +330,8 @@ def test_array_cache():
     assert_allclose(G.i, np.arange(10))
     assert_allclose(S.weight, 7)
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_run_with_debug():
     # We just want to make sure that it works for now (i.e. not fails with a
     # compilation or runtime error), capturing the output is actually
@@ -333,8 +344,8 @@ def test_run_with_debug():
     mon = SpikeMonitor(group)
     run(defaultclock.dt)
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_changing_profile_arg():
     set_device('cpp_standalone', build_on_run=False)
     G = NeuronGroup(10000, 'v : 1')
@@ -350,17 +361,17 @@ def test_changing_profile_arg():
     op2.active = True
     op3.active = False
     op4.active = False
-    run(100*defaultclock.dt, profile=True)
+    run(1000*defaultclock.dt, profile=True)
     op1.active = True
     op2.active = True
     op3.active = True
     op4.active = True
-    run(100*defaultclock.dt, profile=False)
+    run(1000*defaultclock.dt, profile=False)
     op1.active = False
     op2.active = True
     op3.active = True
     op4.active = False
-    run(100*defaultclock.dt, profile=True)
+    run(1000*defaultclock.dt, profile=True)
     device.build(directory=None, with_output=False)
     profiling_dict = dict(magic_network.profiling_info)
     # Note that for now, C++ standalone creates a new CodeObject for every run,
@@ -385,8 +396,8 @@ def test_changing_profile_arg():
     assert ('op3_codeobject_1' in profiling_dict and
             profiling_dict['op3_codeobject_1'] > 0*second)
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_delete_code_data():
     set_device('cpp_standalone', build_on_run=True, directory=None)
     group = NeuronGroup(10, 'dv/dt = -v / (10*ms) : volt', method='exact')
@@ -407,8 +418,8 @@ def test_delete_code_data():
     assert len(os.listdir(os.path.join(device.project_dir, 'code_objects'))) == 0
 
 
-@attr('cpp_standalone', 'standalone-only')
-@with_setup(teardown=reinit_and_delete)
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
 def test_delete_directory():
     set_device('cpp_standalone', build_on_run=True, directory=None)
     group = NeuronGroup(10, 'dv/dt = -v / (10*ms) : volt', method='exact')

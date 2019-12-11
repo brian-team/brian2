@@ -260,8 +260,13 @@ Implementations for other code generation targets can then be added using the
     }
     '''
     exponential_rand.implementations.add_implementation('cpp', cpp_code,
-                                                        dependencies={'rand' : DEFAULT_FUNCTIONS['rand'],
+                                                        dependencies={'rand': DEFAULT_FUNCTIONS['rand'],
                                                                       'log': DEFAULT_FUNCTIONS['log']})
+
+Note that by referring to the `rand` function, the new random number generator will
+automatically generate reproducible random numbers if the `seed` function is use to set
+its seed. Restoring the random number state with `restore` will have the expected effect
+as well.
 
 Additional namespace
 ~~~~~~~~~~~~~~~~~~~~

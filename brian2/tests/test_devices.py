@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 import numpy as np
-from nose.plugins.attrib import attr
+from numpy.testing import assert_equal
+import pytest
 
+from brian2.groups.neurongroup import NeuronGroup
+from brian2.core.magic import run
+from brian2.units import ms
 from brian2.devices.device import (Device, all_devices, set_device, get_device,
-                                   reset_device, runtime_device, previous_devices)
+                                   reset_device, runtime_device, RuntimeDevice)
 
 class ATestDevice(Device):
     def activate(self, build_on_run, **kwargs):
@@ -20,9 +24,9 @@ class ATestDevice(Device):
     def fill_with_array(self, var, arr):
         pass
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_reset_device_implicit():
-    import brian2.devices.device as device_module
+    from brian2.devices import device_module
     old_prev_devices = list(device_module.previous_devices)
     device_module.previous_devices = []
     test_device1 = ATestDevice()
@@ -51,7 +55,7 @@ def test_set_reset_device_implicit():
     device_module.previous_devices = old_prev_devices
 
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_set_reset_device_explicit():
     original_device = get_device()
     test_device1 = ATestDevice()
@@ -75,6 +79,29 @@ def test_set_reset_device_explicit():
     del all_devices['test3']
     reset_device(original_device)
 
+
+@pytest.mark.skipif(not isinstance(get_device(), RuntimeDevice),
+                    reason='Getting/setting random number state only supported '
+                           'for runtime device.')
+def test_get_set_random_generator_state():
+    group = NeuronGroup(10, 'dv/dt = -v/(10*ms) + (10*ms)**-0.5*xi : 1',
+                        method='euler')
+    group.v = 'rand()'
+    run(10*ms)
+    assert np.var(group.v) > 0  # very basic test for randomness ;)
+    old_v = np.array(group.v)
+    random_state = get_device().get_random_state()
+    group.v = 'rand()'
+    run(10 * ms)
+    assert np.var(group.v - old_v) > 0  # just checking for *some* difference
+    old_v = np.array(group.v)
+    get_device().set_random_state(random_state)
+    group.v = 'rand()'
+    run(10 * ms)
+    assert_equal(group.v, old_v)
+
+
 if __name__ == '__main__':
     test_set_reset_device_implicit()
     test_set_reset_device_explicit()
+    test_get_set_random_generator_state()

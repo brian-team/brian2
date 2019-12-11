@@ -11,7 +11,7 @@ import weakref
 import numpy
 from builtins import all as logical_all  # defensive programming against numpy import
 
-from brian2.parsing.rendering import NodeRenderer
+from brian2.parsing.rendering import NodeRenderer, get_node_value
 from brian2.utils.logger import get_logger
 
 __all__ = ['brian_ast', 'BrianASTRenderer', 'dtype_hierarchy']
@@ -129,6 +129,7 @@ class BrianASTRenderer(object):
         try:
             return getattr(self, methname)(node)
         except AttributeError:
+            raise
             raise SyntaxError("Unknown syntax: " + nodename)
 
     def render_NameConstant(self, node):
@@ -159,10 +160,16 @@ class BrianASTRenderer(object):
 
     def render_Num(self, node):
         node.complexity = 0
-        node.dtype = brian_dtype_from_value(node.n)
+        node.dtype = brian_dtype_from_value(get_node_value(node))
         node.scalar = True
         node.stateless = True
         return node
+
+    def render_Constant(self, node):  # For literals in Python 3.8
+        if node.value is True or node.value is False or node.value is None:
+            return self.render_NameConstant(node)
+        else:
+            return self.render_Num(node)
 
     def render_Call(self, node):
         if len(node.keywords):

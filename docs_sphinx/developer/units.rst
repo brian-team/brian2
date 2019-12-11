@@ -13,12 +13,12 @@ errors). Brian 2 no longer makes this distinction and treats both scalars and
 arrays as dimensionless for unit checking and make all operations involving
 quantities return a quantity.::
 
-    >>> 1 + 1*second   # doctest: +ELLIPSIS
+    >>> 1 + 1*second   # doctest: +ELLIPSIS +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Cannot calculate 1. s + 1, units do not match (units are second and 1).
 
-    >>> np.array([1]) + 1*second   # doctest: +ELLIPSIS
+    >>> np.array([1]) + 1*second   # doctest: +ELLIPSIS +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
     DimensionMismatchError: Cannot calculate 1. s + [1], units do not match (units are second and 1).

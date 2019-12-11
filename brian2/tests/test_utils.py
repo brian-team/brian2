@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 from future import builtins
 
-from nose.plugins.attrib import attr
+import pytest
 
 from brian2.utils.environment import running_from_ipython
 from brian2.utils.stringtools import SpellChecker
 
-@attr('codegen-independent')
+
+@pytest.mark.codegen_independent
 def test_environment():
     '''
     Test information about the environment we are running under.
@@ -25,7 +26,7 @@ def test_environment():
     if not testing_under_ipython:
         del builtins.__IPYTHON__
 
-@attr('codegen-independent')
+@pytest.mark.codegen_independent
 def test_spell_check():
     checker = SpellChecker(['vm', 'alpha', 'beta'])
     assert checker.suggest('Vm') == {'vm'}

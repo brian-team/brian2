@@ -12,4 +12,4 @@ clean:
 {% endfor %}
 
 main.exe: {% for base in source_bases | sort%}{{base}}.obj {% endfor %} win_makefile sourcefiles.txt
-    link @sourcefiles.txt {{linker_flags}} /OUT:main.exe {{linker_debug_flags}}
+    link @sourcefiles.txt {{linker_flags}} /LIBPATH:. /OUT:main.exe {{linker_debug_flags}}

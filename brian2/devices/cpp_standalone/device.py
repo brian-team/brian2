@@ -9,7 +9,7 @@ import subprocess
 import sys
 import inspect
 import struct
-from collections import defaultdict, Counter, Mapping
+from collections import defaultdict, Counter
 import itertools
 import numbers
 import tempfile
@@ -123,6 +123,8 @@ class CPPStandaloneDevice(Device):
     '''
     The `Device` used for C++ standalone simulations.
     '''
+    msvc_env = None  #: cached environment variables for MSVC
+
     def __init__(self):
         super(CPPStandaloneDevice, self).__init__()
         #: Dictionary mapping `ArrayVariable` objects to their globally
@@ -927,22 +929,11 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
+        from setuptools import msvc
+        import distutils
         num_threads = prefs.devices.cpp_standalone.openmp_threads
         with in_directory(directory):
             if compiler == 'msvc':
-                from distutils import msvc9compiler
-                vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-                if vcvars_loc == '':
-                    for version in range(16, 8, -1):
-                        fname = msvc9compiler.find_vcvarsall(version)
-                        if fname:
-                            vcvars_loc = fname
-                            break
-                if vcvars_loc == '':
-                    raise IOError("Cannot find vcvarsall.bat on standard "
-                                  "search path. Set the "
-                                  "codegen.cpp.msvc_vars_location preference "
-                                  "explicitly.")
                 # TODO: copy vcvars and make replacements for 64 bit automatically
                 arch_name = prefs['codegen.cpp.msvc_architecture']
                 if arch_name == '':
@@ -951,21 +942,58 @@ class CPPStandaloneDevice(Device):
                         arch_name = 'x86_amd64'
                     else:
                         arch_name = 'x86'
-                
-                vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
-                        vcvars_loc=vcvars_loc, arch_name=arch_name)
+                vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
+                if vcvars_loc == '':
+                    msvc_env = CPPStandaloneDevice.msvc_env
+                    if msvc_env is None:
+                        try:
+                            # Note that the following seems to fail on Python 2 (at least
+                            # under some configurations), we catch the AttributeError that
+                            # gets raised below
+                            msvc_env = msvc.msvc14_get_vc_env(arch_name)
+                            # Cache the result
+                            CPPStandaloneDevice.msvc_env = msvc_env
+                        except (AttributeError, distutils.errors.DistutilsPlatformError):
+                            # Use the old way of searching for MSVC
+                            # FIXME: Remove this when we remove Python 2 support
+                            #        and require Visual Studio 2015?
+                            for version in range(16, 8, -1):
+                                fname = msvc.msvc9_find_vcvarsall(version)
+                                if fname:
+                                    vcvars_loc = fname
+                                    break
+                            if vcvars_loc == '':
+                                raise IOError("Cannot find Microsoft Visual Studio, You "
+                                              "can try to set the path to vcvarsall.bat "
+                                              "via the codegen.cpp.msvc_vars_location "
+                                              "preference explicitly.")
+                if vcvars_loc:
+                    vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
+                            vcvars_loc=vcvars_loc, arch_name=arch_name)
                 make_cmd = 'nmake /f win_makefile'
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
                 if os.path.exists('winmake.log'):
                     os.remove('winmake.log')
-                with open('winmake.log', 'w') as f:
-                    f.write(vcvars_cmd + '\n')
+                if vcvars_loc:
+                    with open('winmake.log', 'w') as f:
+                        f.write(vcvars_cmd + '\n')
+                else:
+                    with open('winmake.log', 'w') as f:
+                        f.write('MSVC environment: \n')
+                        for key, value in msvc_env.items():
+                            f.write('{}={}\n'.format(key, value))
                 with std_silent(debug):
-                    if clean:
-                        os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
-                    x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
-                                                                                        make_cmd,
-                                                                                        make_args))
+                    if vcvars_loc:
+                        if clean:
+                            os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
+                        x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
+                                                                                            make_cmd,
+                                                                                            make_args))
+                    else:
+                        os.environ.update(msvc_env)
+                        if clean:
+                            os.system('%s clean > NUL 2>&1' % make_cmd)
+                        x = os.system('%s %s>>winmake.log 2>&1' % (make_cmd, make_args))
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             with open('winmake.log', 'r') as f:
