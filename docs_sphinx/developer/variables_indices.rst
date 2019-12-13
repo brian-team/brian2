@@ -19,7 +19,7 @@ content for a simple example::
     >>> tau = 10*ms
     >>> G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
     >>> for name, var in sorted(G.variables.items()):
-    ...     print('%s : %s' % (name, var))
+    ...     print('%s : %s' % (name, var))  # doctest: +SKIP
     ...
     N : <Constant(dimensions=Dimension(),  dtype=int64, scalar=True, constant=True, read_only=True)>
     dt : <ArrayVariable(dimensions=second,  dtype=float, scalar=True, constant=True, read_only=True)>
