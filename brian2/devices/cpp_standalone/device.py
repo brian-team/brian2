@@ -20,7 +20,7 @@ from past.builtins import basestring
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
-from brian2.codegen.cpp_prefs import get_compiler_and_args
+from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
 from brian2.core.network import Network
 from brian2.devices.device import Device, all_devices, set_device, reset_device
 from brian2.core.functions import Function
@@ -970,11 +970,13 @@ class CPPStandaloneDevice(Device):
                 if vcvars_loc:
                     vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
                             vcvars_loc=vcvars_loc, arch_name=arch_name)
+
+                msvc_env, vcvars_cmd = get_msvc_env()
                 make_cmd = 'nmake /f win_makefile'
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
                 if os.path.exists('winmake.log'):
                     os.remove('winmake.log')
-                if vcvars_loc:
+                if vcvars_cmd:
                     with open('winmake.log', 'w') as f:
                         f.write(vcvars_cmd + '\n')
                 else:
@@ -983,7 +985,7 @@ class CPPStandaloneDevice(Device):
                         for key, value in msvc_env.items():
                             f.write('{}={}\n'.format(key, value))
                 with std_silent(debug):
-                    if vcvars_loc:
+                    if vcvars_cmd:
                         if clean:
                             os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
                         x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,

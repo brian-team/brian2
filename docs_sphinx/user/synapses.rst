@@ -49,7 +49,7 @@ specify that a variable should be from a pre- or post-synaptic neuron, append
 the suffix ``_pre`` or ``_post``. An alternative but equivalent formulation of
 the ``on_pre`` statement above would therefore be ``v_post += w``.
 
-.. _model_syntax:
+.. _synapse_model_syntax:
 
 Model syntax
 ~~~~~~~~~~~~

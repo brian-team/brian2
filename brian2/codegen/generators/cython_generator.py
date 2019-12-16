@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import itertools
 
+from brian2.codegen.cpp_prefs import C99Check
 from brian2.devices.device import all_devices
 from brian2.utils.stringtools import word_substitute, deindent, indent
 from brian2.parsing.rendering import NodeRenderer
@@ -379,6 +380,12 @@ for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor', 'abs']:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CythonCodeGenerator,
                                                                code=None)
+DEFAULT_FUNCTIONS['expm1'].implementations.add_implementation(CythonCodeGenerator,
+                                                              code=None,
+                                                              availability_check=C99Check('expm1'))
+DEFAULT_FUNCTIONS['log1p'].implementations.add_implementation(CythonCodeGenerator,
+                                                              code=None,
+                                                              availability_check=C99Check('log1p'))
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
@@ -388,6 +395,19 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
+exprel_code = '''
+cdef inline double _exprel(double x) nogil:
+    if fabs(x) < 1e-16:
+        return 1.0
+    elif x > 717:  # near log(DBL_MAX)
+        return NPY_INFINITY
+    else:
+        return expm1(x) / x
+'''
+DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CythonCodeGenerator,
+                                                               code=exprel_code,
+                                                               name='_exprel',
+                                                               availability_check=C99Check('exprel'))
 _BUFFER_SIZE = 20000
 
 rand_code = '''

@@ -3,6 +3,7 @@ import itertools
 
 import numpy
 
+from brian2.codegen.cpp_prefs import C99Check
 from brian2.utils.stringtools import (deindent, stripped_deindented_lines,
                                       word_substitute)
 from brian2.utils.logger import get_logger
@@ -473,12 +474,17 @@ class CPPCodeGenerator(CodeGenerator):
 ################################################################################
 # Implement functions
 ################################################################################
-
 # Functions that exist under the same name in C++
 for func in ['sin', 'cos', 'tan', 'sinh', 'cosh', 'tanh', 'exp', 'log',
              'log10', 'sqrt', 'ceil', 'floor']:
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None)
+DEFAULT_FUNCTIONS['expm1'].implementations.add_implementation(CPPCodeGenerator,
+                                                              code=None,
+                                                              availability_check=C99Check('expm1'))
+DEFAULT_FUNCTIONS['log1p'].implementations.add_implementation(CPPCodeGenerator,
+                                                              code=None,
+                                                              availability_check=C99Check('log1p'))
 
 # Functions that need a name translation
 for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'),
@@ -487,6 +493,21 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
     DEFAULT_FUNCTIONS[func].implementations.add_implementation(CPPCodeGenerator,
                                                                code=None,
                                                                name=func_cpp)
+
+exprel_code = '''
+static inline double _exprel(double x)
+{
+    if (fabs(x) < 1e-16)
+        return 1.0;
+    if (x > 717)
+        return INFINITY;
+    return expm1(x)/x;
+}
+'''
+DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CPPCodeGenerator,
+                                                               code=exprel_code,
+                                                               name='_exprel',
+                                                               availability_check=C99Check('exprel'))
 
 abs_code = '''
 #define _brian_abs std::abs
