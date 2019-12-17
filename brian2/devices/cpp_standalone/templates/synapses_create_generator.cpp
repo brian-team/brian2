@@ -12,18 +12,18 @@
 
     {# Get N_post and N_pre in the correct way, regardless of whether they are
     constants or scalar arrays#}
-    const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
-    const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
+    const size_t _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
+    const size_t _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
     {{_dynamic_N_incoming}}.resize(_N_post + _target_offset);
     {{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
-    int _raw_pre_idx, _raw_post_idx;
+    size_t _raw_pre_idx, _raw_post_idx;
     // scalar code
-    const int _vectorisation_idx = -1;
+    const size_t _vectorisation_idx = -1;
     {{scalar_code['setup_iterator']|autoindent}}
     {{scalar_code['create_j']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update_post']|autoindent}}
-    for(int _i=0; _i<_N_pre; _i++)
+    for(size_t _i=0; _i<_N_pre; _i++)
     {
         bool __cond, _cond;
         _raw_pre_idx = _i + _source_offset;
@@ -65,7 +65,7 @@
             {% endif %}
         }
         {% if iterator_func=='range' %}
-        for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
+        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
         if(_uiter_p==0) continue;
@@ -76,7 +76,7 @@
         else
             _log1p = 1.0; // will be ignored
         const double _pconst = 1.0/log(1-_uiter_p);
-        for(int {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
+        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
         {
             if(_jump_algo) {
                 const double _r = _rand(_vectorisation_idx);
@@ -136,7 +136,7 @@
             {% endif %}
             {{vector_code['update_post']|autoindent}}
 
-            for (int _repetition=0; _repetition<_n; _repetition++) {
+            for (size_t _repetition=0; _repetition<_n; _repetition++) {
                 {{_dynamic_N_outgoing}}[_pre_idx] += 1;
                 {{_dynamic_N_incoming}}[_post_idx] += 1;
                 {{_dynamic__synaptic_pre}}.push_back(_pre_idx);
@@ -157,7 +157,7 @@
     // Update the "synapse number" (number of synapses for the same
     // source-target pair)
     std::map<std::pair<int32_t, int32_t>, int32_t> source_target_count;
-    for (int _i=0; _i<newsize; _i++)
+    for (size_t _i=0; _i<newsize; _i++)
     {
         // Note that source_target_count will create a new entry initialized
         // with 0 when the key does not exist yet

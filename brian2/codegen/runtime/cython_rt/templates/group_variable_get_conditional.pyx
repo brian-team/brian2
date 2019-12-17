@@ -10,8 +10,8 @@
 
     _vectorisation_idx = 1
 
-    cdef int _N = {{constant_or_scalar('N', variables['N'])}}
-    cdef int _num_elements = 0
+    cdef size_t _N = {{constant_or_scalar('N', variables['N'])}}
+    cdef size_t _num_elements = 0
     cdef _numpy.ndarray[{{c_type}}, ndim=1, mode='c'] _elements = _numpy.zeros(_N, dtype=_numpy.{{np_type}})
     cdef {{c_type}}[:] _elements_view = _elements
 

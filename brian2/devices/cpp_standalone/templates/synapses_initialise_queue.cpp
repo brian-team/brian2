@@ -9,8 +9,8 @@ void _run_{{codeobj_name}}() {
     std::vector<{{scalar}}> &real_delays = {{get_array_name(owner.variables['delay'], access_data=False)}};
     {{scalar}}* real_delays_data = real_delays.empty() ? 0 : &(real_delays[0]);
     int32_t* sources = {{pathobj}}.sources.empty() ? 0 : &({{pathobj}}.sources[0]);
-    const unsigned int n_delays = real_delays.size();
-    const unsigned int n_synapses = {{pathobj}}.sources.size();
+    const size_t n_delays = real_delays.size();
+    const size_t n_synapses = {{pathobj}}.sources.size();
     {{pathobj}}.prepare({{constant_or_scalar('_n_sources', variables['_n_sources'])}},
                         {{constant_or_scalar('_n_targets', variables['_n_targets'])}},
                         real_delays_data, n_delays, sources,

@@ -41,7 +41,7 @@ void _run_{{codeobj_name}}()
 	{% block maincode %}
 	//// MAIN CODE ////////////
 	// scalar code
-	const int _vectorisation_idx = -1;
+	const size_t _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
     {# N is a constant in most cases (NeuronGroup, etc.), but a scalar array for
@@ -52,7 +52,7 @@ void _run_{{codeobj_name}}()
 	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
-		const int _vectorisation_idx = _idx;
+		const size_t _vectorisation_idx = _idx;
 		{% block maincode_inner %}
         {{vector_code|autoindent}}
 		{% endblock %}

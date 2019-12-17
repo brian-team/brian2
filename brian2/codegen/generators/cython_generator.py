@@ -337,7 +337,7 @@ class CythonCodeGenerator(CodeGenerator):
                                 "cdef {cpp_dtype} * {array_name} = <{cpp_dtype} *> _buf_{array_name}.data"]
 
                 if not var.scalar:
-                    newlines += ["cdef int _num{array_name} = len(_namespace['{array_name}'])"]
+                    newlines += ["cdef size_t _num{array_name} = len(_namespace['{array_name}'])"]
 
                 if var.scalar and var.constant:
                     newlines += ['cdef {cpp_dtype} {varname} = _namespace["{varname}"]']
@@ -349,7 +349,7 @@ class CythonCodeGenerator(CodeGenerator):
                                        numpy_dtype=get_numpy_dtype(var.dtype),
                                        pointer_name=pointer_name,
                                        array_name=array_name,
-                                       varname=varname,
+                                       varname=varname
                                        )
                     load_namespace.append(line)
                 handled_pointers.add(pointer_name)
@@ -536,6 +536,7 @@ ctypedef fused _to_sign:
     char
     short
     int
+    long
     float
     double
 
@@ -551,6 +552,7 @@ ctypedef fused _to_clip:
     char
     short
     int
+    long
     float
     double
 
@@ -566,7 +568,7 @@ DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator
                                                              name='_clip')
 
 timestep_code = '''
-cdef int _timestep(double t, double dt):
+cdef int64_t _timestep(double t, double dt):
     return <int64_t>((t + 1e-3*dt)/dt)
 '''
 DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CythonCodeGenerator,

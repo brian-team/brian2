@@ -38,7 +38,7 @@
     // (independent: branches)
 
     {{ openmp_pragma('parallel-static') }}
-    for (int _i=0; _i<_num_B - 1; _i++)
+    for (int _i=0; _i<(int)_num_B - 1; _i++)
     {
         // first and last index of the i-th section
         const int _j_start = {{_starts}}[_i];
@@ -91,7 +91,7 @@
     // _P_children contains the super diagonal entries
     // _P_parent contains the single sub diagonal entry for each row
     // _B contains the right hand side
-    for (int _i=0; _i<_num_B - 1; _i++)
+    for (size_t _i=0; _i<_num_B - 1; _i++)
     {
         const int _i_parent = {{_morph_parent_i}}[_i];
         const int _i_childind = {{_morph_idxchild}}[_i];
@@ -139,7 +139,7 @@
         const int _num_children = {{_morph_children_num}}[_i];
         
         // for every child eliminate the corresponding matrix element of row i
-        for (int _k=0; _k<_num_children; _k++) {
+        for (size_t _k=0; _k<_num_children; _k++) {
             int _j = {{_morph_children}}[_IDX_C(_i,_k)]; // child index
             
             // subtracting _subfac times the j-th from the i-th row
@@ -166,7 +166,7 @@
 
     // STEP 4: for each section compute the final solution by linear
     // combination of the general solution (independent: sections & compartments)
-    for (int _i=0; _i<_num_B - 1; _i++)
+    for (size_t _i=0; _i<_num_B - 1; _i++)
     {
         const int _i_parent = {{_morph_parent_i}}[_i];
         const int _j_start = {{_starts}}[_i];

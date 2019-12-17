@@ -10,42 +10,42 @@
 
 {% block maincode %}
 
-	// This is only needed for the _debugmsg function below	
-	{# USES_VARIABLES { _synaptic_pre } #}	
+    // This is only needed for the _debugmsg function below
+    {# USES_VARIABLES { _synaptic_pre } #}
 
-	// scalar code
-	const int _vectorisation_idx = -1;
-	{{scalar_code|autoindent}}
+    // scalar code
+    const size_t _vectorisation_idx = -1;
+    {{scalar_code|autoindent}}
 
-	{{ openmp_pragma('parallel') }}
-	{
-	std::vector<int> *_spiking_synapses = {{pathway.name}}.peek();
-	const unsigned int _num_spiking_synapses = _spiking_synapses->size();
+    {{ openmp_pragma('parallel') }}
+    {
+    std::vector<int> *_spiking_synapses = {{pathway.name}}.peek();
+    const int _num_spiking_synapses = _spiking_synapses->size();
 
-	{% if _non_synaptic %}
-	{{ openmp_pragma('master') }}
-	{
-		for(unsigned int _spiking_synapse_idx=0;
-			_spiking_synapse_idx<_num_spiking_synapses;
-			_spiking_synapse_idx++)
-		{
-			const int _idx = (*_spiking_synapses)[_spiking_synapse_idx];
-			const int _vectorisation_idx = _idx;
-			{{vector_code|autoindent}}
-		}
-	}
-	{% else %}
-	{{ openmp_pragma('static') }}
-	for(int _spiking_synapse_idx=0;
-		_spiking_synapse_idx<_num_spiking_synapses;
-		_spiking_synapse_idx++)
-	{
-		const int _idx = (*_spiking_synapses)[_spiking_synapse_idx];
-		const int _vectorisation_idx = _idx;
-		{{vector_code|autoindent}}
-	}
+    {% if _non_synaptic %}
+    {{ openmp_pragma('master') }}
+    {
+        for(int _spiking_synapse_idx=0;
+            _spiking_synapse_idx<_num_spiking_synapses;
+            _spiking_synapse_idx++)
+        {
+            const size_t _idx = (*_spiking_synapses)[_spiking_synapse_idx];
+            const size_t _vectorisation_idx = _idx;
+            {{vector_code|autoindent}}
+        }
+    }
+    {% else %}
+    {{ openmp_pragma('static') }}
+    for(int _spiking_synapse_idx=0;
+        _spiking_synapse_idx<_num_spiking_synapses;
+        _spiking_synapse_idx++)
+    {
+        const size_t _idx = (*_spiking_synapses)[_spiking_synapse_idx];
+        const size_t _vectorisation_idx = _idx;
+        {{vector_code|autoindent}}
+    }
 
-	{% endif %}
+    {% endif %}
     }
 {% endblock %}
 
@@ -53,8 +53,8 @@
 {% block extra_functions_cpp %}
 void _debugmsg_{{codeobj_name}}()
 {
-	using namespace brian;
-	std::cout << "Number of synapses: " << {{_dynamic__synaptic_pre}}.size() << endl;
+    using namespace brian;
+    std::cout << "Number of synapses: " << {{_dynamic__synaptic_pre}}.size() << endl;
 }
 {% endblock %}
 

@@ -8,7 +8,7 @@
     _vectorisation_idx = 1
     {{ scalar_code | autoindent }}
 
-    cdef int _spiking_synapse_idx
+    cdef size_t _spiking_synapse_idx
 
     for _spiking_synapse_idx in range(len(_spiking_synapses)):
         # vector code

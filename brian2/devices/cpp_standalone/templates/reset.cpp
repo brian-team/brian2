@@ -9,15 +9,15 @@
 
 	//// MAIN CODE ////////////	
 	// scalar code
-	const int _vectorisation_idx = -1;
+	const size_t _vectorisation_idx = -1;
 	{{scalar_code|autoindent}}
 
 	{{ openmp_pragma('parallel-static') }}
-	for(int _index_events=0; _index_events<_num_events; _index_events++)
+	for(int32_t _index_events=0; _index_events<_num_events; _index_events++)
 	{
 	    // vector code
-		const int _idx = _events[_index_events];
-		const int _vectorisation_idx = _idx;
+		const size_t _idx = _events[_index_events];
+		const size_t _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
 	}
 {% endblock %}

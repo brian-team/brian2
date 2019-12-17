@@ -10,18 +10,18 @@
     {%set numpy_dtype = dtype(variables['_variable'].dtype).char %}
     {%set numpy_type_int = dtype(variables['_variable'].dtype).num %}
     // {{c_type}} {{numpy_dtype}} {{numpy_type_int}}
-    int _cpp_numelements = 0;
+    size_t _cpp_numelements = 0;
     // Container for the return values
     {{c_type}}* _elements = ({{c_type}}*)malloc(sizeof({{c_type}}) * _num_group_idx);
 
     // scalar code
-    const int _vectorisation_idx = 1;
+    const size_t _vectorisation_idx = 1;
     {{scalar_code|autoindent}}
-    for(int _idx_group_idx=0; _idx_group_idx<_num_group_idx; _idx_group_idx++)
+    for(size_t _idx_group_idx=0; _idx_group_idx<_num_group_idx; _idx_group_idx++)
     {
         // vector code
-        const int _idx = {{_group_idx}}[_idx_group_idx];
-        const int _vectorisation_idx = _idx;
+        const size_t _idx = {{_group_idx}}[_idx_group_idx];
+        const size_t _vectorisation_idx = _idx;
         {{ super() }}
         _elements[_idx_group_idx] = _variable;
     }

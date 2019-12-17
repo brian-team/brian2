@@ -9,17 +9,17 @@
                                    N_incoming, N_outgoing, N}
 #}
 
-const int _old_num_synapses = {{N}};
-const int _new_num_synapses = _old_num_synapses + _numsources;
+const size_t _old_num_synapses = {{N}};
+const size_t _new_num_synapses = _old_num_synapses + _numsources;
 
 {# Get N_post and N_pre in the correct way, regardless of whether they are
 constants or scalar arrays#}
-const int _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
-const int _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
+const size_t _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
+const size_t _N_post = {{constant_or_scalar('N_post', variables['N_post'])}};
 {{_dynamic_N_incoming}}.resize(_N_post + _target_offset);
 {{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
 
-for (int _idx=0; _idx<_numsources; _idx++) {
+for (size_t _idx=0; _idx<_numsources; _idx++) {
     {# After this code has been executed, the arrays _real_sources and
        _real_variables contain the final indices. Having any code here it all is
        only necessary for supporting subgroups #}
@@ -33,7 +33,7 @@ for (int _idx=0; _idx<_numsources; _idx++) {
 }
 
 // now we need to resize all registered variables
-const int newsize = {{_dynamic__synaptic_pre}}.size();
+const size_t newsize = {{_dynamic__synaptic_pre}}.size();
 {% for varname in owner._registered_variables | variables_to_array_names(access_data=False) | sort %}
 {{varname}}.resize(newsize);
 {% endfor %}
@@ -44,7 +44,7 @@ const int newsize = {{_dynamic__synaptic_pre}}.size();
 // Update the "synapse number" (number of synapses for the same
 // source-target pair)
 std::map<std::pair<int32_t, int32_t>, int32_t> source_target_count;
-for (int _i=0; _i<newsize; _i++)
+for (size_t _i=0; _i<newsize; _i++)
 {
     // Note that source_target_count will create a new entry initialized
     // with 0 when the key does not exist yet

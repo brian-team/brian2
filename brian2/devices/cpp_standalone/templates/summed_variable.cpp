@@ -16,13 +16,13 @@
     }
 
     // scalar code
-    const int _vectorisation_idx = -1;
+    const size_t _vectorisation_idx = -1;
     {{scalar_code|autoindent}}
 
     for(int _idx=0; _idx<{{N}}; _idx++)
     {
         // vector code
-        const int _vectorisation_idx = _idx;
+        const size_t _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
         {{_target_var_array}}[{{_index_array}}[_idx]] += _synaptic_var;
     }

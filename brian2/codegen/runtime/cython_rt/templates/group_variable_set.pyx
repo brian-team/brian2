@@ -5,7 +5,7 @@
 
 {% block maincode %}
 
-    cdef int _target_idx
+    cdef size_t _target_idx
     
     _vectorisation_idx = 1
     

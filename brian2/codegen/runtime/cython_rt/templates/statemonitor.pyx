@@ -4,7 +4,7 @@
 
 {% block maincode %}
 
-    cdef int _new_len = {{N}} + 1
+    cdef size_t _new_len = {{N}} + 1
 
     # Resize the recorded times
     _var_t.resize(_new_len)
@@ -14,7 +14,7 @@
     _vectorisation_idx = 1
     {{ scalar_code|autoindent }}
 
-    cdef int _i
+    cdef size_t _i
 
     {% for varname, var in _recorded_variables | dictsort %}
     {% set c_type = cpp_dtype(variables[varname].dtype) %}

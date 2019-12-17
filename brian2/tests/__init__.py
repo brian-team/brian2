@@ -28,7 +28,8 @@ try:
                 # Check the object for exclusion from doctests
                 full_name = item.name.split('.')
                 test_name = []
-                while full_name[-1] != os.path.splitext(self.name)[0]:
+                module_name = os.path.splitext(os.path.basename(self.name))[0]
+                while full_name[-1] != module_name:
                     test_name.append(full_name.pop())
                 tested_obj = self.obj
                 for name in reversed(test_name):

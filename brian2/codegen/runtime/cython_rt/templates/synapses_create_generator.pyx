@@ -18,8 +18,8 @@ cdef int _raw_pre_idx
 cdef int _raw_post_idx
 
 cdef void _flush_buffer(buf, dynarr, int buf_len):
-    _curlen = dynarr.shape[0]
-    _newlen = _curlen+buf_len
+    cdef size_t _curlen = dynarr.shape[0]
+    cdef size_t _newlen = _curlen+buf_len
     # Resize the array
     dynarr.resize(_newlen)
     # Get the potentially newly created underlying data arrays
@@ -37,13 +37,13 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
     global _curbuf
 
-    cdef int oldsize = len({{_dynamic__synaptic_pre}})
-    cdef int newsize
+    cdef size_t oldsize = len({{_dynamic__synaptic_pre}})
+    cdef size_t newsize
 
     # The following variables are only used for probabilistic connections
     cdef bool _jump_algo
     cdef double _log1p, _pconst
-    cdef int _jump
+    cdef size_t _jump
 
     # scalar code
     _vectorisation_idx = 1

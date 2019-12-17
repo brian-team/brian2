@@ -32,7 +32,7 @@ void _run_{{codeobj_name}}()
 	{% block maincode %}
 	//// MAIN CODE ////////////
 	// scalar code
-	const int _vectorisation_idx = -1;
+	const size_t _vectorisation_idx = -1;
 	{# Note that the scalar_code['statement'] will not write to any scalar
 	   variables (except if the condition is simply 'True' and no vector code
 	   is present), it will only read in scalar variables that are used by the
@@ -49,7 +49,7 @@ void _run_{{codeobj_name}}()
 	for(int _idx=0; _idx<_N; _idx++)
 	{
 	    // vector code
-		const int _vectorisation_idx = _idx;
+		const size_t _vectorisation_idx = _idx;
 		{{vector_code['condition']|autoindent}}
 		if (_cond)
 		{
