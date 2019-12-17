@@ -944,10 +944,7 @@ class NeuronGroup(Group, SpikeSource):
             Dictioary with pair of state variables and resting state values. Returned values 
             are represented in SI units.
         '''
-        # check whether the model is currently unsupported
-        if self.thresholder != {} or self.events != {}:
-            raise NotImplementedError('Event based and Neuron-specific models are currently not supported for resting state calculation')
-
+        # check state variables defined in initial guess are valid
         if(x0.keys() - self.equations.diff_eq_names):
             raise KeyError("Unknown State Variable: {}".format(next(iter(x0.keys() - 
             self.equations.diff_eq_names))))
