@@ -31,7 +31,7 @@ from brian2.tests.utils import assert_allclose
 from brian2.units.allunits import second, volt
 from brian2.units.fundamentalunits import (DimensionMismatchError,
                                            have_same_dimensions)
-from brian2.units.stdunits import ms, mV, Hz, cm
+from brian2.units.stdunits import ms, mV, Hz, cm, msiemens, nA
 from brian2.units.unitsafefunctions import linspace
 from brian2.units.allunits import second, volt, umetre, siemens, ufarad
 from brian2.utils.logger import catch_logs
@@ -1748,7 +1748,7 @@ def test_simple_resting_value():
     grp = NeuronGroup(10, '''dv/dt = I_leak / Cm : volt
                        I_leak = g_L*(E_L - v) : amp''')
     resting_state = grp.resting_state({'v': float(10000)})
-    assert_allclose(resting_state['v'], El)
+    assert_allclose(resting_state['v'], E_L)
     
 def test_failed_resting_state():
     # check the failed to converge system is correctly notified to the user
@@ -1774,14 +1774,8 @@ def test_failed_resting_state():
     group = NeuronGroup(1, eqs, method='exponential_euler')
     group.v = -70*mV
     # very poor choice of initial values causing the convergence to fail
-    assert_raises(Exception, lambda: group.resting_state({'v': 0, 'm': 100000000, 'n': 1000000, 'h': 100000000}))
-
-def test_unsupported_resting_state():
-    # check unsupported models are identified and raise NotImplementedError
-    # As a simple example the model with pure resetting or event driven 
-    tau = 10 * ms
-    grp = NeuronGroup(1, 'dv/dt = -v/tau : volt', threshold='v > -50*mV', reset='v = -70*mV')  
-    assert_raises(NotImplementedError, lambda: grp.resting_state())
+    with pytest.raises(Exception):
+        group.resting_state({'v': 0, 'm': 100000000, 'n': 1000000, 'h': 100000000})
 
 if __name__ == '__main__':
     test_set_states()
@@ -1860,4 +1854,3 @@ if __name__ == '__main__':
     test_semantics_mod()
     test_simple_resting_value()
     test_failed_resting_state()
-    test_unsupported_resting_state()
