@@ -56,13 +56,16 @@ def get_conditionally_linear_system(eqs, variables=None):
             s_expr = sp.collect(s_expr,
                                 var, evaluate=False)
 
-            if len(s_expr) > 2 or var not in s_expr:
+            if (len(s_expr) > 2 or
+                    var not in s_expr or
+                    s_expr.get(sp.S.One, sp.S.Zero).has(var)
+            ):
                 raise ValueError(('The expression "%s", defining the variable %s, '
                                  'could not be separated into linear components') %
                                  (expr, name))
-            coefficients[name] = (s_expr[var], s_expr.get(1, 0))
+            coefficients[name] = (s_expr[var], s_expr.get(sp.S.One, sp.S.Zero))
         else:
-            coefficients[name] = (0, s_expr)
+            coefficients[name] = (sp.S.Zero, s_expr)
 
     return coefficients
 

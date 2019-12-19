@@ -398,6 +398,17 @@ def test_priority():
 
     check_integration(eqs, variables, can_integrate)
 
+    # Equation that both linearly and non-linearly depends on the variable,
+    # and is therefore not "conditionally linear". The exponential Euler updater
+    # should therefore decline to integrate the equations.
+    param = 1
+    eqs = Equations('''dv/dt = (-v + exp(-v) + 1.0)/tau : 1''')
+    updater(eqs, variables)  # should not raise an error
+    can_integrate = {linear: False, euler: True, exponential_euler: False,
+                     rk2: True, rk4: True, heun: True, milstein: True}
+
+    check_integration(eqs, variables, can_integrate)
+
     # Equations resulting in complex linear solution for older versions of sympy
     eqs = Equations('''dv/dt      = (ge+gi-(v+49*mV))/(20*ms) : volt
             dge/dt     = -ge/(5*ms) : volt
