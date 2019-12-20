@@ -224,14 +224,14 @@ def is_constant_over_dt(expression, variables, dt_value):
         step.
     '''
     t_symbol = sympy.Symbol('t', real=True, positive=True)
-    if expression is t_symbol:
+    if expression == t_symbol:
         return False  # The full expression is simply "t"
     func_name = str(expression.func)
     func_variable = variables.get(func_name, None)
     if func_variable is not None and not func_variable.stateless:
         return False
     for arg in expression.args:
-        if arg is t_symbol and dt_value is not None:
+        if arg == t_symbol and dt_value is not None:
             # We found "t" -- if it is not the only argument of a locally
             # constant function we bail out
             if not (func_variable is not None and

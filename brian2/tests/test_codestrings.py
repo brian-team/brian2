@@ -19,8 +19,8 @@ def sympy_equals(expr1, expr2):
     Test that whether two string expressions are equal using sympy, allowing
     e.g. for ``sympy_equals("x * x", "x ** 2") == True``.
     '''
-    s_expr1 = sympy.sympify(expr1).expand()
-    s_expr2 = sympy.sympify(expr2).expand()
+    s_expr1 = sympy.nsimplify(sympy.sympify(expr1).expand())
+    s_expr2 = sympy.nsimplify(sympy.sympify(expr2).expand())
     return s_expr1 == s_expr2
 
 @pytest.mark.codegen_independent
