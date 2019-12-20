@@ -114,10 +114,10 @@ def to_start_stop(item, N):
 
     Returns
     -------
-        start : int
-            The start value of the slice.
-        stop : int
-            The stop value of the slice.
+    start : int
+        The start value of the slice.
+    stop : int
+        The stop value of the slice.
 
     Examples
     --------
@@ -134,6 +134,7 @@ def to_start_stop(item, N):
     Traceback (most recent call last):
         ...
     IndexError: Subgroups can only be constructed using contiguous indices.
+    
     '''
     if isinstance(item, slice):
         start, stop, step = item.indices(N)

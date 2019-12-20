@@ -41,6 +41,35 @@ Try out Brian on the `mybinder <https://mybinder.org/>`_ service:
 .. image:: http://mybinder.org/badge.svg
   :target: http://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=index.ipynb
 
+Dependencies
+------------
+The following packages need to be installed to use Brian 2:
+
+* Python 2.7, or >= 3.5
+* NumPy >=1.10
+* SymPy >= 1.2
+* Cython >= 0.29
+* PyParsing
+* Jinja2 >= 2.7
+* future
+* setuptools >= 21
+* py-cpuinfo (only required on Windows)
+
+For full functionality, you might also want to install:
+
+* GSL >=1.16
+* SciPy >=0.13.3
+* weave (only on Python 2)
+* bsddb (only on Python 2)
+* Matplotlib >= 2.0
+
+To build the documentation:
+* Sphinx (>=1.8)
+
+To run the test suite:
+* pytest
+* pytest-xdist (optional)
+
 Testing status for master branch
 --------------------------------
 

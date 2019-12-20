@@ -2,6 +2,7 @@
 '''
 Brian2 setup script
 '''
+import io
 import sys
 import os
 import platform
@@ -116,21 +117,11 @@ class optional_build_ext(build_ext):
                                  error_msg + '\n' +
                                  '*' * len(error_msg) + '\n')
 
-long_description = '''
-Brian2 is a simulator for spiking neural networks available on almost all platforms.
-The motivation for this project is that a simulator should not only save the time of
-processors, but also the time of scientists.
 
-It is the successor of Brian1 and shares its approach of being highly flexible
-and easily extensible. It is based on a code generation framework that allows
-to execute simulations using other programming languages and/or on different
-devices.
-
-Please report issues to the github issue tracker (https://github.com/brian-team/brian2/issues) or to the
-brian support mailing list (http://groups.google.com/group/briansupport/)
-
-Documentation for Brian2 can be found at http://brian2.readthedocs.org
-'''
+# Use readme file as long description
+with io.open(os.path.join(os.path.dirname(__file__), 'README.rst'),
+             encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(name='Brian2',
       version='2.2.2.1+git',
@@ -193,6 +184,7 @@ setup(name='Brian2',
       url='http://www.briansimulator.org/',
       description='A clock-driven simulator for spiking neural networks',
       long_description=long_description,
+      long_description_content_type='text/x-rst',
       author='Marcel Stimberg, Dan Goodman, Romain Brette',
       author_email='team@briansimulator.org',
       keywords='computational neuroscience simulation',

@@ -10,4 +10,5 @@ Introduction
    changes
    known_issues
    support
+   code_of_conduct
 

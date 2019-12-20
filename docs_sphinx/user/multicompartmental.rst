@@ -110,19 +110,19 @@ together directly, without the needs for dots (or dictionary syntax) and therefo
 the morphology tree (e.g. ``morpho.LRLLR`` is equivalent to ``morpho.L.R.L.L.R``). This short syntax can also be used to
 create trees::
 
-    morpho = Soma(diameter=30*um)
-    morpho.L = Cylinder(length=10*um, diameter=1*um, n=3)
-    morpho.L1 = Cylinder(length=5*um, diameter=1*um, n=3)
-    morpho.L2 = Cylinder(length=5*um, diameter=1*um, n=3)
-    morpho.L3 = Cylinder(length=5*um, diameter=1*um, n=3)
-    morpho.R = Cylinder(length=10*um, diameter=1*um, n=3)
-    morpho.RL = Cylinder(length=5*um, diameter=1*um, n=3)
-    morpho.RR = Cylinder(length=5*um, diameter=1*um, n=3)
+    >>> morpho = Soma(diameter=30*um)
+    >>> morpho.L = Cylinder(length=10*um, diameter=1*um, n=3)
+    >>> morpho.L1 = Cylinder(length=5*um, diameter=1*um, n=3)
+    >>> morpho.L2 = Cylinder(length=5*um, diameter=1*um, n=3)
+    >>> morpho.L3 = Cylinder(length=5*um, diameter=1*um, n=3)
+    >>> morpho.R = Cylinder(length=10*um, diameter=1*um, n=3)
+    >>> morpho.RL = Cylinder(length=5*um, diameter=1*um, n=3)
+    >>> morpho.RR = Cylinder(length=5*um, diameter=1*um, n=3)
 
 The above instructions create a dendritic tree with two main sections, three sections attached to the first section and
 two to the second. This can be verified with the `Morphology.topology` method::
 
-    morpho.topology()
+    >>> morpho.topology()  # doctest: +NORMALIZE_WHITESPACE
     ( )  [root]
        `---|  .L
             `---|  .L.1

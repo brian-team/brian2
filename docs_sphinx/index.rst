@@ -42,6 +42,9 @@ feature works.
 Finally, if you're having problems, please do let us know at our
 :doc:`support page </introduction/support>`.
 
+Please note that all interactions (e.g. via the mailing list or on github) should adhere
+to our :doc:`Code of Conduct <introduction/code_of_conduct>`.
+
 Contents:
 
 .. toctree::
