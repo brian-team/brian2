@@ -124,7 +124,7 @@ with io.open(os.path.join(os.path.dirname(__file__), 'README.rst'),
     long_description = f.read()
 
 setup(name='Brian2',
-      version='2.2.2.1+git',
+      version='2.3',
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
