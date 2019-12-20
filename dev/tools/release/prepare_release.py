@@ -1,3 +1,6 @@
+from __future__ import print_function
+from future.builtins import input
+
 import os
 
 import brian2
@@ -5,13 +8,13 @@ import brian2
 from setversion import setversion, setreleasedate
 # Ask for version number
 print('Current version is: ' + brian2.__version__)
-version = raw_input('Enter new Brian2 version number: ').strip()
+version = input('Enter new Brian2 version number: ').strip()
 
 # Set the version numbers
-print 'Changing to new version', version
+print('Changing to new version', version)
 setversion(version)
 setreleasedate()
-print 'Done'
+print('Done')
 
 # generate the default preferences file
 base, _ = os.path.split(brian2.__file__)
