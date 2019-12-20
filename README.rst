@@ -64,9 +64,11 @@ For full functionality, you might also want to install:
 * Matplotlib >= 2.0
 
 To build the documentation:
+
 * Sphinx (>=1.8)
 
 To run the test suite:
+
 * pytest
 * pytest-xdist (optional)
 
