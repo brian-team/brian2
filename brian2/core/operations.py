@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import inspect
 
 from brian2.core.base import BrianObject

@@ -1,8 +1,8 @@
 '''
 Tests the brian2.parsing package
 '''
-from __future__ import division  # Make sure that we use Python 3 semantics in Python 2
-from __future__ import absolute_import
+  # Make sure that we use Python 3 semantics in Python 2
+
 from collections import namedtuple
 
 import pytest

@@ -2,7 +2,7 @@
 Definitions, documentation, default values and validation functions for core
 Brian preferences.
 '''
-from __future__ import absolute_import
+
 from numpy import float32, float64, int32
 
 from brian2.core.preferences import BrianPreference, prefs

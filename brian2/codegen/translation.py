@@ -14,7 +14,7 @@ The input information needed:
 * The dtype to use for newly created variables
 * The language to translate to
 '''
-from __future__ import absolute_import
+
 import re
 try:
     from collections.abc import Mapping

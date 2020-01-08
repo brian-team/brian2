@@ -1,7 +1,7 @@
 '''
 Module implementing the C++ "standalone" `CodeObject`
 '''
-from __future__ import absolute_import
+
 from brian2.codegen.codeobject import CodeObject, constant_or_scalar
 from brian2.codegen.targets import codegen_targets
 from brian2.codegen.templates import Templater

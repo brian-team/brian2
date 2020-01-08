@@ -2,7 +2,7 @@
 Module containing CPPStandalone CodeObject for code generation for integration using the ODE solver provided in the
 GNU Scientific Library
 '''
-from __future__ import absolute_import
+
 from brian2.codegen.codeobject import CodeObject
 from brian2.devices.cpp_standalone import CPPStandaloneCodeObject
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator

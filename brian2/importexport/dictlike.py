@@ -2,7 +2,7 @@
 Module providing `DictImportExport` and `PandasImportExport` (requiring a
 working installation of pandas).
 '''
-from __future__ import absolute_import
+
 import numpy as np
 from .importexport import ImportExport
 

@@ -5,7 +5,7 @@ Preferences
 -----------
 .. document_brian_prefs:: logging
 '''
-from __future__ import absolute_import
+
 import atexit
 import logging
 import os

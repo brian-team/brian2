@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 Utility functions to get information about the environment Brian is running in.
 '''

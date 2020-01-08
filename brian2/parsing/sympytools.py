@@ -1,7 +1,7 @@
 '''
 Utility functions for parsing expressions and statements.
 '''
-from __future__ import absolute_import
+
 import re
 from collections import Counter
 

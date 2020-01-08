@@ -4,7 +4,7 @@ numpy functions without having to know which functions are overwritten.
 
 This can be used for example as ``import brian2.numpy_ as np``
 '''
-from __future__ import absolute_import
+
 from numpy import *
 from brian2.units.unitsafefunctions import *
 

@@ -1,7 +1,7 @@
 '''
 Some basic tests for the `Variable` system
 '''
-from __future__ import absolute_import
+
 from collections import namedtuple
 
 import pytest

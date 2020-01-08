@@ -2,8 +2,8 @@
 Automatically find examples of a Brian object or function.
 '''
 
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import os, re
 from collections import defaultdict
 from .generate_examples import GlobDirectoryWalker

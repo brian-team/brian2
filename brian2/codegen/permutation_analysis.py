@@ -1,7 +1,7 @@
 '''
 Module for analysing synaptic pre and post code for synapse order independence.
 '''
-from __future__ import absolute_import
+
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.functions import Function
 from brian2.core.variables import Constant

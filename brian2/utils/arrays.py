@@ -1,7 +1,7 @@
 '''
 Helper module containing functions that operate on numpy arrays.
 '''
-from __future__ import absolute_import
+
 import numpy as np
 
 

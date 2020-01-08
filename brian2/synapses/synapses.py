@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 Module providing the `Synapses` class and related helper classes/functions.
 '''

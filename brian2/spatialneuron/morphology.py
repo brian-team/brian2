@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.

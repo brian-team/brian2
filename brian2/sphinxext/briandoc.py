@@ -16,7 +16,7 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
-from __future__ import absolute_import
+
 from past.builtins import unicode
 import re
 import pydoc

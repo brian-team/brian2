@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 AST parsing based analysis of expressions
 '''

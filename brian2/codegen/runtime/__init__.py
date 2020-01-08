@@ -4,7 +4,7 @@ Runtime targets for code generation.
 
 # Register the base category before importing the indivial codegen targets with
 # their subcategories
-from __future__ import absolute_import
+
 from brian2.core.preferences import prefs
 from brian2.utils.logger import get_logger
 prefs.register_preferences('codegen.runtime',

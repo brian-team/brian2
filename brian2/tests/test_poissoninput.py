@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from numpy.testing import assert_equal
 import pytest
 

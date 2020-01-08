@@ -2,7 +2,7 @@
 Module containing the Weave CodeObject for code generation for integration using the ODE solver provided in the
 GNU Scientific Library (GSL)
 '''
-from __future__ import absolute_import
+
 import sys
 
 try:

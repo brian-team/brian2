@@ -1,7 +1,7 @@
 '''
 Module providing `NumpyCodeObject`.
 '''
-from __future__ import absolute_import
+
 import sys
 try:
     from collections.abc import Iterable

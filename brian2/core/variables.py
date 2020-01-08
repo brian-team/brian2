@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 Classes used to specify the type of a function, variable or common
 sub-expression.

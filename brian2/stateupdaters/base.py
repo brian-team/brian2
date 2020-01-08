@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 This module defines the `StateUpdateMethod` class that acts as a base class for
 all stateupdaters and allows to register stateupdaters so that it is able to

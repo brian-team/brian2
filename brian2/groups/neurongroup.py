@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''

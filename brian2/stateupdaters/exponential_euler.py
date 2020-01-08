@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import sympy as sp
 
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy

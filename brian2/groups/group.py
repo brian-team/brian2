@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 This module defines the `VariableOwner` class, a mix-in class for everything
 that saves state variables, e.g. `Clock` or `NeuronGroup`, the class `Group`

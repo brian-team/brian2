@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 try:
     from collections.abc import Mapping
 except ImportError:  # Python 2

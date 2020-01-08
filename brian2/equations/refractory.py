@@ -2,7 +2,7 @@
 Module implementing Brian's refractory mechanism.
 '''
 
-from __future__ import absolute_import
+
 from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
 from brian2.units.allunits import second
 

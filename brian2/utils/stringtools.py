@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 """
 A collection of tools for string formatting tasks.
 """

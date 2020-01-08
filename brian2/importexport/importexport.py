@@ -3,7 +3,7 @@ Module defining the `ImportExport` class that enables getting state variable
 data in and out of groups in various formats (see `Group.get_states` and
 `Group.set_states`).
 '''
-from __future__ import absolute_import
+
 import abc
 from abc import abstractmethod, abstractproperty
 

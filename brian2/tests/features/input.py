@@ -2,7 +2,7 @@
 Tests of input features
 '''
 
-from __future__ import absolute_import
+
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
 

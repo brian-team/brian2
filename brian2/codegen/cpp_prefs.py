@@ -6,7 +6,7 @@ Preferences
 .. document_brian_prefs:: codegen.cpp
 
 '''
-from __future__ import absolute_import
+
 from distutils.ccompiler import get_default_compiler
 import json
 import os
