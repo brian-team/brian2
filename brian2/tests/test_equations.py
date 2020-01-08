@@ -519,10 +519,7 @@ def test_str_repr():
 @pytest.mark.codegen_independent
 @pytest.mark.skipif(pprint is None, reason='ipython is not installed')
 def test_ipython_pprint():
-    try:
-        from cStringIO import StringIO  # Python 2
-    except ImportError:
-        from io import StringIO  # Python 3
+    from io import StringIO
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f : Hz''')

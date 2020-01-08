@@ -12,11 +12,6 @@ from brian2.units.unitsafefunctions import *
 # builtin names (mimicking the numpy behaviour)
 from builtins import bool, int, float, complex, object, bytes, str
 
-try:
-    from __builtin__ import long, unicode  # Python 2
-except ImportError:
-    pass
-
 from numpy.core import round, abs, max, min
 
 import numpy
