@@ -292,7 +292,7 @@ class SpatialNeuron(NeuronGroup):
                 membrane_expr = Expression(
                     str(membrane_expr.code) + '+' + eq.varname + '/area')
                 eq = SingleEquation(eq.type, eq.varname, eq.dim, expr=eq.expr,
-                                    flags=list(set(eq.flags)-set(['point current'])))
+                                    flags=list(set(eq.flags)-{'point current'}))
             model_equations.append(eq)
 
         model_equations.append(SingleEquation(SUBEXPRESSION, 'Im',

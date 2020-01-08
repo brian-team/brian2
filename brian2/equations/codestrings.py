@@ -109,8 +109,8 @@ class Expression(CodeString):
             str_to_sympy(code)
         super(Expression, self).__init__(code=code)
 
-    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
-                                                      if variable =='xi' or variable.startswith('xi_')]),
+    stochastic_variables = property(lambda self: {variable for variable in self.identifiers
+                                                  if variable =='xi' or variable.startswith('xi_')},
                                     doc='Stochastic variables in this expression')
 
     def split_stochastic(self):

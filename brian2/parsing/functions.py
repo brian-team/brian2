@@ -235,8 +235,8 @@ def substitute_abstract_code_functions(code, funcs):
     ids = get_identifiers(code)
     funcstarts = {}
     for func in funcs.values():
-        subids = set([id for id in ids if id.startswith('_inline_'+func.name+'_')])
-        subids = set([id.replace('_inline_'+func.name+'_', '') for id in subids])
+        subids = {id for id in ids if id.startswith('_inline_'+func.name+'_')}
+        subids = {id.replace('_inline_'+func.name+'_', '') for id in subids}
         alli = []
         for subid in subids:
             p = subid.find('_')

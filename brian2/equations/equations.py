@@ -445,8 +445,8 @@ class SingleEquation(Hashable, CacheKey):
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
 
-    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
-                                                      if variable =='xi' or variable.startswith('xi_')]),
+    stochastic_variables = property(lambda self: {variable for variable in self.identifiers
+                                                  if variable =='xi' or variable.startswith('xi_')},
                                     doc='Stochastic variables in the RHS of this equation')
 
     def __eq__(self, other):
@@ -847,24 +847,24 @@ class Equations(Hashable, Mapping):
 
     # Sets of names
 
-    names = property(lambda self: set([eq.varname for eq in self.ordered]),
+    names = property(lambda self: {eq.varname for eq in self.ordered},
                      doc='All variable names defined in the equations.')
 
-    diff_eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.type == DIFFERENTIAL_EQUATION]),
+    diff_eq_names = property(lambda self: {eq.varname for eq in self.ordered
+                                           if eq.type == DIFFERENTIAL_EQUATION},
                              doc='All differential equation names.')
 
-    subexpr_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                               if eq.type == SUBEXPRESSION]),
+    subexpr_names = property(lambda self: {eq.varname for eq in self.ordered
+                                           if eq.type == SUBEXPRESSION},
                              doc='All subexpression names.')
 
-    eq_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                           if eq.type in (DIFFERENTIAL_EQUATION,
-                                                          SUBEXPRESSION)]),
+    eq_names = property(lambda self: {eq.varname for eq in self.ordered
+                                      if eq.type in (DIFFERENTIAL_EQUATION,
+                                                     SUBEXPRESSION)},
                         doc='All equation names (including subexpressions).')
 
-    parameter_names = property(lambda self: set([eq.varname for eq in self.ordered
-                                             if eq.type == PARAMETER]),
+    parameter_names = property(lambda self: {eq.varname for eq in self.ordered
+                                             if eq.type == PARAMETER},
                                doc='All parameter names.')
 
     dimensions = property(lambda self: dict([(var, eq.dim) for var, eq in
@@ -879,8 +879,8 @@ class Equations(Hashable, Mapping):
                            doc=('Set of all identifiers used in the equations, '
                                 'excluding the variables defined in the equations'))
 
-    stochastic_variables = property(lambda self: set([variable for variable in self.identifiers
-                                                      if variable =='xi' or variable.startswith('xi_')]))
+    stochastic_variables = property(lambda self: {variable for variable in self.identifiers
+                                                  if variable =='xi' or variable.startswith('xi_')})
 
     # general properties
     is_stochastic = property(lambda self: len(self.stochastic_variables) > 0,
@@ -1017,7 +1017,7 @@ class Equations(Hashable, Mapping):
                 # Check for incompatibilities
                 for flag_combinations in incompatible_flags:
                     if flag in flag_combinations:
-                        remaining_flags = set(flag_combinations) - set([flag])
+                        remaining_flags = set(flag_combinations) - {flag}
                         for remaining_flag in remaining_flags:
                             if remaining_flag in eq.flags:
                                 raise ValueError("Flag '{}' cannot be "

@@ -399,7 +399,7 @@ def test_properties():
             isinstance(eqs.diff_eq_expressions[0][1], Expression))
     assert eqs.diff_eq_names == {'v'}
     assert (len(eqs.eq_expressions) == 3 and
-            set([name for name, _ in eqs.eq_expressions]) == {'v', 'I', 'f'} and
+            {name for name, _ in eqs.eq_expressions} == {'v', 'I', 'f'} and
             all((isinstance(expr, Expression) for _, expr in eqs.eq_expressions)))
     assert len(eqs.eq_names) == 3 and eqs.eq_names == {'v', 'I', 'f'}
     assert set(eqs.keys()) == {'v', 'I', 'f', 'freq'}

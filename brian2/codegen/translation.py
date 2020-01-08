@@ -104,11 +104,10 @@ def analyse_identifiers(code, variables, recursive=False):
         if not isinstance(variables, Mapping):
             raise TypeError('Have to specify a variables dictionary.')
         allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
-                                             variables) | set([stmt.var
-                                                               for stmt in stmts])
+                                             variables) | {stmt.var for stmt in stmts}
     else:
         allids = set.union(*[get_identifiers(stmt.expr)
-                             for stmt in stmts]) | set([stmt.var for stmt in stmts])
+                             for stmt in stmts]) | {stmt.var for stmt in stmts}
     dependent = allids.difference(defined, known)
     used_known = allids.intersection(known) - STANDARD_IDENTIFIERS
     return defined, used_known, dependent

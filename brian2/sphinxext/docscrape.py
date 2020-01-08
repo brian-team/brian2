@@ -509,11 +509,11 @@ class ClassDoc(NumpyDocString):
         if self._cls is None:
             return []
         analyzer = ModuleAnalyzer.for_module(self._cls.__module__)
-        instance_members = set([attr_name for (class_name, attr_name) in
-                                analyzer.find_attr_docs().keys()
-                                if class_name == self._cls.__name__])
-        class_members = set([name for name, func in getattr(self._cls, '__dict__').items()
-                             if not name.startswith('_') and (func is None or
-                                                              inspect.isdatadescriptor(func))])
+        instance_members = {attr_name for (class_name, attr_name) in
+                            analyzer.find_attr_docs().keys()
+                            if class_name == self._cls.__name__}
+        class_members = {name for name, func in getattr(self._cls, '__dict__').items()
+                         if not name.startswith('_') and (func is None or
+                                                          inspect.isdatadescriptor(func))}
 
         return instance_members | class_members

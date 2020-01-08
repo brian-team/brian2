@@ -39,8 +39,8 @@ def check_for_order_independence(statements, variables, indices):
                               and getattr(variables[indices[v]],
                                           'unique',
                                           False))
-    main_index_variables = set([v for v in all_variables
-                                if indices[v] == '_idx' or unique_index(v)])
+    main_index_variables = {v for v in all_variables
+                            if indices[v] == '_idx' or unique_index(v)}
     different_index_variables = set(all_variables) - main_index_variables
 
     # At the start, we assume all the different/derived index variables are permutation independent and we continue
@@ -59,7 +59,7 @@ def check_for_order_independence(statements, variables, indices):
         for statement in statements:
             vars_in_expr = get_identifiers(statement.expr).intersection(all_variables)
             # any time a statement involves a LHS and RHS which only depend on itself, this doesn't change anything
-            if set([statement.var]) == vars_in_expr:
+            if {statement.var} == vars_in_expr:
                 continue
             nonsyn_vars_in_expr = vars_in_expr.intersection(different_index_variables)
             permdep = any(var not in permutation_independent
