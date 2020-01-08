@@ -13,7 +13,7 @@ import string
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 import sympy
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import (DEFAULT_FUNCTIONS,
@@ -558,7 +558,7 @@ class Equations(Hashable, Mapping):
     """
 
     def __init__(self, eqns, **kwds):
-        if isinstance(eqns, basestring):
+        if isinstance(eqns, str):
             self._equations = parse_string_equations(eqns)
             # Do a basic check for the identifiers
             self.check_identifiers()
@@ -606,7 +606,7 @@ class Equations(Hashable, Mapping):
             # Replace the name of a model variable (works only for strings)
             if eq.varname in replacements:
                 new_varname = replacements[eq.varname]
-                if not isinstance(new_varname, basestring):
+                if not isinstance(new_varname, str):
                     raise ValueError(('Cannot replace model variable "%s" '
                                       'with a value') % eq.varname)
                 if new_varname in self or new_varname in new_equations:
@@ -625,7 +625,7 @@ class Equations(Hashable, Mapping):
                 new_code = eq.expr.code
                 for to_replace, replacement in replacements.items():
                     if to_replace in eq.identifiers:
-                        if isinstance(replacement, basestring):
+                        if isinstance(replacement, str):
                             # replace the name with another name
                             new_code = re.sub('\\b' + to_replace + '\\b',
                                               replacement, new_code)
@@ -666,7 +666,7 @@ class Equations(Hashable, Mapping):
         return self._equations[key]
 
     def __add__(self, other_eqns):
-        if isinstance(other_eqns, basestring):
+        if isinstance(other_eqns, str):
             other_eqns = parse_string_equations(other_eqns)
         elif not isinstance(other_eqns, Equations):
             return NotImplemented

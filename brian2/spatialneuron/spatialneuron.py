@@ -9,7 +9,7 @@ import copy
 
 import sympy as sp
 import numpy as np
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
@@ -237,7 +237,7 @@ class SpatialNeuron(NeuronGroup):
                  method_options=None):
 
         # #### Prepare and validate equations
-        if isinstance(model, basestring):
+        if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
             raise TypeError(('model has to be a string or an Equations '

@@ -8,7 +8,7 @@ try:
 except ImportError:
     pprint = None
 import pytest
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre
 from brian2 import Unit, Equations, Expression
@@ -405,7 +405,7 @@ def test_properties():
     assert set(eqs.keys()) == {'v', 'I', 'f', 'freq'}
     # test that the equations object is iterable itself
     assert all((isinstance(eq, SingleEquation) for eq in eqs.values()))
-    assert all((isinstance(eq, basestring) for eq in eqs))
+    assert all((isinstance(eq, str) for eq in eqs))
     assert (len(eqs.ordered) == 4 and
             all((isinstance(eq, SingleEquation) for eq in eqs.ordered)) and
             [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])

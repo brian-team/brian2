@@ -9,7 +9,7 @@ import sys
 from io import StringIO
 import tempfile
 
-from past.builtins import basestring
+from past.builtins import str
 
 import numpy as np
 
@@ -190,7 +190,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     if extra_test_dirs is None:
         extra_test_dirs = []
-    elif isinstance(extra_test_dirs, basestring):
+    elif isinstance(extra_test_dirs, str):
         extra_test_dirs = [extra_test_dirs]
     if additional_args is None:
         additional_args = []
@@ -213,7 +213,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             codegen_targets.append('cython')
         except ImportError:
             pass
-    elif isinstance(codegen_targets, basestring):  # allow to give a single target
+    elif isinstance(codegen_targets, str):  # allow to give a single target
         codegen_targets = [codegen_targets]
 
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -232,7 +232,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     all_targets = set(codegen_targets)
 
     if test_standalone:
-        if not isinstance(test_standalone, basestring):
+        if not isinstance(test_standalone, str):
             raise ValueError('test_standalone argument has to be the name of a '
                              'standalone device (e.g. "cpp_standalone")')
         if test_standalone not in all_devices:

@@ -5,7 +5,7 @@ A collection of tools for string formatting tasks.
 import re
 import string
 
-from past.builtins import basestring
+from past.builtins import str
 
 __all__ = ['indent',
            'deindent',
@@ -237,9 +237,9 @@ def code_representation(code):
     - A dict of strings
     - A dict of lists of statements/strings
     '''
-    if not isinstance(code, (basestring, list, tuple, dict)):
+    if not isinstance(code, (str, list, tuple, dict)):
         code = str(code)
-    if isinstance(code, basestring):
+    if isinstance(code, str):
         return strip_empty_leading_and_trailing_lines(code)
     if not isinstance(code, dict):
         code = {None: code}

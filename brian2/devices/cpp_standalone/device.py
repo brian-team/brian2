@@ -16,7 +16,7 @@ import tempfile
 from distutils import ccompiler
 
 import numpy as np
-from past.builtins import basestring
+from past.builtins import str
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
@@ -239,7 +239,7 @@ class CPPStandaloneDevice(Device):
                     v = v.get_value()
                 except NotImplementedError:
                     continue
-            if isinstance(v, basestring):
+            if isinstance(v, str):
                 code = word_substitute(code, {k: v})
             elif isinstance(v, numbers.Number):
                 # Use a renderer to correctly transform constants such as True or inf
@@ -1447,7 +1447,7 @@ class CPPStandaloneDevice(Device):
             report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
         elif report == 'stderr':
             report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
-        elif isinstance(report, basestring):
+        elif isinstance(report, str):
             report_func = '''
             void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {

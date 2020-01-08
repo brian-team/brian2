@@ -13,7 +13,7 @@ import re
 import numbers
 
 import numpy as np
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override
@@ -75,7 +75,7 @@ class StateUpdater(CodeRunner):
                                                                       self.method_choice,
                                                                       method_options=self.method_options,
                                                                       group_name=self.group.name)
-            if isinstance(stateupdate_output, basestring):
+            if isinstance(stateupdate_output, str):
                 self.abstract_code = stateupdate_output
             else:
                 # Note that the reason to send self along with this method is so the StateUpdater
@@ -520,10 +520,10 @@ class SynapticIndexing(object):
         (including arrays and slices), a single index or a string.
 
         '''
-        if index is None or (isinstance(index, basestring) and index == 'True'):
+        if index is None or (isinstance(index, str) and index == 'True'):
             index = slice(None)
 
-        if (not isinstance(index, (tuple, basestring)) and
+        if (not isinstance(index, (tuple, str)) and
                 (isinstance(index, (numbers.Integral, np.ndarray, slice,
                                    Sequence))
                  or hasattr(index, '_indices'))):
@@ -737,7 +737,7 @@ class Synapses(Group):
         if model is None:
             model = ''
 
-        if isinstance(model, basestring):
+        if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
             raise TypeError(('model has to be a string or an Equations '
@@ -762,7 +762,7 @@ class Synapses(Group):
         # Add the "multisynaptic index", if desired
         self.multisynaptic_index = multisynaptic_index
         if multisynaptic_index is not None:
-            if not isinstance(multisynaptic_index, basestring):
+            if not isinstance(multisynaptic_index, str):
                 raise TypeError('multisynaptic_index argument has to be a string')
             model = model + Equations('{} : integer'.format(multisynaptic_index))
 
@@ -841,7 +841,7 @@ class Synapses(Group):
         #: List of all `SynapticPathway` objects
         self._pathways = []
 
-        if isinstance(on_event, basestring):
+        if isinstance(on_event, str):
             events_dict = defaultdict(lambda: on_event)
         else:
             events_dict = defaultdict(lambda: 'spike')
@@ -852,13 +852,13 @@ class Synapses(Group):
         for prepost, argument in zip(('pre', 'post'), (on_pre, on_post)):
             if not argument:
                 continue
-            if isinstance(argument, basestring):
+            if isinstance(argument, str):
                 pathway_delay = delay.get(prepost, None)
                 self._add_updater(argument, prepost, delay=pathway_delay,
                                   event=self.events[prepost])
             elif isinstance(argument, Mapping):
                 for key, value in argument.items():
-                    if not isinstance(key, basestring):
+                    if not isinstance(key, str):
                         err_msg = ('Keys for the "on_{}" argument'
                                    'have to be strings, got '
                                    '{} instead.').format(prepost, type(key))
@@ -1290,7 +1290,7 @@ class Synapses(Group):
         '''
         # check types
         if condition is not None and not isinstance(condition, (bool,
-                                                                basestring)):
+                                                                str)):
             raise TypeError("condition argument must be bool or string. If you "
                             "want to connect based on indices, use "
                             "connect(i=..., j=...).")
@@ -1298,7 +1298,7 @@ class Synapses(Group):
                                                  np.ndarray,
                                                  Sequence)) or
                                    hasattr(i, '_indices')) or
-                              isinstance(i, basestring)):
+                              isinstance(i, str)):
             raise TypeError("i argument must be int or array")
         if j is not None and not (isinstance(j, (numbers.Integral,
                                                 np.ndarray,
@@ -1306,11 +1306,11 @@ class Synapses(Group):
                                   hasattr(j, '_indices')):
             raise TypeError("j argument must be int, array or string")
         # TODO: eliminate these restrictions
-        if not isinstance(p, (int, float, basestring)):
+        if not isinstance(p, (int, float, str)):
             raise TypeError("p must be float or string")
-        if not isinstance(n, (int, basestring)):
+        if not isinstance(n, (int, str)):
             raise TypeError("n must be int or string")
-        if isinstance(condition, basestring) and re.search(r'\bfor\b',
+        if isinstance(condition, str) and re.search(r'\bfor\b',
                                                            condition):
             raise ValueError("Generator expression given for condition, write "
                              "connect(j='{condition}'...) instead of "
@@ -1334,12 +1334,12 @@ class Synapses(Group):
                 if condition is True:
                     condition = 'True'
                 condition = word_substitute(condition, {'j': '_k'})
-                if not isinstance(p, basestring) and p == 1:
+                if not isinstance(p, str) and p == 1:
                     j = ('_k for _k in range(N_post) '
                          'if {expr}').format(expr=condition)
                 else:
                     j = None
-                    if isinstance(p, basestring):
+                    if isinstance(p, str):
                         if namespace is None:
                             namespace = get_local_namespace(level=level + 1)
                         p_dep = self._expression_index_dependence(p, namespace=namespace)
@@ -1372,7 +1372,7 @@ class Synapses(Group):
                 if not np.issubdtype(j.dtype, np.signedinteger):
                     raise TypeError(('Presynaptic indices can only be combined '
                                      'with postsynaptic integer indices))'))
-                if isinstance(n, basestring):
+                if isinstance(n, str):
                     raise TypeError(('Indices cannot be combined with a string'
                                      'expression for n. Either use an '
                                      'array/scalar for n, or a string '
@@ -1383,7 +1383,7 @@ class Synapses(Group):
                 self._add_synapses_from_arrays(i, j, n, p, namespace=namespace)
                 return
             elif j is not None:
-                if isinstance(p, basestring) or p != 1:
+                if isinstance(p, str) or p != 1:
                     raise ValueError("Generator syntax cannot be combined with "
                                      "p argument")
                 if not re.search(r'\bfor\b', j):

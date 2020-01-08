@@ -25,7 +25,7 @@ import itertools
 
 import numpy as np
 from numpy import VisibleDeprecationWarning
-from past.builtins import basestring
+from past.builtins import str
 from sympy import latex
 
 __all__ = [
@@ -626,7 +626,7 @@ def is_scalar_type(obj):
     try:
         return obj.ndim == 0
     except AttributeError:
-        return np.isscalar(obj) and not isinstance(obj, basestring)
+        return np.isscalar(obj) and not isinstance(obj, str)
 
 
 def get_dimensions(obj):
@@ -2348,7 +2348,7 @@ def check_units(**au):
             newkeyset = kwds.copy()
             arg_names = f.__code__.co_varnames[0:f.__code__.co_argcount]
             for (n, v) in zip(arg_names, args[0:f.__code__.co_argcount]):
-                if (not isinstance(v, (Quantity, basestring, bool))
+                if (not isinstance(v, (Quantity, str, bool))
                         and v is not None
                         and n in au):
                     try:
@@ -2368,7 +2368,7 @@ def check_units(**au):
                 # string variables are allowed to pass, the presumption is they
                 # name another variable. None is also allowed, useful for
                 # default parameters
-                if (k in au and not isinstance(newkeyset[k], basestring) and
+                if (k in au and not isinstance(newkeyset[k], str) and
                         not newkeyset[k] is None):
 
                     if au[k] == bool:

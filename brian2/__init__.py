@@ -5,7 +5,7 @@ Brian 2
 # working weave/Cython on Windows with the Python for C++ compiler
 from __future__ import absolute_import
 import setuptools as _setuptools
-from past.builtins import basestring
+from past.builtins import str
 
 
 def _check_dependencies():
@@ -80,7 +80,7 @@ def _check_dependency_version(name, version):
     logger = get_logger(__name__)
 
     module = sys.modules[name]
-    if not isinstance(module.__version__, basestring):  # mocked module
+    if not isinstance(module.__version__, str):  # mocked module
         return
     if not LooseVersion(module.__version__) >= LooseVersion(version):
         message = '%s is outdated (got version %s, need version %s)' % (name,

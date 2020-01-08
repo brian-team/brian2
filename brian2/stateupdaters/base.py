@@ -12,7 +12,7 @@ except ImportError:  # Python 2
     from collections import Iterable
 import time
 
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
@@ -172,7 +172,7 @@ class StateUpdateMethod(object):
             The code integrating the given equations.
         '''
         if (isinstance(method, Iterable) and
-                not isinstance(method, basestring)):
+                not isinstance(method, str)):
             the_method = None
             start_time = time.time()
             for one_method in method:
@@ -220,7 +220,7 @@ class StateUpdateMethod(object):
                 # claims not to be applicable.
                 stateupdater = method
                 method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
-            elif isinstance(method, basestring):
+            elif isinstance(method, str):
                 method = method.lower()  # normalize name to lower case
                 stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
                 if stateupdater is None:

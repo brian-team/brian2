@@ -8,7 +8,7 @@ try:
 except ImportError:  # Python 2
     from collections import Mapping
 
-from past.builtins import basestring
+from past.builtins import str
 from jinja2 import (Environment, PackageLoader, ChoiceLoader, StrictUndefined,
                     TemplateNotFound)
 
@@ -105,7 +105,7 @@ class Templater(object):
     This returns a `CodeObjectTemplate`.
     '''
     def __init__(self, package_name, extension, env_globals=None):
-        if isinstance(package_name, basestring):
+        if isinstance(package_name, str):
             package_name = (package_name,)
         loader = ChoiceLoader([PackageLoader(name, 'templates') for name in package_name])
         self.env = Environment(loader=loader, trim_blocks=True,
@@ -131,7 +131,7 @@ class Templater(object):
         '''
         if extension is None:
             extension = self.extension
-        if isinstance(package_name, basestring):
+        if isinstance(package_name, str):
             package_name = (package_name,)
         if env_globals is None:
             env_globals = {}

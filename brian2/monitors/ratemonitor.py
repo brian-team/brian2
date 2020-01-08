@@ -3,7 +3,7 @@ from __future__ import absolute_import
 Module defining `PopulationRateMonitor`.
 '''
 import numpy as np
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.utils.logger import get_logger
 from brian2.core.variables import Variables
@@ -122,12 +122,12 @@ class PopulationRateMonitor(Group, CodeRunner):
             and can be plotted against the `PopulationRateMonitor` 's ``t``
             attribute.
         '''
-        if width is None and isinstance(window, basestring):
+        if width is None and isinstance(window, str):
             raise TypeError('Need a width when using a predefined window.')
-        if width is not None and not isinstance(window, basestring):
+        if width is not None and not isinstance(window, str):
             raise TypeError('Can only specify a width for a predefined window')
 
-        if isinstance(window, basestring):
+        if isinstance(window, str):
             if window == 'gaussian':
                 width_dt = int(np.round(2*width / self.clock.dt))
                 # Rounding only for the size of the window, not for the standard

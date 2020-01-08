@@ -6,7 +6,7 @@ Preferences
 -----------
 .. document_brian_prefs:: codegen
 '''
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.core.preferences import prefs, BrianPreference
 from .codeobject import CodeObject
@@ -34,7 +34,7 @@ prefs.register_preferences(
         
         Or it can be a ``CodeObject`` class.
         ''',
-        validator=lambda target: isinstance(target, basestring) or issubclass(target, CodeObject),
+        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
         ),
     string_expression_target=BrianPreference(
         default='numpy',
@@ -46,7 +46,7 @@ prefs.register_preferences(
 
         Accepts the same arguments as `codegen.target`, except for ``'auto'``
         ''',
-        validator=lambda target: isinstance(target, basestring) or issubclass(target, CodeObject),
+        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
         ),
     loop_invariant_optimisations=BrianPreference(
         default=True,

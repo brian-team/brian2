@@ -4,7 +4,7 @@ AST parsing based analysis of expressions
 '''
 import ast
 
-from past.builtins import basestring
+from past.builtins import str
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer
@@ -123,7 +123,7 @@ def _get_value_from_expression(expr, variables):
         If any part of the expression is dimensionally inconsistent.
     '''
     # If we are working on a string, convert to the top level node
-    if isinstance(expr, basestring):
+    if isinstance(expr, str):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
 
@@ -220,7 +220,7 @@ def parse_expression_dimensions(expr, variables):
     '''
 
     # If we are working on a string, convert to the top level node    
-    if isinstance(expr, basestring):
+    if isinstance(expr, str):
         mod = ast.parse(expr, mode='eval')
         expr = mod.body
     if expr.__class__ is getattr(ast, 'NameConstant', None):

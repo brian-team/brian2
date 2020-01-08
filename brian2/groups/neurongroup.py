@@ -11,7 +11,7 @@ import numbers
 import string
 
 import numpy as np
-from past.builtins import basestring
+from past.builtins import str
 import sympy
 from pyparsing import Word
 
@@ -143,7 +143,7 @@ def to_start_stop(item, N):
         stop = item + 1
         step = 1
     elif (isinstance(item, (Sequence, np.ndarray)) and
-          not isinstance(item, basestring)):
+          not isinstance(item, str)):
         if not (len(item) > 0 and np.all(np.diff(item) == 1)):
             raise IndexError('Subgroups can only be constructed using '
                              'contiguous indices.')
@@ -259,7 +259,7 @@ class StateUpdater(CodeRunner):
                                                                       self.method_choice,
                                                                       method_options=self.method_options,
                                                                       group_name=self.group.name)
-            if isinstance(stateupdate_output, basestring):
+            if isinstance(stateupdate_output, str):
                 self.abstract_code += stateupdate_output
             else:
                 # Note that the reason to send self along with this method is so the StateUpdater
@@ -328,7 +328,7 @@ class Thresholder(CodeRunner):
     def update_abstract_code(self, run_namespace):
         code = self.group.events[self.event]
         # Raise a useful error message when the user used a Brian1 syntax
-        if not isinstance(code, basestring):
+        if not isinstance(code, str):
             if isinstance(code, Quantity):
                 t = 'a quantity'
             else:
@@ -386,7 +386,7 @@ class Resetter(CodeRunner):
     def update_abstract_code(self, run_namespace):
         code = self.group.event_codes[self.event]
         # Raise a useful error message when the user used a Brian1 syntax
-        if not isinstance(code, basestring):
+        if not isinstance(code, str):
             if isinstance(code, Quantity):
                 t = 'a quantity'
             else:
@@ -504,7 +504,7 @@ class NeuronGroup(Group, SpikeSource):
         self.stop = self._N
 
         ##### Prepare and validate equations
-        if isinstance(model, basestring):
+        if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
             raise TypeError(('model has to be a string or an Equations '
@@ -581,7 +581,7 @@ class NeuronGroup(Group, SpikeSource):
         self.resetter = {}
 
         for event_name in events.keys():
-            if not isinstance(event_name, basestring):
+            if not isinstance(event_name, str):
                 raise TypeError(('Keys in the "events" dictionary have to be '
                                  'strings, not type %s.') % type(event_name))
             if not _valid_event_name(event_name):
