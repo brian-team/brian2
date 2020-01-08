@@ -312,9 +312,8 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         s = ''
         if basename is None:
-            basenames = [tuple(basename.split('.'))
-                         for basename in self.pref_register]
-            basenames.sort()
+            basenames = sorted([tuple(basename.split('.'))
+                         for basename in self.pref_register])
             for basename in basenames:
                 lev = len(basename)
                 basename = '.'.join(basename)
