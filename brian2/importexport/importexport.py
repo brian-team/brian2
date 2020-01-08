@@ -8,7 +8,7 @@ import abc
 from abc import abstractmethod, abstractproperty
 
 
-class ImportExport(object):
+class ImportExport(object, metaclass=abc.ABCMeta):
     '''
     Class for registering new import/export methods (via static methods). Also
     the base class that should be extended for such methods
@@ -20,7 +20,6 @@ class ImportExport(object):
     VariableOwner.get_states, VariableOwner.set_states
 
     '''
-    __metaclass__ = abc.ABCMeta
 
     #: A dictionary mapping import/export methods names to `ImportExport` objects
     methods = dict()
