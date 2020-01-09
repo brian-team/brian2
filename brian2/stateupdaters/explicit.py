@@ -81,11 +81,11 @@ def split_expression(expr):
     sympy_expr = sympy.collect(sympy_expr, g(x_g, t_g))
     
     # Constant part, contains neither f, g nor dW
-    independent = sympy.Wild('independent', exclude=[f,g,dW], real=True)
+    independent = sympy.Wild('independent', exclude=[f, g, dW], real=True)
     # The exponent of the random number
-    dW_exponent = sympy.Wild('dW_exponent', exclude=[f,g,dW,0], real=True)
+    dW_exponent = sympy.Wild('dW_exponent', exclude=[f, g, dW, 0], real=True)
     # The factor for the random number, not containing the g function
-    independent_dW = sympy.Wild('independent_dW', exclude=[f,g,dW], real=True)
+    independent_dW = sympy.Wild('independent_dW', exclude=[f, g, dW], real=True)
     # The factor for the f function
     f_factor = sympy.Wild('f_factor', exclude=[f, g], real=True)
     # The factor for the g function

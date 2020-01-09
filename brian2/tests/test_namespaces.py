@@ -21,7 +21,7 @@ class SimpleGroup(Group):
         self.namespace = namespace
         # We use a unique name to get repeated warnings
         Group.__init__(self, name='simplegroup_' +
-                                  str(uuid.uuid4()).replace('-','_'))
+                                  str(uuid.uuid4()).replace('-', '_'))
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)

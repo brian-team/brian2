@@ -1430,14 +1430,14 @@ def test_both_equal():
     diff_eqn='''dv/dt = (1-v)/tau : 1'''
     chg_code='''v = 2*v'''
 
-    Ng = NeuronGroup(1,diff_eqn,method='exact')
+    Ng = NeuronGroup(1, diff_eqn, method='exact')
     M1 = StateMonitor(Ng, 'v', record=True)
-    netObj = Network(Ng,M1)
+    netObj = Network(Ng, M1)
     Ng.run_regularly(chg_code, dt=20*ms)
     netObj.run(100*ms)
 
     start_scope()
-    Ng = NeuronGroup(1,diff_eqn,method='exact')
+    Ng = NeuronGroup(1, diff_eqn, method='exact')
     M2 = StateMonitor(Ng, 'v', record=True)
     Ng.run_regularly(chg_code, dt=20*ms)
     run(100*ms)

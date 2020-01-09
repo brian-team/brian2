@@ -739,7 +739,7 @@ def test_construction_incorrect_arguments():
     ### Cylinder
     # Diameter can only be single value
     with pytest.raises(TypeError):
-         Cylinder(n=3, diameter=[10, 20]*um,length=100*um)
+         Cylinder(n=3, diameter=[10, 20]*um, length=100*um)
     with pytest.raises(TypeError):
          Cylinder(n=3, diameter=[10, 20, 30]*um, length=100*um)
     with pytest.raises(TypeError):

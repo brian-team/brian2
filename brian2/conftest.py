@@ -33,7 +33,7 @@ fake_randn.implementations.add_implementation('cpp', '''
                                                   return 0.5;
                                               }
                                               ''')
-fake_randn.implementations.add_implementation('cython','''
+fake_randn.implementations.add_implementation('cython', '''
                                     cdef double randn(int vectorisation_idx):
                                         return 0.5
                                     ''')

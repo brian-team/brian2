@@ -682,7 +682,7 @@ class GSLCodeGenerator(object):
         for from_sub, to_sub in list(to_replace.items()):
             m = re.search('\[(\w+)\];?$', from_sub)
             if m:
-                code = re.sub(re.sub('\[','\[', from_sub), to_sub, code)
+                code = re.sub(re.sub('\[', '\[', from_sub), to_sub, code)
 
         if '_gsl' in code:
             raise AssertionError(('Translation failed, _gsl still in code (should only '
@@ -757,7 +757,7 @@ class GSLCodeGenerator(object):
             value
         '''
         for var, ind in list(diff_vars.items()):
-            name = '_gsl_{var}_f{ind}'.format(var=var,ind=ind)
+            name = '_gsl_{var}_f{ind}'.format(var=var, ind=ind)
             self.variables[name] = AuxiliaryVariable(var, scalar=False)
 
     def add_meta_variables(self, options):
@@ -1025,7 +1025,7 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
         f = 'f[{ind}]'.format(ind=ind)
         try:
             if 'unless refractory' in self.variable_flags[var]:
-                return {'_gsl_{var}_f{ind}'.format(var=var,ind=ind) : f,
+                return {'_gsl_{var}_f{ind}'.format(var=var, ind=ind) : f,
                         '{scalar_dtype} _gsl_{var}_f{ind};'.format(var=var, ind=ind,
                                                                    scalar_dtype=scalar_dtype): '',
                         '{scalar_dtype} {f};'.format(f=f, scalar_dtype=scalar_dtype): ''} # in case the replacement

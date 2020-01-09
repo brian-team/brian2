@@ -333,7 +333,7 @@ class NumpyDocString(object):
         out = []
         if self[name]:
             out += self._str_header(name)
-            for param,param_type,desc in self[name]:
+            for param, param_type, desc in self[name]:
                 out += ['%s : %s' % (param, param_type)]
                 out += self._str_indent(desc)
             out += ['']
@@ -458,7 +458,7 @@ class FunctionDoc(NumpyDocString):
         if self._role:
             if self._role not in roles:
                 print("Warning: invalid role %s" % self._role)
-            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role,''),
+            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role, ''),
                                              func_name)
 
         out += super(FunctionDoc, self).__str__(func_role=self._role)

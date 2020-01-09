@@ -54,7 +54,7 @@ class SpikeQueue(object):
         self._source_end = source_end
 
         self.dtype = np.int32  # TODO: Ths is fixed for now
-        self.X = np.zeros((1,1), dtype=self.dtype)  # target synapses
+        self.X = np.zeros((1, 1), dtype=self.dtype)  # target synapses
         self.X_flat = self.X.reshape(1, )
         #: The current time (in time steps)
         self.currenttime = 0
@@ -144,7 +144,7 @@ class SpikeQueue(object):
         for idx, n in enumerate(self.n):
             t = (idx - self.currenttime) % len(self.n)
             for target in self.X[idx, :n]:
-                spikes[counter, :] = np.array([t, target])
+                spikes[counter,:] = np.array([t, target])
                 counter += 1
         return spikes
 
@@ -200,7 +200,7 @@ class SpikeQueue(object):
         Returns the all the synaptic events corresponding to the current time,
         as an array of synapse indexes.
         '''      
-        return self.X[self.currenttime,:self.n[self.currenttime]]    
+        return self.X[self.currenttime, :self.n[self.currenttime]]    
     
     def push(self, sources):
         '''

@@ -147,7 +147,7 @@ class WeaveCodeObject(CodeObject):
                                      compiler_kwds.get('runtime_library_dirs', []))
         self.libraries = (list(prefs['codegen.cpp.libraries']) +
                           compiler_kwds.get('libraries', []))
-        self.headers = (['<math.h>','<algorithm>', '<limits>',
+        self.headers = (['<math.h>', '<algorithm>', '<limits>',
                          '"stdint_compat.h"'] +
                         prefs['codegen.cpp.headers'] +
                         compiler_kwds.get('headers', []))
@@ -201,7 +201,7 @@ numpy version: {self.numpy_version}
         except Exception as ex:
             logger.warn(('Cannot use weave, a test compilation '
                          'failed: %s (%s)' % (str(ex),
-                                              ex.__class__.__name__)) ,
+                                              ex.__class__.__name__)),
                         'failed_compile_test')
             return False
 

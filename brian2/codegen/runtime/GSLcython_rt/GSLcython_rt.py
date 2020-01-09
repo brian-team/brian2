@@ -33,7 +33,7 @@ class GSLCythonCodeObject(CythonCodeObject):
 
     def compile(self):
         self.libraries += ['gsl', 'gslcblas']
-        self.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>','<gsl/gsl_matrix.h>']
+        self.headers += ['<stdio.h>', '<stdlib.h>', '<gsl/gsl_odeiv2.h>', '<gsl/gsl_errno.h>', '<gsl/gsl_matrix.h>']
         if sys.platform == 'win32':
             self.define_macros += [('WIN32', '1'), ('GSL_DLL', '1')]
         if prefs.GSL.directory is not None:

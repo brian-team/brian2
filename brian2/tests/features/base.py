@@ -645,7 +645,7 @@ def make_table(grid):
     for i, row in enumerate(grid):
         header_flag = False
         if i == 0 or i == len(grid)-1: header_flag = True
-        rst += normalize_row(row,max_cols)
+        rst += normalize_row(row, max_cols)
         rst += table_div(max_cols, header_flag )
     return rst
 

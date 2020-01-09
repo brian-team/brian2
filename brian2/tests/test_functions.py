@@ -178,7 +178,7 @@ def test_timestep_function_during_run():
 
 @pytest.mark.standalone_compatible
 def test_user_defined_function():
-    @implementation('cpp',"""
+    @implementation('cpp', """
                 inline double usersin(double x)
                 {
                     return sin(x);
