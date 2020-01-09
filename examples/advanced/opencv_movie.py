@@ -8,7 +8,7 @@ It has been tested on 64 bit Linux in a conda environment with packages from the
 ``conda-forge`` channels (opencv 3.4.4, x264 1!152.20180717, ffmpeg 4.1).
 '''
 import os
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import cv2  # Import OpenCV2
 
 from brian2 import *
@@ -21,7 +21,7 @@ filename = os.path.abspath('Megamind.avi')
 
 if not os.path.exists(filename):
     print('Downloading the example video file')
-    response = urllib2.urlopen('http://docs.opencv.org/2.4/_downloads/Megamind.avi')
+    response = urllib.request.urlopen('http://docs.opencv.org/2.4/_downloads/Megamind.avi')
     data = response.read()
     with open(filename, 'wb') as f:
         f.write(data)
