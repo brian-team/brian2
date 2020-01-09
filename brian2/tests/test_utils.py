@@ -1,6 +1,6 @@
 
 
-from future import builtins
+import builtins
 
 import pytest
 
