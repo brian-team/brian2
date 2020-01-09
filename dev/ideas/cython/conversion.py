@@ -8,7 +8,7 @@ def f(ns):
 '''
 
 ns = {
-    'n':3,
+    'n': 3,
     }
 
 mod = cython_extension_manager.create_extension(code)

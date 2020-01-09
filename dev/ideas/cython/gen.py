@@ -11,9 +11,9 @@ code = '''
 x = a*b+c
 '''
 
-variables = {'a':ArrayVariable('a', Unit(1), owner, 10, get_device()),
-             'b':ArrayVariable('b', Unit(1), owner, 10, get_device()),
-             'x':ArrayVariable('x', Unit(1), owner, 10, get_device()),
+variables = {'a': ArrayVariable('a', Unit(1), owner, 10, get_device()),
+             'b': ArrayVariable('b', Unit(1), owner, 10, get_device()),
+             'x': ArrayVariable('x', Unit(1), owner, 10, get_device()),
              }
 namespace = {}
 variable_indices = {'a': '_idx', 'b': '_idx', 'x': '_idx'}

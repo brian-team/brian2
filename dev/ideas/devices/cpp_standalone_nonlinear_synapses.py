@@ -20,7 +20,7 @@ c=1/(10*ms)
 input=NeuronGroup(2, 'dv/dt=1/(10*ms):1', threshold='v>1', reset='v=0')
 neurons = NeuronGroup(1, """dv/dt=(g-v)/(10*ms) : 1
                             g : 1""")
-S=Synapses(input,neurons,
+S=Synapses(input, neurons,
            '''# This variable could also be called g_syn to avoid confusion
               dg/dt=-a*g+b*x*(1-g) : 1
               g_post = g : 1 (summed)

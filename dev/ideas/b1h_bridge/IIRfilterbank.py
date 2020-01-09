@@ -52,7 +52,7 @@ passband = cutoff_frequencies-width_transition/2
 stopband = cutoff_frequencies+width_transition/2
 
 filterbank = IIRFilterbank(sound, nchannels, passband, stopband, gpass, gstop,
-                           'low','cheby1')
+                           'low', 'cheby1')
 filterbank_mon=filterbank.process()
 
 subplot(212)
