@@ -199,7 +199,7 @@ run(duration, report='text')
 from matplotlib import cycler
 plt.style.use('figures.mplstyle')
 
-fig, ax = plt.subplots(nrows=7, ncols=1,figsize=(6.26894, 6.26894 * 1.2),
+fig, ax = plt.subplots(nrows=7, ncols=1, figsize=(6.26894, 6.26894 * 1.2),
                        gridspec_kw={'height_ratios': [3, 2, 1, 1, 3, 3, 3],
                                     'top': 0.98, 'bottom': 0.08,
                                     'left': 0.15, 'right': 0.95})
@@ -208,8 +208,8 @@ fig, ax = plt.subplots(nrows=7, ncols=1,figsize=(6.26894, 6.26894 * 1.2),
 ax[0].plot((ast_mon.t-transient)/second, ast_mon.C[0]/umolar, '-', color='C2')
 ax[0].plot((ast_mon.t-transient)/second, ast_mon.C[1]/umolar, '-', color='C3')
 ## Add threshold for gliotransmitter release
-ax[0].plot(np.asarray([-transient/second,0.0]),
-           np.asarray([C_Theta,C_Theta])/umolar, ':', color='gray')
+ax[0].plot(np.asarray([-transient/second, 0.0]),
+           np.asarray([C_Theta, C_Theta])/umolar, ':', color='gray')
 ax[0].set(xlim=[-transient/second, 0.0], yticks=[0., 0.4, 0.8, 1.2],
           ylabel=r'$C$ ($\mu$M)')
 pu.adjust_spines(ax[0], ['left'])
@@ -239,7 +239,7 @@ ax[4].plot((syn_mon.t-transient)/ms, syn_mon.u_S.T)
 pu.adjust_spines(ax[4], ['left'])
 
 ax[5].set(xlim=(0, (duration-transient)/ms), ylim=[-0.05, 1.],
-          yticks=np.arange(0,1.1,.25), ylabel='$x_S$',
+          yticks=np.arange(0, 1.1, .25), ylabel='$x_S$',
           prop_cycle=prop_cycle)
 ax[5].plot((syn_mon.t-transient)/ms, syn_mon.x_S.T)
 pu.adjust_spines(ax[5], ['left'])

@@ -296,7 +296,7 @@ ax[1].plot(inh_mon.t[inh_mon.i <= N_i//fraction]/second,
 ax[1].plot(ast_mon.t[ast_mon.i <= N_a//fraction]/second,
            ast_mon.i[ast_mon.i <= N_a//fraction]+(N_e+N_i)//fraction,
            '|', color='C2')
-ax[1].set(xlim=(0, duration/second), ylim=[0,(N_e+N_i+N_a)//fraction],
+ax[1].set(xlim=(0, duration/second), ylim=[0, (N_e+N_i+N_a)//fraction],
           yticks=np.arange(0, (N_e+N_i+N_a)//fraction+1, 250),
           ylabel='cell index')
 pu.adjust_spines(ax[1], ['left'])
@@ -310,7 +310,7 @@ rate[rate<0.001] = 0.001 # Fix 0 lower bound for log scale
 ax[2].semilogy(bin_edges[:-1], rate, '-', color='k')
 pu.adjust_spines(ax[2], ['left', 'bottom'])
 ax[2].set(xlim=(0, duration/second), ylim=(0.1, 150),
-          xticks=np.arange(0,9), yticks=[0.1, 1, 10, 100],
+          xticks=np.arange(0, 9), yticks=[0.1, 1, 10, 100],
           xlabel='time (s)', ylabel='rate (Hz)')
 ax[2].get_yaxis().set_major_formatter(ScalarFormatter())
 

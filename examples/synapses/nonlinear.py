@@ -12,7 +12,7 @@ input = NeuronGroup(2, 'dv/dt = 1/(10*ms) : 1', threshold='v>1', reset='v = 0',
                     method='euler')
 neurons = NeuronGroup(1, """dv/dt = (g-v)/(10*ms) : 1
                             g : 1""", method='exact')
-S = Synapses(input, neurons,'''
+S = Synapses(input, neurons, '''
                 dg_syn/dt = -a*g_syn+b*x*(1-g_syn) : 1 (clock-driven)
                 g_post = g_syn : 1 (summed)
                 dx/dt=-c*x : 1 (clock-driven)

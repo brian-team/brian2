@@ -65,9 +65,9 @@ run(1*second)
 for i in [0, 1]:
     spikes = (M.t[M.i == i] - defaultclock.dt)/ms
     val = SM[i].v
-    subplot(2,1,i+1)
+    subplot(2, 1, i+1)
     plot(SM.t/ms, val)
-    plot(tile(spikes, (2,1)), 
+    plot(tile(spikes, (2, 1)), 
          vstack((val[array(spikes, dtype=int)],
                  zeros(len(spikes)))), 'C0')
     title("%s: %d spikes/second" % (["uncorrelated inputs", "correlated inputs"][i], 
