@@ -94,12 +94,7 @@ def abstract_code_from_function(func):
         else:
             lines.append(nr.render_node(node))
     abstract_code = '\n'.join(lines)
-    try:
-        # Python 2
-        args = [arg.id for arg in funcnode.args.args]
-    except AttributeError:
-        # Python 3
-        args = [arg.arg for arg in funcnode.args.args]
+    args = [arg.arg for arg in funcnode.args.args]
     name = funcnode.name
     return AbstractCodeFunction(name, args, abstract_code, return_expr)
 

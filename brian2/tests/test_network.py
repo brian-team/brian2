@@ -815,11 +815,7 @@ import sys
 
 @contextmanager
 def captured_output():
-    if sys.version_info[0] == 2:
-        # in Python 2, stdout/stderr works with bytes and not with unicode
-        new_out, new_err = BytesIO(), BytesIO()
-    else:
-        new_out, new_err = StringIO(), StringIO()
+    new_out, new_err = StringIO(), StringIO()
     old_out, old_err = sys.stdout, sys.stderr
     try:
         sys.stdout, sys.stderr = new_out, new_err

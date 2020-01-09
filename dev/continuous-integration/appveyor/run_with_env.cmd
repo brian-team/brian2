@@ -2,10 +2,6 @@
 :: variables to use the MSVC 2010 C++ compilers from GRMSDKX_EN_DVD.iso of:
 :: MS Windows SDK for Windows 7 and .NET Framework 4 (SDK v7.1)
 ::
-:: To build extensions for 64 bit Python 2, we need to configure environment
-:: variables to use the MSVC 2008 C++ compilers from GRMSDKX_EN_DVD.iso of:
-:: MS Windows SDK for Windows 7 and .NET Framework 3.5 (SDK v7.0)
-::
 :: 32 bit builds, and 64-bit builds for 3.5 and beyond, do not require specific
 :: environment configurations.
 ::
@@ -46,25 +42,20 @@ IF "%PYTHON_VERSION:~3,1%" == "." (
 
 :: Based on the Python version, determine what SDK version to use, and whether
 :: to set the SDK for 64-bit.
-IF %MAJOR_PYTHON_VERSION% == 2 (
-    SET WINDOWS_SDK_VERSION="v7.0"
-    SET SET_SDK_64=Y
-) ELSE (
-    IF %MAJOR_PYTHON_VERSION% == 3 (
-        SET WINDOWS_SDK_VERSION="v7.1"
-        IF %MINOR_PYTHON_VERSION% LEQ 4 (
-            SET SET_SDK_64=Y
-        ) ELSE (
-            SET SET_SDK_64=N
-            IF EXIST "%WIN_WDK%" (
-                :: See: https://connect.microsoft.com/VisualStudio/feedback/details/1610302/
-                REN "%WIN_WDK%" 0wdf
-            )
-        )
+IF %MAJOR_PYTHON_VERSION% == 3 (
+    SET WINDOWS_SDK_VERSION="v7.1"
+    IF %MINOR_PYTHON_VERSION% LEQ 4 (
+        SET SET_SDK_64=Y
     ) ELSE (
-        ECHO Unsupported Python version: "%MAJOR_PYTHON_VERSION%"
-        EXIT 1
+        SET SET_SDK_64=N
+        IF EXIST "%WIN_WDK%" (
+            :: See: https://connect.microsoft.com/VisualStudio/feedback/details/1610302/
+            REN "%WIN_WDK%" 0wdf
+        )
     )
+) ELSE (
+    ECHO Unsupported Python version: "%MAJOR_PYTHON_VERSION%"
+    EXIT 1
 )
 
 IF %PYTHON_ARCH% == 64 (
