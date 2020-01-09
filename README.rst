@@ -17,7 +17,7 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 
 
 
-.. image:: https://img.shields.io/pypi/v/Brian2.svg?style=flat-square
+.. image:: https://img.shields.io/pypi/v/Brian2.svg
         :target: https://pypi.python.org/pypi/Brian2
 
 .. image:: https://img.shields.io/conda/vn/conda-forge/brian2.svg
@@ -73,13 +73,13 @@ To run the test suite:
 Testing status for master branch
 --------------------------------
 
-.. image:: https://img.shields.io/travis/brian-team/brian2/master.svg?style=flat-square
+.. image:: https://img.shields.io/travis/brian-team/brian2/master.svg
   :target: https://travis-ci.org/brian-team/brian2?branch=master
 
-.. image:: https://img.shields.io/appveyor/ci/brianteam/brian2/master.svg?style=flat-square
+.. image:: https://img.shields.io/appveyor/ci/brianteam/brian2/master.svg
   :target: https://ci.appveyor.com/project/brianteam/brian2/branch/master
 
-.. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg?style=flat-square
+.. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
 
 .. image:: https://readthedocs.org/projects/brian2/badge/?version=stable
