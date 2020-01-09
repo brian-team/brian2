@@ -335,16 +335,16 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         Helper function used to generate the preference file for the default or current preference values.
         '''
-        s = u''
+        s = ''
         for basename, (prefdefs, basedoc) in self.pref_register.items():
-            s += u'#' + u'-' * 79 + u'\n'
-            s += u'\n'.join([u'# ' + line for line in deindent(basedoc, docstring=True).strip().split(u'\n')]) + u'\n'
-            s += u'#' + u'-' * 79 + u'\n\n'
-            s += u'[' + basename + u']\n\n'
+            s += '#' + '-' * 79 + '\n'
+            s += '\n'.join(['# ' + line for line in deindent(basedoc, docstring=True).strip().split('\n')]) + '\n'
+            s += '#' + '-' * 79 + '\n\n'
+            s += '[' + basename + ']\n\n'
             for name in sorted(prefdefs.keys()):
                 pref = prefdefs[name]
-                s += u'\n'.join([u'# ' + line for line in deindent(pref.docs, docstring=True).strip().split(u'\n')]) + u'\n\n'
-                s += name + u' = ' + pref.representor(valuefunc(pref, basename + u'.' + name)) + u'\n\n'
+                s += '\n'.join(['# ' + line for line in deindent(pref.docs, docstring=True).strip().split('\n')]) + '\n\n'
+                s += name + ' = ' + pref.representor(valuefunc(pref, basename + '.' + name)) + '\n\n'
         return s
 
     def _get_defaults_as_file(self):

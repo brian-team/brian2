@@ -125,7 +125,7 @@ def test_brianglobalpreferences():
     gp.as_file
     gp.defaults_as_file
     # test that reading a preference file works as expected
-    pref_file = StringIO(u'''
+    pref_file = StringIO('''
         # a comment
         a.b = 10
         [a]
@@ -139,14 +139,14 @@ def test_brianglobalpreferences():
     assert gp['a.d']==1
     assert gp['a.e']==float64
     # test that reading a badly formatted prefs file fails
-    pref_file = StringIO(u'''
+    pref_file = StringIO('''
         [a
         b = 10
         ''')
     with pytest.raises(PreferenceError):
         gp.read_preference_file(pref_file)
     # test that reading a well formatted prefs file with an invalid value fails
-    pref_file = StringIO(u'''
+    pref_file = StringIO('''
         a.b = 'oh no, not a string'
         ''')
     with pytest.raises(PreferenceError):
