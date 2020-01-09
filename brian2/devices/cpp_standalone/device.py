@@ -16,7 +16,6 @@ import tempfile
 from distutils import ccompiler
 
 import numpy as np
-from past.builtins import str
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds

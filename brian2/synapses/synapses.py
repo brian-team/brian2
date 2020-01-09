@@ -1,4 +1,3 @@
-
 '''
 Module providing the `Synapses` class and related helper classes/functions.
 '''
@@ -10,7 +9,6 @@ import re
 import numbers
 
 import numpy as np
-from past.builtins import str
 
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.base import device_override

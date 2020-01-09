@@ -1,14 +1,10 @@
-
 '''
 All Brian objects should derive from `BrianObject`.
 '''
-
 import weakref
 import traceback
 import os
 import sys
-
-from past.builtins import str
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable

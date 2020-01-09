@@ -1,10 +1,7 @@
-
 '''
 AST parsing based analysis of expressions
 '''
 import ast
-
-from past.builtins import str
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer

@@ -1,4 +1,3 @@
-
 '''
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
@@ -8,8 +7,6 @@ import numbers
 from abc import abstractmethod
 from collections import OrderedDict, defaultdict, namedtuple
 import os
-
-from past.builtins import str
 
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger

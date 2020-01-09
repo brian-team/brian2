@@ -10,7 +10,6 @@ import string
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
 import sympy
-from past.builtins import str
 
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.namespace import (DEFAULT_FUNCTIONS,

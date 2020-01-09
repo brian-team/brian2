@@ -3,7 +3,6 @@
 Implementation of `PoissonGroup`.
 '''
 import numpy as np
-from past.builtins import str
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables, Subexpression

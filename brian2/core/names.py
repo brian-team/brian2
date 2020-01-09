@@ -1,9 +1,5 @@
-
-
 import uuid
 import re
-
-from past.builtins import str
 
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable

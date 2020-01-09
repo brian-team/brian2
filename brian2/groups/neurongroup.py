@@ -8,7 +8,6 @@ import numbers
 import string
 
 import numpy as np
-from past.builtins import str
 import sympy
 from pyparsing import Word
 

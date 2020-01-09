@@ -1,4 +1,3 @@
-
 '''
 This module defines the `StateUpdateMethod` class that acts as a base class for
 all stateupdaters and allows to register stateupdaters so that it is able to
@@ -8,8 +7,6 @@ for example in `NeuronGroup` when no state updater is given explicitly.
 from abc import abstractmethod, ABCMeta
 from collections.abc import Iterable
 import time
-
-from past.builtins import str
 
 from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger

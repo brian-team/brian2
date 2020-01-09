@@ -5,7 +5,6 @@ Handles loading templates from a directory.
 import re
 from collections.abc import Mapping
 
-from past.builtins import str
 from jinja2 import (Environment, PackageLoader, ChoiceLoader, StrictUndefined,
                     TemplateNotFound)
 

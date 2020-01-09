@@ -10,7 +10,6 @@ import numbers
 
 import numpy as np
 import sympy
-from past.builtins import str
 
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,

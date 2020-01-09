@@ -1,6 +1,5 @@
 # coding=utf-8
 
-
 """
 Defines physical units and quantities
 
@@ -25,7 +24,6 @@ import itertools
 
 import numpy as np
 from numpy import VisibleDeprecationWarning
-from past.builtins import str
 from sympy import latex
 
 __all__ = [

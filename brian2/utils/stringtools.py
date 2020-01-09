@@ -1,11 +1,8 @@
-
 """
 A collection of tools for string formatting tasks.
 """
 import re
 import string
-
-from past.builtins import str
 
 __all__ = ['indent',
            'deindent',

@@ -1,9 +1,7 @@
-
 '''
 Module defining `EventMonitor` and `SpikeMonitor`.
 '''
 import numpy as np
-from past.builtins import str
 
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable

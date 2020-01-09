@@ -6,8 +6,6 @@ import sys
 from io import StringIO
 import tempfile
 
-from past.builtins import str
-
 import numpy as np
 
 import brian2

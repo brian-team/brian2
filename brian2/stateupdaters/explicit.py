@@ -1,4 +1,3 @@
-
 '''
 Numerical integration functions.
 '''
@@ -10,7 +9,6 @@ import sympy
 from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
-from past.builtins import str
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.equations.codestrings import is_constant_over_dt

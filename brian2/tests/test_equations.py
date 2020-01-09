@@ -8,7 +8,6 @@ try:
 except ImportError:
     pprint = None
 import pytest
-from past.builtins import str
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre
 from brian2 import Unit, Equations, Expression

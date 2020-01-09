@@ -5,7 +5,6 @@ Brian 2
 # working weave/Cython on Windows with the Python for C++ compiler
 
 import setuptools as _setuptools
-from past.builtins import str
 
 
 def _check_dependencies():

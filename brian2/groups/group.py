@@ -13,7 +13,6 @@ import numbers
 import inspect
 
 import numpy as np
-from past.builtins import str
 
 from brian2.core.base import BrianObject, weakproxy_with_fallback
 from brian2.core.names import Nameable

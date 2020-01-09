@@ -1,9 +1,6 @@
-
 '''
 Implementation of `PoissonInput`.
 '''
-from past.builtins import str
-
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
 from brian2.units.fundamentalunits import (check_units, have_same_dimensions,

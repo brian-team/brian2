@@ -6,8 +6,6 @@ Preferences
 -----------
 .. document_brian_prefs:: codegen
 '''
-from past.builtins import str
-
 from brian2.core.preferences import prefs, BrianPreference
 from .codeobject import CodeObject
 
