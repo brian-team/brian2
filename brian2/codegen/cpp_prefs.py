@@ -257,23 +257,7 @@ def get_msvc_env():
         else:
             arch_name = 'x86'
     if _msvc_env is None:
-        try:
-            # This will fail on Python 2 with an AttributError
-            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
-        except (distutils.errors.DistutilsPlatformError, AttributeError):
-            # Use the old way of searching for MSVC
-            # FIXME: Remove this when we remove Python 2 support
-            #        and require Visual Studio 2015?
-            for version in range(16, 8, -1):
-                fname = msvc.msvc9_find_vcvarsall(version)
-                if fname:
-                    vcvars_loc = fname
-                    break
-            if vcvars_loc == '':
-                raise IOError("Cannot find Microsoft Visual Studio, You "
-                              "can try to set the path to vcvarsall.bat "
-                              "via the codegen.cpp.msvc_vars_location "
-                              "preference explicitly.")
+        _msvc_env = msvc.msvc14_get_vc_env(arch_name)
     if vcvars_loc:
         vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(vcvars_loc=vcvars_loc,
                                                          arch_name=arch_name)
