@@ -1,5 +1,4 @@
 {# USES_VARIABLES {N, count, _clock_t, _source_start, _source_stop, _source_N} #}
-from __future__ import division
 import numpy as _numpy
 
 {#  Get the name of the array that stores these events (e.g. the spikespace array) #}

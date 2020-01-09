@@ -1,6 +1,5 @@
 {# USES_VARIABLES { rate, t, _spikespace, _num_source_neurons,
                     _clock_t, _clock_dt, _source_start, _source_stop, N } #}
-from __future__ import division
 import numpy as _numpy
 _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
 # Take subgroups into account

@@ -1,6 +1,5 @@
 {# USES_VARIABLES { _group_idx, N } #}
 {# ITERATE_ALL { _target_idx } #}
-from __future__ import division
 import numpy as _numpy
 
 from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange

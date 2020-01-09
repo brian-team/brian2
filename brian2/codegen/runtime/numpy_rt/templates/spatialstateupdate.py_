@@ -9,7 +9,6 @@
                   _morph_children, _morph_children_num, _morph_idxchild,
                   _invr0, _invrn} #}
 {# ITERATE_ALL { _idx } #}
-from __future__ import division
 '''
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.

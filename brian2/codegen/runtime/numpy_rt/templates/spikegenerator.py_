@@ -1,5 +1,4 @@
 {# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps } #}
-from __future__ import division
 import numpy as _numpy
 
 _the_period    = {{_period_bins}}

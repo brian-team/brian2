@@ -51,7 +51,6 @@ The following packages need to be installed to use Brian 2:
 * Cython >= 0.29
 * PyParsing
 * Jinja2 >= 2.7
-* future
 * setuptools >= 21
 * py-cpuinfo (only required on Windows)
 

@@ -1,7 +1,6 @@
 {# USES_VARIABLES { _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
                     _ab_star0, _ab_star1, _ab_star2,
                     _starts, _ends, _invr0, _invrn, _b_plus, _b_minus } #}
-from __future__ import division
 import numpy as _numpy
 from numpy import pi
 

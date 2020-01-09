@@ -5,7 +5,6 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, N,
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
 #}
 {# ITERATE_ALL { _idx } #}
-from __future__ import division
 # Only need to do the initial import once, and trying is not expensive
 # only catching exceptions is expensive (which we just do the first time)
 try:
