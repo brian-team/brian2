@@ -46,30 +46,6 @@ matrix:
     - python: "3.7"
       env: PYTHON="3.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="37" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
       os: osx
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=1 ARCHITECTURE="x86_64"
-      os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=2 ARCHITECTURE="x86_64"
-      os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=1 ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
-      os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=yes REPORT_COVERAGE=no  SPLIT_RUN=2 ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
-      os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
-      os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
-      os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
-      os: osx
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no  CONDA_PY="27" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
-      os: osx
     # test standalone
     - python: "3.7"
       env: PYTHON="3.7" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
@@ -77,31 +53,15 @@ matrix:
     - python: "3.7"
       env: PYTHON="3.7" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=yes DO_CONDA_BUILD='no' ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
       os: linux
-    - python: "2.7"
-      env: PYTHON="2.7" STANDALONE=yes CYTHON=yes MINIMAL_VERSIONS=no REPORT_COVERAGE=no DO_CONDA_BUILD='no' ARCHITECTURE="x86_64"
-      os: linux
-
-jobs:
-  allow_failures:
-    - python: "2.7"
-      os: osx
 
 # Use miniconda to install binary versions of numpy etc. from continuum
 # analytic's repository. Follows an approach described by Dan Blanchard:
 # https://gist.github.com/dan-blanchard/7045057
 before_install:
-- if [ ${PYTHON:0:1} == "2" ]; then
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    travis_retry wget http://repo.continuum.io/miniconda/Miniconda2-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
-    else
-    travis_retry wget http://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
-    fi;
-    else
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then
     travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
-    else
+  else
     travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
-    fi;
   fi
 - chmod +x miniconda.sh
 # When we are installing the 32 Bit conda on a 64 Bit system, the miniconda
@@ -126,16 +86,7 @@ install:
     else
     PYTHON_PACKAGES="python=$PYTHON numpy pytest pytest-xdist sphinx>=1.8 ipython sympy>=1.2 pyparsing jinja2 setuptools coverage gsl>1.15 cython future";
     fi
-  # On Python 2: Install the weave package explicitly
-  - if [ ${PYTHON:0:1} == "2" ]; then
-      if [[ $MINIMAL_VERSIONS != 'yes' ]]; then
-        PYTHON_PACKAGES="$PYTHON_PACKAGES weave scipy";
-      fi;
-      PYTHON_PACKAGES="$PYTHON_PACKAGES bsddb";
-      conda config --set restore_free_channel true;
-    else
-      PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
-    fi
+  - PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES pytest-cov coveralls"; fi
   # Install packages into a new environment
   - travis_retry conda create --quiet --yes -n travis_conda $PYTHON_PACKAGES
