@@ -43,12 +43,11 @@ generation process is set in the `codegen.target` preference. By default, this
 preference is set to ``'auto'``, meaning that it will chose a compiled language
 target if possible and fall back to Python otherwise (it will also raise a warning
 in this case, set `codegen.target` to ``'numpy'`` explicitly to avoid this warning).
-There are two compiled language targets for Python 2.x, ``'weave'`` (needing a
-working installation of a C++ compiler) and ``'cython'`` (needing the `Cython`_
-package in addition); for Python 3.x, only ``'cython'`` is available. If you want to
+The compiled language target is ``'cython'`` (needing the `Cython`_ package in
+addition). If you want to
 chose a code generation target explicitly (e.g. because you want to get rid of the
-warning that only the Python fallback is available), set the preference to ``'numpy'``,
-``'weave'`` or ``'cython'`` at the beginning of your script::
+warning that only the Python fallback is available), set the preference to ``'numpy'``
+or ``'cython'`` at the beginning of your script::
 
     from brian2 import *
     prefs.codegen.target = 'numpy'  # use the Python fallback

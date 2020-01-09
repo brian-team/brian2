@@ -54,18 +54,6 @@ terminal, you will find the output there. Unfortunately, this is a tricky
 problem to solve at the moment, due to the details of how the jupyter notebook
 handles output.
 
-Parallel Brian simulations with the ``weave`` code generation target
---------------------------------------------------------------------
-
-When using the ``weave`` code generation target (the default runtime target on
-Python 2.x, see :ref:`runtime` for details), you should avoid running multiple
-Brian simulations in parallel. The ``weave`` package caches compiled files,
-but this cache is not prepared for multiple concurrent updates. If two Python
-scripts (or two processes started from the same Python script, e.g. via the
-`multiprocessing` package) try to store compilation results at the same time,
-``weave`` will crash with an error message. The ``numpy`` and ``cython`` targets
-are not affected by this problem.
-
 Parallel Brian simulations with C++ standalone
 ----------------------------------------------
 

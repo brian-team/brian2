@@ -1,7 +1,6 @@
 '''
 Tests the brian2.parsing package
 '''
-  # Make sure that we use Python 3 semantics in Python 2
 
 from collections import namedtuple
 
