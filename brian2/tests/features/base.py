@@ -1,6 +1,3 @@
-from __future__ import print_function
-
-from __future__ import absolute_import
 import brian2
 import numpy
 import os
