@@ -14,6 +14,6 @@ for i in xrange(len(x)):
 ns = {'x': x}
 
 a, b = inline(code, locals=ns, globals={})
-print dir(a)
-print b
+print(dir(a))
+print(b)
 a.__invoke(*b)

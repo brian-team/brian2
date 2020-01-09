@@ -33,7 +33,7 @@ S = SpikeMonitor(neurons)
 run(1*ms)
 start = time.time()
 run(1000 * ms)
-print time.time()-start
+print(time.time()-start)
 #subplot(211)
 plot(S.t / ms, S.i, '.')
 #subplot(212)

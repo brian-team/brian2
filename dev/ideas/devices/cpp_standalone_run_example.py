@@ -35,14 +35,15 @@ synapse_variables = ['w']
 
 
 
-def dorunit((code, standalone)):
+def dorunit(xxx_todo_changeme):
+    (code, standalone) = xxx_todo_changeme
     try:  # wrap everything in try except to get a nicer stacktrace
         ns = {}
         start = time.time()
-        exec code in ns
+        exec(code, ns)
         tottime = time.time()-start
         rv = {}
-        for k, v in ns.iteritems():
+        for k, v in ns.items():
             if isinstance(v, ns['SpikeMonitor']):
                 if standalone:
                     i = fromfile('output/results/%s' % ns['device'].get_array_name(v.variables['i'], access_data=False), dtype=int32)
@@ -126,7 +127,7 @@ if __name__=='__main__':
         exit()
     t_runtime, rv_runtime = runit(runtime_code, False)
     
-    print '------', example, '------------------------'
+    print('------', example, '------------------------')
     
     n = len(rv_runtime)
     
@@ -136,45 +137,45 @@ if __name__=='__main__':
         title(name+' runtime')
         if plot_type=='SpikeMonitor':
             i, t = plot_args
-            print name+' num spikes:'
-            print '  Runtime    ', len(i)
+            print(name+' num spikes:')
+            print('  Runtime    ', len(i))
             plot(t, i, '.k')
             i, t = rv_standalone[k][2]
             subplot(2, n, n+i_plot+1)
             plot(t, i, '.k')
-            print '  Standalone ', len(i)
+            print('  Standalone ', len(i))
         elif plot_type=='StateMonitor':
             t, rec = plot_args
-            for varname, vals in rec.items():
+            for varname, vals in list(rec.items()):
                 plot(t, vals.T)
             subplot(2, n, n+i_plot+1)
             t, rec = rv_standalone[k][2]
-            for varname, vals in rec.items():
+            for varname, vals in list(rec.items()):
                 plot(t, vals.T)
         elif plot_type=='NeuronGroup':
             val = plot_args
             plot(val, '.')
-            print name+' (mean/std):'
-            print '  Runtime     %f / %f' % (mean(val), std(val))
+            print(name+' (mean/std):')
+            print('  Runtime     %f / %f' % (mean(val), std(val)))
             val = rv_standalone[k][2]
             subplot(2, n, n+i_plot+1)
             plot(val, '.')
-            print '  Standalone  %f / %f' % (mean(val), std(val))
+            print('  Standalone  %f / %f' % (mean(val), std(val)))
         elif plot_type=='Synapses':
             val = plot_args
             hist(val, 20)
-            print name+' (mean/std):'
-            print '  Runtime     %f / %f' % (mean(val), std(val))
+            print(name+' (mean/std):')
+            print('  Runtime     %f / %f' % (mean(val), std(val)))
             val = rv_standalone[k][2]
             subplot(2, n, n+i_plot+1)
             hist(val, 20)
-            print '  Standalone  %f / %f' % (mean(val), std(val))
+            print('  Standalone  %f / %f' % (mean(val), std(val)))
         title(name+' standalone')
     
-    print 'Total time (build+run):'
-    print '  Runtime              %.2f' % t_runtime
-    print '  Standalone           %.2f' % t_standalone
-    print '  Runtime/standalone   %.2fx' % (t_runtime/t_standalone)
+    print('Total time (build+run):')
+    print('  Runtime              %.2f' % t_runtime)
+    print('  Standalone           %.2f' % t_standalone)
+    print('  Runtime/standalone   %.2fx' % (t_runtime/t_standalone))
     
     show()
     

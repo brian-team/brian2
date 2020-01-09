@@ -76,7 +76,7 @@ if standalone_mode:
                  run_args=[str(float(duration))])
     w = fromfile('output/results/_dynamic_array_synapses_w', dtype=float64)
 else:
-    print 'Simulation time:', time()-start
+    print('Simulation time:', time()-start)
     w = S.w[:]
 
 if plot_results:

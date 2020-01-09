@@ -37,7 +37,7 @@ pylab.xlabel('Time [s]')
 pylab.ylabel('# cell')
 for t in threads:
     pylab.plot(results[t]['spikes'][0], results[t]['spikes'][1], '.')
-pylab.legend(map(str, threads))
+pylab.legend(list(map(str, threads)))
 #pylab.xlim(0.5, 0.6)
 
 pylab.subplot(322)
@@ -47,7 +47,7 @@ pylab.ylabel('Number of synapses')
 for t in threads:
     x, y = numpy.histogram(results[t]['w'], 100)
     pylab.plot(y[1:], x)
-pylab.legend(map(str, threads))
+pylab.legend(list(map(str, threads)))
 
 pylab.subplot(323)
 pylab.title('Weight Evolution')
@@ -55,14 +55,14 @@ pylab.xlabel('Time [s]')
 pylab.ylabel('Weight [ns]')
 for t in threads:
     pylab.plot(results[t]['trace_w'].T[0])
-pylab.legend(map(str, threads))
+pylab.legend(list(map(str, threads)))
 
 pylab.subplot(324)
 pylab.title('Weight Evolution')
 pylab.xlabel('Time [s]')
 pylab.ylabel('Weight [ns]')
 for count, t in enumerate(threads):
-    for i in xrange(3):
+    for i in range(3):
         pylab.plot(results[t]['trace_w'].T[i], c=results['colors'][count])
 #pylab.legend(map(str, threads))
 
@@ -71,7 +71,7 @@ pylab.title('Voltage Evolution')
 pylab.xlabel('Time [s]')
 pylab.ylabel('Voltage [mv]')
 for count, t in enumerate(threads):
-    for i in xrange(3):
+    for i in range(3):
         pylab.plot(results[t]['trace_v'].T[i], c=results['colors'][count])
 #pylab.legend(map(str, threads))
 

@@ -64,7 +64,7 @@ def check(N, p):
         i = i[i<isi_max[p]]
         b = bincount(i, minlength=isi_max[p])[:isi_max[p]]
         if b[0]:
-            print 'Major error: repeated indices for N=%d, p=%.3f' % (N, p)
+            print('Major error: repeated indices for N=%d, p=%.3f' % (N, p))
             raise ValueError("Repeated indices")
         isi[p] += b
         num_isi[p] += sum(b)
@@ -79,11 +79,11 @@ def check(N, p):
         return False
 
 for N in N_range:
-    print 'Starting N =', N
+    print('Starting N =', N)
     for p in p_range:
         num_Np_fails = 0
         num_Np_checks = 0
-        for _ in xrange(repeats):
+        for _ in range(repeats):
             if check(N, p):
                 num_Np_fails += 1
             num_Np_checks += 1
@@ -99,17 +99,17 @@ for N in N_range:
         if q==0:
             low = high = 0
         if num_Np_fails<low or num_Np_fails>high:
-            print 'N=%d, p=%.3f failed %d of %d checks, outside range (%d, %d)' % (N, p, num_Np_fails,
-                                                                                   num_Np_checks, low, high)
-print
+            print('N=%d, p=%.3f failed %d of %d checks, outside range (%d, %d)' % (N, p, num_Np_fails,
+                                                                                   num_Np_checks, low, high))
+print()
 failrate = float(numfails)/numchecks
 low, high = norm.interval(alpha, loc=mu, scale=sqrt(sigma2))
-print '%d/%d=%.2f%% failed at %d%%' % (numfails, numchecks, numfails*100.0/numchecks, 100*alpha)
-print 'Expected mean=%d, std dev=%d (mean fail rate=%.2f%%)' % (mu, sqrt(sigma2), 100*mu/numchecks)
+print('%d/%d=%.2f%% failed at %d%%' % (numfails, numchecks, numfails*100.0/numchecks, 100*alpha))
+print('Expected mean=%d, std dev=%d (mean fail rate=%.2f%%)' % (mu, sqrt(sigma2), 100*mu/numchecks))
 if low<=numfails<=high:
-    print 'Overall passed at %d%%: within range (%d, %d)' % (alpha*100, low, high)
+    print('Overall passed at %d%%: within range (%d, %d)' % (alpha*100, low, high))
 else:
-    print 'Overall failed at %d%%: outside range (%d, %d)' % (alpha*100, low, high)
+    print('Overall failed at %d%%: outside range (%d, %d)' % (alpha*100, low, high))
 
 figure(figsize=(10, 6))
 plotnum = 0

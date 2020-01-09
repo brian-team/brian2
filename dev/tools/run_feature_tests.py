@@ -5,7 +5,7 @@ from brian2.tests.features.monitors import SpikeMonitorTest, StateMonitorTest
 from brian2.tests.features.input import SpikeGeneratorGroupTest
 
 # Full testing
-print run_feature_tests().tables_and_exceptions
+print(run_feature_tests().tables_and_exceptions)
 
 # Quick testing
 # print run_feature_tests(configurations=[DefaultConfiguration,

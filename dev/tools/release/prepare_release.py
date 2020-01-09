@@ -1,6 +1,3 @@
-from __future__ import print_function
-from future.builtins import input
-
 import os
 
 import brian2

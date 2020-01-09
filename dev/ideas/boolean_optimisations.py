@@ -16,9 +16,9 @@ variables = dict(
 
 scalar_statements, vector_statements = make_statements(code, variables, float64)
 
-print 'SCALAR'
+print('SCALAR')
 for stmt in scalar_statements:
-    print '   ', stmt
-print 'VECTOR'
+    print('   ', stmt)
+print('VECTOR')
 for stmt in vector_statements:
-    print '   ', stmt
+    print('   ', stmt)

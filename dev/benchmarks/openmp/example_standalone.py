@@ -65,8 +65,8 @@ S.w  = fac*connectivity.flatten()
 
 
 spike_mon = SpikeMonitor(P)
-state_mon = StateMonitor(S, 'w', record=range(10), when=Clock(dt=0.1*second))
-v_mon     = StateMonitor(P, 'v', record=range(10))
+state_mon = StateMonitor(S, 'w', record=list(range(10)), when=Clock(dt=0.1*second))
+v_mon     = StateMonitor(P, 'v', record=list(range(10)))
 
 if standalone == 1:
     device.insert_code('main', 'std::clock_t start = std::clock();')

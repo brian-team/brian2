@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import os
 import shutil
@@ -50,7 +50,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
         f.write(output)
 
     # Insert a note about ipython notebooks with a download link
-    note = deindent(u'''
+    note = deindent('''
     .. only:: html
 
         .. |launchbinder| image:: http://mybinder.org/badge.svg
@@ -68,7 +68,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
            See the :doc:`tutorial overview page <index>` for more details.
 
     '''.format(tutorial=basename))
-    notebook.cells.insert(1, NotebookNode(cell_type=u'raw', metadata={},
+    notebook.cells.insert(1, NotebookNode(cell_type='raw', metadata={},
                                           source=note))
     exporter = RSTExporter()
     output, resources = exporter.from_notebook_node(notebook,

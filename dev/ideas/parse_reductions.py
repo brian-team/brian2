@@ -96,25 +96,25 @@ if __name__=='__main__':
     import jinja2
     expr = '1+sum(x**2)/max(y**2)'
     reductions, final_expr = analyse_reductions(expr)
-    print 'Numpy code:'
-    print
+    print('Numpy code:')
+    print()
     for k, (id, subexpr) in sorted(reductions.items()):
-        print '%s = %s(%s)' % (k, id, subexpr)
-    print 'final_value =', final_expr
-    print
-    print 'C++ code'
-    print
+        print('%s = %s(%s)' % (k, id, subexpr))
+    print('final_value =', final_expr)
+    print()
+    print('C++ code')
+    print()
     # This would be the initialisation step in the language-specific
     # part of the reduction specification
     for k, (id, subexpr) in sorted(reductions.items()):
         if id=='sum':
-            print 'double %s = 0;' % k
+            print('double %s = 0;' % k)
         elif id=='max':
-            print 'double %s = -INFINITY;' % k
+            print('double %s = -INFINITY;' % k)
     # This would be handled by the template
-    print 'for(i=0; i<n; i++) {'
+    print('for(i=0; i<n; i++) {')
     # This would be handled by the snippet generator called on each subexpr
-    print '    // load values etc.'
+    print('    // load values etc.')
     # This loop would be in the template
     for k, (id, subexpr) in sorted(reductions.items()):
         # This would have been handled by the snippet generator
@@ -127,13 +127,13 @@ if __name__=='__main__':
         # only potential difficulty with that is that it might need you to know
         # the value of N for things like mean.
         if id=='sum':
-            print '     %s += %s;' % (k, subexpr)
+            print('     %s += %s;' % (k, subexpr))
         elif id=='max':
             t = '_cur'+k
-            print '    const double %s = %s;' % (t, subexpr)
-            print '    if({t}>{k}) {k} = {t};'.format(k=k, t=t)
-    print '}'
+            print('    const double %s = %s;' % (t, subexpr))
+            print('    if({t}>{k}) {k} = {t};'.format(k=k, t=t))
+    print('}')
     # Optionally here there could be an additional computation step for
     # each reduction (e.g. for mean, thi swould be _reduction_0 = _reduction_0/N
-    print 'double final_value = ', CPPNodeRenderer().render_expr(final_expr)+';'
+    print('double final_value = ', CPPNodeRenderer().render_expr(final_expr)+';')
     

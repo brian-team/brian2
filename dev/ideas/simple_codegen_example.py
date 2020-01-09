@@ -42,11 +42,11 @@ for k, v in ns.items():
             dtype_spec = c_data_type(v.dtype)
             arrays.append((k, dtype_spec, N))
 
-print '*********** DECLARATIONS **********'
+print('*********** DECLARATIONS **********')
 # This is just an example of what you could do with declarations, generate your
 # own code here...
 for varname, dtype_spec, N in arrays:
-    print '%s *%s = new %s [%s];' % (dtype_spec, varname, dtype_spec, N)
+    print('%s *%s = new %s [%s];' % (dtype_spec, varname, dtype_spec, N))
 
-print '*********** MAIN LOOP *************'
-print code
+print('*********** MAIN LOOP *************')
+print(code)

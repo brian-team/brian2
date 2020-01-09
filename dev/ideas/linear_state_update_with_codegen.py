@@ -21,15 +21,15 @@ B = P._state_updater.B
 A = P._state_updater.A
 C = P._state_updater._C
 
-print 'A =\n'+str(A)
-print 'C =', C[:, 0]
+print('A =\n'+str(A))
+print('C =', C[:, 0])
 
-print 'Verification (these should all be the same)'
+print('Verification (these should all be the same)')
 
-print P._S[:, 0], 'with brian'
+print(P._S[:, 0], 'with brian')
 
 def withdot(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         S[:] = dot(A, S)
     #    dot(A, S, out=S) # doesn't seem to work
     #    # but this does work (no quicker though)
@@ -39,12 +39,12 @@ def withdot(nsteps):
 
 S = Scopy.copy()
 withdot(200)
-print S[:, 0], 'with dot'
+print(S[:, 0], 'with dot')
 
 Atensor = repeat(A.reshape((3, 3, 1)), N, axis=2)
 Ctensor = repeat(C.reshape((3, 1)), N, axis=1)
 def withtensordot(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         #S[:] = tensordot(Atensor, S.reshape((1, 3, N)), axes=1)
         S[:] = sum(Atensor*S.reshape((1, 3, N)), axis=1)
     #    dot(A, S, out=S) # doesn't seem to work
@@ -55,21 +55,21 @@ def withtensordot(nsteps):
 
 S = Scopy.copy()
 withtensordot(200)
-print S[:, 0], 'with tensordot'
+print(S[:, 0], 'with tensordot')
 
 def witheinsum(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         S[:] = einsum('jk...,k...->j...', Atensor, S)
         add(S, Ctensor, S)
 
 S = Scopy.copy()
 witheinsum(200)
-print S[:, 0], 'with einsum'
+print(S[:, 0], 'with einsum')
 
 def withcopydot(nsteps):
     v, ge, gi = S    
     T = vstack((v, ge, gi))
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         v_next, ge_next, gi_next = dot(A, T)+C
         v[:] = v_next
         ge_next[:] = ge_next
@@ -77,7 +77,7 @@ def withcopydot(nsteps):
 
 S = Scopy.copy()
 withdot(200)
-print S[:, 0], 'with copydot'
+print(S[:, 0], 'with copydot')
 
 codeweave = '''
 double *v = S;
@@ -95,7 +95,7 @@ for(int i=0; i<N; ++i)
 '''
 
 def withweave(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         weave.inline(codeweave, ['S', 'N', 'A', 'C'],
                      compiler='gcc',
                      extra_compile_args=['-O3', '-ffast-math',
@@ -104,7 +104,7 @@ def withweave(nsteps):
 
 S = Scopy.copy()
 withweave(200)
-print S[:, 0], 'with weave'
+print(S[:, 0], 'with weave')
 
 codeweavemulti = '''
 double *v = S;
@@ -134,7 +134,7 @@ C0 = C[0]*ones(N)
 C1 = C[1]*ones(N)
 C2 = C[2]*ones(N)
 def withweavemulti(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         weave.inline(codeweavemulti, ['S', 'N', 'A00', 'A01', 'A02', 'A10',
                                       'A11', 'A12', 'A20', 'A21', 'A22',
                                       'C0', 'C1', 'C2'],
@@ -145,7 +145,7 @@ def withweavemulti(nsteps):
 
 S = Scopy.copy()
 withweavemulti(200)
-print S[:, 0], 'with weavemulti'
+print(S[:, 0], 'with weavemulti')
 
 codeweaveopt = '''
 double *v = S;
@@ -163,7 +163,7 @@ for(int i=0; i<N; ++i)
 '''
 
 def withweaveopt(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         weave.inline(codeweaveopt, ['S', 'N', 'A', 'C'],
                      compiler='gcc',
                      extra_compile_args=['-O3', '-ffast-math',
@@ -172,7 +172,7 @@ def withweaveopt(nsteps):
 
 S = Scopy.copy()
 withweaveopt(200)
-print S[:, 0], 'with weaveopt'
+print(S[:, 0], 'with weaveopt')
 
 codeweaveopt2 = '''
 double *v = S;
@@ -195,7 +195,7 @@ for(int i=0; i<N; ++i)
    .replace('C[0]', repr(C[0, 0]))
 
 def withweaveopt2(nsteps):
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         weave.inline(codeweaveopt2, ['S', 'N', 'A', 'C'],
                      compiler='gcc',
                      extra_compile_args=['-O3', '-ffast-math',
@@ -204,13 +204,13 @@ def withweaveopt2(nsteps):
 
 S = Scopy.copy()
 withweaveopt2(200)
-print S[:, 0], 'with weaveopt2'
+print(S[:, 0], 'with weaveopt2')
 
 def withpython(nsteps):
     v = S[0, :]
     ge = S[1, :]
     gi = S[2, :]
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         v_next = A[0, 0]*v+A[0, 1]*ge+A[0, 2]*gi+C[0]
         ge_next = A[1, 0]*v+A[1, 1]*ge+A[1, 2]*gi+C[1]
         gi_next = A[2, 0]*v+A[2, 1]*ge+A[2, 2]*gi+C[2]
@@ -220,7 +220,7 @@ def withpython(nsteps):
 
 S = Scopy.copy()
 withpython(200)
-print S[:, 0], 'with python'
+print(S[:, 0], 'with python')
 
 def withnumexpr(nsteps):
     v = S[0, :]
@@ -230,7 +230,7 @@ def withnumexpr(nsteps):
     A10, A11, A12 = A[1]
     A20, A21, A22 = A[2]
     C0, C1, C2 = C
-    for _ in xrange(nsteps):
+    for _ in range(nsteps):
         v_next = numexpr.evaluate('A00*v+A01*ge+A02*gi+C0')
         ge_next = numexpr.evaluate('A10*v+A11*ge+A12*gi+C1')
         gi_next = numexpr.evaluate('A20*v+A21*ge+A22*gi+C2')
@@ -240,7 +240,7 @@ def withnumexpr(nsteps):
 
 S = Scopy.copy()
 withnumexpr(200)
-print S[:, 0], 'with numexpr'
+print(S[:, 0], 'with numexpr')
 
 # verified that it works, now do speed test
 
@@ -248,9 +248,9 @@ numsteps = 100000000/N
 if N<=100: numsteps /= 10
 if N<=10: numsteps /= 10
 
-print
-print 'N:', N
-print 'numsteps:', numsteps
+print()
+print('N:', N)
+print('numsteps:', numsteps)
 
 def timespec(t):
     if t>tref:
@@ -261,13 +261,13 @@ def timespec(t):
 start = time.time()
 withdot(numsteps)
 tref = t = time.time()-start
-print 'With dot: %.2f'%t
+print('With dot: %.2f'%t)
 
 def dotiming(func):
     start = time.time()
     func(numsteps)
     t = time.time()-start
-    print 'With', func.__name__[4:]+':', timespec(t)
+    print('With', func.__name__[4:]+':', timespec(t))
 
 dotiming(withcopydot)
 #dotiming(withtensordot)

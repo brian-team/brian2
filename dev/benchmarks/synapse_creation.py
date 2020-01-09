@@ -2,7 +2,7 @@
 How long does synapse creation take?
 '''
 import time
-import cPickle
+import pickle
 
 import numpy as np
 import joblib
@@ -23,7 +23,7 @@ def test_connectivity2(N, i, j, n, p, codeobj_class):
     connections = len(S)
     del S
     times = []
-    for _ in xrange(repetitions):
+    for _ in range(repetitions):
         S = Synapses(G, G, '', codeobj_class=codeobj_class)
         start = time.time()
         S.connect(i, j, p, n)
@@ -52,16 +52,16 @@ for target in targets:
         N = 1
         connections = took = 0
         while connections < max_connections and took < 20:
-            print lang_name, pattern
-            if isinstance(condition, basestring):
+            print(lang_name, pattern)
+            if isinstance(condition, str):
                 took, connections = test_connectivity2(N, condition, None, 1, 1.,
                                                       codeobj_class=target)
             else:
                 took, connections = test_connectivity2(N, *condition,
                                                       codeobj_class=target)
-            print N, '%.4fs (for %d connections)' % (took, connections)
+            print(N, '%.4fs (for %d connections)' % (took, connections))
             results[(lang_name, connections, pattern)] = took
             N *= 2
 
 with open('synapse_creation_times_brian2.pickle', 'w') as f:
-    cPickle.dump(results, f)
+    pickle.dump(results, f)

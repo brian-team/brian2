@@ -32,8 +32,8 @@ def test_push(N, create_func):
 
 def run_benchmark(test_func, N, create_func):
     result = test_func(N, create_func)
-    print '{} -- {}({}) : {}'.format(test_func.__name__, create_func, N,
-                                     np.median(result))
+    print('{} -- {}({}) : {}'.format(test_func.__name__, create_func, N,
+                                     np.median(result)))
 
 
 if __name__ == '__main__':

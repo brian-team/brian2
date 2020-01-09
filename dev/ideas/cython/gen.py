@@ -27,4 +27,4 @@ stmts = make_statements(code, variables, float)
 #for stmt in stmts:
 # print stmt
 
-print '\n'.join(gen.translate_one_statement_sequence(stmts))
+print('\n'.join(gen.translate_one_statement_sequence(stmts)))

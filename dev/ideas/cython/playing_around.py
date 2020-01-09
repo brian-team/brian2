@@ -52,7 +52,7 @@ def timefunc_cython_modified_inline():
     #modified_cython_inline(code, locals=ns)
 
 def timefunc_python():
-    for _idx in xrange(N):
+    for _idx in range(N):
         _vectorisation_idx = _idx
         a = _array_neurongroup_a[_idx]
         v = _array_neurongroup_v[_idx]
@@ -77,7 +77,7 @@ def timefunc_numpy_blocked():
     ext = exp(-dt/tau)
     sit = sin(2.0*freq*pi*t)
     bs = 20000
-    for i in xrange(0, N, bs):
+    for i in range(0, N, bs):
         ab = a[i:i+bs]
         vb = v[i:i+bs]
         absit = ab*sit + b
@@ -109,7 +109,7 @@ v = _v;
 _array_neurongroup_v[_idx] = v;
 }
 ''' % str(args)
-    weave.inline(code, ns.keys(), ns, compiler='gcc', extra_compile_args=list(args))
+    weave.inline(code, list(ns.keys()), ns, compiler='gcc', extra_compile_args=list(args))
     
 def timefunc_weave_slow():
     timefunc_weave('-O3', '-march=native')
@@ -144,14 +144,14 @@ def timefunc_theano():
 def dotimeit(f):
     v[:] = 1
     f()
-    print '%s: %.2f' % (f.__name__.replace('timefunc_', ''),
-                        timeit.timeit(f.__name__+'()', setup='from __main__ import '+f.__name__, number=100))
+    print('%s: %.2f' % (f.__name__.replace('timefunc_', ''),
+                        timeit.timeit(f.__name__+'()', setup='from __main__ import '+f.__name__, number=100)))
 
 def check_values(f):
     v[:] = 1
     v[:5] = linspace(0, 1, 5)
     f()
-    print '%s: %s' % (f.__name__.replace('timefunc_', ''), v[:5])
+    print('%s: %s' % (f.__name__.replace('timefunc_', ''), v[:5]))
 
 if __name__=='__main__':
     funcs = [#timefunc_cython_inline,
@@ -166,13 +166,13 @@ if __name__=='__main__':
              timefunc_theano,
              ]
     if 1:
-        print 'Values'
-        print '======'
+        print('Values')
+        print('======')
         for f in funcs:
             check_values(f)
-        print
+        print()
     if 1:
-        print 'Times'
-        print '====='
+        print('Times')
+        print('=====')
         for f in funcs:
             dotimeit(f)

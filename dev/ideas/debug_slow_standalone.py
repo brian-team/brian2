@@ -17,9 +17,9 @@ start_time = time.time()
 run(.1*second, report='text')
 device.build(directory='debug_slow_standalone', compile=True,
              run=True, debug=False)
-print time.time()-start_time
+print(time.time()-start_time)
 
-print device._last_run_time
-print device._last_run_completed_fraction
+print(device._last_run_time)
+print(device._last_run_completed_fraction)
 
-print profiling_summary(show=10)
+print(profiling_summary(show=10))

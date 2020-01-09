@@ -64,7 +64,7 @@ cd = NeuronGroup(num_indices*cfN, eqs, reset='V=0', threshold='V>1', refractory=
 # Each CD neuron receives precisely two inputs, one from the left ear and
 # one from the right, for each location and each cochlear frequency
 C = Synapses(G, cd, on_pre='V += 0.5')
-for i in xrange(num_indices*cfN):
+for i in range(num_indices*cfN):
     C.connect(i, i)                   # from right ear
     C.connect(i+num_indices*cfN, i)   # from left ear
 # We want to just count the number of CD spikes

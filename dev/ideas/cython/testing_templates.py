@@ -8,4 +8,4 @@ M = StateMonitor(G, 'v', record=True)
 run(10*ms)
 G.v = True
 run(10*ms)
-print M.v[0]
+print(M.v[0])

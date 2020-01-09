@@ -59,8 +59,8 @@ def test_exception():
 
 
 def test():
-    print os.getpid()
-    print test_function()
+    print(os.getpid())
+    print(test_function())
     test_exception()
 
 if __name__ == '__main__':
