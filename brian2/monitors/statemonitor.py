@@ -1,9 +1,4 @@
-
-
-try:
-    from collections.abc import Sequence
-except ImportError:  # Python 2
-    from collections import Sequence
+from collections.abc import Sequence
 import numbers
 
 import numpy as np

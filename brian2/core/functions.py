@@ -1,8 +1,4 @@
-
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2
-    from collections import Mapping
+from collections.abc import Mapping
 import inspect
 import types
 

@@ -3,10 +3,7 @@
 Module providing the `Synapses` class and related helper classes/functions.
 '''
 from collections import defaultdict
-try:
-    from collections.abc import Sequence, MutableMapping, Mapping
-except ImportError:  # Python 2
-    from collections import Sequence, MutableMapping, Mapping
+from collections.abc import Sequence, MutableMapping, Mapping
 import functools
 import weakref
 import re

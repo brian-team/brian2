@@ -6,10 +6,7 @@ decorator.
 
 import functools
 import collections
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2
-    from collections import Mapping
+from collections.abc import Mapping
 
 
 class CacheKey(object):

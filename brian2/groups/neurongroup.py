@@ -3,10 +3,7 @@
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
 import collections
-try:
-    from collections.abc import Sequence, MutableMapping
-except ImportError:  # Python 2
-    from collections import Sequence, MutableMapping
+from collections.abc import Sequence, MutableMapping
 import numbers
 import string
 

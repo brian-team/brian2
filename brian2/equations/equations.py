@@ -2,10 +2,7 @@
 '''
 Differential equations for Brian models.
 '''
-try:
-    from collections.abc import Mapping, Hashable
-except ImportError:  # Python 2
-    from collections import Mapping, Hashable
+from collections.abc import Mapping, Hashable
 import keyword
 import re
 import string

@@ -4,10 +4,7 @@ Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
 import collections
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2
-    from collections import Mapping
+from collections.abc import Mapping
 import functools
 import numbers
 
