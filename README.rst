@@ -45,7 +45,7 @@ Dependencies
 ------------
 The following packages need to be installed to use Brian 2:
 
-* Python 2.7, or >= 3.5
+* Python >= 3.5
 * NumPy >=1.10
 * SymPy >= 1.2
 * Cython >= 0.29
@@ -59,8 +59,6 @@ For full functionality, you might also want to install:
 
 * GSL >=1.16
 * SciPy >=0.13.3
-* weave (only on Python 2)
-* bsddb (only on Python 2)
 * Matplotlib >= 2.0
 
 To build the documentation:

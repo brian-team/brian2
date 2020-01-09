@@ -7,8 +7,8 @@ import sys
 import os
 import platform
 
-if sys.version_info < (2, 7):
-    raise RuntimeError('Only Python versions >= 2.7 are supported')
+if sys.version_info < (3, 5):
+    raise RuntimeError('Only Python versions >= 3.5 are supported')
 
 from pkg_resources import parse_version
 from setuptools import setup, find_packages, Extension
@@ -195,7 +195,6 @@ setup(name='Brian2',
           'Natural Language :: English',
           'Operating System :: OS Independent',
           'Programming Language :: Python',
-          'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 3',
           'Topic :: Scientific/Engineering :: Bio-Informatics'
       ]
