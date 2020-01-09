@@ -140,7 +140,8 @@ def test_spikegenerator_period_repeat():
     indices = np.zeros(10)
     times   = arange(0, 1, 0.1) * ms
 
-    rec = sorted(np.rec.fromarrays([times, indices], names=['t', 'i']))
+    rec = np.rec.fromarrays([times, indices], names=['t', 'i'])
+    rec.sort()
     sorted_times = np.ascontiguousarray(rec.t)*1000
     sorted_indices = np.ascontiguousarray(rec.i)
     SG = SpikeGeneratorGroup(1, indices, times, period=1*ms)
