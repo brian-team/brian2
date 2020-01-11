@@ -39,7 +39,7 @@ Code objects
 ------------
 
 As in the case of runtime code generation, computational work is done by
-a collection of `CodeObject` s. In `CPPtandaloneDevice`, each code object
+a collection of `CodeObject` s. In `CPPStandaloneDevice`, each code object
 is converted into a pair of ``.cpp`` and ``.h`` files, and this is probably
 a fairly typical way to do it. For this device, it just uses the same code
 generation routines as for the runtime C++ device weave.
