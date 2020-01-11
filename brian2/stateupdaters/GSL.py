@@ -50,25 +50,24 @@ class GSLContainer(object):
         Returns
         -------
         code_object : class
-            The respective `CodeObject` class (i.e. either `GSLWeaveCodeObject`,
-            `GSLCythonCodeObject`, or `GSLCPPStandaloneCodeObject`).
+            The respective `CodeObject` class (i.e. either
+            `GSLCythonCodeObject` or `GSLCPPStandaloneCodeObject`).
         '''
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
         from brian2.devices.device import get_device
-        from ..codegen.runtime.GSLweave_rt import GSLWeaveCodeObject
         from ..codegen.runtime.GSLcython_rt import GSLCythonCodeObject
 
         device = get_device()
         if device.__class__ is CPPStandaloneDevice:  # We do not want to accept subclasses here
             from ..devices.cpp_standalone.GSLcodeobject import GSLCPPStandaloneCodeObject
-            # In runtime mode (i.e. weave and Cython), the compiler settings are
+            # In runtime mode (i.e. Cython), the compiler settings are
             # added for each `CodeObject` (only the files that use the GSL are
             # linked to the GSL). However, in C++ standalone mode, there are global
             # compiler settings that are used for all files (stored in the
             # `CPPStandaloneDevice`). Furthermore, header file includes are directly
             # inserted into the template instead of added during the compilation
-            # phase (as done in weave). Therefore, we have to add the options here
+            # phase. Therefore, we have to add the options here
             # instead of in `GSLCPPStandaloneCodeObject`
             # Add the GSL library if it has not yet been added
             if 'gsl' not in device.libraries:
@@ -92,13 +91,10 @@ class GSLContainer(object):
 
             if target_name == 'cython':
                 return GSLCythonCodeObject
-            elif target_name == 'weave':
-                return GSLWeaveCodeObject
             raise NotImplementedError(("GSL integration has not been implemented for "
                                        "for the '{target_name}' code generation target."
-                                       "\nUse either the 'weave' or 'cython' code "
-                                       "generation target, or switch to the "
-                                       "'cpp_standalone' device."
+                                       "\nUse the 'cython' code generation target, "
+                                       "or switch to the 'cpp_standalone' device."
                                        ).format(target_name=target_name))
         else:
             device_name = [name for name, dev in all_devices.items()
@@ -108,7 +104,7 @@ class GSLContainer(object):
                                        "for the '{device}' device."
                                        "\nUse either the 'cpp_standalone' device, "
                                        "or the runtime device with target language "
-                                       "'weave' or 'cython'."
+                                       "'cython'."
                                        ).format(device=device_name[0]))
 
     def __call__(self, obj):

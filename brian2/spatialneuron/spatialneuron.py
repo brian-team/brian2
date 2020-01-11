@@ -625,6 +625,6 @@ class SpatialStateUpdater(CodeRunner, Group):
                 logger.info(('SpatialNeuron will use numpy to do the numerical '
                              'integration -- this will be very slow. Either '
                              'switch to a different code generation target '
-                             '(e.g. weave or cython) or install scipy.'),
+                             '(e.g. cython) or install scipy.'),
                             once=True)
         CodeRunner.before_run(self, run_namespace)

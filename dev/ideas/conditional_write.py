@@ -1,7 +1,7 @@
 from brian2 import *
 
 BrianLogger.log_level_debug()
-#brian_prefs.codegen.target = 'weave'
+#brian_prefs.codegen.target = 'cython'
 
 H = NeuronGroup(1, 'v:1', threshold='v>-1')
 

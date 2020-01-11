@@ -54,16 +54,11 @@ or ``'cython'`` at the beginning of your script::
 
 See :doc:`../advanced/preferences` for different ways of setting preferences.
 
-.. warning::
-    Do not use the ``weave`` code generation targets when running multiple
-    simulations in parallel. See :doc:`../introduction/known_issues` for more
-    details.
-
  .. _Cython: http://cython.org/
 
 Caching
 ~~~~~~~
-When you run code with ``weave`` or ``cython`` for the first time, it will take
+When you run code with ``cython`` for the first time, it will take
 some time to compile the code. For short simulations, this can make these
 targets to appear slow compared to the ``numpy`` target where such compilation
 is not necessary. However, the compiled code is stored on disk and will be
@@ -234,7 +229,7 @@ content, use the ``force`` option::
 Compiler settings
 -----------------
 
-If using C++ code generation (either via weave, cython or standalone), the
+If using C++ code generation (either via cython or standalone), the
 compiler settings can make a big difference for the speed of the simulation.
 By default, Brian uses a set of compiler settings that switches on various
 optimizations and compiles for running on the same architecture where the

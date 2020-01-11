@@ -12,7 +12,7 @@ it can potentially be extended beyond this. The two use cases are:
 1. Runtime mode. In this mode, everything is managed by Python, including
    memory management (using numpy by default) and running the simulation.
    Actual computational work can be carried out in several different ways,
-   including numpy, weave or Cython.
+   including numpy or Cython.
 2. Standalone mode. In this mode, running a Brian script leads to generating
    an entire source code project tree which can be compiled and run
    independently of Brian or Python.
@@ -41,8 +41,7 @@ Code objects
 As in the case of runtime code generation, computational work is done by
 a collection of `CodeObject` s. In `CPPStandaloneDevice`, each code object
 is converted into a pair of ``.cpp`` and ``.h`` files, and this is probably
-a fairly typical way to do it. For this device, it just uses the same code
-generation routines as for the runtime C++ device weave.
+a fairly typical way to do it.
 
 Building
 --------

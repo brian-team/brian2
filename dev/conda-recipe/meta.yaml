@@ -39,7 +39,6 @@ test:
     - brian2.codegen.runtime
     - brian2.codegen.runtime.cython_rt
     - brian2.codegen.runtime.numpy_rt
-    - brian2.codegen.runtime.weave_rt
     - brian2.core
     - brian2.devices
     - brian2.devices.cpp_standalone

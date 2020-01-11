@@ -134,7 +134,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     ----------
     codegen_targets : list of str or str
         A list of codegeneration targets or a single target, e.g.
-        ``['numpy', 'weave']`` to test. The whole test suite will be repeatedly
+        ``['numpy', 'cython']`` to test. The whole test suite will be repeatedly
         run with `codegen.target` set to the respective value. If not
         specified, all available code generation targets will be tested.
     long_tests : bool, optional
@@ -194,15 +194,6 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     if codegen_targets is None:
         codegen_targets = ['numpy']
-        try:
-            import scipy.weave
-            codegen_targets.append('weave')
-        except ImportError:
-            try:
-                import weave
-                codegen_targets.append('weave')
-            except ImportError:
-                pass
         try:
             import Cython
             codegen_targets.append('cython')

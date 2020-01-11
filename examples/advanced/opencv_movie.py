@@ -1,6 +1,6 @@
 '''
 An example that uses a function from external C library (OpenCV in this case).
-Works for all C-based code generation targets (i.e. for weave and cpp_standalone
+Works for all C-based code generation targets (i.e. for cython and cpp_standalone
 device) and for numpy (using the Python bindings).
 
 This example needs a working installation of OpenCV 3.x and its Python bindings.
@@ -14,7 +14,7 @@ import cv2  # Import OpenCV2
 from brian2 import *
 
 defaultclock.dt = 1*ms
-prefs.codegen.target = 'weave'
+prefs.codegen.target = 'cython'
 prefs.logging.std_redirection = False
 set_device('cpp_standalone', clean=True)
 filename = os.path.abspath('Megamind.avi')

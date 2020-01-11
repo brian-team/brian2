@@ -14,8 +14,6 @@ prefs.register_preferences('codegen.runtime',
 logger = get_logger(__name__)
 
 from .numpy_rt import *
-from .weave_rt import *
-from .GSLweave_rt import *
 try:
     from .cython_rt import *
 except ImportError:

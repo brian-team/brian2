@@ -11,8 +11,7 @@ import shutil, os
 if standalone_mode:
     set_device('cpp_standalone')
 else:
-    brian_prefs['codegen.target'] = 'weave'
-    #brian_prefs['codegen.target'] = 'numpy'
+    brian_prefs['codegen.target'] = 'numpy'
 
 start = time()
 

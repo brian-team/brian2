@@ -128,7 +128,7 @@ in a terminal). If not, use your distribution's package manager to install a
 
 Windows
 ~~~~~~~
-On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work
+On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython) to work
 depend on the Python version you are using (also see the
 `notes in the Python wiki <https://wiki.python.org/moin/WindowsCompilers#Compilers_Installation_and_configuration>`_):
 
@@ -179,4 +179,3 @@ failures. For more control about the tests that are run see the
 .. _appveyor: https://ci.appveyor.com/project/brianteam/brian2
 .. _nose: https://pypi.python.org/pypi/nose
 .. _Cython: http://cython.org/
-.. _weave: https://github.com/scipy/weave

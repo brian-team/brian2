@@ -10,8 +10,7 @@ start = time.time()
 if standalone_mode:
     set_device('cpp_standalone')
 else:
-    brian_prefs['codegen.target'] = 'weave'
-    #brian_prefs['codegen.target'] = 'numpy'
+    brian_prefs['codegen.target'] = 'numpy'
 
 a=1/(10*ms)
 b=1/(10*ms)

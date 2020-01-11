@@ -41,7 +41,7 @@ def auto_target():
     '''
     Automatically chose a code generation target (invoked when the
     `codegen.target` preference is set to `'auto'`. Caches its result so it
-    only does the check once. Prefers weave > cython > numpy.
+    only does the check once. Prefers cython > numpy.
 
     Returns
     -------
@@ -54,9 +54,7 @@ def auto_target():
                            for target in codegen_targets
                            if target.class_name)
         using_fallback = False
-        if 'weave' in target_dict and target_dict['weave'].is_available():
-            _auto_target = target_dict['weave']
-        elif 'cython' in target_dict and target_dict['cython'].is_available():
+        if 'cython' in target_dict and target_dict['cython'].is_available():
             _auto_target = target_dict['cython']
         else:
             _auto_target = target_dict['numpy']
@@ -434,7 +432,7 @@ class RuntimeDevice(Device):
         #: last reference to the `Variable` object used as a key is gone
         self.arrays = WeakKeyDictionary()
         # Note that the buffers only store a pointer to the actual random
-        # numbers -- the buffer will be filled in weave/Cython code
+        # numbers -- the buffer will be filled in Cython code
         self.randn_buffer = np.zeros(1, dtype=np.intp)
         self.rand_buffer = np.zeros(1, dtype=np.intp)
         self.randn_buffer_index = np.zeros(1, dtype=np.int32)

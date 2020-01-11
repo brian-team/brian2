@@ -97,7 +97,7 @@ def generate_results(num_repeats):
     results = {}
 
     for name in ['CUBA', 'COBA']:
-        for target in ['numpy', 'cython', 'weave']:
+        for target in ['numpy', 'cython']:
             for dtype in [float32, float64]:
                 prefs.codegen.target = target
                 prefs.core.default_float_dtype = dtype
@@ -121,7 +121,7 @@ results = generate_results(3)
 
 bar_width = 0.9
 names = ['CUBA', 'COBA']
-targets = ['numpy', 'cython', 'weave', 'cpp_standalone']
+targets = ['numpy', 'cython', 'cpp_standalone']
 precisions = ['float32', 'float64']
 
 figure(figsize=(8, 8))

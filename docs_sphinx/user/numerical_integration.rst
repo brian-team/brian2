@@ -116,7 +116,7 @@ The available method options are:
   ``'absolute_error_per_variable'`` options described below. If this is set to ``False``,
   the timestep is determined by Brian (i.e. the ``dt`` of the respective clock is used, see :ref:`scheduling`).
   If the resulted estimated error exceeds the set error bounds, the simulation
-  is aborted. When using cython or weave this is reported with an `IntegrationError`.
+  is aborted. When using cython this is reported with an `IntegrationError`.
   Defaults to ``True``.
 * ``'absolute_error'``: each of the methods has a way of estimating the error that
   is the result of using numerical integration. You can specify the maximum size of this

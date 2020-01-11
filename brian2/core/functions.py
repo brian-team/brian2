@@ -475,7 +475,7 @@ def implementation(target, code=None, namespace=None, dependencies=None,
     Parameters
     ----------
     target : str
-        Name of the code generation target (e.g. ``'weave'``) for which to add
+        Name of the code generation target (e.g. ``'cython'``) for which to add
         an implementation.
     code : str or dict-like, optional
         What kind of code the target language expects is language-specific,

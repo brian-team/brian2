@@ -95,7 +95,7 @@ __all__ = [
     'milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater',
     'exponential_euler',
     'gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd',
-    'NumpyCodeObject', 'WeaveCodeObject', 'CythonCodeObject',
+    'NumpyCodeObject', 'CythonCodeObject',
     'get_local_namespace', 'DEFAULT_FUNCTIONS', 'DEFAULT_UNITS',
     'DEFAULT_CONSTANTS',
     'CodeRunner', 'Group', 'VariableOwner', 'NeuronGroup',

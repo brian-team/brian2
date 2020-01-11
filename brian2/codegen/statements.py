@@ -59,7 +59,7 @@ class Statement(object):
     expression that varies depending on the value of one or more boolean
     variables with an ``if/then`` sequence where each subexpression is
     simplified. It is optional to use this (e.g. the numpy codegen does
-    not, but the weave and cython ones do).
+    not, but the cython one does).
     '''
     def __init__(self, var, op, expr, comment, dtype,
                  constant=False, subexpression=False, scalar=False):

@@ -150,8 +150,7 @@ generated for a target language or device by Brian, which can then be
 compiled and run independently of Brian. Each mode has different templates,
 and does different things with the outputted code blocks. For runtime mode,
 in Python/numpy code is executed by simply calling the ``exec`` statement
-on the code block in a given namespace. For C++/weave code, the
-``scipy.weave.inline`` function is used. In standalone mode, the templates
+on the code block in a given namespace. In standalone mode, the templates
 will typically each be saved into different files.
 
 Key concepts

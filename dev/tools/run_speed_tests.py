@@ -16,7 +16,6 @@ else:
 
     # Quick testing
     res = run_speed_tests(configurations=[NumpyConfiguration,
-                                          WeaveConfiguration,
                                           CythonConfiguration,
                                           #LocalConfiguration,
                                           CPPStandaloneConfiguration,

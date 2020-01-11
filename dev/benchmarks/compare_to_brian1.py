@@ -150,10 +150,6 @@ def brian2_CUBA(N, duration=1,
 
     return results
 
-def brian2_CUBA_weave(*args, **opts):
-    opts['codegen_target'] = 'weave'
-    return brian2_CUBA(*args, **opts)
-
 def brian2_CUBA_cython(*args, **opts):
     opts['codegen_target'] = 'cython'
     return brian2_CUBA(*args, **opts)
@@ -166,7 +162,6 @@ if __name__=='__main__':
     funcs = [
         brian1_CUBA,
         brian2_CUBA,
-        brian2_CUBA_weave,
         brian2_CUBA_cython,
         ]
     options = dict(duration=1,

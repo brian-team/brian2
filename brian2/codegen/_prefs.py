@@ -22,9 +22,6 @@ prefs.register_preferences(
         
         * ``'auto'`` the default, automatically chose the best code generation
           target available.
-        * ``'weave'`` uses ``scipy.weave`` to generate and compile C++ code,
-          should work anywhere where ``gcc`` is installed and available at the
-          command line.
         * ``'cython'``, uses the Cython package to generate C++ code. Needs a
           working installation of Cython and a C++ compiler.
         * ``'numpy'`` works on all platforms and doesn't need a C compiler but
@@ -59,7 +56,7 @@ prefs.register_preferences(
     max_cache_dir_size=BrianPreference(
       default=1000,
       docs='''
-      The size of a directory (in MB) with cached code for weave or Cython that triggers a warning.
+      The size of a directory (in MB) with cached code for Cython that triggers a warning.
       Set to 0 to never get a warning.
       '''
     )

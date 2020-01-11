@@ -43,7 +43,7 @@ conditions = [('Full', 'True'),
               ('Random no-self (50%)', ('(i != j)', None, 1, 0.5)),
               ('Random no-self (10%)', ('(i != j)', None, 1, 0.1)),
               ('Random no-self (1%)', ('(i != j)', None, 1, 0.01))]
-targets = [NumpyCodeObject, WeaveCodeObject]
+targets = [NumpyCodeObject]
 results = {}
 max_connections = 2500000
 for target in targets:

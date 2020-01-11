@@ -2,7 +2,7 @@
 Brian 2
 '''
 # Import setuptools to do some monkey patching of distutils, necessary for
-# working weave/Cython on Windows with the Python for C++ compiler
+# working Cython on Windows with the Python for C++ compiler
 
 import setuptools as _setuptools
 
@@ -149,7 +149,7 @@ def clear_cache(target):
     Parameters
     ----------
     target : str
-        The code generation target (e.g. ``'weave'`` or ``'cython'``)
+        The code generation target (e.g. ``'cython'``)
 
     Raises
     ------
@@ -185,13 +185,10 @@ def clear_cache(target):
 
 
 def _check_caches():
-    from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir
     from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir
-    from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_extensions
     from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions
 
-    for target, (dirname, extensions) in [('weave', (get_weave_cache_dir(), get_weave_extensions())),
-                                          ('cython', (get_cython_cache_dir(), get_cython_extensions()))]:
+    for target, (dirname, extensions) in [('cython', (get_cython_cache_dir(), get_cython_extensions()))]:
         _cache_dirs_and_extensions[target] = (dirname, extensions)
         if prefs.codegen.max_cache_dir_size > 0:
             check_cache(target)

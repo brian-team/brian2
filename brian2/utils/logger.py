@@ -20,13 +20,6 @@ try:
     import scipy
 except ImportError:
     scipy = None
-try:
-    import scipy.weave as weave
-except ImportError:
-    try:
-        import weave
-    except ImportError:
-        weave = None
 import sympy
 
 import brian2
@@ -578,7 +571,6 @@ class BrianLogger(object):
         version_infos = {'brian': brian2.__version__,
                          'numpy': numpy.__version__,
                          'scipy': scipy.__version__ if scipy else 'not installed',
-                         'weave': weave.__version__ if weave else 'not installed',
                          'sympy': sympy.__version__,
                          'python': sys.version,
                          }

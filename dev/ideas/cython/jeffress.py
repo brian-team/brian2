@@ -7,7 +7,6 @@ from brian2 import *
 
 import time
 
-#brian_prefs.codegen.target = 'weave'
 brian_prefs.codegen.target = 'cython'
 #brian_prefs.codegen.target = 'numpy'
 #BrianLogger.log_level_debug()
