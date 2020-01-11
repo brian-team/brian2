@@ -24,7 +24,8 @@ Installation with Anaconda
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
 `Download the Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_
-for your Operating System. 
+for your Operating System. Note, Brian 2 no longer supports Python 2 (the last
+version to support Python 2 was 2.3). 
 
 After the installation, make sure that your environment is configured to use
 the Anaconda distribution. You should have access to the ``conda`` command in
