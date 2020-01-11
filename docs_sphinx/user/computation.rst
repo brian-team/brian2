@@ -44,7 +44,7 @@ preference is set to ``'auto'``, meaning that it will chose a compiled language
 target if possible and fall back to Python otherwise (it will also raise a warning
 in this case, set `codegen.target` to ``'numpy'`` explicitly to avoid this warning).
 The compiled language target is ``'cython'`` (needing the `Cython`_ package in
-addition). If you want to
+addition to a working C++ compiler). If you want to
 chose a code generation target explicitly (e.g. because you want to get rid of the
 warning that only the Python fallback is available), set the preference to ``'numpy'``
 or ``'cython'`` at the beginning of your script::
