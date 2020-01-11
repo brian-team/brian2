@@ -650,7 +650,6 @@ def get_dimensions(obj):
     except AttributeError:
         # The following is not very pretty, but it will avoid the costly
         # isinstance check for the common types
-        # Workaround for Python 3 which no longer has a long type
         if (type(obj) in [int, float, np.int32, np.int64,
                           np.float32, np.float64, np.ndarray] or
                 isinstance(obj, (numbers.Number, np.number, np.ndarray))):
