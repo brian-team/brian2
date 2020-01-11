@@ -65,7 +65,7 @@ def check_preference_name(name):
                                'contain letters, digits or underscore.' % name))
     if name in dir(MutableMapping) or name in prefs.__dict__:
         raise PreferenceError(('Illegal preference name "%s": This is also the '
-                              'name of a method.') % name)
+                               'name of a method.') % name)
 
 
 class PreferenceError(Exception):
@@ -203,7 +203,7 @@ class BrianGlobalPreferences(MutableMapping):
         basename, _ = parse_preference_name(name)
         if len(basename) and basename not in self.pref_register:
             raise AssertionError(('__getattr__ received basename %s which is '
-                                 'unregistered. This should never happen!') %
+                                  'unregistered. This should never happen!') %
                                  basename)
         
         return self[name]
