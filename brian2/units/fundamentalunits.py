@@ -642,7 +642,7 @@ def get_dimensions(obj):
 
     Returns
     -------
-    dim: `Dimension`
+    dim : `Dimension`
         The physical dimensions of the `obj`.
     """
     try:
