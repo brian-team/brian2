@@ -96,7 +96,7 @@ class Templater(object):
     env_globals : dict (optional)
         A dictionary of global values accessible by the templates. Can be used for providing utility functions.
         In all cases, the filter 'autoindent' is available (see existing templates for example usage).
-    templates_dir : str, optional
+    templates_dir : str, tuple of str, optional
         The name of the directory containing the templates. Defaults to ``'templates'``.
 
     Notes
@@ -108,9 +108,11 @@ class Templater(object):
                  templates_dir='templates'):
         if isinstance(package_name, str):
             package_name = (package_name,)
-        self.templates_dir = templates_dir
-        loader = ChoiceLoader([PackageLoader(name, self.templates_dir)
-                               for name in package_name])
+        if isinstance(templates_dir, str):
+            templates_dir = (templates_dir, )
+        loader = ChoiceLoader([PackageLoader(name, t_dir)
+                               for name, t_dir in zip(package_name,
+                                                      templates_dir)])
         self.env = Environment(loader=loader, trim_blocks=True,
                                lstrip_blocks=True, undefined=StrictUndefined)
         self.env.globals['autoindent'] = autoindent
@@ -122,6 +124,7 @@ class Templater(object):
             env_globals = {}
         self.env_globals = env_globals
         self.package_names = package_name
+        self.templates_dir = templates_dir
         self.extension = extension
         self.templates = LazyTemplateLoader(self.env, extension)
 
@@ -129,7 +132,7 @@ class Templater(object):
         return self.templates.get_template(item)
 
     def derive(self, package_name, extension=None, env_globals=None,
-               templates_dir=None):
+               templates_dir='templates'):
         '''
         Return a new Templater derived from this one, where the new package name and globals overwrite the old.
         '''
@@ -139,9 +142,10 @@ class Templater(object):
             package_name = (package_name,)
         if env_globals is None:
             env_globals = {}
-        if templates_dir is None:
-            templates_dir = self.templates_dir
+        if isinstance(templates_dir, str):
+            templates_dir = (templates_dir, )
         package_name = package_name+self.package_names
+        templates_dir = templates_dir + self.templates_dir
         new_env_globals = self.env_globals.copy()
         new_env_globals.update(**env_globals)
         return Templater(package_name, extension=extension,

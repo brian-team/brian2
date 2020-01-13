@@ -9,5 +9,6 @@ from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 
 class GSLCPPStandaloneCodeObject(CodeObject):
 
-    templater = CPPStandaloneCodeObject.templater.derive('brian2.codegen.runtime.GSLweave_rt')
+    templater = CPPStandaloneCodeObject.templater.derive('brian2.devices.cpp_standalone',
+                                                         templates_dir='templates_GSL')
     original_generator_class = CPPCodeGenerator
