@@ -22,7 +22,7 @@ from brian2.codegen.generators import c_data_type
 
 from brian2.core.preferences import PreferenceError
 
-__all__ = ['GSLCodeGenerator', 'GSLCythonCodeGenerator']
+__all__ = ['GSLCodeGenerator', 'GSLCPPCodeGenerator', 'GSLCythonCodeGenerator']
 
 
 def valid_gsl_dir(val):
@@ -995,3 +995,61 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
         # We have to do the import here to avoid circular import dependencies.
         from brian2.codegen.generators.cython_generator import CythonCodeGenerator
         return CythonCodeGenerator.get_array_name(var, access_data)
+
+
+class GSLCPPCodeGenerator(GSLCodeGenerator):
+
+    def __getattr__(self, item):
+        return getattr(self.generator, item)
+
+    syntax = {'end_statement': ';',
+              'access_pointer': '->',
+              'start_declare': '',
+              'open_function': '\n{',
+              'open_struct' :'\n{',
+              'end_function': '\n}',
+              'end_struct': '\n};',
+              'open_cast': '(',
+              'close_cast': ')',
+              'diff_var_declaration': 'const scalar '}
+
+    def c_data_type(self, dtype):
+        return self.generator.c_data_type(dtype)
+
+    def initialize_array(self, varname, values):
+        value_list = ', '.join(repr(v) for v in values)
+        return 'double const %s[] = {%s};' % (varname, value_list)
+
+    def var_replace_diff_var_lhs(self, var, ind):
+        scalar_dtype = self.c_data_type(prefs.core.default_float_dtype)
+        f = 'f[{ind}]'.format(ind=ind)
+        try:
+            if 'unless refractory' in self.variable_flags[var]:
+                return {'_gsl_{var}_f{ind}'.format(var=var, ind=ind) : f,
+                        '{scalar_dtype} _gsl_{var}_f{ind};'.format(var=var, ind=ind,
+                                                                   scalar_dtype=scalar_dtype): '',
+                        '{scalar_dtype} {f};'.format(f=f, scalar_dtype=scalar_dtype): ''} # in case the replacement
+                                                                                          # of _gsl_var_find to f[ind] happens first
+        except KeyError:
+            pass
+        return {'const {scalar_dtype} _gsl_{var}_f{ind}'.format(scalar_dtype=scalar_dtype,
+                                                                var=var, ind=ind) : f}
+
+    def var_init_lhs(self, var, type):
+        return type + var
+
+    def unpack_namespace_single(self, var_obj, in_vector, in_scalar):
+        if isinstance(var_obj, ArrayVariable):
+            pointer_name = self.get_array_name(var_obj, access_data=True)
+            array_name = self.get_array_name(var_obj)
+            if in_vector:
+                return '_GSL_dataholder.{ptr} = {array};'.format(ptr=pointer_name,
+                                                                 array=array_name)
+            else:
+                return ''
+        else:
+            if in_vector:
+                return '_GSL_dataholder.{var} = {var};'.format(var=var_obj.name)
+            else:
+                return ''
+
