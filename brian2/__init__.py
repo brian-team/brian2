@@ -2,8 +2,6 @@
 Brian 2
 '''
 
-import setuptools
-
 
 def _check_dependencies():
     '''Check basic dependencies'''
