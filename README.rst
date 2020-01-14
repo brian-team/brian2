@@ -26,6 +26,9 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.654861.svg
         :target: https://doi.org/10.5281/zenodo.654861
 
+.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:e3fc5d8021789afe3a31df7ca59e530510a2cc88;origin=https://github.com/brian-team/brian2.git/
+    :target: https://archive.softwareheritage.org/swh:1:rel:e3fc5d8021789afe3a31df7ca59e530510a2cc88;origin=https://github.com/brian-team/brian2.git/
+
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
         :target: code-of-conduct.md
         :alt: Contributor Covenant
