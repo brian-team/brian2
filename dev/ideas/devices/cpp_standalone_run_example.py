@@ -146,11 +146,11 @@ if __name__=='__main__':
             print('  Standalone ', len(i))
         elif plot_type=='StateMonitor':
             t, rec = plot_args
-            for varname, vals in list(rec.items()):
+            for varname, vals in rec.items():
                 plot(t, vals.T)
             subplot(2, n, n+i_plot+1)
             t, rec = rv_standalone[k][2]
-            for varname, vals in list(rec.items()):
+            for varname, vals in rec.items():
                 plot(t, vals.T)
         elif plot_type=='NeuronGroup':
             val = plot_args
