@@ -1,10 +1,8 @@
 '''
 Brian 2
 '''
-# Import setuptools to do some monkey patching of distutils, necessary for
-# working Cython on Windows with the Python for C++ compiler
 
-import setuptools as _setuptools
+import setuptools
 
 
 def _check_dependencies():
