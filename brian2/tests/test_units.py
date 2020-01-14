@@ -1215,10 +1215,13 @@ def test_units_vs_quantities():
     assert isinstance(1/meter, Unit)
     assert isinstance(1.0/meter, Unit)
 
-    assert isinstance(2/meter, Quantity)
-    assert isinstance(2*meter, Quantity)
-    assert isinstance(meter + meter, Quantity)
-    assert isinstance(meter - meter, Quantity)
+    # Using the unconventional type(x) == y since we want to test that 
+    # e.g. meter**2 stays a Unit and does not become a Quantity however Unit 
+    # inherits from Quantity and therefore both would pass the isinstance test
+    assert type(2/meter) == Quantity
+    assert type(2*meter) == Quantity
+    assert type(meter + meter) == Quantity
+    assert type(meter - meter) == Quantity
 
 
 @pytest.mark.codegen_independent
