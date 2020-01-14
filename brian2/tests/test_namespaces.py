@@ -94,7 +94,7 @@ def test_resolution():
     resolved = group.resolve_all(['tau', 'ms'], namespace,
                                  user_identifiers=['tau', 'ms'])
     assert len(resolved) == 2
-    assert isinstance(resolved, type(dict()))
+    assert isinstance(resolved, dict)
     assert resolved['tau'].get_value_with_unit() == tau
     assert resolved['ms'].get_value_with_unit() == ms
     del tau
