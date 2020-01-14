@@ -38,13 +38,12 @@ Runtime code generation
 -----------------------
 Code generation means that Brian takes the Python code and strings
 in your model and generates code in one of several possible different
-languages and actually executes that. The target language for this code
+languages which is then executed. The target language for this code
 generation process is set in the `codegen.target` preference. By default, this
 preference is set to ``'auto'``, meaning that it will choose the compiled language
-target if possible and fall back to Python otherwise (it will also raise a warning
-in this case, set `codegen.target` to ``'numpy'`` explicitly to avoid this warning).
-The compiled language target is ``'cython'`` (which needs the `Cython`_ package in
-addition to a working C++ compiler). If you want to
+target if possible and fall back to Python otherwise (also raising a warning).
+The compiled language target is ``'cython'`` which needs the `Cython`_ package in
+addition to a working C++ compiler. If you want to
 chose a code generation target explicitly (e.g. because you want to get rid of the
 warning that only the Python fallback is available), set the preference to ``'numpy'``
 or ``'cython'`` at the beginning of your script::
