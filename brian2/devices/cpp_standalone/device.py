@@ -122,7 +122,6 @@ class CPPStandaloneDevice(Device):
     '''
     The `Device` used for C++ standalone simulations.
     '''
-    msvc_env = None  #: cached environment variables for MSVC
 
     def __init__(self):
         super(CPPStandaloneDevice, self).__init__()
@@ -928,30 +927,8 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
-        from setuptools import msvc
-        import distutils
-        num_threads = prefs.devices.cpp_standalone.openmp_threads
         with in_directory(directory):
             if compiler == 'msvc':
-                # TODO: copy vcvars and make replacements for 64 bit automatically
-                arch_name = prefs['codegen.cpp.msvc_architecture']
-                if arch_name == '':
-                    bits = struct.calcsize('P') * 8
-                    if bits == 64:
-                        arch_name = 'x86_amd64'
-                    else:
-                        arch_name = 'x86'
-                vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-                if vcvars_loc == '':
-                    msvc_env = CPPStandaloneDevice.msvc_env
-                    if msvc_env is None:
-                        msvc_env = msvc.msvc14_get_vc_env(arch_name)
-                        # Cache the result
-                        CPPStandaloneDevice.msvc_env = msvc_env
-                if vcvars_loc:
-                    vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
-                            vcvars_loc=vcvars_loc, arch_name=arch_name)
-
                 msvc_env, vcvars_cmd = get_msvc_env()
                 make_cmd = 'nmake /f win_makefile'
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)

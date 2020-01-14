@@ -6,7 +6,8 @@ Preferences
 .. document_brian_prefs:: codegen.cpp
 
 '''
-
+from setuptools import msvc
+import distutils
 from distutils.ccompiler import get_default_compiler
 import json
 import os
@@ -244,11 +245,6 @@ def update_for_cross_compilation(library_dirs, extra_compile_args,
 _msvc_env = None
 def get_msvc_env():
     global _msvc_env
-    from setuptools import msvc
-    import distutils
-    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-    if vcvars_loc:
-        return vcvars_loc, None
     arch_name = prefs['codegen.cpp.msvc_architecture']
     if arch_name == '':
         bits = struct.calcsize('P') * 8
@@ -256,14 +252,23 @@ def get_msvc_env():
             arch_name = 'x86_amd64'
         else:
             arch_name = 'x86'
-    if _msvc_env is None:
-        _msvc_env = msvc.msvc14_get_vc_env(arch_name)
+    # Manual specification of vcvarsall.bat location by the user
+    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
     if vcvars_loc:
         vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(vcvars_loc=vcvars_loc,
                                                          arch_name=arch_name)
-    else:
-        vcvars_cmd = None
-    return _msvc_env, vcvars_cmd
+        return None, vcvars_cmd
+
+    # Search for MSVC environemtn if not already cached
+    if _msvc_env is None:
+        try:
+            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
+        except distutils.errors.DistutilsPlatformError:
+            raise IOError("Cannot find Microsoft Visual Studio, You "
+                          "can try to set the path to vcvarsall.bat "
+                          "via the codegen.cpp.msvc_vars_location "
+                          "preference explicitly.")
+    return _msvc_env, None
 
 
 _compiler_supports_c99 = None
