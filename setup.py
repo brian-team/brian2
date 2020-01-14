@@ -134,6 +134,7 @@ setup(name='Brian2',
                                                       'templates/*.h',
                                                       'templates/makefile',
                                                       'templates/win_makefile',
+                                                      'templates_GSL/*.cpp',
                                                       'brianlib/*.cpp',
                                                       'brianlib/*.h'],
                     # include test template files
