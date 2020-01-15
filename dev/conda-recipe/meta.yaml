@@ -4,7 +4,7 @@ package:
 
 build:
   number: 0
-  script: python -m pip install --no-deps --ignore-installed . --install-option=--with-cython --install-option=--fail-on-error
+  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed . --install-option=--with-cython --install-option=--fail-on-error
 
 requirements:
   build:
