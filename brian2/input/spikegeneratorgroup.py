@@ -87,8 +87,7 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
 
         if N < 1 or int(N) != N:
             raise TypeError('N has to be an integer >=1.')
-        N = int(N)  # Make sure that it is an integer, values such as 10.0 would
-                    # otherwise make weave compilation fail
+        N = int(N)
         self.start = 0
         self.stop = N
 

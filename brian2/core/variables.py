@@ -325,8 +325,7 @@ class Constant(Variable):
         else:
             dtype = get_dtype(value)
 
-        # Use standard Python types if possible for numpy scalars (generates
-        # nicer code for C++ when using weave)
+        # Use standard Python types if possible for numpy scalars
         if getattr(value, 'shape', None) == () and hasattr(value, 'dtype'):
             numpy_type = value.dtype
             if np.can_cast(numpy_type, np.int_):

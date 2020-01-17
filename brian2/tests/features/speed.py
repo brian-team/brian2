@@ -282,7 +282,7 @@ class VerySparseMediumRateSynapsesOnly(SynapsesOnly, SpeedTest):
     name = "Very sparse, medium rate (10s duration)"
     rate = 10 * Hz
     p = 0.02
-    n_range = [10, 100, 1000, 10000, 100000]  # weave max CPU time should be about 20s
+    n_range = [10, 100, 1000, 10000, 100000]
     duration = 10 * second
 
 
@@ -290,21 +290,21 @@ class SparseMediumRateSynapsesOnly(SynapsesOnly, SpeedTest):
     name = "Sparse, medium rate (1s duration)"
     rate = 10 * Hz
     p = 0.2
-    n_range = [10, 100, 1000, 10000, 100000]  # weave max CPU time should be about 5m
+    n_range = [10, 100, 1000, 10000, 100000]
 
 
 class DenseMediumRateSynapsesOnly(SynapsesOnly, SpeedTest):
     name = "Dense, medium rate (1s duration)"
     rate = 10 * Hz
     p = 1.0
-    n_range = [10, 100, 1000, 10000, 40000]  # weave max CPU time should be about 4m
+    n_range = [10, 100, 1000, 10000, 40000]
 
 
 class SparseLowRateSynapsesOnly(SynapsesOnly, SpeedTest):
     name = "Sparse, low rate (10s duration)"
     rate = 1 * Hz
     p = 0.2
-    n_range = [10, 100, 1000, 10000, 100000]  # weave max CPU time should be about 20s
+    n_range = [10, 100, 1000, 10000, 100000]
     duration = 10 * second
 
 
@@ -312,7 +312,7 @@ class SparseHighRateSynapsesOnly(SynapsesOnly, SpeedTest):
     name = "Sparse, high rate (1s duration)"
     rate = 100 * Hz
     p = 0.2
-    n_range = [10, 100, 1000, 10000]  # weave max CPU time should be about 5m
+    n_range = [10, 100, 1000, 10000]
 
 
 if __name__ == '__main__':
