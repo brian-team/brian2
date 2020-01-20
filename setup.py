@@ -7,9 +7,6 @@ import sys
 import os
 import platform
 
-if sys.version_info < (3, 5):
-    raise RuntimeError('Only Python versions >= 3.5 are supported')
-
 from pkg_resources import parse_version
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
@@ -164,10 +161,10 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo;platform_system=="Windows"',
-                        'setuptools>=24'
+                        'setuptools>=24.2'
                        ],
       setup_requires=['numpy>=1.10',
-                      'setuptools>=24'
+                      'setuptools>=24.2'
                       ],
       cmdclass={'build_ext': optional_build_ext},
       provides=['brian2'],
@@ -194,5 +191,6 @@ setup(name='Brian2',
           'Programming Language :: Python',
           'Programming Language :: Python :: 3',
           'Topic :: Scientific/Engineering :: Bio-Informatics'
-      ]
+      ],
+      python_requires='>=3.5'
       )
