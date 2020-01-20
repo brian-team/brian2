@@ -2,13 +2,10 @@
 Brian global preferences are stored as attributes of a `BrianGlobalPreferences`
 object ``prefs``.
 '''
-from __future__ import absolute_import
+
 import re
 import os
-try:
-    from collections.abc import MutableMapping
-except ImportError:  # Python 2
-    from collections import MutableMapping
+from collections.abc import MutableMapping
 from io import BytesIO
 
 from brian2.utils.stringtools import deindent, indent
@@ -34,8 +31,8 @@ def parse_preference_name(name):
     
     Examples
     --------
-    >>> parse_preference_name('core.weave_compiler')
-    ('core', 'weave_compiler')
+    >>> parse_preference_name('core.default_float_dtype')
+    ('core', 'default_float_dtype')
     >>> parse_preference_name('codegen.cpp.compiler')
     ('codegen.cpp', 'compiler')
     '''
@@ -68,7 +65,7 @@ def check_preference_name(name):
                                'contain letters, digits or underscore.' % name))
     if name in dir(MutableMapping) or name in prefs.__dict__:
         raise PreferenceError(('Illegal preference name "%s": This is also the '
-                              'name of a method.') % name)
+                               'name of a method.') % name)
 
 
 class PreferenceError(Exception):
@@ -206,7 +203,7 @@ class BrianGlobalPreferences(MutableMapping):
         basename, _ = parse_preference_name(name)
         if len(basename) and basename not in self.pref_register:
             raise AssertionError(('__getattr__ received basename %s which is '
-                                 'unregistered. This should never happen!') %
+                                  'unregistered. This should never happen!') %
                                  basename)
         
         return self[name]
@@ -312,9 +309,8 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         s = ''
         if basename is None:
-            basenames = [tuple(basename.split('.'))
-                         for basename in self.pref_register]
-            basenames.sort()
+            basenames = sorted([tuple(basename.split('.'))
+                         for basename in self.pref_register])
             for basename in basenames:
                 lev = len(basename)
                 basename = '.'.join(basename)
@@ -336,16 +332,16 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         Helper function used to generate the preference file for the default or current preference values.
         '''
-        s = u''
+        s = ''
         for basename, (prefdefs, basedoc) in self.pref_register.items():
-            s += u'#' + u'-' * 79 + u'\n'
-            s += u'\n'.join([u'# ' + line for line in deindent(basedoc, docstring=True).strip().split(u'\n')]) + u'\n'
-            s += u'#' + u'-' * 79 + u'\n\n'
-            s += u'[' + basename + u']\n\n'
+            s += '#' + '-' * 79 + '\n'
+            s += '\n'.join(['# ' + line for line in deindent(basedoc, docstring=True).strip().split('\n')]) + '\n'
+            s += '#' + '-' * 79 + '\n\n'
+            s += '[' + basename + ']\n\n'
             for name in sorted(prefdefs.keys()):
                 pref = prefdefs[name]
-                s += u'\n'.join([u'# ' + line for line in deindent(pref.docs, docstring=True).strip().split(u'\n')]) + u'\n\n'
-                s += name + u' = ' + pref.representor(valuefunc(pref, basename + u'.' + name)) + u'\n\n'
+                s += '\n'.join(['# ' + line for line in deindent(pref.docs, docstring=True).strip().split('\n')]) + '\n\n'
+                s += name + ' = ' + pref.representor(valuefunc(pref, basename + '.' + name)) + '\n\n'
         return s
 
     def _get_defaults_as_file(self):

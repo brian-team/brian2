@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 Module declaring general code generation preferences.
 
@@ -6,8 +6,6 @@ Preferences
 -----------
 .. document_brian_prefs:: codegen
 '''
-from past.builtins import basestring
-
 from brian2.core.preferences import prefs, BrianPreference
 from .codeobject import CodeObject
 
@@ -24,9 +22,6 @@ prefs.register_preferences(
         
         * ``'auto'`` the default, automatically chose the best code generation
           target available.
-        * ``'weave'`` uses ``scipy.weave`` to generate and compile C++ code,
-          should work anywhere where ``gcc`` is installed and available at the
-          command line.
         * ``'cython'``, uses the Cython package to generate C++ code. Needs a
           working installation of Cython and a C++ compiler.
         * ``'numpy'`` works on all platforms and doesn't need a C compiler but
@@ -34,7 +29,7 @@ prefs.register_preferences(
         
         Or it can be a ``CodeObject`` class.
         ''',
-        validator=lambda target: isinstance(target, basestring) or issubclass(target, CodeObject),
+        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
         ),
     string_expression_target=BrianPreference(
         default='numpy',
@@ -46,7 +41,7 @@ prefs.register_preferences(
 
         Accepts the same arguments as `codegen.target`, except for ``'auto'``
         ''',
-        validator=lambda target: isinstance(target, basestring) or issubclass(target, CodeObject),
+        validator=lambda target: isinstance(target, str) or issubclass(target, CodeObject),
         ),
     loop_invariant_optimisations=BrianPreference(
         default=True,
@@ -61,7 +56,7 @@ prefs.register_preferences(
     max_cache_dir_size=BrianPreference(
       default=1000,
       docs='''
-      The size of a directory (in MB) with cached code for weave or Cython that triggers a warning.
+      The size of a directory (in MB) with cached code for Cython that triggers a warning.
       Set to 0 to never get a warning.
       '''
     )

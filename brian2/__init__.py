@@ -1,11 +1,6 @@
 '''
 Brian 2
 '''
-# Import setuptools to do some monkey patching of distutils, necessary for
-# working weave/Cython on Windows with the Python for C++ compiler
-from __future__ import absolute_import
-import setuptools as _setuptools
-from past.builtins import basestring
 
 
 def _check_dependencies():
@@ -80,7 +75,7 @@ def _check_dependency_version(name, version):
     logger = get_logger(__name__)
 
     module = sys.modules[name]
-    if not isinstance(module.__version__, basestring):  # mocked module
+    if not isinstance(module.__version__, str):  # mocked module
         return
     if not LooseVersion(module.__version__) >= LooseVersion(version):
         message = '%s is outdated (got version %s, need version %s)' % (name,
@@ -150,7 +145,7 @@ def clear_cache(target):
     Parameters
     ----------
     target : str
-        The code generation target (e.g. ``'weave'`` or ``'cython'``)
+        The code generation target (e.g. ``'cython'``)
 
     Raises
     ------
@@ -186,13 +181,10 @@ def clear_cache(target):
 
 
 def _check_caches():
-    from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_cache_dir
     from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_cache_dir
-    from brian2.codegen.runtime.weave_rt.weave_rt import get_weave_extensions
     from brian2.codegen.runtime.cython_rt.extension_manager import get_cython_extensions
 
-    for target, (dirname, extensions) in [('weave', (get_weave_cache_dir(), get_weave_extensions())),
-                                          ('cython', (get_cython_cache_dir(), get_cython_extensions()))]:
+    for target, (dirname, extensions) in [('cython', (get_cython_cache_dir(), get_cython_extensions()))]:
         _cache_dirs_and_extensions[target] = (dirname, extensions)
         if prefs.codegen.max_cache_dir_size > 0:
             check_cache(target)

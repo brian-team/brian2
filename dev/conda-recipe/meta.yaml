@@ -4,7 +4,7 @@ package:
 
 build:
   number: 0
-  script: python -m pip install --no-deps --ignore-installed . --install-option=--with-cython --install-option=--fail-on-error
+  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed . --install-option=--with-cython --install-option=--fail-on-error
 
 requirements:
   build:
@@ -25,14 +25,11 @@ requirements:
     - sympy >=1.2
     - pyparsing
     - scipy >=0.13.3
-    - weave  # [py2k]
-    - bsddb  # [py2k and not win]
     - gsl >1.15
     - cython >=0.29
     - jinja2 >=2.7
     - setuptools >=24
     - py-cpuinfo  # [win]
-    - future
 
 test:
   imports:
@@ -42,7 +39,6 @@ test:
     - brian2.codegen.runtime
     - brian2.codegen.runtime.cython_rt
     - brian2.codegen.runtime.numpy_rt
-    - brian2.codegen.runtime.weave_rt
     - brian2.core
     - brian2.devices
     - brian2.devices.cpp_standalone

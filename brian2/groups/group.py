@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 '''
 This module defines the `VariableOwner` class, a mix-in class for everything
 that saves state variables, e.g. `Clock` or `NeuronGroup`, the class `Group`
@@ -6,17 +6,13 @@ for objects that in addition to storing state variables also execute code, i.e.
 objects such as `NeuronGroup` or `StateMonitor` but not `Clock`, and finally
 `CodeRunner`, a class to run code in the context of a `Group`.
 '''
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2
-    from collections import Mapping
+from collections.abc import Mapping
 from collections import OrderedDict
 import weakref
 import numbers
 import inspect
 
 import numpy as np
-from past.builtins import basestring
 
 from brian2.core.base import BrianObject, weakproxy_with_fallback
 from brian2.core.names import Nameable
@@ -246,7 +242,7 @@ class Indexing(object):
             raise IndexError(('Can only interpret 1-d indices, '
                               'got %d dimensions.') % len(item))
         else:
-            if isinstance(item, basestring) and item == 'True':
+            if isinstance(item, str) and item == 'True':
                 item = slice(None)
             if isinstance(item, slice):
                 if index_var == '0':
@@ -292,7 +288,7 @@ class IndexWrapper(object):
         self.indices = group._indices
 
     def __getitem__(self, item):
-        if isinstance(item, basestring):
+        if isinstance(item, str):
             variables = Variables(None)
             variables.add_auxiliary_variable('_indices', dtype=np.int32)
             variables.add_auxiliary_variable('_cond', dtype=np.bool)
@@ -409,7 +405,7 @@ class VariableOwner(Nameable):
             return object.__setattr__(self, name, val)
         elif name in self.variables:
             var = self.variables[name]
-            if not isinstance(val, basestring):
+            if not isinstance(val, str):
                 if var.dim is DIMENSIONLESS:
                     fail_for_dimension_mismatch(val, var.dim,
                                                 ('%s should be set with a '

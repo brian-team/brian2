@@ -2,8 +2,8 @@
 
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import inspect
 import textwrap
 import re
@@ -333,7 +333,7 @@ class NumpyDocString(object):
         out = []
         if self[name]:
             out += self._str_header(name)
-            for param,param_type,desc in self[name]:
+            for param, param_type, desc in self[name]:
                 out += ['%s : %s' % (param, param_type)]
                 out += self._str_indent(desc)
             out += ['']
@@ -458,7 +458,7 @@ class FunctionDoc(NumpyDocString):
         if self._role:
             if self._role not in roles:
                 print("Warning: invalid role %s" % self._role)
-            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role,''),
+            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role, ''),
                                              func_name)
 
         out += super(FunctionDoc, self).__str__(func_role=self._role)
@@ -509,11 +509,11 @@ class ClassDoc(NumpyDocString):
         if self._cls is None:
             return []
         analyzer = ModuleAnalyzer.for_module(self._cls.__module__)
-        instance_members = set([attr_name for (class_name, attr_name) in
-                                analyzer.find_attr_docs().keys()
-                                if class_name == self._cls.__name__])
-        class_members = set([name for name, func in getattr(self._cls, '__dict__').items()
-                             if not name.startswith('_') and (func is None or
-                                                              inspect.isdatadescriptor(func))])
+        instance_members = {attr_name for (class_name, attr_name) in
+                            analyzer.find_attr_docs().keys()
+                            if class_name == self._cls.__name__}
+        class_members = {name for name, func in getattr(self._cls, '__dict__').items()
+                         if not name.startswith('_') and (func is None or
+                                                          inspect.isdatadescriptor(func))}
 
         return instance_members | class_members

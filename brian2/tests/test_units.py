@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import itertools
 import warnings
 import pickle
@@ -1207,14 +1207,17 @@ def test_units_vs_quantities():
     # Unit objects should stay Unit objects under certain operations
     # (important e.g. in the unit definition of Equations, where only units but
     # not quantities are allowed)
-    assert type(meter**2) == Unit
-    assert type(meter**-1) == Unit
-    assert type(meter**0.5) == Unit
-    assert type(meter/second) == Unit
-    assert type(amp/meter**2) == Unit
-    assert type(1/meter) == Unit
-    assert type(1.0/meter) == Unit
+    assert isinstance(meter**2, Unit)
+    assert isinstance(meter**-1, Unit)
+    assert isinstance(meter**0.5, Unit)
+    assert isinstance(meter/second, Unit)
+    assert isinstance(amp/meter**2, Unit)
+    assert isinstance(1/meter, Unit)
+    assert isinstance(1.0/meter, Unit)
 
+    # Using the unconventional type(x) == y since we want to test that 
+    # e.g. meter**2 stays a Unit and does not become a Quantity however Unit 
+    # inherits from Quantity and therefore both would pass the isinstance test
     assert type(2/meter) == Quantity
     assert type(2*meter) == Quantity
     assert type(meter + meter) == Quantity

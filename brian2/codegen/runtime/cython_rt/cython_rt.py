@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import os
 import sys
 
@@ -131,7 +131,7 @@ class CythonCodeObject(NumpyCodeObject):
         except Exception as ex:
             logger.warn(('Cannot use Cython, a test compilation '
                          'failed: %s (%s)' % (str(ex),
-                                              ex.__class__.__name__)) ,
+                                              ex.__class__.__name__)),
                         'failed_compile_test')
             return False
 

@@ -1,6 +1,5 @@
 # coding=utf-8
-from __future__ import division
-from __future__ import absolute_import
+
 """
 Defines physical units and quantities
 
@@ -25,7 +24,6 @@ import itertools
 
 import numpy as np
 from numpy import VisibleDeprecationWarning
-from past.builtins import basestring
 from sympy import latex
 
 __all__ = [
@@ -626,7 +624,7 @@ def is_scalar_type(obj):
     try:
         return obj.ndim == 0
     except AttributeError:
-        return np.isscalar(obj) and not isinstance(obj, basestring)
+        return np.isscalar(obj) and not isinstance(obj, str)
 
 
 def get_dimensions(obj):
@@ -644,7 +642,7 @@ def get_dimensions(obj):
 
     Returns
     -------
-    dim: `Dimension`
+    dim : `Dimension`
         The physical dimensions of the `obj`.
     """
     try:
@@ -652,12 +650,7 @@ def get_dimensions(obj):
     except AttributeError:
         # The following is not very pretty, but it will avoid the costly
         # isinstance check for the common types
-        # Workaround for Python 3 which no longer has a long type
-        try:
-            long
-        except NameError:
-            long = int
-        if (type(obj) in [int, long, float, np.int32, np.int64,
+        if (type(obj) in [int, float, np.int32, np.int64,
                           np.float32, np.float64, np.ndarray] or
                 isinstance(obj, (numbers.Number, np.number, np.ndarray))):
             return DIMENSIONLESS
@@ -2348,7 +2341,7 @@ def check_units(**au):
             newkeyset = kwds.copy()
             arg_names = f.__code__.co_varnames[0:f.__code__.co_argcount]
             for (n, v) in zip(arg_names, args[0:f.__code__.co_argcount]):
-                if (not isinstance(v, (Quantity, basestring, bool))
+                if (not isinstance(v, (Quantity, str, bool))
                         and v is not None
                         and n in au):
                     try:
@@ -2368,7 +2361,7 @@ def check_units(**au):
                 # string variables are allowed to pass, the presumption is they
                 # name another variable. None is also allowed, useful for
                 # default parameters
-                if (k in au and not isinstance(newkeyset[k], basestring) and
+                if (k in au and not isinstance(newkeyset[k], str) and
                         not newkeyset[k] is None):
 
                     if au[k] == bool:

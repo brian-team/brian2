@@ -10,7 +10,7 @@ Usage: ``from brian2.only import *``
 
 # The units and utils package does not depend on any other Brian package and
 # should be imported first
-from __future__ import absolute_import
+
 from brian2.units import *
 from brian2.utils import *
 from brian2.core.tracking import *
@@ -95,7 +95,7 @@ __all__ = [
     'milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater',
     'exponential_euler',
     'gsl_rk2', 'gsl_rk4', 'gsl_rkf45', 'gsl_rkck', 'gsl_rk8pd',
-    'NumpyCodeObject', 'WeaveCodeObject', 'CythonCodeObject',
+    'NumpyCodeObject', 'CythonCodeObject',
     'get_local_namespace', 'DEFAULT_FUNCTIONS', 'DEFAULT_UNITS',
     'DEFAULT_CONSTANTS',
     'CodeRunner', 'Group', 'VariableOwner', 'NeuronGroup',

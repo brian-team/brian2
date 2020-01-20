@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
 '''
 Package contain all unit/integration tests for the `brian2` package.
 '''
@@ -8,8 +5,6 @@ import os
 import sys
 from io import StringIO
 import tempfile
-
-from past.builtins import basestring
 
 import numpy as np
 
@@ -139,7 +134,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     ----------
     codegen_targets : list of str or str
         A list of codegeneration targets or a single target, e.g.
-        ``['numpy', 'weave']`` to test. The whole test suite will be repeatedly
+        ``['numpy', 'cython']`` to test. The whole test suite will be repeatedly
         run with `codegen.target` set to the respective value. If not
         specified, all available code generation targets will be tested.
     long_tests : bool, optional
@@ -190,7 +185,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     if extra_test_dirs is None:
         extra_test_dirs = []
-    elif isinstance(extra_test_dirs, basestring):
+    elif isinstance(extra_test_dirs, str):
         extra_test_dirs = [extra_test_dirs]
     if additional_args is None:
         additional_args = []
@@ -200,20 +195,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     if codegen_targets is None:
         codegen_targets = ['numpy']
         try:
-            import scipy.weave
-            codegen_targets.append('weave')
-        except ImportError:
-            try:
-                import weave
-                codegen_targets.append('weave')
-            except ImportError:
-                pass
-        try:
             import Cython
             codegen_targets.append('cython')
         except ImportError:
             pass
-    elif isinstance(codegen_targets, basestring):  # allow to give a single target
+    elif isinstance(codegen_targets, str):  # allow to give a single target
         codegen_targets = [codegen_targets]
 
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -232,7 +218,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     all_targets = set(codegen_targets)
 
     if test_standalone:
-        if not isinstance(test_standalone, basestring):
+        if not isinstance(test_standalone, str):
             raise ValueError('test_standalone argument has to be the name of a '
                              'standalone device (e.g. "cpp_standalone")')
         if test_standalone not in all_devices:

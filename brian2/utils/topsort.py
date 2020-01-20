@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from copy import copy
 
 __all__ = ['topsort']
@@ -16,7 +16,7 @@ def topsort(graph):
     # List that will contain the sorted elements
     sorted_items = []
     # set of all nodes with no incoming edges:
-    no_incoming = set([node for node, edges in graph.items() if len(edges)==0])
+    no_incoming = {node for node, edges in graph.items() if len(edges)==0}
 
     while len(no_incoming):
         n = no_incoming.pop()

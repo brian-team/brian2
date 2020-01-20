@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from brian2.core.network import schedule_propagation_offset
 
 import pytest

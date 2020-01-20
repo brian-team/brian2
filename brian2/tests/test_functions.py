@@ -1,5 +1,5 @@
-from __future__ import print_function
-from __future__ import absolute_import
+
+
 import os
 
 import pytest
@@ -178,7 +178,7 @@ def test_timestep_function_during_run():
 
 @pytest.mark.standalone_compatible
 def test_user_defined_function():
-    @implementation('cpp',"""
+    @implementation('cpp', """
                 inline double usersin(double x)
                 {
                     return sin(x);
@@ -260,21 +260,6 @@ def test_simple_user_defined_function():
 
     assert_allclose(np.sin(test_array), mon.func_.flatten())
 
-    # Check that it raises an error for C++
-    try:
-        import scipy.weave
-        G = NeuronGroup(len(test_array),
-                        '''func = usersin(variable) : 1
-                              variable : 1''',
-                        codeobj_class=WeaveCodeObject)
-        mon = StateMonitor(G, 'func', record=True,
-                           codeobj_class=WeaveCodeObject)
-        net = Network(G, mon)
-        with pytest.raises(NotImplementedError):
-            net.run(0.1*ms)
-    except ImportError:
-        pass
-
 
 def test_manual_user_defined_function():
     if prefs.codegen.target != 'numpy':
@@ -342,37 +327,6 @@ def test_manual_user_defined_function():
     assert mon[0].func == [6] * volt
 
 
-def test_manual_user_defined_function_weave():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-
-    # User defined function without any decorators
-    def foo(x, y):
-        return x + y + 3*volt
-
-    foo = Function(foo, arg_units=[volt, volt], return_unit=volt)
-
-    code = {'support_code': '''
-    inline double foo(const double x, const double y)
-    {
-        return x + y + 3;
-    }
-    '''}
-
-    foo.implementations.add_implementation('cpp', code)
-
-    G = NeuronGroup(1, '''
-                       func = foo(x, y) : volt
-                       x : volt
-                       y : volt''')
-    G.x = 1*volt
-    G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
-    net = Network(G, mon)
-    net.run(defaultclock.dt)
-    assert mon[0].func == [6] * volt
-
-
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_manual_user_defined_function_cpp_standalone_compiler_args():
@@ -431,81 +385,6 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
 @pytest.mark.standalone_only
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
     set_device('cpp_standalone', directory=None)
-
-    @implementation('cpp', '''
-    static inline double foo(const double x, const double y)
-    {
-        return x + y + _THREE;
-    }''',  headers='<stdio.h>')  # existing argument, wrong value type
-    @check_units(x=volt, y=volt, result=volt)
-    def foo(x, y):
-        return x + y + 3*volt
-
-    G = NeuronGroup(1, '''
-                       func = foo(x, y) : volt
-                       x : volt
-                       y : volt''')
-    mon = StateMonitor(G, 'func', record=True)
-    net = Network(G, mon)
-    with pytest.raises(TypeError):
-        net.run(defaultclock.dt, namespace={'foo': foo})
-
-
-def test_manual_user_defined_function_weave_compiler_args():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-
-    @implementation('cpp', '''
-    static inline double foo(const double x, const double y)
-    {
-        return x + y + _THREE;
-    }''',  # just check whether we can specify the supported compiler args,
-           # only the define macro is actually used
-        headers=[], sources=[], libraries=[], include_dirs=[],
-        library_dirs=[], runtime_library_dirs=[],
-                    define_macros=[('_THREE', '3')])
-    @check_units(x=volt, y=volt, result=volt)
-    def foo(x, y):
-        return x + y + 3*volt
-
-    G = NeuronGroup(1, '''
-                       func = foo(x, y) : volt
-                       x : volt
-                       y : volt''')
-    G.x = 1*volt
-    G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
-    net = Network(G, mon)
-    net.run(defaultclock.dt)
-    assert mon[0].func == [6] * volt
-
-
-def test_manual_user_defined_function_weave_wrong_compiler_args1():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-
-    @implementation('cpp', '''
-    static inline double foo(const double x, const double y)
-    {
-        return x + y + _THREE;
-    }''',  some_arg=[])  # non-existing argument
-    @check_units(x=volt, y=volt, result=volt)
-    def foo(x, y):
-        return x + y + 3*volt
-
-    G = NeuronGroup(1, '''
-                       func = foo(x, y) : volt
-                       x : volt
-                       y : volt''')
-    mon = StateMonitor(G, 'func', record=True)
-    net = Network(G, mon)
-    with pytest.raises(ValueError):
-        net.run(defaultclock.dt, namespace={'foo': foo})
-
-
-def test_manual_user_defined_function_weave_wrong_compiler_args2():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
 
     @implementation('cpp', '''
     static inline double foo(const double x, const double y)
@@ -602,31 +481,6 @@ def test_external_function_cython():
     this_dir = os.path.abspath(os.path.dirname(__file__))
     @implementation('cython', 'from func_def_cython cimport foo',
                     sources=[os.path.join(this_dir, 'func_def_cython.pyx')])
-    @check_units(x=volt, y=volt, result=volt)
-    def foo(x, y):
-        return x + y + 3*volt
-
-    G = NeuronGroup(1, '''
-                       func = foo(x, y) : volt
-                       x : volt
-                       y : volt''')
-    G.x = 1*volt
-    G.y = 2*volt
-    mon = StateMonitor(G, 'func', record=True)
-    net = Network(G, mon)
-    net.run(defaultclock.dt)
-    assert mon[0].func == [6] * volt
-
-
-def test_external_function_weave():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-
-    this_dir = os.path.abspath(os.path.dirname(__file__))
-    @implementation('cpp', '//all code in func_def_cpp.cpp',
-                    headers=['"func_def_cpp.h"'],
-                    include_dirs=[this_dir],
-                    sources=[os.path.join(this_dir, 'func_def_cpp.cpp')])
     @check_units(x=volt, y=volt, result=volt)
     def foo(x, y):
         return x + y + 3*volt
@@ -765,72 +619,6 @@ def test_function_implementation_container():
 
     # Restore the previous codegeneration targets
     targets.codegen_targets = _previous_codegen_targets
-
-
-def test_function_dependencies_weave():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-
-    @implementation('cpp', '''
-    float foo(float x)
-    {
-        return 42*0.001;
-    }''')
-    @check_units(x=volt, result=volt)
-    def foo(x):
-        return 42*mV
-
-    # Second function with an independent implementation for numpy and an
-    # implementation for C++ that makes use of the previous function.
-
-    @implementation('cpp', '''
-    float bar(float x)
-    {
-        return 2*foo(x);
-    }''', dependencies={'foo': foo})
-    @check_units(x=volt, result=volt)
-    def bar(x):
-        return 84*mV
-
-    G = NeuronGroup(5, 'v : volt')
-    G.run_regularly('v = bar(v)')
-    net = Network(G)
-    net.run(defaultclock.dt)
-
-    assert_allclose(G.v_[:], 84*0.001)
-
-
-def test_function_dependencies_weave_rename():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-
-    @implementation('cpp', '''
-    float _foo(float x)
-    {
-        return 42*0.001;
-    }''', name='_foo')
-    @check_units(x=volt, result=volt)
-    def foo(x):
-        return 42*mV
-
-    # Second function with an independent implementation for numpy and an
-    # implementation for C++ that makes use of the previous function.
-
-    @implementation('cpp', '''
-    float bar(float x)
-    {
-        return 2*my_foo(x);
-    }''', dependencies={'my_foo': foo})
-    @check_units(x=volt, result=volt)
-    def bar(x):
-        return 84*mV
-
-    G = NeuronGroup(5, 'v : volt')
-    G.run_regularly('v = bar(v)')
-    net = Network(G)
-    net.run(defaultclock.dt)
-
-    assert_allclose(G.v_[:], 84*0.001)
 
 
 def test_function_dependencies_cython():
@@ -1083,15 +871,11 @@ if __name__ == '__main__':
             test_user_defined_function_units,
             test_simple_user_defined_function,
             test_manual_user_defined_function,
-            test_manual_user_defined_function_weave,
             test_external_function_cython,
-            test_external_function_weave,
             test_user_defined_function_discarding_units,
             test_user_defined_function_discarding_units_2,
             test_function_implementation_container,
             test_function_dependencies_numpy,
-            test_function_dependencies_weave,
-            test_function_dependencies_weave_rename,
             test_function_dependencies_cython,
             test_function_dependencies_cython_rename,
             test_repeated_function_dependencies,

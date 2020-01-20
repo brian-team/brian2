@@ -1,7 +1,6 @@
 {# ITERATE_ALL { _idx } #}
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
-from __future__ import division
 import numpy as _numpy
 
 from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange

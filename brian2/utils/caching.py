@@ -3,13 +3,10 @@ Module to support caching of function results to memory (used to cache results
 of parsing, generation of state update code, etc.). Provides the `cached`
 decorator.
 '''
-from __future__ import absolute_import
+
 import functools
 import collections
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2
-    from collections import Mapping
+from collections.abc import Mapping
 
 
 class CacheKey(object):

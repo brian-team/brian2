@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import uuid
 import tempfile
 import logging
@@ -412,7 +412,7 @@ def test_state_monitor_get_states():
 
 @pytest.mark.standalone_compatible
 def test_state_monitor_resize():
-    # Test for issue #518 (weave/cython did not resize the Variable object)
+    # Test for issue #518 (cython did not resize the Variable object)
     G = NeuronGroup(2, 'v : 1')
     mon = StateMonitor(G, 'v', record=True)
     defaultclock.dt = 0.1*ms

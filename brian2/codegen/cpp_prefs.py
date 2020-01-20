@@ -6,7 +6,8 @@ Preferences
 .. document_brian_prefs:: codegen.cpp
 
 '''
-from __future__ import absolute_import
+from setuptools import msvc
+import distutils
 from distutils.ccompiler import get_default_compiler
 import json
 import os
@@ -244,11 +245,6 @@ def update_for_cross_compilation(library_dirs, extra_compile_args,
 _msvc_env = None
 def get_msvc_env():
     global _msvc_env
-    from setuptools import msvc
-    import distutils
-    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-    if vcvars_loc:
-        return vcvars_loc, None
     arch_name = prefs['codegen.cpp.msvc_architecture']
     if arch_name == '':
         bits = struct.calcsize('P') * 8
@@ -256,30 +252,23 @@ def get_msvc_env():
             arch_name = 'x86_amd64'
         else:
             arch_name = 'x86'
-    if _msvc_env is None:
-        try:
-            # This will fail on Python 2 with an AttributError
-            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
-        except (distutils.errors.DistutilsPlatformError, AttributeError):
-            # Use the old way of searching for MSVC
-            # FIXME: Remove this when we remove Python 2 support
-            #        and require Visual Studio 2015?
-            for version in range(16, 8, -1):
-                fname = msvc.msvc9_find_vcvarsall(version)
-                if fname:
-                    vcvars_loc = fname
-                    break
-            if vcvars_loc == '':
-                raise IOError("Cannot find Microsoft Visual Studio, You "
-                              "can try to set the path to vcvarsall.bat "
-                              "via the codegen.cpp.msvc_vars_location "
-                              "preference explicitly.")
+    # Manual specification of vcvarsall.bat location by the user
+    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
     if vcvars_loc:
         vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(vcvars_loc=vcvars_loc,
                                                          arch_name=arch_name)
-    else:
-        vcvars_cmd = None
-    return _msvc_env, vcvars_cmd
+        return None, vcvars_cmd
+
+    # Search for MSVC environemtn if not already cached
+    if _msvc_env is None:
+        try:
+            _msvc_env = msvc.msvc14_get_vc_env(arch_name)
+        except distutils.errors.DistutilsPlatformError:
+            raise IOError("Cannot find Microsoft Visual Studio, You "
+                          "can try to set the path to vcvarsall.bat "
+                          "via the codegen.cpp.msvc_vars_location "
+                          "preference explicitly.")
+    return _msvc_env, None
 
 
 _compiler_supports_c99 = None

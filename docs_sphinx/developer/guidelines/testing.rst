@@ -20,7 +20,7 @@ targets. If you only want to test a specific target, provide it as an argument::
 
 If you want to test several targets, use a list of targets::
 
-    >>> brian2.test(['weave', 'cython'])  # doctest: +SKIP
+    >>> brian2.test(['cython'])  # doctest: +SKIP
 
 
 In addition to the tests specific to a code generation target, the test suite

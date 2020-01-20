@@ -55,7 +55,7 @@ ylabel('V (mV)')
 title('Voltage traces')
 
 subplot(222)
-plot(M[0].v/mV, M[compartment16].m,'k')
+plot(M[0].v/mV, M[compartment16].m, 'k')
 plot(M[0].v/mV, 1 / (1 + exp((va - M[0].v) / ka)), 'k--')
 plot(M[0].v/mV, M[compartment12].m2, 'r')
 plot(M[0].v/mV, 1 / (1 + exp((va2 - M[0].v) / ka)), 'r--')

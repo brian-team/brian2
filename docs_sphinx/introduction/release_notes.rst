@@ -1,6 +1,7 @@
 Release notes
 =============
 
+.. _brian2.3:
 Brian 2.3
 ---------
 This release contains the usual mix of bug fixes and new features (see below), but

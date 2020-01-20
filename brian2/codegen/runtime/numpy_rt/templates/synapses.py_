@@ -1,5 +1,4 @@
 {# USES_VARIABLES { _queue } #}
-from __future__ import division
 import numpy as _numpy
 
 _spiking_synapses = _queue.peek()

@@ -24,7 +24,7 @@ Molar mass constant  :math:`M_u`        ``molar_mass_constant`` :math:`1\times 1
 0°C                                     ``zero_celsius``        :math:`273.15\,\mathrm{K}`
 ==================== ================== ======================= ==================================================================
 '''
-from __future__ import absolute_import
+
 import numpy as np
 
 from .allunits import (amp, coulomb, farad, gram, joule, kelvin, kilogram,

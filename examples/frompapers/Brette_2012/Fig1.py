@@ -56,7 +56,7 @@ subplot(223)
 # Number of simulation time steps for each volt increment in the voltage-clamp
 dt_per_volt = len(mon.t)/(50*mV)
 for v in [-64*mV, -61*mV, -58*mV, -55*mV]:
-    plot(mon.v[:100 ,int(dt_per_volt*(v - EL))]/mV, 'k')
+    plot(mon.v[:100, int(dt_per_volt*(v - EL))]/mV, 'k')
 xlabel('Distance from soma (um)')
 ylabel('V (mV)')
 title('Voltage across axon')

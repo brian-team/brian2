@@ -33,7 +33,7 @@ Notes
 * Other small discrepancies with the paper -- values from the NEURON code were
   used whenever different from the values stated in the paper
 '''
-from __future__ import print_function
+
 from brian2 import *
 from brian2.units.constants import (zero_celsius, faraday_constant as F,
                                     gas_constant as R)

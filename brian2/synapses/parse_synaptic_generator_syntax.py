@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from brian2 import *
 from brian2.parsing.rendering import NodeRenderer
 import ast
@@ -150,7 +150,7 @@ def parse_synapse_generator(expr):
         keywords[kwdnode.arg] = nr.render_node(kwdnode.value)
     try:
         iterator_handler = iterator_function_handlers[iterator_funcname]
-        iterator_kwds = iterator_handler(*args,**keywords)
+        iterator_kwds = iterator_handler(*args, **keywords)
     except SyntaxError as exc:
         raise SyntaxError(parse_error + " " + exc.msg)
     if len(generator.ifs) == 0:

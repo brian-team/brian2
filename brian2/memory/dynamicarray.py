@@ -1,7 +1,7 @@
 '''
 TODO: rewrite this (verbatim from Brian 1.x), more efficiency
 '''
-from __future__ import absolute_import
+
 from numpy import *
 
 __all__ = ['DynamicArray', 'DynamicArray1D']

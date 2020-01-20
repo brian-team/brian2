@@ -116,9 +116,8 @@ implementations for these targets have to be added. This can be achieved using
 the `implementation` decorator. The form of the code (e.g. a simple string or
 a dictionary of strings) necessary is target-dependent, for C++ both options
 are allowed, a simple string will be interpreted as filling the
-``'support_code'`` block. Note that both ``'cpp'`` and ``'weave'`` can be used
-to provide C++ implementations, the first should be used for generic C++
-implementations, and the latter if weave-specific code is necessary. An
+``'support_code'`` block. Note that ``'cpp'`` is used
+to provide C++ implementations. An
 implementation for the C++ target could look like this::
 
     @implementation('cpp', '''
@@ -197,17 +196,17 @@ The list of currently supported additional arguments (for further explications,
 see the respective :doc:`preferences` and the Python documentation of the
 `distutils.core.Extension` class):
 
-========================   ====== ============== ======
-keyword                    weave  C++ standalone Cython
-========================   ====== ============== ======
-``headers``                ✓      ✓              ❌
-``sources``                ✓      ✓              ✓
-``define_macros``          ✓      ✓              ❌
-``libraries``              ✓      ✓              ✓
-``include_dirs``           ✓      ✓              ✓
-``library_dirs``           ✓      ✓              ✓
-``runtime_library_dirs``   ✓      ✓              ✓
-========================   ====== ============== ======
+========================   ============== ======
+keyword                    C++ standalone Cython
+========================   ============== ======
+``headers``                ✓              ❌
+``sources``                ✓              ✓
+``define_macros``          ✓              ❌
+``libraries``              ✓              ✓
+``include_dirs``           ✓              ✓
+``library_dirs``           ✓              ✓
+``runtime_library_dirs``   ✓              ✓
+========================   ============== ======
 
 Arrays vs. scalar values in user-provided functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -216,7 +215,7 @@ referring to all the neurons in a `NeuronGroup`, all the synapses in a
 `Synapses` object, etc. Therefore, function calls also apply to more than a
 single value. The way in which this is handled differs between code generation
 targets that support vectorized expressions (e.g. the ``numpy`` target) and
-targets that don't (e.g. the ``weave`` target or the ``cpp_standalone`` mode).
+targets that don't (e.g. the ``cpp_standalone`` mode).
 If the code generation target supports vectorized expressions, it will receive
 an array of values. For example, in the ``piecewise_linear`` example above, the
 argument ``I`` will be an array of values and the function returns an array of
@@ -286,7 +285,7 @@ targets, values can be passed in the ``namespace`` argument of the
 values are then accessible in the function code under the given name, prefixed
 with ``_namespace``. Note that this mechanism should only be used for numpy
 arrays or general objects (e.g. function references to call Python functions
-from weave or Cython code). Scalar values should be directly included in the
+from Cython code). Scalar values should be directly included in the
 function code, by using a "dynamic implemention" (see
 `~brian2.core.functions.FunctionImplementationContainer.add_dynamic_implementation`).
 
@@ -318,7 +317,7 @@ External source files
 Code for functions can also be provided via external files in the target
 language. This can be especially useful for linking to existing code without
 having to include it a second time in the Python script. For C++-based code
-generation targets (i.e. ``weave`` and the C++ standalone mode), the external
+generation targets (i.e. the C++ standalone mode), the external
 code should be in a file that is provided as an argument to the ``sources``
 keyword, together with a header file whose name is provided to ``headers``
 (see the note for the `codegen.cpp.headers` preference about the necessary

@@ -1,7 +1,7 @@
 '''
 GSLCodeGenerators for code that uses the ODE solver provided by the GNU Scientific Library (GSL)
 '''
-from __future__ import absolute_import
+
 import os
 import re
 import sys
@@ -22,7 +22,7 @@ from brian2.codegen.generators import c_data_type
 
 from brian2.core.preferences import PreferenceError
 
-__all__ = ['GSLCodeGenerator', 'GSLWeaveCodeGenerator', 'GSLCythonCodeGenerator']
+__all__ = ['GSLCodeGenerator', 'GSLCPPCodeGenerator', 'GSLCythonCodeGenerator']
 
 
 def valid_gsl_dir(val):
@@ -682,7 +682,7 @@ class GSLCodeGenerator(object):
         for from_sub, to_sub in list(to_replace.items()):
             m = re.search('\[(\w+)\];?$', from_sub)
             if m:
-                code = re.sub(re.sub('\[','\[', from_sub), to_sub, code)
+                code = re.sub(re.sub('\[', '\[', from_sub), to_sub, code)
 
         if '_gsl' in code:
             raise AssertionError(('Translation failed, _gsl still in code (should only '
@@ -757,7 +757,7 @@ class GSLCodeGenerator(object):
             value
         '''
         for var, ind in list(diff_vars.items()):
-            name = '_gsl_{var}_f{ind}'.format(var=var,ind=ind)
+            name = '_gsl_{var}_f{ind}'.format(var=var, ind=ind)
             self.variables[name] = AuxiliaryVariable(var, scalar=False)
 
     def add_meta_variables(self, options):
@@ -997,7 +997,7 @@ class GSLCythonCodeGenerator(GSLCodeGenerator):
         return CythonCodeGenerator.get_array_name(var, access_data)
 
 
-class GSLWeaveCodeGenerator(GSLCodeGenerator):
+class GSLCPPCodeGenerator(GSLCodeGenerator):
 
     def __getattr__(self, item):
         return getattr(self.generator, item)
@@ -1025,7 +1025,7 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
         f = 'f[{ind}]'.format(ind=ind)
         try:
             if 'unless refractory' in self.variable_flags[var]:
-                return {'_gsl_{var}_f{ind}'.format(var=var,ind=ind) : f,
+                return {'_gsl_{var}_f{ind}'.format(var=var, ind=ind) : f,
                         '{scalar_dtype} _gsl_{var}_f{ind};'.format(var=var, ind=ind,
                                                                    scalar_dtype=scalar_dtype): '',
                         '{scalar_dtype} {f};'.format(f=f, scalar_dtype=scalar_dtype): ''} # in case the replacement
@@ -1053,8 +1053,3 @@ class GSLWeaveCodeGenerator(GSLCodeGenerator):
             else:
                 return ''
 
-    @staticmethod
-    def get_array_name( var, access_data=True):
-        # We have to do the import here to avoid circular import dependencies.
-        from brian2.codegen.runtime.weave_rt import WeaveCodeGenerator
-        return WeaveCodeGenerator.get_array_name(var, access_data)

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import re, inspect, textwrap, pydoc
 import sphinx
 from sphinx.pycode import ModuleAnalyzer
@@ -168,8 +168,8 @@ class SphinxDocString(NumpyDocString):
         if len(idx) == 0:
             return out
 
-        out += ['.. index:: %s' % idx.get('default','')]
-        for section, references in idx.iteritems():
+        out += ['.. index:: %s' % idx.get('default', '')]
+        for section, references in idx.items():
             if section == 'default':
                 continue
             elif section == 'refguide':
@@ -189,9 +189,9 @@ class SphinxDocString(NumpyDocString):
             # Latex collects all references to a separate bibliography,
             # so we need to insert links to it
             if sphinx.__version__ >= "0.6":
-                out += ['.. only:: latex','']
+                out += ['.. only:: latex', '']
             else:
-                out += ['.. latexonly::','']
+                out += ['.. latexonly::', '']
             items = []
             for line in self['References']:
                 m = re.match(r'.. \[([a-z0-9._-]+)\]', line, re.I)

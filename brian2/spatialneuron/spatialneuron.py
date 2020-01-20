@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 '''
 Compartmental models.
 This module defines the `SpatialNeuron` class, which defines multicompartmental
@@ -9,7 +8,6 @@ import copy
 
 import sympy as sp
 import numpy as np
-from past.builtins import basestring
 
 from brian2.core.variables import Variables
 from brian2.equations.equations import (Equations, PARAMETER, SUBEXPRESSION,
@@ -237,7 +235,7 @@ class SpatialNeuron(NeuronGroup):
                  method_options=None):
 
         # #### Prepare and validate equations
-        if isinstance(model, basestring):
+        if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
             raise TypeError(('model has to be a string or an Equations '
@@ -292,7 +290,7 @@ class SpatialNeuron(NeuronGroup):
                 membrane_expr = Expression(
                     str(membrane_expr.code) + '+' + eq.varname + '/area')
                 eq = SingleEquation(eq.type, eq.varname, eq.dim, expr=eq.expr,
-                                    flags=list(set(eq.flags)-set(['point current'])))
+                                    flags=list(set(eq.flags)-{'point current'}))
             model_equations.append(eq)
 
         model_equations.append(SingleEquation(SUBEXPRESSION, 'Im',
@@ -627,6 +625,6 @@ class SpatialStateUpdater(CodeRunner, Group):
                 logger.info(('SpatialNeuron will use numpy to do the numerical '
                              'integration -- this will be very slow. Either '
                              'switch to a different code generation target '
-                             '(e.g. weave or cython) or install scipy.'),
+                             '(e.g. cython) or install scipy.'),
                             once=True)
         CodeRunner.before_run(self, run_namespace)

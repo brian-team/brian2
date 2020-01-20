@@ -16,7 +16,7 @@ Not working examples:
 * time_varying_filter1 (care with units)
 '''
 
-from __future__ import absolute_import
+
 try:
     import brian as b1
     import brian.hears as b1h

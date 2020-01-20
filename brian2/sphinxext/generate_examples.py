@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import os
 import fnmatch
 import shutil
@@ -17,7 +17,7 @@ class GlobDirectoryWalker:
         self.index = 0
 
     def __getitem__(self, index):
-        while 1:
+        while True:
             try:
                 file = self.files[self.index]
                 self.index = self.index + 1

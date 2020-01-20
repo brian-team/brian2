@@ -6,7 +6,6 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets, N,
 #}
 {# This is to show that we don't need to index the sources/targets #}
 {# ITERATE_ALL { _idx } #}
-from __future__ import division
 import numpy as _numpy
 
 {# After this code has been executed, the arrays _real_sources and

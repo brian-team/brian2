@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 '''
 Module implementing the C++ "standalone" device.
 '''
@@ -16,7 +16,6 @@ import tempfile
 from distutils import ccompiler
 
 import numpy as np
-from past.builtins import basestring
 
 import brian2
 from brian2.codegen.codeobject import check_compiler_kwds
@@ -123,7 +122,6 @@ class CPPStandaloneDevice(Device):
     '''
     The `Device` used for C++ standalone simulations.
     '''
-    msvc_env = None  #: cached environment variables for MSVC
 
     def __init__(self):
         super(CPPStandaloneDevice, self).__init__()
@@ -239,7 +237,7 @@ class CPPStandaloneDevice(Device):
                     v = v.get_value()
                 except NotImplementedError:
                     continue
-            if isinstance(v, basestring):
+            if isinstance(v, str):
                 code = word_substitute(code, {k: v})
             elif isinstance(v, numbers.Number):
                 # Use a renderer to correctly transform constants such as True or inf
@@ -929,48 +927,8 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
-        from setuptools import msvc
-        import distutils
-        num_threads = prefs.devices.cpp_standalone.openmp_threads
         with in_directory(directory):
             if compiler == 'msvc':
-                # TODO: copy vcvars and make replacements for 64 bit automatically
-                arch_name = prefs['codegen.cpp.msvc_architecture']
-                if arch_name == '':
-                    bits = struct.calcsize('P') * 8
-                    if bits == 64:
-                        arch_name = 'x86_amd64'
-                    else:
-                        arch_name = 'x86'
-                vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-                if vcvars_loc == '':
-                    msvc_env = CPPStandaloneDevice.msvc_env
-                    if msvc_env is None:
-                        try:
-                            # Note that the following seems to fail on Python 2 (at least
-                            # under some configurations), we catch the AttributeError that
-                            # gets raised below
-                            msvc_env = msvc.msvc14_get_vc_env(arch_name)
-                            # Cache the result
-                            CPPStandaloneDevice.msvc_env = msvc_env
-                        except (AttributeError, distutils.errors.DistutilsPlatformError):
-                            # Use the old way of searching for MSVC
-                            # FIXME: Remove this when we remove Python 2 support
-                            #        and require Visual Studio 2015?
-                            for version in range(16, 8, -1):
-                                fname = msvc.msvc9_find_vcvarsall(version)
-                                if fname:
-                                    vcvars_loc = fname
-                                    break
-                            if vcvars_loc == '':
-                                raise IOError("Cannot find Microsoft Visual Studio, You "
-                                              "can try to set the path to vcvarsall.bat "
-                                              "via the codegen.cpp.msvc_vars_location "
-                                              "preference explicitly.")
-                if vcvars_loc:
-                    vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(
-                            vcvars_loc=vcvars_loc, arch_name=arch_name)
-
                 msvc_env, vcvars_cmd = get_msvc_env()
                 make_cmd = 'nmake /f win_makefile'
                 make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_windows)
@@ -1447,7 +1405,7 @@ class CPPStandaloneDevice(Device):
             report_func = standard_code.replace('%STREAMNAME%', 'std::cout')
         elif report == 'stderr':
             report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
-        elif isinstance(report, basestring):
+        elif isinstance(report, str):
             report_func = '''
             void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import ast
 import inspect
 
@@ -94,12 +94,7 @@ def abstract_code_from_function(func):
         else:
             lines.append(nr.render_node(node))
     abstract_code = '\n'.join(lines)
-    try:
-        # Python 2
-        args = [arg.id for arg in funcnode.args.args]
-    except AttributeError:
-        # Python 3
-        args = [arg.arg for arg in funcnode.args.args]
+    args = [arg.arg for arg in funcnode.args.args]
     name = funcnode.name
     return AbstractCodeFunction(name, args, abstract_code, return_expr)
 
@@ -235,8 +230,8 @@ def substitute_abstract_code_functions(code, funcs):
     ids = get_identifiers(code)
     funcstarts = {}
     for func in funcs.values():
-        subids = set([id for id in ids if id.startswith('_inline_'+func.name+'_')])
-        subids = set([id.replace('_inline_'+func.name+'_', '') for id in subids])
+        subids = {id for id in ids if id.startswith('_inline_'+func.name+'_')}
+        subids = {id.replace('_inline_'+func.name+'_', '') for id in subids}
         alli = []
         for subid in subids:
             p = subid.find('_')

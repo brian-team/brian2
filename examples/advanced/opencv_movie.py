@@ -1,6 +1,6 @@
 '''
 An example that uses a function from external C library (OpenCV in this case).
-Works for all C-based code generation targets (i.e. for weave and cpp_standalone
+Works for all C-based code generation targets (i.e. for cython and cpp_standalone
 device) and for numpy (using the Python bindings).
 
 This example needs a working installation of OpenCV 3.x and its Python bindings.
@@ -8,20 +8,20 @@ It has been tested on 64 bit Linux in a conda environment with packages from the
 ``conda-forge`` channels (opencv 3.4.4, x264 1!152.20180717, ffmpeg 4.1).
 '''
 import os
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import cv2  # Import OpenCV2
 
 from brian2 import *
 
 defaultclock.dt = 1*ms
-prefs.codegen.target = 'weave'
+prefs.codegen.target = 'cython'
 prefs.logging.std_redirection = False
 set_device('cpp_standalone', clean=True)
 filename = os.path.abspath('Megamind.avi')
 
 if not os.path.exists(filename):
     print('Downloading the example video file')
-    response = urllib2.urlopen('http://docs.opencv.org/2.4/_downloads/Megamind.avi')
+    response = urllib.request.urlopen('http://docs.opencv.org/2.4/_downloads/Megamind.avi')
     data = response.read()
     with open(filename, 'wb') as f:
         f.write(data)

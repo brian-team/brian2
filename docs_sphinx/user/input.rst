@@ -215,7 +215,7 @@ of a simulation, Brian allows you to write a `NetworkOperation`, an arbitrary
 Python function that is executed every time step (possible on a different clock
 than the rest of the simulation). This function can do arbitrary operations,
 use conditional statements etc. and it will be executed as it is (i.e. as pure
-Python code even if weave code generation is active). Note that one cannot use
+Python code even if cython code generation is active). Note that one cannot use
 network operations in combination with the C++ standalone mode. Network
 operations are particularly useful when some condition or calculation depends
 on operations across neurons, which is currently not possible to express in

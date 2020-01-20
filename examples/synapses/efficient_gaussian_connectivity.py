@@ -105,13 +105,13 @@ repeats = array([100, 10, 10, 1, 1, 1])*3
 naive(10)
 limited(10)
 divided(10)
-print 'Starting naive'
+print('Starting naive')
 loglog(N, [repeated_run(naive, n, r) for n, r in zip(N, repeats)],
        label='Naive', lw=2)
-print 'Starting limit'
+print('Starting limit')
 loglog(N, [repeated_run(limited, n, r) for n, r in zip(N, repeats)],
        label='Limited', lw=2)
-print 'Starting divided'
+print('Starting divided')
 loglog(N, [repeated_run(divided, n, r) for n, r in zip(N, repeats)],
        label='Divided', lw=2)
 xlabel('N')

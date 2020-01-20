@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import itertools
 
 import numpy as np
@@ -157,7 +157,7 @@ class NumpyCodeGenerator(CodeGenerator):
             if self._use_ufunc_at_vectorisation:
                 logger.info("Failed to vectorise code, falling back on Python loop: note that "
                             "this will be very slow! Switch to another code generation target for "
-                            "best performance (e.g. cython or weave). First line is: "+str(statements[0]),
+                            "best performance (e.g. cython). First line is: "+str(statements[0]),
                             once=True)
             lines = []
             lines.extend(['_full_idx = _idx',

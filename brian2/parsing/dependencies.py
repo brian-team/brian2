@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import ast
 
 from brian2.utils.stringtools import deindent

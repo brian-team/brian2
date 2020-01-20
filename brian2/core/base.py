@@ -1,14 +1,10 @@
-from __future__ import absolute_import
 '''
 All Brian objects should derive from `BrianObject`.
 '''
-
 import weakref
 import traceback
 import os
 import sys
-
-from past.builtins import basestring
 
 from brian2.utils.logger import get_logger
 from brian2.core.names import Nameable
@@ -77,7 +73,7 @@ class BrianObject(Nameable):
         if dt is not None and clock is not None:
             raise ValueError('Can only specify either a dt or a clock, not both.')
 
-        if not isinstance(when, basestring):
+        if not isinstance(when, str):
             from brian2.core.clocks import Clock
             # Give some helpful error messages for users coming from the alpha
             # version

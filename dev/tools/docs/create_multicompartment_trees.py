@@ -64,7 +64,7 @@ if __name__ == '__main__':
     length = 80*um
     morpho = Soma(diameter=diameter)
     endpoints = {morpho}
-    for depth in xrange(1, 10):
+    for depth in range(1, 10):
         diameter /= 2.**(1./3.)
         length /= 2.**(2./3.)
         new_endpoints = set()
@@ -78,7 +78,7 @@ if __name__ == '__main__':
             endpoint.L = new_L
             endpoint.R = new_R
         endpoints = new_endpoints
-    print 'total number of sections and compartments', morpho.n_sections, len(morpho)
+    print('total number of sections and compartments', morpho.n_sections, len(morpho))
     morpho_with_coords = morpho.generate_coordinates()
 
     ax = plt.subplot(111)
@@ -89,13 +89,13 @@ if __name__ == '__main__':
 
     plt.savefig(os.path.join(PATH, 'morphology_deterministic_coords.png'))
 
-    print 'be careful, this plotting takes a long time'
+    print('be careful, this plotting takes a long time')
     for title, noise_sec, noise_comp in [('section', 25, 0),
                                          ('section_compartment', 25, 15)]:
 
-        for idx in xrange(3):
+        for idx in range(3):
             fig = mayavi.figure(bgcolor=(0.95, 0.95, 0.95))
-            print idx
+            print(idx)
             morpho_with_coords = morpho.generate_coordinates(section_randomness=noise_sec,
                                                  compartment_randomness=noise_comp)
             plot_morphology3D(morpho_with_coords)

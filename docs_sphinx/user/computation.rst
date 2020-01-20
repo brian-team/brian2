@@ -38,33 +38,26 @@ Runtime code generation
 -----------------------
 Code generation means that Brian takes the Python code and strings
 in your model and generates code in one of several possible different
-languages and actually executes that. The target language for this code
+languages which is then executed. The target language for this code
 generation process is set in the `codegen.target` preference. By default, this
-preference is set to ``'auto'``, meaning that it will chose a compiled language
-target if possible and fall back to Python otherwise (it will also raise a warning
-in this case, set `codegen.target` to ``'numpy'`` explicitly to avoid this warning).
-There are two compiled language targets for Python 2.x, ``'weave'`` (needing a
-working installation of a C++ compiler) and ``'cython'`` (needing the `Cython`_
-package in addition); for Python 3.x, only ``'cython'`` is available. If you want to
+preference is set to ``'auto'``, meaning that it will choose the compiled language
+target if possible and fall back to Python otherwise (also raising a warning).
+The compiled language target is ``'cython'`` which needs the `Cython`_ package in
+addition to a working C++ compiler. If you want to
 chose a code generation target explicitly (e.g. because you want to get rid of the
-warning that only the Python fallback is available), set the preference to ``'numpy'``,
-``'weave'`` or ``'cython'`` at the beginning of your script::
+warning that only the Python fallback is available), set the preference to ``'numpy'``
+or ``'cython'`` at the beginning of your script::
 
     from brian2 import *
     prefs.codegen.target = 'numpy'  # use the Python fallback
 
 See :doc:`../advanced/preferences` for different ways of setting preferences.
 
-.. warning::
-    Do not use the ``weave`` code generation targets when running multiple
-    simulations in parallel. See :doc:`../introduction/known_issues` for more
-    details.
-
  .. _Cython: http://cython.org/
 
 Caching
 ~~~~~~~
-When you run code with ``weave`` or ``cython`` for the first time, it will take
+When you run code with ``cython`` for the first time, it will take
 some time to compile the code. For short simulations, this can make these
 targets to appear slow compared to the ``numpy`` target where such compilation
 is not necessary. However, the compiled code is stored on disk and will be
@@ -235,7 +228,7 @@ content, use the ``force`` option::
 Compiler settings
 -----------------
 
-If using C++ code generation (either via weave, cython or standalone), the
+If using C++ code generation (either via cython or standalone), the
 compiler settings can make a big difference for the speed of the simulation.
 By default, Brian uses a set of compiler settings that switches on various
 optimizations and compiles for running on the same architecture where the

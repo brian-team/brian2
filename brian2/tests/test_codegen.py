@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from collections import namedtuple
 import os
 
@@ -307,7 +307,7 @@ def test_apply_loop_invariant_optimisation_simplification():
         Statement('v1', '=', 'i1*1.0', '', float),
         Statement('v1', '=', '1.0*i1', '', float),
         Statement('v1', '=', 'i1/1.0', '', float),
-        Statement('v1', '=', 'i1/1'  , '', float),
+        Statement('v1', '=', 'i1/1', '', float),
         Statement('v1', '=', 'i1+0.0', '', float),
         Statement('v1', '=', '0.0+i1', '', float),
         Statement('v1', '=', 'i1-0.0', '', float),
@@ -320,7 +320,7 @@ def test_apply_loop_invariant_optimisation_simplification():
     for s in vector[:6]:
         assert s.expr == '0.0'
     for s in vector[6:10]:
-        assert s.expr == '0',s.expr  # integer
+        assert s.expr == '0', s.expr  # integer
     for s in vector[10:18]:
         expr = s.expr.replace(' ', '')
         assert expr == 'v1*N' or expr == 'N*v1'

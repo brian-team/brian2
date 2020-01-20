@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-
 import uuid
 import re
-
-from past.builtins import basestring
 
 from brian2.utils.logger import get_logger
 from brian2.core.tracking import Trackable
@@ -71,7 +67,7 @@ class Nameable(Trackable):
 
         self.assign_id()
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, str):
             raise TypeError(('"name" argument has to be a string, is type '
                              '{type} instead').format(type=repr(type(name))))
         if not re.match(r"[_A-Za-z][_a-zA-Z0-9]*\*?$", name):

@@ -33,7 +33,7 @@ stimulation.x = [0, 0.5] # Asynchronous
 
 # Synapses
 w = 20*nS
-S = Synapses(stimulation, neuron,on_pre='gs += w')
+S = Synapses(stimulation, neuron, on_pre='gs += w')
 S.connect(i=0, j=morpho.L[99.9*um])
 S.connect(i=1, j=morpho.R[99.9*um])
 

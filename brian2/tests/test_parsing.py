@@ -1,8 +1,7 @@
 '''
 Tests the brian2.parsing package
 '''
-from __future__ import division  # Make sure that we use Python 3 semantics in Python 2
-from __future__ import absolute_import
+
 from collections import namedtuple
 
 import pytest
@@ -10,7 +9,6 @@ import numpy as np
 
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
-from brian2.codegen.runtime.weave_rt.weave_rt import get_compiler_and_args
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
@@ -31,14 +29,6 @@ from brian2.parsing.functions import (abstract_code_from_function,
 from brian2.units import (volt, amp, DimensionMismatchError,
                           have_same_dimensions, Unit, get_unit)
 from brian2.tests.utils import assert_allclose
-
-try:
-    from scipy import weave
-except ImportError:
-    try:
-        import weave
-    except ImportError:
-        weave = None
 
 
 # a simple Group for testing
@@ -130,24 +120,7 @@ def numpy_evaluator(expr, userns):
         return x[0]
     else:
         return x
-    
-    
-def cpp_evaluator(expr, ns):
-    compiler, extra_compile_args = get_compiler_and_args()
-    library_dirs = prefs['codegen.cpp.library_dirs']
-    extra_link_args = prefs['codegen.cpp.extra_link_args']
-    update_for_cross_compilation(library_dirs,
-                                 extra_compile_args,
-                                 extra_link_args)
-    with std_silent():
-        return weave.inline('return_val = %s;' % expr, list(ns), local_dict=ns,
-                            support_code=CPPCodeGenerator.universal_support_code,
-                            compiler=compiler,
-                            extra_compile_args=extra_compile_args,
-                            extra_link_args=extra_link_args,
-                            library_dirs=library_dirs,
-                            include_dirs=prefs['codegen.cpp.include_dirs']
-                            )
+
 
 @pytest.mark.codegen_independent
 def test_parse_expressions_python():
@@ -157,12 +130,6 @@ def test_parse_expressions_python():
 @pytest.mark.codegen_independent
 def test_parse_expressions_numpy():
     parse_expressions(NumpyNodeRenderer(), numpy_evaluator)
-
-
-def test_parse_expressions_cpp():
-    if prefs.codegen.target != 'weave':
-        pytest.skip('weave-only test')
-    parse_expressions(CPPNodeRenderer(), cpp_evaluator)
 
 
 @pytest.mark.codegen_independent

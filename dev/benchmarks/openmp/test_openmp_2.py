@@ -32,7 +32,7 @@ pylab.xlabel('Time [s]')
 pylab.ylabel('# cell')
 for t in threads:
     pylab.plot(results[t]['spikes'][0], results[t]['spikes'][1], '.')
-pylab.legend(map(str, threads))
+pylab.legend([str(t) for t in threads])
 pylab.xlim(0.5, 0.55)
 
 pylab.subplot(222)
@@ -41,7 +41,7 @@ pylab.xlabel('Time [s]')
 pylab.ylabel('Weight [ns]')
 for t in threads:
     pylab.plot(results[t]['trace_w'][0], results[t]['trace_w'][1])
-pylab.legend(map(str, threads))
+pylab.legend([str(t) for t in threads])
 
 pylab.subplot(223)
 pylab.title('Final Distribution')
@@ -50,7 +50,7 @@ pylab.ylabel('Number of synapses')
 for t in threads:
     x, y = numpy.histogram(results[t]['w'], 100)
     pylab.plot(y[1:], x)
-pylab.legend(map(str, threads))
+pylab.legend([str(t) for t in threads])
 
 pylab.subplot(224)
 pylab.title('Speed')

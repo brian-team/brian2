@@ -1,5 +1,5 @@
 # encoding: utf8
-from __future__ import absolute_import
+
 import sys
 
 import numpy as np
@@ -8,7 +8,6 @@ try:
 except ImportError:
     pprint = None
 import pytest
-from past.builtins import basestring
 
 from brian2 import volt, mV, second, ms, Hz, farad, metre
 from brian2 import Unit, Equations, Expression
@@ -399,13 +398,13 @@ def test_properties():
             isinstance(eqs.diff_eq_expressions[0][1], Expression))
     assert eqs.diff_eq_names == {'v'}
     assert (len(eqs.eq_expressions) == 3 and
-            set([name for name, _ in eqs.eq_expressions]) == {'v', 'I', 'f'} and
+            {name for name, _ in eqs.eq_expressions} == {'v', 'I', 'f'} and
             all((isinstance(expr, Expression) for _, expr in eqs.eq_expressions)))
     assert len(eqs.eq_names) == 3 and eqs.eq_names == {'v', 'I', 'f'}
     assert set(eqs.keys()) == {'v', 'I', 'f', 'freq'}
     # test that the equations object is iterable itself
     assert all((isinstance(eq, SingleEquation) for eq in eqs.values()))
-    assert all((isinstance(eq, basestring) for eq in eqs))
+    assert all((isinstance(eq, str) for eq in eqs))
     assert (len(eqs.ordered) == 4 and
             all((isinstance(eq, SingleEquation) for eq in eqs.ordered)) and
             [eq.varname for eq in eqs.ordered] == ['f', 'I', 'v', 'freq'])
@@ -519,10 +518,7 @@ def test_str_repr():
 @pytest.mark.codegen_independent
 @pytest.mark.skipif(pprint is None, reason='ipython is not installed')
 def test_ipython_pprint():
-    try:
-        from cStringIO import StringIO  # Python 2
-    except ImportError:
-        from io import StringIO  # Python 3
+    from io import StringIO
     eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f : Hz''')

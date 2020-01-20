@@ -12,7 +12,7 @@ To add a new implementation for a code generation target, a
 `FunctionImplementation` can be added to the `Function.implementations`
 dictionary. The key for this dictionary has to be either a `CodeGenerator` class
 object, or a `CodeObject` class object. The `CodeGenerator` of a `CodeObject`
-(e.g. `CPPCodeGenerator` for `WeaveCodeObject`) is used as a fallback if no
+(e.g. `CPPCodeGenerator` for `CPPStandaloneCodeObject`) is used as a fallback if no
 implementation specific to the `CodeObject` class exists.
 
 If a function is already provided for the target language (e.g. it is part of

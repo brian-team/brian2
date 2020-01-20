@@ -17,7 +17,7 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 
 
 
-.. image:: https://img.shields.io/pypi/v/Brian2.svg?style=flat-square
+.. image:: https://img.shields.io/pypi/v/Brian2.svg
         :target: https://pypi.python.org/pypi/Brian2
 
 .. image:: https://img.shields.io/conda/vn/conda-forge/brian2.svg
@@ -48,13 +48,12 @@ Dependencies
 ------------
 The following packages need to be installed to use Brian 2:
 
-* Python 2.7, or >= 3.5
+* Python >= 3.5
 * NumPy >=1.10
 * SymPy >= 1.2
 * Cython >= 0.29
 * PyParsing
 * Jinja2 >= 2.7
-* future
 * setuptools >= 21
 * py-cpuinfo (only required on Windows)
 
@@ -62,8 +61,6 @@ For full functionality, you might also want to install:
 
 * GSL >=1.16
 * SciPy >=0.13.3
-* weave (only on Python 2)
-* bsddb (only on Python 2)
 * Matplotlib >= 2.0
 
 To build the documentation:
@@ -78,13 +75,13 @@ To run the test suite:
 Testing status for master branch
 --------------------------------
 
-.. image:: https://img.shields.io/travis/brian-team/brian2/master.svg?style=flat-square
+.. image:: https://img.shields.io/travis/brian-team/brian2/master.svg
   :target: https://travis-ci.org/brian-team/brian2?branch=master
 
-.. image:: https://img.shields.io/appveyor/ci/brianteam/brian2/master.svg?style=flat-square
+.. image:: https://img.shields.io/appveyor/ci/brianteam/brian2/master.svg
   :target: https://ci.appveyor.com/project/brianteam/brian2/branch/master
 
-.. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg?style=flat-square
+.. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
 
 .. image:: https://readthedocs.org/projects/brian2/badge/?version=stable

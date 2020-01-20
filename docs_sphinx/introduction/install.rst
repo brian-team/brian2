@@ -24,9 +24,8 @@ Installation with Anaconda
 Installing Anaconda
 ~~~~~~~~~~~~~~~~~~~
 `Download the Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_
-for your Operating System. Note that the choice between Python 2.7 and Python
-3.x is not very important at this stage, Anaconda allows you to create a Python
-3 environment from Python 2 Anaconda and vice versa.
+for your Operating System. Note, Brian 2 no longer supports Python 2 (the last
+version to support Python 2 was :ref:`brian2.3`). 
 
 After the installation, make sure that your environment is configured to use
 the Anaconda distribution. You should have access to the ``conda`` command in
@@ -113,10 +112,10 @@ Requirements for C++ code generation
 
 C++ code generation is highly recommended since it can drastically increase the
 speed of simulations (see :doc:`../user/computation` for details). To use it,
-you need a C++ compiler and either Cython_ or weave_ (only available for Python 2.x).
-Cython/weave will be automatically installed if you perform the installation via
+you need a C++ compiler and Cython_.
+Cython will be automatically installed if you perform the installation via
 Anaconda, as recommended. Otherwise you can install them in the usual way, e.g.
-using ``pip install cython`` or ``pip install weave``.
+using ``pip install cython``.
 
 Linux and OS X
 ~~~~~~~~~~~~~~
@@ -130,17 +129,13 @@ in a terminal). If not, use your distribution's package manager to install a
 
 Windows
 ~~~~~~~
-On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython/weave) to work
+On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython) to work
 depend on the Python version you are using (also see the
 `notes in the Python wiki <https://wiki.python.org/moin/WindowsCompilers#Compilers_Installation_and_configuration>`_):
 
-* **Python >= 3.5**
-    * Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
-    * Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
-        ``pip install --upgrade setuptools`` when using pip).
-
-* **Python 2.7**
-    * Download and install the `Microsoft Visual C++ Compiler for Python 2.7  <http://www.microsoft.com/en-us/download/details.aspx?id=44266>`_
+* Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
+* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
+    ``pip install --upgrade setuptools`` when using pip).
 
 For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio -- in this
 case, the Python version does not matter.
@@ -185,4 +180,3 @@ failures. For more control about the tests that are run see the
 .. _appveyor: https://ci.appveyor.com/project/brianteam/brian2
 .. _nose: https://pypi.python.org/pypi/nose
 .. _Cython: http://cython.org/
-.. _weave: https://github.com/scipy/weave

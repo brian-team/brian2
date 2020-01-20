@@ -21,10 +21,7 @@ dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
 src_dir = os.environ.get('SRCDIR')
 
 if split_run == '1':
-    if python_version.startswith('2'):
-        targets = ['numpy', 'weave']
-    else:
-        targets = ['numpy']
+    targets = ['numpy']
     independent = True
 elif split_run == '2':
     targets = ['cython']

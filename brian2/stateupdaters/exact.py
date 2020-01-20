@@ -1,7 +1,7 @@
 '''
 Exact integration for linear equations.
 '''
-from __future__ import absolute_import
+
 import itertools
 
 import sympy as sp

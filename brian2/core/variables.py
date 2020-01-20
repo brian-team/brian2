@@ -1,19 +1,15 @@
-from __future__ import absolute_import
+
 '''
 Classes used to specify the type of a function, variable or common
 sub-expression.
 '''
 import collections
-try:
-    from collections.abc import Mapping
-except ImportError:  # Python 2
-    from collections import Mapping
+from collections.abc import Mapping
 import functools
 import numbers
 
 import numpy as np
 import sympy
-from past.builtins import basestring
 
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
@@ -329,8 +325,7 @@ class Constant(Variable):
         else:
             dtype = get_dtype(value)
 
-        # Use standard Python types if possible for numpy scalars (generates
-        # nicer code for C++ when using weave)
+        # Use standard Python types if possible for numpy scalars
         if getattr(value, 'shape', None) == () and hasattr(value, 'dtype'):
             numpy_type = value.dtype
             if np.can_cast(numpy_type, np.int_):
@@ -795,7 +790,7 @@ class VariableView(object):
             defined, the implicit namespace of local variables is used).
         '''
         from brian2.core.namespace import get_local_namespace  # avoids circular import
-        if isinstance(item, basestring):
+        if isinstance(item, str):
             # Check whether the group still exists to give a more meaningful
             # error message if it does not
             try:
@@ -877,11 +872,11 @@ class VariableView(object):
 
         # Both index and values are strings, use a single code object do deal
         # with this situation
-        if isinstance(value, basestring) and isinstance(item, basestring):
+        if isinstance(value, str) and isinstance(item, str):
             self.set_with_expression_conditional(item, value,
                                                  check_units=check_units,
                                                  run_namespace=namespace)
-        elif isinstance(item, basestring):
+        elif isinstance(item, str):
             try:
                 float(value)  # only checks for the exception
                 try:
@@ -907,7 +902,7 @@ class VariableView(object):
                                                      repr(value),
                                                      check_units=check_units,
                                                      run_namespace=namespace)
-        elif isinstance(value, basestring):
+        elif isinstance(value, str):
             self.set_with_expression(item, value,
                                      check_units=check_units,
                                      run_namespace=namespace)
@@ -1271,7 +1266,7 @@ class VariableView(object):
         return np.asanyarray(other) // self.get_item(slice(None), level=1)
 
     def __iadd__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var + expression" '
                              'instead of group.var += "expression".'))
@@ -1283,7 +1278,7 @@ class VariableView(object):
         return self
 
     def __isub__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var - expression" '
                              'instead of group.var -= "expression".'))
@@ -1295,7 +1290,7 @@ class VariableView(object):
         return self
 
     def __imul__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var * expression" '
                              'instead of group.var *= "expression".'))
@@ -1307,7 +1302,7 @@ class VariableView(object):
         return self
 
     def __idiv__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             raise TypeError(('In-place modification with strings not '
                              'supported. Use group.var = "var / expression" '
                              'instead of group.var /= "expression".'))

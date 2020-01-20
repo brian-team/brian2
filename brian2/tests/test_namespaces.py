@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import uuid
 
 import sympy
@@ -21,7 +21,7 @@ class SimpleGroup(Group):
         self.namespace = namespace
         # We use a unique name to get repeated warnings
         Group.__init__(self, name='simplegroup_' +
-                                  str(uuid.uuid4()).replace('-','_'))
+                                  str(uuid.uuid4()).replace('-', '_'))
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -94,7 +94,7 @@ def test_resolution():
     resolved = group.resolve_all(['tau', 'ms'], namespace,
                                  user_identifiers=['tau', 'ms'])
     assert len(resolved) == 2
-    assert type(resolved) == type(dict())
+    assert isinstance(resolved, dict)
     assert resolved['tau'].get_value_with_unit() == tau
     assert resolved['ms'].get_value_with_unit() == ms
     del tau

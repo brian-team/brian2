@@ -40,7 +40,8 @@ Preference name changes
 
 * ``defaultclock``: removed because it led to unclear behaviour of scripts.
 * ``useweave_linear_diffeq``: removed because it was no longer relevant.
-* ``useweave``: now replaced by `codegen.target`.
+* ``useweave``: now replaced by `codegen.target` (but note that weave is no longer
+  supported in Brian 2, use Cython instead).
 * ``weavecompiler``: now replaced by `codegen.cpp.compiler`.
 * ``gcc_options``: now replaced by `codegen.cpp.extra_compile_args_gcc`.
 * ``openmp``: now replaced by `devices.cpp_standalone.openmp_threads`.

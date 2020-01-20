@@ -2,7 +2,6 @@
    we do not generate any code but simply access the data in the underlying
    array directly. See RuntimeDevice.get_with_array #}
 {# USES_VARIABLES { _group_idx } #}
-from __future__ import division
 import numpy as _numpy
 # scalar code
 _vectorisation_idx = 1

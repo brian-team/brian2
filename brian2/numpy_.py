@@ -4,18 +4,13 @@ numpy functions without having to know which functions are overwritten.
 
 This can be used for example as ``import brian2.numpy_ as np``
 '''
-from __future__ import absolute_import
+
 from numpy import *
 from brian2.units.unitsafefunctions import *
 
 # These will not be imported with a wildcard import to not overwrite the
 # builtin names (mimicking the numpy behaviour)
 from builtins import bool, int, float, complex, object, bytes, str
-
-try:
-    from __builtin__ import long, unicode  # Python 2
-except ImportError:
-    pass
 
 from numpy.core import round, abs, max, min
 

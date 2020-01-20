@@ -113,7 +113,7 @@ run(simulation_duration/2)
 # Visualisation
 dopamine_indices, dopamine_times = dopamine_monitor.it
 neurons_indices, neurons_times = neurons_monitor.it
-figure(figsize=(12,6))
+figure(figsize=(12, 6))
 subplot(411)
 plot([0.05, 2.95], [2.7, 2.7], linewidth=5, color='k')
 text(1.5, 3, 'Classical STDP', horizontalalignment='center', fontsize=20)

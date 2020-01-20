@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 '''
 This module defines the `StateUpdateMethod` class that acts as a base class for
 all stateupdaters and allows to register stateupdaters so that it is able to
@@ -6,13 +5,8 @@ return a suitable stateupdater object for a given set of equations. This is used
 for example in `NeuronGroup` when no state updater is given explicitly.
 '''
 from abc import abstractmethod, ABCMeta
-try:
-    from collections.abc import Iterable
-except ImportError:  # Python 2
-    from collections import Iterable
+from collections.abc import Iterable
 import time
-
-from past.builtins import basestring
 
 from brian2.utils.caching import cached
 from brian2.utils.logger import get_logger
@@ -84,10 +78,7 @@ def extract_method_options(method_options, default_options):
     return filled_options
 
 
-class StateUpdateMethod(object):
-    __metaclass__ = ABCMeta
-
-    #: A dictionary mapping state updater names to `StateUpdateMethod` objects
+class StateUpdateMethod(object, metaclass=ABCMeta):
     stateupdaters = dict()
 
     @abstractmethod
@@ -172,7 +163,7 @@ class StateUpdateMethod(object):
             The code integrating the given equations.
         '''
         if (isinstance(method, Iterable) and
-                not isinstance(method, basestring)):
+                not isinstance(method, str)):
             the_method = None
             start_time = time.time()
             for one_method in method:
@@ -220,7 +211,7 @@ class StateUpdateMethod(object):
                 # claims not to be applicable.
                 stateupdater = method
                 method = getattr(stateupdater, '__name__', repr(stateupdater))  # For logging, get a nicer name
-            elif isinstance(method, basestring):
+            elif isinstance(method, str):
                 method = method.lower()  # normalize name to lower case
                 stateupdater = StateUpdateMethod.stateupdaters.get(method, None)
                 if stateupdater is None:

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 '''
 Numerical integration functions.
 '''
@@ -10,7 +9,6 @@ import sympy
 from sympy.core.sympify import SympifyError
 from pyparsing import (Literal, Group, Word, ZeroOrMore, Suppress, restOfLine,
                        ParseException)
-from past.builtins import basestring
 
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.equations.codestrings import is_constant_over_dt
@@ -81,11 +79,11 @@ def split_expression(expr):
     sympy_expr = sympy.collect(sympy_expr, g(x_g, t_g))
     
     # Constant part, contains neither f, g nor dW
-    independent = sympy.Wild('independent', exclude=[f,g,dW], real=True)
+    independent = sympy.Wild('independent', exclude=[f, g, dW], real=True)
     # The exponent of the random number
-    dW_exponent = sympy.Wild('dW_exponent', exclude=[f,g,dW,0], real=True)
+    dW_exponent = sympy.Wild('dW_exponent', exclude=[f, g, dW, 0], real=True)
     # The factor for the random number, not containing the g function
-    independent_dW = sympy.Wild('independent_dW', exclude=[f,g,dW], real=True)
+    independent_dW = sympy.Wild('independent_dW', exclude=[f, g, dW], real=True)
     # The factor for the f function
     f_factor = sympy.Wild('f_factor', exclude=[f, g], real=True)
     # The factor for the g function
@@ -386,7 +384,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             non_stochastic_result = non_stochastic_result.subs(
                 temp_var_replacements)
             non_stochastic_results.append(non_stochastic_result)
-        elif isinstance(stochastic_variable, basestring):
+        elif isinstance(stochastic_variable, str):
             # Replace the f(x, t) part
             replace_f = lambda x, t: self.replace_func(x, t, non_stochastic,
                                                   temp_vars, eq_symbols,
@@ -435,7 +433,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     def _stochastic_part(self, eq_symbols, stochastic, stochastic_expr,
                          stochastic_variable, temp_vars, var):
         stochastic_results = []
-        if isinstance(stochastic_variable, basestring):
+        if isinstance(stochastic_variable, str):
             # Replace the g(x, t) part
             replace_f = lambda x, t: self.replace_func(x, t,
                                                        stochastic.get(stochastic_variable, 0),

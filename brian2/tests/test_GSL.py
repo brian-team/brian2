@@ -1,5 +1,5 @@
-from __future__ import print_function
-from __future__ import absolute_import
+
+
 
 import functools
 
@@ -118,7 +118,7 @@ def test_GSL_user_defined_function():
     @implementation('cython', '''
     cdef double user_sin(double phase):
         return sin(phase)''')
-    @check_units(phase=1,result=1)
+    @check_units(phase=1, result=1)
     def user_sin(phase):
         raise Exception
     tau = 20*ms

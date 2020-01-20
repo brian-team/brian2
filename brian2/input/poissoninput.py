@@ -1,9 +1,6 @@
-from __future__ import absolute_import
 '''
 Implementation of `PoissonInput`.
 '''
-from past.builtins import basestring
-
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner
 from brian2.units.fundamentalunits import (check_units, have_same_dimensions,
@@ -58,7 +55,7 @@ class PoissonInput(CodeRunner):
         if target_var not in target.variables:
             raise KeyError('%s is not a variable of %s' % (target_var, target.name))
 
-        if isinstance(weight, basestring):
+        if isinstance(weight, str):
             weight = '(%s)' % weight
         else:
             weight_dims = get_dimensions(weight)

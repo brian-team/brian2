@@ -133,7 +133,7 @@ ax[0].plot(exc_mon.t[exc_mon.i <= N_e//4]/ms,
 ax[0].plot(inh_mon.t[inh_mon.i <= N_i//4]/ms,
            inh_mon.i[inh_mon.i <= N_i//4]+N_e//4, '|', color='C1')
 pu.adjust_spines(ax[0], ['left'])
-ax[0].set(xlim=(0.,duration/ms), ylim=(0,(N_e+N_i)//4), ylabel='neuron index')
+ax[0].set(xlim=(0., duration/ms), ylim=(0, (N_e+N_i)//4), ylabel='neuron index')
 
 # Generate frequencies
 bin_size = 1*ms
@@ -142,7 +142,7 @@ spk_count, bin_edges = np.histogram(np.r_[exc_mon.t/ms, inh_mon.t/ms],
 rate = double(spk_count)/(N_e + N_i)/bin_size/Hz
 ax[1].plot(bin_edges[:-1], rate, '-', color='k')
 pu.adjust_spines(ax[1], ['left', 'bottom'])
-ax[1].set(xlim=(0.,duration/ms), ylim=(0, 10.),
+ax[1].set(xlim=(0., duration/ms), ylim=(0, 10.),
           xlabel='time (ms)', ylabel='rate (Hz)')
 pu.adjust_ylabels(ax, x_offset=-0.18)
 
@@ -158,7 +158,7 @@ ax[0].plot([state_mon.t[0]/ms, state_mon.t[-1]/ms], [0, 0], color='grey',
            linestyle=':')
 # Adjust axis
 pu.adjust_spines(ax[0], ['left'])
-ax[0].set(xlim=(0., duration/ms), ylim=(-5.0,0.25),
+ax[0].set(xlim=(0., duration/ms), ylim=(-5.0, 0.25),
           ylabel='postsyn.\nconduct.\n(${0}$)'.format(sympy.latex(nS)))
 
 ### Membrane potential
@@ -167,7 +167,7 @@ ax[1].axhline(V_th/mV, color='C2', linestyle=':')  # Threshold
 ax[1].plot(state_mon.t/ms, state_mon.v[0]/mV, color='black')
 ax[1].vlines(exc_mon.t[exc_mon.i == ni]/ms, V_th/mV, 0, color='black')
 pu.adjust_spines(ax[1], ['left'])
-ax[1].set(xlim=(0., duration/ms), ylim=(-1+V_r/mV,0.),
+ax[1].set(xlim=(0., duration/ms), ylim=(-1+V_r/mV, 0.),
           ylabel='membrane\npotential\n(${0}$)'.format(sympy.latex(mV)))
 
 ### Synaptic variables

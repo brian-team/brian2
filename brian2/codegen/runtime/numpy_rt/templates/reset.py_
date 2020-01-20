@@ -1,7 +1,6 @@
 {# Note that we don't write to scalar variables conditionally. The scalar code
    should therefore only include the calculation of scalar expressions
    that are used below for writing to a vector variable #}
-from __future__ import division
 import numpy as _numpy
 
 # scalar code

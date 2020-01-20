@@ -1,9 +1,8 @@
-from __future__ import absolute_import
+
 '''
 Implementation of `PoissonGroup`.
 '''
 import numpy as np
-from past.builtins import basestring
 
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables, Subexpression
@@ -80,7 +79,7 @@ class PoissonGroup(Group, SpikeSource):
         self.variables.create_clock_variables(self._clock)
 
         # The firing rates
-        if isinstance(rates, basestring):
+        if isinstance(rates, str):
             self.variables.add_subexpression('rates', dimensions=Hz.dim,
                                              expr=rates)
         else:
@@ -98,7 +97,7 @@ class PoissonGroup(Group, SpikeSource):
 
         self._enable_group_attributes()
 
-        if not isinstance(rates, basestring):
+        if not isinstance(rates, str):
             self.rates = rates
 
     def __getitem__(self, item):

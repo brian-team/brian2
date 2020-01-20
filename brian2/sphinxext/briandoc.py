@@ -16,8 +16,6 @@ It will:
 .. [1] https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 
 """
-from __future__ import absolute_import
-from past.builtins import unicode
 import re
 import pydoc
 import inspect
@@ -139,7 +137,7 @@ def mangle_docstrings(app, what, name, obj, options, lines,
         # Strip top title
         title_re = re.compile(r'^\s*[#*=]{4,}\n[a-z0-9 -]+\n[#*=]{4,}\s*',
                               re.I | re.S)
-        lines[:] = title_re.sub(u'', u"\n".join(lines)).split(u"\n")
+        lines[:] = title_re.sub('', "\n".join(lines)).split("\n")
         exported_members = getattr(obj, '__all__', None)
         if exported_members:
             lines.append('*Exported members:* ')
@@ -151,9 +149,9 @@ def mangle_docstrings(app, what, name, obj, options, lines,
 
             lines.append('')
     else:
-        doc = get_doc_object(obj, what, u"\n".join(lines), name=name,
+        doc = get_doc_object(obj, what, "\n".join(lines), name=name,
                              config=cfg)
-        lines[:] = unicode(doc).split(u"\n")
+        lines[:] = str(doc).split("\n")
 
     # replace reference numbers so that there are no duplicates
     references = []
@@ -169,13 +167,13 @@ def mangle_docstrings(app, what, name, obj, options, lines,
         for i, line in enumerate(lines):
             for r in references:
                 if re.match(r'^\d+$', r):
-                    new_r = u"R%d" % (reference_offset[0] + int(r))
+                    new_r = "R%d" % (reference_offset[0] + int(r))
                 else:
-                    new_r = u"%s%d" % (r, reference_offset[0])
-                lines[i] = lines[i].replace(u'[%s]_' % r,
-                                            u'[%s]_' % new_r)
-                lines[i] = lines[i].replace(u'.. [%s]' % r,
-                                            u'.. [%s]' % new_r)
+                    new_r = "%s%d" % (r, reference_offset[0])
+                lines[i] = lines[i].replace('[%s]_' % r,
+                                            '[%s]_' % new_r)
+                lines[i] = lines[i].replace('.. [%s]' % r,
+                                            '.. [%s]' % new_r)
 
     reference_offset[0] += len(references)
 
@@ -194,8 +192,8 @@ def mangle_signature(app, what, name, obj, options, sig, retann):
 
     doc = SphinxDocString(pydoc.getdoc(obj))
     if doc['Signature']:
-        sig = re.sub(u"^[^(]*", u"", doc['Signature'])
-        return sig, u''
+        sig = re.sub("^[^(]*", "", doc['Signature'])
+        return sig, ''
 
 def setup(app, get_doc_object_=get_doc_object):
     global get_doc_object

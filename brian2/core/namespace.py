@@ -2,7 +2,7 @@
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
 '''
-from __future__ import absolute_import
+
 import collections
 import inspect
 import itertools

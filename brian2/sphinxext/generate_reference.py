@@ -4,8 +4,8 @@
     
     Based on sphinx-apidoc, published under a BSD license: http://sphinx-doc.org/
 """
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 import inspect
 import sys
 import os

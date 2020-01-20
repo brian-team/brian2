@@ -1,9 +1,7 @@
-from __future__ import absolute_import
 '''
 Module defining `EventMonitor` and `SpikeMonitor`.
 '''
 import numpy as np
-from past.builtins import basestring
 
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable
@@ -89,7 +87,7 @@ class EventMonitor(Group, CodeRunner):
 
         if variables is None:
             variables = {}
-        elif isinstance(variables, basestring):
+        elif isinstance(variables, str):
             variables = {variables}
 
         #: The additional variables that will be recorded

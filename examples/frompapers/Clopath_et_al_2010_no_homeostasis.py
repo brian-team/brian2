@@ -121,7 +121,7 @@ Syn = Synapses(Nrns, Nrns,
 Syn.connect('i!=j')
 
 #### Monitors and storage
-weight_result = np.zeros((2,len(rate_array)))               # to save the final weights
+weight_result = np.zeros((2, len(rate_array)))               # to save the final weights
 
 #### Run
 
@@ -163,8 +163,8 @@ stitle = 'Pairings'
 scolor = 'k'
 
 figure(figsize=(8, 5))
-plot(rate_array,weight_result[0, :], '-', linewidth=2, color=scolor)
-plot(rate_array,weight_result[1, :], ':', linewidth=2, color=scolor)
+plot(rate_array, weight_result[0,:], '-', linewidth=2, color=scolor)
+plot(rate_array, weight_result[1,:], ':', linewidth=2, color=scolor)
 xlabel('Pairing frequency [Hz]', fontsize=22)
 ylabel('Normalised Weight [%]', fontsize=22)
 legend(['Pre-Post', 'Post-Pre'], loc='best')

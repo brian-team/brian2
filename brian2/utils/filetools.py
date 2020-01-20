@@ -2,7 +2,7 @@
 File system tools
 '''
 
-from __future__ import absolute_import
+
 import os
 import sys
 from contextlib import contextmanager
@@ -43,7 +43,7 @@ class in_directory(object):
     Guarantees that the code in the with block will be executed in directory,
     and that after the block is completed we return to the original directory.
     '''
-    def __init__(self,new_dir):
+    def __init__(self, new_dir):
         self.orig_dir = os.getcwd()
         self.new_dir = new_dir
     def __enter__(self):

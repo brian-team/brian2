@@ -1,7 +1,7 @@
 '''
 Utility functions for handling the units in `Equations`.
 '''
-from __future__ import absolute_import
+
 import re
 
 from brian2.units.fundamentalunits import (get_unit, Unit,

@@ -1,12 +1,12 @@
-import cPickle
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 with open('synapse_creation_times_brian1.pickle', 'r') as f:
-    brian1_results = cPickle.load(f)
+    brian1_results = pickle.load(f)
 with open('synapse_creation_times_brian2.pickle', 'r') as f:
-    brian2_results = cPickle.load(f)
+    brian2_results = pickle.load(f)
 
 results = brian1_results
 results.update(brian2_results)
@@ -32,7 +32,7 @@ lang_translation = {'PythonLanguage': 'Brian 2 (Python)',
 for pattern, condition in conditions:
     plt.figure()
     for lang_name in targets:
-        data = [(connections, time) for ((lang, connections, p), time) in results.iteritems()
+        data = [(connections, time) for ((lang, connections, p), time) in results.items()
                 if lang == lang_name and p == pattern]
         data.sort(key=lambda item: item[0])
         data = np.array(data).T

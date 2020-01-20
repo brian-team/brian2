@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import os
 import itertools
 
@@ -164,7 +164,7 @@ def test_infinitecable():
     Cm = 1 * uF / cm ** 2
     Ri = 100 * ohm * cm
     N = 500
-    morpho=Cylinder(diameter=diameter,length=3*mm,n=N)
+    morpho=Cylinder(diameter=diameter, length=3*mm, n=N)
 
     # Passive channels
     gL=1e-4*siemens/cm**2
@@ -176,7 +176,7 @@ def test_infinitecable():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 
     # Monitors
-    mon=StateMonitor(neuron,'v',record=N/2-20)
+    mon=StateMonitor(neuron, 'v', record=N/2-20)
 
     neuron.I[len(neuron)//2]=1*nA # injecting in the middle
     run(0.02*ms)
@@ -191,7 +191,7 @@ def test_infinitecable():
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
                  exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
-    assert_allclose(v[t>0.5*ms],theory[t>0.5*ms], rtol=1e14, atol=1e10) # high error tolerance (not exact because not infinite cable)
+    assert_allclose(v[t>0.5*ms], theory[t>0.5*ms], rtol=1e14, atol=1e10) # high error tolerance (not exact because not infinite cable)
 
 @pytest.mark.standalone_compatible
 def test_finitecable():
@@ -210,7 +210,7 @@ def test_finitecable():
     Cm = 1 * uF / cm ** 2
     Ri = 150 * ohm * cm
     N = 200
-    morpho=Cylinder(diameter=diameter,length=length,n=N)
+    morpho=Cylinder(diameter=diameter, length=length, n=N)
 
     # Passive channels
     gL=1e-4*siemens/cm**2
@@ -485,19 +485,19 @@ def test_rall():
     rm = 1/(gL * pi * diameter) # membrane resistance per unit length
     ra = (4 * Ri)/(pi * diameter**2) # axial resistance per unit length
     la = sqrt(rm/ra) # space length
-    morpho=Cylinder(diameter=diameter,length=length,n=N)
+    morpho=Cylinder(diameter=diameter, length=length, n=N)
     d1 = 0.5*um
     L1 = 200*um
     rm = 1/(gL * pi * d1) # membrane resistance per unit length
     ra = (4 * Ri)/(pi * d1**2) # axial resistance per unit length
     l1 = sqrt(rm/ra) # space length
-    morpho.L=Cylinder(diameter=d1,length=L1,n=N)
+    morpho.L=Cylinder(diameter=d1, length=L1, n=N)
     d2 = (diameter**1.5-d1**1.5)**(1./1.5)
     rm = 1/(gL * pi * d2) # membrane resistance per unit length
     ra = (4 * Ri)/(pi * d2**2) # axial resistance per unit length
     l2 = sqrt(rm/ra) # space length
     L2 = (L1/l1)*l2
-    morpho.R=Cylinder(diameter=d2,length=L2,n=N)
+    morpho.R=Cylinder(diameter=d2, length=L2, n=N)
 
     eqs='''
     Im=gL*(EL-v) : amp/meter**2

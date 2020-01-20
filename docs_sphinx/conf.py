@@ -42,8 +42,7 @@ MOCK_MODULES = ['brian', 'brian.hears',   # mock Brian1 for the bridge
                 # Mock additional packages to reduce installation time on
                 # readthedocs
                 'Cython', 'Cython.Compiler', 'Cython.Build',
-                'scipy',
-                'weave']
+                'scipy']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
@@ -99,9 +98,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Brian 2'
+project = 'Brian 2'
 import datetime
-copyright = u'2012–{}, Brian authors'.format(datetime.datetime.today().year)
+copyright = '2012–{}, Brian authors'.format(datetime.datetime.today().year)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -251,8 +250,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Brian2.tex', u'Brian 2 Documentation',
-   u'Brian authors', 'manual'),
+  ('index', 'Brian2.tex', 'Brian 2 Documentation',
+   'Brian authors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -281,8 +280,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'brian2', u'Brian 2 Documentation',
-     [u'Brian authors'], 1)
+    ('index', 'brian2', 'Brian 2 Documentation',
+     ['Brian authors'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -295,8 +294,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Brian2', u'Brian 2 Documentation',
-   u'Brian authors', 'Brian2', 'One line description of project.',
+  ('index', 'Brian2', 'Brian 2 Documentation',
+   'Brian authors', 'Brian2', 'One line description of project.',
    'Miscellaneous'),
 ]
 

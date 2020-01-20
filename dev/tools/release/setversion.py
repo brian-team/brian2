@@ -60,5 +60,5 @@ def setreleasedate():
 
 
 if __name__ == '__main__':
-    version = raw_input('New version: ')
+    version = input('New version: ')
     setversion(version)

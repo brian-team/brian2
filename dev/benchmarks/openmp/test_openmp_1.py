@@ -31,7 +31,7 @@ pylab.xlabel('Time [s]')
 pylab.ylabel('# cell')
 for t in threads:
     pylab.plot(results[t]['spikes'][0], results[t]['spikes'][1], '.')
-pylab.legend(map(str, threads))
+pylab.legend([str(t) for t in threads])
 pylab.xlim(0.5, 0.55)
 
 pylab.subplot(222)
@@ -41,7 +41,7 @@ pylab.ylabel('Rate [Hz]')
 for t in threads:
     x,  y = numpy.histogram(results[t]['spikes'][0], 100)
     pylab.plot(y[1:], x)
-pylab.legend(map(str, threads))
+pylab.legend([str(t) for t in threads])
 
 
 pylab.subplot(223)

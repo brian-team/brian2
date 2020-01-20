@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 '''
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
@@ -8,8 +7,6 @@ import numbers
 from abc import abstractmethod
 from collections import OrderedDict, defaultdict, namedtuple
 import os
-
-from past.builtins import basestring
 
 from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
@@ -58,7 +55,7 @@ class MorphologyIndexWrapper(object):
         self.morphology = morphology
 
     def __getitem__(self, item):
-        if isinstance(item, basestring):
+        if isinstance(item, str):
             raise NotImplementedError(('Morphologies do not support string '
                                        'indexing'))
         assert isinstance(self.morphology, (SubMorphology, Morphology))
@@ -323,7 +320,7 @@ class Children(object):
         return self._given_name[child]
 
     def __getitem__(self, item):
-        if isinstance(item, basestring):
+        if isinstance(item, str):
             return self._named_children[item]
         else:
             raise TypeError('Index has to be an integer or a string.')
@@ -391,7 +388,7 @@ class Children(object):
         return s + '>'
 
 
-class Morphology(object):
+class Morphology(object, metaclass=abc.ABCMeta):
     '''
     Neuronal morphology (tree structure).
 
@@ -404,11 +401,10 @@ class Morphology(object):
     You cannot create objects of this class, create a `Soma`, a `Section`, or
     a `Cylinder` instead.
     '''
-    __metaclass__ = abc.ABCMeta
 
     @check_units(n=1)
     def __init__(self, n, type=None):
-        if isinstance(n, basestring):
+        if isinstance(n, str):
             raise TypeError('Need the number of compartments, not a string. '
                             'If you want to load a morphology from a file, '
                             'use Morphology.from_file instead.')
@@ -490,7 +486,7 @@ class Morphology(object):
                                   'for %d compartments') % (item, self.n))
             i = item
             j = i + 1
-        elif isinstance(item, basestring):
+        elif isinstance(item, str):
             item = str(item)  # convert int to string
             if (len(item) > 1) and all([c in 'LR123456789' for c in
                                      item]):  # binary string of the form LLLRLR or 1213 (or mixed)

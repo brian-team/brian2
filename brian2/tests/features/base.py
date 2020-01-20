@@ -1,6 +1,3 @@
-from __future__ import print_function
-
-from __future__ import absolute_import
 import brian2
 import numpy
 import os
@@ -21,7 +18,7 @@ __all__ = ['FeatureTest', 'SpeedTest',
            'run_feature_tests', 'run_single_feature_test',
            'run_speed_tests',
            'DefaultConfiguration', 'LocalConfiguration',
-           'NumpyConfiguration', 'WeaveConfiguration',
+           'NumpyConfiguration',
            'CythonConfiguration', 'CPPStandaloneConfiguration',
            'CPPStandaloneConfigurationOpenMP']
 
@@ -185,14 +182,6 @@ class NumpyConfiguration(Configuration):
         brian2.prefs.reset_to_defaults()
         brian2.set_device('runtime')
         brian2.prefs.codegen.target = 'numpy'
-
-
-class WeaveConfiguration(Configuration):
-    name = 'Weave'
-    def before_run(self):
-        brian2.prefs.reset_to_defaults()
-        brian2.set_device('runtime')
-        brian2.prefs.codegen.target = 'weave'
 
 
 class CythonConfiguration(Configuration):
@@ -645,7 +634,7 @@ def make_table(grid):
     for i, row in enumerate(grid):
         header_flag = False
         if i == 0 or i == len(grid)-1: header_flag = True
-        rst += normalize_row(row,max_cols)
+        rst += normalize_row(row, max_cols)
         rst += table_div(max_cols, header_flag )
     return rst
 

@@ -1,7 +1,7 @@
 """
 Unit-aware replacements for numpy functions.
 """
-from __future__ import absolute_import
+
 from functools import wraps
 
 import pkg_resources
