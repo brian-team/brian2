@@ -4,7 +4,6 @@
 
 {% block maincode %}
 
-    {# This is copied from the weave equivalent, seems to work but confusing #}
     {%set c_type = cpp_dtype(variables['_variable'].dtype) %}
     {%set np_type = numpy_dtype(variables['_variable'].dtype) %}
 

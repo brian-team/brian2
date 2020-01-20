@@ -31,8 +31,8 @@ def parse_preference_name(name):
     
     Examples
     --------
-    >>> parse_preference_name('core.weave_compiler')
-    ('core', 'weave_compiler')
+    >>> parse_preference_name('core.default_float_dtype')
+    ('core', 'default_float_dtype')
     >>> parse_preference_name('codegen.cpp.compiler')
     ('codegen.cpp', 'compiler')
     '''
