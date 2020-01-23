@@ -98,8 +98,7 @@ The tutorial consists of a series of `Jupyter Notebooks`_ [#]_.
     to edit and run the code - there are two options. The easiest option is to click
     on the "Launch Binder" link, which will open up an interactive version in the
     browser without having to install Brian locally. This uses the
-    Binder service provided by the
-    `Freeman lab <https://www.janelia.org/lab/freeman-lab>`_. Occasionally, this
+    `mybinder.org <http://mybinder.org>`_ service. Occasionally, this
     service will be down or running slowly. The other option is to download the
     notebook file and run it locally, which requires you to have Brian installed.
 
