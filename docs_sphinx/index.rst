@@ -9,7 +9,7 @@ highly flexible and easily extensible.
 
 To get an idea of what writing a simulation in Brian looks like, take a look
 at :doc:`a simple example </examples/CUBA>`, or run our
-`interactive demo <http://mybinder.org/repo/brian-team/brian2-binder/notebooks/demo.ipynb>`_.
+`interactive demo <http://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=index.ipynb>`_.
 
 .. only:: html
 

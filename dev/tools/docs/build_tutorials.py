@@ -54,7 +54,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     .. only:: html
 
         .. |launchbinder| image:: http://mybinder.org/badge.svg
-        .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+        .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=tutorials/{tutorial}.ipynb
     
         .. note::
            This tutorial is a static non-editable version. You can launch an
