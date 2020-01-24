@@ -63,10 +63,21 @@ class StateUpdater(CodeRunner):
                             check_units=False,
                             generate_empty_code=False)
     
-    def update_abstract_code(self, run_namespace=None, level=0):
+    def update_abstract_code(self, run_namespace):
         if len(self.group.equations) > 0:
+            # Resolve variables in the equations to correctly perform checks
+            # for repeated stateful functions (e.g. rand() calls)
+            names = self.group.equations.names
+            external_names = self.group.equations.identifiers | {'dt'}
+
+            variables = self.group.resolve_all(names | external_names,
+                                               run_namespace,
+                # we don't need to raise any warnings
+                # for the user here, warnings will
+                # be raised in create_runner_codeobj
+                user_identifiers=set())
             stateupdate_output = StateUpdateMethod.apply_stateupdater(self.group.equations,
-                                                                      self.group.variables,
+                                                                      variables,
                                                                       self.method_choice,
                                                                       method_options=self.method_options,
                                                                       group_name=self.group.name)

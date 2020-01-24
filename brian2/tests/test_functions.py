@@ -852,6 +852,13 @@ def test_multiple_stateless_function_calls():
     net3 = Network(G3)
     with pytest.raises(NotImplementedError):
         net3.run(0*ms)
+    G4 = NeuronGroup(1, 'x : 1')
+    # Verify that synaptic equations are checked as well, see #1146
+    S = Synapses(G4, G4, 'dy/dt = (rand() - rand())/second : 1 (clock-driven)')
+    S.connect()
+    net = Network(G4, S)
+    with pytest.raises(NotImplementedError):
+        net.run(0 * ms)
 
 
 if __name__ == '__main__':
