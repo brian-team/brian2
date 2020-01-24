@@ -121,7 +121,7 @@ def main(rootpath, destdir):
         .. only:: html
 
             .. |launchbinder| image:: http://mybinder.org/badge.svg
-            .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/examples/{exname}.ipynb
+            .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=examples/{exname}.ipynb
 
             .. note::
                You can launch an interactive, editable version of this

@@ -54,7 +54,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     .. only:: html
 
         .. |launchbinder| image:: http://mybinder.org/badge.svg
-        .. _launchbinder: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+        .. _launchbinder: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=tutorials/{tutorial}.ipynb
     
         .. note::
            This tutorial is a static non-editable version. You can launch an
@@ -98,8 +98,7 @@ The tutorial consists of a series of `Jupyter Notebooks`_ [#]_.
     to edit and run the code - there are two options. The easiest option is to click
     on the "Launch Binder" link, which will open up an interactive version in the
     browser without having to install Brian locally. This uses the
-    Binder service provided by the
-    `Freeman lab <https://www.janelia.org/lab/freeman-lab>`_. Occasionally, this
+    `mybinder.org <http://mybinder.org>`_ service. Occasionally, this
     service will be down or running slowly. The other option is to download the
     notebook file and run it locally, which requires you to have Brian installed.
 
@@ -122,7 +121,7 @@ text += '''
 for tutorial, _ in tutorials:
     text += indent(deindent('''
     .. |launchbinder{tutid}| image:: http://mybinder.org/badge.svg
-    .. _launchbinder{tutid}: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+    .. _launchbinder{tutid}: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=tutorials/{tutorial}.ipynb
     '''.format(tutorial=tutorial, tutid=tutorial.replace('-', ''))))
 
 text += '\n'
