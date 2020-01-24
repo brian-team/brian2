@@ -121,7 +121,7 @@ text += '''
 for tutorial, _ in tutorials:
     text += indent(deindent('''
     .. |launchbinder{tutid}| image:: http://mybinder.org/badge.svg
-    .. _launchbinder{tutid}: http://mybinder.org:/repo/brian-team/brian2-binder/notebooks/tutorials/{tutorial}.ipynb
+    .. _launchbinder{tutid}: https://mybinder.org/v2/gh/brian-team/brian2-binder/master?filepath=tutorials/{tutorial}.ipynb
     '''.format(tutorial=tutorial, tutid=tutorial.replace('-', ''))))
 
 text += '\n'
