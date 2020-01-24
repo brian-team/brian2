@@ -38,7 +38,7 @@ for fname in sorted(glob.glob1(src_dir, '*.ipynb')):
     tutorials.append((basename, title))
 
     # Execute the notebook
-    preprocessor = ExecutePreprocessor()
+    preprocessor = ExecutePreprocessor(timeout=None)
     preprocessor.allow_errors = True
     notebook, _ = preprocessor.preprocess(notebook,
                                           {'metadata': {'path': src_dir}})
