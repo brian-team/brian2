@@ -73,6 +73,17 @@ class Counter(BrianObject):
     def run(self):
         self.count += 1
 
+class CounterWithContained(BrianObject):
+    add_to_magic_network = True
+    def __init__(self, **kwds):
+        super(CounterWithContained, self).__init__(**kwds)
+        self.sub_counter = Counter()
+        self.contained_objects.append(self.sub_counter)
+        self.count = 0
+
+    def run(self):
+        self.count += 1
+
 
 @pytest.mark.codegen_independent
 def test_network_single_object():
@@ -605,6 +616,25 @@ def test_network_remove():
     net.run(1*ms)
     assert_equal(x.count, 10)
     assert_equal(y.count, 0)
+
+@pytest.mark.codegen_independent
+def test_contained_objects():
+    obj = CounterWithContained()
+    net = Network(obj)
+    # The contained object should not be stored explicitly
+    assert len(net.objects) == 1
+    net.run(defaultclock.dt)
+
+    # The contained object should be executed during the run
+    assert obj.count == 1
+    assert obj.sub_counter.count == 1
+
+    net.remove(obj)
+    assert len(net.objects) == 0
+    net.run(defaultclock.dt)
+    assert obj.count == 1
+    assert obj.sub_counter.count == 1
+
 
 class NoninvalidatingCounter(Counter):
     add_to_magic_network = True

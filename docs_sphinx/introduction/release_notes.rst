@@ -1,6 +1,32 @@
 Release notes
 =============
 
+Next version
+------------
+
+New features
+~~~~~~~~~~~~
+TODO
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Removing objects from networks no longer fails (:issue:`1151`). Thanks to Wilhelm
+  Braun for reporting the issue.
+
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+TODO
+
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Wilhelm Braun
+
 .. _brian2.3:
 Brian 2.3
 ---------
