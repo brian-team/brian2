@@ -511,7 +511,6 @@ class Network(Nameable):
         for obj in objs:
             if isinstance(obj, BrianObject):
                 self.objects.remove(obj)
-                self.remove(obj.contained_objects)
             else:
                 try:
                     for o in obj:
