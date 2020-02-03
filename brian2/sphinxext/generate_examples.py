@@ -43,7 +43,11 @@ def main(rootpath, destdir):
         shutil.os.makedirs(destdir)
 
     examplesfnames = [fname for fname in GlobDirectoryWalker(rootpath, '*.py')]
+    additional_files = [fname for fname in GlobDirectoryWalker(rootpath, '*.[!py]*')
+                        if not os.path.basename(fname) == '.gitignore']
+
     print('Documenting %d examples' % len(examplesfnames))
+
     examplespaths = []
     examplesbasenames = []
     relativepaths = []
@@ -144,7 +148,24 @@ def main(rootpath, destdir):
 
         with codecs.open(os.path.join(destdir, exname + '.rst'), 'w', 'utf-8') as f:
             f.write(output)
-    
+
+    category_additional_files = defaultdict(list)
+    for fname in additional_files:
+        path, file = os.path.split(fname)
+        relpath = os.path.relpath(path, rootpath)
+        if relpath == '.':
+            relpath = ''
+        category_additional_files[relpath].append(file)
+        with codecs.open(fname, 'rU', encoding='utf-8') as f:
+            content = f.read()
+        output = file + '\n' + '=' * len(title) + '\n\n'
+        output += '.. code:: none\n\n'
+        content_lines = ['\t' + l for l in content.split('\n')]
+        output += '\n'.join(content_lines)
+        output += '\n\n'
+        with codecs.open(os.path.join(destdir, file + '.rst'), 'w', 'utf-8') as f:
+            f.write(output)
+
     mainpage_text = 'Examples\n'
     mainpage_text += '========\n\n'
     
@@ -158,6 +179,8 @@ def main(rootpath, destdir):
         curpath = ''
         for exname, basename in sorted(categories[category]):
             mainpage_text += '   %s <%s>\n' % (basename, exname)
+        for fname in sorted(category_additional_files[category]):
+            mainpage_text += '   %s\n' % fname
         return mainpage_text
             
     mainpage_text = insert_category('', mainpage_text)
