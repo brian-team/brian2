@@ -3,3 +3,4 @@
 # necessary to make code blocks in the tutorials (which use ipython syntax
 # highlighting) get displayed correctly
 ipython >= 5
+sphinx >= 2.1
