@@ -14,12 +14,6 @@ import sys
 import time
 
 try:
-    import msvcrt
-except ImportError:
-    msvcrt = None
-    import fcntl
-
-try:
     import hashlib
 except ImportError:
     import md5 as hashlib
@@ -39,6 +33,7 @@ except ImportError:
 from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
+from brian2.utils.filelock import FileLock
 from brian2.core.preferences import prefs
 
 __all__ = ['cython_extension_manager']
@@ -116,14 +111,8 @@ class CythonExtensionManager(object):
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
 
         if prefs['codegen.runtime.cython.multiprocess_safe']:
-            lock_file = os.path.join(lib_dir, module_name + '.lock')
-            with open(lock_file, 'w') as f:
-                # Lock
-                if msvcrt:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_RLCK,
-                                   os.stat(lock_file).st_size)
-                else:
-                    fcntl.flock(f, fcntl.LOCK_EX)
+            lock = FileLock(os.path.join(lib_dir, module_name + '.lock'))
+            with lock:
                 module = self._load_module(module_path,
                                            define_macros=define_macros,
                                            include_dirs=include_dirs,
@@ -138,12 +127,6 @@ class CythonExtensionManager(object):
                                            compiler=compiler,
                                            key=key,
                                            sources=sources)
-                # Unlock
-                if msvcrt:
-                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK,
-                                   os.stat(lock_file).st_size)
-                else:
-                    fcntl.flock(f, fcntl.LOCK_UN)
             return module
         else:
             return self._load_module(module_path,
