@@ -155,7 +155,9 @@ def main(rootpath, destdir):
         relpath = os.path.relpath(path, rootpath)
         if relpath == '.':
             relpath = ''
-        category_additional_files[relpath].append(file)
+        full_name = relpath.replace('/', '.').replace('\\',
+                                                      '.') + '.' + file + '.rst'
+        category_additional_files[relpath].append((file, full_name))
         with codecs.open(fname, 'rU', encoding='utf-8') as f:
             content = f.read()
         output = file + '\n' + '=' * len(title) + '\n\n'
@@ -163,7 +165,8 @@ def main(rootpath, destdir):
         content_lines = ['\t' + l for l in content.split('\n')]
         output += '\n'.join(content_lines)
         output += '\n\n'
-        with codecs.open(os.path.join(destdir, file + '.rst'), 'w', 'utf-8') as f:
+        with codecs.open(os.path.join(destdir, full_name + '.rst'),
+                         'w', 'utf-8') as f:
             f.write(output)
 
     mainpage_text = 'Examples\n'
@@ -179,8 +182,8 @@ def main(rootpath, destdir):
         curpath = ''
         for exname, basename in sorted(categories[category]):
             mainpage_text += '   %s <%s>\n' % (basename, exname)
-        for fname in sorted(category_additional_files[category]):
-            mainpage_text += '   %s\n' % fname
+        for fname, full_name in sorted(category_additional_files[category]):
+            mainpage_text += '   %s <%s>\n' % (fname, full_name)
         return mainpage_text
             
     mainpage_text = insert_category('', mainpage_text)
