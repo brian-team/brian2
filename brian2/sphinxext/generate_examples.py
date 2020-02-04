@@ -165,7 +165,7 @@ def main(rootpath, destdir):
         content_lines = ['\t' + l for l in content.split('\n')]
         output += '\n'.join(content_lines)
         output += '\n\n'
-        with codecs.open(os.path.join(destdir, full_name + '.rst'),
+        with codecs.open(os.path.join(destdir, full_name),
                          'w', 'utf-8') as f:
             f.write(output)
 
