@@ -1,8 +1,8 @@
+{# USES_VARIABLES { N, _clock_t, count,
+                    _source_start, _source_stop} #}
 {% extends 'common_group.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { N, _clock_t, count,
-                        _source_start, _source_stop} #}
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}

@@ -1,8 +1,8 @@
+{# USES_VARIABLES { t, _clock_t, _indices, N } #}
+{# WRITES_TO_READ_ONLY_VARIABLES { t, N } #}
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { t, _clock_t, _indices, N } #}
-    {# WRITES_TO_READ_ONLY_VARIABLES { t, N } #}
     {{_dynamic_t}}.push_back({{_clock_t}});
 
     const size_t _new_size = {{_dynamic_t}}.size();

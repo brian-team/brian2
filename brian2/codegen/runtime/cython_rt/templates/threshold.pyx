@@ -1,5 +1,5 @@
-{% extends 'common_group.pyx' %}
 {# USES_VARIABLES { N } #}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     {# t, not_refractory and lastspike are added as needed_variables in the

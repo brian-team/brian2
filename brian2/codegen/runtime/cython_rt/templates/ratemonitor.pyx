@@ -1,8 +1,8 @@
+{# USES_VARIABLES { N, t, rate, _clock_t, _clock_dt, _spikespace,
+                    _num_source_neurons, _source_start, _source_stop } #}
 {% extends 'common_group.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { N, t, rate, _clock_t, _clock_dt, _spikespace,
-                        _num_source_neurons, _source_start, _source_stop } #}
 
     cdef size_t _num_spikes = {{_spikespace}}[_num{{_spikespace}}-1]
     

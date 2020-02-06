@@ -1,16 +1,16 @@
+{# USES_VARIABLES { N } #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	{# USES_VARIABLES { N } #}
-	   {# not_refractory and lastspike are added as needed_variables in the
-	   Thresholder class, we cannot use the USES_VARIABLE mechanism
-	   conditionally
-	   Same goes for "eventspace" (e.g. spikespace) which depends on the type of
+       {# not_refractory and lastspike are added as needed_variables in the
+       Thresholder class, we cannot use the USES_VARIABLE mechanism
+       conditionally
+       Same goes for "eventspace" (e.g. spikespace) which depends on the type of
        event #}
 
-	//// MAIN CODE ////////////
-	// scalar code
-	const int _vectorisation_idx = -1;
-	{{scalar_code|autoindent}}
+    //// MAIN CODE ////////////
+    // scalar code
+    const int _vectorisation_idx = -1;
+    {{scalar_code|autoindent}}
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}

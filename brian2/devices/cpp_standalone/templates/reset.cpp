@@ -1,6 +1,6 @@
+{# USES_VARIABLES { N } #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-	{# USES_VARIABLES { N } #}
 
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}

@@ -1,11 +1,8 @@
+{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand, N,
+                 N_pre, N_post, _source_offset, _target_offset } #}
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N} #}
+{# ITERATE_ALL { _idx } #}
 {% extends 'common_group.pyx' %}
-{#
-USES_VARIABLES { _synaptic_pre, _synaptic_post, rand, N,
-                 N_pre, N_post, _source_offset, _target_offset }
-#}
-{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
-#}
-# ITERATE_ALL { _idx }
 
 ######################## TEMPLATE SUPPORT CODE ##############################
 

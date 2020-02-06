@@ -1,7 +1,7 @@
+{# USES_VARIABLES { N } #}
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { N } #}
     {% set _target_var_array = get_array_name(_target_var) %}
     {% set _index_array = get_array_name(_index_var) %}
     //// MAIN CODE ////////////
