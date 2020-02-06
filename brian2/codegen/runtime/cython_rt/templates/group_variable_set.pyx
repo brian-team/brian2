@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {# USES_VARIABLES { _group_idx } #}
 {# ALLOWS_SCALAR_WRITE #}

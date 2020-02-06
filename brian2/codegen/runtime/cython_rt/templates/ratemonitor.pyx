@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     {# USES_VARIABLES { N, t, rate, _clock_t, _clock_dt, _spikespace,

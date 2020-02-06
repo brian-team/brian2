@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 {#
 USES_VARIABLES { _synaptic_pre, _synaptic_post, rand, N,
                  N_pre, N_post, _source_offset, _target_offset }

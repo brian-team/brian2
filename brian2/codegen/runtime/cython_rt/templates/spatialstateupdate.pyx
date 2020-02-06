@@ -9,7 +9,7 @@
                   _morph_children, _morph_children_num, _morph_idxchild,
                   _invr0, _invrn} #}
 
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     cdef int _i

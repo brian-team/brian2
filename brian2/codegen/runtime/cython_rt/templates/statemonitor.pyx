@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {# USES_VARIABLES { t, _clock_t, _indices, N } #}
 

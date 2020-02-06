@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     {# ITERATE_ALL { _idx } #}

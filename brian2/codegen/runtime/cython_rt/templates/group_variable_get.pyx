@@ -2,7 +2,7 @@
    we do not generate any code but simply access the data in the underlying
    array directly. See RuntimeDevice.get_with_array #}
 
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {# USES_VARIABLES { _group_idx } #}
 

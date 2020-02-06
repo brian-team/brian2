@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     {# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
