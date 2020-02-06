@@ -15,7 +15,7 @@
 
 ////// SUPPORT CODE ///////
 namespace {
-	{{support_code_lines|autoindent}}
+    {{support_code_lines|autoindent}}
 }
 
 ////// HASH DEFINES ///////
@@ -23,7 +23,7 @@ namespace {
 
 void _run_{{codeobj_name}}()
 {
-	using namespace brian;
+    using namespace brian;
 
     {% if profiled %}
     {% if openmp_pragma('with_openmp') %}
@@ -33,31 +33,29 @@ void _run_{{codeobj_name}}()
     {% endif %}
     {% endif %}
 
-	///// CONSTANTS ///////////
-	%CONSTANTS%
-	///// POINTERS ////////////
-	{{pointers_lines|autoindent}}
+    ///// CONSTANTS ///////////
+    %CONSTANTS%
+    ///// POINTERS ////////////
+    {{pointers_lines|autoindent}}
 
-	{% block maincode %}
-	//// MAIN CODE ////////////
-	// scalar code
-	const size_t _vectorisation_idx = -1;
-	{{scalar_code|autoindent}}
+    {% block maincode %}
+    //// MAIN CODE ////////////
+    // scalar code
+    const size_t _vectorisation_idx = -1;
+    {{scalar_code|autoindent}}
 
     {# N is a constant in most cases (NeuronGroup, etc.), but a scalar array for
        synapses, we therefore have to take care to get its value in the right
        way. #}
-	const int _N = {{constant_or_scalar('N', variables['N'])}};
-	{{openmp_pragma('parallel-static')}}
-	for(int _idx=0; _idx<_N; _idx++)
-	{
-	    // vector code
-		const size_t _vectorisation_idx = _idx;
-		{% block maincode_inner %}
+    const int _N = {{constant_or_scalar('N', variables['N'])}};
+    {{openmp_pragma('parallel-static')}}
+    for(int _idx=0; _idx<_N; _idx++)
+    {
+        // vector code
+        const size_t _vectorisation_idx = _idx;
         {{vector_code|autoindent}}
-		{% endblock %}
-	}
-	{% endblock %}
+    }
+    {% endblock %}
 
     {% if profiled %}
     {% if openmp_pragma('with_openmp') %}

@@ -22,21 +22,19 @@
         // vector code
         const size_t _idx = {{_indices}}[_i];
         const size_t _vectorisation_idx = _idx;
-        {% block maincode_inner %}
-            {{ super() }}
+        {{vector_code|autoindent}}
 
-            {% for varname, var in _recorded_variables | dictsort %}
-            {% set _recorded =  get_array_name(var, access_data=False) %}
-            {% if c_data_type(var.dtype) == 'bool' %}
-            {{ openmp_pragma('critical') }}
-            { // std::vector<bool> is not threadsafe
-            {{_recorded}}(_new_size-1, _i) = _to_record_{{varname}};
-            }
-            {% else %}
-            {{_recorded}}(_new_size-1, _i) = _to_record_{{varname}};
-            {% endif %}
-            {% endfor %}
-        {% endblock %}
+        {% for varname, var in _recorded_variables | dictsort %}
+        {% set _recorded =  get_array_name(var, access_data=False) %}
+        {% if c_data_type(var.dtype) == 'bool' %}
+        {{ openmp_pragma('critical') }}
+        { // std::vector<bool> is not threadsafe
+        {{_recorded}}(_new_size-1, _i) = _to_record_{{varname}};
+        }
+        {% else %}
+        {{_recorded}}(_new_size-1, _i) = _to_record_{{varname}};
+        {% endif %}
+        {% endfor %}
     }
 
     {{N}} = _new_size;
