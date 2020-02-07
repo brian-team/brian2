@@ -1,14 +1,16 @@
 {# USES_VARIABLES { N } #}
+{# ITERATE_ALL { _idx } #}
 {# t, not_refractory and lastspike are added as needed_variables in the
   Thresholder class, we cannot use the USES_VARIABLE mechanism
   conditionally
   Same goes for "eventspace" (e.g. spikespace) which depends on the type of
   event #}
-{# ITERATE_ALL { _idx } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
-from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+{% block addcode %}
+{% endblock %}
 
+{% block maincode %}
 numpy_True = _numpy.bool_(True)
 numpy_False = _numpy.bool_(False)
 
@@ -37,3 +39,4 @@ else:
 {{not_refractory}}[_events] = False
 {{lastspike}}[_events] = {{t}}
 {% endif %}
+{% endblock %}

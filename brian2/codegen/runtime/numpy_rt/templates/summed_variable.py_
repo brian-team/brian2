@@ -1,9 +1,8 @@
 {# USES_VARIABLES { N } #}
 {# ITERATE_ALL { _idx } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
-from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
-
+{% block maincode %}
 {% set _target_var_array = get_array_name(_target_var) %}
 {% set _index_array = get_array_name(_index_var) %}
 
@@ -33,3 +32,4 @@ _length = _target_stop - {{_target_start}}
 {{_target_var_array}}[{{_target_start}}:_target_stop] = _numpy.bincount(_indices,
                                  minlength=_length,
                                  weights=_numpy.broadcast_to(_synaptic_var, (N, )))
+{% endblock %}

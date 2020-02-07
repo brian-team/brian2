@@ -5,6 +5,9 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, N,
 {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post, N}
 #}
 {# ITERATE_ALL { _idx } #}
+{% extends 'common_group.py_' %}
+
+{% block maincode %}
 # Only need to do the initial import once, and trying is not expensive
 # only catching exceptions is expensive (which we just do the first time)
 try:
@@ -12,7 +15,6 @@ try:
 except:
     _done_initial_import = True
     import sys as _sys
-    import numpy as _numpy
     from numpy.random import rand as _np_rand
     if _sys.version_info[0]==2:
         range = xrange
@@ -174,3 +176,4 @@ _owner._resize(_cur_num_synapses)
 
 # And update N_incoming, N_outgoing and synapse_number
 _owner._update_synapse_numbers(_old_num_synapses)
+{% endblock %}

@@ -1,6 +1,7 @@
 {# USES_VARIABLES { t, _clock_t, _indices } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
+{% block maincode %}
 # Resize dynamic arrays
 _new_len = len({{_dynamic_t}}) + 1
 
@@ -21,4 +22,4 @@ _idx = {{_indices}}
 {% for varname, var in _recorded_variables.items() %}
 {{get_array_name(var, access_data=False)}}[-1, :] = _to_record_{{varname}}
 {% endfor %}
-
+{% endblock %}

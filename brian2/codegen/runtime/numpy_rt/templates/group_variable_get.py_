@@ -2,7 +2,10 @@
    we do not generate any code but simply access the data in the underlying
    array directly. See RuntimeDevice.get_with_array #}
 {# USES_VARIABLES { _group_idx } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
+
+{% block maincode %}
+
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
@@ -15,3 +18,4 @@ _vectorisation_idx = _idx
 
 # _variable is set in the abstract code, see Group._get_with_array
 _return_values = _variable
+{% endblock %}

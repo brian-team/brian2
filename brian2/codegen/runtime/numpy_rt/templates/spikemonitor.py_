@@ -1,5 +1,7 @@
 {# USES_VARIABLES {N, count, _clock_t, _source_start, _source_stop, _source_N} #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
+
+{% block maincode %}
 
 {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
 {% set _eventspace = get_array_name(eventspace_variable) %}
@@ -27,3 +29,4 @@ if _n_events > 0:
         {{dynamic_varname}}[_curlen:_newlen] = _to_record_{{varname}}
         {% endfor %}
         {{count}}[_events - _source_start] += 1
+{% endblock %}

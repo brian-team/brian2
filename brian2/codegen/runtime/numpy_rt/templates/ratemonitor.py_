@@ -1,6 +1,8 @@
 {# USES_VARIABLES { rate, t, _spikespace, _num_source_neurons,
                     _clock_t, _clock_dt, _source_start, _source_stop, N } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
+
+{% block maincode %}
 _spikes = {{_spikespace}}[:{{_spikespace}}[-1]]
 # Take subgroups into account
 _spikes = _spikes[(_spikes >= _source_start) & (_spikes < _source_stop)]
@@ -9,3 +11,4 @@ _owner.resize(_new_len)
 {{N}} = _new_len
 {{_dynamic_t}}[-1] = {{_clock_t}}
 {{_dynamic_rate}}[-1] = 1.0 * len(_spikes) / {{_clock_dt}} / _num_source_neurons
+{% endblock %}

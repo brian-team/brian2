@@ -1,7 +1,9 @@
 {# USES_VARIABLES { _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
                     _ab_star0, _ab_star1, _ab_star2,
                     _starts, _ends, _invr0, _invrn, _b_plus, _b_minus } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
+
+{% block maincode %}
 from numpy import pi
 
 # Inverse axial resistance
@@ -32,3 +34,4 @@ for _counter, (_first, _last) in enumerate(zip({{_starts}},
     # RHS for homogeneous solutions
     {{_b_plus}}[_last] = -(_invrn / {{area}}[_last])
     {{_b_minus}}[_first] = -(_invr0 / {{area}}[_first])
+{% endblock %}
