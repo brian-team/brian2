@@ -1,3 +1,6 @@
+{# ITERATE_ALL { _idx } #}
+{# USES_VARIABLES { N } #}
+{# ALLOWS_SCALAR_WRITE #}
 {% extends 'common_group.pyx' %}
 
 {% block template_support_code %}
@@ -67,9 +70,6 @@ cdef extern from "gsl/gsl_odeiv2.h":
 {% endblock %}
 
 {% block maincode %}
-    {# ITERATE_ALL { _idx } #}
-    {# USES_VARIABLES { N } #}
-    {# ALLOWS_SCALAR_WRITE #}
 
     # scalar code
     _vectorisation_idx = 1
