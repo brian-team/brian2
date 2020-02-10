@@ -1,0 +1,4 @@
+import numpy as _numpy
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+{% block maincode %}
+{% endblock %}

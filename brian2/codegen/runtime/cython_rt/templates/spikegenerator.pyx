@@ -1,4 +1,4 @@
-{% extends 'common.pyx' %}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     {# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps, N } #}

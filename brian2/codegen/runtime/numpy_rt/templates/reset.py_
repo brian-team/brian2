@@ -1,8 +1,9 @@
 {# Note that we don't write to scalar variables conditionally. The scalar code
    should therefore only include the calculation of scalar expressions
    that are used below for writing to a vector variable #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
+{% block maincode %}
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
@@ -14,3 +15,4 @@ _vectorisation_idx = 1
 _idx = {{_eventspace}}[:{{_eventspace}}[-1]]
 _vectorisation_idx = _idx
 {{vector_code|autoindent}}
+{% endblock %}

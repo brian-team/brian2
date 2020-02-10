@@ -1,6 +1,7 @@
 {# USES_VARIABLES { _queue } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
+{% block maincode %}
 _spiking_synapses = _queue.peek()
 
 if len(_spiking_synapses):
@@ -17,3 +18,4 @@ if len(_spiking_synapses):
 
 # Advance the spike queue
 _queue.advance()
+{% endblock %}

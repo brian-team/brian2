@@ -1,6 +1,6 @@
-{% extends 'common_group.cpp' %}
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
+{% extends 'common_group.cpp' %}
 
 {% block maincode %}
 //// MAIN CODE ////////////

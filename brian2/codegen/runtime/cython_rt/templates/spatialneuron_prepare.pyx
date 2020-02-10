@@ -1,9 +1,9 @@
-{% extends 'common.pyx' %}
+{# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
+                    _ab_star0, _ab_star1, _ab_star2,
+                    _starts, _ends, _invr0, _invrn, _b_plus, _b_minus } #}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { N, _invr, Ri, Cm, dt, area, r_length_1, r_length_2,
-                        _ab_star0, _ab_star1, _ab_star2,
-                        _starts, _ends, _invr0, _invrn, _b_plus, _b_minus } #}
     cdef int _i
     cdef int _counter
     cdef int _first

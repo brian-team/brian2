@@ -1,6 +1,7 @@
 {# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
+{% block maincode %}
 _the_period    = {{_period_bins}}
 _timebin       = {{t_in_timesteps}}
 _n_spikes      = 0
@@ -23,3 +24,4 @@ _indices = {{neuron_index}}[_lastindex_before:_lastindex_before+_n_spikes]
 
 {{_spikespace}}[:_n_spikes] = _indices
 {{_spikespace}}[-1] = _n_spikes
+{% endblock %}

@@ -1,6 +1,6 @@
+{# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps, N } #}
 {% extends 'common_group.cpp' %}
 {% block maincode %}
-    {# USES_VARIABLES { _spikespace, neuron_index, _timebins, _period_bins, _lastindex, t_in_timesteps, N } #}
 
     const int32_t _the_period = {{_period_bins}};
     int32_t _timebin          = {{t_in_timesteps}};

@@ -1,1 +1,5 @@
+{% extends 'common_group.py_' %}
+
+{% block maincode %}
 _owner.initialise_queue()
+{% endblock %}

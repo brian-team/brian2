@@ -1,14 +1,14 @@
+{# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
+                    N_incoming, N_outgoing, N,
+                    N_pre, N_post, _source_offset, _target_offset } #}
+
+{# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
+                                   N_incoming, N_outgoing, N}
+#}
 {% extends 'common_synapses.cpp' %}
 
 {% block maincode %}
     #include<iostream>
-    {# USES_VARIABLES { _synaptic_pre, _synaptic_post, rand,
-                        N_incoming, N_outgoing, N,
-                        N_pre, N_post, _source_offset, _target_offset } #}
-
-    {# WRITES_TO_READ_ONLY_VARIABLES { _synaptic_pre, _synaptic_post,
-                                       N_incoming, N_outgoing, N}
-    #}
 
     {# Get N_post and N_pre in the correct way, regardless of whether they are
     constants or scalar arrays#}

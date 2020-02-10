@@ -1,7 +1,6 @@
-{% extends 'common.pyx' %}
-
 {# USES_VARIABLES { _group_idx } #}
 {# ALLOWS_SCALAR_WRITE #}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
 

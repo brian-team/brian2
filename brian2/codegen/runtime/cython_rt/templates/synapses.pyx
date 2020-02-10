@@ -1,7 +1,7 @@
-{% extends 'common.pyx' %}
+{# USES_VARIABLES { _queue } #}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
-    {# USES_VARIABLES { _queue } #}
     cdef _numpy.ndarray[int32_t, ndim=1, mode='c'] _spiking_synapses = _queue.peek()
 
     # scalar code

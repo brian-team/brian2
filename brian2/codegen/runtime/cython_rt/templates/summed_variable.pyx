@@ -1,8 +1,7 @@
-{% extends 'common.pyx' %}
+{# USES_VARIABLES { N } #}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
-
-    {# USES_VARIABLES { N } #}
     {% set _target_var_array = get_array_name(_target_var) %}
     {% set _index_array = get_array_name(_index_var) %}
     cdef int _target_idx

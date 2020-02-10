@@ -13,9 +13,10 @@
 Solves the cable equation (spatial diffusion of currents).
 This is where most time-consuming time computations are done.
 '''
-from numpy import zeros
+{% extends 'common_group.py_' %}
 
-from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+{% block maincode %}
+from numpy import zeros
 
 # scalar code
 _vectorisation_idx = 1
@@ -157,3 +158,4 @@ for _i, (_B_parent, _j_start, _j_end) in enumerate(zip({{_B}}[{{_morph_parent_i}
                      + _B_current * {{_u_plus}}[_j_start:_j_end])
 
 {{Ic}}[:] = {{Cm}}*({{v}} - {{_v_previous}})/{{dt}}
+{% endblock %}

@@ -1,10 +1,9 @@
 {# ITERATE_ALL { _idx } #}
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
-from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
-
+{% block maincode %}
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code|autoindent}}
@@ -12,3 +11,4 @@ _vectorisation_idx = 1
 # vector code
 _vectorisation_idx = LazyArange(N)
 {{vector_code|autoindent}}
+{% endblock %}

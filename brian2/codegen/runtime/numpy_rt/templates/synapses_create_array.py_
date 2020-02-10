@@ -6,8 +6,9 @@ USES_VARIABLES { _synaptic_pre, _synaptic_post, sources, targets, N,
 #}
 {# This is to show that we don't need to index the sources/targets #}
 {# ITERATE_ALL { _idx } #}
-import numpy as _numpy
+{% extends 'common_group.py_' %}
 
+{% block maincode %}
 {# After this code has been executed, the arrays _real_sources and
    _real_variables contain the final indices. Having any code here at all is
    only necessary for supporting subgroups #}
@@ -26,3 +27,4 @@ _owner._resize(_new_num_synapses)
 
 # And update N_incoming, N_outgoing and synapse_number
 _owner._update_synapse_numbers(_old_num_synapses)
+{% endblock %}

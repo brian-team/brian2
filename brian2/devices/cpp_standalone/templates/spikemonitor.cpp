@@ -1,14 +1,14 @@
+{# USES_VARIABLES { N, _clock_t, count,
+                        _source_start, _source_stop} #}
+    {# WRITES_TO_READ_ONLY_VARIABLES { N, count } #}
 {% extends 'common_group.cpp' %}
 
 {% block maincode %}
-	//// MAIN CODE ////////////
-    {# USES_VARIABLES { N, _clock_t, count,
-                        _source_start, _source_stop} #}
-    {# WRITES_TO_READ_ONLY_VARIABLES { N, count } #}
+    //// MAIN CODE ////////////
     {#  Get the name of the array that stores these events (e.g. the spikespace array) #}
     {% set _eventspace = get_array_name(eventspace_variable) %}
 
-	int32_t _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
+    int32_t _num_events = {{_eventspace}}[_num{{eventspace_variable.name}}-1];
 
     if (_num_events > 0)
     {
@@ -53,11 +53,11 @@
 {% block extra_functions_cpp %}
 void _debugmsg_{{codeobj_name}}()
 {
-	using namespace brian;
-	{# We need the pointers and constants here to get the access to N working #}
+    using namespace brian;
+    {# We need the pointers and constants here to get the access to N working #}
     %CONSTANTS%
     {{pointers_lines|autoindent}}
-	std::cout << "Number of spikes: " << {{N}} << endl;
+    std::cout << "Number of spikes: " << {{N}} << endl;
 }
 {% endblock %}
 

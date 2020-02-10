@@ -1,7 +1,6 @@
-{% extends 'common.pyx' %}
-
 {# USES_VARIABLES { N } #}
 {# ALLOWS_SCALAR_WRITE #}
+{% extends 'common_group.pyx' %}
 
 {% block maincode %}
     cdef size_t _N = {{constant_or_scalar('N', variables['N'])}}

@@ -55,5 +55,4 @@ def main(_namespace):
     if '_owner' in _namespace:
         _owner = _namespace['_owner']
     {% block maincode %}
-    {{ vector_code | autoindent }}
     {% endblock %}
