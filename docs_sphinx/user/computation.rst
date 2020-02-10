@@ -70,6 +70,10 @@ check whether the size of the disk cache exceeds the value set by the
 if this is the case. You can clear the disk cache manually, or use the
 `~brian2.__init__.clear_cache` function, e.g. ``clear_cache('cython')``.
 
+.. note::
+
+    If you run simulations on parallel on a machine using the Network File System, see
+    :ref:`this known issue <parallel_cython>`.
 
 .. _cpp_standalone:
 
