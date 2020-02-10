@@ -65,6 +65,48 @@ for examples of these. They are written in the Jinja2 templating system. The
 location of these templates is set as the `CodeObject.templater` attribute.
 Examples such as `CPPCodeObject` show how this is done.
 
+Template structure
+~~~~~~~~~~~~~~~~~~
+
+Languages typically define a ``common_group`` template that is the base for all
+other templates. This template sets up the basic code structure that will be reused by
+all code objects, e.g. by defining a function header and body, and adding standard
+imports/includes. This template defines several blocks, in particular a ``maincode``
+clock containing the actual code that is specific to each code object. The specific
+templates such as ``reset`` then derive from the ``common_group`` base template and
+override the ``maincode`` block. The base template can also define additional blocks
+that are sometimes but not always overwritten. For example, the ``common_group.cpp``
+template of the C++ standalone code generator defines an ``extra_headers`` block that
+can be overwritten by child templates to include additional header files needed for the
+code in ``maincode``.
+
+Template keywords
+~~~~~~~~~~~~~~~~~
+
+Templates also specify additional information necessary for the code generation process
+as Jinja comments (``{# ... #}``). The following keywords are recognized by Brian:
+
+``USES_VARIABLES``
+    Lists variable names that are used by the template, even if they are not referred to
+    in user code.
+``WRITES_TO_READ_ONLY_VARIABLES``
+    Lists read-only variables that are modified by the template. Normally, read-only
+    variables are not considered to change during code execution, but e.g. synapse
+    creation requires changes to synaptic indices that are considered read-only
+    otherwise.
+``ALLOWS_SCALAR_WRITE``
+    The presence of this keyword means that in this template, writing to scalar
+    variables is permitted. Writing to scalar variables is not permitted by default,
+    because it can be ambiguous in contexts that do not involve all neurons/synapses.
+    For example, should the statement ``scalar_variable += 1`` in a reset statement
+    update the variable once or once for every spiking neuron?
+``ITERATE_ALL``
+    Lists indices that are iterated over completely. For example, during the state
+    update or threshold step, the template iterates over all neurons with the standard
+    index ``_idx``. When executing the reset statements on the other hand, not all
+    neurons are concerned. This is only used for the numpy code generation target,
+    where it allows avoiding expensive unnecessary indexing.
+
 Code objects
 ------------
 
