@@ -1,9 +1,12 @@
+{% macro cython_directives() %}
 #cython: language_level=3
 #cython: boundscheck=False
 #cython: wraparound=False
 #cython: cdivision=False
 #cython: infer_types=True
+{% endmacro %}
 
+{% macro imports() %}
 import numpy as _numpy
 cimport numpy as _numpy
 from libc.math cimport fabs, sin, cos, tan, sinh, cosh, tanh, exp, log, log10, expm1, log1p, sqrt, asin, acos, atan, fmod, floor, ceil, isinf
@@ -39,7 +42,24 @@ cdef extern from "stdint_compat.h":
     cdef int int_(float)
     cdef int int_(double)
     cdef int int_(long double)
+{% endmacro %}
 
+{% macro before_run() %}
+{{ cython_directives() }}
+{{ imports() }}
+
+def main(_namespace):
+    {{ load_namespace | autoindent }}
+    if '_owner' in _namespace:
+        _owner = _namespace['_owner']
+    {% block before_code %}
+    # EMPTY_CODE_BLOCK  -- overwrite in child template
+    {% endblock %}
+{% endmacro %}
+
+{% macro run() %}
+{{ cython_directives() }}
+{{ imports() }}
 
 # support code
 {{ support_code_lines | autoindent }}
@@ -56,3 +76,18 @@ def main(_namespace):
         _owner = _namespace['_owner']
     {% block maincode %}
     {% endblock %}
+
+{% endmacro %}
+
+{% macro after_run() %}
+{{ cython_directives() }}
+{{ imports() }}
+
+def main(_namespace):
+    {{ load_namespace | autoindent }}
+    if '_owner' in _namespace:
+        _owner = _namespace['_owner']
+    {% block after_code %}
+    # EMPTY_CODE_BLOCK  -- overwrite in child template
+    {% endblock %}
+{% endmacro %}

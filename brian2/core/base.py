@@ -162,9 +162,10 @@ class BrianObject(Nameable):
         '''
         Optional method to prepare the object before a run.
 
-        TODO
+        Called by `Network.after_run` before the main simulation loop starts.
         '''
-        pass
+        for codeobj in self._code_objects:
+            codeobj.before_run()
     
     def after_run(self):
         '''
@@ -172,7 +173,8 @@ class BrianObject(Nameable):
         
         Called by `Network.after_run` after the main simulation loop terminated.
         '''
-        pass
+        for codeobj in self._code_objects:
+            codeobj.after_run()
 
     def run(self):
         for codeobj in self._code_objects:

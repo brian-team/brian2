@@ -234,17 +234,23 @@ class NumpyCodeObject(CodeObject):
         for name, func in self.nonconstant_values:
             self.namespace[name] = func()
 
-    def compile(self):
-        super(NumpyCodeObject, self).compile()
-        self.compiled_code = compile(self.code, '(string)', 'exec')
+    def compile_block(self, block):
+        code = getattr(self.code, block, '').strip()
+        if not code or 'EMPTY_CODE_BLOCK' in code:
+            return None
+        return compile(code, '(string)', 'exec')
 
-    def run(self):
+    def run_block(self, block):
+        compiled_code = self.compiled_code[block]
+        if not compiled_code:
+            return
         try:
-            exec(self.compiled_code, self.namespace)
+            exec(compiled_code, self.namespace)
         except Exception as exc:
-            message = ('An exception occured during the execution of code '
-                       'object {}.\n').format(self.name)
-            lines = self.code.split('\n')
+            code = getattr(self.code, block)
+            message = ('An exception occured during the execution of the {} '
+                       'block of code object {}.\n').format(block, self.name)
+            lines = code.split('\n')
             message += 'The error was raised in the following line:\n'
             _, _, tb = sys.exc_info()
             tb = tb.tb_next  # Line in the code object's code
@@ -253,5 +259,6 @@ class NumpyCodeObject(CodeObject):
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']
+
 
 codegen_targets.add(NumpyCodeObject)

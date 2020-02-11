@@ -1,4 +1,22 @@
+{% macro before_run() %}
+import numpy as _numpy
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+{% block before_code %}
+# EMPTY_CODE_BLOCK  -- overwrite in child template
+{% endblock %}
+{% endmacro %}
+
+{% macro run() %}
 import numpy as _numpy
 from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
 {% block maincode %}
 {% endblock %}
+{% endmacro %}
+
+{% macro after_run() %}
+import numpy as _numpy
+from brian2.codegen.runtime.numpy_rt.numpy_rt import LazyArange
+{% block after_code %}
+# EMPTY_CODE_BLOCK  -- overwrite in child template
+{% endblock %}
+{% endmacro %}

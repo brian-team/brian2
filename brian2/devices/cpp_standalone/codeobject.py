@@ -100,11 +100,27 @@ class CPPStandaloneCodeObject(CodeObject):
                                        'zip': zip})
     generator_class = CPPCodeGenerator
 
+    def __init__(self, *args, **kwds):
+        super(CPPStandaloneCodeObject, self).__init__(*args, **kwds)
+        #: Store whether this code object defines before/after blocks
+        self.before_after_blocks = []
+
     def __call__(self, **kwds):
         return self.run()
 
-    def run(self):
-        get_device().main_queue.append(('run_code_object', (self,)))
+    def compile_block(self, block):
+        pass  # Compilation will be handled in device
+
+    def run_block(self, block):
+        if block == 'run':
+            get_device().main_queue.append((block + '_code_object', (self,)))
+        else:
+            # Check the C++ code whether there is anything to run
+            cpp_code = getattr(self.code, block + '_cpp_file')
+            if len(cpp_code) and 'EMPTY_CODE_BLOCK' not in cpp_code:
+                get_device().main_queue.append((block + '_code_object', (self,)))
+                self.before_after_blocks.append(block)
+
 
 codegen_targets.add(CPPStandaloneCodeObject)
 

@@ -228,6 +228,9 @@ class CPPStandaloneDevice(Device):
         self.build_on_run = build_on_run
         self.build_options = build_options
 
+    def spike_queue(self, source_start, source_end):
+        return None  # handled differently
+
     def freeze(self, code, ns):
         # this is a bit of a hack, it should be passed to the template somehow
         for k, v in ns.items():
@@ -650,9 +653,15 @@ class CPPStandaloneDevice(Device):
         procedures = [('', main_lines)]
         runfuncs = {}
         for func, args in self.main_queue:
-            if func=='run_code_object':
+            if func=='before_run_code_object':
+                codeobj, = args
+                main_lines.append('_before_run_%s();' % codeobj.name)
+            elif func=='run_code_object':
                 codeobj, = args
                 main_lines.append('_run_%s();' % codeobj.name)
+            elif func == 'after_run_code_object':
+                codeobj, = args
+                main_lines.append('_after_run_%s();' % codeobj.name)
             elif func=='run_network':
                 net, netcode = args
                 main_lines.extend(netcode)
@@ -779,10 +788,22 @@ class CPPStandaloneDevice(Device):
         # Generate the code objects
         for codeobj in self.code_objects.values():
             ns = codeobj.variables
+
+            # Before/after run code
+            for block in codeobj.before_after_blocks:
+                cpp_code = getattr(codeobj.code, block + '_cpp_file')
+                cpp_code = self.freeze(cpp_code, ns)
+                cpp_code = cpp_code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
+                h_code = getattr(codeobj.code, block + '_h_file')
+                writer.write('code_objects/' + block + '_' + codeobj.name + '.cpp',
+                             cpp_code)
+                writer.write('code_objects/' + block + '_' + codeobj.name + '.h',
+                             h_code)
+
+            # Main code
             # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
             code = self.freeze(codeobj.code.cpp_file, ns)
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
-            code = '#include "objects.h"\n'+code
 
             writer.write('code_objects/'+codeobj.name+'.cpp', code)
             writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)

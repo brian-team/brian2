@@ -600,24 +600,12 @@ class SpatialStateUpdater(CodeRunner, Group):
         self._morph_idxchild = group.flat_morphology.morph_idxchild
         self._starts = group.flat_morphology.starts
         self._ends = group.flat_morphology.ends
-        self._prepare_codeobj = None
 
     def before_run(self, run_namespace):
-        # execute code to initalize the data structures
-        if self._prepare_codeobj is None:
-            self._prepare_codeobj = create_runner_codeobj(self.group,
-                                                          '', # no code,
-                                                          'spatialneuron_prepare',
-                                                          name=self.name+'_spatialneuron_prepare',
-                                                          check_units=False,
-                                                          additional_variables=self.variables,
-                                                          run_namespace=run_namespace)
-        self._prepare_codeobj()
+        super(SpatialStateUpdater, self).before_run(run_namespace)
         # Raise a warning if the slow pure numpy version is used
-        # For simplicity, we check which CodeObject class the _prepare_codeobj
-        # is using, this will be the same as the main state updater
         from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
-        if isinstance(self._prepare_codeobj, NumpyCodeObject):
+        if isinstance(self.code_objects[0], NumpyCodeObject):
             # If numpy is used, raise a warning if scipy is not present
             try:
                 import scipy
@@ -627,4 +615,3 @@ class SpatialStateUpdater(CodeRunner, Group):
                              'switch to a different code generation target '
                              '(e.g. cython) or install scipy.'),
                             once=True)
-        CodeRunner.before_run(self, run_namespace)

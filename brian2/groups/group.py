@@ -1103,7 +1103,7 @@ class CodeRunner(BrianObject):
         '''
         pass
 
-    def before_run(self, run_namespace):
+    def create_default_code_object(self, run_namespace):
         self.update_abstract_code(run_namespace=run_namespace)
         # If the CodeRunner has variables, add them
         if hasattr(self, 'variables'):
@@ -1113,13 +1113,12 @@ class CodeRunner(BrianObject):
 
         if not self.generate_empty_code and len(self.abstract_code) == 0:
             self.codeobj = None
-            self.code_objects[:] = []
         else:
             self.codeobj = create_runner_codeobj(group=self.group,
                                                  code=self.abstract_code,
                                                  user_code=self.user_code,
                                                  template_name=self.template,
-                                                 name=self.name+'_codeobject*',
+                                                 name=self.name + '_codeobject*',
                                                  check_units=self.check_units,
                                                  additional_variables=additional_variables,
                                                  needed_variables=self.needed_variables,
@@ -1128,4 +1127,17 @@ class CodeRunner(BrianObject):
                                                  override_conditional_write=self.override_conditional_write,
                                                  codeobj_class=self.codeobj_class
                                                  )
-            self.code_objects[:] = [weakref.proxy(self.codeobj)]
+        return self.codeobj
+
+    def create_code_objects(self, run_namespace):
+        # By default, we only have one code object for each CodeRunner.
+        # Overwrite this function to use more than one.
+        code_object = self.create_default_code_object(run_namespace)
+        if code_object:
+            self.code_objects[:] = [weakref.proxy(code_object)]
+        else:
+            self.code_objects[:] = []
+
+    def before_run(self, run_namespace):
+        self.create_code_objects(run_namespace)
+        super(CodeRunner, self).before_run(run_namespace)

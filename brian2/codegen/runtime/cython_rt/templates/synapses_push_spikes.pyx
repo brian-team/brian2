@@ -1,4 +1,9 @@
-#cython: language_level = 3
+{% extends 'common_group.pyx' %}
 
-def main(ns):
-    ns['_owner'].push_spikes()
+{% block before_code %}
+    _owner.initialise_queue()
+{% endblock %}
+
+{% block maincode %}
+    _owner.push_spikes()
+{% endblock %}
