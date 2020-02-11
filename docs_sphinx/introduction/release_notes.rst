@@ -26,6 +26,8 @@ Other contributions outside of github (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Wilhelm Braun
+* Willam Xavier
+
 
 .. _brian2.3:
 Brian 2.3
