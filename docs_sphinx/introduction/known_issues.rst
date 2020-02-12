@@ -68,6 +68,29 @@ will use a randomly chosen unique temporary directory (in ``/tmp`` on
 Unix-based systems) for each simulation. If you need to know the directory name,
 you can access it after the simulation run via ``device.project_dir``.
 
+.. _parallel_cython:
+
+Parallel Brian simulations with Cython on machines with NFS (e.g. a computing cluster)
+--------------------------------------------------------------------------------------
+
+Generated Cython code is stored in a cache directory on disk so that it can be reused
+when it is needed again, without recompiling it. Multiple simulations running in
+parallel could interfere during the compilation process by trying to generate the same
+file at the same time. To avoid this, Brian uses a file locking mechanism that ensures
+that only a process at a time can access these files. Unfortunately, this file locking
+mechanism is very slow on machines using the Network File System
+(`NFS <https://en.wikipedia.org/wiki/Network_File_System>`_), which is often the case on
+computing clusters. On such machines, it is recommend to use an independent cache
+directory per process, and to disable the file locking mechanism. This can be done with
+the following code that has to be run at the beginning of each process::
+
+    from brian2 import *
+    import os
+    cache_dir = os.path.expanduser(f'~/.cython/brian-pid-{os.getpid()}')
+    prefs.codegen.runtime.cython.cache_dir = cache_dir
+    prefs.codegen.runtime.cython.multiprocess_safe = False
+
+
 Slow C++ standalone simulations
 -------------------------------
 
