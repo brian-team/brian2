@@ -107,6 +107,7 @@ __all__ = [
     'BinomialFunction', 'PoissonGroup', 'PoissonInput',
     'SpikeGeneratorGroup', 'TimedArray',
     'Morphology', 'Soma', 'Cylinder', 'Section', 'SpatialNeuron',
+    'SpatialNeuronGroup',
     'set_device', 'get_device', 'device', 'all_devices', 'seed',
     'restore_initial_state'
 ]
