@@ -15,9 +15,12 @@ def test_str_repr():
     """
     G = NeuronGroup(10, "v:1")
     SG = G[5:8]
+    SGi = G[[3, 6, 9]]
     # very basic test, only make sure no error is raised
     assert len(str(SG))
     assert len(repr(SG))
+    assert len(str(SGi))
+    assert len(repr(SGi))
 
 
 def test_state_variables():
@@ -85,6 +88,31 @@ def test_state_variables_simple():
     assert_equal(G.b[:], [0, 0, 0, 0, 1, 2, 6, 0, 0, 0])
     assert_equal(G.c[:], [0, 0, 0, 3, 4, 5, 6, 0, 0, 0])
     assert_equal(G.d[:], [0, 0, 0, 0, 4, 1, 2, 0, 0, 0])
+
+
+@pytest.mark.standalone_compatible
+def test_state_variables_simple_indexed():
+    G = NeuronGroup(
+        10,
+        """a : 1
+                           b : 1
+                           c : 1
+                           d : 1
+                           """,
+    )
+    SG = G[[3, 5, 7, 9]]
+    SG.a = 1
+    SG.a["i == 0"] = 2
+    SG.b = "i"
+    SG.b["i == 3"] = "i * 2"
+    SG.c = np.arange(3, 7)
+    SG.d[1:2] = 4
+    SG.d[2:4] = [1, 2]
+    run(0 * ms)
+    assert_equal(G.a[:], [0, 0, 0, 2, 0, 1, 0, 1, 0, 1])
+    assert_equal(G.b[:], [0, 0, 0, 0, 0, 1, 0, 2, 0, 6])
+    assert_equal(G.c[:], [0, 0, 0, 3, 0, 4, 0, 5, 0, 6])
+    assert_equal(G.d[:], [0, 0, 0, 0, 0, 4, 0, 1, 0, 2])
 
 
 def test_state_variables_string_indices():
@@ -701,42 +729,42 @@ def test_spike_monitor():
 
 
 @pytest.mark.codegen_independent
-def test_wrong_indexing():
+@pytest.mark.parametrize(
+    "item",
+    [
+        "string",
+        slice(10, None),
+        slice(3, 2),
+        [9, 10],
+        [10, 11],
+        [2.5, 3.5, 4.5],
+        [5, 5, 5],
+        [],
+    ],
+)
+def test_wrong_indexing(item):
     G = NeuronGroup(10, "v:1")
-    with pytest.raises(TypeError):
-        G["string"]
-
-    with pytest.raises(IndexError):
-        G[10]
-    with pytest.raises(IndexError):
-        G[10:]
-    with pytest.raises(IndexError):
-        G[::2]
-    with pytest.raises(IndexError):
-        G[3:2]
-    with pytest.raises(IndexError):
-        G[[5, 4, 3]]
-    with pytest.raises(IndexError):
-        G[[2, 4, 6]]
-    with pytest.raises(IndexError):
-        G[[-1, 0, 1]]
-    with pytest.raises(IndexError):
-        G[[9, 10, 11]]
-    with pytest.raises(IndexError):
-        G[[9, 10]]
-    with pytest.raises(IndexError):
-        G[[10, 11]]
-    with pytest.raises(TypeError):
-        G[[2.5, 3.5, 4.5]]
+    with pytest.raises((TypeError, IndexError)):
+        G[item]
 
 
 @pytest.mark.codegen_independent
-def test_alternative_indexing():
+@pytest.mark.parametrize(
+    "item,expected",
+    [
+        (slice(-3, None), np.array([7, 8, 9])),
+        (slice(None, None, 2), np.array([0, 2, 4, 6, 8])),
+        (3, np.array([3])),
+        ([3, 4, 5], np.array([3, 4, 5])),
+        ([3, 5, 7], np.array([3, 5, 7])),
+        ([7, 5, 3], np.array([7, 5, 3])),
+        ([3, -1], np.array([3, 9])),
+    ],
+)
+def test_alternative_indexing(item, expected):
     G = NeuronGroup(10, "v : integer")
     G.v = "i"
-    assert_equal(G[-3:].v, np.array([7, 8, 9]))
-    assert_equal(G[3].v, np.array([3]))
-    assert_equal(G[[3, 4, 5]].v, np.array([3, 4, 5]))
+    assert_equal(G[item].v, expected)
 
 
 def test_no_reference_1():
@@ -802,10 +830,20 @@ def test_recursive_subgroup():
     G = NeuronGroup(10, "v : 1")
     G.v = "i"
     SG = G[3:8]
+    SGi = G[[3, 5, 7, 9]]
     SG2 = SG[2:4]
+    SGi2 = SGi[2:4]
+    SGii = SGi[[1, 3]]
+    SG2i = SG[[1, 3]]
     assert_equal(SG2.v[:], np.array([5, 6]))
     assert_equal(SG2.v[:], SG.v[2:4])
+    assert_equal(SGi2.v[:], np.array([7, 9]))
+    assert_equal(SGii.v[:], np.array([5, 9]))
+    assert_equal(SG2i.v[:], np.array([4, 6]))
     assert SG2.source.name == G.name
+    assert SGi2.source.name == G.name
+    assert SGii.source.name == G.name
+    assert SG2i.source.name == G.name
 
 
 if __name__ == "__main__":

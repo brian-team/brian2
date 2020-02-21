@@ -20,7 +20,12 @@ from brian2.equations.equations import (
     extract_constant_subexpressions,
 )
 from brian2.groups.group import CodeRunner, Group, create_runner_codeobj
-from brian2.groups.neurongroup import NeuronGroup, SubexpressionUpdater, to_start_stop
+from brian2.groups.neurongroup import (
+    NeuronGroup,
+    SubexpressionUpdater,
+    to_start_stop,
+    to_start_stop_or_index,
+)
 from brian2.groups.subgroup import Subgroup
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.units.allunits import amp, meter, ohm, siemens, volt
@@ -563,21 +568,10 @@ class SpatialNeuron(NeuronGroup):
             indices = neuron.morphology.indices[item]
             start, stop = indices[0], indices[-1] + 1
         elif not isinstance(item, slice) and hasattr(item, "indices"):
-            start, stop = to_start_stop(item.indices[:], neuron._N)
+            start, stop, indices = to_start_stop_or_index(item.indices[:], neuron._N)
         else:
-            start, stop = to_start_stop(item, neuron._N)
-            if isinstance(neuron, SpatialSubgroup):
-                start += neuron.start
-                stop += neuron.start
+            start, stop, indices = to_start_stop_or_index(item, neuron._N)
 
-        if start >= stop:
-            raise IndexError(
-                f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}"
-            )
-        if isinstance(neuron, SpatialSubgroup):
-            # Note that the start/stop values calculated above are always
-            # absolute values, even for subgroups
-            neuron = neuron.source
         return Subgroup(neuron, start, stop)
 
 
