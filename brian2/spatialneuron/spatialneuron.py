@@ -457,22 +457,26 @@ class SpatialNeuronGroup(NeuronGroup):
         return max(indices)
 
     @staticmethod
-    def spatialneuron_attribute(neuron, name):
+    def spatialneuron_attribute(neuron, name, neurons=None):
         '''
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
         '''
+        if neurons is None:
+            neurons = np.arange(self._n_neurons)
         if name == 'main':  # Main section, without the subtrees
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
             return SpatialSubgroup(neuron, start, stop + 1,
-                                   morphology=neuron.morphology)
+                                   morphology=neuron.morphology,
+                                   neurons=neurons)
         elif (name != 'morphology') and ((name in getattr(neuron.morphology, 'children', [])) or
                                       all([c in 'LR123456789' for c in name])):  # subtree
             morpho = neuron.morphology[name]
             start = morpho.indices[0]
             stop = SpatialNeuron._find_subtree_end(morpho)
-            return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho)
+            return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho,
+                                   neurons=neurons)
         else:
             return Group.__getattr__(neuron, name)
 
@@ -543,12 +547,14 @@ class SpatialSubgroup(Subgroup):
         Name of the subgroup.
     '''
 
-    def __init__(self, source, start, stop, morphology, name=None):
+    def __init__(self, source, start, stop, morphology, neurons, name=None):
         self.morphology = morphology
+        self.neurons = neurons
         Subgroup.__init__(self, source, start, stop, name)
 
     def __getattr__(self, name):
-        return SpatialNeuron.spatialneuron_attribute(self, name)
+        return SpatialNeuron.spatialneuron_attribute(self, name,
+                                                     neurons=self.neurons)
 
     def __getitem__(self, item):
         return SpatialNeuron.spatialneuron_segment(self, item)
@@ -595,7 +601,6 @@ class SpatialStateUpdater(CodeRunner, Group):
         self.variables.add_array('_invr', dimensions=siemens.dim,
                                  size=total_compartments, constant=True,
                                  index='_compartment_idx')
-        print(self.variables['_invr'].size)
         # one value per section
         self.variables.add_arange('_section_idx', size=total_sections)
         self.variables.add_array('_P_parent', size=total_sections,
