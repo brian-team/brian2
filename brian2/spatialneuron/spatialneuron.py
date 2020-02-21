@@ -23,7 +23,7 @@ from brian2.units.stdunits import uF, cm
 from brian2.parsing.sympytools import sympy_to_str, str_to_sympy
 from brian2.utils.logger import get_logger
 from brian2.groups.neurongroup import (NeuronGroup, SubexpressionUpdater,
-                                       to_start_stop)
+                                       to_start_stop_or_index)
 from brian2.groups.subgroup import Subgroup
 from brian2.equations.codestrings import Expression
 
@@ -492,13 +492,10 @@ class SpatialNeuron(NeuronGroup):
             indices = neuron.morphology.indices[item]
             start, stop = indices[0], indices[-1] + 1
         elif not isinstance(item, slice) and hasattr(item, 'indices'):
-            start, stop = to_start_stop(item.indices[:], neuron._N)
+            start, stop, indices = to_start_stop_or_index(item.indices[:],
+                                                          neuron._N)
         else:
-            start, stop = to_start_stop(item, neuron._N)
-
-        if start >= stop:
-            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                             (start, stop))
+            start, stop, indices = to_start_stop_or_index(item, neuron._N)
 
         return Subgroup(neuron, start, stop)
 
