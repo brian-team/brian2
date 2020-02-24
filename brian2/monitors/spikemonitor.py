@@ -7,6 +7,7 @@ from brian2.core.names import Nameable
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
 from brian2.groups.group import CodeRunner, Group
+from brian2.groups.subgroup import Subgroup
 from brian2.units.fundamentalunits import Quantity
 
 __all__ = ["EventMonitor", "SpikeMonitor"]
@@ -147,9 +148,9 @@ class EventMonitor(Group, CodeRunner):
 
         for variable in self.record_variables:
             source_var = source.variables[variable]
-            self.variables.add_reference(f"_source_{variable}", source, variable)
+            self.variables.add_reference("_source_%s" % variable, source, variable)
             self.variables.add_auxiliary_variable(
-                f"_to_record_{variable}",
+                "_to_record_%s" % variable,
                 dimensions=source_var.dim,
                 dtype=source_var.dtype,
             )
@@ -160,6 +161,9 @@ class EventMonitor(Group, CodeRunner):
                 dtype=source_var.dtype,
                 read_only=True,
             )
+        needed_variables = {eventspace_name} | self.record_variables
+        subgroup = isinstance(source, Subgroup)
+        contiguous = not subgroup or source.contiguous
         self.variables.add_arange("_source_idx", size=len(source))
         self.variables.add_array(
             "count",
@@ -168,12 +172,20 @@ class EventMonitor(Group, CodeRunner):
             read_only=True,
             index="_source_idx",
         )
-        self.variables.add_constant("_source_start", start)
-        self.variables.add_constant("_source_stop", stop)
-        self.variables.add_constant("_source_N", source_N)
         self.variables.add_array(
             "N", size=1, dtype=np.int32, read_only=True, scalar=True
         )
+        if subgroup:
+            if contiguous:
+                self.variables.add_constant("_source_start", start)
+                self.variables.add_constant("_source_stop", stop)
+                self.variables.add_constant("_source_N", source_N)
+                needed_variables |= {"_source_start", "_source_stop", "_source_N"}
+            else:
+                self.variables.add_reference(
+                    "_source_indices", source, "_sub_idx", index="_source_idx"
+                )
+                needed_variables |= {"_source_indices"}
 
         record_variables = {
             varname: self.variables[varname] for varname in self.record_variables
@@ -182,8 +194,10 @@ class EventMonitor(Group, CodeRunner):
             "eventspace_variable": source.variables[eventspace_name],
             "record_variables": record_variables,
             "record": self.record,
+            "subgroup": subgroup,
+            "contiguous": contiguous,
+            "source_N": source.N,
         }
-        needed_variables = {eventspace_name} | self.record_variables
         CodeRunner.__init__(
             self,
             group=self,
