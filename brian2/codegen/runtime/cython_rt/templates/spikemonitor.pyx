@@ -1,5 +1,4 @@
-{# USES_VARIABLES { N, _clock_t, count,
-                    _source_start, _source_stop} #}
+{# USES_VARIABLES { N, _clock_t, count} #}
 {% extends 'common_group.pyx' %}
 
 {% block maincode %}
@@ -9,11 +8,20 @@
 
     cdef size_t _num_events = {{_eventspace}}[_num{{_eventspace}}-1]
     cdef size_t _start_idx, _end_idx, _curlen, _newlen, _j
+    {% if subgroup and not contiguous %}
+    # We use the same data structure as for the eventspace to store the
+    # "filtered" events, i.e. the events that are indexed in the subgroup
+    cdef int[{{source_N}} + 1] _filtered_events
+    cdef size_t _source_index_counter = 0
+    _filtered_events[{{source_N}}] = 0
+    {% endif %}
     {% for varname, var in record_variables | dictsort %}
     cdef {{cpp_dtype(var.dtype)}}[:] _{{varname}}_view
     {% endfor %}
     if _num_events > 0:
+        {% if subgroup %}
         # For subgroups, we do not want to record all spikes
+        {% if contiguous %}
         # We assume that spikes are ordered
         _start_idx = _num_events
         _end_idx = _num_events
@@ -28,6 +36,24 @@
                 break
             _end_idx = _j
         _num_events = _end_idx - _start_idx
+        {% else %}
+        for _j in range(_num_events):
+            _idx = {{_eventspace}}[_j]
+            if _idx < {{_source_indices}}[_source_index_counter]:
+                continue
+            while {{_source_indices}}[_source_index_counter] < _idx:
+                _source_index_counter += 1
+                if _source_index_counter == {{source_N}}:
+                    break
+            if _idx == {{_source_indices}}[_source_index_counter]:
+                _source_index_counter += 1
+                _filtered_events[_filtered_events[{{source_N}}]] = _idx
+                _filtered_events[{{source_N}}] += 1
+                if _source_index_counter == {{source_N}}:
+                    break
+        _num_events = _filtered_events[{{source_N}}]
+        {% endif %}
+        {% endif %}
         if _num_events > 0:
             # scalar code
             _vectorisation_idx = 1
@@ -41,6 +67,8 @@
             _{{varname}}_view = {{get_array_name(var, access_data=False)}}.data
             {% endfor %}
             # Copy the values across
+            {% if subgroup %}
+            {% if contiguous %}
             for _j in range(_start_idx, _end_idx):
                 _idx = {{_eventspace}}[_j]
                 _vectorisation_idx = _idx
@@ -49,4 +77,24 @@
                 _{{varname}}_view [_curlen + _j - _start_idx] = _to_record_{{varname}}
                 {% endfor %}
                 {{count}}[_idx - _source_start] += 1
+            {% else %}
+            for _j in range(_num_events):
+                _idx = _filtered_events[_j]
+                _vectorisation_idx = _idx
+                {{ vector_code|autoindent }}
+                {% for varname in record_variables | sort %}
+                _{{varname}}_view [_curlen + _j] = _to_record_{{varname}}
+                {% endfor %}
+                {{count}}[_to_record_i] += 1
+            {% endif %}
+            {% else %}
+            for _j in range(_num_events):
+                _idx = {{_eventspace}}[_j]
+                _vectorisation_idx = _idx
+                {{ vector_code|autoindent }}
+                {% for varname in record_variables | sort %}
+                _{{varname}}_view [_curlen + _j] = _to_record_{{varname}}
+                {% endfor %}
+                {{count}}[_idx] += 1
+            {% endif %}
 {% endblock %}

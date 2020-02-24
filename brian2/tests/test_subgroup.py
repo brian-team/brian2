@@ -703,15 +703,16 @@ def test_run_regularly():
 
 @pytest.mark.standalone_compatible
 def test_spike_monitor():
+    set_device("cpp_standalone", directory="/tmp/testsubgroup")
     G = NeuronGroup(10, "v:1", threshold="v>1", reset="v=0")
-    G.v[0] = 1.1
-    G.v[2] = 1.1
-    G.v[5] = 1.1
+    G.v[[0, 2, 5]] = 1.1
     SG = G[3:]
     SG2 = G[:3]
+    SGi = G[[3, 5, 7]]
     s_mon = SpikeMonitor(G)
     sub_s_mon = SpikeMonitor(SG)
     sub_s_mon2 = SpikeMonitor(SG2)
+    sub_s_moni = SpikeMonitor(SGi)
     run(defaultclock.dt)
     assert_equal(s_mon.i, np.array([0, 2, 5]))
     assert_equal(s_mon.t_, np.zeros(3))
@@ -719,6 +720,8 @@ def test_spike_monitor():
     assert_equal(sub_s_mon.t_, np.zeros(1))
     assert_equal(sub_s_mon2.i, np.array([0, 2]))
     assert_equal(sub_s_mon2.t_, np.zeros(2))
+    assert_equal(sub_s_moni.i, np.array([1]))
+    assert_equal(sub_s_moni.t, np.zeros(1))
     expected = np.zeros(10, dtype=int)
     expected[[0, 2, 5]] = 1
     assert_equal(s_mon.count, expected)
@@ -726,6 +729,7 @@ def test_spike_monitor():
     expected[[2]] = 1
     assert_equal(sub_s_mon.count, expected)
     assert_equal(sub_s_mon2.count, np.array([1, 0, 1]))
+    assert_equal(sub_s_moni.count, np.array([0, 1, 0]))
 
 
 @pytest.mark.codegen_independent
