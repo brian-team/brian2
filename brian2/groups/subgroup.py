@@ -226,7 +226,8 @@ class Subgroup(Group, SpikeSource):
         else:
             self.variables.add_array('_sub_idx', size=self._N,
                                      dtype=np.int32, values=indices,
-                                     index='_idx')
+                                     index='_idx', constant=True,
+                                     read_only=True, unique=True)
 
         # special indexing for subgroups
         self._indices = Indexing(self, self.variables['_sub_idx'])

@@ -468,7 +468,9 @@ class CPPStandaloneDevice(Device):
                                                       indices)
             staticarrayname_value = self.static_array('_value_'+arrayname,
                                                       value)
-            self.array_cache[variableview.variable] = None
+            # Put values into the cache
+            cache_variable = self.array_cache[variableview.variable]
+            cache_variable[indices] = value
             self.main_queue.append(('set_array_by_array', (arrayname,
                                                            staticarrayname_index,
                                                            staticarrayname_value)))
