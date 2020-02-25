@@ -695,11 +695,13 @@ def test_rate_monitor_subgroups_2():
     rate_1 = PopulationRateMonitor(G[:2])
     rate_2 = PopulationRateMonitor(G[2:4])
     rate_3 = PopulationRateMonitor(G[4:])
+    rate_indexed = PopulationRateMonitor(G[::2])
     run(2 * defaultclock.dt)
     assert_allclose(rate_all.rate, 0.5 / defaultclock.dt)
     assert_allclose(rate_1.rate, 0.5 / defaultclock.dt)
     assert_allclose(rate_2.rate, 0 * Hz)
     assert_allclose(rate_3.rate, 1 / defaultclock.dt)
+    assert_allclose(rate_indexed.rate, 2 / 3 * (1 / defaultclock.dt))  # 2 out of 3
 
 
 @pytest.mark.codegen_independent
