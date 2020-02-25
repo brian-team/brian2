@@ -684,7 +684,7 @@ def test_wrong_indexing(item):
                                            (3, np.array([3])),
                                            ([3, 4, 5], np.array([3, 4, 5])),
                                            ([3, 5, 7], np.array([3, 5, 7])),
-                                           ([7, 5, 3], np.array([7, 5, 3])),
+                                           ([7, 5, 3], np.array([3, 5, 7])),
                                            ([3, -1], np.array([3, 9]))])
 def test_alternative_indexing(item, expected):
     G = NeuronGroup(10, 'v : integer')

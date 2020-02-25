@@ -7,10 +7,13 @@ from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
 from brian2.units.fundamentalunits import Unit
+from brian2.utils.logger import get_logger
 
 from .group import Group, Indexing
 
 __all__ = ['Subgroup']
+
+logger = get_logger(__name__)
 
 
 def to_start_stop_or_index(item, N):
@@ -53,7 +56,7 @@ def to_start_stop_or_index(item, N):
     >>> to_start_stop_or_index([3, 5, 7], 10)
     (None, None, array([3, 5, 7]))
     >>> to_start_stop_or_index([-1, -2, -3], 10)
-    (None, None, array([9, 8, 7]))
+    (None, None, array([7, 8, 9]))
     '''
     start = stop = indices = None
     if isinstance(item, slice):
@@ -73,18 +76,25 @@ def to_start_stop_or_index(item, N):
                             'values.')
         if not len(item) > 0:
             raise IndexError('Cannot create an empty subgroup')
-        sorted_indices = sorted(item)
-        if np.all(np.diff(sorted_indices) == 1) and np.min(sorted_indices) >= 0:
+        if np.min(item) < -N:
+            raise IndexError('Illegal index {} for a group of size '
+                             '{}'.format(np.min(item), N))
+        elif np.max(item) >= N:
+            raise IndexError('Illegal index {} for a group of size '
+                             '{}'.format(np.min(item), N))
+        indices = item % N  # interpret negative indices correctly
+
+        if not np.all(item[:-1] <= item[1:]):
+            logger.warn('The indices provided to create the subgroup were '
+                        'not sorted. They will be sorted before use.',
+                        name_suffix='unsorted_subgroup_indices')
+            indices.sort()
+
+        if np.all(np.diff(item) == 1):
             start = int(item[0])
             stop = int(item[-1]) + 1
-        else:
-            if np.min(item) < -N:
-                raise IndexError('Illegal index {} for a group of size '
-                                 '{}'.format(np.min(item), N))
-            elif np.max(item) >= N:
-                raise IndexError('Illegal index {} for a group of size '
-                                 '{}'.format(np.min(item), N))
-            indices = item % N  # interpret negative indices correctly
+            indices = None
+
     else:
         raise TypeError("Cannot interpret object of type '{}' as index or "
                         "slice".format(type(item)))
@@ -141,6 +151,7 @@ class Subgroup(Group, SpikeSource):
                                  '({})'.format(max_index, len(source)))
             if len(indices) != len(np.unique(indices)):
                 raise IndexError('sub_indices cannot contain repeated values.')
+
         # First check if the source is itself a Subgroup
         # If so, then make this a Subgroup of the original Group
         if isinstance(source, Subgroup):
