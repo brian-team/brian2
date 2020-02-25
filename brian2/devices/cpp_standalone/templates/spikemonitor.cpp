@@ -48,16 +48,17 @@
             while ({{_source_indices}}[_source_index_counter] < _idx)
             {
                 _source_index_counter++;
-                if (_source_index_counter == {{source_N}})
-                    break;
             }
-            if (_idx == {{_source_indices}}[_source_index_counter])
+            if (_source_index_counter < {{source_N}} &&
+                _idx == {{_source_indices}}[_source_index_counter])
             {
                 _source_index_counter += 1;
                 _filtered_events[_filtered_events[{{source_N}}]++] = _idx;
                 if (_source_index_counter == {{source_N}})
                     break;
             }
+            if (_source_index_counter == {{source_N}})
+                break;
         }
         _num_events = _filtered_events[{{source_N}}];
         {% endif %}
