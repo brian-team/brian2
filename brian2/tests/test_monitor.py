@@ -410,6 +410,43 @@ def test_state_monitor():
 
 
 @pytest.mark.standalone_compatible
+def test_state_monitor_subgroups():
+    G = NeuronGroup(
+        10,
+        """v : volt
+                           step_size : volt (constant)""",
+    )
+    G.run_regularly("v += step_size")
+    G.step_size = "i*mV"
+
+    SG1 = G[3:8]
+    SG2 = G[::2]
+
+    state_mon_full = StateMonitor(G, "v", record=True)
+
+    # monitor subgroups and record from all
+    state_mon1 = StateMonitor(SG1, "v", record=True)
+    state_mon2 = StateMonitor(SG2, "v", record=True)
+
+    # monitor subgroup and use (relative) indices
+    state_mon3 = StateMonitor(SG1, "v", record=[0, 3])
+    state_mon4 = StateMonitor(SG2, "v", record=[0, 3])
+
+    # monitor full group and use subgroup as indices
+    state_mon5 = StateMonitor(G, "v", record=SG1)
+    state_mon6 = StateMonitor(G, "v", record=SG2)
+
+    run(2 * defaultclock.dt)
+
+    assert_allclose(state_mon1.v, state_mon_full.v[3:8])
+    assert_allclose(state_mon2.v, state_mon_full.v[::2])
+    assert_allclose(state_mon3.v, state_mon_full.v[3:8][[0, 3]])
+    assert_allclose(state_mon4.v, state_mon_full.v[::2][[0, 3]])
+    assert_allclose(state_mon5.v, state_mon_full.v[3:8])
+    assert_allclose(state_mon6.v, state_mon_full.v[::2])
+
+
+@pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_state_monitor_record_single_timestep():
     G = NeuronGroup(1, "dv/dt = -v/(5*ms) : 1")
