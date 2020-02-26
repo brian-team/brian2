@@ -659,6 +659,10 @@ def test_spatialneuron_indexing():
     assert len(neuron[0:1].indices[:]) == 1
     assert len(neuron[sec.sec2.indices[:]]) == 16
     assert len(neuron[sec.sec2]) == 16
+    assert len(neuron[:16:2].indices[:]) == 8
+    assert len(neuron[:8][4:].indices[:]) == 4
+    assert len(neuron[:8][::2].indices[:]) == 4
+    assert len(neuron[::2][:8].indices[:]) == 8
 
 
 @pytest.mark.codegen_independent
