@@ -152,27 +152,7 @@ class Subgroup(Group, SpikeSource):
             if len(indices) != len(np.unique(indices)):
                 raise IndexError("sub_indices cannot contain repeated values.")
 
-        # First check if the source is itself a Subgroup
-        # If so, then make this a Subgroup of the original Group
-        if isinstance(source, Subgroup):
-            if source.contiguous:
-                if self.contiguous:
-                    source = source.source
-                    start = start + source.start
-                    stop = stop + source.start
-                else:
-                    if np.max(indices) >= source.stop - source.start:
-                        raise IndexError("Index exceeds range")
-                    indices += source.start
-            else:
-                if self.contiguous:
-                    indices = source.sub_indices[start:stop]
-                    self.contiguous = False
-                else:
-                    indices = source.sub_indices[indices]
-            self.source = source
-        else:
-            self.source = weakproxy_with_fallback(source)
+        self.source = weakproxy_with_fallback(source)
 
         # Store a reference to the source's equations (if any)
         self.equations = None
