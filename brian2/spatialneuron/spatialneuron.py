@@ -531,9 +531,11 @@ class SpatialNeuron(NeuronGroup):
         if name == "main":  # Main section, without the subtrees
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
-            return SpatialSubgroup(
-                neuron, start, stop + 1, morphology=neuron.morphology
-            )
+            morpho = neuron.morphology
+            if isinstance(neuron, SpatialSubgroup):
+                # For subtrees, make the new Subgroup a child of the original neuron
+                neuron = neuron.source
+            return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho)
         elif (name != "morphology") and (
             (name in getattr(neuron.morphology, "children", []))
             or all([c in "LR123456789" for c in name])
@@ -541,6 +543,9 @@ class SpatialNeuron(NeuronGroup):
             morpho = neuron.morphology[name]
             start = morpho.indices[0]
             stop = SpatialNeuron._find_subtree_end(morpho)
+            if isinstance(neuron, SpatialSubgroup):
+                neuron = neuron.source
+
             return SpatialSubgroup(neuron, start, stop + 1, morphology=morpho)
         else:
             return Group.__getattr__(neuron, name)
@@ -565,14 +570,19 @@ class SpatialNeuron(NeuronGroup):
                     "Start and stop should have units of meter", start, stop
                 )
             # Convert to integers (compartment numbers)
-            indices = neuron.morphology.indices[item]
-            start, stop = indices[0], indices[-1] + 1
+            compartment_indices = neuron.morphology.indices[item]
+            start, stop = compartment_indices[0], compartment_indices[-1] + 1
+            indices = None
         elif not isinstance(item, slice) and hasattr(item, "indices"):
             start, stop, indices = to_start_stop_or_index(item.indices[:], neuron._N)
         else:
             start, stop, indices = to_start_stop_or_index(item, neuron._N)
 
-        return Subgroup(neuron, start, stop)
+        if isinstance(neuron, SpatialSubgroup):
+            # For subtrees, make the new Subgroup a child of the original neuron
+            neuron = neuron.source
+
+        return Subgroup(neuron, start, stop, indices)
 
 
 class SpatialSubgroup(Subgroup):
@@ -594,11 +604,7 @@ class SpatialSubgroup(Subgroup):
 
     def __init__(self, source, start, stop, morphology, name=None):
         self.morphology = morphology
-        if isinstance(source, SpatialSubgroup):
-            source = source.source
-            start += source.start
-            stop += source.start
-        Subgroup.__init__(self, source, start, stop, name)
+        Subgroup.__init__(self, source, start, stop, name=name)
 
     def __getattr__(self, name):
         return SpatialNeuron.spatialneuron_attribute(self, name)
