@@ -22,6 +22,7 @@ from brian2.equations.equations import (Equations, SingleEquation,
                                         PARAMETER, INTEGER,
                                         check_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
+from brian2.groups.subgroup import Subgroup
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater,
                                        check_identifier_pre_post)
@@ -1097,6 +1098,9 @@ class Synapses(Group):
         if getattr(self.source, 'start', 0) == 0:
             self.variables.add_reference('i', self, '_synaptic_pre')
         else:
+            if isinstance(self.source, Subgroup) and not self.source.contiguous:
+                raise TypeError('Cannot use a non-contiguous subgroup as a '
+                                'source group for Synapses.')
             self.variables.add_reference('_source_i', self.source.source, 'i',
                                          index='_presynaptic_idx')
             self.variables.add_reference('_source_offset', self.source, '_offset')
@@ -1107,6 +1111,9 @@ class Synapses(Group):
         if getattr(self.target, 'start', 0) == 0:
             self.variables.add_reference('j', self, '_synaptic_post')
         else:
+            if isinstance(self.target, Subgroup) and not self.target.contiguous:
+                raise TypeError('Cannot use a non-contiguous subgroup as a '
+                                'target group for Synapses.')
             self.variables.add_reference('_target_j', self.target.source, 'i',
                                          index='_postsynaptic_idx')
             self.variables.add_reference('_target_offset', self.target, '_offset')
