@@ -19,10 +19,11 @@ from brian2.core.variables import DynamicArrayVariable, Variables
 from brian2.devices.device import get_device
 from brian2.equations.equations import (
     DIFFERENTIAL_EQUATION,
+    INTEGER,
     PARAMETER,
     SUBEXPRESSION,
-    EquationError,
     Equations,
+    SingleEquation,
     check_subexpressions,
 )
 from brian2.groups.group import CodeRunner, Group, get_dtype
@@ -31,15 +32,13 @@ from brian2.groups.neurongroup import (
     check_identifier_pre_post,
     extract_constant_subexpressions,
 )
-from brian2.parsing.bast import brian_ast
+from brian2.groups.subgroup import Subgroup
 from brian2.parsing.expressions import (
     is_boolean_expression,
     parse_expression_dimensions,
 )
-from brian2.parsing.rendering import NodeRenderer
 from brian2.stateupdaters.base import StateUpdateMethod, UnsupportedEquationsException
 from brian2.stateupdaters.exact import independent, linear
-from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
@@ -1331,6 +1330,11 @@ class Synapses(Group):
         if getattr(self.source, "start", 0) == 0:
             self.variables.add_reference("i", self, "_synaptic_pre")
         else:
+            if isinstance(self.source, Subgroup) and not self.source.contiguous:
+                raise TypeError(
+                    "Cannot use a non-contiguous subgroup as a "
+                    "source group for Synapses."
+                )
             self.variables.add_reference(
                 "_source_i", self.source.source, "i", index="_presynaptic_idx"
             )
@@ -1344,6 +1348,11 @@ class Synapses(Group):
         if getattr(self.target, "start", 0) == 0:
             self.variables.add_reference("j", self, "_synaptic_post")
         else:
+            if isinstance(self.target, Subgroup) and not self.target.contiguous:
+                raise TypeError(
+                    "Cannot use a non-contiguous subgroup as a "
+                    "target group for Synapses."
+                )
             self.variables.add_reference(
                 "_target_j", self.target.source, "i", index="_postsynaptic_idx"
             )
