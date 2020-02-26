@@ -161,6 +161,20 @@ def test_state_variables_group_as_index_problematic():
 
 
 @pytest.mark.standalone_compatible
+def test_state_variables_string_group():
+    G = NeuronGroup(10, "v : 1")
+    G.v = "i"
+    c = 3
+    SG1 = G["i > 5"]
+    SG2 = G["v > c"]
+    SG1.v = "v * 2"
+    run(0 * ms)  # for standalone
+    assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 12, 14, 16, 18])
+    assert_equal(SG1.v[:], [12, 14, 16, 18])
+    assert_equal(SG2.v[:], [4, 5, 12, 14, 16, 18])
+
+
+@pytest.mark.standalone_compatible
 def test_state_monitor():
     G = NeuronGroup(10, "v : volt")
     G.v = np.arange(10) * volt
@@ -735,16 +749,7 @@ def test_spike_monitor():
 @pytest.mark.codegen_independent
 @pytest.mark.parametrize(
     "item",
-    [
-        "string",
-        slice(10, None),
-        slice(3, 2),
-        [9, 10],
-        [10, 11],
-        [2.5, 3.5, 4.5],
-        [5, 5, 5],
-        [],
-    ],
+    [slice(10, None), slice(3, 2), [9, 10], [10, 11], [2.5, 3.5, 4.5], [5, 5, 5], []],
 )
 def test_wrong_indexing(item):
     G = NeuronGroup(10, "v:1")

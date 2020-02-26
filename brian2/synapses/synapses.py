@@ -31,6 +31,7 @@ from brian2.groups.neurongroup import (
     check_identifier_pre_post,
     extract_constant_subexpressions,
 )
+from brian2.groups.subgroup import Subgroup
 from brian2.parsing.bast import brian_ast
 from brian2.parsing.expressions import (
     is_boolean_expression,
@@ -39,7 +40,6 @@ from brian2.parsing.expressions import (
 from brian2.parsing.rendering import NodeRenderer
 from brian2.stateupdaters.base import StateUpdateMethod, UnsupportedEquationsException
 from brian2.stateupdaters.exact import linear
-from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (
     DIMENSIONLESS,
@@ -50,6 +50,8 @@ from brian2.units.fundamentalunits import (
 from brian2.utils.arrays import calc_repeats
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
+
+from .parse_synaptic_generator_syntax import parse_synapse_generator
 
 MAX_SYNAPSES = 2147483647
 
@@ -1333,6 +1335,11 @@ class Synapses(Group):
         if getattr(self.source, "start", 0) == 0:
             self.variables.add_reference("i", self, "_synaptic_pre")
         else:
+            if isinstance(self.source, Subgroup) and not self.source.contiguous:
+                raise TypeError(
+                    "Cannot use a non-contiguous subgroup as a "
+                    "source group for Synapses."
+                )
             self.variables.add_reference(
                 "_source_i", self.source.source, "i", index="_presynaptic_idx"
             )
@@ -1346,6 +1353,11 @@ class Synapses(Group):
         if getattr(self.target, "start", 0) == 0:
             self.variables.add_reference("j", self, "_synaptic_post")
         else:
+            if isinstance(self.target, Subgroup) and not self.target.contiguous:
+                raise TypeError(
+                    "Cannot use a non-contiguous subgroup as a "
+                    "target group for Synapses."
+                )
             self.variables.add_reference(
                 "_target_j", self.target.source, "i", index="_postsynaptic_idx"
             )

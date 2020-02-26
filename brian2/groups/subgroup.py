@@ -1,6 +1,3 @@
-import numbers
-from collections.abc import Sequence
-
 import numpy as np
 
 from brian2.core.base import weakproxy_with_fallback
@@ -15,7 +12,7 @@ __all__ = ["Subgroup"]
 logger = get_logger(__name__)
 
 
-def to_start_stop_or_index(item, N):
+def to_start_stop_or_index(item, group, level=0):
     """
     Helper function to transform a single number, a slice or an array of
     indices to a start and stop value (if possible), or to an index of positive
@@ -25,11 +22,11 @@ def to_start_stop_or_index(item, N):
 
     Parameters
     ----------
-    item : slice, int or sequence
-        The slice, index, or sequence of indices to use.
-    N : int
-        The total number of elements in the group.
-
+    item : slice, int, str, or sequence
+        The slice, index, or sequence of indices to use, or a boolean string
+        expression that can be evaluated in the context of the group.
+    group : `Group`
+        The group providing the context for the interpretation.
     Returns
     -------
     start : int or None
@@ -41,71 +38,43 @@ def to_start_stop_or_index(item, N):
 
     Examples
     --------
-    >>> from brian2.groups.neurongroup import to_start_stop_or_index
-    >>> to_start_stop_or_index(slice(3, 6), 10)
+    >>> from brian2.groups.neurongroup import NeuronGroup, to_start_stop_or_index
+    >>> group = NeuronGroup(10, '')
+    >>> to_start_stop_or_index(slice(3, 6), group)
     (3, 6, None)
-    >>> to_start_stop_or_index(slice(3, None), 10)
+    >>> to_start_stop_or_index(slice(3, None), group)
     (3, 10, None)
-    >>> to_start_stop_or_index(5, 10)
+    >>> to_start_stop_or_index(5, group)
     (5, 6, None)
-    >>> to_start_stop_or_index(slice(None, None, 2), 10)
+    >>> to_start_stop_or_index(slice(None, None, 2), group)
     (None, None, array([0, 2, 4, 6, 8]))
-    >>> to_start_stop_or_index([3, 4, 5], 10)
+    >>> to_start_stop_or_index([3, 4, 5], group)
     (3, 6, None)
-    >>> to_start_stop_or_index([3, 5, 7], 10)
+    >>> to_start_stop_or_index([3, 5, 7], group)
     (None, None, array([3, 5, 7]))
-    >>> to_start_stop_or_index([-1, -2, -3], 10)
-    (None, None, array([7, 8, 9]))
+    >>> to_start_stop_or_index([-1, -2, -3], group)
+    (7, 10, None)
     """
-    start = stop = indices = None
-    if isinstance(item, slice):
-        start, stop, step = item.indices(N)
-        if step != 1:
-            indices = np.arange(start, stop, step)
-            start = stop = None
-    elif isinstance(item, numbers.Integral):
-        start = item
-        stop = item + 1
-        step = 1
-    elif isinstance(item, (Sequence, np.ndarray)) and not isinstance(item, str):
-        item = np.asarray(item)
-        if not np.issubdtype(item.dtype, np.integer):
-            raise TypeError("Subgroups can only be constructed using integer values.")
-        if not len(item) > 0:
-            raise IndexError("Cannot create an empty subgroup")
-        if np.min(item) < -N:
-            raise IndexError(f"Illegal index {np.min(item)} for a group of size {N}")
-        elif np.max(item) >= N:
-            raise IndexError(f"Illegal index {np.min(item)} for a group of size {N}")
-        indices = item % N  # interpret negative indices correctly
+    start = stop = None
+    indices = group.indices.get_item(item, level=level + 1)
+    # For convenience, allow subgroups with a single value instead of x:x+1 slice
+    if indices.shape == ():
+        indices = np.array([indices])
 
-        if not np.all(item[:-1] <= item[1:]):
-            logger.warn(
-                "The indices provided to create the subgroup were "
-                "not sorted. They will be sorted before use.",
-                name_suffix="unsorted_subgroup_indices",
-            )
-            indices.sort()
-
-        if np.all(np.diff(item) == 1):
-            start = int(item[0])
-            stop = int(item[-1]) + 1
-            indices = None
-
-    else:
-        raise TypeError(
-            f"Cannot interpret object of type '{type(item)}' as index or slice"
+    if not np.all(indices[:-1] <= indices[1:]):
+        logger.warn(
+            "The indices provided to create the subgroup were "
+            "not sorted. They will be sorted before use.",
+            name_suffix="unsorted_subgroup_indices",
         )
+        indices.sort()
+    if not len(indices) > 0:
+        raise IndexError("Cannot create an empty subgroup")
 
-    if indices is None:
-        if start >= stop:
-            raise IndexError(
-                "Illegal start/end values for subgroup, %d>=%d" % (start, stop)
-            )
-        if start >= N:
-            raise IndexError("Illegal start value for subgroup, %d>=%d" % (start, N))
-        if stop > N:
-            raise IndexError("Illegal stop value for subgroup, %d>%d" % (stop, N))
+    if np.all(np.diff(indices) == 1):
+        start = int(indices[0])
+        stop = int(indices[-1]) + 1
+        indices = None
 
     return start, stop, indices
 
@@ -260,15 +229,8 @@ class Subgroup(Group, SpikeSource):
     spikes = property(lambda self: self.source.spikes)
 
     def __getitem__(self, item):
-        start, stop, indices = to_start_stop_or_index(item, self._N)
-        if self.contiguous:
-            if start is not None:
-                return Subgroup(self.source, self.start + start, self.start + stop)
-            else:
-                return Subgroup(self.source, indices=indices + self.start)
-        else:
-            indices = self.sub_indices[item]
-            return Subgroup(self.source, indices=indices)
+        start, stop, indices = to_start_stop_or_index(item, self, level=1)
+        return Subgroup(self.source, start, stop, indices)
 
     def __repr__(self):
         if self.contiguous:

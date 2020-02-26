@@ -573,9 +573,9 @@ class SpatialNeuron(NeuronGroup):
             start, stop = compartment_indices[0], compartment_indices[-1] + 1
             indices = None
         elif not isinstance(item, slice) and hasattr(item, "indices"):
-            start, stop, indices = to_start_stop_or_index(item.indices[:], neuron._N)
+            start, stop, indices = to_start_stop_or_index(item.indices[:], neuron)
         else:
-            start, stop, indices = to_start_stop_or_index(item, neuron._N)
+            start, stop, indices = to_start_stop_or_index(item, neuron)
 
         if isinstance(neuron, SpatialSubgroup):
             # For subtrees, make the new Subgroup a child of the original neuron
