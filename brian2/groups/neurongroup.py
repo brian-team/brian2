@@ -729,7 +729,7 @@ class NeuronGroup(Group, SpikeSource):
                 Group.__setattr__(self, key, value, level=1)
 
     def __getitem__(self, item):
-        start, stop, indices = to_start_stop_or_index(item, self._N)
+        start, stop, indices = to_start_stop_or_index(item, self, level=1)
         return Subgroup(self, start, stop, indices)
 
     def _create_variables(self, user_dtype, events):

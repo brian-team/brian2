@@ -232,6 +232,7 @@ class Indexing(object):
         --------
         SynapticIndexing
         '''
+
         if index_var is None:
             index_var = self.default_index
 
@@ -251,7 +252,7 @@ class Indexing(object):
                     start, stop, step = item.indices(int(self.N.get_value()))
                 else:
                     start, stop, step = item.indices(index_var.size)
-                index_array = np.arange(start, stop, step, dtype=np.int32)
+                index_array = np.arange(start, stop, step)
             else:
                 index_array = np.asarray(item)
                 if index_array.dtype == np.bool:
@@ -261,9 +262,11 @@ class Indexing(object):
                                      'and boolean arrays, not for type '
                                      '%s' % index_array.dtype))
 
+            if index_array.size == 0:
+                return index_array
             if index_var != '_idx':
                 try:
-                    return index_var.get_value()[index_array]
+                    index_array = index_var.get_value()[index_array]
                 except IndexError as ex:
                     # We try to emulate numpy's indexing semantics here:
                     # slices never lead to IndexErrors, instead they return an
@@ -273,7 +276,17 @@ class Indexing(object):
                     else:
                         raise ex
             else:
-                return index_array
+                N = int(self.N.get_value())
+                if np.min(index_array) < -N:
+                    raise IndexError('Illegal index {} for a group of size '
+                                     '{}'.format(np.min(index_array), N))
+                if np.max(index_array) >= N:
+                    raise IndexError('Illegal index {} for a group of size '
+                                     '{}'.format(np.max(index_array), N))
+
+                index_array = index_array % N  # interpret negative indices
+
+            return index_array
 
 
 class IndexWrapper(object):
@@ -288,13 +301,16 @@ class IndexWrapper(object):
         self.indices = group._indices
 
     def __getitem__(self, item):
+        return self.get_item(item, level=1)
+
+    def get_item(self, item, level):
         if isinstance(item, str):
             variables = Variables(None)
             variables.add_auxiliary_variable('_indices', dtype=np.int32)
             variables.add_auxiliary_variable('_cond', dtype=np.bool)
 
             abstract_code = '_cond = ' + item
-            namespace = get_local_namespace(level=1)
+            namespace = get_local_namespace(level=level+1)
             from brian2.devices.device import get_device
             device = get_device()
             codeobj = create_runner_codeobj(self.group,
@@ -304,7 +320,9 @@ class IndexWrapper(object):
                                             additional_variables=variables,
                                             codeobj_class=device.code_object_class(fallback_pref='codegen.string_expression_target')
                                             )
-            return codeobj()
+            indices = codeobj()
+            # Handle subgroups correctly
+            return self.indices(indices)
         else:
             return self.indices(item)
 
