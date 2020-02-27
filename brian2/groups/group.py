@@ -14,7 +14,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.core.base import BrianObject, weakproxy_with_fallback
+from brian2.core.base import BrianObject, device_override, weakproxy_with_fallback
 from brian2.core.functions import Function
 from brian2.core.names import Nameable, find_name
 from brian2.core.namespace import (
@@ -327,6 +327,7 @@ class IndexWrapper:
     def __getitem__(self, item):
         return self.get_item(item, level=1)
 
+    @device_override("index_wrapper_get_item")
     def get_item(self, item, level):
         if isinstance(item, str):
             variables = Variables(None)

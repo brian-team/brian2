@@ -17,9 +17,9 @@ from distutils import ccompiler
 import numpy as np
 
 import brian2
-from brian2.codegen.codeobject import check_compiler_kwds
+from brian2.codegen.codeobject import check_compiler_kwds, create_runner_codeobj
 from brian2.codegen.cpp_prefs import get_compiler_and_args, get_msvc_env
-from brian2.codegen.generators.cpp_generator import c_data_type
+from brian2.codegen.runtime.numpy_rt import NumpyCodeObject
 from brian2.core.base import BrianObject
 from brian2.core.functions import Function
 from brian2.core.namespace import get_local_namespace
@@ -506,7 +506,8 @@ class CPPStandaloneDevice(Device):
             staticarrayname_value = self.static_array("_value_" + arrayname, value)
             # Put values into the cache
             cache_variable = self.array_cache[variableview.variable]
-            cache_variable[indices] = value
+            if cache_variable is not None:
+                cache_variable[indices] = value
             self.main_queue.append(
                 (
                     "set_array_by_array",
@@ -581,6 +582,39 @@ class CPPStandaloneDevice(Device):
             "variables with string expressions in "
             "standalone scripts."
         )
+
+    def index_wrapper_get_item(self, index_wrapper, item, level):
+        if isinstance(item, str):
+            variables = Variables(None)
+            variables.add_auxiliary_variable("_indices", dtype=np.int32)
+            variables.add_auxiliary_variable("_cond", dtype=np.bool)
+
+            abstract_code = "_cond = " + item
+            namespace = get_local_namespace(level=level + 2)
+            try:
+                codeobj = create_runner_codeobj(
+                    index_wrapper.group,
+                    abstract_code,
+                    "group_get_indices",
+                    run_namespace=namespace,
+                    additional_variables=variables,
+                    codeobj_class=NumpyCodeObject,
+                )
+            except NotImplementedError:
+                raise NotImplementedError(
+                    "Cannot calculate indices with string "
+                    "expressions in standalone mode if "
+                    "the expression refers to variable "
+                    "with values not known before running "
+                    "the simulation."
+                )
+            indices = codeobj()
+            # Delete code object from device to avoid trying to build it later
+            del self.code_objects[codeobj.name]
+            # Handle subgroups correctly
+            return index_wrapper.indices(indices)
+        else:
+            return index_wrapper.indices(item)
 
     def code_object_class(self, codeobj_class=None, fallback_pref=None):
         """
