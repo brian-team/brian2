@@ -14,7 +14,8 @@ import inspect
 
 import numpy as np
 
-from brian2.core.base import BrianObject, weakproxy_with_fallback
+from brian2.core.base import (BrianObject, weakproxy_with_fallback,
+                              device_override)
 from brian2.core.names import Nameable
 from brian2.core.preferences import prefs
 from brian2.core.variables import (Variables, Constant, Variable,
@@ -303,6 +304,7 @@ class IndexWrapper(object):
     def __getitem__(self, item):
         return self.get_item(item, level=1)
 
+    @device_override('index_wrapper_get_item')
     def get_item(self, item, level):
         if isinstance(item, str):
             variables = Variables(None)

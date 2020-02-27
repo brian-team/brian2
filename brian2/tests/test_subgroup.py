@@ -158,13 +158,11 @@ def test_state_variables_string_group():
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
     c = 3
-    SG1 = G['i > 5']
-    SG2 = G['v > c']
+    SG1 = G['i > 5']  # indexing with constant expressions should even work in standalone
     SG1.v = 'v * 2'
     run(0*ms)  # for standalone
     assert_equal(G.v[:], [0, 1, 2, 3, 4, 5, 12, 14, 16, 18])
     assert_equal(SG1.v[:], [12, 14, 16, 18])
-    assert_equal(SG2.v[:], [4, 5, 12, 14, 16, 18])
 
 
 @pytest.mark.standalone_compatible
