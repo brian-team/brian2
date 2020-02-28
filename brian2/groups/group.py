@@ -312,7 +312,7 @@ class IndexWrapper(object):
             variables.add_auxiliary_variable('_cond', dtype=np.bool)
 
             abstract_code = '_cond = ' + item
-            namespace = get_local_namespace(level=level+1)
+            namespace = get_local_namespace(level=level+2)  # decorated function
             from brian2.devices.device import get_device
             device = get_device()
             codeobj = create_runner_codeobj(self.group,
