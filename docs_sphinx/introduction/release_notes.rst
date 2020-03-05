@@ -12,7 +12,8 @@ Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Removing objects from networks no longer fails (:issue:`1151`). Thanks to Wilhelm
   Braun for reporting the issue.
-
+* Point currents marked as ``constant over dt`` are now correctly handled
+  (:issue:`1160`). Thanks to Andrew Brughera for reporting the issue.
 
 Contributions
 ~~~~~~~~~~~~~
@@ -25,6 +26,7 @@ TODO
 Other contributions outside of github (ordered alphabetically, apologies to
 anyone we forgot...):
 
+* Andrew Brughera
 * Wilhelm Braun
 * Willam Xavier
 

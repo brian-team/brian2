@@ -429,7 +429,7 @@ class SingleEquation(Hashable, CacheKey):
         if flags is None:
             self.flags = []
         else:
-            self.flags = flags
+            self.flags = list(flags)
 
         # will be set later in the sort_subexpressions method of Equations
         self.update_order = -1
@@ -1151,10 +1151,7 @@ def extract_constant_subexpressions(eqs):
     const_subexpressions = []
     for eq in eqs.ordered:
         if eq.type == SUBEXPRESSION and 'constant over dt' in eq.flags:
-            if 'shared' in eq.flags:
-                flags = ['shared']
-            else:
-                flags = None
+            flags = set(eq.flags) - {'constant over dt'}
             without_const_subexpressions.append(SingleEquation(PARAMETER,
                                                                eq.varname,
                                                                eq.dim,

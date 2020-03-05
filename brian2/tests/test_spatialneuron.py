@@ -811,6 +811,17 @@ def test_spatialneuron_capacitive_currents():
                     atol=1e6)
 
 
+@pytest.mark.codegen_independent
+def test_point_current():
+    soma = Soma(10*um)
+    eqs = '''Im = 0*nA/cm**2 : amp/meter**2
+             I1 = 1*nA : amp (point current)
+             I2 = 1*nA : amp (point current, constant over dt)'''
+    neuron = SpatialNeuron(soma, eqs)
+    assert 'I1/area' in neuron.equations['Im'].expr.code
+    assert 'I2/area' in neuron.equations['Im'].expr.code  # see issue #1160
+
+
 if __name__ == '__main__':
     test_custom_events()
     test_construction()
