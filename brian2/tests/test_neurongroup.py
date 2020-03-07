@@ -1,19 +1,11 @@
-<<<<<<< HEAD
 
 
-=======
-from __future__ import absolute_import
-from __future__ import division
->>>>>>> Test case refactoring and syncing
 
 import uuid
 
 import numpy as np
 import pytest
-<<<<<<< HEAD
-=======
 import sympy
->>>>>>> Test case refactoring and syncing
 from numpy.testing import assert_equal
 
 from brian2.core.clocks import defaultclock
