@@ -1397,7 +1397,7 @@ class CPPStandaloneDevice(Device):
                     {
                         text += " ";
                     }
-                    text += (to_string(time_to_represent)+letters[i]);
+                    text += (std::to_string(time_to_represent)+letters[i]);
                 }
             }
             //less than one second
