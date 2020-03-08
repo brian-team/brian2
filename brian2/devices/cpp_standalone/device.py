@@ -1381,12 +1381,13 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
-        string _format_time(float time_in_s)
+        std::string _format_time(float time_in_s)
         {
+            std::cout<<("hiiii");
             float divisors[] = {24*60*60, 60*60, 60, 1};
             char letters[] = {'d', 'h', 'm', 's'};
             float remaining = time_in_s;
-            string text = "";
+            std::string text = "";
             for (int i =0; i < sizeof(divisors)/sizeof(float); i++)
             {
                 int time_to_represent = int(remaining / divisors[i]);
