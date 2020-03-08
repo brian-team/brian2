@@ -1383,7 +1383,6 @@ class CPPStandaloneDevice(Device):
         standard_code = '''
         std::string _format_time(float time_in_s)
         {
-            std::cout<<("hiiii");
             float divisors[] = {24*60*60, 60*60, 60, 1};
             char letters[] = {'d', 'h', 'm', 's'};
             float remaining = time_in_s;
