@@ -1381,14 +1381,49 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
+                       std::string time_format(float time_in_seconds)
+                       {
+                                std::string s;
+                                if(time_in_seconds<1)
+                                {
+                                    s = ">1s";
+                                    return s;
+                                }
+
+                                int day = time_in_seconds / (24 * 3600);
+
+                                if(day!=0) s+= std::to_string(day)+"d ";
+
+                                time_in_seconds = fmod(time_in_seconds, (24 * 3600));
+
+                                int hour = time_in_seconds / 3600;
+
+                                if(hour!=0)s+= std::to_string(hour)+"h ";
+
+                                time_in_seconds = fmod(time_in_seconds,3600);
+
+                                int minutes = time_in_seconds / 60 ;
+
+                                if(minutes!=0)s+= std::to_string(minutes)+"m ";
+
+                                time_in_seconds = fmod(time_in_seconds,60);
+
+                                int seconds = time_in_seconds;
+
+                                if(seconds!=0)s+= std::to_string(seconds)+"s";
+
+                                return s;
+                         }
+        
+        
         void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
+                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration<< " s";
             } else
             {
-                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << time_format(elapsed)<< " s";
                 if (completed < 1.0)
                 {
                     const int remaining = (int)((1-completed)/completed*elapsed+0.5);
