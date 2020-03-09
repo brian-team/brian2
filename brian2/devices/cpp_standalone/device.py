@@ -1380,7 +1380,16 @@ class CPPStandaloneDevice(Device):
                     code_objects.append((obj.clock, codeobj))
 
         # Code for a progress reporting function
-        standard_code = '''
+        standard_code = '''       
+                       template <typename T>
+                       std::string to_string(T value)
+                       {
+                             std::ostringstream os ;
+                             os << value ;
+                             return os.str() ;
+                       }
+        
+        
                        std::string time_format(float time_in_seconds)
                        {
                                 std::string s;
@@ -1392,25 +1401,25 @@ class CPPStandaloneDevice(Device):
 
                                 int day = time_in_seconds / (24 * 3600);
 
-                                if(day!=0) s+= std::to_string(day)+"d ";
+                                if(day!=0) s+= to_string(day)+"d ";
 
                                 time_in_seconds = fmod(time_in_seconds, (24 * 3600));
 
                                 int hour = time_in_seconds / 3600;
 
-                                if(hour!=0)s+= std::to_string(hour)+"h ";
+                                if(hour!=0)s+= to_string(hour)+"h ";
 
                                 time_in_seconds = fmod(time_in_seconds,3600);
 
                                 int minutes = time_in_seconds / 60 ;
 
-                                if(minutes!=0)s+= std::to_string(minutes)+"m ";
+                                if(minutes!=0)s+= to_string(minutes)+"m ";
 
                                 time_in_seconds = fmod(time_in_seconds,60);
 
                                 int seconds = time_in_seconds;
 
-                                if(seconds!=0)s+= std::to_string(seconds)+"s";
+                                if(seconds!=0)s+= to_string(seconds)+"s";
 
                                 return s;
                          }
