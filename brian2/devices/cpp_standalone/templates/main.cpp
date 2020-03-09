@@ -6,6 +6,10 @@
 #include "run.h"
 #include "brianlib/common_math.h"
 #include "randomkit.h"
+#include <cmath>
+#include <sstream>
+#include <string>
+
 
 {% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
