@@ -5,6 +5,8 @@
 #include<iostream>
 #include <ctime>
 #include<utility>
+#include<string>
+
 {{ openmp_pragma('include') }}
 
 #define Clock_epsilon 1e-14
