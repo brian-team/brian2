@@ -3,6 +3,7 @@
 #include "network.h"
 #include<stdlib.h>
 #include<iostream>
+#include <string>
 #include <ctime>
 #include<utility>
 {{ openmp_pragma('include') }}
