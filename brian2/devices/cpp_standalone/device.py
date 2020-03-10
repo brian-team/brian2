@@ -1381,15 +1381,21 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
+        std::string to_str(int n){
+            std::ostringstream stm ;
+            stm << n ;
+            return stm.str() ;
+        }
         std::string _format_time(float time_in_s)
         {
             float divisors[] = {24*60*60, 60*60, 60, 1};
             char letters[] = {'d', 'h', 'm', 's'};
             float remaining = time_in_s;
             std::string text = "";
+            int time_to_represent;
             for (int i =0; i < sizeof(divisors)/sizeof(float); i++)
             {
-                int time_to_represent = int(remaining / divisors[i]);
+                time_to_represent = int(remaining / divisors[i]);
                 remaining -= time_to_represent * divisors[i];
                 if (time_to_represent > 0 || text.length())
                 {
@@ -1397,7 +1403,7 @@ class CPPStandaloneDevice(Device):
                     {
                         text += " ";
                     }
-                    text += (std::to_string(time_to_represent)+letters[i]);
+                    text += (to_str(time_to_represent)+letters[i]);
                 }
             }
             //less than one second

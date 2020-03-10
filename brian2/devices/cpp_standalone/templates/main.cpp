@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 {{report_func|autoindent}}
 
