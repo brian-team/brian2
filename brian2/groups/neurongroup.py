@@ -37,7 +37,12 @@ from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
 from .group import Group, CodeRunner, get_dtype
 from .subgroup import Subgroup
 
-from scipy.optimize import root
+try:
+    from scipy.optimize import root
+    scipy_available = True
+except ImportError:
+    scipy_available = False
+
 __all__ = ['NeuronGroup']
 
 logger = get_logger(__name__)
@@ -941,6 +946,9 @@ class NeuronGroup(Group, SpikeSource):
             Dictioary with pair of state variables and resting state values. Returned values 
             are represented in SI units.
         '''
+        # check scipy availability
+        if scipy_available == False:
+            raise NotImplementedError("Scipy is not available for using `scipy.optimize.root()`")
         # check state variables defined in initial guess are valid
         if(x0.keys() - self.equations.diff_eq_names):
             raise KeyError("Unknown State Variable: {}".format(next(iter(x0.keys() - 
