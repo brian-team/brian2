@@ -247,8 +247,6 @@ class SynapticPathway(CodeRunner, Group):
         # Re-extract the last part of the name from the full name
         self.objname = self.name[len(synapses.name) + 1:]
 
-        #: The `SpikeQueue`
-        self.queue = None
 
         #: The `CodeObject` initalising the `SpikeQueue` at the begin of a run
         self._initialise_queue_codeobj = None
@@ -266,6 +264,11 @@ class SynapticPathway(CodeRunner, Group):
                           if index_name not in ['_idx', '0']}
         self.variables.add_references(synapses, synaptic_vars)
         self.variables.indices.update(synaptic_idcs)
+
+        #: The `SpikeQueue`
+        self.queue = get_device().spike_queue(self.source.start, self.source.stop)
+        self.variables.add_object('_queue', self.queue)
+
         self._enable_group_attributes()
 
     def check_variable_write(self, variable):
@@ -312,19 +315,9 @@ class SynapticPathway(CodeRunner, Group):
 
     @device_override('synaptic_pathway_before_run')
     def before_run(self, run_namespace):
-        # execute code to initalize the spike queue
-        if self._initialise_queue_codeobj is None:
-            self._initialise_queue_codeobj = create_runner_codeobj(self,
-                                                                   '', # no code,
-                                                                   'synapses_initialise_queue',
-                                                                   name=self.name+'_initialise_queue',
-                                                                   check_units=False,
-                                                                   additional_variables=self.variables,
-                                                                   run_namespace=run_namespace)
-        self._initialise_queue_codeobj()
-        CodeRunner.before_run(self, run_namespace)
+        super(SynapticPathway, self).before_run(run_namespace)
 
-        # we insert rather than replace because CodeRunner puts a CodeObject in updaters already
+    def create_code_objects(self, run_namespace):
         if self._pushspikes_codeobj is None:
             # Since this now works for general events not only spikes, we have to
             # pass the information about which variable to use to the template,
@@ -344,8 +337,8 @@ class SynapticPathway(CodeRunner, Group):
                                                              needed_variables=needed_variables,
                                                              template_kwds=template_kwds,
                                                              run_namespace=run_namespace)
-
-        self._code_objects.insert(0, weakref.proxy(self._pushspikes_codeobj))
+        self.code_objects[:] = [weakref.proxy(self._pushspikes_codeobj),
+                                weakref.proxy(self.create_default_code_object(run_namespace))]
 
     def initialise_queue(self):
         self.eventspace = self.source.variables[self.eventspace_name].get_value()
@@ -355,10 +348,6 @@ class SynapticPathway(CodeRunner, Group):
                              "Set its active attribute to False if you "
                              "intend to do only do this for a subsequent"
                              " run.") % self.synapses.name)
-        if self.queue is None:
-            self.queue = get_device().spike_queue(self.source.start, self.source.stop)
-
-        self.variables.add_object('_queue', self.queue)
 
         # Update the dt (might have changed between runs)
         self.queue.prepare(self._delays.get_value(), self.source.clock.dt_,

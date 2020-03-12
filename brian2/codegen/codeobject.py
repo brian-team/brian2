@@ -69,6 +69,7 @@ class CodeObject(Nameable):
             pass # if owner was already a weakproxy then this will be the error raised
         self.owner = owner
         self.code = code
+        self.compiled_code = {}
         self.variables = variables
         self.variable_indices = variable_indices
         self.template_name = template_name
@@ -92,8 +93,12 @@ class CodeObject(Nameable):
         '''
         pass
 
+    def compile_block(self, block):
+        raise NotImplementedError('Implement compile_block method')
+
     def compile(self):
-        pass
+        for block in ['before_run', 'run', 'after_run']:
+            self.compiled_code[block] = self.compile_block(block)
 
     def __call__(self, **kwds):
         self.update_namespace()
@@ -101,17 +106,46 @@ class CodeObject(Nameable):
 
         return self.run()
 
-    def run(self):
+    def run_block(self, block):
+        raise NotImplementedError('Implement run_block method')
+
+    def before_run(self):
         '''
-        Runs the code in the namespace.
-        
+        Runs the preparation code in the namespace. This code will only be
+        executed once per run.
+
         Returns
         -------
         return_value : dict
             A dictionary with the keys corresponding to the `output_variables`
             defined during the call of `CodeGenerator.code_object`.
         '''
-        raise NotImplementedError()
+        return self.run_block('before_run')
+
+    def run(self):
+        '''
+        Runs the main code in the namespace.
+
+        Returns
+        -------
+        return_value : dict
+            A dictionary with the keys corresponding to the `output_variables`
+            defined during the call of `CodeGenerator.code_object`.
+        '''
+        return self.run_block('run')
+
+    def after_run(self):
+        '''
+        Runs the finalizing code in the namespace. This code will only be
+        executed once per run.
+
+        Returns
+        -------
+        return_value : dict
+            A dictionary with the keys corresponding to the `output_variables`
+            defined during the call of `CodeGenerator.code_object`.
+        '''
+        return self.run_block('after_run')
 
 
 def _error_msg(code, name):

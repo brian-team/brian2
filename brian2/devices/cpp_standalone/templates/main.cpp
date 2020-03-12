@@ -9,6 +9,9 @@
 
 {% for codeobj in code_objects | sort(attribute='name') %}
 #include "code_objects/{{codeobj.name}}.h"
+{% for block in codeobj.before_after_blocks %}
+#include "code_objects/{{block}}_{{codeobj.name}}.h"
+{% endfor %}
 {% endfor %}
 
 {% for name in user_headers | sort %}

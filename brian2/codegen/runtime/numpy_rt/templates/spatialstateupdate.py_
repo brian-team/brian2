@@ -1,4 +1,4 @@
-{# USES_VARIABLES { Cm, dt, v, N, Ic,
+{# USES_VARIABLES { Cm, dt, v, N, Ic, Ri,
                   _ab_star0, _ab_star1, _ab_star2, _b_plus, _b_minus,
                   _v_star, _u_plus, _u_minus,
                   _v_previous,
@@ -7,7 +7,8 @@
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
-                  _invr0, _invrn} #}
+                  _invr0, _invrn, _invr,
+                  r_length_1, r_length_2, area} #}
 {# ITERATE_ALL { _idx } #}
 '''
 Solves the cable equation (spatial diffusion of currents).
@@ -15,7 +16,40 @@ This is where most time-consuming time computations are done.
 '''
 {% extends 'common_group.py_' %}
 
+{# Preparation of the data structures #}
+{% block before_code %}
+# Inverse axial resistance
+{{_invr}}[1:] = 1.0/({{Ri}}*(1/{{r_length_2}}[:-1] + 1/{{r_length_1}}[1:]));
+# Cut sections
+for _first in {{_starts}}:
+    {{_invr}}[_first] = 0
+
+# Linear systems
+# The particular solution
+'''a[i,j]=ab[u+i-j,j]'''  # u is the number of upper diagonals = 1
+
+{{_ab_star0}}[1:] = {{_invr}}[1:] / {{area}}[:-1]
+{{_ab_star2}}[:-1] = {{_invr}}[1:] / {{area}}[1:]
+{{_ab_star1}}[:] = (-({{Cm}} / {{dt}}) - {{_invr}} / {{area}})
+{{_ab_star1}}[:-1] -= {{_invr}}[1:] / {{area}}[:-1]
+
+# Set the boundary conditions
+for _counter, (_first, _last) in enumerate(zip({{_starts}},
+                                               {{_ends}})):
+    _last = _last -1  # the compartment indices are in the interval [starts, ends[
+    # Inverse axial resistances at the ends: r0 and rn
+    {{_invr0}}[_counter] = _invr0 = {{r_length_1}}[_first]/{{Ri}}
+    {{_invrn}}[_counter] = _invrn = {{r_length_2}}[_last]/{{Ri}}
+    # Correction for boundary conditions
+    {{_ab_star1}}[_first] -= (_invr0 / {{area}}[_first])
+    {{_ab_star1}}[_last] -= (_invrn / {{area}}[_last])
+    # RHS for homogeneous solutions
+    {{_b_plus}}[_last] = -(_invrn / {{area}}[_last])
+    {{_b_minus}}[_first] = -(_invr0 / {{area}}[_first])
+{% endblock %}
+
 {% block maincode %}
+from numpy import pi
 from numpy import zeros
 
 # scalar code

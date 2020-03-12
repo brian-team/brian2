@@ -135,9 +135,12 @@ class CythonCodeObject(NumpyCodeObject):
                         'failed_compile_test')
             return False
 
-    def compile(self):
-        self.compiled_code = cython_extension_manager.create_extension(
-            self.code,
+    def compile_block(self, block):
+        code = getattr(self.code, block, '').strip()
+        if not code or 'EMPTY_CODE_BLOCK' in code:
+            return None
+        return cython_extension_manager.create_extension(
+            code,
             define_macros=self.define_macros,
             libraries=self.libraries,
             extra_compile_args=self.extra_compile_args,
@@ -149,10 +152,10 @@ class CythonCodeObject(NumpyCodeObject):
             sources=self.sources
             )
         
-    def run(self):
-        return self.compiled_code.main(self.namespace)
-
-    # the following are copied from WeaveCodeObject
+    def run_block(self, block):
+        compiled_code = self.compiled_code[block]
+        if compiled_code:
+            return compiled_code.main(self.namespace)
 
     def _insert_func_namespace(self, func):
         impl = func.implementations[self]
@@ -209,7 +212,7 @@ class CythonCodeObject(NumpyCodeObject):
         # is not a problem here, since we only use this list to filter out
         # things. If we include something incorrectly, this only means that we
         # will pass something into the namespace unnecessarily.
-        all_identifiers = get_identifiers(self.code)
+        all_identifiers = get_identifiers(self.code.run)
         # Filter out all unneeded objects
         self.namespace = {k: v for k, v in self.namespace.items()
                           if k in all_identifiers}

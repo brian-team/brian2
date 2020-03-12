@@ -1,4 +1,4 @@
-{# USES_VARIABLES { Cm, dt, v, N, Ic,
+{# USES_VARIABLES { Cm, dt, v, N, Ic, Ri,
                   _ab_star0, _ab_star1, _ab_star2, _b_plus, _b_minus,
                   _v_star, _u_plus, _u_minus,
                   _v_previous,
@@ -7,9 +7,55 @@
                   _P_diag, _P_parent, _P_children,
                   _B, _morph_parent_i, _starts, _ends,
                   _morph_children, _morph_children_num, _morph_idxchild,
-                  _invr0, _invrn} #}
-
+                  _invr0, _invrn, _invr,
+                  r_length_1, r_length_2, area } #}
 {% extends 'common_group.cpp' %}
+
+{% block before_code %}
+    const double _Ri = {{Ri}};  // Ri is a shared variable
+
+    // Inverse axial resistance
+    {{ openmp_pragma('parallel-static') }}
+    for (int _i=1; _i<N; _i++)
+        {{_invr}}[_i] = 1.0/(_Ri*(1/{{r_length_2}}[_i-1] + 1/{{r_length_1}}[_i]));
+    // Cut sections
+    {{ openmp_pragma('parallel-static') }}
+    for (int _i=0; _i<(int)_num_starts; _i++)
+        {{_invr}}[{{_starts}}[_i]] = 0;
+
+    // Linear systems
+    // The particular solution
+    // a[i,j]=ab[u+i-j,j]   --  u is the number of upper diagonals = 1
+    {{ openmp_pragma('parallel-static') }}
+    for (int _i=0; _i<N; _i++)
+        {{_ab_star1}}[_i] = (-({{Cm}}[_i] / {{dt}}) - {{_invr}}[_i] / {{area}}[_i]);
+    {{ openmp_pragma('parallel-static') }}
+    for (int _i=1; _i<N; _i++)
+    {
+        {{_ab_star0}}[_i] = {{_invr}}[_i] / {{area}}[_i-1];
+        {{_ab_star2}}[_i-1] = {{_invr}}[_i] / {{area}}[_i];
+        {{_ab_star1}}[_i-1] -= {{_invr}}[_i] / {{area}}[_i-1];
+    }
+
+    // Set the boundary conditions
+    for (size_t _counter=0; _counter<_num_starts; _counter++)
+    {
+        const int _first = {{_starts}}[_counter];
+        const int _last = {{_ends}}[_counter] - 1;  // the compartment indices are in the interval [starts, ends[
+        // Inverse axial resistances at the ends: r0 and rn
+        const double _invr0 = {{r_length_1}}[_first]/_Ri;
+        const double _invrn = {{r_length_2}}[_last]/_Ri;
+        {{_invr0}}[_counter] = _invr0;
+        {{_invrn}}[_counter] = _invrn;
+        // Correction for boundary conditions
+        {{_ab_star1}}[_first] -= (_invr0 / {{area}}[_first]);
+        {{_ab_star1}}[_last] -= (_invrn / {{area}}[_last]);
+        // RHS for homogeneous solutions
+        {{_b_plus}}[_last] = -(_invrn / {{area}}[_last]);
+        {{_b_minus}}[_first] = -(_invr0 / {{area}}[_first]);
+    }
+{% endblock %}
+
 {% block maincode %}
 
     int _vectorisation_idx = 1;

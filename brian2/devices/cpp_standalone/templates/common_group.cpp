@@ -1,5 +1,40 @@
+{% macro before_run_cpp_file() %}
+#include "code_objects/before_run_{{codeobj_name}}.h"
+#include "objects.h"
+#include "brianlib/common_math.h"
+#include "brianlib/stdint_compat.h"
+#include<cmath>
+#include<ctime>
+#include<iostream>
+#include<fstream>
+#include<climits>
+
+void _before_run_{{codeobj_name}}()
+{
+    using namespace brian;
+    ///// CONSTANTS ///////////
+    %CONSTANTS%
+    ///// POINTERS ////////////
+    {{pointers_lines|autoindent}}
+    {% block before_code %}
+    // EMPTY_CODE_BLOCK  -- will be overwritten in child templates
+    {% endblock %}
+
+}
+{% endmacro %}
+
+{% macro before_run_h_file() %}
+#ifndef _INCLUDED_{{codeobj_name}}_before
+#define _INCLUDED_{{codeobj_name}}_before
+
+void _before_run_{{codeobj_name}}();
+
+#endif
+{% endmacro %}
+
 {% macro cpp_file() %}
 #include "code_objects/{{codeobj_name}}.h"
+#include "objects.h"
 #include "brianlib/common_math.h"
 #include "brianlib/stdint_compat.h"
 #include<cmath>
@@ -62,12 +97,44 @@ void _run_{{codeobj_name}}()
 #ifndef _INCLUDED_{{codeobj_name}}
 #define _INCLUDED_{{codeobj_name}}
 
-#include "objects.h"
-
 void _run_{{codeobj_name}}();
 
 {% block extra_functions_h %}
 {% endblock %}
+
+#endif
+{% endmacro %}
+
+{% macro after_run_cpp_file() %}
+#include "objects.h"
+#include "code_objects/after_run_{{codeobj_name}}.h"
+#include "brianlib/common_math.h"
+#include "brianlib/stdint_compat.h"
+#include<cmath>
+#include<ctime>
+#include<iostream>
+#include<fstream>
+#include<climits>
+
+void _after_run_{{codeobj_name}}()
+{
+    using namespace brian;
+    ///// CONSTANTS ///////////
+    %CONSTANTS%
+    ///// POINTERS ////////////
+    {{pointers_lines|autoindent}}
+    {% block after_code %}
+    // EMPTY_CODE_BLOCK  -- will be overwritten in child templates
+    {% endblock %}
+
+}
+{% endmacro %}
+
+{% macro after_run_h_file() %}
+#ifndef _INCLUDED_{{codeobj_name}}_after
+#define _INCLUDED_{{codeobj_name}}_afer
+
+void _after_run_{{codeobj_name}}();
 
 #endif
 {% endmacro %}
