@@ -6,7 +6,6 @@
 #include <string>
 #include <ctime>
 #include<utility>
-#include<sstream>
 
 {{ openmp_pragma('include') }}
 
