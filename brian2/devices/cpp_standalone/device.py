@@ -1390,7 +1390,7 @@ class CPPStandaloneDevice(Device):
                        }
         
         
-                       std::string time_format(float time_in_seconds)
+                       std::string time_format(int time_in_seconds)
                        {
                                 std::string s;
                                 if(time_in_seconds<1)
@@ -1436,7 +1436,7 @@ class CPPStandaloneDevice(Device):
                 if (completed < 1.0)
                 {
                     const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    %STREAMNAME% << ", estimated " << (remaining) << " s remaining.";
+                    %STREAMNAME% << ", estimated " << time_format(remaining) << " s remaining.";
                 }
             }
 
