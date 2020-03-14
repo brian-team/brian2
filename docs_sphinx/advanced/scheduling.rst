@@ -38,6 +38,17 @@ Examples of custom reporting
     net.run(duration, report=file_reporter)
     report_file.close()
 
+For C++ standalone mode, printing the progress to a file can be done similar to,
+
+::
+    stat = '''
+    std::fstream fout; 
+    fout.open("../report.txt", std::fstream::app); 
+    fout << (int)(completed*100.) << "% completed" << std::endl; 
+    fout.close();
+    '''
+    run(10 * second, report = stat)
+
 **"Graphical" output on the console**
 
 This needs a "normal" Linux console, i.e. it might not work in an integrated
@@ -70,3 +81,34 @@ Adapted from http://stackoverflow.com/questions/3160699/python-progress-bar
                 sys.stdout.write("\n")
 
     net.run(duration, report=ProgressBar(), report_period=1*second)
+
+Similarly, for C++ standalone mode, the same can be done something equivalent to,
+
+::
+
+    progressing = '''
+    std::string progress = "";
+    int tot_tiks = 50;
+
+    std::cout<<"["<<std::flush;
+    int iter = 0;
+
+    while(iter < completed * tot_tiks)
+    {
+        std::cout<<"#"<<std::flush;
+        iter += 1;
+    }
+
+    if(completed == 1.0)
+    {
+        std::cout<<"]"<<endl<<std::flush;
+    }
+
+    while(iter >= 0)
+    {
+        std::cout<<"\b"<<std::flush;
+        iter -= 1;
+    }
+    '''
+    
+    run(1000 * second, report= progressing)
