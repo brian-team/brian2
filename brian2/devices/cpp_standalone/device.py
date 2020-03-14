@@ -1402,6 +1402,40 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
+        std::string _format_time(double time_in_s)
+        {   
+            /*
+            Returns string of format 'd h m s' for input seconds (double)
+            example:
+            _format_time(24 * 3600 + 3600 + 60 + 1) will return string "1d 1h 1m 1s "
+            */
+            char time_ranges [] = {'d', 'h', 'm', 's'};
+            double divisors [] = {24 * 60 * 60, 60 * 60, 60, 1};
+            int values [] = {0, 0, 0, 0}; 
+            bool first_non_zero = false; 
+            std::string text_remaining_time = "";
+            
+            for(int i = 0; i < 4; ++i)
+            {
+                values[i] = time_in_s / divisors[i];
+                time_in_s -= values[i] * divisors[i];
+                if(values[i] > 0 || first_non_zero)
+                {
+                    first_non_zero = true;
+                }
+                if(first_non_zero)
+                {
+                    text_remaining_time += std::to_string(values[i]) + time_ranges[i] + " ";
+                }
+            }
+            if(!first_non_zero)
+            {
+                text_remaining_time = " <1s ";
+            }
+            
+            return text_remaining_time;
+        }
+
         void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
             if (completed == 0.0)
@@ -1409,11 +1443,11 @@ class CPPStandaloneDevice(Device):
                 %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
             } else
             {
-                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << _format_time(elapsed);
                 if (completed < 1.0)
                 {
                     const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    %STREAMNAME% << ", estimated " << remaining << " s remaining.";
+                    %STREAMNAME% << ", estimated " << _format_time(remaining) << "remaining.";
                 }
             }
 
