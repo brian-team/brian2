@@ -87,6 +87,37 @@ def _format_time(time_in_s):
 
     return text
 
+class progressData(object):
+    '''
+        object to store data about progress history
+        time_elapsed_arr stores time_elapsed till the computation started
+        completed_arr stores how much computation completed till now
+
+    '''
+    def __init__(self):
+        self.index = -1
+        self.time_elapsed_arr = []
+        self.completed_arr = []
+        self.alpha = 0.6
+        self.speed = 0
+
+    def estimate_remaining_time(self,completed, time_elapsed):
+        self.index += 1
+        index = self.index
+        if(self.index == 0):
+            self.speed = completed/time_elapsed
+        else:
+            currSpeed = (completed-self.completed_arr[index-1])/(time_elapsed-self.time_elapsed_arr[index-1])
+            if(index >= 3):
+                prevCurrSpeed = (self.completed_arr[index-1]-self.completed_arr[index-2])/(self.time_elapsed_arr[index-1]-self.time_elapsed_arr[index-2])
+                prevprevCurrSpeed = (self.completed_arr[index-2]-self.completed_arr[index-3])/(self.time_elapsed_arr[index-2]-self.time_elapsed_arr[index-3])
+                # detecting slow start or slow end (if detected then use most recent speed for remaining time calculation)
+                if(currSpeed > prevCurrSpeed + abs(prevCurrSpeed-prevprevCurrSpeed) or currSpeed < prevCurrSpeed - abs(prevCurrSpeed-prevprevCurrSpeed)):
+                    self.alpha = 0.08
+            self.speed = (self.speed)*(self.alpha) + (1-self.alpha)*currSpeed
+        (self.time_elapsed_arr).append(time_elapsed)
+        (self.completed_arr).append(completed)
+        return ((1-completed)/self.speed)
 
 class TextReport(object):
     '''
@@ -99,6 +130,7 @@ class TextReport(object):
     '''
     def __init__(self, stream):
         self.stream = stream
+        self.progressStat = progressData()
 
     def __call__(self, elapsed, completed, start, duration):
         if completed == 0.0:
@@ -110,7 +142,7 @@ class TextReport(object):
                                              percent=int(completed*100.),
                                              real_t=_format_time(float(elapsed)))
             if completed < 1.0:
-                remaining = int(round((1-completed)/completed*float(elapsed)))
+                remaining = (self.progressStat).estimate_remaining_time(completed, float(elapsed))
                 remaining_msg = (', estimated {remaining} '
                                  'remaining.\n').format(remaining=_format_time(remaining))
             else:
