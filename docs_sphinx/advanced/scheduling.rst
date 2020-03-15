@@ -87,9 +87,8 @@ Similarly, for C++ standalone mode, the same can be done something equivalent to
 ::
 
     progressing = '''
-    std::string progress = "";
-    int tot_tiks = 50;
 
+    int tot_tiks = 50;
     std::cout<<"["<<std::flush;
     int iter = 0;
 

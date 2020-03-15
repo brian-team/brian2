@@ -110,7 +110,7 @@ prefs.register_preferences(
         '''
         ),
     extra_compile_args_gcc=BrianPreference(
-        default=['-w', '-O3', '-ffast-math', '-fno-finite-math-only', '-march=native'],
+        default=['-w', '-O3', '-ffast-math', '-fno-finite-math-only', '-march=native', '-std=c++11'],
         docs='''
         Extra compile arguments to pass to GCC compiler
         '''

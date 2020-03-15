@@ -29,19 +29,21 @@ When calling `run`, Brian runs the `collect` function to gather all the objects
 in the current context. It will include all the objects that are "visible", i.e.
 that you could refer to with an explicit name::
 
-  G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
-  S = Synapses(G, G, model='w:1', on_pre='v+=w')
-  S.connect('i!=j')
-  mon = SpikeMonitor(G)
-
-  run(10*ms)  # will include G, S, mon
+    G = NeuronGroup(10, 'dv/dt = (1 - v) / tau : 1', threshold = 'v > 0.7', reset = 'v = 0.0')
+    tau = 10 * ms
+    S = Synapses(G, G, model='w:1', on_pre='v+=w')
+    S.connect('i!=j')
+    mon = SpikeMonitor(G)
+    
+    run(10*ms)  # will include G, S, mon
 
 Note that it will not automatically include objects that are "hidden" in
 containers, e.g. if you store several monitors in a list. Use an explicit
 `Network` object in this case. It might be convenient to use the `collect`
 function when creating the `Network` object in that case::
 
-    G = NeuronGroup(10, 'dv/dt = -v / tau : volt')
+    G = NeuronGroup(10, 'dv/dt = -v / tau : 1', threshold = 'v > 0.6', reset = 'v = 0.0')
+    tau = 10 * ms
     S = Synapses(G, G, model='w:1', on_pre='v+=w')
     S.connect('i!=j')
     monitors = [SpikeMonitor(G), StateMonitor(G, 'v', record=True)]
