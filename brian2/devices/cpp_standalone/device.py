@@ -176,6 +176,7 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = [] 
         self.static_array_specs =[]
         self.report_func = ''
+        # self.format_func = ''
         self.synapses = []
 
         #: Code lines that have been manually added with `device.insert_code`
@@ -1400,20 +1401,32 @@ class CPPStandaloneDevice(Device):
                 for codeobj in obj._code_objects:
                     code_objects.append((obj.clock, codeobj))
 
+        # #Code for time format function
+        # format_func_code = '''
+        #  '''
+
         # Code for a progress reporting function
         standard_code = '''
         void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
+            std::string start_format = format_time((int)start);
+            std::string duration_format = format_time((int)duration);
+            std::string elapsed_format = format_time((int)elapsed);
+
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
+
+                %STREAMNAME% << "Starting simulation at t=" << start_format << " for duration " << duration_format;
             } else
             {
-                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed_format;
                 if (completed < 1.0)
                 {
                     const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    %STREAMNAME% << ", estimated " << remaining << " s remaining.";
+                    
+                    std::string remaining_format = format_time(remaining);
+
+                    %STREAMNAME% << ", estimated " << remaining_format << " remaining.";
                 }
             }
 
@@ -1445,6 +1458,7 @@ class CPPStandaloneDevice(Device):
                                           'each run has to use the same (or '
                                           'none).')
             self.report_func = report_func
+            # self.format_func = format_func_code
 
         if report is not None:
             report_call = 'report_progress'
