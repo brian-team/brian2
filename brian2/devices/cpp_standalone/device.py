@@ -176,7 +176,7 @@ class CPPStandaloneDevice(Device):
         self.net_synapses = [] 
         self.static_array_specs =[]
         self.report_func = ''
-        # self.format_func = ''
+        self.time_format_func = ''
         self.synapses = []
 
         #: Code lines that have been manually added with `device.insert_code`
@@ -751,7 +751,7 @@ class CPPStandaloneDevice(Device):
                                                            main_lines=main_lines,
                                                            code_lines=self.code_lines,
                                                            code_objects=list(self.code_objects.values()),
-                                                           report_func=self.report_func,
+                                                           report_func=self.report_func,time_format_func=self.time_format_func,
                                                            dt=float(self.defaultclock.dt),
                                                            user_headers=user_headers
                                                            )
@@ -1401,22 +1401,49 @@ class CPPStandaloneDevice(Device):
                 for codeobj in obj._code_objects:
                     code_objects.append((obj.clock, codeobj))
 
-        # #Code for time format function
-        # format_func_code = '''
-        #  '''
+        #Code for time formatting function  
+        time_format_func = '''
+        std::string format_time(int time_in_s)
+        {
+            int hours = time_in_s / 3600;
+
+            time_in_s = time_in_s % 3600;
+            int minutes = time_in_s / 60;
+
+            time_in_s = time_in_s % 60;
+
+            std::stringstream ss,ms,hs;
+            hs << hours;
+            std::string hrs = hs.str();
+
+            ms << minutes;
+            std::string mins = ms.str();
+            
+            ss << time_in_s;
+            std::string secs = ss.str();
+
+            if(hours < 1){
+                if(minutes < 1){
+                    return secs + "s";
+                }else{
+                    return mins + "m " + secs + "s"; 
+                }
+            }else{
+                return hrs + "h " + mins + "m " + secs + "s";
+            }
+        }'''
 
         # Code for a progress reporting function
         standard_code = '''
         void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
-            std::string start_format = format_time((int)start);
             std::string duration_format = format_time((int)duration);
             std::string elapsed_format = format_time((int)elapsed);
 
             if (completed == 0.0)
             {
 
-                %STREAMNAME% << "Starting simulation at t=" << start_format << " for duration " << duration_format;
+                %STREAMNAME% << "Starting simulation at t=" << start << " for duration " << duration_format;
             } else
             {
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed_format;
@@ -1458,7 +1485,7 @@ class CPPStandaloneDevice(Device):
                                           'each run has to use the same (or '
                                           'none).')
             self.report_func = report_func
-            # self.format_func = format_func_code
+            self.time_format_func = time_format_func
 
         if report is not None:
             report_call = 'report_progress'

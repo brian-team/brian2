@@ -24,33 +24,7 @@
 #include <sstream>
 
 
-std::string format_time(int time_in_s)
-{
-	int hours = time_in_s / 3600;
-	time_in_s = time_in_s % 3600;
-	int minutes = time_in_s / 60;
-	time_in_s = time_in_s % 60;
-
-	std::stringstream ss;
-	ss << hours;
-	std::string hrs = ss.str();
-
-	ss << minutes;
-	std::string mins = ss.str();
-	
-	ss << time_in_s;
-	std::string secs = ss.str();
-
-	if(hours < 1){
-		if(minutes < 1){
-			return secs + " s"
-		}else{
-			return mins + "m " + secs + "s"; 
-		}
-	}else{
-		return hrs + "h " + mins + "m " + secs + "s";
-	}
-}
+{{time_format_func|autoindent}}
 
 {{report_func|autoindent}}
 
