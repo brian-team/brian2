@@ -1,6 +1,13 @@
 Release notes
 =============
 
+Brian 2.3.0.1
+-------------
+This is a maintenance release that only fixes a minor regression in the test suite introduced
+by the switch to the ``pytest`` framework. The regression did not have a direct effect for
+Brian itself, but incorrectly marked the overall test outcome as failed for external packages
+such as `brian2genn <https://brian2genn.readthedocs.io>`_.
+
 Brian 2.3
 ---------
 This release contains the usual mix of bug fixes and new features (see below), but
