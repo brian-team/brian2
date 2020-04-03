@@ -348,7 +348,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
-                                       plugins=[pref_plugin]) == 0)
+                                       plugins=[pref_plugin]) in [0, 5])
             clear_caches()
 
             reset_device()
@@ -364,7 +364,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
-                                       plugins=[pref_plugin]) == 0)
+                                       plugins=[pref_plugin]) in [0, 5])
             clear_caches()
             reset_device()
 
@@ -380,7 +380,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv = make_argv(dirnames,
                                  'standalone_compatible' + markers)
                 success.append(pytest.main(argv + additional_args,
-                                           plugins=[pref_plugin]) == 0)
+                                           plugins=[pref_plugin]) in [0, 5])
                 clear_caches()
                 reset_device()
 
@@ -394,7 +394,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 argv = make_argv(dirnames,
                                  'standalone_compatible' + markers)
                 success.append(pytest.main(argv + additional_args,
-                                           plugins=[pref_plugin]) == 0)
+                                           plugins=[pref_plugin]) in [0, 5])
                 clear_caches()
                 prefs['devices.cpp_standalone.openmp_threads'] = 0
 
@@ -406,7 +406,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
-                                       plugins=[pref_plugin]) == 0)
+                                       plugins=[pref_plugin]) in [0, 5])
             clear_caches()
 
         all_success = all(success)
