@@ -21,10 +21,11 @@ from brian2.equations.equations import (Equations, DIFFERENTIAL_EQUATION,
                                         SUBEXPRESSION, PARAMETER,
                                         check_subexpressions,
                                         extract_constant_subexpressions,
-                                        SingleEquation)
+                                        SingleEquation, Expression)
 from brian2.equations.refractory import add_refractoriness
 from brian2.parsing.expressions import (parse_expression_dimensions,
                                         is_boolean_expression)
+from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
 from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
@@ -956,66 +957,200 @@ class NeuronGroup(Group, SpikeSource):
         
         # Add 0 as the intial value for non-mentioned state variables in x0
         x0.update({name : 0 for name in self.equations.diff_eq_names - x0.keys()})
-        sorted_variable_values = list(dict(sorted(x0.items())).values())
-        result = root(_wrapper, sorted_variable_values, args = (self.equations, get_local_namespace(1)))
+        
+        # sort dictionary items
+        state_dict = dict(sorted(x0.items()))
+
+        # helper functions to create NeuronGroup object of corresponding equation
+        # For example: _rhs_equation() returns NeuronGroup object with equations representing 
+        # Right-Hand-Side of self.equations and _jacobian_equation() returns NeuronGroup object
+        # with equations of Jaccobian matrix
+        rhs_states, rhs_group = _rhs_equation(self.equations, get_local_namespace(1))
+        jac_variables, jac_group = _jacobian_equation(self.equations, self.variables, get_local_namespace(1))
+
+        # solver function with _wrapper() as the callable function to be optimized
+        result = root(_wrapper, list(state_dict.values()), args = (rhs_states, rhs_group, jac_variables, 
+                                                                    jac_group, state_dict.keys()), jac = True)
+
         # check the result message for the status of convergence
         if result.success == False:
-            raise Exception("The model failed to converge at a resting state. Trying better initial guess shall fix the problem")
-        return dict(zip(sorted(self.equations.diff_eq_names), result.x))
+            raise Exception("Root calculation failed to converge. Poor initial guess may be the cause of the failure")
+        
+        # evaluate the solution states to get state variables of Jaccobian
+        jac_state = _evaluate_states(jac_group, dict(zip(state_dict.keys(), result.x)), list(jac_variables.reshape(-1)))
+        
+        # with the state values, prepare Jaccobian matrix
+        jac_matrix = np.zeros(jac_variables.shape)
 
-def _evaluate_rhs(eqs, values, namespace=None):
-        """
-        Evaluates the RHS of a system of differential equations for given state
-        variable values. External constants can be provided via the namespace or
-        will be taken from the local namespace.
-        This function could be used for example to find a resting state of the
-        system, i.e. a fixed point where the RHS of all equations are approximately
-        0.
-        Parameters
-        ----------
-        eqs : `Equations`
-            The equations
-        values : dict-like
-            Values for each of the state variables (differential equations and
-            parameters).
-        Returns
-        -------
-        rhs : dict
-            A dictionary with the names of all variables defined by differential
-            equations as keys and the respective RHS of the equations as values.
-        """
-        # Make a new set of equations, where differential equations are replaced
-        # by parameters, and a new subexpression defines their RHS.
-        # E.g. for 'dv/dt = -v / tau : volt' use:
-        # '''v : volt
-        #    RHS_v = -v / tau : volt'''
-        new_equations = []
-        for eq in eqs.values():
-            if eq.type == DIFFERENTIAL_EQUATION:
-                new_equations.append(SingleEquation(PARAMETER, eq.varname,
-                                                    dimensions=eq.dim,
-                                                    var_type=eq.var_type))
-                new_equations.append(SingleEquation(SUBEXPRESSION, 'RHS_'+eq.varname,
-                                                    dimensions=eq.dim/second.dim,
-                                                    var_type=eq.var_type,
-                                                    expr=eq.expr))
-            else:
-                new_equations.append(eq)
-        # TODO: Hide this from standalone mode
-        group = NeuronGroup(1, model=Equations(new_equations),
-                            codeobj_class=NumpyCodeObject,
-                            namespace=namespace)
+        for row in range(jac_variables.shape[0]):
+            for col in range(jac_variables.shape[1]):
+                jac_matrix[row, col] = float(jac_state[jac_variables[row, col]])
 
-        # Set the values of the state variables/parameters and units are not taken into account
-        group.set_states(values, units = False)
+        # check whether the solution is stable by using sign of eigenvalues
+        jac_eig = np.linalg.eigvals(jac_matrix)
+        if not np.all(np.real(jac_eig) < 0):
+            raise Exception('Equilibrium is not stable. Failed to converge to stable equilibrium')
+        
+        # return the soultion in dictionary form
+        return dict(zip(state_dict.keys(), result.x))
 
-        # Get the values of all RHS_... subexpressions
-        states = ['RHS_' + name for name in eqs.diff_eq_names]
-        return group.get_states(states)
-
-def _wrapper(args, equations, namespace): 
+def _rhs_equation(eqs, namespace = None, level = 0):
+    
     """
-    Function for which root needs to be calculated. Callable function of scipy.optimize.root()
+    Extract the RHS of a system of differential equations. External constants 
+    can be provided via the namespace or will be taken from the local namespace.
+    Make a new set of equations, where differential equations are replaced by parameters, 
+    and a new subexpression defines their RHS.
+    
+    E.g. for 'dv/dt = -v / tau : volt' use:
+     '''v : volt
+        RHS_v = -v / tau : volt'''
+    
+    This function could be used to find a resting state of the
+    system, i.e. a fixed point where the RHS of all equations are approximately 0.
+
+    Parameters
+    ----------
+    eqs : `Equations`
+        The equations
+
+    Returns
+    -------
+    rhs_states : list
+        A list with the names of all variables defined as RHS of the equations 
+    rhs_group : `NeuronGroup`
+        The NeuronGroup object
     """
-    rhs = _evaluate_rhs(equations, {name : arg for name, arg in zip(sorted(equations.diff_eq_names), args)}, namespace)
-    return [float(rhs['RHS_{}'.format(name)]) for name in sorted(equations.diff_eq_names)]
+    
+    if namespace is None:
+        namespace = get_local_namespace(level+1)
+
+    rhs_equations = []
+    for eq in eqs.values():
+        if eq.type == DIFFERENTIAL_EQUATION:
+            rhs_equations.append(SingleEquation(PARAMETER, eq.varname,
+                                                dimensions=eq.dim,
+                                                var_type=eq.var_type))
+            rhs_equations.append(SingleEquation(SUBEXPRESSION, 'RHS_'+eq.varname,
+                                                dimensions=eq.dim/second.dim,
+                                                var_type=eq.var_type,
+                                                expr=eq.expr))
+        else:
+            rhs_equations.append(eq)
+    
+    # NeuronGroup with the obtained rhs_equations
+    rhs_group = NeuronGroup(1, model = Equations(rhs_equations),
+                        codeobj_class = NumpyCodeObject,
+                        namespace = namespace)
+    # states corresponding to RHS of the system of differential equations
+    rhs_states = ['RHS_' + name for name in eqs.diff_eq_names]
+    
+    return (rhs_states, rhs_group)
+
+def _jacobian_equation(eqs, group_variables, namespace = None, level = 0):
+    
+    """
+    Create Jaccobain expressions of a system of differential equations. External constants 
+    can be provided via the namespace or will be taken from the local namespace.
+    Make a new set of equations, where differential equations are replaced by parameters, 
+    and a new subexpression defines their Jaccobain expression.
+    
+    This function could be used to find a resting state of the
+    system and check its stability
+    
+    Parameters
+    ----------
+    eqs : `Equations`
+        Equations of the parent NeuronGroup
+    group_variables : `Variables`
+        Variables of the parent NeuronGroup
+
+    Returns
+    -------
+    jac_matrix_variables : `2D-NumPy array`
+        2D- matrix of Jaccobian variables. 
+        For example: jac_matrix_variables of model with two variables: u and v would be,
+        np.array([[J_u_u J_u_v],
+                  [J_v_u J_v_v]])
+    jac_group : `NeuronGroup`
+        The NeuronGroup object
+    """
+
+    if namespace is None:
+        namespace = get_local_namespace(level+1)
+    # prepare jac_eqs
+    diff_eqs = eqs.get_substituted_expressions(group_variables)
+    diff_eq_names = [name for name, _ in diff_eqs]
+    system = sympy.Matrix([str_to_sympy(diff_eq[1].code)
+                           for diff_eq in diff_eqs])
+    J = system.jacobian([str_to_sympy(d) for d in diff_eq_names])
+    jac_eqs = []
+    for diff_eq_name, diff_eq in diff_eqs:
+        jac_eqs.append(SingleEquation(PARAMETER, diff_eq_name,
+                                      dimensions=eqs[diff_eq_name].dim,
+                                      var_type=eqs[diff_eq_name].var_type))
+    for var_idx, diff_eq_var in enumerate(diff_eq_names):
+        for diff_idx, diff_eq_diff in enumerate(diff_eq_names):
+            dimensions = eqs[diff_eq_var].dim/second.dim/eqs[diff_eq_diff].dim
+            expr = f'{sympy_to_str(J[var_idx, diff_idx])}'
+            if expr == '0':
+                expr = f'0*{dimensions!r}'
+            jac_eqs.append(SingleEquation(SUBEXPRESSION, f'J_{diff_eq_var}_{diff_eq_diff}',
+                                          dimensions=dimensions,
+                                          expr=Expression(expr)))
+    # NeuronGroup with the obtained jac_eqs
+    jac_group = NeuronGroup(1, model = Equations(jac_eqs),
+                        codeobj_class = NumpyCodeObject,
+                        namespace = namespace)
+    # prepare 2D matrix of Jaccobian variables
+    jac_matrix_variables = np.array(
+        [[f'J_{var}_{diff_var}' for diff_var in diff_eq_names]
+         for var in diff_eq_names])
+
+    return (jac_matrix_variables, jac_group)
+
+def _evaluate_states(group, values, states):
+    
+    """
+    Evaluate the set of states when given values are set. 
+    The function gets NeuronGroup object and set the given values to it;
+    and returns the values of states given
+
+    Parameters
+    ----------
+    group : `NeuronGroup`
+        The NeuronGroup
+    values : dict-like
+        Values of states to be set to group
+    states: list
+        State variables for which values have to be get
+
+    Returns
+    -------
+    state_values : dict-like
+        Dictionary of state variables and their values
+    """
+
+    group.set_states(values, units = False)
+    state_values = group.get_states(states)
+    return state_values
+
+def _wrapper(args, rhs_states, rhs_group, jac_variables, jac_group, diff_eq_names): 
+    """
+    Vector function for which root needs to be calculated. Callable function of `scipy.optimize.root()`
+    """
+    # match the argument values with correct variables
+    sorted_variable_dict = {name : arg for name, arg in zip(sorted(diff_eq_names), args)}
+    # get the values of `rhs_states` when given values(sorted_variable_dict) are set to rhs_group
+    rhs = _evaluate_states(rhs_group, sorted_variable_dict, rhs_states)
+    # get the values of `jac_varaibles` when given values(sorted_variable_dict) are set to jac_group
+    jac = _evaluate_states(jac_group, sorted_variable_dict, list(jac_variables.reshape(-1)))
+
+    # with the values prepare jaccobian matrix
+    jac_matrix = np.zeros(jac_variables.shape)
+    for row in range(jac_variables.shape[0]):
+        for col in range(jac_variables.shape[1]):
+            jac_matrix[row, col] = float(jac[jac_variables[row, col]])
+
+    return [float(rhs['RHS_{}'.format(name)]) for name in sorted(diff_eq_names)], jac_matrix
+
