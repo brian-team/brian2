@@ -1,6 +1,12 @@
 Release notes
 =============
 
+Brian 2.3.0.2
+-------------
+This is yet another maintenance release with a single bug fix. The previous versions had a
+bug making it impossible to specify a Visual Studio version via the `codegen.cpp.msvc_vars_location`
+preference on Windows.
+
 Brian 2.3.0.1
 -------------
 This is a maintenance release that only fixes a minor regression in the test suite introduced
