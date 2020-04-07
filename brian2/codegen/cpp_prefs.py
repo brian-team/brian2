@@ -246,9 +246,6 @@ def get_msvc_env():
     global _msvc_env
     from setuptools import msvc
     import distutils
-    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
-    if vcvars_loc:
-        return vcvars_loc, None
     arch_name = prefs['codegen.cpp.msvc_architecture']
     if arch_name == '':
         bits = struct.calcsize('P') * 8
@@ -256,6 +253,11 @@ def get_msvc_env():
             arch_name = 'x86_amd64'
         else:
             arch_name = 'x86'
+    vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
+    if vcvars_loc:
+        vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(vcvars_loc=vcvars_loc,
+                                                         arch_name=arch_name)
+        return None, vcvars_cmd
     if _msvc_env is None:
         try:
             # This will fail on Python 2 with an AttributError
