@@ -1449,9 +1449,8 @@ class CPPStandaloneDevice(Device):
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed_format;
                 if (completed < 1.0)
                 {
-                    const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    
-                    std::string remaining_format = format_time(remaining);
+                    double remaining = estimator.Estimate(completed,duration);                    
+                    std::string remaining_format = format_time((int)remaining);
 
                     %STREAMNAME% << ", estimated " << remaining_format << " remaining.";
                 }

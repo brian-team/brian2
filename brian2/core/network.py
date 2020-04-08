@@ -52,6 +52,7 @@ prefs.register_preferences('core.network', 'Network preferences',
 
 
 def _format_time(time_in_s):
+    print(time_in_s,"hereeeeeee")
     '''
     Helper function to format time in seconds, minutes, hours, days, depending
     on the magnitude.
@@ -87,6 +88,29 @@ def _format_time(time_in_s):
 
     return text
 
+class Estimator():
+    '''
+    Helper object to estimate the remaining time of simulation
+
+    Parameters
+    ----------
+    none
+    '''
+    def __init__(self):
+        self.alpha = 0.9999999999
+        self.estimates = []
+    
+    def __call__(self,completed,duration):
+        duration = float(duration)
+        if self.estimates:
+            lastEstimate = self.alpha * ((1 - completed) * duration) + (1-self.alpha) * self.estimates[-1]
+            self.estimates.append(lastEstimate)
+        else:
+            lastEstimate = ((1 - completed) * duration)
+            self.estimates.append(lastEstimate)
+        return lastEstimate            
+
+
 
 class TextReport(object):
     '''
@@ -99,6 +123,7 @@ class TextReport(object):
     '''
     def __init__(self, stream):
         self.stream = stream
+        self.estimator = Estimator()
 
     def __call__(self, elapsed, completed, start, duration):
         if completed == 0.0:
@@ -110,7 +135,7 @@ class TextReport(object):
                                              percent=int(completed*100.),
                                              real_t=_format_time(float(elapsed)))
             if completed < 1.0:
-                remaining = int(round((1-completed)/completed*float(elapsed)))
+                remaining = self.estimator(completed,duration)
                 remaining_msg = (', estimated {remaining} '
                                  'remaining.\n').format(remaining=_format_time(remaining))
             else:

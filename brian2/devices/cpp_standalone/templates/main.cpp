@@ -2,6 +2,7 @@
 #include "objects.h"
 #include <ctime>
 #include <time.h>
+#include "brianlib/estimator.h"
 {{ openmp_pragma('include') }}
 #include "run.h"
 #include "brianlib/common_math.h"
@@ -22,7 +23,9 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
 
+Estimator estimator;
 
 {{time_format_func|autoindent}}
 
