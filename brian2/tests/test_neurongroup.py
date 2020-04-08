@@ -1880,4 +1880,5 @@ if __name__ == '__main__':
     if scipy_available:
         test_simple_resting_value()
         test_failed_resting_state()
-        test_unstable_resting_state
+        test_unstable_resting_state()
+

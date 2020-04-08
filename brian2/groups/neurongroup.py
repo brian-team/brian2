@@ -964,7 +964,7 @@ class NeuronGroup(Group, SpikeSource):
         # helper functions to create NeuronGroup object of corresponding equation
         # For example: _rhs_equation() returns NeuronGroup object with equations representing 
         # Right-Hand-Side of self.equations and _jacobian_equation() returns NeuronGroup object
-        # with equations of Jaccobian matrix
+        # with equations of jacobian matrix
         rhs_states, rhs_group = _rhs_equation(self.equations, get_local_namespace(1))
         jac_variables, jac_group = _jacobian_equation(self.equations, self.variables, get_local_namespace(1))
 
@@ -976,10 +976,10 @@ class NeuronGroup(Group, SpikeSource):
         if result.success == False:
             raise Exception("Root calculation failed to converge. Poor initial guess may be the cause of the failure")
         
-        # evaluate the solution states to get state variables of Jaccobian
+        # evaluate the solution states to get state variables of jacobian
         jac_state = _evaluate_states(jac_group, dict(zip(state_dict.keys(), result.x)), list(jac_variables.reshape(-1)))
         
-        # with the state values, prepare Jaccobian matrix
+        # with the state values, prepare jacobian matrix
         jac_matrix = np.zeros(jac_variables.shape)
 
         for row in range(jac_variables.shape[0]):
@@ -1050,10 +1050,10 @@ def _rhs_equation(eqs, namespace = None, level = 0):
 def _jacobian_equation(eqs, group_variables, namespace = None, level = 0):
     
     """
-    Create Jaccobain expressions of a system of differential equations. External constants 
+    Create jacobain expressions of a system of differential equations. External constants 
     can be provided via the namespace or will be taken from the local namespace.
     Make a new set of equations, where differential equations are replaced by parameters, 
-    and a new subexpression defines their Jaccobain expression.
+    and a new subexpression defines their jacobain expression.
     
     This function could be used to find a resting state of the
     system and check its stability
@@ -1068,7 +1068,7 @@ def _jacobian_equation(eqs, group_variables, namespace = None, level = 0):
     Returns
     -------
     jac_matrix_variables : `2D-NumPy array`
-        2D- matrix of Jaccobian variables. 
+        2D- matrix of jacobian variables. 
         For example: jac_matrix_variables of model with two variables: u and v would be,
         np.array([[J_u_u J_u_v],
                   [J_v_u J_v_v]])
@@ -1102,7 +1102,7 @@ def _jacobian_equation(eqs, group_variables, namespace = None, level = 0):
     jac_group = NeuronGroup(1, model = Equations(jac_eqs),
                         codeobj_class = NumpyCodeObject,
                         namespace = namespace)
-    # prepare 2D matrix of Jaccobian variables
+    # prepare 2D matrix of jacobian variables
     jac_matrix_variables = np.array(
         [[f'J_{var}_{diff_var}' for diff_var in diff_eq_names]
          for var in diff_eq_names])
@@ -1146,7 +1146,7 @@ def _wrapper(args, rhs_states, rhs_group, jac_variables, jac_group, diff_eq_name
     # get the values of `jac_varaibles` when given values(sorted_variable_dict) are set to jac_group
     jac = _evaluate_states(jac_group, sorted_variable_dict, list(jac_variables.reshape(-1)))
 
-    # with the values prepare jaccobian matrix
+    # with the values prepare jacobian matrix
     jac_matrix = np.zeros(jac_variables.shape)
     for row in range(jac_variables.shape[0]):
         for col in range(jac_variables.shape[1]):
