@@ -52,7 +52,6 @@ prefs.register_preferences('core.network', 'Network preferences',
 
 
 def _format_time(time_in_s):
-    print(time_in_s,"hereeeeeee")
     '''
     Helper function to format time in seconds, minutes, hours, days, depending
     on the magnitude.

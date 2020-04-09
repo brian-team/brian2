@@ -25,8 +25,6 @@
 #include <sstream>
 #include <vector>
 
-Estimator estimator;
-
 {{time_format_func|autoindent}}
 
 {{report_func|autoindent}}

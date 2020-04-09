@@ -751,7 +751,8 @@ class CPPStandaloneDevice(Device):
                                                            main_lines=main_lines,
                                                            code_lines=self.code_lines,
                                                            code_objects=list(self.code_objects.values()),
-                                                           report_func=self.report_func,time_format_func=self.time_format_func,
+                                                           report_func=self.report_func,
+                                                           time_format_func=self.time_format_func,
                                                            dt=float(self.defaultclock.dt),
                                                            user_headers=user_headers
                                                            )
@@ -1437,13 +1438,12 @@ class CPPStandaloneDevice(Device):
         standard_code = '''
         void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
-            std::string duration_format = format_time((int)duration);
+            static Estimator estimator;
             std::string elapsed_format = format_time((int)elapsed);
 
             if (completed == 0.0)
-            {
-
-                %STREAMNAME% << "Starting simulation at t=" << start << " for duration " << duration_format;
+            {                
+                %STREAMNAME% << "Starting simulation at t=" << start << " for duration " << duration << " s";
             } else
             {
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed_format;

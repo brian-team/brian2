@@ -122,7 +122,7 @@ void Network::run(const double duration, void (*report_func)(const double, const
         _last_run_completed_fraction = 1.0;
     }
     if (report_func)
-    {   
+    {
         report_func(elapsed_realtime, 1.0, t_start, duration);
     }
 }
