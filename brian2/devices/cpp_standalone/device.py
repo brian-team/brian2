@@ -1442,7 +1442,7 @@ class CPPStandaloneDevice(Device):
             std::string elapsed_format = format_time((int)elapsed);
 
             if (completed == 0.0)
-            {                
+            {
                 %STREAMNAME% << "Starting simulation at t=" << start << " for duration " << duration << " s";
             } else
             {
