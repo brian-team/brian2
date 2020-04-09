@@ -1443,7 +1443,7 @@ class CPPStandaloneDevice(Device):
 
             if (completed == 0.0)
             {
-                %STREAMNAME% << "Starting simulation at t=" << start << " for duration " << duration << " s";
+                %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
             } else
             {
                 %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed_format;
