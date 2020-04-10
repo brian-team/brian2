@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 
 {{report_func|autoindent}}
 
