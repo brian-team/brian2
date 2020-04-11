@@ -29,7 +29,38 @@ contain a function body. The simplest use of this might look like::
 
 Examples of custom reporting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Progress printed to a file**
+**Progress printed to a file (C++ standalone mode)**
+::
+
+    code = ''' 
+        static Estimator estimator;
+        std::string elapsed_format = format_time((int)elapsed);
+        static std::fstream fs("test.txt",std::fstream::out);
+
+        if (completed == 0.0)
+        {
+        fs << "Starting simulation at t=" << start << " s for duration " << duration << " s";
+        } else
+        {
+        fs << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed_format;
+        if (completed < 1.0)
+        {
+                double remaining = estimator.Estimate(completed,duration);                    
+                std::string remaining_format = format_time((int)remaining);
+
+                fs << ", estimated " << remaining_format << " remaining.";
+        }
+        }
+
+        fs << std::endl<< std::flush;
+        
+        if(completed == 1.0)
+                fs.close();
+        '''
+    net.run(duration, report=code)
+
+
+**Progress printed to a file (Runtime mode)**
 ::
 
     from brian2.core.network import TextReport
