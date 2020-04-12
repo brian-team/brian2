@@ -100,7 +100,7 @@ class TextReport(object):
     def __init__(self, stream):
         self.stream = stream
 
-    def __call__(self, elapsed, completed, start, duration):
+    def __call__(self, elapsed, completed, start, duration, estimate_sampler = []):
         if completed == 0.0:
             self.stream.write(('Starting simulation at t=%s for a duration of '
                                '%s\n') % (start, duration))
@@ -110,9 +110,23 @@ class TextReport(object):
                                              percent=int(completed*100.),
                                              real_t=_format_time(float(elapsed)))
             if completed < 1.0:
-                remaining = int(round((1-completed)/completed*float(elapsed)))
-                remaining_msg = (', estimated {remaining} '
-                                 'remaining.\n').format(remaining=_format_time(remaining))
+                if len(estimate_sampler) == 0:
+                    raise Exception("Cannot estimate remaining time as sample period is larger than report period ")
+                # compute remaining real-time using Monte-Carlo or Bootstrapping method
+                estimate_mean = (sum(estimate_sampler) / len(estimate_sampler)) * (1 - completed)
+                estimate_err = [(i * (1 - completed) - estimate_mean) ** 2 for i in estimate_sampler]
+                estimate_std = (sum(estimate_err) / len(estimate_err)) ** (1/2)
+                # get 95% confidence bound (constant = 1.96)
+                remaining_lb = round(estimate_mean - 1.96 * (estimate_std / (len(estimate_err) ** (1/2))))
+                remaining_ub = round(estimate_mean + 1.96 * (estimate_std / (len(estimate_err) ** (1/2))))
+                # check atleast 1s between upper and lower bounds
+                if int(remaining_ub) > int(remaining_lb):
+                    remaining_msg = (', estimated remaining time: {remaining_lb} - {remaining_ub}'
+                                    '.\n').format(remaining_lb=_format_time(int(remaining_lb)), 
+                                    remaining_ub = _format_time(int(remaining_ub)))
+                else:
+                    remaining_msg = (', estimated time remaining: {remaining_ub}'
+                                    '.\n').format(remaining_ub = _format_time(int(remaining_ub)))
             else:
                 remaining_msg = '\n'
 
@@ -1020,6 +1034,9 @@ class Network(Nameable):
         if report is not None:
             report_period = float(report_period)
             next_report_time = start_time + report_period
+            estimate_sampler = []
+            sample_period = float(100 * msecond)
+            next_sample_time = start_time + sample_period
             if report == 'text' or report == 'stdout':
                 report_callback = TextReport(sys.stdout)
             elif report == 'stderr':
@@ -1058,10 +1075,16 @@ class Network(Nameable):
             self.t_ = t[0]
             if report is not None:
                 current = time.time()
+                if current > next_sample_time:
+                    # amount of real-time (in seconds) elapsed to do 1% of completion
+                    sample_elapsed_time = float((current-start_time)*second)
+                    sample_completed = ((self.t_ - float(t_start))/float(t_end - t_start))
+                    estimate_sampler.append(sample_elapsed_time / sample_completed)
+                    next_sample_time = current + sample_period
                 if current > next_report_time:
                     report_callback((current-start_time)*second,
                                     (self.t_ - float(t_start))/float(t_end - t_start),
-                                    t_start, duration)
+                                    t_start, duration, estimate_sampler)
                     next_report_time = current + report_period
 
             # update the objects and tick forward the clock(s)
