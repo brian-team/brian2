@@ -80,8 +80,7 @@ Adapted from https://stackoverflow.com/questions/14539867/how-to-display-a-progr
 
 ::
 
-    from brian2 import *
-    set_device('cpp_standalone', directory='STDP_standalone')
+    set_device('cpp_standalone')
 
     str = '''
         int remaining = (int)((1-completed)/completed*elapsed+0.5);
