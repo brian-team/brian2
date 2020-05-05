@@ -176,7 +176,7 @@ Delays
 The specification of delays changed in several aspects from Brian 1 to Brian 2:
 In Brian 1, delays where homogeneous by default, and heterogeneous delays had
 to be marked by ``delay=True``, together with the specification of the maximum
-delay. In Brian 2, homogeneous delays are the default and you do not have to
+delay. In Brian 2, heterogeneous delays are the default and you do not have to
 state the maximum delay. Brian 1's syntax of specifying a pair of values to get
 randomly distributed delays in that range is no longer supported, instead use
 Brian 2's standard string syntax:
