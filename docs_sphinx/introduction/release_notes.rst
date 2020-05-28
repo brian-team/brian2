@@ -14,6 +14,10 @@ Selected improvements and bug fixes
   Braun for reporting the issue.
 * Point currents marked as ``constant over dt`` are now correctly handled
   (:issue:`1160`). Thanks to Andrew Brughera for reporting the issue.
+* Elapsed and estimated remaining time are now formatted as hours/minutes/etc.
+  in standalone mode as well (:issue:`1162`). Thanks to Rahul Kumar Gupta,
+  Syed Osama Hussain, Bhuwan Chandra, and Vigneswaran Chandrasekaran for working
+  on this issue as part of the GSoC 2020 application process.
 
 Contributions
 ~~~~~~~~~~~~~
