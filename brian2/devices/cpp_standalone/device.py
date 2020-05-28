@@ -1402,6 +1402,33 @@ class CPPStandaloneDevice(Device):
 
         # Code for a progress reporting function
         standard_code = '''
+        std::string _format_time(float time_in_s)
+        {
+            float divisors[] = {24*60*60, 60*60, 60, 1};
+            char letters[] = {'d', 'h', 'm', 's'};
+            float remaining = time_in_s;
+            std::string text = "";
+            int time_to_represent;
+            for (int i =0; i < sizeof(divisors)/sizeof(float); i++)
+            {
+                time_to_represent = int(remaining / divisors[i]);
+                remaining -= time_to_represent * divisors[i];
+                if (time_to_represent > 0 || text.length())
+                {
+                    if(text.length() > 0)
+                    {
+                        text += " ";
+                    }
+                    text += (std::to_string(time_to_represent)+letters[i]);
+                }
+            }
+            //less than one second
+            if(text.length() == 0) 
+            {
+                text = "< 1s";
+            }
+            return text;
+        }
         void report_progress(const double elapsed, const double completed, const double start, const double duration)
         {
             if (completed == 0.0)
@@ -1409,11 +1436,11 @@ class CPPStandaloneDevice(Device):
                 %STREAMNAME% << "Starting simulation at t=" << start << " s for duration " << duration << " s";
             } else
             {
-                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << elapsed << " s";
+                %STREAMNAME% << completed*duration << " s (" << (int)(completed*100.) << "%) simulated in " << _format_time(elapsed);
                 if (completed < 1.0)
                 {
                     const int remaining = (int)((1-completed)/completed*elapsed+0.5);
-                    %STREAMNAME% << ", estimated " << remaining << " s remaining.";
+                    %STREAMNAME% << ", estimated " << _format_time(remaining) << " remaining.";
                 }
             }
 
