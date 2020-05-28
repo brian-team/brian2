@@ -1,5 +1,4 @@
 
-
 '''
 Module implementing the C++ "standalone" device.
 '''
@@ -172,9 +171,8 @@ class CPPStandaloneDevice(Device):
         self.code_objects = {}
         self.main_queue = []
         self.runfuncs = {}
-        self.networks = []
-        self.net_synapses = [] 
-        self.static_array_specs =[]
+        self.networks = set()
+        self.static_array_specs = []
         self.report_func = ''
         self.synapses = []
 
@@ -935,17 +933,6 @@ class CPPStandaloneDevice(Device):
             arr.tofile(os.path.join(directory, 'static_arrays', name))
             static_array_specs.append((name, c_data_type(arr.dtype), arr.size, name))
         self.static_array_specs = static_array_specs
-
-    def find_synapses(self):
-        # Write the global objects
-        networks = [net() for net in Network.__instances__()
-                    if net().name != '_fake_network']
-        synapses = []
-        for net in networks:
-            net_synapses = [s for s in net.objects if isinstance(s, Synapses)]
-            synapses.extend(net_synapses)
-        self.networks = networks
-        self.net_synapses = synapses
     
     def compile_source(self, directory, compiler, debug, clean):
         with in_directory(directory):
@@ -1221,14 +1208,6 @@ class CPPStandaloneDevice(Device):
         self.check_openmp_compatible(nb_threads)
 
         self.write_static_arrays(directory)
-        self.find_synapses()
-
-        # Not sure what the best place is to call Network.after_run -- at the
-        # moment the only important thing it does is to clear the objects stored
-        # in magic_network. If this is not done, this might lead to problems
-        # for repeated runs of standalone (e.g. in the test suite).
-        for net in self.networks:
-            net.after_run()
 
         # Check that all names are globally unique
         names = [obj.name for net in self.networks for obj in net.objects]
@@ -1241,8 +1220,12 @@ class CPPStandaloneDevice(Device):
                              'standalone mode, the following name(s) were used '
                              'more than once: %s' % formatted_names)
 
+        net_synapses = [s for net in self.networks
+                        for s in net.objects
+                        if isinstance(s, Synapses)]
+
         self.generate_objects_source(self.writer, self.arange_arrays,
-                                     self.net_synapses, self.static_array_specs,
+                                     net_synapses, self.static_array_specs,
                                      self.networks)
         self.generate_main_source(self.writer)
         self.generate_codeobj_source(self.writer)
@@ -1258,6 +1241,13 @@ class CPPStandaloneDevice(Device):
                                linker_flags=' '.join(linker_flags),
                                nb_threads=nb_threads,
                                debug=debug)
+
+        # Not sure what the best place is to call Network.after_run -- at the
+        # moment the only important thing it does is to clear the objects stored
+        # in magic_network. If this is not done, this might lead to problems
+        # for repeated runs of standalone (e.g. in the test suite).
+        for net in self.networks:
+            net.after_run()
 
         if compile:
             self.compile_source(directory, compiler, debug, clean)
@@ -1362,9 +1352,9 @@ class CPPStandaloneDevice(Device):
                                                                         still_present),
                                         name_suffix='delete_skips_directory')
 
-
     def network_run(self, net, duration, report=None, report_period=10*second,
                     namespace=None, profile=False, level=0, **kwds):
+        self.networks.add(net)
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
                          '%s') % ', '.join(kwds.keys()))

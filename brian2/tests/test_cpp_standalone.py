@@ -439,6 +439,29 @@ def test_delete_directory():
     # everything should be deleted
     assert not os.path.exists(device.project_dir)
 
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_multiple_standalone_runs():
+    # see github issue #1189
+    set_device('cpp_standalone', directory=None)
+
+    network = Network()
+    Pe = NeuronGroup(1, 'v : 1', threshold='False')
+    C_ee = Synapses(Pe, Pe, on_pre='v += 1')
+    C_ee.connect()
+    network.add(Pe, C_ee)
+    network.run(defaultclock.dt)
+
+    device.reinit()
+    device.activate(directory=None)
+
+    network2 = Network()
+    Pe = NeuronGroup(1, 'v : 1', threshold='False')
+    C_ee = Synapses(Pe, Pe, on_pre='v += 1')
+    C_ee.connect()
+    network2.add(Pe, C_ee)
+    network2.run(defaultclock.dt)
+
 
 if __name__=='__main__':
     for t in [
@@ -453,7 +476,8 @@ if __name__=='__main__':
              test_run_with_debug,
              test_changing_profile_arg,
              test_delete_code_data,
-             test_delete_directory
+             test_delete_directory,
+             test_multiple_standalone_runs
              ]:
         t()
         reinit_and_delete()
