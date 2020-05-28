@@ -70,3 +70,35 @@ Adapted from http://stackoverflow.com/questions/3160699/python-progress-bar
                 sys.stdout.write("\n")
 
     net.run(duration, report=ProgressBar(), report_period=1*second)
+
+**"Standalone Mode" Text based progress bar on console**
+
+This needs a "normal" Linux console, i.e. it might not work in an integrated
+console in an IDE.
+
+Adapted from https://stackoverflow.com/questions/14539867/how-to-display-a-progress-indicator-in-pure-c-c-cout-printf
+
+::
+
+    set_device('cpp_standalone')
+
+    str = '''
+        int remaining = (int)((1-completed)/completed*elapsed+0.5);
+        if (completed == 0.0)
+        {
+            std::cout << "Starting simulation at t=" << start << " s for duration " << duration << " s"<<std::flush;
+        }
+        else
+        {
+            int barWidth = 70;
+            std::cout << "\\r[";
+            int pos = barWidth * completed;
+            for (int i = 0; i < barWidth; ++i) {
+                    if (i < pos) std::cout << "=";
+                    else if (i == pos) std::cout << ">";
+                    else std::cout << " ";
+            }
+            std::cout << "] " << int(completed * 100.0) << "% completed. | "<<int(remaining) <<"s remaining"<<std::flush;
+        }
+    '''
+    run(100*second, report=str)
