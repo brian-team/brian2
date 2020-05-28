@@ -82,7 +82,7 @@ Adapted from https://stackoverflow.com/questions/14539867/how-to-display-a-progr
 
     set_device('cpp_standalone')
 
-    str = '''
+    report_func = '''
         int remaining = (int)((1-completed)/completed*elapsed+0.5);
         if (completed == 0.0)
         {
@@ -101,4 +101,4 @@ Adapted from https://stackoverflow.com/questions/14539867/how-to-display-a-progr
             std::cout << "] " << int(completed * 100.0) << "% completed. | "<<int(remaining) <<"s remaining"<<std::flush;
         }
     '''
-    run(100*second, report=str)
+    run(100*second, report=report_func)
