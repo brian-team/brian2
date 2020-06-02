@@ -294,10 +294,6 @@ class BrianObjectException(Exception):
     `BrianObject` was defined to better enable users to locate the source of
     problems.
 
-    You should use the `brian_object_exception` function to raise this, and
-    it should only be raised in an ``except`` block handling a prior
-    exception.
-
     Parameters
     ----------
 
@@ -308,26 +304,20 @@ class BrianObjectException(Exception):
     original_exception : Exception
         The original exception that was raised.
     '''
-    def __init__(self, message, brianobj, original_exception):
+    def __init__(self, message, brianobj):
         self._brian_message = message
         self._brian_objname = brianobj.name
-        self._brian_origexc = '\n'.join(traceback.format_exception_only(type(original_exception),
-                                                                        original_exception))
-        self._brian_origtb = traceback.format_exc()
         self._brian_objcreate = brianobj._creation_stack
         logger.diagnostic('Error was encountered with object "{objname}":\n{fullstack}'.format(
             objname=self._brian_objname,
             fullstack=brianobj._full_creation_stack))
 
     def __str__(self):
-        return ('Original error and traceback:\n{origtb}\n'
-                'Error encountered with object named "{objname}".\n'
+        return ('Error encountered with object named "{objname}".\n'
                 '{objcreate}\n\n'
-                '{message} {origexc}'
+                '{message}'
                 '(See above for original error message and traceback.)'
-                ).format(origtb=self._brian_origtb,
-                         origexc=self._brian_origexc,
-                         objname=self._brian_objname, message=self._brian_message,
+                ).format(objname=self._brian_objname, message=self._brian_message,
                          objcreate=self._brian_objcreate)
 
 
@@ -341,16 +331,6 @@ def brian_object_exception(message, brianobj, original_exception):
 
     See `BrianObjectException` for arguments and notes.
     '''
-    DerivedBrianObjectException = type('BrianObjectException',
-                                       (BrianObjectException, original_exception.__class__),
-                                       {})
-    new_exception = DerivedBrianObjectException(message, brianobj, original_exception)
-    # Copy over all exception attributes
-    for attribute in dir(original_exception):
-        if attribute.startswith('_'):
-            continue
-        try:
-            setattr(new_exception, attribute, getattr(original_exception, attribute))
-        except AttributeError:  # some attributes cannot be set
-            pass
-    return new_exception
+
+    raise NotImplementedError('The brian_object_exception function is no longer used. '
+                              'Raise a BrianObjectException directly.')
