@@ -1,6 +1,3 @@
-
-
-
 import uuid
 
 import numpy as np
@@ -8,6 +5,7 @@ import pytest
 import sympy
 from numpy.testing import assert_equal
 
+from brian2.core.base import BrianObjectException
 from brian2.core.clocks import defaultclock
 from brian2.core.magic import run
 from brian2.core.network import Network
@@ -642,8 +640,9 @@ def test_linked_var_in_reset_incorrect():
     net = Network(G1, G2)
     # It is not well-defined what x_linked +=1 means in this context
     # (as for any other shared variable)
-    with pytest.raises(SyntaxError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(SyntaxError)
 
 @pytest.mark.codegen_independent
 def test_incomplete_namespace():
@@ -668,20 +667,24 @@ def test_namespace_errors():
     # model equations use unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1')
     net = Network(G)
-    with pytest.raises(KeyError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
+        assert exc.errisinstance(KeyError)
 
     # reset uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='False', reset='v = v_r')
     net = Network(G)
-    with pytest.raises(KeyError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
+        assert exc.errisinstance(KeyError)
 
     # threshold uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='v > v_th')
     net = Network(G)
-    with pytest.raises(KeyError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
+        assert exc.errisinstance(KeyError)
+
 
 @pytest.mark.codegen_independent
 def test_namespace_warnings():
@@ -767,15 +770,17 @@ def test_unit_errors_threshold_reset():
     '''
     # Unit error in threshold
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', threshold='v > -20*mV')
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
 
     # Unit error in reset
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='True',
                         reset='v = -65*mV')
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
 
     # More complicated unit reset with an intermediate variable
     # This should pass
@@ -796,8 +801,9 @@ def test_unit_errors_threshold_reset():
                         threshold='False',
                         reset='''temp_var = -65*mV
                                  v = temp_var''')
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
 
     # Resets with an in-place modification
     # This should work
@@ -810,8 +816,10 @@ def test_unit_errors_threshold_reset():
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
                         threshold='False',
                         reset='''v -= 60*mV''')
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as ecx:
         Network(group).run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
+
 
 @pytest.mark.codegen_independent
 def test_syntax_errors():
@@ -875,8 +883,9 @@ def test_incorrect_custom_event_definition():
         NeuronGroup(1, '', threshold='True', events={'spike': 'False'})
     # not a threshold
     G = NeuronGroup(1, '', events={'my_event': 10*mV})
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(G).run(0*ms)
+        assert exc.errisinstance(TypeError)
     # schedule for a non-existing event
     G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
     with pytest.raises(ValueError):
@@ -1286,8 +1295,10 @@ def test_scalar_subexpression():
                                sub = rand() : 1 (shared)''')
     group.run_regularly('x = sub')
     net = Network(group)
-    with pytest.raises(SyntaxError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(SyntaxError)
+
 
 @pytest.mark.standalone_compatible
 def test_sim_with_scalar_variable():
@@ -1360,8 +1371,9 @@ def test_subexpression_checks():
                               y = rand() : 1
                               z = 17*v**2 : volt**2''')
     net = Network(group)
-    with pytest.raises(SyntaxError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0 * ms)
+        assert exc.errisinstance(SyntaxError)
 
 
 @pytest.mark.codegen_independent

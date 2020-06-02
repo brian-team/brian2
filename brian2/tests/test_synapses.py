@@ -299,8 +299,9 @@ def test_connection_string_deterministic_full_custom():
 
     # check that trying to connect to a neuron outside the range raises an error
     if get_device() == all_devices['runtime']:
-        with pytest.raises(IndexError):
+        with pytest.raises(BrianObjectException) as exc:
             S2.connect(j='20')
+            assert exc.errisinstance(IndexError)
 
     run(0*ms)  # for standalone
 
@@ -755,8 +756,9 @@ def test_equations_unit_check():
                    on_pre='v += sub2')
     syn.connect()
     net = Network(group, syn)
-    with pytest.raises(DimensionMismatchError):
-        net.run(0 * ms)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
 
 
 def test_delay_specification():
@@ -1131,8 +1133,9 @@ def test_no_synapses():
     G2 = NeuronGroup(1, 'v:1')
     S = Synapses(G1, G2, on_pre='v+=1')
     net = Network(G1, G2, S)
-    with pytest.raises(TypeError):
-        net.run(1*ms)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms)
+        assert exc.errisinstance(TypeError)
 
 
 @pytest.mark.codegen_independent
@@ -1496,8 +1499,9 @@ def test_event_driven_dependency_error():
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
 
 @pytest.mark.codegen_independent
@@ -1511,8 +1515,9 @@ def test_event_driven_dependency_error2():
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
 @pytest.mark.codegen_independent
 def test_repr():
@@ -2143,8 +2148,9 @@ def test_synapse_generator_out_of_range():
     G2.v = '16 + i'
 
     S1 = Synapses(G, G2, '')
-    with pytest.raises(IndexError):
+    with pytest.raises(BrianObjectException) as exc:
         S1.connect(j='k for k in range(0, N_post*2)')
+        exc.errisinstance(IndexError)
 
     # This should be fine
     S2 = Synapses(G, G, '')
@@ -2165,13 +2171,11 @@ def test_synapse_generator_out_of_range():
     # the post-synaptic condition, we could find out that the value of this
     # variable is actually irrelevant, but that makes things too complicated.
     S3 = Synapses(G, G, '')
-    try:
+    with pytest.raises(BrianObjectException) as exc:
         S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0')
-        raise AssertionError('IndexError not raised')
-    except IndexError as ex:
-        # Make sure that this is actually the error raised by our template and
-        # not an exception raised by numpy
-        assert 'outside allowed range' in str(ex)
+        assert exc.errisinstance(IndexError)
+        exc.match('outside allowed range')
+
 
 @pytest.mark.standalone_compatible
 def test_synapse_generator_deterministic():
@@ -2564,14 +2568,12 @@ def test_missing_lastupdate_error_syn_pathway():
     G = NeuronGroup(1, 'v : 1', threshold='False')
     S = Synapses(G, G, on_pre='v += exp(-lastupdate/dt)')
     S.connect()
-    try:
+    with pytest.raises(BrianObjectException) as exc:
         run(0*ms)
-        raise AssertionError('Expected a KeyError for lastupdate (no '
-                             'event-driven synapses)')
-    except KeyError as ex:
-        ex_string = str(ex)
-        assert ('lastupdate = t' in ex_string and
-                'lastupdate : second' in ex_string)
+        assert exc.errisinstance(KeyError)
+        exc.match('lastupdate = t')
+        exc.match('lastupdate : second')
+
 
 @pytest.mark.codegen_independent
 def test_missing_lastupdate_error_run_regularly():
@@ -2579,14 +2581,11 @@ def test_missing_lastupdate_error_run_regularly():
     S = Synapses(G, G)
     S.connect()
     S.run_regularly('v += exp(-lastupdate/dt')
-    try:
+    with pytest.raises(BrianObjectException) as exc:
         run(0*ms)
-        raise AssertionError('Expected a KeyError for lastupdate (no '
-                             'event-driven synapses)')
-    except KeyError as ex:
-        ex_string = str(ex)
-        assert ('lastupdate = t' in ex_string and
-                'lastupdate : second' in ex_string)
+        assert exc.errisinstance(KeyError)
+        exc.match('lastupdate = t')
+        exc.match('lastupdate : second')
 
 
 if __name__ == '__main__':

@@ -66,8 +66,9 @@ def test_poissoninput_errors():
     inp = PoissonInput(G, 'x', 100, 100*Hz, weight=1*volt)
     defaultclock.dt = 2 * old_dt
     net = Network(collect())
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
     defaultclock.dt = old_dt
 
 

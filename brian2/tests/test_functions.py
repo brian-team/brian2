@@ -287,8 +287,9 @@ def test_manual_user_defined_function():
                        x : 1
                        y : 1''')
     net = Network(group)
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={ 'foo': foo})
+        assert exc.errisinstance(DimensionMismatchError)
 
     # Incorrect output unit
     group = NeuronGroup(1, '''
@@ -296,8 +297,9 @@ def test_manual_user_defined_function():
                        x : volt
                        y : volt''')
     net = Network(group)
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={'foo': foo})
+        assert exc.errisinstance(DimensionMismatchError)
 
     G = NeuronGroup(1, '''
                        func = foo(x, y) : volt
@@ -448,8 +450,9 @@ def test_manual_user_defined_function_cython_wrong_compiler_args1():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    with pytest.raises(ValueError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(defaultclock.dt, namespace={'foo': foo})
+        assert exc.errisinstance(ValueError)
 
 
 def test_manual_user_defined_function_cython_wrong_compiler_args2():
@@ -470,8 +473,9 @@ def test_manual_user_defined_function_cython_wrong_compiler_args2():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(defaultclock.dt, namespace={'foo': foo})
+        assert exc.errisinstance(TypeError)
 
 
 def test_external_function_cython():
@@ -817,8 +821,9 @@ def test_declare_types():
         '''
         G = NeuronGroup(1, eqs)
         Network(G).run(1*ms)
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         bad_units()
+        assert exc.errisinstance(TypeError)
 
     def bad_type():
         @implementation('numpy', discard_units=True)
@@ -832,8 +837,9 @@ def test_declare_types():
         '''
         G = NeuronGroup(1, eqs)
         Network(G).run(1*ms)
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         bad_type()
+        assert exc.errisinstance(TypeError)
 
 
 def test_multiple_stateless_function_calls():
@@ -841,24 +847,28 @@ def test_multiple_stateless_function_calls():
     # simplified to 2*rand()) raise an error
     G = NeuronGroup(1, 'dv/dt = (rand() - rand())/second : 1')
     net = Network(G)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
     G2 = NeuronGroup(1, 'v:1', threshold='v>1', reset='v=rand() - rand()')
     net2 = Network(G2)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(BrianObjectException) as exc:
         net2.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
     G3 = NeuronGroup(1, 'v:1')
     G3.run_regularly('v = rand() - rand()')
     net3 = Network(G3)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(BrianObjectException) as exc:
         net3.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
     G4 = NeuronGroup(1, 'x : 1')
     # Verify that synaptic equations are checked as well, see #1146
     S = Synapses(G4, G4, 'dy/dt = (rand() - rand())/second : 1 (clock-driven)')
     S.connect()
     net = Network(G4, S)
-    with pytest.raises(NotImplementedError):
-        net.run(0 * ms)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
 
 
 if __name__ == '__main__':

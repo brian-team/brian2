@@ -170,39 +170,44 @@ def test_multiplicative_noise():
     Eq1 = Equations('dv/dt = v*xi*(5*ms)**-0.5 :1')
     group1 = NeuronGroup(1, Eq1, method='euler')
     net1 = Network(group1)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net1.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # Noise is multiplicative (multiplied with time)
     Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
     group2 = NeuronGroup(1, Eq2, method='euler')
     net2 = Network(group2)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net2.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # Noise is multiplicative (multiplied with time-varying variable)
     Eq3 = Equations('''dv/dt = w*xi*(5*ms)**-0.5 :1
                        dw/dt = -w/(10*ms) : 1''')
     group3 = NeuronGroup(1, Eq3, method='euler')
     net3 = Network(group3)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net3.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # One of the equations has multiplicative noise
     Eq4 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
                        dw/dt = (t/ms)*xi_2*(5*ms)**-0.5 :1''')
     group4 = NeuronGroup(1, Eq4, method='euler')
     net4 = Network(group4)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net4.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # One of the equations has multiplicative noise
     Eq5 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
                        dw/dt = v*xi_2*(5*ms)**-0.5 :1''')
     group5 = NeuronGroup(1, Eq5, method='euler')
     net5 = Network(group4)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net5.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
 
 def test_pure_noise_deterministic(fake_randn_randn_fixture):
@@ -643,8 +648,9 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                with pytest.raises(UnsupportedEquationsException):
-                    net.run(0*ms)
+                with pytest.raises(BrianObjectException) as exc:
+                    net.run(0 * ms)
+                    assert exc.errisinstance(UnsupportedEquationsException)
 
         # multiplicative
         G = NeuronGroup(1, 'dv/dt = -v*ta(t)/(10*ms) : 1',
@@ -656,42 +662,48 @@ def test_locally_constant_check():
         else:
             # This should not
             with catch_logs():
-                with pytest.raises(UnsupportedEquationsException):
+                with pytest.raises(BrianObjectException) as exc:
                     net.run(0*ms)
+                    assert exc.errisinstance(UnsupportedEquationsException)
 
     # If the argument is more than just "t", we cannot guarantee that it is
     # actually locally constant
     G = NeuronGroup(1, 'dv/dt = -v*ta(t/2.0)/(10*ms) : 1',
                         method='exact', namespace={'ta': ta0})
     net = Network(G)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
                     method='exact')
     net = Network(G)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # Stateful functions aren't either
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
                     method='exact')
     net = Network(G)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='exact')
     net = Network(G)
-    with pytest.raises(UnsupportedEquationsException):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(UnsupportedEquationsException)
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',
                     method='exact')
     net = Network(G)
     net.run(0*ms)
+
 
 def test_refractory():
     # Compare integration with and without the addition of refractoriness --
@@ -754,7 +766,7 @@ def test_check_for_invalid_values_linear_integrator():
                 assert 'invalid_values' in repr(clog)
             else:
                 assert G.x[0] != 0
-        except UnsupportedEquationsException:
+        except BrianObjectException:
             pass
 
 
