@@ -8,6 +8,7 @@ Preferences
 
 import atexit
 import logging
+import logging.handlers
 import os
 import shutil
 import sys
@@ -190,6 +191,13 @@ def clean_up_logging():
                 os.remove(BrianLogger.tmp_log)
             except (IOError, OSError) as exc:
                 warn('Could not delete log file: %s' % exc)
+            # Remove log files that have been rotated (currently only one)
+            rotated_log = BrianLogger.tmp_log + ".1"
+            if os.path.exists(rotated_log):
+                try:
+                    os.remove(rotated_log)
+                except (IOError, OSError) as exc:
+                    warn('Could not delete log file: %s' % exc)
         if BrianLogger.tmp_script is not None:
             try:
                 os.remove(BrianLogger.tmp_script)
@@ -505,7 +513,11 @@ class BrianLogger(object):
                                                                   suffix='.log',
                                                                   delete=False)
                 BrianLogger.tmp_log = BrianLogger.tmp_log.name
-                BrianLogger.file_handler = logging.FileHandler(BrianLogger.tmp_log, mode='wt')
+                # Rotate log file after 10MBytes and keep one copy
+                BrianLogger.file_handler = logging.handlers.RotatingFileHandler(BrianLogger.tmp_log,
+                                                                                mode='a',
+                                                                                maxBytes=10000000,
+                                                                                backupCount=1)
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs['logging.file_log_level'].upper()])
                 BrianLogger.file_handler.setFormatter(logging.Formatter(
