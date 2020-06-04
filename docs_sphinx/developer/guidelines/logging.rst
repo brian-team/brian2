@@ -45,6 +45,8 @@ and like this on the console (if the log level is set to "debug")::
 
     DEBUG    A debug message [brian2.equations.equations.CodeString]
 
+.. _log_level_recommendations:
+
 Log level recommendations
 -------------------------
 diagnostic
@@ -65,12 +67,14 @@ info
     `TimedArray` and the `NeuronGroup` using it, ...)
 warn
     Messages that alert the user to a potential mistake in the code, e.g. two
-    possible solutions for an identifier in an equation. It can also be used to
-    make the user aware that he/she is using an experimental feature, an
-    unsupported compiler or similar. In this case, normally the ``once=True``
-    option should be used to raise this warning only once. As a rule of thumb,
-    "common" scripts like the examples provided in the examples folder should
-    normally not lead to any warnings.
+    possible resolutions for an identifier in an equation. In such cases, the
+    warning message should include clear information how to change the code
+    to make the situation unambigous and therefore make the warning message
+    disappear. It can also be used to make the user aware that he/she is using
+    an experimental feature, an unsupported compiler or similar. In this case,
+    normally the ``once=True`` option should be used to raise this warning only
+    once. As a rule of thumb, "common" scripts like the examples provided in
+    the examples folder should normally not lead to any warnings.
 error
     This log level is not used currently in Brian, an exception should be
     raised instead. It might be useful in "meta-code", running scripts and

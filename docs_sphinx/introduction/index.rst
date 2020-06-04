@@ -10,5 +10,6 @@ Introduction
    changes
    known_issues
    support
+   compatibility
    code_of_conduct
 
