@@ -10,18 +10,16 @@ requirements:
   build:
     - {{ compiler('cxx') }}
   host:
-    - python
+    - python >=3.6
     - cython >=0.29
     - setuptools >=24
     # we build against the oldest supported numpy version
-    - numpy 1.10  # [py < 36]
-    - numpy 1.11  # [py >= 36]
+    - numpy 1.15
   run:
     - python
     # we don't need the same version as during the build, newer versions are
     # still ABI-compatible
-    - numpy >=1.10  # [py < 36]
-    - numpy >=1.11  # [py >= 36]
+    - {{ pin_compatible('numpy') }}
     - sympy >=1.2
     - pyparsing
     - scipy >=0.13.3
