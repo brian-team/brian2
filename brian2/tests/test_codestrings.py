@@ -46,7 +46,7 @@ def test_split_stochastic():
     # No non-stochastic part -- note that it should return 0 and not None
     expr = Expression('sigma*xi/tau**.5')
     non_stochastic, stochastic = expr.split_stochastic()
-    assert sympy_equals(non_stochastic, 0)
+    assert sympy_equals(non_stochastic.code, 0)
     assert 'xi' in stochastic
     assert len(stochastic) == 1
     assert sympy_equals(stochastic['xi'].code, 'sigma/tau**.5')
@@ -92,6 +92,7 @@ def test_str_repr():
     
     assert str(statement) == 'v += w'
     assert repr(statement) == "Statements('v += w')"
+
 
 if __name__ == '__main__':
     test_expr_creation()
