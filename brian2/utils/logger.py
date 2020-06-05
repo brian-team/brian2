@@ -91,6 +91,20 @@ if 'logging' not in prefs.pref_register:
             to a file. The log level can be set via the `logging.file_log_level`
             preference.
             '''),
+        file_log_max_size=BrianPreference(
+            default=10000000,
+            docs='''
+            The maximum size for the debug log before it will be rotated.
+
+            If set to any value ``> 0``, the debug log will be rotated once
+            this size is reached. Rotating the log means that the old debug log
+            will be moved into a file in the same directory but with suffix ``".1"``
+            and the a new log file will be created with the same pathname as the
+            original file. Only one backup is kept; if a file with suffix ``".1"``
+            already exists when rotating, it will be overwritten.
+            If set to ``0``, no log rotation will be applied.
+            The default setting rotates the log file after 10MB.
+            '''),
         save_script=BrianPreference(
             default=True,
             docs='''
@@ -513,10 +527,10 @@ class BrianLogger(object):
                                                                   suffix='.log',
                                                                   delete=False)
                 BrianLogger.tmp_log = BrianLogger.tmp_log.name
-                # Rotate log file after 10MBytes and keep one copy
+                # Rotate log file after prefs['logging.file_log_max_size'] bytes and keep one copy
                 BrianLogger.file_handler = logging.handlers.RotatingFileHandler(BrianLogger.tmp_log,
                                                                                 mode='a',
-                                                                                maxBytes=10000000,
+                                                                                maxBytes=prefs['logging.file_log_max_size'],
                                                                                 backupCount=1)
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs['logging.file_log_level'].upper()])
