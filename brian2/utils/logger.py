@@ -8,6 +8,7 @@ Preferences
 
 import atexit
 import logging
+import logging.handlers
 import os
 import shutil
 import sys
@@ -89,6 +90,20 @@ if 'logging' not in prefs.pref_register:
             If set to ``True`` (the default), logging information will be written
             to a file. The log level can be set via the `logging.file_log_level`
             preference.
+            '''),
+        file_log_max_size=BrianPreference(
+            default=10000000,
+            docs='''
+            The maximum size for the debug log before it will be rotated.
+
+            If set to any value ``> 0``, the debug log will be rotated once
+            this size is reached. Rotating the log means that the old debug log
+            will be moved into a file in the same directory but with suffix ``".1"``
+            and the a new log file will be created with the same pathname as the
+            original file. Only one backup is kept; if a file with suffix ``".1"``
+            already exists when rotating, it will be overwritten.
+            If set to ``0``, no log rotation will be applied.
+            The default setting rotates the log file after 10MB.
             '''),
         save_script=BrianPreference(
             default=True,
@@ -190,6 +205,13 @@ def clean_up_logging():
                 os.remove(BrianLogger.tmp_log)
             except (IOError, OSError) as exc:
                 warn('Could not delete log file: %s' % exc)
+            # Remove log files that have been rotated (currently only one)
+            rotated_log = BrianLogger.tmp_log + ".1"
+            if os.path.exists(rotated_log):
+                try:
+                    os.remove(rotated_log)
+                except (IOError, OSError) as exc:
+                    warn('Could not delete log file: %s' % exc)
         if BrianLogger.tmp_script is not None:
             try:
                 os.remove(BrianLogger.tmp_script)
@@ -505,7 +527,11 @@ class BrianLogger(object):
                                                                   suffix='.log',
                                                                   delete=False)
                 BrianLogger.tmp_log = BrianLogger.tmp_log.name
-                BrianLogger.file_handler = logging.FileHandler(BrianLogger.tmp_log, mode='wt')
+                # Rotate log file after prefs['logging.file_log_max_size'] bytes and keep one copy
+                BrianLogger.file_handler = logging.handlers.RotatingFileHandler(BrianLogger.tmp_log,
+                                                                                mode='a',
+                                                                                maxBytes=prefs['logging.file_log_max_size'],
+                                                                                backupCount=1)
                 BrianLogger.file_handler.setLevel(
                     LOG_LEVELS[prefs['logging.file_log_level'].upper()])
                 BrianLogger.file_handler.setFormatter(logging.Formatter(
