@@ -28,17 +28,29 @@ matrix:
       env: PYTHON="3.7" DOCS_ONLY=yes ARCHITECTURE="x86_64"
       os: linux
     # Standard tests
-    - python: "3.7"
-      env: PYTHON="3.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="37" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+    - python: "3.6"
+      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="36" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: linux
-    - python: "3.7"
-      env: PYTHON="3.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="37" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+    - python: "3.6"
+      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="36" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: linux
-    - python: "3.7"
-      env: PYTHON="3.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="37" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+    - python: "3.6"
+      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="36" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
       os: osx
-    - python: "3.7"
-      env: PYTHON="3.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="37" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+    - python: "3.6"
+      env: PYTHON="3.6" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="36" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+      os: osx
+    - python: "3.8"
+      env: PYTHON="3.8" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="38" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      os: linux
+    - python: "3.8"
+      env: PYTHON="3.8" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=yes CONDA_PY="38" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
+      os: linux
+    - python: "3.8"
+      env: PYTHON="3.8" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="38" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64"
+      os: osx
+    - python: "3.8"
+      env: PYTHON="3.8" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="38" DO_CONDA_BUILD='no' SPLIT_RUN=2 ARCHITECTURE="x86_64"
       os: osx
     - python: "3.7"
       env: PYTHON="3.7" STANDALONE=no CYTHON=yes MINIMAL_VERSIONS=no  REPORT_COVERAGE=no CONDA_PY="37" DO_CONDA_BUILD='yes' SPLIT_RUN=1 ARCHITECTURE="x86_64" FLOAT_DTYPE_32=yes
@@ -82,7 +94,7 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    PYTHON_PACKAGES="python=$PYTHON numpy==1.10 scipy==0.16 libgfortran==1 pytest pytest-xdist sphinx==1.8 ipython sympy==1.2 jinja2==2.7 pyparsing setuptools coverage<5 gsl>1.15 cython";
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.15 scipy==0.16 libgfortran==1 pytest pytest-xdist sphinx==1.8 ipython sympy==1.2 jinja2==2.7 pyparsing setuptools coverage<5 gsl>1.15 cython";
     else
     PYTHON_PACKAGES="python=$PYTHON numpy pytest pytest-xdist sphinx>=1.8 ipython sympy>=1.2 pyparsing jinja2 setuptools coverage<5 gsl>1.15 cython";
     fi

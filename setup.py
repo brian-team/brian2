@@ -155,7 +155,7 @@ setup(name='Brian2',
                     # include default_preferences file
                     'brian2': ['default_preferences']
                     },
-      install_requires=['numpy>=1.10',
+      install_requires=['numpy>=1.15',
                         'cython>=0.29',
                         'sympy>=1.2',
                         'pyparsing',
@@ -192,5 +192,5 @@ setup(name='Brian2',
           'Programming Language :: Python :: 3',
           'Topic :: Scientific/Engineering :: Bio-Informatics'
       ],
-      python_requires='>=3.5'
+      python_requires='>=3.6'
       )
