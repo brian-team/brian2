@@ -415,7 +415,7 @@ class Dimension(object):
                 if self._dims[i] != 1:
                     s += '^{%s}' % str(self._dims[i])
                 parts.append(s)
-        s = "\,".join(parts)
+        s = "\\,".join(parts)
         if not len(s):
             return "1"
         return s.strip()
@@ -1600,10 +1600,10 @@ class Quantity(np.ndarray, object):
             sympy_quantity = np.float(unitless)
         else:
             sympy_quantity = Matrix(unitless)
-        return latex(sympy_quantity) + '\,' + best_unit_latex
+        return latex(sympy_quantity) + '\\,' + best_unit_latex
 
     def _repr_latex_(self):
-        return  '$' + latex(self) + '$'
+        return '$' + latex(self) + '$'
 
     def __str__(self):
         return self.in_best_unit()
@@ -1893,7 +1893,7 @@ class Unit(Quantity):
             The display name, e.g. ``'V'``
         latexname : str, optional
             The name as a LaTeX expression (math mode is assumed, do not add
-            $ signs or similar), e.g. ``'\omega'``. If no `latexname` is
+            $ signs or similar), e.g. ``'\\omega'``. If no `latexname` is
             specified, `dispname` will be used.
         scale : int, optional
             The scale of this unit as an exponent of 10, e.g. -3 for a unit that
