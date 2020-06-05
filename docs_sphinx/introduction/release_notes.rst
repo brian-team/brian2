@@ -18,6 +18,9 @@ Selected improvements and bug fixes
   in standalone mode as well (:issue:`1162`). Thanks to Rahul Kumar Gupta,
   Syed Osama Hussain, Bhuwan Chandra, and Vigneswaran Chandrasekaran for working
   on this issue as part of the GSoC 2020 application process.
+* To prevent log files filling up the disk (:issue:``), their file size is now limited to
+  10MB (configurable via the `logging.file_log_max_size` preference). Thanks to
+  Rike-Benjamin Schuppner for contributing this feature.
 
 Contributions
 ~~~~~~~~~~~~~
