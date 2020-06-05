@@ -398,13 +398,13 @@ class FunctionImplementationContainer(Mapping):
                 return_unit = self._function._return_unit
                 if return_unit == bool:
                     if not (isinstance(result, bool) or
-                                    np.asarray(result).dtype == bool):
+                            np.asarray(result).dtype == bool):
                         raise TypeError('The function %s returned '
                                         '%s, but it was expected '
                                         'to return a boolean '
                                         'value ' % (orig_func.__name__,
                                                     result))
-                elif return_unit is 1 or return_unit.dim is DIMENSIONLESS:
+                elif (isinstance(return_unit, int) and return_unit == 1) or return_unit.dim is DIMENSIONLESS:
                     fail_for_dimension_mismatch(result,
                                                 return_unit,
                                                 'The function %s returned '

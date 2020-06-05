@@ -2244,7 +2244,7 @@ def get_unit_for_display(d):
 
     Parameters
     ----------
-    d : `Dimension`
+    d : `Dimension` or int
         The dimension to find a unit for.
 
     Returns
@@ -2252,7 +2252,7 @@ def get_unit_for_display(d):
     s : str
         A string representation of the respective unit or the string ``'1'``.
     '''
-    if d is 1 or d is DIMENSIONLESS:
+    if (isinstance(d, int) and d == 1) or d is DIMENSIONLESS:
         return '1'
     else:
         return str(get_unit(d))
