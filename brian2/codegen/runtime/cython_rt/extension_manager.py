@@ -13,10 +13,7 @@ import shutil
 import sys
 import time
 
-try:
-    import hashlib
-except ImportError:
-    import md5 as hashlib
+import hashlib
 
 from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
