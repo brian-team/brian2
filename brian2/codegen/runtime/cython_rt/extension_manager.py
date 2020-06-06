@@ -7,16 +7,13 @@ https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
 
 
 import glob
-import imp
+import importlib.util
 import os
 import shutil
 import sys
 import time
 
-try:
-    import hashlib
-except ImportError:
-    import md5 as hashlib
+import hashlib
 
 from distutils.core import Distribution, Extension
 from distutils.command.build_ext import build_ext
@@ -281,11 +278,12 @@ class CythonExtensionManager(object):
         # code importing from an external module that was declared via
         # sources works
         sys.path.insert(0, lib_dir)
-        module = imp.load_dynamic(module_name, module_path)
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
         sys.path.pop(0)
         self._code_cache[key] = module
         return module
-        #self._import_all(module)
 
     def _simplify_paths(self):
         if 'lib' in os.environ:
