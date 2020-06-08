@@ -13,7 +13,7 @@ import sympy
 
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
-                                           Dimension)
+                                           Dimension, get_unit_for_display)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, word_substitute
 from brian2.utils.caching import CacheKey
@@ -1265,6 +1265,19 @@ class VariableView(object):
     def __rfloordiv__(self, other):
         return np.asanyarray(other) // self.get_item(slice(None), level=1)
 
+    def __pow__(self, power, modulo=None):
+        if modulo is not None:
+            return self.get_item(slice(None), level=1) ** power % modulo
+        else:
+            return self.get_item(slice(None), level=1) ** power
+
+    def __rpow__(self, other):
+        if self.dim is not DIMENSIONLESS:
+            raise TypeError('Cannot use \'{}\' as an exponent, it has '
+                            'dimensions {}.'.format(self.name,
+                                                   get_unit_for_display(self.unit)))
+        return other ** self.get_item(slice(None), level=1)
+
     def __iadd__(self, other):
         if isinstance(other, str):
             raise TypeError(('In-place modification with strings not '
@@ -1310,6 +1323,42 @@ class VariableView(object):
             raise TypeError('Cannot assign to a subexpression.')
         else:
             rhs = self[:] / np.asanyarray(other)
+        self[:] = rhs
+        return self
+
+    def __ifloordiv__(self, other):
+        if isinstance(other, str):
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var // expression" '
+                             'instead of group.var //= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
+        else:
+            rhs = self[:] // np.asanyarray(other)
+        self[:] = rhs
+        return self
+
+    def __imod__(self, other):
+        if isinstance(other, str):
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var // expression" '
+                             'instead of group.var //= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
+        else:
+            rhs = self[:] % np.asanyarray(other)
+        self[:] = rhs
+        return self
+
+    def __ipow__(self, other):
+        if isinstance(other, str):
+            raise TypeError(('In-place modification with strings not '
+                             'supported. Use group.var = "var ** expression" '
+                             'instead of group.var **= "expression".'))
+        elif isinstance(self.variable, Subexpression):
+            raise TypeError('Cannot assign to a subexpression.')
+        else:
+            rhs = self[:] ** np.asanyarray(other)
         self[:] = rhs
         return self
 

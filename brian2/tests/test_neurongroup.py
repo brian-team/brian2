@@ -117,6 +117,9 @@ def test_variableview_calculations():
     assert_allclose(G.y - 2*mV, np.arange(10)[::-1]*mV - 2*mV)
     assert_allclose(2 - G.x, 2 - np.arange(10))
     assert_allclose(2*mV - G.y, 2*mV - np.arange(10)[::-1]*mV)
+    assert_allclose(G.x**2, np.arange(10)**2)
+    assert_allclose(G.y**2, (np.arange(10)[::-1]*mV) ** 2)
+    assert_allclose(2**G.x, 2**np.arange(10))
 
     # incorrect units
     with pytest.raises(DimensionMismatchError):
@@ -133,6 +136,99 @@ def test_variableview_calculations():
         G.y + 3
     with pytest.raises(DimensionMismatchError):
         3 + G.y
+    with pytest.raises(TypeError):
+        2**G.y  # raising to a power with units
+
+
+@pytest.mark.codegen_independent
+def test_variableview_inplace_calculations():
+    # Check that you can directly do in-place calculation with "variable views"
+    G = NeuronGroup(10, '''x : 1
+                           y : volt''')
+    x_vals = np.arange(10)
+    y_vals = np.arange(10)[::-1] * mV
+    G.x[:] = x_vals
+    G.y[:] = y_vals
+
+    # Addition
+    G.x += 1
+    G.y += 1*mV
+    assert_allclose(G.x[:], x_vals + 1)
+    assert_allclose(G.y[:], y_vals + 1*mV)
+    G.y_ += float(1*mV)
+    assert_allclose(G.y[:], y_vals + 2 * mV)
+    with pytest.raises(DimensionMismatchError):
+        G.x += 1*mV
+    with pytest.raises(DimensionMismatchError):
+        G.y += 1
+    with pytest.raises(DimensionMismatchError):
+        G.y += 1*ms
+    G.x[:] = x_vals; G.y[:] = y_vals
+
+    # Subtraction
+    G.x -= 1
+    G.y -= 1 * mV
+    assert_allclose(G.x[:], x_vals - 1)
+    assert_allclose(G.y[:], y_vals - 1*mV)
+    G.y_ -= float(1*mV)
+    assert_allclose(G.y[:], y_vals - 2*mV)
+    with pytest.raises(DimensionMismatchError):
+        G.x -= 1*mV
+    with pytest.raises(DimensionMismatchError):
+        G.y -= 1
+    with pytest.raises(DimensionMismatchError):
+        G.y -= 1*ms
+    G.x[:] = x_vals; G.y[:] = y_vals
+
+    # Multiplication
+    G.x *= 2
+    G.y *= 2
+    assert_allclose(G.x[:], x_vals * 2)
+    assert_allclose(G.y[:], y_vals * 2)
+    with pytest.raises(DimensionMismatchError):
+        G.x *= 2*mV
+    with pytest.raises(DimensionMismatchError):
+        G.y *= 1*mV
+    G.x[:] = x_vals; G.y[:] = y_vals
+
+    # Division
+    G.x /= 2
+    G.y /= 2
+    assert_allclose(G.x[:], x_vals / 2)
+    assert_allclose(G.y[:], y_vals / 2)
+    with pytest.raises(DimensionMismatchError):
+        G.x /= 2*mV
+    with pytest.raises(DimensionMismatchError):
+        G.y /= 1*mV
+    G.x[:] = x_vals; G.y[:] = y_vals
+
+    # Floor division
+    G.x //= 2
+    G.y //= 0.001
+    assert_allclose(G.x[:], x_vals // 2)
+    assert_allclose(G.y[:], y_vals // 0.001)
+    with pytest.raises(DimensionMismatchError):
+        G.x //= 2*mV
+    with pytest.raises(DimensionMismatchError):
+        G.y //= 1*mV
+    G.x[:] = x_vals; G.y[:] = y_vals
+
+    # Modulo
+    G.x %= 2
+    G.y %= 2*mV
+    assert_allclose(G.x[:], x_vals % 2)
+    assert_allclose(G.y[:], y_vals % (2*mV))
+    with pytest.raises(DimensionMismatchError):
+        G.y %= 2
+    with pytest.raises(DimensionMismatchError):
+        G.y %= 2*ms
+    G.x[:] = x_vals; G.y[:] = y_vals
+
+    # Power
+    G.x **= 2
+    assert_allclose(G.x[:], x_vals ** 2)
+    with pytest.raises(DimensionMismatchError):
+        G.y **= 2
 
 
 @pytest.mark.standalone_compatible
