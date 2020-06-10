@@ -215,9 +215,9 @@ def test_variableview_inplace_calculations():
 
     # Modulo
     G.x %= 2
-    G.y %= 2*mV
+    G.y %= 3.3*mV
     assert_allclose(G.x[:], x_vals % 2)
-    assert_allclose(G.y[:], y_vals % (2*mV))
+    assert_allclose(G.y[:], y_vals % (3.3*mV))
     with pytest.raises(DimensionMismatchError):
         G.y %= 2
     with pytest.raises(DimensionMismatchError):
