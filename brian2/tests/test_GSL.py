@@ -420,7 +420,7 @@ def test_GSL_fixed_timestep_big_dt_small_error():
     neuron.I = 0.7*nA/(20000*umetre**2)
     neuron.v = HH_namespace['El']
     net = Network(neuron)
-    with pytest.raises((RuntimeError, IntegrationError)):
+    with pytest.raises((BrianObjectException, RuntimeError)):
         net.run(10*ms)
 
 

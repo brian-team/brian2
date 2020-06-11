@@ -4,6 +4,7 @@ import sys
 
 import numpy
 
+from brian2.core.base import BrianObjectException
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
 from brian2.core.functions import Function
@@ -155,7 +156,12 @@ class CythonCodeObject(NumpyCodeObject):
     def run_block(self, block):
         compiled_code = self.compiled_code[block]
         if compiled_code:
-            return compiled_code.main(self.namespace)
+            try:
+                return compiled_code.main(self.namespace)
+            except Exception as exc:
+                message = ('An exception occured during the execution of the {} '
+                           'block of code object {}.\n').format(block, self.name)
+                raise BrianObjectException(message, self.owner) from exc
 
     def _insert_func_namespace(self, func):
         impl = func.implementations[self]
