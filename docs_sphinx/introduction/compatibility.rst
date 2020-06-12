@@ -1,6 +1,20 @@
 Compatibility and reproducibility
 =================================
 
+Supported Python and numpy versions
+-----------------------------------
+
+We follow the approach outlined in numpy's
+`deprecation policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. This means that Brian supports:
+
+* All minor versions of Python released 42 months prior to Brian, and at minimum the two latest minor versions.
+* All minor versions of numpy released in the 24 months prior to Brian, and at minimum the last three minor versions.
+
+Note that we do not have control about the versions that are supported by the `conda-forge <https://conda-forge.org/>`_
+infrastructure. Therefore, ``brian2`` conda packages might not be provided for all of the supported versions. In this
+case, affected users can chose to either update the Python/numpy version in their conda environment to a version with a
+conda package or to install ``brian2`` via pip.
+
 General policy
 --------------
 
@@ -69,16 +83,11 @@ generation target and the number of threads (for C++ standalone simulations) is 
     random number streams you can either fix the order of elements by specifying the ``order`` or ``name`` argument,
     or make sure that each simulation gets run in a fresh Python process.
 
-Supported Python and numpy versions
------------------------------------
+Python errors
+-------------
 
-We follow the approach outlined in numpy's
-`deprecation policy <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. This means that Brian supports:
-
-* All minor versions of Python released 42 months prior to Brian, and at minimum the two latest minor versions.
-* All minor versions of numpy released in the 24 months prior to Brian, and at minimum the last three minor versions.
-
-Note that we do not have control about the versions that are supported by the `conda-forge <https://conda-forge.org/>`_
-infrastructure. Therefore, ``brian2`` conda packages might not be provided for all of the supported versions. In this
-case, affected users can chose to either update the Python/numpy version in their conda environment to a version with a
-conda package or to install ``brian2`` via pip.
+While we try to guarantee the reproducibility of simulations (within the limits stated above), we do so only for code
+that does not raise any error. We constantly try to improve the error handling in Brian, and these improvements can
+lead to errors raised at a different time (e.g. when creating an object as opposed to when running the simulation),
+different types of errors being raised (e.g. `DimensionMismatchError` instead of `TypeError`), or simply a different
+error message text. Therefore, Brian scripts should never use ``try``/``except`` blocks to implement program logic.
