@@ -396,7 +396,7 @@ def create_runner_codeobj(group, code, template_name,
                 check_units_statements(c, variables)
             except (SyntaxError, ValueError) as ex:
                 error_msg = _error_msg(c, name)
-                raise ValueError(error_msg + str(ex))
+                raise ValueError(error_msg) from ex
 
     all_variable_indices = copy.copy(group.variables.indices)
     if additional_variables is not None:
@@ -423,7 +423,7 @@ def create_runner_codeobj(group, code, template_name,
                     value.implementations.add_numpy_implementation(value.pyfunc)
                 else:
                     raise NotImplementedError(('Cannot use function '
-                                               '%s: %s') % (varname, ex))
+                                               '%s: %s') % (varname, ex)) from ex
 
     # Gather the additional compiler arguments declared by function
     # implementations

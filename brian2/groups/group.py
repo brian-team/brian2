@@ -353,8 +353,8 @@ class VariableOwner(Nameable):
         '''
         try:
             var = self.variables[name]
-        except KeyError:
-            raise KeyError("State variable "+name+" not found.")
+        except KeyError as exc:
+            raise KeyError("State variable "+name+" not found.") from exc
 
         if use_units:
             return var.get_addressable_value_with_unit(name=name, group=self)
