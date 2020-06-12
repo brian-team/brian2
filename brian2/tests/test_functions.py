@@ -379,8 +379,9 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    with pytest.raises(ValueError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(defaultclock.dt, namespace={'foo': foo})
+        assert exc.errisinstance(ValueError)
 
 
 @pytest.mark.cpp_standalone
@@ -403,8 +404,9 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
                        y : volt''')
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(defaultclock.dt, namespace={'foo': foo})
+        assert exc.errisinstance(TypeError)
 
 
 def test_manual_user_defined_function_cython_compiler_args():
