@@ -156,7 +156,20 @@ if 'logging' not in prefs.pref_register:
             of the log file, the mailing list and the github issues.
             
             Defaults to ``True``.'''
-            )
+            ),
+        traceback_format=BrianPreference(
+            default='minimal',
+            validator=lambda v: isinstance(v, str) and v.lower() in ['minimal', 'full'],
+            docs='''
+            How to format tracebacks on the console when exceptions occur.
+            Can be either ``'full'``, to use the standard Python formatting
+            with the full traceback, or ``'minimal'``, where Brian tries to
+            reduce the traceback to the information relevant to the user (i.e.,
+            removing all the parts that occur within Brian code). Note that
+            the log file always contains the full traceback.
+            
+            Defaults to ``'minimal'``.'''
+        )
         )
 
 #===============================================================================
@@ -596,7 +609,7 @@ class BrianLogger(object):
         BrianLogger.console_handler = logging.StreamHandler()
         BrianLogger.console_handler.setLevel(LOG_LEVELS[prefs['logging.console_log_level']])
         BrianLogger.console_handler.setFormatter(
-            logging.Formatter('%(levelname)-10s %(message)s [%(name)s]'))
+            BrianConsoleFormatter('%(levelname)-10s %(message)s [%(name)s]'))
 
         # add the handler to the logger
         logger.addHandler(BrianLogger.console_handler)
@@ -811,3 +824,35 @@ class std_silent(object):
                     os.remove(std_silent.dest_fname_stderr)
                 except (IOError, OSError):
                     pass
+
+
+class BrianConsoleFormatter(logging.Formatter):
+    def format(self, record):
+        # Clean the record's exc_info to make sure our formatter is called
+        record.exc_text = None
+        return super(BrianConsoleFormatter, self).format(record)
+
+    def formatException(self, exc_info):
+        if prefs['logging.traceback_format'] == 'full':
+            return super(BrianConsoleFormatter, self).formatException(exc_info)
+
+        from brian2.core.base import BrianObjectException
+        exc_type, exc_obj, exc_tb = exc_info
+        if exc_type == BrianObjectException:
+            brian_obj_exception_lines = traceback.format_exception(BrianObjectException,
+                                                                   exc_obj,
+                                                                   exc_tb,
+                                                                   limit=1,
+                                                                   chain=False)
+            # Only show the latest "cause"
+            cause_lines = []
+            cause = exc_obj.__cause__
+            cause_lines = traceback.format_exception_only(type(cause), cause)
+            exception_lines = brian_obj_exception_lines + ['\nThis was directly caused by the following exception:\n\n'] + cause_lines
+        else:
+            # If there are "causing exceptions" (e.g. a ParseException causing an EquationError), then
+            # all relevant info is already included in the final exception, so we ignore them here
+            exception_lines = traceback.format_exception(exc_type, exc_obj, exc_tb,
+                                                         limit=1, chain=False)
+
+        return ''.join(exception_lines)
