@@ -1,6 +1,3 @@
-
-
-
 import functools
 
 import pytest
@@ -13,6 +10,7 @@ from brian2.stateupdaters.base import UnsupportedEquationsException
 
 max_difference = .1*mV
 
+pytestmark = pytest.mark.gsl
 
 def skip_if_not_implemented(func):
     @functools.wraps(func)
