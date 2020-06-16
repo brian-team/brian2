@@ -10,7 +10,7 @@ requirements:
   build:
     - {{ compiler('cxx') }}
   host:
-    - python >=3.6
+    - python
     - cython >=0.29
     - setuptools >=24
     # we build against the oldest supported numpy version
