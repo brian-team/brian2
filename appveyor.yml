@@ -1,5 +1,7 @@
  # CI configuration for Windows tests on appveyor
  # Based on Olivier Grisel's python-appveyor-demo
+image: Visual Studio 2017
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
