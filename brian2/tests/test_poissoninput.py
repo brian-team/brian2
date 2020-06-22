@@ -41,9 +41,9 @@ def test_poissoninput():
                  mon.y[:])
     assert_equal(np.tile((1+np.arange(mon.y[:].shape[1]))*50*2*volt, (10, 1)),
                  mon.y2[:])
-    assert all(np.var(mon.z[:], axis=1) > 0)  # variability over time
+    assert all(np.var(np.diff(mon.z[:]), axis=1) > 0)  # variability over time
     assert all(np.var(mon.z[:], axis=0) > 0)  # variability over neurons
-    assert all(np.var(mon.z2[:], axis=1) > 0)  # variability over time
+    assert all(np.var(np.diff(mon.z2[:]), axis=1) > 0)  # variability over time
     assert all(np.var(mon.z2[:], axis=0) > 0)  # variability over neurons
 
 
