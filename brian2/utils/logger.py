@@ -158,7 +158,7 @@ def _encode(text):
 
 
 UNHANDLED_ERROR_MESSAGE = ('Brian 2 encountered an unexpected error. '
-'If you think this is bug in Brian 2, please report this issue either to the '
+'If you think this is a bug in Brian 2, please report this issue either to the '
 'mailing list at <http://groups.google.com/group/brian-development/>, '
 'or to the issue tracker at <https://github.com/brian-team/brian2/issues>.')
 
