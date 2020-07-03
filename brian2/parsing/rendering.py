@@ -1,5 +1,5 @@
-
 import ast
+import numbers
 
 import sympy
 
@@ -265,7 +265,10 @@ class SympyNodeRenderer(NodeRenderer):
             return str(node.value)
 
     def render_Num(self, node):
-        return sympy.Float(node.n)
+        if isinstance(node.n, numbers.Integral):
+            return sympy.Integer(node.n)
+        else:
+            return sympy.Float(node.n)
 
     def render_BinOp(self, node):
         op_name = node.op.__class__.__name__
