@@ -389,19 +389,19 @@ def test_automatic_augmented_assignments():
         # examples that should be rewritten
         # Note that using our approach, we will never get -= or /= but always
         # the equivalent += or *= statements
-        ('x = x + 1', 'x += 1'),
-        ('x = 2 * x', 'x *= 2'),
-        ('x = x - 3', 'x += -3'),
-        ('x = x/2', 'x *= 0.5'),
-        ('x = y + (x + 1)', 'x += y + 1'),
-        ('x = x + x', 'x *= 2'),
+        ('x = x + 1.0', 'x += 1.0'),
+        ('x = 2.0 * x', 'x *= 2.0'),
+        ('x = x - 3.0', 'x += -3.0'),
+        ('x = x/2.0', 'x *= 0.5'),
+        ('x = y + (x + 1.0)', 'x += y + 1.0'),
+        ('x = x + x', 'x *= 2.0'),
         ('x = x + y + z', 'x += y + z'),
         ('x = x + y + z', 'x += y + z'),
         # examples that should not be rewritten
-        ('x = 1/x', 'x = 1/x'),
-        ('x = 1', 'x = 1'),
-        ('x = 2*(x + 1)', 'x = 2*(x + 1)'),
-        ('x = clip(x + y, 0, inf)', 'x = clip(x + y, 0, inf)'),
+        ('x = 1.0/x', 'x = 1.0/x'),
+        ('x = 1.0', 'x = 1.0'),
+        ('x = 2.0*(x + 1.0)', 'x = 2.0*(x + 1.0)'),
+        ('x = clip(x + y, 0.0, inf)', 'x = clip(x + y, 0.0, inf)'),
         ('b = b or False', 'b = b or False')
     ]
     for orig, rewritten in statements:
