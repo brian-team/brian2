@@ -72,9 +72,9 @@ matrix:
 # https://gist.github.com/dan-blanchard/7045057
 before_install:
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-4.7.10-Linux-$ARCHITECTURE.sh -O miniconda.sh;
   else
-    travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
+    travis_retry wget http://repo.continuum.io/miniconda/Miniconda3-4.7.10-MacOSX-$ARCHITECTURE.sh -O miniconda.sh;
   fi
 - chmod +x miniconda.sh
 # When we are installing the 32 Bit conda on a 64 Bit system, the miniconda
