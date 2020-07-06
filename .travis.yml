@@ -85,7 +85,7 @@ before_install:
 # command to install dependencies
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      echo "libffi 3.2.*" > ~/miniconda/conda-meta/pinned
+      echo "libffi 3.2.*" > ~/miniconda/conda-meta/pinned;
     fi
   - travis_retry conda update --yes conda
   # Use the conda-forge channel
