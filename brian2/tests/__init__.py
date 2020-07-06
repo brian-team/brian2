@@ -79,14 +79,20 @@ def clear_caches():
     make_statements._cache.clear()
 
 
-def make_argv(dirnames, markers=None, doctests=False):
+def make_argv(dirnames, markers=None, doctests=False, test_GSL=False):
     '''
     Create the list of arguments for the ``pytests`` call.
 
     Parameters
     ----------
-    markers : str
+    markers : str, optional
         The markers of the tests to include.
+    doctests : bool, optional
+        Whether to run doctests. Defaults to ``False``.
+    test_GSL : bool, optional
+        Whether to run tests requiring the GSL. If set to
+        ``False``, tests marked with ``gsl`` will be
+        excluded. Defaults to ``False``.
 
     Returns
     -------
@@ -109,6 +115,8 @@ def make_argv(dirnames, markers=None, doctests=False):
             # If we are testing files in docs_sphinx, ignore conf.py
             argv += ['--ignore=' + os.path.join(dirnames[1], 'conf.py')]
     else:
+        if not test_GSL:
+            markers += " and not gsl"
         argv = dirnames + [
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
@@ -121,7 +129,7 @@ def make_argv(dirnames, markers=None, doctests=False):
 def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         test_standalone=None, test_openmp=False,
         test_in_parallel=['codegen_independent', 'numpy', 'cython', 'cpp_standalone'],
-        reset_preferences=True, fail_for_not_implemented=True,
+        reset_preferences=True, fail_for_not_implemented=True, test_GSL=False,
         build_options=None, extra_test_dirs=None, float_dtype=None,
         additional_args=None):
     '''
@@ -162,6 +170,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         Whether to fail for tests raising a `NotImplementedError`. Defaults to
         ``True``, but can be switched off for devices known to not implement
         all of Brian's features.
+    test_GSL : bool, optional
+        Whether to test support for GSL state updaters (requires an installation
+        of the GSL development packages). Defaults to ``False``.
     build_options : dict, optional
         Non-default build options that will be passed as arguments to the
         `set_device` call for the device specified in ``test_standalone``.
@@ -310,7 +321,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 prefs['core.default_float_dtype'] = float_dtype
 
             print('Running tests that do not use code generation')
-            argv = make_argv(dirnames, "codegen_independent")
+            argv = make_argv(dirnames, "codegen_independent", test_GSL=test_GSL)
             if 'codegen_independent' in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
@@ -328,7 +339,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers += ' and not long'
             # explicitly ignore the brian2.hears file for testing, otherwise the
             # doctest search will import it, failing on Python 3
-            argv = make_argv(dirnames, markers)
+            argv = make_argv(dirnames, markers, test_GSL=test_GSL)
             if target in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
@@ -344,7 +355,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             print('Running standalone-compatible standard tests (single run statement)')
             markers = 'and not long' if not long_tests else ''
             markers += ' and not multiple_runs'
-            argv = make_argv(dirnames, 'standalone_compatible ' + markers)
+            argv = make_argv(dirnames, 'standalone_compatible ' + markers,
+                             test_GSL=test_GSL)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
@@ -360,7 +372,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             pref_plugin.device_options.update(build_options)
             markers = ' and not long' if not long_tests else ''
             markers += ' and multiple_runs'
-            argv = make_argv(dirnames, 'standalone_compatible'+markers)
+            argv = make_argv(dirnames, 'standalone_compatible' + markers,
+                             test_GSL=test_GSL)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
@@ -378,7 +391,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers = ' and not long' if not long_tests else ''
                 markers += ' and not multiple_runs'
                 argv = make_argv(dirnames,
-                                 'standalone_compatible' + markers)
+                                 'standalone_compatible' + markers,
+                                 test_GSL=test_GSL)
                 success.append(pytest.main(argv + additional_args,
                                            plugins=[pref_plugin]) in [0, 5])
                 clear_caches()
@@ -392,7 +406,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers = ' and not long' if not long_tests else ''
                 markers += ' and multiple_runs'
                 argv = make_argv(dirnames,
-                                 'standalone_compatible' + markers)
+                                 'standalone_compatible' + markers,
+                                 test_GSL=test_GSL)
                 success.append(pytest.main(argv + additional_args,
                                            plugins=[pref_plugin]) in [0, 5])
                 clear_caches()
@@ -402,7 +417,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
             print('Running standalone-specific tests')
             exclude_openmp = ' and not openmp' if not test_openmp else ''
-            argv = make_argv(dirnames, test_standalone+exclude_openmp)
+            argv = make_argv(dirnames, test_standalone + exclude_openmp,
+                             test_GSL=test_GSL)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
             success.append(pytest.main(argv + additional_args,
