@@ -53,14 +53,16 @@ if standalone:
                          test_openmp=openmp,
                          test_in_parallel=in_parallel,
                          reset_preferences=reset_preferences,
-                         float_dtype=float_dtype)
+                         float_dtype=float_dtype,
+                         test_GSL=True)
 else:
     result = brian2.test(targets,
                          test_codegen_independent=independent,
                          test_standalone=None,
                          test_in_parallel=in_parallel,
                          reset_preferences=reset_preferences,
-                         float_dtype=float_dtype)
+                         float_dtype=float_dtype,
+                         test_GSL=True)
 
 if not result:
     sys.exit(1)
