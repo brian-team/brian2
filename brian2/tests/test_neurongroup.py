@@ -1720,6 +1720,33 @@ def test_run_regularly_dt():
 
 
 @pytest.mark.standalone_compatible
+def test_run_regularly_shared():
+    # Check that shared variables are handled correctly in run_regularly
+    # operations. See brian-team/brian2genn#113
+    model = Equations('''individual_var: 1
+                         shared_var: 1 (shared)
+                         individual_var_i: integer
+                         shared_var_i: integer (shared)
+                         individual_var_b: boolean
+                         shared_var_b: boolean (shared)''')
+    G = NeuronGroup(10, model)
+    G.run_regularly('''shared_var = 1.0
+                       shared_var_i = 2
+                       shared_var_b = True
+                       individual_var = 1.0
+                       individual_var_i = 2
+                       individual_var_b = True''',
+                    dt=defaultclock.dt)
+    run(defaultclock.dt)
+    assert_equal(G.shared_var[:], 1.0)
+    assert_equal(G.individual_var[:], np.ones(10))
+    assert_equal(G.shared_var_i[:], 2)
+    assert_equal(G.individual_var_i[:], 2*np.ones(10, dtype=int))
+    assert_equal(G.shared_var_b[:], True)
+    assert_equal(G.individual_var_b[:], np.ones(10, dtype=bool))
+
+
+@pytest.mark.standalone_compatible
 def test_semantics_floor_division():
     # See github issues #815 and #661
     G = NeuronGroup(11, '''a : integer
