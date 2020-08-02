@@ -6,14 +6,14 @@ import uuid
 import numpy as np
 import pytest
 import sympy
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_raises
 
 from brian2.core.clocks import defaultclock
 from brian2.core.magic import run
 from brian2.core.network import Network
 from brian2.core.preferences import prefs
 from brian2.core.variables import linked_var
-from brian2.devices.device import seed
+from brian2.devices.device import seed, device
 from brian2.equations.equations import Equations
 from brian2.groups.group import get_dtype
 from brian2.groups.neurongroup import NeuronGroup
@@ -1625,26 +1625,34 @@ def test_random_values_fixed_seed():
     assert_allclose(G.v1[:], G.v2[:])
 
 
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
 def test_random_values_fixed_and_random():
     G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    mon = StateMonitor(G, 'v', record=True)
+
+    # first run
     seed(13579)
     G.v = 'rand()'
     seed()
-    mon = StateMonitor(G, 'v', record=True)
     run(2*defaultclock.dt)
-    first_run_values = np.array(mon.v)
 
-    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    # second run
     seed(13579)
     G.v = 'rand()'
     seed()
-    mon = StateMonitor(G, 'v', record=True)
     run(2*defaultclock.dt)
 
-    # First time step should be identical
-    assert_allclose(first_run_values[:, 0], mon.v[:, 0])
-    # Second should be different
-    assert np.var(first_run_values[:, 1] - mon.v[:, 1]) > 0
+    device.build(direct_call=False, **device.build_options)
+
+    first_run_values = np.array(mon.v[:, [0, 1]])
+    second_run_values = np.array(mon.v[:, [2, 3]])
+
+    # First time step should be identical (same seed)
+    assert_allclose(first_run_values[:, 0], second_run_values[:, 0])
+    # Second should be different (random seed)
+    assert_raises(AssertionError, assert_allclose,
+                  first_run_values[:, 1], second_run_values[:, 1])
 
 
 @pytest.mark.codegen_independent
