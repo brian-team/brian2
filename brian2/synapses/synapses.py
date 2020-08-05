@@ -107,7 +107,8 @@ class SummedVariableUpdater(CodeRunner):
         _synaptic_var = {expression}
         '''.format(expression=expression,
                    target_varname=target_varname)
-
+        self.target_varname = target_varname
+        self.expression = expression
         self.target_var = synapses.variables[target_varname]
         self.target = target
         template_kwds = {'_target_var': self.target_var,
