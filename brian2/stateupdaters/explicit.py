@@ -570,10 +570,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
         v = _v
         >>> print(rk4(eqs))
         __k_1_v = -dt*v/tau
-        __k_2_v = -dt*(0.5*__k_1_v + v)/tau
-        __k_3_v = -dt*(0.5*__k_2_v + v)/tau
+        __k_2_v = -dt*(__k_1_v/2 + v)/tau
+        __k_3_v = -dt*(__k_2_v/2 + v)/tau
         __k_4_v = -dt*(__k_3_v + v)/tau
-        _v = 0.166666666666667*__k_1_v + 0.333333333333333*__k_2_v + 0.333333333333333*__k_3_v + 0.166666666666667*__k_4_v + v
+        _v = __k_1_v/6 + __k_2_v/3 + __k_3_v/3 + __k_4_v/6 + v
         v = _v
         '''
         method_options = extract_method_options(method_options, {})

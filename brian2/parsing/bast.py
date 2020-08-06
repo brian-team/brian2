@@ -129,7 +129,6 @@ class BrianASTRenderer(object):
         try:
             return getattr(self, methname)(node)
         except AttributeError:
-            raise
             raise SyntaxError("Unknown syntax: " + nodename)
 
     def render_NameConstant(self, node):

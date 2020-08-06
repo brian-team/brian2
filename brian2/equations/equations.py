@@ -768,7 +768,11 @@ class Equations(Hashable, Mapping):
                 expr = Expression(new_str_expr)
 
                 if eq.type == SUBEXPRESSION:
-                    substitutions.update({sympy.Symbol(eq.varname, real=True): str_to_sympy(expr.code, variables)})
+                    if eq.var_type == INTEGER:
+                        sympy_var = sympy.Symbol(eq.varname, integer=True)
+                    else:
+                        sympy_var = sympy.Symbol(eq.varname, real=True)
+                    substitutions.update({sympy_var: str_to_sympy(expr.code, variables)})
                     self._substituted_expressions.append((eq.varname, expr))
                 elif eq.type == DIFFERENTIAL_EQUATION:
                     #  a differential equation that we have to check

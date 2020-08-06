@@ -246,7 +246,10 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                     variables[var] = new_var
             elif not variables[var].is_boolean:
                 sympy_expr = str_to_sympy(expr, variables)
-                sympy_var = sympy.Symbol(var, real=True)
+                if variables[var].is_integer:
+                    sympy_var = sympy.Symbol(var, integer=True)
+                else:
+                    sympy_var = sympy.Symbol(var, real=True)
                 try:
                     collected = sympy.collect(sympy_expr, sympy_var,
                                               exact=True, evaluate=False)

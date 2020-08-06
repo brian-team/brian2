@@ -33,7 +33,7 @@ def get_conditionally_linear_system(eqs, variables=None):
     --------
     >>> from brian2 import Equations
     >>> eqs = Equations("""
-    ... dv/dt = (-v + w**2) / tau : 1
+    ... dv/dt = (-v + w**2.0) / tau : 1
     ... dw/dt = -w / tau : 1
     ... """)
     >>> system = get_conditionally_linear_system(eqs)
