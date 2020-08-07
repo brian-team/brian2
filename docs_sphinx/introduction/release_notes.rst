@@ -18,9 +18,16 @@ Selected improvements and bug fixes
   in standalone mode as well (:issue:`1162`). Thanks to Rahul Kumar Gupta,
   Syed Osama Hussain, Bhuwan Chandra, and Vigneswaran Chandrasekaran for working
   on this issue as part of the GSoC 2020 application process.
-* To prevent log files filling up the disk (:issue:``), their file size is now limited to
+* To prevent log files filling up the disk (:issue:`1188`), their file size is now limited to
   10MB (configurable via the `logging.file_log_max_size` preference). Thanks to
   Rike-Benjamin Schuppner for contributing this feature.
+* Add more complete support for operations on `.VariableView` attributes. Previously,
+  operations like ``group.v**2`` failed and required the workaround ``group.v[:]**2`` (:issue:`1195`)
+* Fix a number of compatibility issues with newer versions of numpy and sympy, and document our policy
+  on :doc:`compatibility`.
+* File locking (used to avoid problems when running multiple simulations in parallel) is now based on
+  Benedikt Schmitt's `py-filelock <https://github.com/benediktschmitt/py-filelock>`_ package, which
+  should hopefully make it more robust.
 
 Contributions
 ~~~~~~~~~~~~~
@@ -35,7 +42,7 @@ anyone we forgot...):
 
 * Andrew Brughera
 * Wilhelm Braun
-* Willam Xavier
+* William Xavier
 
 
 .. _brian2.3:
