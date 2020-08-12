@@ -204,9 +204,11 @@ def test_variableview_inplace_calculations():
 
     # Floor division
     G.x //= 2
-    G.y //= 0.01
+    # This is very sensitive to rounding issues, so increase the value a bit
+    G.y += 0.01*mV
+    G.y //= 0.001
     assert_allclose(G.x[:], x_vals // 2)
-    assert_allclose(G.y[:], y_vals // 0.01)
+    assert_allclose(G.y[:], y_vals // 0.001)
     with pytest.raises(DimensionMismatchError):
         G.x //= 2*mV
     with pytest.raises(DimensionMismatchError):
