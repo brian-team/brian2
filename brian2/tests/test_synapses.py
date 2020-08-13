@@ -928,7 +928,8 @@ def test_transmission_simple():
 @pytest.mark.standalone_compatible
 def test_transmission_custom_event():
     source = NeuronGroup(2, '',
-                         events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
+                         events={'custom': 'timestep(t,dt)>=timestep((2-i)*ms, dt) '
+                                           'and timestep(t,dt)<timestep((2-i)*ms + dt, dt)'})
     target = NeuronGroup(2, 'v : 1')
     syn = Synapses(source, target, on_pre='v += 1',
                    on_event='custom')
@@ -943,7 +944,8 @@ def test_transmission_custom_event():
 @pytest.mark.codegen_independent
 def test_invalid_custom_event():
     group1 = NeuronGroup(2, 'v : 1',
-                         events={'custom': 't>=(2-i)*ms and t<(2-i)*ms + dt'})
+                         events={'custom': 'timestep(t,dt)>=timesteep((2-i)*ms,dt) '
+                                           'and timestep(t, dt)<timestep((2-i)*ms + dt, dt)'})
     group2 = NeuronGroup(2, 'v : 1', threshold='v>1')
     with pytest.raises(ValueError):
         Synapses(group1, group1, on_pre='v+=1', on_event='spike')
