@@ -21,11 +21,9 @@ def assert_allclose(actual, desired, rtol=4.5e8, atol=0, **kwds):
         The relative tolerance which will be multiplied with the machine epsilon of the type set as
         `core.default_float_type`.
     atol : float, optional
-        The absolute tolerance which will be multiplied with the machine epsilon of the type set as
-        `core.default_float_type`.
+        The absolute tolerance
     '''
     assert have_same_dimensions(actual, desired)
     eps = np.finfo(prefs['core.default_float_dtype']).eps
     rtol = eps*rtol
-    atol = eps*atol
     numpy_allclose(np.asarray(actual), np.asarray(desired), rtol=rtol, atol=atol, **kwds)
