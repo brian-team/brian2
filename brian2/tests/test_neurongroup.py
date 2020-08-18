@@ -1630,7 +1630,8 @@ def test_random_values_fixed_seed():
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_random_values_fixed_and_random():
-    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
+    G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1',
+                    method='euler')
     mon = StateMonitor(G, 'v', record=True)
 
     # first run
@@ -1651,10 +1652,10 @@ def test_random_values_fixed_and_random():
     second_run_values = np.array(mon.v[:, [2, 3]])
 
     # First time step should be identical (same seed)
-    assert_allclose(first_run_values[:, 0], second_run_values[:, 0])
-    # Second should be different (random seed)
-    assert_raises(AssertionError, assert_allclose,
-                  first_run_values[:, 1], second_run_values[:, 1])
+    assert all(abs((first_run_values[:, 0] - second_run_values[:, 0])) < 0.0001)
+    # Increase in second time step should be different (random seed)
+    assert all(abs((first_run_values[:, 1] - first_run_values[:, 0]) -
+                   (second_run_values[:, 1] - second_run_values[:, 0])) > 0.0001)
 
 
 @pytest.mark.codegen_independent

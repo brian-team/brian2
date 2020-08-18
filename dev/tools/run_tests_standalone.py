@@ -13,6 +13,5 @@ if __name__ == '__main__':
             sys.exit(1)
     else:
         if not brian2.test([], test_codegen_independent=False,
-                           test_standalone='cpp_standalone',
-                           long_tests=True):  # If the test fails, exit with a non-zero error code
+                           test_standalone='cpp_standalone'):  # If the test fails, exit with a non-zero error code
             sys.exit(1)
