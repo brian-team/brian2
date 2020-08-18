@@ -1630,7 +1630,6 @@ def test_random_values_fixed_seed():
 @pytest.mark.standalone_compatible
 @pytest.mark.multiple_runs
 def test_random_values_fixed_and_random():
-    prefs.core.default_float_dtype = np.float32
     G = NeuronGroup(10, 'dv/dt = -v/(10*ms) + 0.1*xi/sqrt(ms) : 1')
     mon = StateMonitor(G, 'v', record=True)
 
