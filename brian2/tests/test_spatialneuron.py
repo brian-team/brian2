@@ -156,7 +156,6 @@ def test_infinitecable():
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
     '''
     BrianLogger.suppress_name('resolution_conflict')
-
     defaultclock.dt = 0.001*ms
 
     # Morphology
@@ -191,15 +190,14 @@ def test_infinitecable():
     theory = 1./(la*Cm*pi*diameter)*sqrt(taum/(4*pi*(t+defaultclock.dt)))*\
                  exp(-(t+defaultclock.dt)/taum-taum/(4*(t+defaultclock.dt))*(x/la)**2)
     theory = theory*1*nA*0.02*ms
-    assert_allclose(v[t>0.5*ms], theory[t>0.5*ms], rtol=1e14, atol=1e10) # high error tolerance (not exact because not infinite cable)
+    assert_allclose(v[t>0.5*ms], theory[t>0.5*ms],
+                    atol=float(6.32*uvolt)) # high error tolerance (not exact because not infinite cable)
 
 @pytest.mark.standalone_compatible
 def test_finitecable():
     '''
     Test simulation of short cylinder vs. theory for constant current.
     '''
-    if prefs.core.default_float_dtype is np.float32:
-        pytest.skip('Need double precision for this test')
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -210,12 +208,12 @@ def test_finitecable():
     Cm = 1 * uF / cm ** 2
     Ri = 150 * ohm * cm
     N = 200
-    morpho=Cylinder(diameter=diameter, length=length, n=N)
+    morpho = Cylinder(diameter=diameter, length=length, n=N)
 
     # Passive channels
-    gL=1e-4*siemens/cm**2
-    EL=-70*mV
-    eqs='''
+    gL = 1e-4*siemens/cm**2
+    EL = -70*mV
+    eqs = '''
     Im=gL*(EL-v) : amp/meter**2
     I : amp (point current)
     '''
@@ -223,7 +221,7 @@ def test_finitecable():
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
-    neuron.I[0]=0.02*nA # injecting at the left end
+    neuron.I[0] = 0.02*nA  # injecting at the left end
 
     run(100*ms)
 
@@ -233,7 +231,7 @@ def test_finitecable():
     la = neuron.space_constant[0]
     ra = la*4*Ri/(pi*diameter**2)
     theory = EL+ra*neuron.I[0]*cosh((length-x)/la)/sinh(length/la)
-    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
+    assert_allclose(v-EL, theory-EL, atol=1e-6)
 
 @pytest.mark.standalone_compatible
 def test_rallpack1():
@@ -466,8 +464,6 @@ def test_rall():
     '''
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
     '''
-    if prefs.core.default_float_dtype is np.float32:
-        pytest.skip('Need double precision for this test')
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -521,15 +517,16 @@ def test_rall():
     l = length/la + L1/l1
     theory = EL+ra*neuron.I[0]*cosh(l-x/la)/sinh(l)
     v = neuron.main.v
-    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
+    assert_allclose(v-EL, theory-EL, atol=2e-6)
     x = neuron.L.distance
     theory = EL+ra*neuron.I[0]*cosh(l-neuron.main.distance[-1]/la-(x-neuron.main.distance[-1])/l1)/sinh(l)
     v = neuron.L.v
-    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
+    assert_allclose(v-EL, theory-EL, atol=2e-6)
     x = neuron.R.distance
     theory = EL+ra*neuron.I[0]*cosh(l-neuron.main.distance[-1]/la-(x-neuron.main.distance[-1])/l2)/sinh(l)
     v = neuron.R.v
-    assert_allclose(v-EL, theory-EL, rtol=1e12, atol=1e8)
+    assert_allclose(v-EL, theory-EL, atol=2e-6)
+
 
 @pytest.mark.standalone_compatible
 def test_basic_diffusion():

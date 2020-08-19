@@ -62,49 +62,53 @@ def test_refractoriness_basic():
 
 
 @pytest.mark.standalone_compatible
-def test_refractoriness_variables():
-    # Try a string evaluating to a quantity an an explicit boolean
+@pytest.mark.parametrize('ref_time', ['5*ms',
+                                      '(t-lastspike + 1e-3*dt) < 5*ms',
+                                      'time_since_spike + 1e-3*dt < 5*ms',
+                                      'ref_subexpression',
+                                      '(t-lastspike + 1e-3*dt) < ref',
+                                      'ref',
+                                      'ref_no_unit*ms'])
+def test_refractoriness_variables(ref_time):
+    # Try a string evaluating to a quantity, and an explicit boolean
     # condition -- all should do the same thing
-    for ref_time in ['5*ms', '(t-lastspike + 1e-3*dt) < 5*ms',
-                     'time_since_spike + 1e-3*dt < 5*ms', 'ref_subexpression',
-                     '(t-lastspike + 1e-3*dt) <= ref', 'ref', 'ref_no_unit*ms']:
-        reinit_and_delete()
-        G = NeuronGroup(1, '''
-                        dv/dt = 99.999*Hz : 1 (unless refractory)
-                        dw/dt = 99.999*Hz : 1
-                        ref : second
-                        ref_no_unit : 1
-                        time_since_spike = (t - lastspike) +1e-3*dt : second
-                        ref_subexpression = (t - lastspike + 1e-3*dt) < ref : boolean
-                        ''',
-                        threshold='v>1', reset='v=0;w=0',
-                        refractory=ref_time,
-                        dtype={'ref': defaultclock.variables['t'].dtype,
-                               'ref_no_unit': defaultclock.variables['t'].dtype,
-                               'lastspike': defaultclock.variables['t'].dtype,
-                               'time_since_spike': defaultclock.variables['t'].dtype})
-        G.ref = 5*ms
-        G.ref_no_unit = 5
-        # It should take 10ms to reach the threshold, then v should stay at 0
-        # for 5ms, while w continues to increase
-        mon = StateMonitor(G, ['v', 'w'], record=True, when='end')
-        run(20*ms)
-        try:
-            # No difference before the spike
-            assert_allclose(mon[0].v[:timestep(10*ms, defaultclock.dt)],
-                            mon[0].w[:timestep(10*ms, defaultclock.dt)])
-            # v is not updated during refractoriness
-            in_refractoriness = mon[0].v[timestep(10*ms, defaultclock.dt):timestep(15*ms, defaultclock.dt)]
-            assert_allclose(in_refractoriness, np.zeros_like(in_refractoriness))
-            # w should evolve as before
-            assert_allclose(mon[0].w[:timestep(5*ms, defaultclock.dt)],
-                         mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
-            assert np.all(mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1] > 0)
-            # After refractoriness, v should increase again
-            assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
-        except AssertionError as ex:
-            raise
-            raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
+    G = NeuronGroup(1, '''
+                    dv/dt = 99.999*Hz : 1 (unless refractory)
+                    dw/dt = 99.999*Hz : 1
+                    ref : second
+                    ref_no_unit : 1
+                    time_since_spike = (t - lastspike) +1e-3*dt : second
+                    ref_subexpression = (t - lastspike + 1e-3*dt) < ref : boolean
+                    ''',
+                    threshold='v>1', reset='v=0;w=0',
+                    refractory=ref_time,
+                    dtype={'ref': defaultclock.variables['t'].dtype,
+                           'ref_no_unit': defaultclock.variables['t'].dtype,
+                           'lastspike': defaultclock.variables['t'].dtype,
+                           'time_since_spike': defaultclock.variables['t'].dtype})
+    G.ref = 5*ms
+    G.ref_no_unit = 5
+    # It should take 10ms to reach the threshold, then v should stay at 0
+    # for 5ms, while w continues to increase
+    mon = StateMonitor(G, ['v', 'w'], record=True, when='end')
+    run(20*ms)
+    try:
+        # No difference before the spike
+        assert_allclose(mon[0].v[:timestep(10*ms, defaultclock.dt)],
+                        mon[0].w[:timestep(10*ms, defaultclock.dt)])
+        # v is not updated during refractoriness
+        in_refractoriness = mon[0].v[timestep(10*ms, defaultclock.dt):timestep(15*ms, defaultclock.dt)]
+        assert_allclose(in_refractoriness, np.zeros_like(in_refractoriness))
+        # w should evolve as before
+        assert_allclose(mon[0].w[:timestep(5*ms, defaultclock.dt)],
+                     mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1])
+        assert np.all(mon[0].w[timestep(10*ms, defaultclock.dt)+1:timestep(15*ms, defaultclock.dt)+1] > 0)
+        # After refractoriness, v should increase again
+        assert np.all(mon[0].v[timestep(15*ms, defaultclock.dt):timestep(20*ms, defaultclock.dt)] > 0)
+    except AssertionError as ex:
+        raise
+        raise AssertionError('Assertion failed when using %r as refractory argument:\n%s' % (ref_time, ex))
+
 
 @pytest.mark.standalone_compatible
 def test_refractoriness_threshold_basic():
@@ -151,28 +155,30 @@ def test_refractoriness_repeated_legacy():
 
 
 @pytest.mark.standalone_compatible
-def test_refractoriness_threshold():
-    # Try a quantity, a string evaluating to a quantity an an explicit boolean
+@pytest.mark.parametrize('ref_time', [10*ms, '10*ms',
+                                      'timestep(t-lastspike, dt) < timestep(10*ms, dt)',
+                                      'timestep(t-lastspike, dt) < timestep(ref, dt)',
+                                      'ref',
+                                      'ref_no_unit*ms'])
+def test_refractoriness_threshold(ref_time):
+    # Try a quantity, a string evaluating to a quantity, and an explicit boolean
     # condition -- all should do the same thing
-    for ref_time in [10*ms, '10*ms', '(t-lastspike) <= 10*ms',
-                     '(t-lastspike) <= ref', 'ref', 'ref_no_unit*ms']:
-        reinit_and_delete()
-        G = NeuronGroup(1, '''
-                        dv/dt = 199.99*Hz : 1
-                        ref : second
-                        ref_no_unit : 1
-                        ''', threshold='v > 1',
-                        reset='v=0', refractory=ref_time,
-                        dtype={'ref': defaultclock.variables['t'].dtype,
-                               'ref_no_unit': defaultclock.variables['t'].dtype})
-        G.ref = 10*ms
-        G.ref_no_unit = 10
-        # The neuron should spike after 5ms but then not spike for the next
-        # 10ms. The state variable should continue to integrate so there should
-        # be a spike after 15ms
-        spike_mon = SpikeMonitor(G)
-        run(16*ms)
-        assert_allclose(spike_mon.t, [5, 15] * ms)
+    G = NeuronGroup(1, '''
+                    dv/dt = 199.999*Hz : 1
+                    ref : second
+                    ref_no_unit : 1
+                    ''', threshold='v > 1',
+                    reset='v=0', refractory=ref_time,
+                    dtype={'ref': defaultclock.variables['t'].dtype,
+                           'ref_no_unit': defaultclock.variables['t'].dtype})
+    G.ref = 10*ms
+    G.ref_no_unit = 10
+    # The neuron should spike after 5ms but then not spike for the next
+    # 10ms. The state variable should continue to integrate so there should
+    # be a spike after 15ms
+    spike_mon = SpikeMonitor(G)
+    run(16*ms)
+    assert_allclose(spike_mon.t, [5, 15] * ms)
 
 
 @pytest.mark.codegen_independent
