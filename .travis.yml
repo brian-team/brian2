@@ -98,9 +98,9 @@ install:
        conda install --yes --quiet anaconda-client conda-build jinja2;
     fi
   - if [[ $MINIMAL_VERSIONS == 'yes' ]]; then
-    PYTHON_PACKAGES="python=$PYTHON numpy==1.15 scipy==0.16 libgfortran==1 pytest "pytest-xdist<2" sphinx==1.8 ipython sympy==1.2 jinja2==2.7 pyparsing setuptools coverage<5 gsl>1.15 cython";
+    PYTHON_PACKAGES="python=$PYTHON numpy==1.15 scipy==0.16 libgfortran==1 pytest pytest-xdist<2 sphinx==1.8 ipython sympy==1.2 jinja2==2.7 pyparsing setuptools coverage<5 gsl>1.15 cython";
     else
-    PYTHON_PACKAGES="python=$PYTHON numpy pytest "pytest-xdist<2" sphinx>=1.8 ipython sympy>=1.2 pyparsing jinja2 setuptools coverage<5 gsl>1.15 cython";
+    PYTHON_PACKAGES="python=$PYTHON numpy pytest pytest-xdist<2 sphinx>=1.8 ipython sympy>=1.2 pyparsing jinja2 setuptools coverage<5 gsl>1.15 cython";
     fi
   - PYTHON_PACKAGES="$PYTHON_PACKAGES scipy";
   - if [[ $REPORT_COVERAGE == 'yes' ]]; then PYTHON_PACKAGES="$PYTHON_PACKAGES pytest-cov coveralls"; fi
