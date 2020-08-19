@@ -235,6 +235,15 @@ Note that it is also possible to index synaptic variables with a single index
 (integer, slice, or array), but in this case synaptic indices have to be
 provided.
 
+The ``N_incoming`` and ``N_outgoing`` variables give access to the
+total number of incoming/outgoing synapses for a neuron, but this access is given
+for each *synapse*. This is necessary to apply it to individual synapses as in
+the statement to normalize synaptic weights mentioned above. To access these
+values per *neuron* instead, `.Synapses.N_incoming_post` and
+`.Synapses.N_outgoing_pre` can be used. Note that synaptic equations or
+``on_pre``/``on_post`` statements should always refer to ``N_incoming`` and
+``N_outgoing`` without ``pre``/``post`` suffix.
+
 Delays
 ------
 There is a special synaptic variable that is automatically created: ``delay``. It is the propagation delay
