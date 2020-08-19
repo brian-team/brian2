@@ -490,6 +490,8 @@ class SynapticSubgroup(object):
                                 'synaptic subgroup has been created'))
         return self._stored_indices
 
+    def __len__(self):
+        return len(self._stored_indices)
 
     def __repr__(self):
         return '<%s, storing %d indices of %s>' % (self.__class__.__name__,

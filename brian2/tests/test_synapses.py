@@ -2588,6 +2588,30 @@ def test_missing_lastupdate_error_run_regularly():
         exc.match('lastupdate : second')
 
 
+@pytest.mark.codegen_independent
+def test_synaptic_subgroups():
+    source = NeuronGroup(5, '')
+    target = NeuronGroup(3, '')
+    syn = Synapses(source, target)
+    syn.connect()
+    assert len(syn) == 15
+
+    from_3 = syn[3, :]
+    assert len(from_3) == 3
+    assert all(syn.i[from_3] == 3)
+    assert_array_equal(syn.j[from_3], np.arange(3))
+
+    to_2 = syn[:, 2]
+    assert len(to_2) == 5
+    assert all(syn.j[to_2] == 2)
+    assert_array_equal(syn.i[to_2], np.arange(5))
+
+    mixed = syn[1:3, :2]
+    assert len(mixed) == 4
+    connections = {(i, j) for i, j in zip(syn.i[mixed], syn.j[mixed])}
+    assert connections == {(1, 0), (1, 1), (2, 0), (2, 1)}
+
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
@@ -2683,4 +2707,5 @@ if __name__ == '__main__':
     test_synapse_generator_range_noint()
     test_missing_lastupdate_error_syn_pathway()
     test_missing_lastupdate_error_run_regularly()
+    test_synaptic_subgroups()
     print('Tests took', time.time()-start)
