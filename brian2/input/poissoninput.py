@@ -55,6 +55,9 @@ class PoissonInput(CodeRunner):
         if target_var not in target.variables:
             raise KeyError('%s is not a variable of %s' % (target_var, target.name))
 
+        self._weight = weight
+        self._target_var = target_var
+
         if isinstance(weight, str):
             weight = '(%s)' % weight
         else:
@@ -99,6 +102,10 @@ class PoissonInput(CodeRunner):
                     doc='The rate of each input')
     N = property(fget=lambda self: self._N,
                  doc='The number of inputs')
+    target_var = property(fget=lambda self: self._target_var,
+                          doc='The targetted variable')
+    weight = property(fget=lambda self: self._weight,
+                      doc='The synaptic weight')
 
     def before_run(self, run_namespace):
         if self._group.dt_ != self._stored_dt:
