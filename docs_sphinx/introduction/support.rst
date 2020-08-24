@@ -2,7 +2,7 @@ Support
 =======
 
 If you are stuck with a problem using Brian, please do get in touch at our
-`email support list <http://groups.google.com/group/briansupport>`__.
+`community forum <http://brian.discourse.group>`__.
 
 You can save time by following this procedure when reporting a problem:
 
