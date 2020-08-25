@@ -1019,9 +1019,9 @@ class CPPStandaloneDevice(Device):
                 x = subprocess.call(['main'] + run_args, stdout=stdout)
             else:
                 x = subprocess.call(['./main'] + run_args, stdout=stdout)
+            if stdout is not None:
+                stdout.close()
             if x:
-                if stdout is not None:
-                    stdout.close()
                 if os.path.exists('results/stdout.txt'):
                     with open('results/stdout.txt', 'r') as f:
                         print(f.read())
