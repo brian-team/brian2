@@ -742,7 +742,8 @@ def test_check_for_invalid_values_linear_integrator():
     dx/dt = a * x + b * y : 1
     dy/dt = c * x + d * y : 1
     '''
-    G = NeuronGroup(1, eqs, threshold='x > 100', reset='x = 0', method='exact')
+    G = NeuronGroup(1, eqs, threshold='x > 100', reset='x = 0', method='exact',
+                    method_options={'simplify': False})
     G.x = 1
     BrianLogger._log_messages.clear() # because the log message is set to be shown only once
     with catch_logs() as clog:
