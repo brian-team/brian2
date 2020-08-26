@@ -185,9 +185,12 @@ they are only using functions/methods that work with quantities:
 * ``correlate`` (returns a quantity with wrong units)
 * ``histogramdd`` (raises a ``DimensionMismatchError``)
 
+**other unsupported functions**
+Functions in ``numpy``'s subpackages such as ``linalg`` are not supported and will
+either not work with units, or remove units from their inputs.
+
 User-defined functions and units
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For performance and simplicity reasons, code within the Brian core does not use
 Quantity objects but unitless numpy arrays instead. See :doc:`functions` for
 details on how to make use user-defined functions with Brian's unit system.
-

@@ -26,7 +26,7 @@ from brian2.units.fundamentalunits import (UFUNCS_DIMENSIONLESS,
                                            DIMENSIONLESS,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import *
-from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz, mM
+from brian2.units.stdunits import ms, mV, kHz, nS, cm, Hz, mM, nA
 from brian2.tests.utils import assert_allclose
 
 
@@ -898,6 +898,43 @@ def test_numpy_functions_change_dimensions():
         assert_quantity(np.sqrt(value), np.sqrt(np.array(value)), volt ** 0.5)
         assert_quantity(np.reciprocal(value), np.reciprocal(np.array(value)),
                         1.0 / volt)
+
+
+@pytest.mark.codegen_independent
+def test_numpy_functions_matmul():
+    '''
+    Check support for matmul and the ``@`` operator.
+    '''
+    no_units_eye = np.eye(3)
+    with_units_eye = no_units_eye*Mohm
+    matrix_no_units = np.arange(9).reshape((3, 3))
+    matrix_units = matrix_no_units*nA
+
+    # First operand with units
+    assert_allclose(no_units_eye @ matrix_units, matrix_units)
+    assert have_same_dimensions(no_units_eye @ matrix_units, matrix_units)
+    assert_allclose(np.matmul(no_units_eye, matrix_units), matrix_units)
+    assert have_same_dimensions(np.matmul(no_units_eye, matrix_units), matrix_units)
+
+    # Second operand with units
+    assert_allclose(with_units_eye @ matrix_no_units,
+                    matrix_no_units*Mohm)
+    assert have_same_dimensions(with_units_eye @ matrix_no_units,
+                                matrix_no_units*Mohm)
+    assert_allclose(np.matmul(with_units_eye, matrix_no_units),
+                    matrix_no_units*Mohm)
+    assert have_same_dimensions(np.matmul(with_units_eye, matrix_no_units),
+                                matrix_no_units*Mohm)
+
+    # Both operands with units
+    assert_allclose(with_units_eye @ matrix_units,
+                    no_units_eye @ matrix_no_units * nA * Mohm)
+    assert have_same_dimensions(with_units_eye @ matrix_units,
+                                nA*Mohm)
+    assert_allclose(np.matmul(with_units_eye, matrix_units),
+                    np.matmul(no_units_eye, matrix_no_units) * nA * Mohm)
+    assert have_same_dimensions(np.matmul(with_units_eye, matrix_units),
+                                nA * Mohm)
 
 
 @pytest.mark.codegen_independent

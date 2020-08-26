@@ -74,7 +74,7 @@ UFUNCS_PRESERVE_DIMENSIONS = ['absolute', 'rint', 'negative', 'conj',
 #: ufuncs that work on all dimensions but change the dimensions, e.g. square
 UFUNCS_CHANGE_DIMENSIONS = ['multiply', 'divide', 'true_divide',
                             'floor_divide', 'sqrt', 'square', 'reciprocal',
-                            'dot']
+                            'dot', 'matmul']
 
 #: ufuncs that work with matching dimensions, e.g. add
 UFUNCS_MATCHING_DIMENSIONS = ['add', 'subtract', 'maximum', 'minimum',
@@ -1033,7 +1033,7 @@ class Quantity(np.ndarray, object):
     def __array_wrap__(self, array, context=None):
         dim = DIMENSIONLESS
 
-        if not context is None:
+        if context is not None:
             uf, args, _ = context
             if uf.__name__ in (UFUNCS_PRESERVE_DIMENSIONS +
                                UFUNCS_MATCHING_DIMENSIONS):
@@ -1058,7 +1058,7 @@ class Quantity(np.ndarray, object):
                 dim = get_dimensions(args[0]) / get_dimensions(args[1])
             elif uf.__name__ == 'reciprocal':
                 dim = get_dimensions(args[0]) ** -1
-            elif uf.__name__ in ('multiply', 'dot'):
+            elif uf.__name__ in ('multiply', 'dot', 'matmul'):
                 dim = get_dimensions(args[0]) * get_dimensions(args[1])
             else:
                 warn("Unknown ufunc '%s' in __array_wrap__" % uf.__name__)
