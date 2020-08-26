@@ -33,6 +33,99 @@ def _find_K(group_dt, dt):
     return K
 
 
+def _generate_cpp_code_1d(values, dt, name):
+    def cpp_impl(owner):
+        K = _find_K(owner.clock.dt_, dt)
+        code = '''
+        static inline double %NAME%(const double t)
+        {
+            const double epsilon = %DT% / %K%;
+            int i = (int)((t/epsilon + 0.5)/%K%);
+            if(i < 0)
+               i = 0;
+            if(i >= %NUM_VALUES%)
+                i = %NUM_VALUES%-1;
+            return _namespace%NAME%_values[i];
+        }
+        '''.replace('%NAME%', name).replace('%DT%', '%.18f' % dt).replace(
+            '%K%', str(K)).replace('%NUM_VALUES%', str(len(values)))
+
+        return code
+
+    return cpp_impl
+
+
+def _generate_cpp_code_2d(values, dt, name):
+    def cpp_impl(owner):
+        K = _find_K(owner.clock.dt_, dt)
+        support_code = '''
+        static inline double %NAME%(const double t, const int i)
+        {
+            const double epsilon = %DT% / %K%;
+            if (i < 0 || i >= %COLS%)
+                return NAN;
+            int timestep = (int)((t/epsilon + 0.5)/%K%);
+            if(timestep < 0)
+               timestep = 0;
+            else if(timestep >= %ROWS%)
+                timestep = %ROWS%-1;
+            return _namespace%NAME%_values[timestep*%COLS% + i];
+        }
+        '''
+        code = replace(support_code, {'%NAME%': name,
+                                      '%DT%': '%.18f' % dt,
+                                      '%K%': str(K),
+                                      '%COLS%': str(values.shape[1]),
+                                      '%ROWS%': str(values.shape[0])})
+        return code
+    return cpp_impl
+
+
+def _generate_cython_code_1d(values, dt, name):
+    def cython_impl(owner):
+        K = _find_K(owner.clock.dt_, dt)
+        code = '''
+        cdef double %NAME%(const double t):
+            global _namespace%NAME%_values
+            cdef double epsilon = %DT% / %K%
+            cdef int i = (int)((t/epsilon + 0.5)/%K%)
+            if i < 0:
+               i = 0
+            if i >= %NUM_VALUES%:
+                i = %NUM_VALUES% - 1
+            return _namespace%NAME%_values[i]
+        '''.replace('%NAME%', name).replace('%DT%', '%.18f' % dt).replace(
+            '%K%', str(K)).replace('%NUM_VALUES%', str(len(values)))
+
+        return code
+    return cython_impl
+
+
+def _generate_cython_code_2d(values, dt, name):
+    def cython_impl(owner):
+        K = _find_K(owner.clock.dt_, dt)
+        code = '''
+        cdef double %NAME%(const double t, const int i):
+            global _namespace%NAME%_values
+            cdef double epsilon = %DT% / %K%
+            if i < 0 or i >= %COLS%:
+                return _numpy.nan
+            cdef int timestep = (int)((t/epsilon + 0.5)/%K%)
+            if timestep < 0:
+               timestep = 0
+            elif timestep >= %ROWS%:
+                timestep = %ROWS%-1
+            return _namespace%NAME%_values[timestep*%COLS% + i]
+        '''
+        code = replace(code, {'%NAME%': name,
+                              '%DT%': '%.18f' % dt,
+                              '%K%': str(K),
+                              '%COLS%': str(values.shape[1]),
+                              '%ROWS%': str(values.shape[0])})
+        return code
+    return cython_impl
+
+
 class TimedArray(Function, Nameable, CacheKey):
     '''
     TimedArray(values, dt, name=None)
@@ -86,6 +179,21 @@ class TimedArray(Function, Nameable, CacheKey):
     '''
     _cache_irrelevant_attributes = {'_id', 'values', 'pyfunc',
                                     'implementations'}
+
+    #: Container for implementing functions for different targets
+    #: This container can be extended by other codegeneration targets/devices
+    #: The key has to be the name of the target, the value is a tuple of
+    #: functions, the first for a 1d array, the second for a 2d array.
+    #: The functions have to take three parameters: (values, dt, name), i.e. the
+    #: array values, their physical dimensions, the dt of the TimedArray, and
+    #: the name of the TimedArray. The functions have to return *a function*
+    #: that takes the `owner` argument (out of which they can get the context's
+    #: dt as `owner.clock.dt_`) and returns the code.
+    implementations = {
+        'cpp': (_generate_cpp_code_1d, _generate_cpp_code_2d),
+        'cython': (_generate_cython_code_1d, _generate_cython_code_2d)
+    }
+
     @check_units(dt=second)
     def __init__(self, values, dt, name=None):
         if name is None:
@@ -144,58 +252,15 @@ class TimedArray(Function, Nameable, CacheKey):
 
         self.implementations.add_dynamic_implementation('numpy',
                                                         create_numpy_implementation)
+        namespace = lambda owner: {'%s_values' % self.name: self.values}
 
-        def create_cpp_implementation(owner):
-            group_dt = owner.clock.dt_
-            K = _find_K(group_dt, dt)
-            support_code = '''
-            static inline double %NAME%(const double t)
-            {
-                const double epsilon = %DT% / %K%;
-                int i = (int)((t/epsilon + 0.5)/%K%);
-                if(i < 0)
-                   i = 0;
-                if(i >= %NUM_VALUES%)
-                    i = %NUM_VALUES%-1;
-                return _namespace%NAME%_values[i];
-            }
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values)))
-            cpp_code = {'support_code': support_code}
-
-            return cpp_code
-
-        def create_cpp_namespace(owner):
-            return {'%s_values' % self.name: self.values}
-
-        self.implementations.add_dynamic_implementation('cpp',
-                                                        code=create_cpp_implementation,
-                                                        namespace=create_cpp_namespace,
-                                                        name=self.name)
-        def create_cython_implementation(owner):
-            group_dt = owner.clock.dt_
-            K = _find_K(group_dt, dt)
-            code = '''
-            cdef double %NAME%(const double t):
-                global _namespace%NAME%_values
-                cdef double epsilon = %DT% / %K%
-                cdef int i = (int)((t/epsilon + 0.5)/%K%)
-                if i < 0:
-                   i = 0
-                if i >= %NUM_VALUES%:
-                    i = %NUM_VALUES% - 1
-                return _namespace%NAME%_values[i]
-            '''.replace('%NAME%', self.name).replace('%DT%', '%.18f' % dt).replace('%K%', str(K)).replace('%NUM_VALUES%', str(len(self.values)))
-
-            return code
-
-        def create_cython_namespace(owner):
-            return {'%s_values' % self.name: self.values}
-
-        self.implementations.add_dynamic_implementation('cython',
-                                                        code=create_cython_implementation,
-                                                        namespace=create_cython_namespace,
-                                                        name=self.name)
-
+        for target, (func_1d, _) in TimedArray.implementations.items():
+            self.implementations.add_dynamic_implementation(target,
+                                                            func_1d(self.values,
+                                                                    self.dt,
+                                                                    self.name),
+                                                            namespace=namespace,
+                                                            name=self.name)
 
     def _init_2d(self):
         dimensions = self.dim
@@ -236,77 +301,18 @@ class TimedArray(Function, Nameable, CacheKey):
 
         self.implementations.add_dynamic_implementation('numpy',
                                                         create_numpy_implementation)
+        values_flat = self.values.astype(np.double,
+                                       order='C',
+                                       copy=False).ravel()
+        namespace = lambda owner: {'%s_values' % self.name: values_flat}
 
-
-        def create_cpp_implementation(owner):
-            group_dt = owner.clock.dt_
-            K = _find_K(group_dt, dt)
-            support_code = '''
-            static inline double %NAME%(const double t, const int i)
-            {
-                const double epsilon = %DT% / %K%;
-                if (i < 0 || i >= %COLS%)
-                    return NAN;
-                int timestep = (int)((t/epsilon + 0.5)/%K%);
-                if(timestep < 0)
-                   timestep = 0;
-                else if(timestep >= %ROWS%)
-                    timestep = %ROWS%-1;
-                return _namespace%NAME%_values[timestep*%COLS% + i];
-            }
-            '''
-            support_code = replace(support_code, {'%NAME%': self.name,
-                                                  '%DT%': '%.18f' % dt,
-                                                  '%K%': str(K),
-                                                  '%COLS%': str(self.values.shape[1]),
-                                                  '%ROWS%': str(self.values.shape[0])})
-            cpp_code = {'support_code': support_code}
-
-            return cpp_code
-
-        def create_cpp_namespace(owner):
-            return {'%s_values' % self.name: self.values.astype(np.double,
-                                                                order='C',
-                                                                copy=False).ravel()}
-
-        self.implementations.add_dynamic_implementation('cpp',
-                                                        code=create_cpp_implementation,
-                                                        namespace=create_cpp_namespace,
-                                                        name=self.name)
-
-        def create_cython_implementation(owner):
-            group_dt = owner.clock.dt_
-            K = _find_K(group_dt, dt)
-            code = '''
-            cdef double %NAME%(const double t, const int i):
-                global _namespace%NAME%_values
-                cdef double epsilon = %DT% / %K%
-                if i < 0 or i >= %COLS%:
-                    return _numpy.nan
-                cdef int timestep = (int)((t/epsilon + 0.5)/%K%)
-                if timestep < 0:
-                   timestep = 0
-                elif timestep >= %ROWS%:
-                    timestep = %ROWS%-1
-                return _namespace%NAME%_values[timestep*%COLS% + i]
-            '''
-            code = replace(code, {'%NAME%': self.name,
-                                  '%DT%': '%.18f' % dt,
-                                  '%K%': str(K),
-                                  '%COLS%': str(self.values.shape[1]),
-                                  '%ROWS%': str(self.values.shape[0])})
-
-            return code
-
-        def create_cython_namespace(owner):
-            return {'%s_values' % self.name: self.values.astype(np.double,
-                                                                order='C',
-                                                                copy=False).ravel()}
-
-        self.implementations.add_dynamic_implementation('cython',
-                                                        code=create_cython_implementation,
-                                                        namespace=create_cython_namespace,
-                                                        name=self.name)
+        for target, (_, func_2d) in TimedArray.implementations.items():
+            self.implementations.add_dynamic_implementation(target,
+                                                            func_2d(self.values,
+                                                                    self.dt,
+                                                                    self.name),
+                                                            namespace=namespace,
+                                                            name=self.name)
 
     def is_locally_constant(self, dt):
         if dt > self.dt:
