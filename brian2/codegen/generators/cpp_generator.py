@@ -359,8 +359,12 @@ class CPPCodeGenerator(CodeGenerator):
         else:
             return ''
 
-    def _add_user_function(self, varname, variable):
+    def _add_user_function(self, varname, variable, added):
         impl = variable.implementations[self.codeobj_class]
+        if (impl.name, variable) in added:
+            return  # nothing to do
+        else:
+            added.add((impl.name, variable))
         support_code = []
         hash_defines = []
         pointers = []
@@ -406,11 +410,13 @@ class CPPCodeGenerator(CodeGenerator):
                     dep_impl = dep.implementations[self.codeobj_class]
                     if dep_name != dep_impl.name:
                         self.func_name_replacements[dep_name] = dep_impl.name
-                    hd, ps, sc, uf = self._add_user_function(dep_name, dep)
-                    dep_hash_defines.extend(hd)
-                    dep_pointers.extend(ps)
-                    dep_support_code.extend(sc)
-                    user_functions.extend(uf)
+                    user_function = self._add_user_function(dep_name, dep, added)
+                    if user_function is not None:
+                        hd, ps, sc, uf = user_function
+                        dep_hash_defines.extend(hd)
+                        dep_pointers.extend(ps)
+                        dep_support_code.extend(sc)
+                        user_functions.extend(uf)
 
         return (dep_hash_defines + hash_defines,
                 dep_pointers + pointers,
@@ -453,13 +459,16 @@ class CPPCodeGenerator(CodeGenerator):
         user_functions = []
         support_code = []
         hash_defines = []
+        added = set()  # keep track of functions that were added
         for varname, variable in list(self.variables.items()):
             if isinstance(variable, Function):
-                hd, ps, sc, uf = self._add_user_function(varname, variable)
-                user_functions.extend(uf)
-                support_code.extend(sc)
-                pointers.extend(ps)
-                hash_defines.extend(hd)
+                user_func = self._add_user_function(varname, variable, added)
+                if user_func is not None:
+                    hd, ps, sc, uf = user_func
+                    user_functions.extend(uf)
+                    support_code.extend(sc)
+                    pointers.extend(ps)
+                    hash_defines.extend(hd)
         support_code.append(self.universal_support_code)
 
 
