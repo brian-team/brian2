@@ -1315,11 +1315,9 @@ class Synapses(Group):
 
         self._connect_called = True
 
-        # Get namespace information and merge it with the variables
+        # Get namespace information
         if namespace is None:
             namespace = get_local_namespace(level=level + 2)
-        variables = dict(namespace)
-        variables.update(self.variables)
 
         # which connection case are we in?
         if condition is None and i is None and j is None:
@@ -1335,6 +1333,8 @@ class Synapses(Group):
                 if condition is True:
                     condition = 'True'
                 # Check that the condition is a boolean expresion
+                identifiers = get_identifiers(condition)
+                variables = self.resolve_all(identifiers, namespace)
                 if not is_boolean_expression(condition, variables):
                     raise TypeError(f'Condition \'{condition}\' is not a '
                                     f'boolean condition')
@@ -1353,6 +1353,8 @@ class Synapses(Group):
                 else:
                     j = None
                     if isinstance(p, str):
+                        identifiers = get_identifiers(p)
+                        variables = self.resolve_all(identifiers, namespace)
                         dim = parse_expression_dimensions(p, variables)
                         if dim is not DIMENSIONLESS:
                             raise DimensionMismatchError('Expression for p should be dimensionless.')
