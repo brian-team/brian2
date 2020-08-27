@@ -766,8 +766,8 @@ def test_check_for_invalid_values_linear_integrator():
                 assert 'invalid_values' in repr(clog)
             else:
                 assert G.x[0] != 0
-        except BrianObjectException:
-            pass
+        except BrianObjectException as exc:
+            assert isinstance(exc.__cause__, UnsupportedEquationsException)
 
 
 if __name__ == '__main__':
