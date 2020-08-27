@@ -17,7 +17,10 @@ def skip_if_not_implemented(func):
     def wrapped():
         try:
             func()
-        except NotImplementedError:
+        except (BrianObjectException, NotImplementedError) as exc:
+            if not (isinstance(exc, NotImplementedError) or
+                    isinstance(exc.__cause__, NotImplementedError)):
+                raise
             pytest.skip('GSL support for numpy has not been implemented yet')
     return wrapped
 
@@ -179,9 +182,10 @@ def test_GSL_stochastic():
     '''
     neuron = NeuronGroup(1, eqs, method='gsl')
     net = Network(neuron)
-    with pytest.raises(UnsupportedEquationsException):
-                  net.run(0*ms, namespace={'tau': tau,
-                                           'sigma': sigma})
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms, namespace={'tau': tau,
+                                 'sigma': sigma})
+        assert exc.errisinstance(UnsupportedEquationsException)
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
@@ -194,8 +198,9 @@ def test_GSL_error_dimension_mismatch_unit():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
+        assert exc.errisinstance(DimensionMismatchError)
 
 
 @pytest.mark.standalone_compatible
@@ -209,8 +214,9 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
     neuron = NeuronGroup(1, eqs, threshold='v > 10', reset='v = 0',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
+        assert exc.errisinstance(DimensionMismatchError)
 
 
 @pytest.mark.standalone_compatible
@@ -224,8 +230,9 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
+        assert exc.errisinstance(DimensionMismatchError)
 
 
 @pytest.mark.standalone_compatible
@@ -239,8 +246,9 @@ def test_GSL_error_nonexisting_variable():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    with pytest.raises(KeyError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
+        assert exc.errisinstance(KeyError)
 
 
 @pytest.mark.standalone_compatible
@@ -258,10 +266,12 @@ def test_GSL_error_incorrect_error_format():
     neuron2 = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options2)
     net2 = Network(neuron2)
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-    with pytest.raises(TypeError):
-        net2.run(0 * ms, namespace={})
+        assert exc.errisinstance(TypeError)
+    with pytest.raises(BrianObjectException) as exc:
+        net2.run(0*ms, namespace={})
+        assert exc.errisinstance(TypeError)
 
 
 @pytest.mark.standalone_compatible
@@ -275,8 +285,9 @@ def test_GSL_error_nonODE_variable():
     neuron = NeuronGroup(1, eqs, threshold='v > 10*mV', reset='v = 0*mV',
                          method='gsl', method_options=options)
     net = Network(neuron)
-    with pytest.raises(KeyError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
+        assert exc.errisinstance(KeyError)
 
 
 @pytest.mark.standalone_compatible
@@ -407,7 +418,7 @@ def test_GSL_fixed_timestep_big_dt_small_error():
     neuron.I = 0.7*nA/(20000*umetre**2)
     neuron.v = HH_namespace['El']
     net = Network(neuron)
-    with pytest.raises((RuntimeError, IntegrationError)):
+    with pytest.raises((BrianObjectException, RuntimeError)):
         net.run(10*ms)
 
 

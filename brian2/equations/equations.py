@@ -348,7 +348,7 @@ def parse_string_equations(eqns):
         parsed = EQUATIONS.parseString(eqns, parseAll=True)
     except ParseException as p_exc:
         raise EquationError('Parsing failed: \n' + str(p_exc.line) + '\n' +
-                            ' ' * (p_exc.column - 1) + '^\n' + str(p_exc))
+                            ' ' * (p_exc.column - 1) + '^\n' + str(p_exc)) from p_exc
     for eq in parsed:
         eq_type = eq.getName()
         eq_content = dict(eq.items())
@@ -965,7 +965,7 @@ class Equations(Hashable, Mapping):
                                                   'defining variable %s:'
                                                   '\n%s') % (eq.varname,
                                                              ex.desc),
-                                                 *ex.dims)
+                                                 *ex.dims) from ex
             elif eq.type == SUBEXPRESSION:
                 try:
                     check_dimensions(str(eq.expr), self.dimensions[var],
@@ -975,7 +975,7 @@ class Equations(Hashable, Mapping):
                                                   'subexpression %s:'
                                                   '\n%s') % (eq.varname,
                                                              ex.desc),
-                                                 *ex.dims)
+                                                 *ex.dims) from ex
             else:
                 raise AssertionError('Unknown equation type: "%s"' % eq.type)
 

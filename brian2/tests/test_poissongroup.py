@@ -41,13 +41,16 @@ def test_rate_unit_check():
         PoissonGroup(1, np.array([1, 2])*ms)
     P = PoissonGroup(1, 'i*mV')
     net = Network(P)
-    with pytest.raises(DimensionMismatchError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
 
     P = PoissonGroup(1, 'i')
     net = Network(P)
-    with pytest.raises(DimensionMismatchError):
-        net.run(0 * ms)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms)
+        assert exc.errisinstance(DimensionMismatchError)
+
 
 @pytest.mark.standalone_compatible
 def test_time_dependent_rate():

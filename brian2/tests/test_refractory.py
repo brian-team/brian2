@@ -185,17 +185,21 @@ def test_refractoriness_threshold(ref_time):
 def test_refractoriness_types():
     # make sure that using a wrong type of refractoriness does not work
     group = NeuronGroup(1, '', refractory='3*Hz')
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(TypeError)
     group = NeuronGroup(1, 'ref: Hz', refractory='ref')
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(TypeError)
     group = NeuronGroup(1, '', refractory='3')
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(TypeError)
     group = NeuronGroup(1, 'ref: 1', refractory='ref')
-    with pytest.raises(TypeError):
+    with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
+        assert exc.errisinstance(TypeError)
 
 @pytest.mark.codegen_independent
 def test_conditional_write_set():

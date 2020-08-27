@@ -129,8 +129,9 @@ def test_spikegenerator_period_rounding():
     s = SpikeGeneratorGroup(1, [0, 0, 0], [0*ms, .9*ms, .96*ms],
                             period=1*ms, dt=0.1*ms)
     net = Network(s)
-    with pytest.raises(ValueError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(ValueError)
 
 
 def test_spikegenerator_period_repeat():
@@ -243,18 +244,21 @@ def test_spikegenerator_incorrect_period():
     # Period is not an integer multiple of dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1.25*ms, dt=0.1*ms)
     net = Network(SG)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=0.101 * ms, dt=0.1 * ms)
     net = Network(SG)
-    with pytest.raises(NotImplementedError):
-        net.run(0 * ms)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=3.333 * ms, dt=0.1 * ms)
     net = Network(SG)
-    with pytest.raises(NotImplementedError):
-        net.run(0 * ms)
+    with pytest.raises(BrianObjectException) as exc:
+        net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
 
     # This should not raise an error (see #1041)
     SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
@@ -264,8 +268,9 @@ def test_spikegenerator_incorrect_period():
     # Period is smaller than dt
     SG = SpikeGeneratorGroup(1, [], []*second, period=1*ms, dt=2*ms)
     net = Network(SG)
-    with pytest.raises(ValueError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(ValueError)
 
 
 def test_spikegenerator_rounding():
@@ -346,8 +351,9 @@ def test_spikegenerator_multiple_spikes_per_bin():
     # This should raise an error
     SG = SpikeGeneratorGroup(2, [0, 0], [0, 0.05]*ms, dt=0.1*ms)
     net = Network(SG)
-    with pytest.raises(ValueError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -355,8 +361,9 @@ def test_spikegenerator_multiple_spikes_per_bin():
     net = Network(SG)
     net.run(0*ms)  # all is fine
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
-    with pytest.raises(ValueError):
+    with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
+        assert exc.errisinstance(NotImplementedError)
 
 
 @pytest.mark.standalone_compatible

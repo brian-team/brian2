@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from brian2.core.base import brian_object_exception
+from brian2.core.base import BrianObjectException
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.core.variables import (DynamicArrayVariable, ArrayVariable,
                                    AuxiliaryVariable, Subexpression)
@@ -255,7 +255,7 @@ class NumpyCodeObject(CodeObject):
             _, _, tb = sys.exc_info()
             tb = tb.tb_next  # Line in the code object's code
             message += lines[tb.tb_lineno - 1] + '\n'
-            raise brian_object_exception(message, self.owner, exc)
+            raise BrianObjectException(message, self.owner) from exc
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:
             return self.namespace['_return_values']

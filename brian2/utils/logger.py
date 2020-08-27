@@ -14,6 +14,8 @@ import shutil
 import sys
 import tempfile
 import time
+import traceback
+
 from warnings import warn
 
 import numpy
@@ -61,7 +63,8 @@ if 'logging' not in prefs.pref_register:
             
             If set to ``True`` (the default), log files (and the copy of the main
             script) will be deleted after the brian process has exited, unless an
-            uncaught exception occured. If set to ``False``, all log files will be kept.
+            uncaught exception occurred. If set to ``False``, all log files will be
+            kept.
             ''',
             ),
         file_log_level=BrianPreference(
@@ -146,6 +149,14 @@ if 'logging' not in prefs.pref_register:
             set to ``False``.
             '''
             ),
+        display_brian_error_message=BrianPreference(
+            default=True,
+            docs='''
+            Whether to display a text for uncaught errors, mentioning the location
+            of the log file, the mailing list and the github issues.
+            
+            Defaults to ``True``.'''
+            )
         )
 
 #===============================================================================
@@ -171,7 +182,20 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
     # Do not catch Ctrl+C
     if exc_type == KeyboardInterrupt:
         return
+    logger = logging.getLogger('brian2')
     BrianLogger.exception_occured = True
+
+    if not prefs['logging.display_brian_error_message']:
+        # Put the exception message in the log file, but do not log to the
+        # console
+        if BrianLogger.console_handler is not None:
+            logger.removeHandler(BrianLogger.console_handler)
+        logger.exception("An exception occured",
+                         exc_info=(exc_type, exc_obj, exc_tb))
+        if BrianLogger.console_handler is not None:
+            logger.addHandler(BrianLogger.console_handler)
+        # Run the default except hook
+        return sys.__excepthook__(exc_type, exc_obj, exc_tb)
 
     message = UNHANDLED_ERROR_MESSAGE
     if BrianLogger.tmp_log is not None:
@@ -188,9 +212,7 @@ def brian_excepthook(exc_type, exc_obj, exc_tb):
                         stdout=std_silent.dest_fname_stdout,
                         stderr=std_silent.dest_fname_stderr)
     message += ' Thanks!'  # very important :)
-
-    logging.getLogger('brian2').error(message,
-                                      exc_info=(exc_type, exc_obj, exc_tb))
+    logger.error(message, exc_info=(exc_type, exc_obj, exc_tb))
 
 
 def clean_up_logging():
@@ -294,6 +316,9 @@ class BrianLogger(object):
     #: The `logging.FileHandler` responsible for logging to the temporary log
     #: file
     file_handler = None
+
+    #: The `logging.StreamHandler` responsible for logging to the console
+    console_handler = None
 
     #: The name of the temporary copy of the main script file (by default
     #: deleted after the run if no exception occurred), if any

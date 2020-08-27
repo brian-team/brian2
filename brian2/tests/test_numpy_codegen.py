@@ -15,12 +15,10 @@ def test_error_message():
 
     G = NeuronGroup(1, 'v : 1')
     G.run_regularly('v = foo(3)')
-    try:
+    with pytest.raises(BrianObjectException) as exc:
         run(defaultclock.dt)
-        raise AssertionError('Expected the run to raise a ValueError')
-    except ValueError as exc:
         # The actual code line should be mentioned in the error message
-        assert 'v = foo(3)' in str(exc)
+        exc.match('v = foo(3)')
 
 
 if __name__ == '__main__':
