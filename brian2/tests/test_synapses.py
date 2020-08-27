@@ -94,6 +94,14 @@ def test_connect_errors():
     with pytest.raises(SyntaxError):
         S.connect('sin(3, 4) > 1')
 
+    # Unit error in p argument
+    with pytest.raises(TypeError):
+        S.connect('1*mV')
+
+    # Syntax error in p argument
+    with pytest.raises(SyntaxError):
+        S.connect(p='sin(3, 4)')
+
 
 @pytest.mark.codegen_independent
 def test_name_clashes():

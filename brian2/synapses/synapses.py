@@ -29,7 +29,7 @@ from brian2.parsing.expressions import is_boolean_expression, parse_expression_d
 from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
 from brian2.stateupdaters.exact import linear, independent
-from brian2.units.fundamentalunits import (Quantity, DIMENSIONLESS,
+from brian2.units.fundamentalunits import (Quantity, DIMENSIONLESS, DimensionMismatchError,
                                            fail_for_dimension_mismatch)
 from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
@@ -1353,6 +1353,9 @@ class Synapses(Group):
                 else:
                     j = None
                     if isinstance(p, str):
+                        dim = parse_expression_dimensions(p, variables)
+                        if dim is not DIMENSIONLESS:
+                            raise DimensionMismatchError('Expression for p should be dimensionless.')
                         p_dep = self._expression_index_dependence(p, namespace=namespace)
                         if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
                             j = ('_k for _k in range(N_post) '
