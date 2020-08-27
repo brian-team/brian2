@@ -25,6 +25,7 @@ from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater,
                                        check_identifier_pre_post)
+from brian2.parsing.expressions import is_boolean_expression, parse_expression_dimensions
 from brian2.stateupdaters.base import (StateUpdateMethod,
                                        UnsupportedEquationsException)
 from brian2.stateupdaters.exact import linear, independent
@@ -1311,10 +1312,14 @@ class Synapses(Group):
             raise ValueError("Generator expression given for condition, write "
                              "connect(j='{condition}'...) instead of "
                              "connect('{condition}'...).".format(condition=condition))
-        # TODO: check if string expressions have the right types and return
-        # useful error messages
 
         self._connect_called = True
+
+        # Get namespace information and merge it with the variables
+        if namespace is None:
+            namespace = get_local_namespace(level=level + 2)
+        variables = dict(namespace)
+        variables.update(self.variables)
 
         # which connection case are we in?
         if condition is None and i is None and j is None:
@@ -1329,6 +1334,18 @@ class Synapses(Group):
                     return
                 if condition is True:
                     condition = 'True'
+                # Check that the condition is a boolean expresion
+                if not is_boolean_expression(condition, variables):
+                    raise TypeError(f'Condition \'{condition}\' is not a '
+                                    f'boolean condition')
+
+                # Check the units (mostly to check for unit consistency within the condition)
+                dims = parse_expression_dimensions(condition, variables)
+                if dims is not DIMENSIONLESS:
+                    # We should not get here normally
+                    raise TypeError(f'Condition \'{condition}\' is not a '
+                                    f'boolean condition')
+
                 condition = word_substitute(condition, {'j': '_k'})
                 if not isinstance(p, str) and p == 1:
                     j = ('_k for _k in range(N_post) '
@@ -1336,8 +1353,6 @@ class Synapses(Group):
                 else:
                     j = None
                     if isinstance(p, str):
-                        if namespace is None:
-                            namespace = get_local_namespace(level=level + 1)
                         p_dep = self._expression_index_dependence(p, namespace=namespace)
                         if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
                             j = ('_k for _k in range(N_post) '
