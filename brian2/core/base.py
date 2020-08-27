@@ -315,7 +315,7 @@ class BrianObjectException(Exception):
     def __str__(self):
         return ('Error encountered with object named "{objname}".\n'
                 '{objcreate}\n\n'
-                '{message}'
+                '{message} '
                 '(See above for original error message and traceback.)'
                 ).format(objname=self._brian_objname, message=self._brian_message,
                          objcreate=self._brian_objcreate)
