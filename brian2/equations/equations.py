@@ -901,14 +901,18 @@ class Equations(Hashable, Mapping):
         static_deps = {}
         for eq in self._equations.values():
             if eq.type == SUBEXPRESSION:
-                static_deps[eq.varname] = [dep for dep in eq.identifiers if
-                                           dep in self._equations and
-                                           self._equations[dep].type == SUBEXPRESSION]
-        
+                # "Constant over dt" subexpressions are implemented like parameters
+                # and can be considered as not depending on anything
+                if 'constant over dt' in eq.flags:
+                    static_deps[eq.varname] = []
+                else:
+                    static_deps[eq.varname] = [dep for dep in eq.identifiers if
+                                               dep in self._equations and
+                                               self._equations[dep].type == SUBEXPRESSION]
         try:
             sorted_eqs = topsort(static_deps)
         except ValueError:
-            raise ValueError('Cannot resolve dependencies between static '
+            raise ValueError('Cannot resolve dependencies between '
                              'equations, dependencies contain a cycle.')
 
         # put the equations objects in the correct order
