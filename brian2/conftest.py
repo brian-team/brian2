@@ -50,8 +50,8 @@ def fake_randn_randn_fixture():
 def setup_and_teardown(request):
     # Set preferences before each test
     import brian2
-    if hasattr(request.config, 'slaveinput'):
-        config = request.config.slaveinput
+    if hasattr(request.config, 'workerinput'):
+        config = request.config.workerinput
         for key, value in config['brian_prefs'].items():
             if isinstance(value, tuple) and value[0] == 'TYPE':
                 matches = re.match(r"<(type|class) 'numpy\.(.+)'>", value[1])
@@ -92,8 +92,8 @@ def setup_and_teardown(request):
 # for testing Brian2GeNN)
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    if hasattr(item.config, 'slaveinput'):
-        fail_for_not_implemented = item.config.slaveinput['fail_for_not_implemented']
+    if hasattr(item.config, 'workerinput'):
+        fail_for_not_implemented = item.config.workerinput['fail_for_not_implemented']
     else:
         fail_for_not_implemented = item.config.fail_for_not_implemented
     outcome = yield
