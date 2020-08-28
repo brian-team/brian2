@@ -66,10 +66,10 @@ class XDistPreferencePlugin(object):
         for k, v in prefs.items():
             if isinstance(v, type):
                 prefs[k] = ('TYPE', repr(v))
-        node.slaveinput['brian_prefs'] = prefs
-        node.slaveinput['fail_for_not_implemented'] = self._pref_plugin.fail_for_not_implemented
-        node.slaveinput['device'] = self._pref_plugin.device
-        node.slaveinput['device_options'] = self._pref_plugin.device_options
+        node.workerinput['brian_prefs'] = prefs
+        node.workerinput['fail_for_not_implemented'] = self._pref_plugin.fail_for_not_implemented
+        node.workerinput['device'] = self._pref_plugin.device
+        node.workerinput['device_options'] = self._pref_plugin.device_options
 
 
 def clear_caches():
