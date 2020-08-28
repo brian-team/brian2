@@ -208,13 +208,16 @@ class CythonCodeGenerator(CodeGenerator):
         kwds = self.determine_keywords()
         return sc_code, ve_code, kwds
 
-
-    def _add_user_function(self, varname, var):
+    def _add_user_function(self, varname, var, added):
         user_functions = []
         load_namespace = []
         support_code = []
         impl = var.implementations[self.codeobj_class]
-        func_code= impl.get_code(self.owner)
+        if (impl.name, var) in added:
+            return  # nothing to do
+        else:
+            added.add((impl.name, var))
+        func_code = impl.get_code(self.owner)
         # Implementation can be None if the function is already
         # available in Cython (possibly under a different name)
         if func_code is not None:
@@ -283,10 +286,12 @@ class CythonCodeGenerator(CodeGenerator):
             for dep_name, dep in impl.dependencies.items():
                 if dep_name not in self.variables:
                     self.variables[dep_name] = dep
-                    sc, ln, uf = self._add_user_function(dep_name, dep)
-                    dep_support_code.extend(sc)
-                    dep_load_namespace.extend(ln)
-                    dep_user_functions.extend(uf)
+                    user_func = self._add_user_function(dep_name, dep, added)
+                    if user_func is not None:
+                        sc, ln, uf = user_func
+                        dep_support_code.extend(sc)
+                        dep_load_namespace.extend(ln)
+                        dep_user_functions.extend(uf)
 
         return (support_code + dep_support_code,
                 dep_load_namespace + load_namespace,
@@ -300,6 +305,7 @@ class CythonCodeGenerator(CodeGenerator):
         support_code = []
         handled_pointers = set()
         user_functions = []
+        added = set()
         for varname, var in sorted(self.variables.items()):
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
                 load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
@@ -355,10 +361,12 @@ class CythonCodeGenerator(CodeGenerator):
                 handled_pointers.add(pointer_name)
 
             elif isinstance(var, Function):
-                sc, ln, uf = self._add_user_function(varname, var)
-                support_code.extend(sc)
-                load_namespace.extend(ln)
-                user_functions.extend(uf)
+                user_func = self._add_user_function(varname, var, added)
+                if user_func is not None:
+                    sc, ln, uf = user_func
+                    support_code.extend(sc)
+                    load_namespace.extend(ln)
+                    user_functions.extend(uf)
             else:
                 # fallback to Python object
                 load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
