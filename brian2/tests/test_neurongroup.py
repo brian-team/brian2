@@ -1667,7 +1667,7 @@ def test_random_values_fixed_and_random():
     assert all(abs((first_run_values[:, 0] - second_run_values[:, 0])) < 0.0001)
     # Increase in second time step should be different (random seed)
     assert all(abs((first_run_values[:, 1] - first_run_values[:, 0]) -
-                   (second_run_values[:, 1] - second_run_values[:, 0])) > 0.0001)
+                   (second_run_values[:, 1] - second_run_values[:, 0])) > 1e-6)
 
 
 @pytest.mark.codegen_independent
