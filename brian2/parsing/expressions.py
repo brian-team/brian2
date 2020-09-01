@@ -382,7 +382,8 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
             raise SyntaxError("Unsupported operation "+op,
                               ("<string>",
                                expr.lineno,
-                               expr.left.end_col_offset + 1,
+                               getattr(expr.left, 'end_col_offset',
+                                       len(NodeRenderer().render_node(expr.left))) + 1,
                                orig_expr)
                               )
         return u
