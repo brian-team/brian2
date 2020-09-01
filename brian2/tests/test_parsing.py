@@ -245,67 +245,72 @@ def test_is_boolean_expression():
 
 
 @pytest.mark.codegen_independent
-def test_parse_expression_unit():
+@pytest.mark.parametrize('expect,expr', [
+    (volt*amp, 'a+b*c'),
+    (DimensionMismatchError, 'a+b'),
+    (DimensionMismatchError, 'a<b'),
+    (1, 'a<b*c'),
+    (1, 'a or b'),
+    (1, 'not (a >= b*c)'),
+    (DimensionMismatchError, 'a or b<c'),
+    (1, 'a/(b*c)<1'),
+    (1, 'a/(a-a)'),
+    (1, 'a<mV*mA'),
+    (volt**2, 'b**2'),
+    (volt*amp, 'a%(b*c)'),
+    (volt, '-b'),
+    (1, '(a/a)**(a/a)'),
+    # Expressions involving functions
+    (volt, 'rand()*b'),
+    (volt**0.5, 'sqrt(b)'),
+    (volt, 'ceil(b)'),
+    (volt, 'sqrt(randn()*b**2)'),
+    (1, 'sin(b/b)'),
+    (DimensionMismatchError, 'sin(b)'),
+    (DimensionMismatchError, 'sqrt(b) + b'),
+    (SyntaxError, 'sqrt(b, b)'),
+    (SyntaxError, 'sqrt()'),
+    (SyntaxError, 'int(1, 2)'),
+])
+def test_parse_expression_unit(expect, expr):
     Var = namedtuple('Var', ['dim', 'dtype'])
     variables = {'a': Var(dim=(volt*amp).dim, dtype=np.float64),
                  'b': Var(dim=volt.dim, dtype=np.float64),
                  'c': Var(dim=amp.dim, dtype=np.float64)}
     group = SimpleGroup(namespace={}, variables=variables)
-    EE = [
-        (volt*amp, 'a+b*c'),
-        (DimensionMismatchError, 'a+b'),
-        (DimensionMismatchError, 'a<b'),
-        (1, 'a<b*c'),
-        (1, 'a or b'),
-        (1, 'not (a >= b*c)'),
-        (DimensionMismatchError, 'a or b<c'),
-        (1, 'a/(b*c)<1'),
-        (1, 'a/(a-a)'),
-        (1, 'a<mV*mA'),
-        (volt**2, 'b**2'),
-        (volt*amp, 'a%(b*c)'),
-        (volt, '-b'),
-        (1, '(a/a)**(a/a)'),
-        # Expressions involving functions
-        (volt, 'rand()*b'),
-        (volt**0.5, 'sqrt(b)'),
-        (volt, 'ceil(b)'),
-        (volt, 'sqrt(randn()*b**2)'),
-        (1, 'sin(b/b)'),
-        (DimensionMismatchError, 'sin(b)'),
-        (DimensionMismatchError, 'sqrt(b) + b'),
-        (SyntaxError, 'sqrt(b, b)'),
-        (SyntaxError, 'sqrt()'),
-        (SyntaxError, 'int(1, 2)'),
-        ]
-    for expect, expr in EE:
-        all_variables = {}
-        for name in get_identifiers(expr):
-            if name in variables:
-                all_variables[name] = variables[name]
-            else:
-                all_variables[name] = group._resolve(name, {})
-
-        if isinstance(expect, type) and issubclass(expect, Exception):
-            with pytest.raises(expect):
-                parse_expression_dimensions(expr, all_variables)
+    all_variables = {}
+    for name in get_identifiers(expr):
+        if name in variables:
+            all_variables[name] = variables[name]
         else:
-            u = parse_expression_dimensions(expr, all_variables)
-            assert have_same_dimensions(u, expect)
+            all_variables[name] = group._resolve(name, {})
 
-    wrong_expressions = ['a**b',
-                         'a << b',
-                         'int(True' # typo
-                        ]
-    for expr in wrong_expressions:
-        all_variables = {}
-        for name in get_identifiers(expr):
-            if name in variables:
-                all_variables[name] = variables[name]
-            else:
-                all_variables[name] = group._resolve(name, {})
-        with pytest.raises(SyntaxError):
+    if isinstance(expect, type) and issubclass(expect, Exception):
+        with pytest.raises(expect):
             parse_expression_dimensions(expr, all_variables)
+    else:
+        u = parse_expression_dimensions(expr, all_variables)
+        assert have_same_dimensions(u, expect)
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize('expr', ['a**b',
+                           'a << b',
+                           'int(True' # typo
+                           ])
+def test_parse_expression_unit_wrong_expressions(expr):
+    Var = namedtuple('Var', ['dim', 'dtype'])
+    variables = {'a': Var(dim=(volt*amp).dim, dtype=np.float64),
+                 'b': Var(dim=volt.dim, dtype=np.float64),
+                 'c': Var(dim=amp.dim, dtype=np.float64)}
+    all_variables = {}
+    group = SimpleGroup(namespace={}, variables=variables)
+    for name in get_identifiers(expr):
+        if name in variables:
+            all_variables[name] = variables[name]
+        else:
+            all_variables[name] = group._resolve(name, {})
+    with pytest.raises(SyntaxError):
+        parse_expression_dimensions(expr, all_variables)
 
 
 @pytest.mark.codegen_independent

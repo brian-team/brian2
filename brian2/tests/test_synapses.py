@@ -76,6 +76,33 @@ def test_creation_errors():
     with pytest.raises(TypeError):
         Synapses(G, G, 'w:1', post='v+=w', on_post='v+=w', connect=True)
 
+
+@pytest.mark.codegen_independent
+def test_connect_errors():
+    G = NeuronGroup(42, '')
+    S = Synapses(G, G)
+
+    # Not a boolean condition
+    with pytest.raises(TypeError):
+        S.connect('i*2')
+
+    # Unit error
+    with pytest.raises(DimensionMismatchError):
+        S.connect('i > 3*mV')
+
+    # Syntax error
+    with pytest.raises(SyntaxError):
+        S.connect('sin(3, 4) > 1')
+
+    # Unit error in p argument
+    with pytest.raises(TypeError):
+        S.connect('1*mV')
+
+    # Syntax error in p argument
+    with pytest.raises(SyntaxError):
+        S.connect(p='sin(3, 4)')
+
+
 @pytest.mark.codegen_independent
 def test_name_clashes():
     # Using identical names for synaptic and pre- or post-synaptic variables
