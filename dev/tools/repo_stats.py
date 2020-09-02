@@ -10,20 +10,19 @@ if API_TOKEN is None:
     raise ValueError('Need to specify an API token')
 
 p = Github(API_TOKEN)
-last_release = datetime.datetime(year=2018, month=11, day=20)
+last_release = datetime.datetime(year=2020, month=4, day=7)
 authors = []
 comments = p.get_repo('brian-team/brian2').get_issues_comments(since=last_release)
 comment_counter = 0
 for comment in comments:
     name = comment.user.name
     if name is None:
-        authors.append('`@{login} <https://github.com/{login}>`_'.format(login=comment.user.login.encode('utf-8'),
-                                                                         name=name))
+        authors.append('`@{login} <https://github.com/{login}>`_'.format(login=comment.user.login))
     else:
         authors.append(
             '{name} (`@{login} <https://github.com/{login}>`_)'.format(
-                login=comment.user.login.encode('utf-8'),
-                name=name.encode('utf-8')))
+                login=comment.user.login,
+                name=name))
     comment_counter += 1
 print('Counted {} comments'.format(comment_counter))
 
@@ -32,13 +31,12 @@ issue_counter = 0
 for issue in issues:
     name = issue.user.name
     if name is None:
-        authors.append('`@{login} <https://github.com/{login}>`_'.format(login=issue.user.login.encode('utf-8'),
-                                                                         name=name))
+        authors.append('`@{login} <https://github.com/{login}>`_'.format(login=issue.user.login))
     else:
         authors.append(
             '{name} (`@{login} <https://github.com/{login}>`_)'.format(
-                login=issue.user.login.encode('utf-8'),
-                name=name.encode('utf-8')))
+                login=issue.user.login,
+                name=name))
     issue_counter += 1
 print('Counted {} issues'.format(issue_counter))
 
