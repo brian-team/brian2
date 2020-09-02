@@ -1,12 +1,11 @@
 Release notes
 =============
 
-Next version
-------------
-
-New features
-~~~~~~~~~~~~
-TODO
+Brian 2.4
+---------
+This new release contains a large number of small improvements and bug fixes. We
+recommend all users of Brian 2 to upgrade. The biggest code change of this new version
+is that Brian is now Python-3 only (thanks to Ben Evans for working on this).
 
 Selected improvements and bug fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,20 +27,58 @@ Selected improvements and bug fixes
 * File locking (used to avoid problems when running multiple simulations in parallel) is now based on
   Benedikt Schmitt's `py-filelock <https://github.com/benediktschmitt/py-filelock>`_ package, which
   should hopefully make it more robust.
+* String expressions in `Synapses.connect` are now checked for syntactic correctness
+  before handing them over to the code generation process, improving error messages.
+  Thanks to Denis Alevi for making us aware of this issue. (:issue:`1224`)
+* Avoid duplicate messages in "chained" exceptions. Also introduces a new preference
+  `logging.display_brian_error_message` to switch off the "Brian 2 encountered an unexpected
+ error" message (:issue:`1196`).
+* Brian's unit system now correctly deals with matrix multiplication, including the
+  ``@`` operator (:issue:`1216`). Thanks to `@kjohnsen <https://github.com/kjohnsen>`_
+  for reporting this issue.
+* Avoid turning all integer numbers in equations into floating point values (:issue:`1202`).
+  Thanks to Marco K. for making us aware of this issue.
+
 
 Contributions
 ~~~~~~~~~~~~~
 Github code, documentation, and issue contributions (ordered by the number of
 contributions):
 
-TODO
-
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Ben Evans (`@bdevans <https://github.com/bdevans>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* Rike-Benjamin Schuppner (`@Debilski <https://github.com/Debilski>`_)
+* Syed Osama Hussain (`@Syed-Osama-Hussain <https://github.com/Syed-Osama-Hussain>`_)
+* VigneswaranC (`@Vigneswaran-Chandrasekaran <https://github.com/Vigneswaran-Chandrasekaran>`_)
+* Tushar (`@smalltimer <https://github.com/smalltimer>`_)
+* Felix Hoffmann (`@felix11h <https://github.com/felix11h>`_)
+* Rahul Kumar Gupta (`@rahuliitg <https://github.com/rahuliitg>`_)
+* Dominik Spicher (`@dspicher <https://github.com/dspicher>`_)
+* `@nfzd <https://github.com/nfzd>`_
+* `@Snow-Crash <https://github.com/Snow-Crash>`_
+* `@cnjackhu <https://github.com/cnjackhu>`_
+* `@neurologic <https://github.com/neurologic>`_
+* `@kjohnsen <https://github.com/kjohnsen>`_
+* Ashwin Viswanathan Kannan (`@ashwin4ever <https://github.com/ashwin4ever>`_)
+* Bhuwan Chandra (`@zeph1yr <https://github.com/zeph1yr>`_)
+* Wilhelm Braun (`@wilhelmbraun <https://github.com/wilhelmbraun>`_)
+* `@cortical-iv <https://github.com/cortical-iv>`_
+* Eugen Skrebenkov (`@shcecter <https://github.com/shcecter>`_)
+* `@Aman-A <https://github.com/Aman-A>`_
+* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
+* Francesco Battaglia (`@fpbattaglia <https://github.com/fpbattaglia>`_)
+* Shivam Chitnis (`@shivChitinous <https://github.com/shivChitinous>`_)
+* Marco K. (`@spokli <https://github.com/spokli>`_)
+* `@jcmharry <https://github.com/jcmharry>`_
+* Friedemann Zenke (`@fzenke <https://github.com/fzenke>`_)
+* `@Adam-Antios <https://github.com/Adam-Antios>`_
 
 Other contributions outside of github (ordered alphabetically, apologies to
 anyone we forgot...):
 
 * Andrew Brughera
-* Wilhelm Braun
 * William Xavier
 
 
