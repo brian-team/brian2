@@ -32,7 +32,7 @@ Selected improvements and bug fixes
   Thanks to Denis Alevi for making us aware of this issue. (:issue:`1224`)
 * Avoid duplicate messages in "chained" exceptions. Also introduces a new preference
   `logging.display_brian_error_message` to switch off the "Brian 2 encountered an unexpected
- error" message (:issue:`1196`).
+  error" message (:issue:`1196`).
 * Brian's unit system now correctly deals with matrix multiplication, including the
   ``@`` operator (:issue:`1216`). Thanks to `@kjohnsen <https://github.com/kjohnsen>`_
   for reporting this issue.
