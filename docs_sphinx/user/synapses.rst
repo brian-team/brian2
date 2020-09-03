@@ -239,10 +239,30 @@ The ``N_incoming`` and ``N_outgoing`` variables give access to the
 total number of incoming/outgoing synapses for a neuron, but this access is given
 for each *synapse*. This is necessary to apply it to individual synapses as in
 the statement to normalize synaptic weights mentioned above. To access these
-values per *neuron* instead, `.Synapses.N_incoming_post` and
-`.Synapses.N_outgoing_pre` can be used. Note that synaptic equations or
+values per *neuron* instead, `~.Synapses.N_incoming_post` and
+`~.Synapses.N_outgoing_pre` can be used. Note that synaptic equations or
 ``on_pre``/``on_post`` statements should always refer to ``N_incoming`` and
 ``N_outgoing`` without ``pre``/``post`` suffix.
+
+Here's a little example illustrating the use of these variables::
+
+    >>> group1 = NeuronGroup(3, '')
+    >>> group2 = NeuronGroup(3, '')
+    >>> syn = Synapses(group1, group2)
+    >>> syn.connect(i=[0, 0, 1, 2], j=[1, 2, 2, 2])
+    >>> print(syn.N_outgoing_pre)  # for each presynaptic neuron
+    [2 1 1]
+    >>> print(syn.N_outgoing[:])  # same numbers, but indexed by synapse
+    [2 2 1 1]
+    >>> print(syn.N_incoming_post)
+    [0 1 3]
+    >>> print(syn.N_incoming[:])
+    [1 3 3 3]
+
+Note that `~.Synapses.N_incoming_post` and `~.Synapses.N_outgoing_pre` can contain zeros for neurons
+that do not have any incoming respectively outgoing synapses. In contrast, `~.Synapses.N_incoming`
+and `~.Synapses.N_outgoing` will never contain zeros, because unconnected neurons are not represented
+in the list of synapses.
 
 Delays
 ------
