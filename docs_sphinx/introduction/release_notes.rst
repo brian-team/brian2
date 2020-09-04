@@ -38,7 +38,9 @@ Selected improvements and bug fixes
   for reporting this issue.
 * Avoid turning all integer numbers in equations into floating point values (:issue:`1202`).
   Thanks to Marco K. for making us aware of this issue.
-
+* New attributes `.Synapses.N_outgoing_pre` and `.Synapses.N_incoming_post` to access
+  the number of synapses per pre-/post-synaptic cell (see
+  :ref:`accessing_synaptic_variables` for details; :issue:`1225`)
 
 Contributions
 ~~~~~~~~~~~~~
