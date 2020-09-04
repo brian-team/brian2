@@ -491,6 +491,8 @@ class SynapticSubgroup(object):
                                 'synaptic subgroup has been created'))
         return self._stored_indices
 
+    def __len__(self):
+        return len(self._stored_indices)
 
     def __repr__(self):
         return '<%s, storing %d indices of %s>' % (self.__class__.__name__,
@@ -941,6 +943,13 @@ class Synapses(Group):
 
         # Activate name attribute access
         self._enable_group_attributes()
+
+    N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
+                              doc='The number of outgoing synapses for each neuron in the '
+                                  'pre-synaptic group.')
+    N_incoming_post = property(fget=lambda self: self.variables['N_incoming'].get_value(),
+                               doc='The number of incoming synapses for each neuron in the '
+                                   'post-synaptic group.')
 
     def __getitem__(self, item):
         indices = self.indices[item]
