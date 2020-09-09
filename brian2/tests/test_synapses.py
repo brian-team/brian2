@@ -2644,6 +2644,22 @@ def test_synaptic_subgroups():
     assert connections == {(1, 0), (1, 1), (2, 0), (2, 1)}
 
 
+@pytest.mark.codegen_independent
+def test_incorrect_connect_N_incoming_outgoing():
+    # See github issue #1227
+    source = NeuronGroup(5, '')
+    target = NeuronGroup(3, '')
+    syn = Synapses(source, target)
+
+    with pytest.raises(ValueError) as ex:
+        syn.connect('N_incoming < 5')
+        assert 'N_incoming' in str(ex)
+
+    with pytest.raises(ValueError) as ex:
+        syn.connect('N_outgoing < 5')
+        assert 'N_outgoing' in str(ex)
+
+
 if __name__ == '__main__':
     SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE = True
     from brian2 import prefs
@@ -2740,4 +2756,5 @@ if __name__ == '__main__':
     test_missing_lastupdate_error_syn_pathway()
     test_missing_lastupdate_error_run_regularly()
     test_synaptic_subgroups()
+    test_incorrect_connect_N_incoming_outgoing()
     print('Tests took', time.time()-start)

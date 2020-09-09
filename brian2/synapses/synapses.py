@@ -1630,6 +1630,14 @@ class Synapses(Group):
         parsed = parse_synapse_generator(j)
         self._check_parsed_synapses_generator(parsed, namespace)
 
+        # Referring to N_incoming/N_outgoing in the connect statement is
+        # ill-defined (see github issue #1227)
+        identifiers = get_identifiers_recursively([j], self.variables)
+        for var in ['N_incoming', 'N_outgoing']:
+            if var in identifiers:
+                raise ValueError(f'The connect statement cannot refer to '
+                                 f'\'{var}\'.')
+
         template_kwds, needed_variables = self._get_multisynaptic_indices()
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
