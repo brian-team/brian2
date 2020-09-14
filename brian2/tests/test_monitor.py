@@ -133,9 +133,8 @@ def test_spike_monitor_subgroups():
     spikes_2 = SpikeMonitor(G[2:4])
     spikes_3 = SpikeMonitor(G[4:])
     spikes_indexed = SpikeMonitor(G[::2])
-    with catch_logs() as l:
-        spikes_indexed_unsorted = SpikeMonitor(G[[4, 0, 2]])  # This should not make a difference
-    assert len(l) == 1 and l[0][1].endswith('.unsorted_subgroup_indices')
+    with pytest.raises(TypeError):
+        SpikeMonitor(G[[4, 0, 2]])  # unsorted
     run(defaultclock.dt)
     # Spikes
     assert_allclose(spikes_all.i, [0, 4, 5])
@@ -148,15 +147,12 @@ def test_spike_monitor_subgroups():
     assert_allclose(spikes_3.t, [0, 0] * ms)
     assert_allclose(spikes_indexed.i, [0, 2])
     assert_allclose(spikes_indexed.t, [0, 0]*ms)
-    assert_allclose(spikes_indexed_unsorted.i, [0, 2])
-    assert_allclose(spikes_indexed_unsorted.t, [0, 0]*ms)
     # Spike count
     assert_allclose(spikes_all.count, [1, 0, 0, 0, 1, 1])
     assert_allclose(spikes_1.count, [1, 0])
     assert_allclose(spikes_2.count, [0, 0])
     assert_allclose(spikes_3.count, [1, 1])
     assert_allclose(spikes_indexed.count, [1, 0, 1])
-    assert_allclose(spikes_indexed_unsorted.count, [1, 0, 1])
 
 
 def test_spike_monitor_bug_824():

@@ -56,7 +56,7 @@ def to_start_stop_or_index(item, group, level=0):
     (3, 6, None)
     >>> to_start_stop_or_index([3, 5, 7], group)  # doctest: +ELLIPSIS
     (None, None, array([3, 5, 7]...))
-    >>> to_start_stop_or_index([-1, -2, -3], group)
+    >>> to_start_stop_or_index([-3, -2, -1], group)
     (7, 10, None)
     '''
     start = stop = None
@@ -66,10 +66,7 @@ def to_start_stop_or_index(item, group, level=0):
         indices = np.array([indices])
 
     if not np.all(indices[:-1] <= indices[1:]):
-        logger.warn('The indices provided to create the subgroup were '
-                    'not sorted. They will be sorted before use.',
-                    name_suffix='unsorted_subgroup_indices')
-        indices.sort()
+        raise TypeError('Subgroups can only be created from ordered indices.')
     if not len(indices) > 0:
         raise IndexError('Cannot create an empty subgroup')
 

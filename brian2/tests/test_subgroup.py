@@ -683,7 +683,7 @@ def test_spike_monitor():
 @pytest.mark.codegen_independent
 @pytest.mark.parametrize('item', [slice(10, None), slice(3, 2),
                                   [9, 10], [10, 11], [2.5, 3.5, 4.5],
-                                  [5, 5, 5], []])
+                                  [5, 5, 5], [], [5, 4, 3]])
 def test_wrong_indexing(item):
     G = NeuronGroup(10, 'v:1')
     with pytest.raises((TypeError, IndexError)):
@@ -696,7 +696,6 @@ def test_wrong_indexing(item):
                                            (3, np.array([3])),
                                            ([3, 4, 5], np.array([3, 4, 5])),
                                            ([3, 5, 7], np.array([3, 5, 7])),
-                                           ([7, 5, 3], np.array([3, 5, 7])),
                                            ([3, -1], np.array([3, 9]))])
 def test_alternative_indexing(item, expected):
     G = NeuronGroup(10, 'v : integer')
