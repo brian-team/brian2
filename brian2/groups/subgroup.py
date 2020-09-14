@@ -46,12 +46,12 @@ def to_start_stop_or_index(item, group, level=0):
     (3, 10, None)
     >>> to_start_stop_or_index(5, group)
     (5, 6, None)
-    >>> to_start_stop_or_index(slice(None, None, 2), group)
-    (None, None, array([0, 2, 4, 6, 8]))
+    >>> to_start_stop_or_index(slice(None, None, 2), group)  # doctest: +ELLIPSIS
+    (None, None, array([0, 2, 4, 6, 8]...))
     >>> to_start_stop_or_index([3, 4, 5], group)
     (3, 6, None)
-    >>> to_start_stop_or_index([3, 5, 7], group)
-    (None, None, array([3, 5, 7]))
+    >>> to_start_stop_or_index([3, 5, 7], group)  # doctest: +ELLIPSIS
+    (None, None, array([3, 5, 7]...))
     >>> to_start_stop_or_index([-1, -2, -3], group)
     (7, 10, None)
     """
