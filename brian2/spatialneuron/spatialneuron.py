@@ -605,7 +605,7 @@ class SpatialStateUpdater(CodeRunner, Group):
         super(SpatialStateUpdater, self).before_run(run_namespace)
         # Raise a warning if the slow pure numpy version is used
         from brian2.codegen.runtime.numpy_rt.numpy_rt import NumpyCodeObject
-        if isinstance(self.code_objects[0], NumpyCodeObject):
+        if type(self.code_objects[0]) == NumpyCodeObject:
             # If numpy is used, raise a warning if scipy is not present
             try:
                 import scipy
