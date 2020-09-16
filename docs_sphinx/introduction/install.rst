@@ -42,9 +42,9 @@ https://docs.anaconda.com/anaconda/user-guide/tasks/integration
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
 .. note::
-    The provided Brian 2 packages are only for 64bit systems. If you want to
-    install Brian 2 in a 32bit environment, please use the
-    :ref:`installation_from_source` instead.
+    The provided Brian 2 packages are only for 64bit systems. Operating systems running
+    32bit are no longer officially supported, but :ref:`installation_from_source` might
+    still work.
 
 You can either install Brian 2 in the Anaconda root environment, or create a
 new environment for Brian 2 (https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
