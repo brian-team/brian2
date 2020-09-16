@@ -1,0 +1,27 @@
+steps:
+  - bash: echo "##vso[task.prependpath]$CONDA/Scripts"
+    displayName: Add conda to PATH
+    condition: eq(variables['agent.os'], 'Windows_NT')
+  - bash: echo "##vso[task.prependpath]$CONDA/bin"
+    displayName: Add conda to PATH
+    condition: in(variables['agent.os'], 'Darwin', 'Linux')
+  - bash: sudo chown -R $USER $CONDA
+    displayName: Take ownership of conda directory
+    condition: eq(variables['agent.os'], 'Darwin')
+
+  - bash: |
+      conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=$(python.version) pip pytest
+    displayName: 'Setup conda environment'
+
+  - bash: |
+      source activate $HOME/test_env
+      conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl
+      pip install .
+    displayName: 'Install Brian2'
+
+  - bash: |
+      source activate $HOME/test_env
+      SOURCE_PATH=$(pwd)
+      cd ..  # move out of the source directory to avoid direct import
+      python $SOURCE_PATH/$(script_name)
+    displayName: 'Run tests'
