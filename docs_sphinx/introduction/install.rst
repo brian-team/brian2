@@ -71,11 +71,11 @@ packages as any other Anaconda package::
 Installing other useful packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 There are various packages that are useful but not necessary for working with
-Brian. These include: matplotlib_ (for plotting), nose_ (for running the test
+Brian. These include: matplotlib_ (for plotting), pytest_ (for running the test
 suite), ipython_ and jupyter_-notebook (for an interactive console). To install
 them from anaconda, simply do::
 
-    conda install matplotlib nose ipython notebook
+    conda install matplotlib pytest ipython notebook
 
 You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
@@ -162,7 +162,7 @@ Another option is to use ``pip`` to directly install from github::
 Testing Brian
 -------------
 
-If you have the nose_ testing utility installed, you can run Brian's test
+If you have the pytest_ testing utility installed, you can run Brian's test
 suite::
 
     import brian2
@@ -178,5 +178,5 @@ failures. For more control about the tests that are run see the
 .. _brian2tools: https://brian2tools.readthedocs.io
 .. _travis: https://travis-ci.org/brian-team/brian2
 .. _azure: https://azure.microsoft.com/en-us/services/devops/pipelines/
-.. _nose: https://pypi.python.org/pypi/nose
+.. _pytest: https://docs.pytest.org/en/stable/
 .. _Cython: http://cython.org/

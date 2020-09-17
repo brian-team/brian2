@@ -1,5 +1,5 @@
 '''
-Run all the Cython tests (including tests that take a long time) using nose.
+Run all the Cython tests (including tests that take a long time) using pytest.
 Exits with error code 1 if a test failed.
 '''
 import sys
