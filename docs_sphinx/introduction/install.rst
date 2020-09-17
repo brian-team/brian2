@@ -9,7 +9,7 @@ We recommend users to use the `Anaconda distribution <https://www.anaconda.com/d
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
 they don't have to be build from the source code at your machine. Furthermore,
-our automatic testing on the continuous integration services travis_ and appveyor_
+our automatic testing on the continuous integration services travis_ and azure_
 are based on Anaconda, we are therefore confident that it works under this
 configuration.
 
@@ -177,6 +177,6 @@ failures. For more control about the tests that are run see the
 .. _jupyter: http://jupyter.org/
 .. _brian2tools: https://brian2tools.readthedocs.io
 .. _travis: https://travis-ci.org/brian-team/brian2
-.. _appveyor: https://ci.appveyor.com/project/brianteam/brian2
+.. _azure: https://azure.microsoft.com/en-us/services/devops/pipelines/
 .. _nose: https://pypi.python.org/pypi/nose
 .. _Cython: http://cython.org/
