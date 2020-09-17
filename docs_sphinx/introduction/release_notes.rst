@@ -1,6 +1,21 @@
 Release notes
 =============
 
+Next release
+------------
+TODO
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Brian no longer officially supports installation on 32bit operating systems.
+  Installation via ``pip`` will probably still work, but we are no longer testing this
+  configuration (:issue:`1232`).
+* Automatic continuous integration tests for Windows now use the
+  `Microsoft Azure Pipeline <https://azure.microsoft.com/en-us/services/devops/pipelines/>`_
+  infrastructure instead of `Appveyor <https://www.appveyor.com/>`_. This should speed
+  up tests by running different configurations in parallel.
+
+
 Brian 2.4
 ---------
 This new release contains a large number of small improvements and bug fixes. We

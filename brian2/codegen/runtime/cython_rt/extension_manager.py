@@ -27,7 +27,6 @@ try:
 except ImportError:
     Cython = None
 
-from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.utils.logger import std_silent, get_logger
 from brian2.utils.stringtools import deindent
 from brian2.utils.filelock import FileLock
@@ -218,9 +217,6 @@ class CythonExtensionManager(object):
             with open(pyx_file, 'w') as f:
                 f.write(code)
 
-            update_for_cross_compilation(library_dirs,
-                                         extra_compile_args,
-                                         extra_link_args, logger=logger)
             for source in sources:
                 if not source.lower().endswith('.pyx'):
                     raise ValueError('Additional Cython source files need to '

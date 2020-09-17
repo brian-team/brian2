@@ -7,7 +7,6 @@ from collections import namedtuple
 import pytest
 import numpy as np
 
-from brian2.codegen.cpp_prefs import update_for_cross_compilation
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
