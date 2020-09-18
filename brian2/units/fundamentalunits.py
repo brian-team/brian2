@@ -2312,6 +2312,27 @@ def check_units(**au):
     ...
     TypeError: Function "is_high" expected a boolean value for argument "absolute" but got 4.
 
+    If the return unit depends on the unit of an argument, you can also pass
+    a function that takes the units of all the arguments as its inputs (in the
+    order specified in the function header):
+    >>> @check_units(result=lambda d: d**2)
+    ... def square(value):
+    ...     return value**2
+
+    If several arguments take arbitrary units but they have to be
+    consistent among each other, you can assign them a common string:
+    >>> @check_units(summand_1='s', summand_2='s')
+    ... def multiply_sum(multiplicand, summand_1, summand_2):
+    ...     '''Calculates multiplicand*(summand_1 + summand_2)'''
+    ...     return multiplicand*(summand_1 + summand_2)
+    >>> multiply_sum(3, 4*mV, 5*mV)
+    27. * mvolt
+    >>> multiply_sum(3*nA, 4*mV, 5*mV)
+    27. * pwatt
+    >>> multiply_sum(3*nA, 4*mV, 5*nA)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    ...
+    brian2.units.fundamentalunits.DimensionMismatchError: Function 'multiply_sum' expected the same arguments for arguments 'summand_1', 'summand_2', but argument 'summand_1' has unit V, while argument 'summand_2' has unit A.
     Raises
     ------
 
@@ -2362,7 +2383,8 @@ def check_units(**au):
                 # name another variable. None is also allowed, useful for
                 # default parameters
                 if (k in au and not isinstance(newkeyset[k], str) and
-                        not newkeyset[k] is None):
+                        not newkeyset[k] is None and
+                        not isinstance(au[k], str)):
 
                     if au[k] == bool:
                         if not isinstance(newkeyset[k], bool):
@@ -2381,6 +2403,27 @@ def check_units(**au):
                                                            value=newkeyset[k])
                         raise DimensionMismatchError(error_message,
                                                      get_dimensions(newkeyset[k]))
+
+            # Arguments that need to have the same units
+            argument_sets = {s: sorted(k for k in newkeyset
+                                       if au.get(k, None) == s)
+                             for s in {a for a in au.values()
+                                       if isinstance(a, str)}}
+            for arguments in argument_sets.values():
+                d1 = get_dimensions(newkeyset[arguments[0]])
+                for other_argument in arguments[1:]:
+                    d2 = get_dimensions(newkeyset[other_argument])
+                    if not have_same_dimensions(d1, d2):
+                        arguments_str = ", ".join({f'\'{a}\''
+                                                   for a in sorted(arguments)})
+                        error_message = (f'Function \'{f.__name__}\' expected '
+                                         f'the ' 'same arguments for arguments '
+                                         f'{arguments_str}, but '
+                                         f'argument \'{arguments[0]}\' has '
+                                         f'unit {get_unit_for_display(d1)}, '
+                                         f'while argument \'{other_argument}\' '
+                                         f'has unit {get_unit_for_display(d2)}.')
+                        raise DimensionMismatchError(error_message)
 
             result = f(*args, **kwds)
             if 'result' in au:
@@ -2407,23 +2450,11 @@ def check_units(**au):
         new_f.__name__ = f.__name__
         # store the information in the function, necessary when using the
         # function in expressions or equations
-        arg_units = []
-        all_specified = True
         if hasattr(f, '_orig_arg_names'):
             arg_names = f._orig_arg_names
         else:
             arg_names = f.__code__.co_varnames[:f.__code__.co_argcount]
-        for name in arg_names:
-            unit = au.get(name, None)
-            if unit is None:
-                all_specified = False
-                break
-            else:
-                arg_units.append(unit)
-        if all_specified:
-            new_f._arg_units = arg_units
-        else:
-            new_f._arg_units = None
+        new_f._arg_units = [au.get(name, None) for name in arg_names]
         return_unit = au.get('result', None)
         if return_unit is None:
             new_f._return_unit = None
