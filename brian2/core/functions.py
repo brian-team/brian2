@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 import inspect
 import types
+from typing import Callable
 
 import numpy as np
 import sympy
@@ -389,13 +390,17 @@ class FunctionImplementationContainer(Mapping):
                                                         len(arg_units)))
                 new_args = []
                 for arg, arg_unit in zip(args, arg_units):
-                    if arg_unit == bool:
+                    if arg_unit == bool or arg_unit is None or isinstance(arg_unit, str):
                         new_args.append(arg)
                     else:
                         new_args.append(Quantity.with_dimensions(arg,
                                                                  get_dimensions(arg_unit)))
                 result = orig_func(*new_args)
-                return_unit = self._function._return_unit
+                if isinstance(self._function._return_unit, Callable):
+                    return_unit = self._function._return_unit(*[get_dimensions(a)
+                                                                for a in args])
+                else:
+                    return_unit = self._function._return_unit
                 if return_unit == bool:
                     if not (isinstance(result, bool) or
                             np.asarray(result).dtype == bool):
