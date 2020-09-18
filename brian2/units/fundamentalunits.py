@@ -2294,6 +2294,7 @@ def check_units(**au):
 
     You can also use ``1`` or ``bool`` as a special value to check for a
     unitless number or a boolean value, respectively:
+
     >>> @check_units(value=1, absolute=bool, result=bool)
     ... def is_high(value, absolute=False):
     ...     if absolute:
@@ -2303,6 +2304,7 @@ def check_units(**au):
 
     This will then again raise an error if the argument if not of the expected
     type:
+
     >>> is_high(7)
     True
     >>> is_high(-7, True)
@@ -2315,12 +2317,14 @@ def check_units(**au):
     If the return unit depends on the unit of an argument, you can also pass
     a function that takes the units of all the arguments as its inputs (in the
     order specified in the function header):
+
     >>> @check_units(result=lambda d: d**2)
     ... def square(value):
     ...     return value**2
 
     If several arguments take arbitrary units but they have to be
     consistent among each other, you can assign them a common string:
+
     >>> @check_units(summand_1='s', summand_2='s')
     ... def multiply_sum(multiplicand, summand_1, summand_2):
     ...     '''Calculates multiplicand*(summand_1 + summand_2)'''
@@ -2333,6 +2337,7 @@ def check_units(**au):
     Traceback (most recent call last):
     ...
     brian2.units.fundamentalunits.DimensionMismatchError: Function 'multiply_sum' expected the same arguments for arguments 'summand_1', 'summand_2', but argument 'summand_1' has unit V, while argument 'summand_2' has unit A.
+
     Raises
     ------
 
