@@ -891,6 +891,7 @@ class Group(VariableOwner, BrianObject):
         if callable(resolved) and not isinstance(resolved, Function):
             resolved = Function(resolved,
                                 arg_units=getattr(resolved, '_arg_units', None),
+                                arg_names=getattr(resolved, '_arg_names', None),
                                 return_unit=getattr(resolved, '_return_unit', None),
                                 stateless=getattr(resolved, 'stateless', False))
 
