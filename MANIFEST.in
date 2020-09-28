@@ -1,5 +1,3 @@
-include ez_setup.py
-
 # Include documentation
 include docs_sphinx/conf.py
 include docs_sphinx/_static/brian-logo.png
@@ -10,6 +8,17 @@ prune docs_sphinx/resources
 
 # Include examples (but not tutorials)
 recursive-include examples *.py
+prune tutorials
+
+# Remove development scripts
+prune dev
 
 # Include license file in source tarball
 include LICENSE
+
+# Exclude configuration files
+global-exclude .gitignore
+exclude *.yml
+exclude .coveragerc
+exclude .gitattributes
+exclude .gitmodules
