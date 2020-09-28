@@ -5,6 +5,12 @@ Next release
 ------------
 TODO
 
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* The `check_units` decorator can now express that some arguments need to have the same
+  units. This mechanism is now used to check the units of the `clip` function
+  (:issue:``). Thanks to Felix Kern for notifying us of this issue.
+
 Infrastructure and documentation improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * Brian no longer officially supports installation on 32bit operating systems.
@@ -15,6 +21,10 @@ Infrastructure and documentation improvements
   infrastructure instead of `Appveyor <https://www.appveyor.com/>`_. This should speed
   up tests by running different configurations in parallel.
 
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Felix B. Kern
 
 Brian 2.4
 ---------
