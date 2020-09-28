@@ -126,12 +126,14 @@ class Function(object):
     `~brian2.codegen.functions.add_implementations` function.
     '''
     def __init__(self, pyfunc, sympy_func=None,
-                 arg_units=None, return_unit=None,
+                 arg_units=None, arg_names=None,
+                 return_unit=None,
                  arg_types=None, return_type=None,
                  stateless=True, auto_vectorise=False):
         self.pyfunc = pyfunc
         self.sympy_func = sympy_func
         self._arg_units = arg_units
+        self._arg_names = arg_names
         self._return_unit = return_unit
         if return_unit == bool:
             self._returns_bool = True
@@ -155,6 +157,15 @@ class Function(object):
                                   'arguments.') % pyfunc.__name__)
             else:
                 self._arg_units = pyfunc._arg_units
+        else:
+            if any(isinstance(u, str) for u in self._arg_units):
+                if self._arg_names is None:
+                    raise TypeError('Need to specify the names of the '
+                                    'arguments.')
+                if len(self._arg_names) != len(self._arg_units):
+                    raise TypeError(f'arg_names and arg_units need to have the '
+                                    f'same length ({len(self._arg_names)} != '
+                                    f'({len(self._arg_units)})')
 
         if self._return_unit is None:
             if not hasattr(pyfunc, '_return_unit'):
@@ -728,7 +739,9 @@ DEFAULT_FUNCTIONS = {
     'randn': Function(pyfunc=randn, arg_units=[], return_unit=1, stateless=False, auto_vectorise=True),
     'poisson': Function(pyfunc=np.random.poisson, arg_units=[1], return_unit=1, return_type='integer',
                         stateless=False, auto_vectorise=True),
-    'clip': Function(pyfunc=np.clip, arg_units=['same', 'same', 'same'],
+    'clip': Function(pyfunc=np.clip,
+                     arg_units=[None, 'a', 'a'],
+                     arg_names=['a', 'a_min', 'a_max'],
                      return_type='highest',
                      return_unit=lambda u1, u2, u3: u1),
     'int': Function(pyfunc=np.int_, return_type='integer',

@@ -18,6 +18,7 @@ Luminosity             candle    cd
 
 import numbers
 import collections
+from typing import Callable
 from warnings import warn
 import operator
 import itertools
@@ -2323,9 +2324,10 @@ def check_units(**au):
     ...     return value**2
 
     If several arguments take arbitrary units but they have to be
-    consistent among each other, you can assign them a common string:
+    consistent among each other, you can state the name of another argument as
+    a string to state that it uses the same unit as that argument.
 
-    >>> @check_units(summand_1='s', summand_2='s')
+    >>> @check_units(summand_1=None, summand_2='summand_1')
     ... def multiply_sum(multiplicand, summand_1, summand_2):
     ...     '''Calculates multiplicand*(summand_1 + summand_2)'''
     ...     return multiplicand*(summand_1 + summand_2)
@@ -2389,7 +2391,7 @@ def check_units(**au):
                 # default parameters
                 if (k in au and not isinstance(newkeyset[k], str) and
                         not newkeyset[k] is None and
-                        not isinstance(au[k], str)):
+                        not au[k] is None):
 
                     if au[k] == bool:
                         if not isinstance(newkeyset[k], bool):
@@ -2399,6 +2401,26 @@ def check_units(**au):
                                              '{value}').format(f=f, k=k,
                                                                value=newkeyset[k])
                             raise TypeError(error_message)
+                    elif isinstance(au[k], str):
+                        if not au[k] in newkeyset:
+                            error_message = ('Function "{f.__name__}" '
+                                             'expected its argument to have the '
+                                             'same units as argument "{k}", but '
+                                             'there is no argument of that '
+                                             'name').format(f=f, k=k)
+                            raise TypeError(error_message)
+                        if not have_same_dimensions(newkeyset[k], newkeyset[au[k]]):
+                            d1 = get_dimensions(newkeyset[k])
+                            d2 = get_dimensions(newkeyset[au[k]])
+                            error_message = (
+                                f'Function \'{f.__name__}\' expected '
+                                f'the argument \'{k}\' to have the same '
+                                f'units as argument \'{au[k]}\', but '
+                                f'argument \'{k}\' has '
+                                f'unit {get_unit_for_display(d1)}, '
+                                f'while argument \'{au[k]}\' '
+                                f'has unit {get_unit_for_display(d2)}.')
+                            raise DimensionMismatchError(error_message)
                     elif not have_same_dimensions(newkeyset[k], au[k]):
                         error_message = ('Function "{f.__name__}" '
                                          'expected a quantitity with unit '
@@ -2409,43 +2431,27 @@ def check_units(**au):
                         raise DimensionMismatchError(error_message,
                                                      get_dimensions(newkeyset[k]))
 
-            # Arguments that need to have the same units
-            argument_sets = {s: sorted(k for k in newkeyset
-                                       if au.get(k, None) == s)
-                             for s in {a for a in au.values()
-                                       if isinstance(a, str)}}
-            for arguments in argument_sets.values():
-                d1 = get_dimensions(newkeyset[arguments[0]])
-                for other_argument in arguments[1:]:
-                    d2 = get_dimensions(newkeyset[other_argument])
-                    if not have_same_dimensions(d1, d2):
-                        arguments_str = ", ".join({f'\'{a}\''
-                                                   for a in sorted(arguments)})
-                        error_message = (f'Function \'{f.__name__}\' expected '
-                                         f'the ' 'same arguments for arguments '
-                                         f'{arguments_str}, but '
-                                         f'argument \'{arguments[0]}\' has '
-                                         f'unit {get_unit_for_display(d1)}, '
-                                         f'while argument \'{other_argument}\' '
-                                         f'has unit {get_unit_for_display(d2)}.')
-                        raise DimensionMismatchError(error_message)
-
             result = f(*args, **kwds)
             if 'result' in au:
+                if isinstance(au['result'], Callable) and au['result'] != bool:
+                    expected_result = au['result'](
+                        *[get_dimensions(a) for a in args])
+                else:
+                    expected_result = au['result']
                 if au['result'] == bool:
                     if not isinstance(result, bool):
                         error_message = ('The return value of function '
                                          '"{f.__name__}" was expected to be '
                                          'a boolean value, but was of type '
                                          '{type}').format(f=f,
-                                                           type=type(result))
+                                                          type=type(result))
                         raise TypeError(error_message)
-                elif not have_same_dimensions(result, au['result']):
+                elif not have_same_dimensions(result, expected_result):
                     error_message = ('The return value of function '
                                      '"{f.__name__}" was expected to have '
                                      'unit {unit} but was '
                                      '{value}').format(f=f,
-                                                       unit=repr(au['result']),
+                                                       unit=get_unit_for_display(expected_result),
                                                        value=result)
                     raise DimensionMismatchError(error_message,
                                                  get_dimensions(result))
@@ -2459,6 +2465,7 @@ def check_units(**au):
             arg_names = f._orig_arg_names
         else:
             arg_names = f.__code__.co_varnames[:f.__code__.co_argcount]
+        new_f._arg_names = arg_names
         new_f._arg_units = [au.get(name, None) for name in arg_names]
         return_unit = au.get('result', None)
         if return_unit is None:
@@ -2476,6 +2483,7 @@ def check_units(**au):
             for attrname in f._annotation_attributes:
                 setattr(new_f, attrname, getattr(f, attrname))
         new_f._annotation_attributes = getattr(f, '_annotation_attributes', [])+['_arg_units',
+                                                                                 '_arg_names',
                                                                                  '_return_unit',
                                                                                  '_orig_func',
                                                                                  '_returns_bool']
