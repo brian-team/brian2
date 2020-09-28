@@ -7,6 +7,7 @@ from collections import namedtuple
 import pytest
 import numpy as np
 
+from brian2 import Function
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
@@ -326,13 +327,23 @@ def test_parse_expression_unit_wrong_expressions(expr):
                           ('sqrt(b**2) + sqrt(7*mV**2)', True),
                           ('sqrt(d) + sqrt(7*mV**2)', False),
                           ('b + clip(3*mV, 0*mV, 5*mV)', True),
-                          ('b + clip(3*mV, 0, 5)', False)])
+                          ('b + clip(3*mV, 0, 5)', False),
+                          ('b + foo(7, 3*mV, 9)', True),
+                          ('a + foo(7*nA, 3*mV, 9*nA)', True),
+                          ('b + foo(7, 3*mV, 9*mV)', False),
+                          ('a + foo(7*nA, 3*mV, 9)', False)])
 def test_parse_expression_unit_functions(expr, correct):
     Var = namedtuple('Var', ['dim', 'dtype'])
+    def foo(x, y, z):
+        return (x + z)*y
     variables = {'a': Var(dim=(volt*amp).dim, dtype=np.float64),
                  'b': Var(dim=volt.dim, dtype=np.float64),
                  'c': Var(dim=amp.dim, dtype=np.float64),
-                 'd': Var(dim=DIMENSIONLESS, dtype=np.float64)}
+                 'd': Var(dim=DIMENSIONLESS, dtype=np.float64),
+                 'foo': Function(pyfunc=foo,
+                                 arg_units=[None, volt, 'x'],
+                                 arg_names=['x', 'y', 'z'],
+                                 return_unit=lambda x, y, z: x*y)}
     all_variables = {}
     group = SimpleGroup(namespace={}, variables=variables)
     for name in get_identifiers(expr):
