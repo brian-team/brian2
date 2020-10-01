@@ -91,15 +91,15 @@ prefs.register_preferences(
 class CPPWriter(object):
     def __init__(self, project_dir):
         self.project_dir = project_dir
-        self.source_files = []
-        self.header_files = []
+        self.source_files = set()
+        self.header_files = set()
         
     def write(self, filename, contents):
         logger.diagnostic('Writing file %s:\n%s' % (filename, contents))
         if filename.lower().endswith('.cpp') or filename.lower().endswith('.c'):
-            self.source_files.append(filename)
+            self.source_files.add(filename)
         elif filename.lower().endswith('.h'):
-            self.header_files.append(filename)
+            self.header_files.add(filename)
         elif filename.endswith('.*'):
             self.write(filename[:-1]+'cpp', contents.cpp_file)
             self.write(filename[:-1]+'h', contents.h_file)
@@ -839,10 +839,11 @@ class CPPStandaloneDevice(Device):
                 compiler_debug_flags = ''
                 linker_debug_flags = ''
             # Generate the visual studio makefile
-            source_bases = [fname.replace('.cpp', '').replace('.c', '').replace('/', '\\') for fname in writer.source_files]
+            source_bases = [fname.replace('.cpp', '').replace('.c', '').replace('/', '\\')
+                            for fname in sorted(writer.source_files)]
             win_makefile_tmp = self.code_object_class().templater.win_makefile(
                 None, None,
-                source_files=writer.source_files,
+                source_files=sorted(writer.source_files),
                 source_bases=source_bases,
                 compiler_flags=compiler_flags,
                 compiler_debug_flags=compiler_debug_flags,
@@ -873,8 +874,8 @@ class CPPStandaloneDevice(Device):
                 compiler_debug_flags = ''
                 linker_debug_flags = ''
             makefile_tmp = self.code_object_class().templater.makefile(None, None,
-                source_files=' '.join(writer.source_files),
-                header_files=' '.join(writer.header_files),
+                source_files=' '.join(sorted(writer.source_files)),
+                header_files=' '.join(sorted(writer.header_files)),
                 compiler_flags=compiler_flags,
                 compiler_debug_flags=compiler_debug_flags,
                 linker_debug_flags=linker_debug_flags,
@@ -889,9 +890,9 @@ class CPPStandaloneDevice(Device):
         brianlib_files = copy_directory(brianlib_dir, os.path.join(directory, 'brianlib'))
         for file in brianlib_files:
             if file.lower().endswith('.cpp'):
-                writer.source_files.append('brianlib/'+file)
+                writer.source_files.add('brianlib/'+file)
             elif file.lower().endswith('.h'):
-                writer.header_files.append('brianlib/'+file)
+                writer.header_files.add('brianlib/'+file)
 
         # Copy the CSpikeQueue implementation
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
@@ -1234,7 +1235,7 @@ class CPPStandaloneDevice(Device):
         self.generate_run_source(self.writer)
         self.copy_source_files(self.writer, directory)
 
-        self.writer.source_files.extend(additional_source_files)
+        self.writer.source_files.update(additional_source_files)
 
         self.generate_makefile(self.writer, compiler,
                                compiler_flags=' '.join(compiler_flags),

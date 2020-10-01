@@ -463,6 +463,24 @@ def test_multiple_standalone_runs():
     network2.run(defaultclock.dt)
 
 
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_continued_standalone_runs():
+    # see github issue #1237
+    set_device('cpp_standalone', build_on_run=False)
+
+    source = SpikeGeneratorGroup(1, [0], [0]*ms)
+    target = NeuronGroup(1, 'v : 1')
+    C_ee = Synapses(source, target, on_pre='v += 1', delay=2*ms)
+    C_ee.connect()
+    run(1*ms)
+    # Spike has not been delivered yet
+    run(2*ms)
+
+    device.build(directory=None)
+    assert target.v[0] == 1  # Make sure the spike got delivered
+
+
 if __name__=='__main__':
     for t in [
              test_cpp_standalone,
