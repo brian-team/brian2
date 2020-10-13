@@ -181,13 +181,14 @@ def get_identifiers(expr, include_numbers=False):
     ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
     '''
     identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
+    template_identifiers = set(re.findall(r'[{][A-Za-z_][A-Za-z0-9_]*[}]', expr))
     if include_numbers:
         # only the number, not a + or -
         numbers = set(re.findall(r'(?<=[^A-Za-z_])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?|^[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?',
                                  expr))
     else:
         numbers = set()
-    return (identifiers - KEYWORDS) | numbers
+    return (identifiers - KEYWORDS) | template_identifiers | numbers
 
 
 def strip_empty_lines(s):

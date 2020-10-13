@@ -35,7 +35,7 @@ from .codestrings import Expression
 from .unitcheck import check_dimensions
 
 
-__all__ = ['Equations']
+__all__ = ['Equations', 'EquationTemplate']
 
 logger = get_logger(__name__)
 
@@ -64,8 +64,8 @@ BOOLEAN = 'boolean'
 # combination of letters, numbers and underscores
 # Note that the check_identifiers function later performs more checks, e.g.
 # names starting with underscore should only be used internally
-IDENTIFIER = Word(string.ascii_letters + '_',
-                  string.ascii_letters + string.digits + '_').setResultsName('identifier')
+IDENTIFIER = Word(string.ascii_letters + '_' + '{',
+                  string.ascii_letters + string.digits + '_' + '{' + '}').setResultsName('identifier')
 
 # very broad definition here, expression will be analysed by sympy anyway
 # allows for multi-line expressions, where each line can have comments
@@ -324,7 +324,7 @@ def dimensions_and_type_from_string(unit_string):
 
 
 @cached
-def parse_string_equations(eqns):
+def parse_string_equations(eqns, template=False):
     """
     parse_string_equations(eqns)
 
@@ -335,7 +335,9 @@ def parse_string_equations(eqns):
     eqns : str
         The (possibly multi-line) string defining the equations. See the
         documentation of the `Equations` class for details.
-    
+    template : bool
+        Whether the equations should be parsed as a template
+
     Returns
     -------
     equations : dict
@@ -363,7 +365,7 @@ def parse_string_equations(eqns):
                                 'variable "%s": %s' % (identifier, ex))
 
         expression = eq_content.get('expression', None)
-        if not expression is None:
+        if expression is not None:
             # Replace multiple whitespaces (arising from joining multiline
             # strings) with single space
             p = re.compile(r'\s{2,}')
@@ -444,6 +446,8 @@ class SingleEquation(Hashable, CacheKey):
     stochastic_variables = property(lambda self: {variable for variable in self.identifiers
                                                   if variable =='xi' or variable.startswith('xi_')},
                                     doc='Stochastic variables in the RHS of this equation')
+
+    template = property(lambda self: self.varname.startswith('{') or '{' in self.expr.code)
 
     def __eq__(self, other):
         if not isinstance(other, SingleEquation):
@@ -1077,6 +1081,81 @@ class Equations(Hashable, Mapping):
         for eq in self._equations.values():
             p.pretty(eq)
             p.breakable('\n')
+
+
+class EquationTemplate(Mapping):
+    def __init__(self, eqns):
+        if isinstance(eqns, str):
+            self._equations = parse_string_equations(eqns, template=True)
+        else:
+            self._equations = dict(eqns)
+
+    def __iter__(self):
+        return iter(self._equations)
+
+    def __len__(self):
+        return len(self._equations)
+
+    def __getitem__(self, key):
+        return self._equations[key]
+
+    def __call__(self, **replacements):
+        if len(replacements) == 0:
+            return self._equations
+
+        new_equations = {}
+        for eq in self.values():
+            if '{' not in eq.varname:
+                continue
+            # Replace the name of a model variable (works only for strings)
+            new_varname = eq.varname.format(**replacements)
+            # make sure that the replacement is a valid identifier
+            Equations.check_identifier(new_varname)
+            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
+                # Replace values in the RHS of the equation
+                new_code = eq.expr.code
+                for to_replace, replacement in replacements.items():
+                    to_replace = '{' + to_replace + '}'
+                    if to_replace in eq.identifiers:
+                        if to_replace.startswith('{'):
+                            boundary = ''
+                        else:
+                            boundary = r'\b'
+                        if isinstance(replacement, Expression):
+                            replacement = str(replacement)
+                        if isinstance(replacement, str):
+                            # replace the name with another name
+                            new_code = re.sub(boundary + to_replace + boundary,
+                                              replacement, new_code)
+                        else:
+                            # replace the name with a value
+                            new_code = re.sub(boundary + to_replace + boundary,
+                                              '(' + repr(replacement) + ')',
+                                              new_code)
+                        try:
+                            Expression(new_code)
+                        except ValueError as ex:
+                            raise ValueError(
+                                ('Replacing "%s" with "%r" failed: %s') %
+                                (to_replace, replacement, ex))
+                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            expr=Expression(new_code),
+                                                            flags=eq.flags)
+            else:
+                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            flags=eq.flags)
+        if any(eq.template for eq in new_equations.values()):
+            return EquationTemplate(new_equations)
+        else:
+            return Equations([eq for eq in new_equations.values()])
+
+    def __str__(self):
+        strings = [str(eq) for eq in self.values()]
+        return '\n'.join(strings)
 
 
 def is_stateful(expression, variables):

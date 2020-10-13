@@ -15,7 +15,7 @@ from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
-__all__ = ['Expression', 'Statements']
+__all__ = ['Expression', 'ExpressionTemplate', 'Statements']
 
 logger = get_logger(__name__)
 
@@ -103,10 +103,6 @@ class Expression(CodeString):
 
         if code is None:
             code = sympy_to_str(sympy_expression)
-        else:
-            # Just try to convert it to a sympy expression to get syntax errors
-            # for incorrect expressions
-            str_to_sympy(code)
         super(Expression, self).__init__(code=code)
 
     stochastic_variables = property(lambda self: {variable for variable in self.identifiers
@@ -195,6 +191,11 @@ class Expression(CodeString):
 
     def __hash__(self):
         return hash(self.code)
+
+
+class ExpressionTemplate(Expression):
+    def __call__(self, **replacements):
+        return Expression(code=self.code.format(**replacements))
 
 
 def is_constant_over_dt(expression, variables, dt_value):
