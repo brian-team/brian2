@@ -3,11 +3,7 @@ Module defining `CodeString`, a class for a string of code together with
 information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
-
-try:
-    from collections.abc import Hashable
-except ImportError:
-    from collections import Hashable
+from collections.abc import Hashable
 
 import sympy
 
@@ -193,9 +189,14 @@ class Expression(CodeString):
         return hash(self.code)
 
 
+class Default(dict):
+    def __missing__(self, key):
+        return f'{{{key}}}'
+
+
 class ExpressionTemplate(Expression):
     def __call__(self, **replacements):
-        return Expression(code=self.code.format(**replacements))
+        return Expression(code=self.code.format_map(Default(replacements)))
 
 
 def is_constant_over_dt(expression, variables, dt_value):

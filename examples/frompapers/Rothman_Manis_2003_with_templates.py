@@ -51,11 +51,11 @@ gating_var = EquationTemplate('''d{name}/dt = q10*({name}__inf - {name})/tau_{na
                                                            {reverse_rate})
                                               + {tau_base}                          : second''')
 
-pos_sigmoid = ExpressionTemplate('1./(1+exp(-(vu - {midpoint}) / {scale}))')
-sqrt_sigmoid = ExpressionTemplate('1./(1+exp(-(vu - {midpoint}) / {scale}))**0.5')
-neg_sigmoid = ExpressionTemplate('1./(1+exp((vu - {midpoint}) / {scale}))')
-exp_voltage_dep = ExpressionTemplate('{magnitude}*exp((vu-{midpoint})/{scale})')
-neg_exp_voltage_dep = ExpressionTemplate('{magnitude}*exp(-(vu-{midpoint})/{scale})')
+pos_sigmoid = ExpressionTemplate('1./(1+exp(-({voltage} - {midpoint}) / {scale}))')
+sqrt_sigmoid = ExpressionTemplate('1./(1+exp(-({voltage} - {midpoint}) / {scale}))**0.5')
+neg_sigmoid = ExpressionTemplate('1./(1+exp(({voltage} - {midpoint}) / {scale}))')
+exp_voltage_dep = ExpressionTemplate('{magnitude}*exp(({voltage}-{midpoint})/{scale})')
+neg_exp_voltage_dep = ExpressionTemplate('{magnitude}*exp(-({voltage}-{midpoint})/{scale})')
 
 # Classical Na channel
 m = gating_var(name='m',
@@ -63,13 +63,15 @@ m = gating_var(name='m',
                forward_rate=exp_voltage_dep(magnitude=5., midpoint=-60, scale=18.),
                reverse_rate=neg_exp_voltage_dep(magnitude=36., midpoint=-60, scale=25.),
                tau_base=0.04*ms, tau_scale=10*ms)
+
 h = gating_var(name='h',
                rate_expression=neg_sigmoid(midpoint=-65., scale=6.),
                forward_rate=exp_voltage_dep(magnitude=7., midpoint=-60., scale=11.),
                reverse_rate=neg_exp_voltage_dep(magnitude=10., midpoint=-60., scale=25.),
                tau_base=0.6*ms, tau_scale=100*ms)
 
-ina = Equations('ina = gnabar*m**3*h*(ENa-v) : amp') + m + h
+ina = EquationTemplate('ina = gnabar*{m}**3*{h}*(ENa-v) : amp')
+ina = ina(m=m, h=h)
 
 # KHT channel (delayed-rectifier K+)
 n = gating_var(name='n',
@@ -138,12 +140,14 @@ alp2 = exp(1e-3*3*(vu+84)*9.648e4/(8.315*(273.16+temp))) : 1
 bet2 = exp(1e-3*3*0.6*(vu+84)*9.648e4/(8.315*(273.16+temp))) : 1
 """
 
-eqs =Equations("""
-dv/dt = (ileak + ina + ikht + iklt + ika + ih + ihcno + I)/C : volt
+eqs =EquationTemplate("""
+dv/dt = (ileak + {currents} + iklt + ika + ih + ihcno + I)/C : volt
 vu = v/mV : 1  # unitless v
 I : amp
-""")
-eqs += Equations(eqs_leak) + Equations(eqs_ka) + ina + Equations(eqs_ih) + Equations(eqs_klt) + ikht + Equations(eqs_hcno)
+""")(currents=[ina, ikht])(voltage='vu')
+print(eqs)
+eqs += Equations(eqs_leak) + Equations(eqs_ka) + Equations(eqs_ih) + Equations(eqs_klt) + Equations(eqs_hcno)
+print(eqs)
 
 neuron = NeuronGroup(1, eqs, method='exponential_euler')
 neuron.v = El

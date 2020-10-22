@@ -6,6 +6,7 @@ from collections.abc import Mapping, Hashable
 import keyword
 import re
 import string
+from typing import Sequence
 
 from pyparsing import (Group, ZeroOrMore, OneOrMore, Optional, Word, CharsNotIn,
                        Combine, Suppress, restOfLine, LineEnd, ParseException)
@@ -447,7 +448,8 @@ class SingleEquation(Hashable, CacheKey):
                                                   if variable =='xi' or variable.startswith('xi_')},
                                     doc='Stochastic variables in the RHS of this equation')
 
-    template = property(lambda self: self.varname.startswith('{') or '{' in self.expr.code)
+    template = property(lambda self: self.varname.startswith('{') or
+                                     (self.expr is not None and '{' in self.expr.code))
 
     def __eq__(self, other):
         if not isinstance(other, SingleEquation):
@@ -653,6 +655,9 @@ class Equations(Hashable, Mapping):
 
         return new_equations
 
+    def __call__(self, **kwds):
+        return Equations(list(self._substitute(kwds).values()))
+
     def substitute(self, **kwds):
         return Equations(list(self._substitute(kwds).values()))
 
@@ -668,6 +673,9 @@ class Equations(Hashable, Mapping):
     def __add__(self, other_eqns):
         if isinstance(other_eqns, str):
             other_eqns = parse_string_equations(other_eqns)
+        elif isinstance(other_eqns, EquationTemplate):
+            return EquationTemplate(list(self.values()) +
+                                    list(other_eqns.values()))
         elif not isinstance(other_eqns, Equations):
             return NotImplemented
 
@@ -1087,6 +1095,8 @@ class EquationTemplate(Mapping):
     def __init__(self, eqns):
         if isinstance(eqns, str):
             self._equations = parse_string_equations(eqns, template=True)
+        elif isinstance(eqns, Sequence):
+            self._equations = {eq.varname: eq for eq in eqns}
         else:
             self._equations = dict(eqns)
 
@@ -1099,18 +1109,29 @@ class EquationTemplate(Mapping):
     def __getitem__(self, key):
         return self._equations[key]
 
+    def __add__(self, other_eqns):
+        if isinstance(other_eqns, str):
+            other_eqns = parse_string_equations(other_eqns)
+        elif not isinstance(other_eqns, (Equations, EquationTemplate)):
+            return NotImplemented
+
+        return EquationTemplate(list(self.values()) +
+                                list(other_eqns.values()))
+
     def __call__(self, **replacements):
         if len(replacements) == 0:
             return self._equations
 
         new_equations = {}
+        additional_equations = []
         for eq in self.values():
-            if '{' not in eq.varname:
-                continue
-            # Replace the name of a model variable (works only for strings)
-            new_varname = eq.varname.format(**replacements)
-            # make sure that the replacement is a valid identifier
-            Equations.check_identifier(new_varname)
+            if '{' in eq.varname:
+                # Replace the name of a model variable (works only for strings)
+                new_varname = eq.varname.format(**replacements)
+                # make sure that the replacement is a valid identifier
+                Equations.check_identifier(new_varname)
+            else:
+                new_varname = eq.varname
             if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
                 # Replace values in the RHS of the equation
                 new_code = eq.expr.code
@@ -1121,17 +1142,27 @@ class EquationTemplate(Mapping):
                             boundary = ''
                         else:
                             boundary = r'\b'
-                        if isinstance(replacement, Expression):
-                            replacement = str(replacement)
-                        if isinstance(replacement, str):
-                            # replace the name with another name
-                            new_code = re.sub(boundary + to_replace + boundary,
-                                              replacement, new_code)
+                        if not isinstance(replacement, Sequence) or isinstance(replacement, str):
+                            repls = [replacement]
                         else:
-                            # replace the name with a value
-                            new_code = re.sub(boundary + to_replace + boundary,
-                                              '(' + repr(replacement) + ')',
-                                              new_code)
+                            repls = replacement
+                        names = []
+                        for replacement in repls:
+                            if isinstance(replacement, (Equations, EquationTemplate)):
+                                names.append(list(replacement)[0])  # use the first name
+                                additional_equations.extend(replacement._equations.items())
+                            elif isinstance(replacement, Expression):
+                                names.append('('+str(replacement)+')')
+                            elif isinstance(replacement, str):
+                                names.append(replacement)
+                            else:
+                                names.append(repr(replacement))
+                        if len(names) > 1:
+                            replacement = '(' + ' + '.join(names) + ')'
+                        else:
+                            replacement = names[0]
+                        new_code = re.sub(boundary + to_replace + boundary,
+                                          replacement, new_code)
                         try:
                             Expression(new_code)
                         except ValueError as ex:
@@ -1148,6 +1179,7 @@ class EquationTemplate(Mapping):
                                                             dimensions=eq.dim,
                                                             var_type=eq.var_type,
                                                             flags=eq.flags)
+        new_equations.update(dict(additional_equations))
         if any(eq.template for eq in new_equations.values()):
             return EquationTemplate(new_equations)
         else:
