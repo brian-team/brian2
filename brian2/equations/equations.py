@@ -613,7 +613,7 @@ class Equations(Hashable, Mapping):
                 for to_replace, replacement in replacements.items():
                     if not isinstance(replacement, (Expression, Equations)):
                         continue
-                    if to_replace in eq.varname or '{' + to_replace + '}' in eq.varname:
+                    if eq.varname == to_replace or '{' + to_replace + '}' in eq.varname:
                         raise TypeError(f'Cannot replace equation \'{eq.varname}\' by another equation or expression.')
                     if to_replace in eq.identifiers or '{' + to_replace + '}' in eq.identifiers:
                         if isinstance(replacement, Equations):
