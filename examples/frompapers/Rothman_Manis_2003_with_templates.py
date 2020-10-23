@@ -52,8 +52,10 @@ gating_var = Equations('''d{name}/dt = q10*({name}__inf - {name})/tau_{name} : 1
                                        + {tau_base}                          : second''')
 
 pos_sigmoid = Expression('1./(1+exp(-({voltage} - {midpoint}) / {scale}))')
-sqrt_sigmoid = Expression('1./(1+exp(-({voltage} - {midpoint}) / {scale}))**0.5')
+power_sigmoid = Expression('1./(1+exp(-({voltage} - {midpoint}) / {scale}))**{power}')
 neg_sigmoid = Expression('1./(1+exp(({voltage} - {midpoint}) / {scale}))')
+neg_power_sigmoid = Expression('1./(1+exp(({voltage} - {midpoint}) / {scale}))**{power}')
+shifted_neg_sigmoid = Expression('{shift} + (1.0-{shift})/(1+exp(({voltage} - {midpoint}) / {scale}))')
 exp_voltage_dep = Expression('{magnitude}*exp(({voltage}-{midpoint})/{scale})')
 neg_exp_voltage_dep = Expression('{magnitude}*exp(-({voltage}-{midpoint})/{scale})')
 
@@ -73,7 +75,7 @@ ina = Equations('ina = gnabar*{m}**3*{h}*(ENa-v) : amp',
 # KHT channel (delayed-rectifier K+)
 ikht = Equations('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp',
                  n=gating_var(name='n',
-                              rate_expression=sqrt_sigmoid(midpoint=-15, scale=5.),
+                              rate_expression=power_sigmoid(midpoint=-15, scale=5., power=0.5),
                               forward_rate=exp_voltage_dep(magnitude=11., midpoint=-60, scale=24.),
                               reverse_rate=neg_exp_voltage_dep(magnitude=21., midpoint=-60, scale=23.),
                               tau_base=0.7*ms, tau_scale=100*ms),
@@ -84,65 +86,61 @@ ikht = Equations('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp',
                               tau_base=5*ms, tau_scale=100*ms))
 
 # Ih channel (subthreshold adaptive, non-inactivating)
-eqs_ih = """
-ih = ghbar*r*(Eh-v) : amp
-dr/dt=q10*(rinf-r)/rtau : 1
-rinf = 1. / (1+exp((vu + 76.) / 7.)) : 1
-rtau = ((100000. / (237.*exp((vu+60.) / 12.) + 17.*exp(-(vu+60.) / 14.))) + 25.)*ms : second
-"""
+ih = Equations('ih = ghbar*{r}*(Eh - v) : amp',
+               r=gating_var(name='r',
+                            rate_expression=neg_sigmoid(midpoint=-76., scale=7.),
+                            forward_rate=exp_voltage_dep(magnitude=237., midpoint=-60., scale=12.),
+                            reverse_rate=neg_exp_voltage_dep(magnitude=17, midpoint=-60, scale=14.),
+                            tau_scale=100*second, tau_base=25*ms))
 
 # KLT channel (low threshold K+)
-eqs_klt = """
-iklt = gkltbar*w**4*z*(EK-v) : amp
-dw/dt=q10*(winf-w)/wtau : 1
-dz/dt=q10*(zinf-z)/ztau : 1
-winf = (1. / (1 + exp(-(vu + 48.) / 6.)))**0.25 : 1
-zinf = zss + ((1.-zss) / (1 + exp((vu + 71.) / 10.))) : 1
-wtau = ((100. / (6.*exp((vu+60.) / 6.) + 16.*exp(-(vu+60.) / 45.))) + 1.5)*ms : second
-ztau = ((1000. / (exp((vu+60.) / 20.) + exp(-(vu+60.) / 8.))) + 50)*ms : second
-"""
-
+iklt = Equations('ih = gkltbar*{w}**4*{z}*(EK-v) : amp',
+                 w=gating_var(name='w',
+                              rate_expression=power_sigmoid(midpoint=-48., scale=6., power=0.25),
+                              forward_rate=exp_voltage_dep(magnitude=6., midpoint=-60., scale=6.),
+                              reverse_rate=neg_exp_voltage_dep(magnitude=16, midpoint=-60, scale=45.),
+                              tau_scale=100*ms, tau_base=1.5*ms),
+                 z=gating_var(name='z',
+                              rate_expression=shifted_neg_sigmoid(shift=zss, midpoint=-71., scale=10.),
+                              forward_rate=exp_voltage_dep(magnitude=1., midpoint=-60., scale=20.),
+                              reverse_rate=neg_exp_voltage_dep(magnitude=1., midpoint=-60., scale=8.),
+                              tau_scale=1*second, tau_base=50*ms))
 # Ka channel (transient K+)
-eqs_ka = """
-ika = gkabar*a**4*b*c*(EK-v): amp
-da/dt=q10*(ainf-a)/atau : 1
-db/dt=q10*(binf-b)/btau : 1
-dc/dt=q10*(cinf-c)/ctau : 1
-ainf = (1. / (1 + exp(-(vu + 31) / 6.)))**0.25 : 1
-binf = 1. / (1 + exp((vu + 66) / 7.))**0.5 : 1
-cinf = 1. / (1 + exp((vu + 66) / 7.))**0.5 : 1
-atau =  ((100. / (7*exp((vu+60) / 14.) + 29*exp(-(vu+60) / 24.))) + 0.1)*ms : second
-btau =  ((1000. / (14*exp((vu+60) / 27.) + 29*exp(-(vu+60) / 24.))) + 1)*ms : second
-ctau = ((90. / (1 + exp((-66-vu) / 17.))) + 10)*ms : second
-"""
-
+ika = Equations('ika = gkabar*{a}**4*{b}*{c}*(EK-v): amp',
+                a=gating_var(name='a',
+                             rate_expression=power_sigmoid(midpoint=-31., scale=6., power=0.25),
+                             forward_rate=exp_voltage_dep(magnitude=7., midpoint=-60, scale=14.),
+                             reverse_rate=neg_exp_voltage_dep(magnitude=29., midpoint=-60, scale=24.),
+                             tau_scale=100*ms, tau_base=0.1*ms),
+                b=gating_var(name='b',
+                             rate_expression=neg_power_sigmoid(midpoint=-66., scale=7., power=0.5),
+                             forward_rate=exp_voltage_dep(magnitude=14., midpoint=-60., scale=27.),
+                             reverse_rate=neg_exp_voltage_dep(magnitude=29., midpoint=-60., scale=24.),
+                             tau_scale=1*second, tau_base=1*ms),
+                c=gating_var(name='c',
+                             rate_expression=neg_power_sigmoid(midpoint=-66., scale=7., power=0.5),
+                             forward_rate='1',
+                             reverse_rate=neg_exp_voltage_dep(magnitude=1., midpoint=-66., scale=17.),
+                             tau_scale=90*ms, tau_base=10*ms))
 # Leak
-eqs_leak = """
-ileak = gl*(El-v) : amp
-"""
+ileak = Equations("ileak = gl*(El-v) : amp")
 
-# h current for octopus cells
-eqs_hcno = """
-ihcno = gbarno*(h1*frac + h2*(1-frac))*(Eh-v) : amp
-dh1/dt=(hinfno-h1)/tau1 : 1
-dh2/dt=(hinfno-h2)/tau2 : 1
-hinfno = 1./(1+exp((vu+66.)/7.)) : 1
-tau1 = bet1/(qt*0.008*(1+alp1))*ms : second
-tau2 = bet2/(qt*0.0029*(1+alp2))*ms : second
-alp1 = exp(1e-3*3*(vu+50)*9.648e4/(8.315*(273.16+temp))) : 1
-bet1 = exp(1e-3*3*0.3*(vu+50)*9.648e4/(8.315*(273.16+temp))) : 1 
-alp2 = exp(1e-3*3*(vu+84)*9.648e4/(8.315*(273.16+temp))) : 1
-bet2 = exp(1e-3*3*0.6*(vu+84)*9.648e4/(8.315*(273.16+temp))) : 1
-"""
+# h current for octopus cells (gating variables use different equations
+gating_var_octopus = Equations('''d{name}/dt = (hinfno - {name})/tau_{name} : 1
+                                  tau_{name} = beta_{name}/(qt*{tau_scale}*(1+alpha_{name}))*ms : second
+                                  alpha_{name} = exp(1e-3*3*({voltage}-{midpoint})*9.648e4/(8.315*(273.16+temp))) : 1
+                                  beta_{name} = exp(1e-3*3*0.3*({voltage}-{midpoint})*9.648e4/(8.315*(273.16+temp))) : 1 ''')
+p
+ihcno = Equations('''ihcno = gbarno*({h1}*frac + {h2}*(1-frac))*(Eh-v) : amp
+                     hinfno = {inf_rate} : 1''',
+                  inf_rate=neg_sigmoid(midpoint=-66., scale=7.),
+                  h1=gating_var_octopus(name='h1', tau_scale=0.008, midpoint=-50.),
+                  h2=gating_var_octopus(name='h2', tau_scale=0.0029, midpoint=-84.))
 
-eqs =Equations("""
-dv/dt = (ileak + {currents} + iklt + ika + ih + ihcno + I)/C : volt
-vu = v/mV : 1  # unitless v
-I : amp
-""")
-eqs = eqs(currents=[ina, ikht], voltage='vu')
-eqs += Equations(eqs_leak) + Equations(eqs_ka) + Equations(eqs_ih) + Equations(eqs_klt) + Equations(eqs_hcno)
-
+eqs =Equations("""dv/dt = ({currents} + I)/C : volt
+                  vu = v/mV : 1  # unitless v
+                  I : amp""",
+               currents=[ileak, ina, ikht, ih, iklt, ika, ihcno], voltage='vu')
 
 neuron = NeuronGroup(1, eqs, method='exponential_euler')
 neuron.v = El
