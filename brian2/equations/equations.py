@@ -32,7 +32,7 @@ from brian2.utils.caching import cached, CacheKey
 from brian2.utils.logger import get_logger
 from brian2.utils.topsort import topsort
 
-from .codestrings import Expression, ExpressionTemplate
+from .codestrings import Expression
 from .unitcheck import check_dimensions
 
 
@@ -611,7 +611,7 @@ class Equations(Hashable, Mapping):
             if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
                 new_code = eq.expr.code
                 for to_replace, replacement in replacements.items():
-                    if not isinstance(replacement, (Expression, ExpressionTemplate, Equations)):
+                    if not isinstance(replacement, (Expression, Equations)):
                         continue
                     if to_replace in eq.varname or '{' + to_replace + '}' in eq.varname:
                         raise TypeError(f'Cannot replace equation \'{eq.varname}\' by another equation or expression.')
@@ -619,7 +619,7 @@ class Equations(Hashable, Mapping):
                         if isinstance(replacement, Equations):
                             name = list(replacement)[0]  # use the first name
                             additional_equations.update(replacement._equations.items())
-                        else:  # Expression or ExpressionTemplate
+                        else:  # Expression
                             name = '('+str(replacement.code)+')'
                         new_code = new_code.replace('{' + to_replace + '}', name)
                         new_code = re.sub('\b' + to_replace + '\b', name, new_code)
@@ -654,7 +654,7 @@ class Equations(Hashable, Mapping):
                             if isinstance(single_replacement, Equations):
                                 name = list(single_replacement)[0]  # use the first name
                                 additional_equations.update(single_replacement._equations.items())
-                            elif isinstance(single_replacement, (Expression, ExpressionTemplate)):
+                            elif isinstance(single_replacement, Expression):
                                 name = '('+str(single_replacement.code)+')'
                             elif isinstance(single_replacement, str):
                                 name = single_replacement

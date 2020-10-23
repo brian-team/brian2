@@ -11,7 +11,7 @@ from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
-__all__ = ['Expression', 'ExpressionTemplate', 'Statements']
+__all__ = ['Expression', 'Statements']
 
 logger = get_logger(__name__)
 
@@ -74,6 +74,11 @@ class Statements(CodeString):
     only relevant to statements and not to expressions.
     '''
     pass
+
+
+class Default(dict):
+    def __missing__(self, key):
+        return f'{{{key}}}'
 
 
 class Expression(CodeString):
@@ -188,13 +193,6 @@ class Expression(CodeString):
     def __hash__(self):
         return hash(self.code)
 
-
-class Default(dict):
-    def __missing__(self, key):
-        return f'{{{key}}}'
-
-
-class ExpressionTemplate(Expression):
     def __call__(self, **replacements):
         return Expression(code=self.code.format_map(Default(replacements)))
 

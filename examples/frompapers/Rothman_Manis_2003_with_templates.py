@@ -51,40 +51,37 @@ gating_var = Equations('''d{name}/dt = q10*({name}__inf - {name})/tau_{name} : 1
                                                     {reverse_rate})
                                        + {tau_base}                          : second''')
 
-pos_sigmoid = ExpressionTemplate('1./(1+exp(-({voltage} - {midpoint}) / {scale}))')
-sqrt_sigmoid = ExpressionTemplate('1./(1+exp(-({voltage} - {midpoint}) / {scale}))**0.5')
-neg_sigmoid = ExpressionTemplate('1./(1+exp(({voltage} - {midpoint}) / {scale}))')
-exp_voltage_dep = ExpressionTemplate('{magnitude}*exp(({voltage}-{midpoint})/{scale})')
-neg_exp_voltage_dep = ExpressionTemplate('{magnitude}*exp(-({voltage}-{midpoint})/{scale})')
+pos_sigmoid = Expression('1./(1+exp(-({voltage} - {midpoint}) / {scale}))')
+sqrt_sigmoid = Expression('1./(1+exp(-({voltage} - {midpoint}) / {scale}))**0.5')
+neg_sigmoid = Expression('1./(1+exp(({voltage} - {midpoint}) / {scale}))')
+exp_voltage_dep = Expression('{magnitude}*exp(({voltage}-{midpoint})/{scale})')
+neg_exp_voltage_dep = Expression('{magnitude}*exp(-({voltage}-{midpoint})/{scale})')
 
 # Classical Na channel
-m = gating_var(name='m',
-               rate_expression=pos_sigmoid(midpoint=-38., scale=7.),
-               forward_rate=exp_voltage_dep(magnitude=5., midpoint=-60, scale=18.),
-               reverse_rate=neg_exp_voltage_dep(magnitude=36., midpoint=-60, scale=25.),
-               tau_base=0.04*ms, tau_scale=10*ms)
-h = gating_var(name='h',
-               rate_expression=neg_sigmoid(midpoint=-65., scale=6.),
-               forward_rate=exp_voltage_dep(magnitude=7., midpoint=-60., scale=11.),
-               reverse_rate=neg_exp_voltage_dep(magnitude=10., midpoint=-60., scale=25.),
-               tau_base=0.6*ms, tau_scale=100*ms)
-
-ina = Equations('ina = gnabar*{m}**3*{h}*(ENa-v) : amp', m=m, h=h)
+ina = Equations('ina = gnabar*{m}**3*{h}*(ENa-v) : amp',
+                m=gating_var(name='m',
+                             rate_expression=pos_sigmoid(midpoint=-38., scale=7.),
+                             forward_rate=exp_voltage_dep(magnitude=5., midpoint=-60, scale=18.),
+                             reverse_rate=neg_exp_voltage_dep(magnitude=36., midpoint=-60, scale=25.),
+                             tau_base=0.04*ms, tau_scale=10*ms),
+                h=gating_var(name='h',
+                             rate_expression=neg_sigmoid(midpoint=-65., scale=6.),
+                             forward_rate=exp_voltage_dep(magnitude=7., midpoint=-60., scale=11.),
+                             reverse_rate=neg_exp_voltage_dep(magnitude=10., midpoint=-60., scale=25.),
+                             tau_base=0.6*ms, tau_scale=100*ms))
 
 # KHT channel (delayed-rectifier K+)
-n = gating_var(name='n',
-               rate_expression=sqrt_sigmoid(midpoint=-15, scale=5.),
-               forward_rate=exp_voltage_dep(magnitude=11., midpoint=-60, scale=24.),
-               reverse_rate=neg_exp_voltage_dep(magnitude=21., midpoint=-60, scale=23.),
-               tau_base=0.7*ms, tau_scale=100*ms)
-
-p = gating_var(name='p',
-               rate_expression=pos_sigmoid(midpoint=-23., scale=6.),
-               forward_rate=exp_voltage_dep(magnitude=4., midpoint=-60., scale=32.),
-               reverse_rate=neg_exp_voltage_dep(magnitude=5., midpoint=-60., scale=22.),
-               tau_base=5*ms, tau_scale=100*ms)
-
-ikht = Equations('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp', n=n, p=p)
+ikht = Equations('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp',
+                 n=gating_var(name='n',
+                              rate_expression=sqrt_sigmoid(midpoint=-15, scale=5.),
+                              forward_rate=exp_voltage_dep(magnitude=11., midpoint=-60, scale=24.),
+                              reverse_rate=neg_exp_voltage_dep(magnitude=21., midpoint=-60, scale=23.),
+                              tau_base=0.7*ms, tau_scale=100*ms),
+                 p=gating_var(name='p',
+                              rate_expression=pos_sigmoid(midpoint=-23., scale=6.),
+                              forward_rate=exp_voltage_dep(magnitude=4., midpoint=-60., scale=32.),
+                              reverse_rate=neg_exp_voltage_dep(magnitude=5., midpoint=-60., scale=22.),
+                              tau_base=5*ms, tau_scale=100*ms))
 
 # Ih channel (subthreshold adaptive, non-inactivating)
 eqs_ih = """
