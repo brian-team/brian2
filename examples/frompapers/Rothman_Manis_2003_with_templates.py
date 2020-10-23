@@ -86,7 +86,7 @@ p = gating_var(name='p',
                reverse_rate=neg_exp_voltage_dep(magnitude=5., midpoint=-60., scale=22.),
                tau_base=5*ms, tau_scale=100*ms)
 
-ikht = Equations('ikht = gkhtbar*(nf*n**2 + (1-nf)*p)*(EK-v) : amp') + n + p
+ikht = EquationTemplate('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp')(n=n, p=p)
 
 # Ih channel (subthreshold adaptive, non-inactivating)
 eqs_ih = """
@@ -144,10 +144,10 @@ eqs =EquationTemplate("""
 dv/dt = (ileak + {currents} + iklt + ika + ih + ihcno + I)/C : volt
 vu = v/mV : 1  # unitless v
 I : amp
-""")(currents=[ina, ikht])(voltage='vu')
-print(eqs)
+""")
+eqs = eqs(currents=[ina, ikht], voltage='vu')
 eqs += Equations(eqs_leak) + Equations(eqs_ka) + Equations(eqs_ih) + Equations(eqs_klt) + Equations(eqs_hcno)
-print(eqs)
+
 
 neuron = NeuronGroup(1, eqs, method='exponential_euler')
 neuron.v = El
