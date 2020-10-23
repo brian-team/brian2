@@ -36,7 +36,7 @@ from .codestrings import Expression, ExpressionTemplate
 from .unitcheck import check_dimensions
 
 
-__all__ = ['Equations', 'EquationTemplate']
+__all__ = ['Equations']
 
 logger = get_logger(__name__)
 
@@ -561,7 +561,7 @@ class Equations(Hashable, Mapping):
 
     def __init__(self, eqns, **kwds):
         if isinstance(eqns, str):
-            self._equations = parse_string_equations(eqns)
+            self._equations = parse_string_equations(eqns, template=True)
             # Do a basic check for the identifiers
             self.check_identifiers()
         else:
@@ -604,56 +604,125 @@ class Equations(Hashable, Mapping):
             return self._equations
 
         new_equations = {}
+        # First, do replacements for equations/expressions to allow other values to
+        # replace values in them
+        additional_equations = {}
         for eq in self.values():
-            # Replace the name of a model variable (works only for strings)
-            if eq.varname in replacements:
-                new_varname = replacements[eq.varname]
-                if not isinstance(new_varname, str):
-                    raise ValueError(('Cannot replace model variable "%s" '
-                                      'with a value') % eq.varname)
-                if new_varname in self or new_varname in new_equations:
-                    raise EquationError(
-                        ('Cannot replace model variable "%s" '
-                         'with "%s", duplicate definition '
-                         'of "%s".' % (eq.varname, new_varname,
-                                       new_varname)))
-                # make sure that the replacement is a valid identifier
-                Equations.check_identifier(new_varname)
+            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
+                new_code = eq.expr.code
+                for to_replace, replacement in replacements.items():
+                    if not isinstance(replacement, (Expression, ExpressionTemplate, Equations)):
+                        continue
+                    if to_replace in eq.varname or '{' + to_replace + '}' in eq.varname:
+                        raise TypeError(f'Cannot replace equation \'{eq.varname}\' by another equation or expression.')
+                    if to_replace in eq.identifiers or '{' + to_replace + '}' in eq.identifiers:
+                        if isinstance(replacement, Equations):
+                            name = list(replacement)[0]  # use the first name
+                            additional_equations.update(replacement._equations.items())
+                        else:  # Expression or ExpressionTemplate
+                            name = '('+str(replacement.code)+')'
+                        new_code = new_code.replace('{' + to_replace + '}', name)
+                        new_code = re.sub('\b' + to_replace + '\b', name, new_code)
+                    try:
+                        Expression(new_code)
+                    except ValueError as ex:
+                        raise ValueError(
+                            ('Replacing "%s" with "%r" failed: %s') %
+                            (to_replace, replacement, ex))
+                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            expr=Expression(new_code),
+                                                            flags=eq.flags)
+            else:
+                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            flags=eq.flags)
+        # Now, do replacements for lists of names/expressions
+        for eq in new_equations.values():
+            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
+                new_code = eq.expr.code
+                for to_replace, replacement in replacements.items():
+                    if not isinstance(replacement, Sequence) or isinstance(replacement, str):
+                        continue
+                    if to_replace in eq.varname or '{' + to_replace + '}' in eq.varname:
+                        raise TypeError(f'Cannot replace equation \'{eq.varname}\' by a list of names/expressions.')
+                    if to_replace in eq.identifiers or '{' + to_replace + '}' in eq.identifiers:
+                        names = []
+                        for single_replacement in replacement:
+                            if isinstance(single_replacement, Equations):
+                                name = list(single_replacement)[0]  # use the first name
+                                additional_equations.update(single_replacement._equations.items())
+                            elif isinstance(single_replacement, (Expression, ExpressionTemplate)):
+                                name = '('+str(single_replacement.code)+')'
+                            elif isinstance(single_replacement, str):
+                                name = single_replacement
+                            else:
+                                name = repr(single_replacement)
+                            names.append(name)
+                    new_code = new_code.replace('{' + to_replace + '}', '(' + (' + '.join(names)) + ')')
+                    new_code = re.sub('\b' + to_replace + '\b', '(' + (' + '.join(names)) + ')', new_code)
+                    try:
+                        Expression(new_code)
+                    except ValueError as ex:
+                        raise ValueError(
+                            ('Replacing "%s" with "%r" failed: %s') %
+                            (to_replace, replacement, ex))
+                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            expr=Expression(new_code),
+                                                            flags=eq.flags)
+            else:
+                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
+                                                            dimensions=eq.dim,
+                                                            var_type=eq.var_type,
+                                                            flags=eq.flags)
+        new_equations.update(dict(additional_equations))
+        # Finally, do replacements with concrete values
+        final_equations = {}
+        for eq in new_equations.values():
+            if '{' in eq.varname:
+                # Replace the name of a model variable (works only for strings)
+                new_varname = eq.varname
+                for to_replace, replacement in replacements.items():
+                    to_replace = '{' + to_replace + '}'
+                    if to_replace in eq.varname:
+                        new_varname = new_varname.replace(to_replace, replacement)
+                if '{' not in new_varname:
+                    # make sure that the replacement is a valid identifier
+                    Equations.check_identifier(new_varname)
             else:
                 new_varname = eq.varname
-
             if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
                 # Replace values in the RHS of the equation
                 new_code = eq.expr.code
                 for to_replace, replacement in replacements.items():
-                    if to_replace in eq.identifiers:
+                    if to_replace in eq.identifiers or '{' + to_replace + '}' in eq.identifiers:
                         if isinstance(replacement, str):
-                            # replace the name with another name
-                            new_code = re.sub('\\b' + to_replace + '\\b',
-                                              replacement, new_code)
+                            name = replacement
                         else:
-                            # replace the name with a value
-                            new_code = re.sub('\\b' + to_replace + '\\b',
-                                              '(' + repr(replacement) + ')',
-                                              new_code)
+                            name = repr(replacement)
+                        new_code = new_code.replace('{' + to_replace + '}', name)
+                        new_code = re.sub('\b' + to_replace + '\b', name, new_code)
                         try:
                             Expression(new_code)
                         except ValueError as ex:
                             raise ValueError(
                                 ('Replacing "%s" with "%r" failed: %s') %
                                 (to_replace, replacement, ex))
-                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            expr=Expression(new_code),
-                                                            flags=eq.flags)
+                final_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                              dimensions=eq.dim,
+                                                              var_type=eq.var_type,
+                                                              expr=Expression(new_code),
+                                                              flags=eq.flags)
             else:
-                new_equations[new_varname] = SingleEquation(eq.type, new_varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            flags=eq.flags)
-
-        return new_equations
+                final_equations[new_varname] = SingleEquation(eq.type, new_varname,
+                                                              dimensions=eq.dim,
+                                                              var_type=eq.var_type,
+                                                              flags=eq.flags)
+        return Equations([eq for eq in final_equations.values()])
 
     def __call__(self, **kwds):
         return Equations(list(self._substitute(kwds).values()))
@@ -673,9 +742,6 @@ class Equations(Hashable, Mapping):
     def __add__(self, other_eqns):
         if isinstance(other_eqns, str):
             other_eqns = parse_string_equations(other_eqns)
-        elif isinstance(other_eqns, EquationTemplate):
-            return EquationTemplate(list(self.values()) +
-                                    list(other_eqns.values()))
         elif not isinstance(other_eqns, Equations):
             return NotImplemented
 
@@ -1089,167 +1155,6 @@ class Equations(Hashable, Mapping):
         for eq in self._equations.values():
             p.pretty(eq)
             p.breakable('\n')
-
-
-class EquationTemplate(Mapping):
-    def __init__(self, eqns):
-        if isinstance(eqns, str):
-            self._equations = parse_string_equations(eqns, template=True)
-        elif isinstance(eqns, Sequence):
-            self._equations = {eq.varname: eq for eq in eqns}
-        else:
-            self._equations = dict(eqns)
-
-    def __iter__(self):
-        return iter(self._equations)
-
-    def __len__(self):
-        return len(self._equations)
-
-    def __getitem__(self, key):
-        return self._equations[key]
-
-    def __add__(self, other_eqns):
-        if isinstance(other_eqns, str):
-            other_eqns = parse_string_equations(other_eqns)
-        elif not isinstance(other_eqns, (Equations, EquationTemplate)):
-            return NotImplemented
-
-        return EquationTemplate(list(self.values()) +
-                                list(other_eqns.values()))
-
-    def __call__(self, **replacements):
-        if len(replacements) == 0:
-            return self._equations
-
-        new_equations = {}
-        # First, do replacements for equations/expressions to allow other values to
-        # replace values in them
-        additional_equations = {}
-        for eq in self.values():
-            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
-                new_code = eq.expr.code
-                for to_replace, replacement in replacements.items():
-                    if not isinstance(replacement, (Expression, ExpressionTemplate, Equations, EquationTemplate)):
-                        continue
-                    to_replace = '{' + to_replace + '}'
-                    if to_replace in eq.varname:
-                        raise TypeError(f'Cannot replace equation \'{eq.varname}\' by another equation or expression.')
-                    if to_replace in eq.identifiers:
-                        if isinstance(replacement, (Equations, EquationTemplate)):
-                            name = list(replacement)[0]  # use the first name
-                            additional_equations.update(replacement._equations.items())
-                        else:  # Expression or ExpressionTemplate
-                            name = '('+str(replacement.code)+')'
-                        new_code = re.sub(to_replace, name, new_code)
-                    try:
-                        Expression(new_code)
-                    except ValueError as ex:
-                        raise ValueError(
-                            ('Replacing "%s" with "%r" failed: %s') %
-                            (to_replace, replacement, ex))
-                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            expr=Expression(new_code),
-                                                            flags=eq.flags)
-            else:
-                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            flags=eq.flags)
-        # Now, do replacements for lists of names/expressions
-        for eq in new_equations.values():
-            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
-                new_code = eq.expr.code
-                for to_replace, replacement in replacements.items():
-                    to_replace = '{' + to_replace + '}'
-                    if not isinstance(replacement, Sequence) or isinstance(replacement, str):
-                        continue
-                    if to_replace in eq.varname:
-                        raise TypeError(f'Cannot replace equation \'{eq.varname}\' by a list of names/expressions.')
-                    if to_replace in eq.identifiers:
-                        names = []
-                        for single_replacement in replacement:
-                            if isinstance(single_replacement, (Equations, EquationTemplate)):
-                                name = list(single_replacement)[0]  # use the first name
-                                additional_equations.update(single_replacement._equations.items())
-                            elif isinstance(single_replacement, (Expression, ExpressionTemplate)):
-                                name = '('+str(single_replacement.code)+')'
-                            elif isinstance(single_replacement, str):
-                                name = single_replacement
-                            else:
-                                name = repr(single_replacement)
-                            names.append(name)
-                    new_code = re.sub(to_replace, '(' + (' + '.join(names)) + ')', new_code)
-                    try:
-                        Expression(new_code)
-                    except ValueError as ex:
-                        raise ValueError(
-                            ('Replacing "%s" with "%r" failed: %s') %
-                            (to_replace, replacement, ex))
-                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            expr=Expression(new_code),
-                                                            flags=eq.flags)
-            else:
-                new_equations[eq.varname] = SingleEquation(eq.type, eq.varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            flags=eq.flags)
-        new_equations.update(dict(additional_equations))
-        # Finally, do replacements with concrete values
-        final_equations = {}
-        for eq in new_equations.values():
-            if '{' in eq.varname:
-                # Replace the name of a model variable (works only for strings)
-                new_varname = eq.varname
-                for to_replace, replacement in replacements.items():
-                    to_replace = '{' + to_replace + '}'
-                    if to_replace in eq.varname:
-                        new_varname = new_varname.replace(to_replace, replacement)
-                if '{' not in new_varname:
-                    # make sure that the replacement is a valid identifier
-                    Equations.check_identifier(new_varname)
-            else:
-                new_varname = eq.varname
-            if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
-                # Replace values in the RHS of the equation
-                new_code = eq.expr.code
-                for to_replace, replacement in replacements.items():
-                    to_replace = '{' + to_replace + '}'
-                    if to_replace in eq.identifiers:
-                        if isinstance(replacement, str):
-                            name = replacement
-                        else:
-                            name = repr(replacement)
-                        new_code = re.sub(to_replace, name, new_code)
-                        try:
-                            Expression(new_code)
-                        except ValueError as ex:
-                            raise ValueError(
-                                ('Replacing "%s" with "%r" failed: %s') %
-                                (to_replace, replacement, ex))
-                final_equations[new_varname] = SingleEquation(eq.type, new_varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            expr=Expression(new_code),
-                                                            flags=eq.flags)
-            else:
-                final_equations[new_varname] = SingleEquation(eq.type, new_varname,
-                                                            dimensions=eq.dim,
-                                                            var_type=eq.var_type,
-                                                            flags=eq.flags)
-
-        if any(eq.template for eq in final_equations.values()):
-            return EquationTemplate(final_equations)
-        else:
-            return Equations([eq for eq in final_equations.values()])
-
-    def __str__(self):
-        strings = [str(eq) for eq in self.values()]
-        return '\n'.join(strings)
 
 
 def is_stateful(expression, variables):

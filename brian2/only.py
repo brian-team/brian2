@@ -81,7 +81,7 @@ __all__ = [
     'DEFAULT_FUNCTIONS', 'Function', 'implementation', 'declare_types',
     'PreferenceError', 'BrianPreference', 'prefs', 'brian_prefs',
     'Clock', 'defaultclock',
-    'Equations', 'EquationTemplate', 'Expression', 'ExpressionTemplate',
+    'Equations', 'Expression', 'ExpressionTemplate',
     'Statements',
     'BrianObject',
     'BrianObjectException',

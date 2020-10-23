@@ -45,11 +45,11 @@ type2o=(1000, 150, 600, 0, 0, 40, 2) # octopus cell
 )
 gnabar, gkhtbar, gkltbar, gkabar, ghbar, gbarno, gl = [x * nS for x in maximal_conductances[neuron_type]]
 
-gating_var = EquationTemplate('''d{name}/dt = q10*({name}__inf - {name})/tau_{name} : 1
-                                 {name}__inf = {rate_expression}                    : 1
-                                 tau_{name} = {tau_scale}/({forward_rate} + 
-                                                           {reverse_rate})
-                                              + {tau_base}                          : second''')
+gating_var = Equations('''d{name}/dt = q10*({name}__inf - {name})/tau_{name} : 1
+                          {name}__inf = {rate_expression}                    : 1
+                          tau_{name} = {tau_scale}/({forward_rate} + 
+                                                    {reverse_rate})
+                                       + {tau_base}                          : second''')
 
 pos_sigmoid = ExpressionTemplate('1./(1+exp(-({voltage} - {midpoint}) / {scale}))')
 sqrt_sigmoid = ExpressionTemplate('1./(1+exp(-({voltage} - {midpoint}) / {scale}))**0.5')
@@ -63,15 +63,13 @@ m = gating_var(name='m',
                forward_rate=exp_voltage_dep(magnitude=5., midpoint=-60, scale=18.),
                reverse_rate=neg_exp_voltage_dep(magnitude=36., midpoint=-60, scale=25.),
                tau_base=0.04*ms, tau_scale=10*ms)
-
 h = gating_var(name='h',
                rate_expression=neg_sigmoid(midpoint=-65., scale=6.),
                forward_rate=exp_voltage_dep(magnitude=7., midpoint=-60., scale=11.),
                reverse_rate=neg_exp_voltage_dep(magnitude=10., midpoint=-60., scale=25.),
                tau_base=0.6*ms, tau_scale=100*ms)
 
-ina = EquationTemplate('ina = gnabar*{m}**3*{h}*(ENa-v) : amp')
-ina = ina(m=m, h=h)
+ina = Equations('ina = gnabar*{m}**3*{h}*(ENa-v) : amp', m=m, h=h)
 
 # KHT channel (delayed-rectifier K+)
 n = gating_var(name='n',
@@ -86,7 +84,7 @@ p = gating_var(name='p',
                reverse_rate=neg_exp_voltage_dep(magnitude=5., midpoint=-60., scale=22.),
                tau_base=5*ms, tau_scale=100*ms)
 
-ikht = EquationTemplate('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp')(n=n, p=p)
+ikht = Equations('ikht = gkhtbar*(nf*{n}**2 + (1-nf)*{p})*(EK-v) : amp', n=n, p=p)
 
 # Ih channel (subthreshold adaptive, non-inactivating)
 eqs_ih = """
@@ -140,7 +138,7 @@ alp2 = exp(1e-3*3*(vu+84)*9.648e4/(8.315*(273.16+temp))) : 1
 bet2 = exp(1e-3*3*0.6*(vu+84)*9.648e4/(8.315*(273.16+temp))) : 1
 """
 
-eqs =EquationTemplate("""
+eqs =Equations("""
 dv/dt = (ileak + {currents} + iklt + ika + ih + ihcno + I)/C : volt
 vu = v/mV : 1  # unitless v
 I : amp
