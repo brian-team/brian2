@@ -445,6 +445,14 @@ class SingleEquation(Hashable, CacheKey):
                            if not self.expr is None else set([]),
                            doc='All identifiers in the RHS of this equation.')
 
+    template_identifiers = property(lambda self: (self.expr.template_identifiers
+                                                  if not self.expr is None else set([])) |
+                                                 get_identifiers(self.varname, only_template=True),
+                                    doc='All template identifiers used in this equation (including as part of the variable '
+                                        'name.')
+
+    template = property(lambda self: len(self.template_identifiers) > 0)
+
     stochastic_variables = property(lambda self: {variable for variable in self.identifiers
                                                   if variable =='xi' or variable.startswith('xi_')},
                                     doc='Stochastic variables in the RHS of this equation')
@@ -969,6 +977,11 @@ class Equations(Hashable, Mapping):
                            self.names,
                            doc=('Set of all identifiers used in the equations, '
                                 'excluding the variables defined in the equations'))
+
+    template_identifiers = property(lambda self: set().union(*[eq.template_identifiers for
+                                                               eq in self._equations.values()]),
+                                    doc=('Set of all template identifiers (placeholders) used in the'
+                                         'equations, including as part of the variable names.'))
 
     stochastic_variables = property(lambda self: {variable for variable in self.identifiers
                                                   if variable =='xi' or variable.startswith('xi_')})

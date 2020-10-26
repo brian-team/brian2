@@ -34,6 +34,7 @@ class CodeString(Hashable):
 
         # : Set of identifiers in the code string
         self.identifiers = get_identifiers(code)
+        self.template_identifiers = get_identifiers(code, only_template=True)
 
     code = property(lambda self: self._code,
                     doc='The code string')
