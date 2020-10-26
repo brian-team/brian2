@@ -612,6 +612,23 @@ class Equations(Hashable, Mapping):
         if len(replacements) == 0:
             return self._equations
 
+        dependencies = {}
+        for to_replace, replacement in replacements.items():
+            if not isinstance(replacement, Sequence) or isinstance(replacement, str):
+                replacement = [replacement]
+            for one_replacement in replacement:
+                dependencies[to_replace] = set()
+                if not isinstance(one_replacement, (numbers.Number, Quantity, str, Expression, Equations)):
+                    raise TypeError(f'Cannot use an object of type \'{type(one_replacement)}\''
+                                    f'to replace \'{to_replace}\'')
+                if isinstance(one_replacement, (Expression, Equations)):
+                    dependencies[to_replace] |= one_replacement.template_identifiers
+        # We only care about dependencies to values that are replaced at the same time
+        for dep_key, deps in dependencies.items():
+            dependencies[dep_key] = {d for d in deps if d in dependencies}
+
+        replacements_in_order = topsort(dependencies)[::-1]
+
         new_equations = {}
         # First, do replacements for equations/expressions to allow other values to
         # replace values in them
@@ -695,13 +712,15 @@ class Equations(Hashable, Mapping):
             # Replace the name of a model variable (works only for strings)
             new_varname = eq.varname
             for to_replace, replacement in replacements.items():
+                if isinstance(replacement, (Expression, Equations)) or isinstance(replacement, Sequence) and not isinstance(replacement, str):
+                    continue
                 if '{' + to_replace + '}' in eq.varname:
                     if not isinstance(replacement, str):
                         raise ValueError(f'Cannot replace variable name \'{eq.varname}\' with value '
                                          f'\'{repr(replacement)}\'')
                     new_varname = new_varname.replace('{' + to_replace + '}', replacement)
                 elif eq.varname == to_replace:
-                    if not isinstance(replacement, str):
+                    if isinstance(replacement, (str)):
                         raise ValueError(f'Cannot replace variable name \'{eq.varname}\' with value '
                                          f'\'{repr(replacement)}\'')
                     new_varname = replacement
