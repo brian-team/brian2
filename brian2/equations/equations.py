@@ -2,6 +2,7 @@
 '''
 Differential equations for Brian models.
 '''
+import numbers
 from collections.abc import Mapping, Hashable
 import keyword
 import re
@@ -622,7 +623,7 @@ class Equations(Hashable, Mapping):
                         else:  # Expression
                             name = '('+str(replacement.code)+')'
                         new_code = new_code.replace('{' + to_replace + '}', name)
-                        new_code = re.sub('\b' + to_replace + '\b', name, new_code)
+                        new_code = re.sub(r'\b' + to_replace + r'\b', name, new_code)
                     try:
                         Expression(new_code)
                     except ValueError as ex:
@@ -662,7 +663,7 @@ class Equations(Hashable, Mapping):
                                 name = repr(single_replacement)
                             names.append(name)
                     new_code = new_code.replace('{' + to_replace + '}', '(' + (' + '.join(names)) + ')')
-                    new_code = re.sub('\b' + to_replace + '\b', '(' + (' + '.join(names)) + ')', new_code)
+                    new_code = re.sub(r'\b' + to_replace + r'\b', '(' + (' + '.join(names)) + ')', new_code)
                     try:
                         Expression(new_code)
                     except ValueError as ex:
@@ -683,18 +684,25 @@ class Equations(Hashable, Mapping):
         # Finally, do replacements with concrete values
         final_equations = {}
         for eq in new_equations.values():
-            if '{' in eq.varname:
-                # Replace the name of a model variable (works only for strings)
-                new_varname = eq.varname
-                for to_replace, replacement in replacements.items():
-                    to_replace = '{' + to_replace + '}'
-                    if to_replace in eq.varname:
-                        new_varname = new_varname.replace(to_replace, replacement)
-                if '{' not in new_varname:
-                    # make sure that the replacement is a valid identifier
-                    Equations.check_identifier(new_varname)
-            else:
-                new_varname = eq.varname
+            # Replace the name of a model variable (works only for strings)
+            new_varname = eq.varname
+            for to_replace, replacement in replacements.items():
+                if '{' + to_replace + '}' in eq.varname:
+                    if not isinstance(replacement, str):
+                        raise ValueError(f'Cannot replace variable name \'{eq.varname}\' with value '
+                                         f'\'{repr(replacement)}\'')
+                    new_varname = new_varname.replace('{' + to_replace + '}', replacement)
+                elif eq.varname == to_replace:
+                    if not isinstance(replacement, str):
+                        raise ValueError(f'Cannot replace variable name \'{eq.varname}\' with value '
+                                         f'\'{repr(replacement)}\'')
+                    new_varname = replacement
+                    break
+            if new_varname in final_equations:
+                raise EquationError(f'Cannot have two definitions for the variable \'{new_varname}\'')
+            if '{' not in new_varname:
+                # make sure that the replacement is a valid identifier
+                Equations.check_identifier(new_varname)
             if eq.type in [SUBEXPRESSION, DIFFERENTIAL_EQUATION]:
                 # Replace values in the RHS of the equation
                 new_code = eq.expr.code
@@ -702,10 +710,15 @@ class Equations(Hashable, Mapping):
                     if to_replace in eq.identifiers or '{' + to_replace + '}' in eq.identifiers:
                         if isinstance(replacement, str):
                             name = replacement
-                        else:
+                        elif isinstance(replacement, (numbers.Number, Quantity)):
+                            if isinstance(replacement, Quantity):
+                                if not replacement.shape == ():
+                                    raise SyntaxError('Can only replace variables with scalar quantities.')
                             name = repr(replacement)
+                        elif not isinstance(replacement, (Equations, Expression)):
+                            raise SyntaxError(f'Cannot replace a name with an object of type \'{type(replacement)}\'.')
                         new_code = new_code.replace('{' + to_replace + '}', name)
-                        new_code = re.sub('\b' + to_replace + '\b', name, new_code)
+                        new_code = re.sub(r'\b' + to_replace + r'\b', name, new_code)
                         try:
                             Expression(new_code)
                         except ValueError as ex:
