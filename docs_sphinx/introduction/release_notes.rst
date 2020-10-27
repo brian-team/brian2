@@ -1,6 +1,16 @@
 Release notes
 =============
 
+Next release
+------------
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix incorrect integration of synaptic equations if they use a ``dt`` from
+  the connected neuron. Thanks to Jan Marker for reporting and fixing the
+  issue (:issue:`1248`).
+
+
 Brian 2.4.1
 -----------
 This is a bugfix release with a number of small fixes and updates to the continuous
