@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   build-n-publish:
-    name: Build and publish source package to TestPyPI
+    name: Build and publish source package to TestPyPI and PyPI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,3 +22,8 @@ jobs:
         with:
           password: ${{ secrets.test_pypi_password }}
           repository_url: https://test.pypi.org/legacy/
+      - name: Publish distribution release 📦 to PyPI
+        if: startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.pypi_password }}
