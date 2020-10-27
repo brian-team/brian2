@@ -1057,8 +1057,7 @@ class Synapses(Group):
         self.variables.add_dynamic_array('_synaptic_post', size=0,
                                          dtype=np.int32, constant=True,
                                          read_only=True)
-        self.variables.create_clock_variables(self._clock,
-                                              prefix='_clock_')
+        self.variables.create_clock_variables(self._clock)
         if '_offset' in self.target.variables:
             self.variables.add_reference('_target_offset', self.target,
                                          '_offset')
