@@ -678,10 +678,10 @@ class Equations(Hashable, Mapping):
             new_expr = eq.expr
             if to_replace in eq.identifiers:
                 code = eq.expr.code
-                new_expr = Expression(re.sub(r'\b' + to_replace + r'\b',
+                new_expr = Expression(re.sub(r'(?<!\w|{)' + to_replace + r'(?!\w|})',
                                              replacement_str, code))
             if to_replace in eq.template_identifiers:
-                code = eq.expr.code
+                code = new_expr.code
                 new_expr = Expression(code.replace('{'+to_replace+'}',
                                                    replacement_str))
             new_equations[new_varname] = SingleEquation(eq.type,
