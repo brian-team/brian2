@@ -1,6 +1,6 @@
 package:
   name: brian2
-  version: "2.4.2"
+  version: "2.4.2.dev0"
 
 build:
   number: 0
