@@ -94,7 +94,7 @@ ih = Equations('ih = ghbar*{r}*(Eh - v) : amp',
                             tau_scale=100*second, tau_base=25*ms))
 
 # KLT channel (low threshold K+)
-iklt = Equations('ih = gkltbar*{w}**4*{z}*(EK-v) : amp',
+iklt = Equations('iklt = gkltbar*{w}**4*{z}*(EK-v) : amp',
                  w=gating_var(name='w',
                               rate_expression=power_sigmoid(midpoint=-48., scale=6., power=0.25),
                               forward_rate=exp_voltage_dep(magnitude=6., midpoint=-60., scale=6.),
@@ -130,7 +130,7 @@ gating_var_octopus = Equations('''d{name}/dt = (hinfno - {name})/tau_{name} : 1
                                   tau_{name} = beta_{name}/(qt*{tau_scale}*(1+alpha_{name}))*ms : second
                                   alpha_{name} = exp(1e-3*3*({voltage}-{midpoint})*9.648e4/(8.315*(273.16+temp))) : 1
                                   beta_{name} = exp(1e-3*3*0.3*({voltage}-{midpoint})*9.648e4/(8.315*(273.16+temp))) : 1 ''')
-p
+
 ihcno = Equations('''ihcno = gbarno*({h1}*frac + {h2}*(1-frac))*(Eh-v) : amp
                      hinfno = {inf_rate} : 1''',
                   inf_rate=neg_sigmoid(midpoint=-66., scale=7.),

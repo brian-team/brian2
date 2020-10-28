@@ -221,11 +221,11 @@ def test_wrong_replacements():
                   ''', v='x')
 
     # Replacing a model variable name with a value
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Equations('dv/dt = -v / tau : 1', v=3 * mV)
 
     # Replacing with an illegal value
-    with pytest.raises(SyntaxError):
+    with pytest.raises(TypeError):
         Equations('dv/dt = -v/tau : 1', tau=np.arange(5))
 
 

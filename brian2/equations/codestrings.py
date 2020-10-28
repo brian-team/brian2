@@ -105,6 +105,10 @@ class Expression(CodeString):
 
         if code is None:
             code = sympy_to_str(sympy_expression)
+        elif '{' not in code:
+            # Just try to convert it to a sympy expression to get syntax errors
+            # for incorrect expressions
+            str_to_sympy(code)
         super(Expression, self).__init__(code=code)
 
     stochastic_variables = property(lambda self: {variable for variable in self.identifiers
