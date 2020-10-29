@@ -447,7 +447,7 @@ class SingleEquation(Hashable, CacheKey):
 
     template_identifiers = property(lambda self: (self.expr.template_identifiers
                                                   if not self.expr is None else set([])) |
-                                                 get_identifiers(self.varname, only_template=True),
+                                                 get_identifiers(self.varname, template=True),
                                     doc='All template identifiers used in this equation (including as part of the variable '
                                         'name.')
 
@@ -620,7 +620,18 @@ class Equations(Hashable, Mapping):
         replacement_strs = []
         for one_replacement in replacement:
             if isinstance(one_replacement, str):
-                replacement_strs.append(one_replacement)
+                if any(c not in string.ascii_letters + '_{}'
+                       for c in one_replacement):
+                    # Check whether the replacement can be interpreted as an expression
+                    try:
+                        expr = Expression(one_replacement)
+                        replacement_strs.append(expr.code)
+                    except SyntaxError:
+                        raise SyntaxError(f'Replacement \'{one_replacement}\' for'
+                                          f'\'{to_replace}\' is neither a name nor a '
+                                          f'valid expression.')
+                else:
+                    replacement_strs.append(one_replacement)
             elif isinstance(one_replacement, (numbers.Number, Quantity)):
                 if not getattr(one_replacement, 'shape', ()) == ():
                     raise TypeError(f'Cannot replace variable \'{to_replace}\' with an '
@@ -641,7 +652,7 @@ class Equations(Hashable, Mapping):
         if len(replacement_strs) == 1:
             replacement_str = replacement_strs[0]
             # Be careful if the string is more than just a name/number
-            if any(c not in string.ascii_letters + string.digits + '_' + '.'
+            if any(c not in string.ascii_letters + string.digits + '_.{}'
                    for c in replacement_str):
                 replacement_str = '(' + replacement_str + ')'
         else:

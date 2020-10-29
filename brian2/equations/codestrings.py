@@ -3,12 +3,18 @@ Module defining `CodeString`, a class for a string of code together with
 information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
+import re
+import string
 from collections.abc import Hashable
+from typing import Sequence
+import numbers
 
 import sympy
+import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers
+from brian2.utils.topsort import topsort
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 
 __all__ = ['Expression', 'Statements']
@@ -34,7 +40,7 @@ class CodeString(Hashable):
 
         # : Set of identifiers in the code string
         self.identifiers = get_identifiers(code)
-        self.template_identifiers = get_identifiers(code, only_template=True)
+        self.template_identifiers = get_identifiers(code, template=True)
 
     code = property(lambda self: self._code,
                     doc='The code string')
@@ -198,8 +204,94 @@ class Expression(CodeString):
     def __hash__(self):
         return hash(self.code)
 
+    def _do_substitution(self, to_replace, replacement):
+        # Replacements can be lists, deal with single replacements
+        # as single-element lists
+        replaced_name = False
+        replaced_placeholder = False
+        if not isinstance(replacement, Sequence) or isinstance(replacement, str):
+            replacement = [replacement]
+        replacement_strs = []
+        for one_replacement in replacement:
+            if isinstance(one_replacement, str):
+                if any(c not in string.ascii_letters + '_{}'
+                       for c in one_replacement):
+                    # Check whether the replacement can be interpreted as an expression
+                    try:
+                        expr = Expression(one_replacement)
+                        replacement_strs.append(expr.code)
+                    except SyntaxError:
+                        raise SyntaxError(f'Replacement \'{one_replacement}\' for'
+                                          f'\'{to_replace}\' is neither a name nor a '
+                                          f'valid expression.')
+                else:
+                    replacement_strs.append(one_replacement)
+            elif isinstance(one_replacement, (numbers.Number, np.ndarray)):
+                if not getattr(one_replacement, 'shape', ()) == ():
+                    raise TypeError(f'Cannot replace variable \'{to_replace}\' with an '
+                                    f'array of values.')
+                replacement_strs.append(repr(one_replacement))
+            elif isinstance(one_replacement, Expression):
+                replacement_strs.append(one_replacement.code)
+            else:
+                raise TypeError(f'Cannot replace \'{to_replace}\' with an object of type '
+                                f'\'{type(one_replacement)}\'.')
+
+        if len(replacement_strs) == 1:
+            replacement_str = replacement_strs[0]
+            # Be careful if the string is more than just a name/number
+            if any(c not in string.ascii_letters + string.digits + '_.{}'
+                   for c in replacement_str):
+                replacement_str = '(' + replacement_str + ')'
+        else:
+            replacement_str = '(' + (' + '.join(replacement_strs)) + ')'
+
+        new_expr = self
+        if to_replace in new_expr.identifiers:
+            code = new_expr.code
+            new_expr = Expression(re.sub(r'(?<!\w|{)' + to_replace + r'(?!\w|})',
+                                         replacement_str, code))
+            replaced_name = True
+        if to_replace in new_expr.template_identifiers:
+            code = new_expr.code
+            new_expr = Expression(code.replace('{' + to_replace + '}',
+                                               replacement_str))
+            replaced_placeholder = True
+        if not (replaced_name or replaced_placeholder):
+            raise KeyError(f'Replacement argument \'{to_replace}\' does not correspond '
+                           f'to any name or placeholder in the equations.')
+        if replaced_name and replaced_placeholder:
+            logger.warn(f'Replacement argument \'{to_replace}\' replaced both a name '
+                        f'and a placeholder \'{{{to_replace}}}\'.',
+                        name_suffix='ambiguous_replacement')
+        return new_expr
+
     def __call__(self, **replacements):
-        return Expression(code=self.code.format_map(Default(replacements)))
+        if len(replacements) == 0:
+            return self
+
+        # Figure out in which order elements should be substituted
+        dependencies = {}
+        for to_replace, replacement in replacements.items():
+            if not isinstance(replacement, Sequence) or isinstance(replacement, str):
+                replacement = [replacement]
+            for one_replacement in replacement:
+                dependencies[to_replace] = set()
+                if not isinstance(one_replacement, (numbers.Number, np.ndarray, str, Expression)):
+                    raise TypeError(f'Cannot use an object of type \'{type(one_replacement)}\''
+                                    f'to replace \'{to_replace}\' in an expression.')
+                if isinstance(one_replacement, Expression):
+                    dependencies[to_replace] |= one_replacement.identifiers | one_replacement.template_identifiers
+        # We only care about dependencies to values that are replaced at the same time
+        for dep_key, deps in dependencies.items():
+            dependencies[dep_key] = {d for d in deps if d in dependencies}
+
+        replacements_in_order = topsort(dependencies)[::-1]
+        expr = self
+        for to_replace in replacements_in_order:
+            replacement = replacements[to_replace]
+            expr = expr._do_substitution(to_replace, replacement)
+        return expr
 
 
 def is_constant_over_dt(expression, variables, dt_value):

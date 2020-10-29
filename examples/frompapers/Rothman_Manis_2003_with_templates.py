@@ -138,10 +138,9 @@ ihcno = Equations('''ihcno = gbarno*({h1}*frac + {h2}*(1-frac))*(Eh-v) : amp
                   h2=gating_var_octopus(name='h2', tau_scale=0.0029, midpoint=-84.))
 
 eqs =Equations("""dv/dt = ({currents} + I)/C : volt
-                  vu = v/mV : 1  # unitless v
                   I : amp""",
-               currents=[ileak, ina, ikht, ih, iklt, ika, ihcno], voltage='vu')
-
+               currents=[ileak, ina, ikht, ih, iklt, ika, ihcno],
+               voltage='v/mV')
 neuron = NeuronGroup(1, eqs, method='exponential_euler')
 neuron.v = El
 
