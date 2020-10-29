@@ -613,7 +613,8 @@ class Equations(Hashable, Mapping):
         # as single-element lists
         new_equations = {}
         additional_equations = {}
-        replaced_something = False
+        replaced_name = False
+        replaced_placeholder = False
         if not isinstance(replacement, Sequence) or isinstance(replacement, str):
             replacement = [replacement]
         replacement_strs = []
@@ -656,7 +657,7 @@ class Equations(Hashable, Mapping):
                     raise TypeError(f'Cannot replace variable name \'{to_replace}\' with '
                                     f'an object of type \'{type(replacement[0])}\'.')
                 new_varname = replacement[0]
-                replaced_something = True
+                replaced_name = True
             elif '{' + to_replace + '}' in eq.varname:
                 if not len(replacement) == 1:
                     raise TypeError(f'Cannot replace \'{{{to_replace}}}\' as a part of a variable'
@@ -665,7 +666,7 @@ class Equations(Hashable, Mapping):
                     raise TypeError(f'Cannot replace \'{{{to_replace}}}\' as a part of a variable'
                                     f'name with an object of type \'{type(replacement[0])}\'.')
                 new_varname = eq.varname.replace('{' + to_replace + '}', replacement[0])
-                replaced_something = True
+                replaced_placeholder = True
             else:
                 new_varname = eq.varname
 
@@ -682,12 +683,12 @@ class Equations(Hashable, Mapping):
                 code = eq.expr.code
                 new_expr = Expression(re.sub(r'(?<!\w|{)' + to_replace + r'(?!\w|})',
                                              replacement_str, code))
-                replaced_something = True
+                replaced_name = True
             if to_replace in eq.template_identifiers:
                 code = new_expr.code
                 new_expr = Expression(code.replace('{'+to_replace+'}',
                                                    replacement_str))
-                replaced_something = True
+                replaced_placeholder = True
 
             new_equations[new_varname] = SingleEquation(eq.type,
                                                         new_varname,
@@ -695,9 +696,13 @@ class Equations(Hashable, Mapping):
                                                         var_type=eq.var_type,
                                                         expr=new_expr,
                                                         flags=eq.flags)
-        if not replaced_something:
+        if not (replaced_name or replaced_placeholder):
             raise KeyError(f'Replacement argument \'{to_replace}\' does not correspond '
                            f'to any name or placeholder in the equations.')
+        if replaced_name and replaced_placeholder:
+            logger.warn(f'Replacement argument \'{to_replace}\' replaced both a name '
+                        f'and a placeholder \'{{{to_replace}}}\'.',
+                        name_suffix='ambiguous_replacement')
         new_equations.update(additional_equations)
         return new_equations
 
