@@ -505,6 +505,13 @@ class NeuronGroup(Group, SpikeSource):
         if not isinstance(model, Equations):
             raise TypeError(('model has to be a string or an Equations '
                              'object, is "%s" instead.') % type(model))
+        if len(model.template_identifiers) > 0:
+            identifiers = [f'\'{identifier}\''
+                           for identifier in model.template_identifiers]
+            identifier_list = ', '.join(sorted(identifiers))
+            raise TypeError('The model equations contain placeholders, substitute '
+                            'names/values for the ' f'following before passing '
+                            f'them to {self.__class__.__name__}: {identifier_list}.')
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
