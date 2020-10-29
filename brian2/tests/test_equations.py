@@ -228,6 +228,10 @@ def test_wrong_replacements():
     with pytest.raises(TypeError):
         Equations('dv/dt = -v/tau : 1', tau=np.arange(5))
 
+    # Replacing something that does not exist
+    with pytest.raises(KeyError):
+        Equations('dv/dt = -v/tau : 1', x='y')
+
 
 @pytest.mark.codegen_independent
 def test_substitute():
