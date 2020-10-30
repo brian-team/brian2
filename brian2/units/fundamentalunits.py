@@ -1938,7 +1938,7 @@ class Unit(Quantity):
         scale = _siprefixes[scalefactor] + baseunit.scale
         if scalefactor == 'u':
             scalefactor = r'\mu'
-        latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
+        latexname = r'\mathrm{' + scalefactor + '}' + baseunit.latexname
 
         u = Unit(10.0**scale, dim=baseunit.dim,  name=name, dispname=dispname,
                  latexname=latexname, scale=scale)
