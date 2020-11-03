@@ -690,12 +690,12 @@ class Equations(Hashable, Mapping):
                                             'this name is already used for another variable.')
             # Replace occurrences in the RHS of equations
             new_expr = eq.expr
-            if to_replace in eq.identifiers:
+            if to_replace in eq.identifiers and eq.expr is not None:
                 code = eq.expr.code
                 new_expr = Expression(re.sub(r'(?<!\w|{)' + to_replace + r'(?!\w|})',
                                              replacement_str, code))
                 replaced_name = True
-            if to_replace in eq.template_identifiers:
+            if to_replace in eq.template_identifiers and new_expr is not None:
                 code = new_expr.code
                 new_expr = Expression(code.replace('{'+to_replace+'}',
                                                    replacement_str))
