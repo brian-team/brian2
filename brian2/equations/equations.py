@@ -579,10 +579,18 @@ class Equations(Hashable, Mapping):
                     raise EquationError(('The equation defining %s contains the '
                                          'symbol "xi" but is not a differential '
                                          'equation.') % eq.varname)
-                elif not uses_xi is None:
+                elif uses_xi is not None:
                     raise EquationError(('The equation defining %s contains the '
                                          'symbol "xi", but it is already used '
-                                         'in the equation defining %s.') %
+                                         'in the equation defining %s. Rename '
+                                         'the variables to "xi_..." to make '
+                                         'clear whether they are the same or '
+                                         'independent random variables. Using '
+                                         'the same name twice will lead to '
+                                         'identical noise realizations '
+                                         'whereas using different names will '
+                                         'lead to independent noise '
+                                         'realizations.') %
                                         (eq.varname, uses_xi))
                 else:
                     uses_xi = eq.varname
