@@ -578,8 +578,6 @@ class SynapticIndexing(object):
                                                'implemented yet'))
 
                 # We want to access the raw arrays here, not go through the Variable
-                pre_neurons = self.synaptic_pre.get_value()[matching_synapses]
-                post_neurons = self.synaptic_post.get_value()[matching_synapses]
                 synapse_numbers = self.synapse_number.get_value()[matching_synapses]
                 final_indices = np.intersect1d(matching_synapses,
                                                np.flatnonzero(test_k(synapse_numbers)),

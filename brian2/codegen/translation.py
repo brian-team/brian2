@@ -297,10 +297,6 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         elif not variables[stmt.var].scalar:
             scalar_write_done = True
 
-    # all variables which are written to at some point in the code block
-    # used to determine whether they should be const or not
-    all_write = set(line.write for line in lines)
-
     # backwards compute whether or not variables will be read again
     # note that will_read for a line gives the set of variables it will read
     # on the current line or subsequent ones. will_write gives the set of
@@ -349,8 +345,6 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     for line in lines:
         stmt = line.statement
         read = line.read
-        write = line.write
-        will_read = line.will_read
         will_write = line.will_write
         # update/define all subexpressions needed by this statement
         for var in sorted_subexpr_vars:

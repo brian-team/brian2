@@ -95,7 +95,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
         used_boolvars = [var for var in boolvars if var in idents]
         if len(used_boolvars):
             # We want to iterate over all the possible assignments of boolean variables to values in (True, False)
-            bool_space = [[False, True] for var in used_boolvars]
+            bool_space = [[False, True] for _ in used_boolvars]
             expanded_expressions = {}
             complexities = {}
             for bool_vals in itertools.product(*bool_space):

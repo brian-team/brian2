@@ -1038,7 +1038,6 @@ class Equations(Hashable, Mapping):
 
     def _latex(self, *args):        
         equations = []
-        t = sympy.Symbol('t')
         for eq in self._equations.values():
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)

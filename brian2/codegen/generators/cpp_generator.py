@@ -268,7 +268,6 @@ class CPPCodeGenerator(CodeGenerator):
         for stmt in statements:
             line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
-                subs = {}
                 condvar = conditional_write_vars[stmt.var]
                 lines.append('if(%s)' % condvar)
                 lines.append('    '+line)
