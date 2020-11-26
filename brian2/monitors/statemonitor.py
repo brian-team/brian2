@@ -3,10 +3,10 @@ import numbers
 
 import numpy as np
 
-from brian2.core.variables import (Variables, Subexpression, get_dtype)
+from brian2.core.variables import Variables, get_dtype
 from brian2.groups.group import Group, CodeRunner
 from brian2.utils.logger import get_logger
-from brian2.units.fundamentalunits import Unit, Quantity
+from brian2.units.fundamentalunits import Quantity
 from brian2.units.allunits import second
 
 __all__ = ['StateMonitor']

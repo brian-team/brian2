@@ -12,7 +12,7 @@ from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
 from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
-                                           check_units, DimensionMismatchError)
+                                           check_units)
 from brian2 import numpy as np
 
 logger = get_logger(__name__)

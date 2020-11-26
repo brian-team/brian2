@@ -17,9 +17,9 @@ from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.translation import get_identifiers_recursively
 from brian2.devices.device import get_device
-from brian2.equations.equations import (Equations, SingleEquation,
+from brian2.equations.equations import (Equations,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER, INTEGER,
+                                        PARAMETER,
                                         check_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,

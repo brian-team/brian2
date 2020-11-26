@@ -20,7 +20,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
                                            get_unit_for_display,
                                            DIMENSIONLESS,
                                            DimensionMismatchError,
-                                           get_dimensions, Dimension)
+                                           get_dimensions)
 from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
