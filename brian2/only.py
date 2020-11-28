@@ -108,6 +108,7 @@ __all__ = [
     'SpikeGeneratorGroup', 'TimedArray',
     'Morphology', 'Soma', 'Cylinder', 'Section', 'SpatialNeuron',
     'set_device', 'get_device', 'device', 'all_devices', 'seed',
-    'restore_initial_state'
+    'restore_initial_state',
+    'test'
 ]
 __all__.extend(_all_units)

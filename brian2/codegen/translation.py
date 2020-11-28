@@ -297,10 +297,6 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         elif not variables[stmt.var].scalar:
             scalar_write_done = True
 
-    # all variables which are written to at some point in the code block
-    # used to determine whether they should be const or not
-    all_write = set(line.write for line in lines)
-
     # backwards compute whether or not variables will be read again
     # note that will_read for a line gives the set of variables it will read
     # on the current line or subsequent ones. will_write gives the set of
@@ -347,14 +343,9 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     # none are yet defined (or declared)
     subdefined = dict((name, None) for name in subexpressions)
     for line in lines:
-        stmt = line.statement
-        read = line.read
-        write = line.write
-        will_read = line.will_read
-        will_write = line.will_write
         # update/define all subexpressions needed by this statement
         for var in sorted_subexpr_vars:
-            if var not in read:
+            if var not in line.read:
                 continue
 
             subexpression = subexpressions[var]
@@ -368,7 +359,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 op = ':='
                 # check if the referred variables ever change
                 ids = subexpression.identifiers
-                constant = all(v not in will_write for v in ids)
+                constant = all(v not in line.will_write for v in ids)
                 subdefined[var] = 'constant' if constant else 'variable'
 
             statement = Statement(var, op, subexpression.expr, comment='',
@@ -378,11 +369,12 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                                   scalar=variables[var].scalar)
             statements.append(statement)
 
+        stmt = line.statement
         var, op, expr, comment = stmt.var, stmt.op, stmt.expr, stmt.comment
 
         # constant only if we are declaring a new variable and we will not
         # write to it again
-        constant = op == ':=' and var not in will_write
+        constant = op == ':=' and var not in line.will_write
         statement = Statement(var, op, expr, comment,
                               dtype=variables[var].dtype,
                               constant=constant,

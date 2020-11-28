@@ -3,7 +3,7 @@ Module implementing Brian's refractory mechanism.
 '''
 
 
-from brian2.units.fundamentalunits import Unit, DIMENSIONLESS
+from brian2.units.fundamentalunits import DIMENSIONLESS
 from brian2.units.allunits import second
 
 from .equations import (Equations, SingleEquation, DIFFERENTIAL_EQUATION,

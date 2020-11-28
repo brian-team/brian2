@@ -576,7 +576,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         _v = __k_1_v/6 + __k_2_v/3 + __k_3_v/3 + __k_4_v/6 + v
         v = _v
         '''
-        method_options = extract_method_options(method_options, {})
+        extract_method_options(method_options, {})
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if eqs.is_stochastic and self.stochastic is None:

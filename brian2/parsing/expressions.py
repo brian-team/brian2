@@ -2,7 +2,6 @@
 AST parsing based analysis of expressions
 '''
 import ast
-from collections import defaultdict
 
 from brian2.core.functions import Function
 from brian2.parsing.rendering import NodeRenderer
@@ -11,8 +10,7 @@ from brian2.units.fundamentalunits import (Unit,
                                            have_same_dimensions,
                                            get_dimensions,
                                            DIMENSIONLESS,
-                                           fail_for_dimension_mismatch,
-                                           get_unit, get_unit_for_display)
+                                           get_unit_for_display)
 
 __all__ = ['parse_expression_dimensions']
 

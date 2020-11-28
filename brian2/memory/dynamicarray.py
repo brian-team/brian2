@@ -174,14 +174,8 @@ class DynamicArray(object):
     def __getitem__(self, item):
         return self.data.__getitem__(item)
     
-    def __getslice__(self, start, end):
-        return self.data.__getslice__(start, end)
-    
     def __setitem__(self, item, val):
         self.data.__setitem__(item, val)
-        
-    def __setslice__(self, start, end, val):
-        self.data.__setslice__(start, end, val)
         
     def __len__(self):
         return len(self.data)
