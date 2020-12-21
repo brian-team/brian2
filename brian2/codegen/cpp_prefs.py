@@ -248,10 +248,10 @@ def compiler_supports_c99():
             os.close(fd)
             msvc_env, vcvars_cmd = get_msvc_env()
             if vcvars_cmd:
-                cmd = '{} && cl /E mytest.cpp > NUL 2>&1'.format(vcvars_cmd)
+                cmd = '{} && cl /E {} > NUL 2>&1'.format(vcvars_cmd, tmp_file)
             else:
                 os.environ.update(msvc_env)
-                cmd = 'cl /E mytest.cpp > NUL 2>&1'
+                cmd = 'cl /E {} > NUL 2>&1'.format(tmp_file)
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
             os.remove(tmp_file)
