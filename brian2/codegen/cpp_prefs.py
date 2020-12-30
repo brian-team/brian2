@@ -21,8 +21,6 @@ import tempfile
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 
-from .codeobject import sys_info
-
 __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
            'C99Check']
 

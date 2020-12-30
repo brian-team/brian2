@@ -1324,7 +1324,7 @@ class CPPStandaloneDevice(Device):
             for full_directory in full_directories:
                 try:
                     os.rmdir(full_directory)
-                except OSError as ex:
+                except OSError:
                     if not os.path.exists(full_directory):
                         continue
 

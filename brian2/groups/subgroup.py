@@ -2,7 +2,6 @@
 from brian2.core.base import weakproxy_with_fallback
 from brian2.core.spikesource import SpikeSource
 from brian2.core.variables import Variables
-from brian2.units.fundamentalunits import Unit
 
 from .group import Group, Indexing
 

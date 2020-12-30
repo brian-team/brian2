@@ -141,8 +141,6 @@ def sympy_to_str(sympy_expr):
     str_expr : str
         A string representing the sympy expression.
     '''
-    orig_sympy_expr = sympy_expr
-
     # replace the standard functions by our names if necessary
     replacements = dict((f.sympy_func, sympy.Function(name)) for
                         name, f in DEFAULT_FUNCTIONS.items()

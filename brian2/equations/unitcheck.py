@@ -12,8 +12,7 @@ from brian2.parsing.expressions import parse_expression_dimensions
 from brian2.parsing.statements import parse_statement
 from brian2.core.variables import Variable
 
-__all__ = ['unit_from_expression', 'check_dimensions',
-           'check_units_statements']
+__all__ = ['check_dimensions', 'check_units_statements']
 
 
 def check_dimensions(expression, dimensions, variables):
@@ -90,7 +89,6 @@ def check_units_statements(code, variables):
             expr = '{var} {op_first} {expr}'.format(var=varname,
                                                     op_first=op[0],
                                                     expr=expr)
-            op = '='
         elif op == '=':
             pass
         else:
