@@ -14,7 +14,6 @@ import shutil
 import sys
 import tempfile
 import time
-import traceback
 
 from warnings import warn
 

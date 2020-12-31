@@ -4,7 +4,6 @@ GSLCodeGenerators for code that uses the ODE solver provided by the GNU Scientif
 
 import os
 import re
-import sys
 
 import numpy as np
 

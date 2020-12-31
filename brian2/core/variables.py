@@ -9,7 +9,6 @@ import functools
 import numbers
 
 import numpy as np
-import sympy
 
 from brian2.units.fundamentalunits import (Quantity, get_unit, DIMENSIONLESS,
                                            fail_for_dimension_mismatch,
@@ -1190,7 +1189,7 @@ class VariableView(object):
         try:
             # This will fail for subexpressions that refer to external
             # parameters
-            value = self[:]
+            self[:]
         except ValueError:
             raise ValueError(('Cannot get the values for variable {var}. If it '
                               'is a subexpression referring to external '

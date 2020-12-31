@@ -41,7 +41,6 @@ class NumpyCodeGenerator(CodeGenerator):
         # operations like a=b+c -> add(b, c, a)
         var, op, expr, comment = (statement.var, statement.op,
                                   statement.expr, statement.comment)
-        origop = op
         if op == ':=':
             op = '='
         # For numpy we replace complex expressions involving a single boolean variable into a
