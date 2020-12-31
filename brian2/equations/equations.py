@@ -584,6 +584,7 @@ class Equations(Hashable, Mapping):
                                         eq.varname)
                 self._equations[eq.varname] = eq
 
+        self._orig_equations = self._equations
         self._equations = self._substitute(kwds)
 
         # Check for special symbol xi (stochastic term)
