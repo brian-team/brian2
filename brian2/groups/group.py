@@ -27,9 +27,8 @@ from brian2.core.namespace import (get_local_namespace,
                                    DEFAULT_UNITS,
                                    DEFAULT_CONSTANTS)
 from brian2.codegen.codeobject import create_runner_codeobj
-from brian2.codegen.generators.numpy_generator import NumpyCodeGenerator
 from brian2.equations.equations import BOOLEAN, INTEGER, FLOAT, Equations
-from brian2.units.fundamentalunits import (fail_for_dimension_mismatch, Unit,
+from brian2.units.fundamentalunits import (fail_for_dimension_mismatch,
                                            get_unit, DIMENSIONLESS)
 from brian2.utils.logger import get_logger
 from brian2.utils.stringtools import get_identifiers, SpellChecker
@@ -911,6 +910,7 @@ class Group(VariableOwner, BrianObject):
         if callable(resolved) and not isinstance(resolved, Function):
             resolved = Function(resolved,
                                 arg_units=getattr(resolved, '_arg_units', None),
+                                arg_names=getattr(resolved, '_arg_names', None),
                                 return_unit=getattr(resolved, '_return_unit', None),
                                 stateless=getattr(resolved, 'stateless', False))
 

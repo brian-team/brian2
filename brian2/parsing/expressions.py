@@ -10,8 +10,7 @@ from brian2.units.fundamentalunits import (Unit,
                                            have_same_dimensions,
                                            get_dimensions,
                                            DIMENSIONLESS,
-                                           fail_for_dimension_mismatch,
-                                           get_unit, get_unit_for_display)
+                                           get_unit_for_display)
 
 __all__ = ['parse_expression_dimensions']
 
@@ -300,11 +299,30 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                                expr.col_offset + len(expr.func.id) + 1,
                                orig_expr))
 
+
+
         for idx, (arg, expected_unit) in enumerate(zip(expr.args,
                                                        func._arg_units)):
+            arg_unit = parse_expression_dimensions(arg, variables,
+                                                   orig_expr=orig_expr)
             # A "None" in func._arg_units means: No matter what unit
             if expected_unit is None:
                 continue
+            # A string means: same unit as other argument
+            elif isinstance(expected_unit, str):
+                arg_idx = func._arg_names.index(expected_unit)
+                expected_unit = parse_expression_dimensions(expr.args[arg_idx],
+                                                              variables,
+                                                              orig_expr=orig_expr)
+                if not have_same_dimensions(arg_unit, expected_unit):
+                    msg = (f'Argument number {idx + 1} for function '
+                           f'{expr.func.id} was supposed to have the '
+                           f'same units as argument number {arg_idx + 1}, but '
+                           f'\'{NodeRenderer().render_node(arg)}\' has unit '
+                           f'{get_unit_for_display(arg_unit)}, while '
+                           f'\'{NodeRenderer().render_node(expr.args[arg_idx])}\' '
+                           f'has unit {get_unit_for_display(expected_unit)}')
+                    raise DimensionMismatchError(msg)
             elif expected_unit == bool:
                 if not is_boolean_expression(arg, variables):
                     raise TypeError(('Argument number %d for function %s was '
@@ -312,7 +330,6 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                                      '"%s".') % (idx + 1, expr.func.id,
                                                  NodeRenderer().render_node(arg)))
             else:
-                arg_unit = parse_expression_dimensions(arg, variables, orig_expr=orig_expr)
                 if not have_same_dimensions(arg_unit, expected_unit):
                     msg = ('Argument number {} for function {} does not have the '
                            'correct units. Expression "{}" has units ({}), but '

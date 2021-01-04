@@ -9,7 +9,7 @@ We recommend users to use the `Anaconda distribution <https://www.anaconda.com/d
 by Continuum Analytics. Its use will make the installation of Brian 2 and its
 dependencies simpler, since packages are provided in binary form, meaning that
 they don't have to be build from the source code at your machine. Furthermore,
-our automatic testing on the continuous integration services travis_ and appveyor_
+our automatic testing on the continuous integration services travis_ and azure_
 are based on Anaconda, we are therefore confident that it works under this
 configuration.
 
@@ -42,9 +42,9 @@ https://docs.anaconda.com/anaconda/user-guide/tasks/integration
 Installing Brian 2
 ~~~~~~~~~~~~~~~~~~
 .. note::
-    The provided Brian 2 packages are only for 64bit systems. If you want to
-    install Brian 2 in a 32bit environment, please use the
-    :ref:`installation_from_source` instead.
+    The provided Brian 2 packages are only for 64bit systems. Operating systems running
+    32bit are no longer officially supported, but :ref:`installation_from_source` might
+    still work.
 
 You can either install Brian 2 in the Anaconda root environment, or create a
 new environment for Brian 2 (https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
@@ -71,11 +71,11 @@ packages as any other Anaconda package::
 Installing other useful packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 There are various packages that are useful but not necessary for working with
-Brian. These include: matplotlib_ (for plotting), nose_ (for running the test
+Brian. These include: matplotlib_ (for plotting), pytest_ (for running the test
 suite), ipython_ and jupyter_-notebook (for an interactive console). To install
 them from anaconda, simply do::
 
-    conda install matplotlib nose ipython notebook
+    conda install matplotlib pytest ipython notebook
 
 You should also have a look at the brian2tools_ package, which contains several
 useful functions to visualize Brian 2 simulations and recordings. You can
@@ -162,7 +162,7 @@ Another option is to use ``pip`` to directly install from github::
 Testing Brian
 -------------
 
-If you have the nose_ testing utility installed, you can run Brian's test
+If you have the pytest_ testing utility installed, you can run Brian's test
 suite::
 
     import brian2
@@ -177,6 +177,6 @@ failures. For more control about the tests that are run see the
 .. _jupyter: http://jupyter.org/
 .. _brian2tools: https://brian2tools.readthedocs.io
 .. _travis: https://travis-ci.org/brian-team/brian2
-.. _appveyor: https://ci.appveyor.com/project/brianteam/brian2
-.. _nose: https://pypi.python.org/pypi/nose
+.. _azure: https://azure.microsoft.com/en-us/services/devops/pipelines/
+.. _pytest: https://docs.pytest.org/en/stable/
 .. _Cython: http://cython.org/

@@ -12,7 +12,7 @@ from brian2.units.allunits import meter
 from brian2.utils.logger import get_logger
 from brian2.units.stdunits import um
 from brian2.units.fundamentalunits import (have_same_dimensions, Quantity,
-                                           check_units, DimensionMismatchError)
+                                           check_units)
 from brian2 import numpy as np
 
 logger = get_logger(__name__)
@@ -695,7 +695,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         return self._children
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def end_distance(self):
         '''
         The distance to the root of the morphology at the end of this section.
@@ -703,28 +704,32 @@ class Morphology(object, metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     # Per-compartment attributes
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def area(self):
         '''
         The membrane surface area of each compartment in this section.
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def volume(self):
         '''
         The volume of each compartment in this section.
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def length(self):
         '''
         The length of each compartment in this section.
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def r_length_1(self):
         '''
         The geometry-dependent term to calculate the conductance between the
@@ -733,7 +738,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def r_length_2(self):
         '''
         The geometry-dependent term to calculate the conductance between the
@@ -743,14 +749,16 @@ class Morphology(object, metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     # At-midpoint attributes
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def diameter(self):
         '''
         The diameter at the middle of each compartment in this section.
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def distance(self):
         '''
         The total distance between the midpoint of each compartment and the root
@@ -782,7 +790,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         return _to_meters(self.start_z_)
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def start_x_(self):
         '''
         The x coordinate (as a unitless floating point number) at the beginning
@@ -791,7 +800,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def start_y_(self):
         '''
         The y coordinate (as a unitless floating point number) at the beginning
@@ -800,7 +810,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def start_z_(self):
         '''
         The z coordinate (as a unitless floating point number) at the beginning
@@ -833,7 +844,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         return _to_meters(self.z_)
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def x_(self):
         '''
         The x coordinate (as a unitless floating point number) at the midpoint
@@ -842,7 +854,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def y_(self):
         '''
         The y coordinate (as a unitless floating point number) at the midpoint
@@ -851,7 +864,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def z_(self):
         '''
         The z coordinate (as a unitless floating point number) at the midpoint
@@ -884,7 +898,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         return _to_meters(self.end_z_)
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def end_x_(self):
         '''
         The x coordinate (as a unitless floating point number) at the end of
@@ -892,7 +907,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def end_y_(self):
         '''
         The y coordinate (as a unitless floating point number) at the end of
@@ -900,7 +916,8 @@ class Morphology(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def end_z_(self):
         '''
         The z coordinate (as a unitless floating point number) at the end of

@@ -1142,6 +1142,19 @@ def test_clocks():
     assert synapse.post._clock.dt == target_dt
     assert synapse._clock.dt == synapse_dt
 
+def test_equations_with_clocks():
+    '''
+    Make sure that dt of a `Synapse` object is correctly resolved.
+    '''
+    source_dt = 0.1*ms
+    synapse_dt = 1*ms
+    source_target = NeuronGroup(1, 'v:1', dt=source_dt, threshold='False')
+    synapse = Synapses(source_target, source_target, 'dw/dt = 1/ms : 1 (clock-driven)', dt=synapse_dt, method='euler')
+    synapse.connect()
+    synapse.w = 0
+    run(1*ms)
+
+    assert synapse.w[0] == 1
 
 def test_changed_dt_spikes_in_queue():
     defaultclock.dt = .5*ms

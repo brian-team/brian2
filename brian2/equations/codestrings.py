@@ -4,10 +4,7 @@ information about its namespace. Only serves as a parent class, its subclasses
 `Expression` and `Statements` are the ones that are actually used.
 '''
 
-try:
-    from collections.abc import Hashable
-except ImportError:
-    from collections import Hashable
+from collections.abc import Hashable
 
 import sympy
 

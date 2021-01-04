@@ -19,7 +19,6 @@ docs_sphinx/reference
 
 # Unit test / coverage reports
 .coverage
-nosetests.xml
 
 # Eclipse project files and settings
 .project

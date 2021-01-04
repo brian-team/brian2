@@ -1,6 +1,87 @@
 Release notes
 =============
 
+Brian 2.4.2
+------------
+This is another bugfix release which fixes a number of bugs and updates our
+release infrastructure.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix incorrect integration of synaptic equations if they use a ``dt`` from
+  the connected neuron. Thanks to Jan Marker for reporting and fixing the
+  issue (:issue:`1248`).
+* Fix an issue with multiple runs in standalone mode (:issue:`1237`). Thanks
+  to Maurizio De Pittà for reporting the issue.
+* Uncaught error messages will now point to the Discourse forum instead of the
+  deprecated mailing list (:issue:`1242`). Thanks to Felix Kern for contributing
+  this fix.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Tagging a release will now automatically upload the release to PyPI via a
+  GitHub Action.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* `@ramapati166 <https://github.com/ramapati166>`_
+* Yann Zerlaut (`@yzerlaut <https://github.com/yzerlaut>`_)
+* Maurizio De Pittà (`@mdepitta <https://github.com/mdepitta>`_)
+* Sebastian Schmitt (`@schmitts <https://github.com/schmitts>`_)
+* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
+* Eugen Skrebenkov (`@shcecter <https://github.com/shcecter>`_)
+* Simo (`@sivanni <https://github.com/sivanni>`_)
+* Ruben Tikidji-Hamburyan (`@rat-h <https://github.com/rat-h>`_)
+* Jan Marker (`@jangmarker <https://github.com/jangmarker>`_)
+* `@IrisHydi <https://github.com/IrisHydi>`_
+
+Brian 2.4.1
+-----------
+This is a bugfix release with a number of small fixes and updates to the continuous
+integration testing.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* The `check_units` decorator can now express that some arguments need to have the same
+  units. This mechanism is now used to check the units of the `clip` function
+  (:issue:`1234`). Thanks to Felix Kern for notifying us of this issue.
+* Using `SpatialNeuron` with Cython no longer raises an unnecessary warning when the
+  ``scipy`` library is not installed (:issue:`1230`).
+* Raise an error for references to ``N_incoming`` or ``N_outgoing`` in calls to
+  `Synapses.connect`. This use is ill-defined and led to compilation errors in previous
+  versions (:issue:`1227`). Thanks to Denis Alevi for making us aware of this issue.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Brian no longer officially supports installation on 32bit operating systems.
+  Installation via ``pip`` will probably still work, but we are no longer testing this
+  configuration (:issue:`1232`).
+* Automatic continuous integration tests for Windows now use the
+  `Microsoft Azure Pipeline <https://azure.microsoft.com/en-us/services/devops/pipelines/>`_
+  infrastructure instead of `Appveyor <https://www.appveyor.com/>`_. This should speed
+  up tests by running different configurations in parallel (:issue:`1233`).
+* Fix an issue in the test suite that did not handle ``NotImplementedError`` correctly
+  anymore after the changes introduced with :issue:`1196`.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* Denis Alevi (`@denisalevi <https://github.com/denisalevi>`_)
+* SK (`@akatav <https://github.com/akatav>`_)
+
+Other contributions outside of github (ordered alphabetically, apologies to
+anyone we forgot...):
+
+* Felix B. Kern
+
 Brian 2.4
 ---------
 This new release contains a large number of small improvements and bug fixes. We

@@ -206,6 +206,7 @@ def test_user_defined_function_units():
     '''
     Test the preparation of functions for use in code with check_units.
     '''
+    prefs.codegen.target = 'numpy'
     if prefs.codegen.target != 'numpy':
         pytest.skip('numpy-only test')
 
@@ -213,21 +214,21 @@ def test_user_defined_function_units():
         return x*(y+z)
 
     no_result_unit = check_units(x=1, y=second, z=second)(nothing_specified)
-    one_arg_missing = check_units(x=1, z=second, result=second)(nothing_specified)
     all_specified = check_units(x=1, y=second, z=second, result=second)(nothing_specified)
+    consistent_units = check_units(x=None, y=None, z='y',
+                                   result=lambda x, y, z: x*y)(nothing_specified)
 
     G = NeuronGroup(1, '''a : 1
                           b : second
                           c : second''',
                     namespace={'nothing_specified': nothing_specified,
                                'no_result_unit': no_result_unit,
-                               'one_arg_missing': one_arg_missing,
-                               'all_specified': all_specified})
+                               'all_specified': all_specified,
+                               'consistent_units': consistent_units})
     net = Network(G)
     net.run(0*ms)  # make sure we have a clock and therefore a t
     G.c = 'all_specified(a, b, t)'
-    with pytest.raises(ValueError):
-        setattr(G, 'c', 'one_arg_missing(a, b, t)')
+    G.c = 'consistent_units(a, b, t)'
     with pytest.raises(ValueError):
         setattr(G, 'c', 'no_result_unit(a, b, t)')
     with pytest.raises(KeyError):
@@ -236,6 +237,10 @@ def test_user_defined_function_units():
         setattr(G, 'a', 'all_specified(a, b, t)')
     with pytest.raises(DimensionMismatchError):
         setattr(G, 'a', 'all_specified(b, a, t)')
+    with pytest.raises(DimensionMismatchError):
+        setattr(G, 'a', 'consistent_units(a, b, t)')
+    with pytest.raises(DimensionMismatchError):
+        setattr(G, 'a', 'consistent_units(b, a, t)')
 
 
 def test_simple_user_defined_function():
@@ -277,9 +282,30 @@ def test_manual_user_defined_function():
         Function(foo, return_unit=volt)
     with pytest.raises(ValueError):
         Function(foo, arg_units=[volt, volt])
+    # If the function uses the string syntax for "same units", it needs to
+    # specify the names of the arguments
+    with pytest.raises(TypeError):
+        Function(foo, arg_units=[volt, 'x'])
+    with pytest.raises(TypeError):
+        Function(foo, arg_units=[volt, 'x'],
+                 arg_names=['x'])  # Needs two entries
+
     foo = Function(foo, arg_units=[volt, volt], return_unit=volt)
 
     assert foo(1*volt, 2*volt) == 6*volt
+
+    # a can be any unit, b and c need to be the same unit
+    def bar(a, b, c):
+        return a*(b + c)
+    bar = Function(bar, arg_units=[None, None, 'b'],
+                   arg_names=['a', 'b', 'c'],
+                   return_unit=lambda a, b, c: a*b)
+    assert bar(2, 3*volt, 5*volt) == 16*volt
+    assert bar(2*amp, 3*volt, 5*volt) == 16*watt
+    assert bar(2*volt, 3*amp, 5*amp) == 16*watt
+
+    with pytest.raises(DimensionMismatchError):
+        bar(2, 3 * volt, 5 * amp)
 
     # Incorrect argument units
     group = NeuronGroup(1, '''

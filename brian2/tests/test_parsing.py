@@ -7,12 +7,13 @@ from collections import namedtuple
 import pytest
 import numpy as np
 
-from brian2.codegen.cpp_prefs import update_for_cross_compilation
+from brian2 import Function
 from brian2.codegen.generators.cpp_generator import CPPCodeGenerator
 from brian2.core.functions import DEFAULT_FUNCTIONS
 from brian2.core.preferences import prefs
 from brian2.core.variables import Constant
 from brian2.groups.group import Group
+from brian2.units.fundamentalunits import Dimension, DIMENSIONLESS
 from brian2.utils.stringtools import get_identifiers, deindent
 from brian2.utils.logger import std_silent
 from brian2.parsing.rendering import (NodeRenderer, NumpyNodeRenderer,
@@ -311,6 +312,51 @@ def test_parse_expression_unit_wrong_expressions(expr):
             all_variables[name] = group._resolve(name, {})
     with pytest.raises(SyntaxError):
         parse_expression_dimensions(expr, all_variables)
+
+
+@pytest.mark.codegen_independent
+@pytest.mark.parametrize('expr,correct',
+                         [('sin(5)', True),
+                          ('3 + sin(5)', True),
+                          ('d + sin(5)', True),
+                          ('3 + sin(d)', True),
+                          ('sin(5*mV)', False),
+                          ('sin(a)', False),
+                          ('3*mV + sin(5)', False),
+                          ('b + sin(5)', False),
+                          ('sqrt(b**2) + sqrt(7*mV**2)', True),
+                          ('sqrt(d) + sqrt(7*mV**2)', False),
+                          ('b + clip(3*mV, 0*mV, 5*mV)', True),
+                          ('b + clip(3*mV, 0, 5)', False),
+                          ('b + foo(7, 3*mV, 9)', True),
+                          ('a + foo(7*nA, 3*mV, 9*nA)', True),
+                          ('b + foo(7, 3*mV, 9*mV)', False),
+                          ('a + foo(7*nA, 3*mV, 9)', False)])
+def test_parse_expression_unit_functions(expr, correct):
+    Var = namedtuple('Var', ['dim', 'dtype'])
+    def foo(x, y, z):
+        return (x + z)*y
+    variables = {'a': Var(dim=(volt*amp).dim, dtype=np.float64),
+                 'b': Var(dim=volt.dim, dtype=np.float64),
+                 'c': Var(dim=amp.dim, dtype=np.float64),
+                 'd': Var(dim=DIMENSIONLESS, dtype=np.float64),
+                 'foo': Function(pyfunc=foo,
+                                 arg_units=[None, volt, 'x'],
+                                 arg_names=['x', 'y', 'z'],
+                                 return_unit=lambda x, y, z: x*y)}
+    all_variables = {}
+    group = SimpleGroup(namespace={}, variables=variables)
+    for name in get_identifiers(expr):
+        if name in variables:
+            all_variables[name] = variables[name]
+        else:
+            all_variables[name] = group._resolve(name, {})
+    if correct:
+        assert isinstance(parse_expression_dimensions(expr, all_variables),
+                          Dimension)
+    else:
+        with pytest.raises(DimensionMismatchError):
+            parse_expression_dimensions(expr, all_variables)
 
 
 @pytest.mark.codegen_independent

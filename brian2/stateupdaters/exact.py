@@ -89,7 +89,7 @@ class IndependentStateUpdater(StateUpdateMethod):
         logger.warn("The 'independent' state updater is deprecated and might be "
                     "removed in future versions of Brian.",
                     'deprecated_independent', once=True)
-        method_options = extract_method_options(method_options, {})
+        extract_method_options(method_options, {})
         if equations.is_stochastic:
             raise UnsupportedEquationsException('Cannot solve stochastic '
                                                 'equations with this state '
@@ -179,7 +179,6 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Make sure that the matrix M is constant, i.e. it only contains
         # external variables or constant variables
-        t = Symbol('t', real=True, positive=True)
 
         # Check for time dependence
         dt_value = variables['dt'].get_value()[0] if 'dt' in variables else None

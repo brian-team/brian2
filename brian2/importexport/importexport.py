@@ -80,7 +80,8 @@ class ImportExport(object, metaclass=abc.ABCMeta):
         '''
         raise NotImplementedError()
 
-    @abstractproperty
+    @property
+    @abc.abstractmethod
     def name(self):
         '''
         Abstract property giving a method name.

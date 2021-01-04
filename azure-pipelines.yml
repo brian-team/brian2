@@ -1,0 +1,41 @@
+jobs:
+
+- job: 'Windows'
+  timeoutInMinutes: 0
+  pool:
+    vmImage: 'vs2017-win2016'
+  strategy:
+    matrix:
+      Python37_runtime_1:
+        python.version: '3.7'
+        script_name: dev/continuous-integration/run_test_suite.py
+        standalone: false
+        split_run: 1
+      Python37_runtime_2:
+        python.version: '3.7'
+        script_name: dev/continuous-integration/run_test_suite.py
+        standalone: false
+        split_run: 2
+      Python37_standalone:
+        python.version: '3.7'
+        script_name: dev/continuous-integration/run_test_suite.py
+        standalone: true
+      Python37_runtime_1_32bit:
+        python.version: '3.7'
+        script_name: dev/continuous-integration/run_test_suite.py
+        standalone: false
+        float_dtype_32: true
+        split_run: 1
+      Python37_runtime_2_32bit:
+        python.version: '3.7'
+        script_name: dev/continuous-integration/run_test_suite.py
+        standalone: false
+        float_dtype_32: true
+        split_run: 2
+      Python37_standalone_32bit:
+        python.version: '3.7'
+        script_name: dev/continuous-integration/run_test_suite.py
+        standalone: true
+        float_dtype_32: true
+  steps:
+  - template: dev/continuous-integration/azure-steps.yml

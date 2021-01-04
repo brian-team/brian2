@@ -101,7 +101,9 @@ def pytest_runtest_makereport(item, call):
     if rep.outcome == 'failed':
         reinit_devices()
         if not fail_for_not_implemented:
-            if call.excinfo.errisinstance(NotImplementedError):
+            exc_cause = getattr(call.excinfo.value, '__cause__', None)
+            if (call.excinfo.errisinstance(NotImplementedError) or
+                isinstance(exc_cause, NotImplementedError)):
                 rep.outcome = 'skipped'
                 r = call.excinfo._getreprcrash()
                 rep.longrepr = (str(r.path), r.lineno, r.message)

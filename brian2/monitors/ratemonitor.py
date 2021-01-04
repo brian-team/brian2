@@ -5,9 +5,9 @@ import numpy as np
 
 from brian2.utils.logger import get_logger
 from brian2.core.variables import Variables
-from brian2.units.allunits import second, hertz
-from brian2.units.fundamentalunits import Unit, Quantity, check_units
 from brian2.core.names import Nameable
+from brian2.units.allunits import second, hertz
+from brian2.units.fundamentalunits import Quantity, check_units
 from brian2.groups.group import CodeRunner, Group
 from brian2.groups.subgroup import Subgroup
 

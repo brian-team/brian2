@@ -1,5 +1,5 @@
 '''
-Run all the numpy tests using nose. Exits with error code 1 if a test failed.
+Run all the numpy tests using pytest. Exits with error code 1 if a test failed.
 '''
 import sys
 

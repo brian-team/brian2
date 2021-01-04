@@ -21,8 +21,6 @@ import tempfile
 from brian2.core.preferences import prefs, BrianPreference
 from brian2.utils.logger import get_logger
 
-from .codeobject import sys_info
-
 __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
            'C99Check']
 
@@ -205,41 +203,6 @@ def get_compiler_and_args():
         if compiler == 'msvc':
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
     return compiler, extra_compile_args
-
-
-def update_for_cross_compilation(library_dirs, extra_compile_args,
-                                 extra_link_args, logger=None):
-    '''
-    Update the compiler arguments to allow cross-compilation for 32bit on a
-    64bit Linux system. Uses the provided ``logger`` to print an INFO message
-    and modifies the provided lists in-place.
-
-    Parameters
-    ----------
-    library_dirs : list
-        List of library directories (will be modified in-place).
-    extra_compile_args : list
-        List of extra compile args (will be modified in-place).
-    extra_link_args : list
-        List of extra link args (will be modified in-place).
-    logger : `BrianLogger`, optional
-        The logger to use for the INFO message. Defaults to ``None`` (no
-        message).
-    '''
-    if (sys_info['system'] == 'Linux' and
-                sys_info['architecture'][0] == '32bit' and
-                sys_info['machine'] == 'x86_64'):
-        # We are cross-compiling to 32bit on a 64bit platform
-        if logger is not None:
-            logger.info('Cross-compiling to 32bit on a 64bit platform, a set '
-                        'of standard compiler options will be appended for '
-                        'this purpose (note that you need to have a 32bit '
-                        'version of the standard library for this to work).',
-                        '64bit_to_32bit',
-                        once=True)
-        library_dirs += ['/lib32', '/usr/lib32']
-        extra_compile_args += ['-m32']
-        extra_link_args += ['-m32']
 
 
 _msvc_env = None

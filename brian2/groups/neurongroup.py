@@ -2,7 +2,6 @@
 '''
 This model defines the `NeuronGroup`, the core of most simulations.
 '''
-import collections
 from collections.abc import Sequence, MutableMapping
 import numbers
 import string
@@ -25,8 +24,7 @@ from brian2.parsing.expressions import (parse_expression_dimensions,
                                         is_boolean_expression)
 from brian2.stateupdaters.base import StateUpdateMethod
 from brian2.units.allunits import second
-from brian2.units.fundamentalunits import (Quantity, Unit, DIMENSIONLESS,
-                                           have_same_dimensions,
+from brian2.units.fundamentalunits import (Quantity, DIMENSIONLESS,
                                            DimensionMismatchError,
                                            fail_for_dimension_mismatch)
 from brian2.utils.logger import get_logger

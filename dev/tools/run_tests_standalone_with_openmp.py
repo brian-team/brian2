@@ -1,5 +1,5 @@
 '''
-Run all the standalone tests using nose. Exits with error code 1 if a test failed.
+Run all the standalone tests using pytest. Exits with error code 1 if a test failed.
 '''
 import sys
 

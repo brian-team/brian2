@@ -20,7 +20,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
                                            get_unit_for_display,
                                            DIMENSIONLESS,
                                            DimensionMismatchError,
-                                           get_dimensions, Dimension)
+                                           get_dimensions)
 from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
@@ -1038,7 +1038,6 @@ class Equations(Hashable, Mapping):
 
     def _latex(self, *args):        
         equations = []
-        t = sympy.Symbol('t')
         for eq in self._equations.values():
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)
