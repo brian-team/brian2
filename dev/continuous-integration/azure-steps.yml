@@ -14,6 +14,11 @@ steps:
     displayName: 'Setup conda environment'
 
   - bash: |
+      conda install --quiet --yes -c conda-forge llvm-openmp
+    displayName: 'Install OpenMP support for clang/llvm'
+    condition: eq(variables['agent.os'], 'Darwin')
+
+  - bash: |
       source activate $HOME/test_env
       conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl
       pip install .
