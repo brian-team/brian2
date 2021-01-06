@@ -74,10 +74,10 @@ stages:
             script_name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split_run: 2
-#          Python38_standalone:
-#            python.version: '3.8'
-#            script_name: dev/continuous-integration/run_test_suite.py
-#            standalone: true
+          Python38_standalone:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: true
       steps:
       - template: dev/continuous-integration/azure-steps.yml
 
