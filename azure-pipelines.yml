@@ -135,7 +135,7 @@ stages:
               body: |
                 {
                   "payload": {
-                       "build_num": $(Build.BuildNumber),
+                       "build_num": "$(Build.BuildNumber)",
                        "status": "done"
                   }
                 }
