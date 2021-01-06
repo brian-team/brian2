@@ -29,6 +29,8 @@ steps:
       SOURCE_PATH=$(pwd)
       cd ..  # move out of the source directory to avoid direct import
       coverage run --rcfile=$SOURCE_PATH/.coveragerc $SOURCE_PATH/$(script_name)
+    env:
+      AGENT_OS: $(Agent.OS)
     displayName: 'Run tests'
 
   - bash: |
