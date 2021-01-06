@@ -23,18 +23,18 @@ stages:
             script_name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split_run: 1
-            upload_coverage : True
+            upload_coverage : true
           Python38_runtime_2:
             python.version: '3.8'
             script_name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split_run: 2
-            upload_coverage : True
+            upload_coverage : true
           Python38_standalone:
             python.version: '3.8'
             script_name: dev/continuous-integration/run_test_suite.py
             standalone: true
-            upload_coverage : True
+            upload_coverage : true
           Python38_runtime_1_32bit:
             python.version: '3.8'
             script_name: dev/continuous-integration/run_test_suite.py
@@ -126,10 +126,8 @@ stages:
         steps:
           - task: InvokeRESTAPI@1
             inputs:
-              connectionType: Generic
               serviceConnection: coveralls
-              urlSuffix: repo_token=$(coveralls_repo_token)
-              method: Post
+              urlSuffix: '?repo_token=$(coveralls_repo_token)'
               headers: |
                 {
                 "Content-Type": "application/json"
@@ -139,5 +137,5 @@ stages:
                   "payload": {
                        "build_num": $(Build.BuildNumber),
                        "status": "done"
-                     }
+                  }
                 }

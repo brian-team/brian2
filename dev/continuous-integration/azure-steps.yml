@@ -36,10 +36,13 @@ steps:
       pip install coveralls
       cp ../.coverage .
       export CIRCLE_BRANCH=$BUILD_SOURCEBRANCH
-      COVERALLS_PARALLEL=true coveralls --rcfile=.coveragerc
+      coveralls --rcfile=.coveragerc
     env:
       CIRCLECI: 1
       CIRCLE_BUILD_NUM: $(Build.BuildNumber)
+      CIRCLE_BRANCH: $(Build.SourceBranchName)
+      COVERALLS_FLAG_NAME: $(System.JobName)
       COVERALLS_REPO_TOKEN: $(coveralls_repo_token)
+      COVERALLS_PARALLEL: true
     displayName: 'Upload coverage data to coveralls'
-    condition: eq(variables['upload_coverage'], 'True')
+    condition: eq(variables.upload_coverage, true)
