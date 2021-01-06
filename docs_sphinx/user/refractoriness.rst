@@ -22,7 +22,7 @@ valid for all neurons::
                     refractory=2*ms)
 
 Alternatively, it can be a string expression that evaluates to a time. This
-expression will be evaluated after every spike and allows for a changing
+expression will be evaluated after every spike and allows for a varying
 refractory period. For example, the following will set the refractory period
 to a random duration between 1ms and 3ms after every spike::
 
@@ -55,7 +55,7 @@ it relax back to a steady-state value between spikes::
 In some cases, the condition for leaving the refractory period is not easily
 expressed as a certain time span. For example, in a Hodgkin-Huxley type model the
 threshold is only used for *counting* spikes and the refractoriness is used to
-prevent to count multiple spikes for a single threshold crossing (the threshold
+prevent the count of multiple spikes for a single threshold crossing (the threshold
 condition would evaluate to ``True`` for several time points). When a neuron
 should leave the refractory period is not easily expressed as a time span but
 more naturally as a condition that the neuron should remain refractory for as
