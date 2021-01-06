@@ -127,7 +127,6 @@ stages:
           - task: InvokeRESTAPI@1
             inputs:
               serviceConnection: coveralls
-              urlSuffix: '?repo_token=$(coveralls_repo_token)'
               headers: |
                 {
                 "Content-Type": "application/json"
