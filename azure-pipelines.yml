@@ -1,3 +1,6 @@
+variables:
+  COVERALLS_TOKEN: $(coveralls_repo_token)
+
 stages:
   - stage: TestSuite
     displayName: Test suite
@@ -127,6 +130,7 @@ stages:
           - task: InvokeRESTAPI@1
             inputs:
               serviceConnection: coveralls
+              urlSuffix: '?repo_token=$(COVERALLS_TOKEN)'
               headers: |
                 {
                 "Content-Type": "application/json"
@@ -138,3 +142,4 @@ stages:
                        "status": "done"
                   }
                 }
+              successCriteria: eq(root['done'], true)
