@@ -483,16 +483,16 @@ def test_GSL_method_options_synapses():
     dv/dt = (ge * (Ee-vr) + El - v) / taum : volt
     dge/dt = -ge / taue : 1
     '''
-    input = PoissonGroup(N, rates=F)
+    input_p = PoissonGroup(N, rates=F)
     neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
                           method='gsl_rkf45')
-    S1 = Synapses(input, neurons,
+    S1 = Synapses(input_p, neurons,
                   '''w : 1
                      dApre/dt = -Apre / taupre : 1 (clock-driven)
                      dApost/dt = -Apost / taupost : 1 (clock-driven)''',
                   method='gsl_rkf45',
                   method_options={'adaptable_timestep':True})
-    S2 = Synapses(input, neurons,
+    S2 = Synapses(input_p, neurons,
                   '''w : 1
                      dApre/dt = -Apre / taupre : 1 (clock-driven)
                      dApost/dt = -Apost / taupost : 1 (clock-driven)''',
