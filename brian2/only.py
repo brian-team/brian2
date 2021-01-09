@@ -39,7 +39,7 @@ from brian2.groups.subgroup import *
 from brian2.synapses import *
 from brian2.monitors import *
 from brian2.importexport import *
-from brian2.input import *
+from brian2.input_b import *
 from brian2.spatialneuron import *
 from brian2.devices import set_device, get_device, device, all_devices, seed
 import brian2.devices.cpp_standalone as _cpp_standalone
