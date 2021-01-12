@@ -42,4 +42,4 @@ steps:
       COVERALLS_REPO_TOKEN: $(coveralls_repo_token)
       COVERALLS_PARALLEL: true
     displayName: 'Upload coverage data to coveralls'
-    condition: and(eq(variables.upload_coverage, true), eq(variables['System.PullRequest.IsFork']), false))
+    condition: and(eq(variables.upload_coverage, true), eq(variables['System.PullRequest.IsFork'], false))
