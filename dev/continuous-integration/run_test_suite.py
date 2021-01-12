@@ -14,7 +14,7 @@ split_run = os.environ.get('SPLIT_RUN', None)
 standalone = os.environ.get('STANDALONE', 'no').lower() in ['yes', 'true']
 python_version = os.environ.get('PYTHON_VERSION', os.environ.get('PYTHON'))
 # If TRAVIS_OS_NAME is not defined, we are testing on appveyor
-operating_system = os.environ.get('TRAVIS_OS_NAME', 'windows').lower()
+operating_system = os.environ.get('AGENT_OS', 'unknown').lower()
 cross_compiled = os.environ.get('CROSS_COMPILED', 'FALSE').lower() in ['yes', 'true']
 report_coverage = os.environ.get('REPORT_COVERAGE', 'no').lower() in ['yes', 'true']
 dtype_32_bit = os.environ.get('FLOAT_DTYPE_32', 'no').lower() in ['yes', 'true']
@@ -35,7 +35,7 @@ if operating_system == 'windows' or standalone:
 else:
     in_parallel = ['codegen_independent', 'numpy', 'cpp_standalone']
 
-if operating_system in ['linux', 'windows']:
+if operating_system in ['linux', 'windows_nt']:
     openmp = True
 else:
     openmp = False
