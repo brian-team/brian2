@@ -552,10 +552,10 @@ class NeuronGroup(Group, SpikeSource):
         
         if threshold is not None and (reset is None and refractory is False):
             if not('rand(' in threshold or 'randn(' in threshold):
-                print("WARNING: The NeuronGroup '{}' sets a threshold but neither a reset "
+                logger.warn("The NeuronGroup having {} neurons sets a threshold but neither a reset "
                  "condition nor a refractory condition has been set. Did you forget either " 
-                 "of those? If this was intended, set the reset argumnet to an empty string "
-                 "in order to avoid this warning.")
+                 "of those? If this was intended, set the reset argument to an empty string "
+                 "in order to avoid this warning.".format(N))
 
         if threshold is not None:
             if 'spike' in events:
