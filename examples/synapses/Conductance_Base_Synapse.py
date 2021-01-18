@@ -7,7 +7,7 @@
 # -  Introduction to modeling neural dynamics, Borgers, chapter 20
 # - [LINK to discussion](https://brian.discourse.group/t/how-to-implement-a-conductance-base-synapse/77/2)
 
-import brian2 as b2
+from brian2 import *
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -23,17 +23,17 @@ def plot_data(state_monitor, title=None, c='k'):
     fig, ax = plt.subplots(2, figsize=(10, 6), sharex=True)
 
     
-    ax[0].plot(state_monitor.t / b2.ms, state_monitor.vm[0] / b2.mV, lw=2, c="r", alpha=0.5, label="neuron 0")
-    ax[0].plot(state_monitor.t / b2.ms, state_monitor.vm[1] / b2.mV, lw=2, c="b", alpha=0.5, label='neuron 1')
-    ax[1].plot(state_monitor.t / b2.ms, state_monitor.s_in[0], lw=2, c="r", label='s_in, source')
-    ax[1].plot(state_monitor.t / b2.ms, state_monitor.s_in[1], lw=2, c="b", label='s_in, target')
+    ax[0].plot(state_monitor.t / ms, state_monitor.vm[0] / mV, lw=2, c="r", alpha=0.5, label="neuron 0")
+    ax[0].plot(state_monitor.t / ms, state_monitor.vm[1] / mV, lw=2, c="b", alpha=0.5, label='neuron 1')
+    ax[1].plot(state_monitor.t / ms, state_monitor.s_in[0], lw=2, c="r", label='s_in, source')
+    ax[1].plot(state_monitor.t / ms, state_monitor.s_in[1], lw=2, c="b", label='s_in, target')
     
 
     ax[0].set_xlabel("t [ms]")
     ax[0].set_ylabel("v [mV]")
     ax[1].set_ylabel("s")
 
-    ax[0].set_xlim(0, np.max(state_monitor.t / b2.ms))
+    ax[0].set_xlim(0, np.max(state_monitor.t / ms))
     ax[0].set_ylim(-100, 50)
     ax[1].set_ylim(0, 1)
     ax[0].legend()
@@ -48,20 +48,20 @@ def plot_data(state_monitor, title=None, c='k'):
 def RTM_CELL(N, I_e, simulation_time):
     
     # neuron RTM parameters
-    El = -67 * b2.mV
-    EK = -100 * b2.mV
-    ENa = 50 * b2.mV
-    ESyn= 0 * b2.mV
-    gl = 0.1 * b2.msiemens
-    gK = 80 * b2.msiemens
-    gNa = 100 * b2.msiemens
+    El = -67 * mV
+    EK = -100 * mV
+    ENa = 50 * mV
+    ESyn= 0 * mV
+    gl = 0.1 * msiemens
+    gK = 80 * msiemens
+    gNa = 100 * msiemens
     
-    C = 1 * b2.ufarad
+    C = 1 * ufarad
     
-    weight = 0.25* b2.msiemens
-    gSyn = 1.0 * b2.msiemens
-    tau_d = 2 *b2.ms
-    tau_r = 0.2 *b2.ms
+    weight = 0.25* msiemens
+    gSyn = 1.0 * msiemens
+    tau_d = 2 *ms
+    tau_r = 0.2 *ms
 
     # forming RTM model with differential equations
     eqs = """
@@ -88,19 +88,19 @@ def RTM_CELL(N, I_e, simulation_time):
     dvm/dt = membrane_Im/C : volt
     """
 
-    neuron = b2.NeuronGroup(N, eqs, method="euler", 
-                            dt=0.01*b2.ms,
+    neuron = NeuronGroup(N, eqs, method="euler", 
+                            dt=0.01*ms,
                             threshold='vm>-55*mV')
     
     # initialize variables
-    neuron.vm = [-70.0, -65.0]*b2.mV
+    neuron.vm = [-70.0, -65.0]*mV
     neuron.m = "alpham / (alpham + betam)"
     neuron.h = "alphah / (alphah + betah)"
     neuron.n = "alphan / (alphan + betan)"
-    neuron.I_ext = [I_e, 0.0*b2.uA]
+    neuron.I_ext = [I_e, 0.0*uA]
     neuron.s_in=[0, 0]
     
-    S = b2.Synapses(neuron, 
+    S = Synapses(neuron, 
                     neuron, 
                     '''
                     w : 1
@@ -111,10 +111,10 @@ def RTM_CELL(N, I_e, simulation_time):
     
 
     # tracking variables
-    st_mon = b2.StateMonitor(neuron, ["vm", "s", "s_in"], record=[0,1])
+    st_mon = StateMonitor(neuron, ["vm", "s", "s_in"], record=[0,1])
 
     # running the simulation
-    net = b2.Network(neuron)
+    net = Network(neuron)
     net.add(st_mon)
     net.add(S)
     net.run(simulation_time)
@@ -122,5 +122,5 @@ def RTM_CELL(N, I_e, simulation_time):
 
 
 
-st = RTM_CELL(2, 1.5*b2.uA, 100*b2.ms)
+st = RTM_CELL(2, 1.5*uA, 100*ms)
 plot_data(st)
