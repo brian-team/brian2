@@ -770,6 +770,14 @@ def test_threshold_reset():
         assert len(logs) == 1
         assert logs[0][0] == "WARNING" and logs[0][1].endswith('only_threshold')
 
+    with catch_logs() as logs:
+        G = NeuronGroup(1, "v : 1", threshold="True", reset='')
+        assert len(logs) == 0
+
+    with catch_logs() as logs:
+        G = NeuronGroup(1, "v : 1", threshold="True", refractory=1*ms)
+        assert len(logs) == 0
+
 
 @pytest.mark.codegen_independent
 def test_unit_errors_threshold_reset():
