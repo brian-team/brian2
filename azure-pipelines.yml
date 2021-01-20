@@ -1,41 +1,145 @@
-jobs:
+variables:
+  COVERALLS_TOKEN: $(coveralls_repo_token)
 
-- job: 'Windows'
-  timeoutInMinutes: 0
-  pool:
-    vmImage: 'vs2017-win2016'
-  strategy:
-    matrix:
-      Python37_runtime_1:
-        python.version: '3.7'
-        script_name: dev/continuous-integration/run_test_suite.py
-        standalone: false
-        split_run: 1
-      Python37_runtime_2:
-        python.version: '3.7'
-        script_name: dev/continuous-integration/run_test_suite.py
-        standalone: false
-        split_run: 2
-      Python37_standalone:
-        python.version: '3.7'
-        script_name: dev/continuous-integration/run_test_suite.py
-        standalone: true
-      Python37_runtime_1_32bit:
-        python.version: '3.7'
-        script_name: dev/continuous-integration/run_test_suite.py
-        standalone: false
-        float_dtype_32: true
-        split_run: 1
-      Python37_runtime_2_32bit:
-        python.version: '3.7'
-        script_name: dev/continuous-integration/run_test_suite.py
-        standalone: false
-        float_dtype_32: true
-        split_run: 2
-      Python37_standalone_32bit:
-        python.version: '3.7'
-        script_name: dev/continuous-integration/run_test_suite.py
-        standalone: true
-        float_dtype_32: true
-  steps:
-  - template: dev/continuous-integration/azure-steps.yml
+stages:
+  - stage: TestSuite
+    displayName: Test suite
+    jobs:
+    - job: 'Linux'
+      timeoutInMinutes: 0
+      pool:
+        vmImage: 'ubuntu-20.04'
+      strategy:
+        matrix:
+          Python36_runtime_1:
+            python.version: '3.6'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python39_runtime_1:
+            python.version: '3.9'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python38_runtime_1:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+            upload_coverage : true
+          Python38_runtime_2:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
+            upload_coverage : true
+          Python38_standalone:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+            upload_coverage : true
+          Python38_runtime_1_32bit:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            float_dtype_32: true
+            split_run: 1
+          Python38_runtime_2_32bit:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            float_dtype_32: true
+            split_run: 2
+          Python38_standalone_32bit:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+            float_dtype_32: true
+      steps:
+      - template: dev/continuous-integration/azure-steps.yml
+
+    - job: 'OS_X'
+      timeoutInMinutes: 0
+      pool:
+        vmImage: 'macOS-10.15'
+      strategy:
+        matrix:
+          Python38_runtime_1:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python38_runtime_2:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
+          Python38_standalone:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+      steps:
+      - template: dev/continuous-integration/azure-steps.yml
+
+    - job: 'Windows'
+      timeoutInMinutes: 0
+      pool:
+        vmImage: 'vs2017-win2016'
+      strategy:
+        matrix:
+          Python38_runtime_1:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python38_runtime_2:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
+          Python38_standalone:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+          Python38_runtime_1_32bit:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            float_dtype_32: true
+            split_run: 1
+          Python38_runtime_2_32bit:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            float_dtype_32: true
+            split_run: 2
+          Python38_standalone_32bit:
+            python.version: '3.8'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+            float_dtype_32: true
+      steps:
+      - template: dev/continuous-integration/azure-steps.yml
+
+  - stage: notify_coveralls
+    displayName: Notify coveralls of test completion
+    jobs:
+      - job: coveralls
+        pool: server
+        steps:
+          - task: InvokeRESTAPI@1
+            inputs:
+              serviceConnection: coveralls
+              urlSuffix: '?repo_token=$(COVERALLS_TOKEN)'
+              headers: |
+                {
+                "Content-Type": "application/json"
+                }
+              body: |
+                {
+                  "payload": {
+                       "build_num": "$(Build.BuildNumber)",
+                       "status": "done"
+                  }
+                }
+              successCriteria: eq(root['done'], true)

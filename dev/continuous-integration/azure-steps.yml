@@ -15,7 +15,7 @@ steps:
 
   - bash: |
       source activate $HOME/test_env
-      conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl
+      conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
       pip install .
     displayName: 'Install Brian2'
 
@@ -23,5 +23,23 @@ steps:
       source activate $HOME/test_env
       SOURCE_PATH=$(pwd)
       cd ..  # move out of the source directory to avoid direct import
-      python $SOURCE_PATH/$(script_name)
+      coverage run --rcfile=$SOURCE_PATH/.coveragerc $SOURCE_PATH/$(script_name)
+    env:
+      AGENT_OS: $(Agent.OS)
     displayName: 'Run tests'
+
+  - bash: |
+      # We use the Circle CI support
+      pip install coveralls
+      cp ../.coverage .
+      export CIRCLE_BRANCH=$BUILD_SOURCEBRANCH
+      coveralls --rcfile=.coveragerc
+    env:
+      CIRCLECI: 1
+      CIRCLE_BUILD_NUM: $(Build.BuildNumber)
+      CIRCLE_BRANCH: $(Build.SourceBranchName)
+      COVERALLS_FLAG_NAME: $(System.JobName)
+      COVERALLS_REPO_TOKEN: $(coveralls_repo_token)
+      COVERALLS_PARALLEL: true
+    displayName: 'Upload coverage data to coveralls'
+    condition: and(eq(variables.upload_coverage, true), eq(variables['System.PullRequest.IsFork'], false))
