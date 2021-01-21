@@ -2,7 +2,7 @@ from brian2 import *
 from brian2.tests.features import *
 from brian2.tests.features.base import *
 from brian2.tests.features.monitors import SpikeMonitorTest, StateMonitorTest
-from brian2.tests.features.input import SpikeGeneratorGroupTest
+from brian2.tests.features.input_t import SpikeGeneratorGroupTest
 
 # Full testing
 print(run_feature_tests().tables_and_exceptions)

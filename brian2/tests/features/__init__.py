@@ -9,5 +9,5 @@ from .base import *
 from . import neurongroup
 from . import synapses
 from . import monitors
-from . import input
+from . import input_t
 from . import speed

@@ -42,7 +42,7 @@ test:
     - brian2.devices.cpp_standalone
     - brian2.equations
     - brian2.groups
-    - brian2.input
+    - brian2.input_b
     - brian2.memory
     - brian2.monitors
     - brian2.parsing
