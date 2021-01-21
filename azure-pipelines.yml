@@ -123,6 +123,7 @@ stages:
 
   - stage: notify_coveralls
     displayName: Notify coveralls of test completion
+    condition: eq(variables['System.PullRequest.IsFork'], false)
     jobs:
       - job: coveralls
         pool: server
