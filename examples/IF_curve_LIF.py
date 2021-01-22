@@ -7,7 +7,8 @@ with an input parameter v0.
 The input is set differently for each neuron.
 '''
 from brian2 import *
-
+import brian2tools
+set_device('exporter', debug=True)
 n = 1000
 duration = 1*second
 tau = 10*ms
@@ -23,7 +24,5 @@ group.v0 = '20*mV * i / (n-1)'
 monitor = SpikeMonitor(group)
 
 run(duration)
-plot(group.v0/mV, monitor.count / duration)
-xlabel('v0 (mV)')
-ylabel('Firing rate (sp/s)')
-show()
+
+

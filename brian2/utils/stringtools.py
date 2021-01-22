@@ -152,11 +152,12 @@ def replace(s, substitutions):
 KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
 
 
-def get_identifiers(expr, include_numbers=False):
+def get_identifiers(expr, include_numbers=False, template=False):
     '''
     Return all the identifiers in a given string ``expr``, that is everything
-    that matches a programming language variable like expression, which is
-    here implemented as the regexp ``\\b[A-Za-z_][A-Za-z0-9_]*\\b``.
+    that matches a programming language variable like expression. Placeholder
+    arguments of the form ``{name}`` are handled separately and only returned
+    if the ``template`` argument is ``True``.
 
     Parameters
     ----------
@@ -164,7 +165,9 @@ def get_identifiers(expr, include_numbers=False):
         The string to analyze
     include_numbers : bool, optional
         Whether to include number literals in the output. Defaults to ``False``.
-
+    template : bool, optional
+        Whether to only return template identifiers, i.e. identifiers enclosed
+        by curly braces. Defaults to ``False``
     Returns
     -------
     identifiers : set
@@ -174,20 +177,30 @@ def get_identifiers(expr, include_numbers=False):
     --------
     >>> expr = '3-a*_b+c5+8+f(A - .3e-10, tau_2)*17'
     >>> ids = get_identifiers(expr)
-    >>> print(sorted(list(ids)))
+    >>> print(sorted(ids))
     ['A', '_b', 'a', 'c5', 'f', 'tau_2']
     >>> ids = get_identifiers(expr, include_numbers=True)
-    >>> print(sorted(list(ids)))
+    >>> print(sorted(ids))
     ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
+    >>> template_expr = '{name}_{suffix} = a*{name}_{suffix} + b'
+    >>> template_ids = get_identifiers(template_expr, template=True)
+    >>> print(sorted(template_ids))
+    ['name', 'suffix']
     '''
-    identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
-    if include_numbers:
-        # only the number, not a + or -
-        numbers = set(re.findall(r'(?<=[^A-Za-z_])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?|^[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?',
-                                 expr))
+    if include_numbers and template:
+        raise ValueError('Cannot combine the \'template\' and \'include_numbers\' arguments.')
+
+    if template:
+        return set(re.findall(r'(?:[{])([A-Za-z_][A-Za-z0-9_]*)(?:[}])', expr))
     else:
-        numbers = set()
-    return (identifiers - KEYWORDS) | numbers
+        if include_numbers:
+            # only the number, not a + or -
+            number_regexp = r'(?<=[^A-Za-z_])[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?|^[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?'
+            numbers = set(re.findall(number_regexp, expr))
+        else:
+            numbers = set()
+        identifiers = set(re.findall(r'(?<!\w|{)[A-Za-z_][A-Za-z0-9_]*(?!\w|})', expr))
+        return (identifiers - KEYWORDS) | numbers
 
 
 def strip_empty_lines(s):
