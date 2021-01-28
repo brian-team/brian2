@@ -60,9 +60,6 @@ if 'rate' in globals():
 
 __docformat__ = "restructuredtext en"
 
-__version__ = '2.4.2.dev0'
-__release_date__ = '2020-10-28'
-
 from brian2.only import *
 from brian2.only import test
 
@@ -190,3 +187,7 @@ def _check_caches():
             check_cache(target)
 
 _check_caches()
+
+from ._version import get_versions as _get_versions
+__version__ = _get_versions()['version']
+__release_date__ = _get_versions()['date']
