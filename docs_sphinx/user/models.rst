@@ -74,6 +74,11 @@ You don't necessarily need to understand why this is, but it is
 possible to get a reasonably simple intuition for it by thinking
 about numerical integration: :ref:`see below <time_scaling_of_noise>`.
 
+.. note::
+    If you want to use noise in more than one equation of a
+    `NeuronGroup` or `Synapses`, you will have to use suffixed names (see
+    :ref:`equation_strings` for details).
+
 Threshold and reset
 -------------------
 To emit spikes, neurons need a *threshold*. Threshold and reset are given
