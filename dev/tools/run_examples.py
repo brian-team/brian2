@@ -14,8 +14,13 @@ class ExampleRun(pytest.Item):
     '''
     @classmethod
     def from_parent(cls, filename, codegen_target, dtype, parent):
-        new_node = super(ExampleRun, cls).from_parent(parent=parent,
-                                                      name=ExampleRun.id(filename))
+        super_class = super(ExampleRun, cls)
+        if hasattr(super_class, 'from_parent'):
+            new_node = super_class.from_parent(parent=parent,
+                                               name=ExampleRun.id(filename))
+        else:
+            # For pytest < 6
+            new_node = cls(parent=parent, name=ExampleRun.id(filename))
         new_node.filename = filename
         new_node.codegen_target = codegen_target
         new_node.dtype = dtype
@@ -73,8 +78,13 @@ class ExampleRun(pytest.Item):
 class ExampleCollector(pytest.Collector):
     @classmethod
     def from_parent(cls, example_dir, parent):
-        new_collector = super(ExampleCollector, cls).from_parent(parent,
-                                                                 name='example_collector')
+        collector = super(ExampleCollector, cls)
+        if hasattr(collector, 'from_parent'):
+            new_collector = collector.from_parent(parent,
+                                                  name='example_collector')
+        else:
+            # For pytest < 6
+            new_collector = cls(parent=parent, name='example_collector')
         new_collector.example_dir = example_dir
         return new_collector
 
