@@ -122,7 +122,7 @@ adds the value of synaptic variable ``w`` to postsynaptic variable ``v``.
 Any sort of code can be executed. For example, the following code defines
 stochastic synapses, with a synaptic weight ``w`` and transmission probability ``p``::
 
-	S=Synapses(input,neurons,model="""w : 1
+	S=Synapses(neuron_input,neurons,model="""w : 1
                                       p : 1""",
         	                 on_pre="v+=w*(rand()<p)")
 
@@ -405,7 +405,7 @@ its synapses. This is called a "summed variable". An example is nonlinear synaps
 
     neurons = NeuronGroup(1, model='''dv/dt=(gtot-v)/(10*ms) : 1
                                       gtot : 1''')
-    S = Synapses(input, neurons,
+    S = Synapses(neuron_input, neurons,
                  model='''dg/dt=-a*g+b*x*(1-g) : 1
                           gtot_post = g : 1  (summed)
                           dx/dt=-c*x : 1
@@ -433,13 +433,13 @@ variables that ar then summed up::
                                       gtot = gtot1 + gtot2: 1
                                       gtot1 : 1
                                       gtot2 : 1''')
-    S1 = Synapses(input, neurons,
+    S1 = Synapses(neuron_input, neurons,
                   model='''dg/dt=-a1*g+b1*x*(1-g) : 1
                            gtot1_post = g : 1  (summed)
                            dx/dt=-c1*x : 1
                            w : 1 # synaptic weight
                         ''', on_pre='x+=w')
-    S2 = Synapses(input, neurons,
+    S2 = Synapses(neuron_input, neurons,
                   model='''dg/dt=-a2*g+b2*x*(1-g) : 1
                            gtot2_post = g : 1  (summed)
                            dx/dt=-c2*x : 1
@@ -534,7 +534,7 @@ referring to the predefined variable ``t`` (current time).
 Here's an example for short-term plasticity -- but note that using the automatic
 ``event-driven`` approach from above is usually preferable::
 
-	S=Synapses(input,neuron,
+	S=Synapses(neuron_input,neuron,
 	           model='''x : 1
 	                    u : 1
 	                    w : 1

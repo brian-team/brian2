@@ -39,9 +39,9 @@ dv/dt=(ge*(Ee-vr)+El-v)/taum : volt   # the synaptic current is linearized
 dge/dt=-ge/taue : 1
 '''
 
-input   = PoissonGroup(N, rates=F)
+poisson_input   = PoissonGroup(N, rates=F)
 neurons = NeuronGroup(500, eqs_neurons, threshold='v>vt', reset='v=vr')
-S = Synapses(input, neurons,
+S = Synapses(poisson_input, neurons,
              '''w:1
                 dApre/dt=-Apre/taupre : 1 (event-driven)    
                 dApost/dt=-Apost/taupost : 1 (event-driven)''',
@@ -53,11 +53,11 @@ S = Synapses(input, neurons,
 S.connect()
 S.w          = 'rand()*gmax'
 state_mon    = StateMonitor(S, 'w', record=[0])
-spike_mon_1  = SpikeMonitor(input)
+spike_mon_1  = SpikeMonitor(poisson_input)
 spike_mon_2  = SpikeMonitor(neurons)
 start_time   = time.time()
 
-net = Network(input, neurons, S, state_mon, spike_mon_1, spike_mon_2, name='stdp_net')
+net = Network(poisson_input, neurons, S, state_mon, spike_mon_1, spike_mon_2, name='stdp_net')
 
 if standalone == 1:
     device.insert_code('main', 'std::clock_t start = std::clock();')
