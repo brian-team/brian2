@@ -2,6 +2,9 @@
 Brian 2
 '''
 
+from ._version import get_versions as _get_versions
+__version__ = _get_versions()['version']
+__release_date__ = _get_versions()['date']
 
 def _check_dependencies():
     '''Check basic dependencies'''
@@ -187,7 +190,3 @@ def _check_caches():
             check_cache(target)
 
 _check_caches()
-
-from ._version import get_versions as _get_versions
-__version__ = _get_versions()['version']
-__release_date__ = _get_versions()['date']
