@@ -4,7 +4,7 @@ Brian 2
 
 from ._version import get_versions as _get_versions
 __version__ = _get_versions()['version']
-__release_date__ = _get_versions()['date']
+__release_date__ = _get_versions()['date'][:10]  #only use date part
 
 def _check_dependencies():
     '''Check basic dependencies'''
