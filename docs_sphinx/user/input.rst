@@ -21,10 +21,6 @@ be used, e.g.::
     S = Synapses(P, G, on_pre='v+=0.1')
     S.connect(j='i')
 
-Here, each input of the PoissonGroup is connected to all the neurons of 
-the target NeuronGroup but each neuron receives independent realizations of 
-the Poisson spike trains.
-
 See `More on Poisson inputs`_ below for further information.
 
 For simulations where the individually generated spikes are just used as a 
@@ -201,14 +197,16 @@ a target variable based on the sum of independent Poisson processes::
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     P = PoissonInput(G, 'v', 100, 100*Hz, weight=0.1)
 
-The `PoissonInput` class is however more restrictive than `PoissonGroup`, it
-only allows for a constant rate across all neurons (but you can create
-several `PoissonInput` objects, targeting different subgroups). It internally
-uses `BinomialFunction` which will draw a random number each time step, either
-from a binomial distribution or from a normal distribution as an approximation
-to the binomial distribution if :math:`n p > 5 \wedge n (1 - p) > 5`, where
-:math:`n` is the number of inputs and :math:`p = dt \cdot rate` the spiking
-probability for a single input.
+Each input of the PoissonInput is connected to all the neurons of the target 
+NeuronGroup but each neuron receives independent realizations of the Poisson
+spike trains.The `PoissonInput` class is however more restrictive than
+`PoissonGroup`, it only allows for a constant rate across all neurons (but
+you can create several `PoissonInput` objects, targeting different subgroups). 
+It internally uses `BinomialFunction` which will draw a random number each time
+step, either from a binomial distribution or from a normal distribution as an
+approximation to the binomial distribution if :math:`n p > 5 \wedge n (1 - p) > 5`
+, where :math:`n` is the number of inputs and :math:`p = dt \cdot rate` the
+spiking probability for a single input.
 
 .. _network_operation:
 
