@@ -123,13 +123,13 @@ def test_get_dimensions():
     
     assert get_dimensions(5) is DIMENSIONLESS
     assert get_dimensions(5.0) is DIMENSIONLESS
-    assert get_dimensions(np.array(5, dtype=np.int)) is DIMENSIONLESS
+    assert get_dimensions(np.array(5, dtype=np.int32)) is DIMENSIONLESS
     assert get_dimensions(np.array(5.0)) is DIMENSIONLESS
     assert get_dimensions(np.float32(5.0)) is DIMENSIONLESS
     assert get_dimensions(np.float64(5.0)) is DIMENSIONLESS
     assert is_scalar_type(5)
     assert is_scalar_type(5.0)
-    assert is_scalar_type(np.array(5, dtype=np.int))
+    assert is_scalar_type(np.array(5, dtype=np.int32))
     assert is_scalar_type(np.array(5.0))
     assert is_scalar_type(np.float32(5.0))
     assert is_scalar_type(np.float64(5.0))

@@ -90,9 +90,9 @@ class Clock(VariableOwner):
         self.variables.add_array('timestep', size=1, dtype=np.int64,
                                  read_only=True, scalar=True)
         self.variables.add_array('t', dimensions=second.dim, size=1,
-                                 dtype=np.double, read_only=True, scalar=True)
+                                 dtype=np.float64, read_only=True, scalar=True)
         self.variables.add_array('dt', dimensions=second.dim, size=1, values=float(dt),
-                                 dtype=np.float, read_only=True, constant=True,
+                                 dtype=np.float64, read_only=True, constant=True,
                                  scalar=True)
         self.variables.add_constant('N', value=1)
         self._enable_group_attributes()

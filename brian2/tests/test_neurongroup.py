@@ -1449,14 +1449,14 @@ def test_get_dtype():
     assert get_dtype(eqs['v']) == prefs['core.default_float_dtype']
     assert get_dtype(eqs['x']) == prefs['core.default_float_dtype']
     assert get_dtype(eqs['n']) == prefs['core.default_integer_dtype']
-    assert get_dtype(eqs['b']) == np.bool
+    assert get_dtype(eqs['b']) == bool
 
     # Test a changed default (float) dtype
     assert get_dtype(eqs['v'], np.float32) == np.float32, get_dtype(eqs['v'], np.float32)
     assert get_dtype(eqs['x'], np.float32) == np.float32
     # integer and boolean variables should be unaffected
     assert get_dtype(eqs['n']) == prefs['core.default_integer_dtype']
-    assert get_dtype(eqs['b']) == np.bool
+    assert get_dtype(eqs['b']) == bool
 
     # Explicitly provide a dtype for some variables
     dtypes = {'v': np.float32, 'x': np.float64, 'n': np.int64}
@@ -1793,9 +1793,9 @@ def test_semantics_floor_division():
                            fvalue : 1
                            ivalue : integer''',
                     dtype={'a': np.int32, 'b': np.int64,
-                           'x': np.float, 'y': np.double})
+                           'x': float, 'y': float})
     int_values = np.arange(-5, 6)
-    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    float_values = np.arange(-5.0, 6.0, dtype=np.float64)
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
@@ -1823,9 +1823,9 @@ def test_semantics_floating_point_division():
                            fvalue : 1
                            ivalue : integer''',
                     dtype={'a': np.int32, 'b': np.int64,
-                           'x': np.float, 'y': np.double})
+                           'x': float, 'y': float})
     int_values = np.arange(-5, 6)
-    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    float_values = np.arange(-5.0, 6.0, dtype=np.float64)
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:
@@ -1857,9 +1857,9 @@ def test_semantics_mod():
                            fvalue : 1
                            ivalue : integer''',
                     dtype={'a': np.int32, 'b': np.int64,
-                           'x': np.float, 'y': np.double})
+                           'x': float, 'y': float})
     int_values = np.arange(-5, 6)
-    float_values = np.arange(-5.0, 6.0, dtype=np.double)
+    float_values = np.arange(-5.0, 6.0, dtype=np.float64)
     G.ivalue = int_values
     G.fvalue = float_values
     with catch_logs() as l:

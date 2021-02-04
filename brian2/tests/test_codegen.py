@@ -250,17 +250,17 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
                  'rand': DEFAULT_FUNCTIONS['rand']
                  }
     statements = [
-        # This hould not be simplified to 0!
-        Statement('v1', '=', 'rand() - rand()', '', np.float),
-        Statement('v1', '=', '3*rand() - 3*rand()', '', np.float),
-        Statement('v1', '=', '3*rand() - ((1+2)*rand())', '', np.float),
+        # This should not be simplified to 0!
+        Statement('v1', '=', 'rand() - rand()', '', float),
+        Statement('v1', '=', '3*rand() - 3*rand()', '', float),
+        Statement('v1', '=', '3*rand() - ((1+2)*rand())', '', float),
         # This should not pull out rand()*N
-        Statement('v1', '=', 's1*rand()*N', '', np.float),
-        Statement('v1', '=', 's2*rand()*N', '', np.float),
+        Statement('v1', '=', 's1*rand()*N', '', float),
+        Statement('v1', '=', 's2*rand()*N', '', float),
         # This is not important mathematically, but it would change the numbers
         # that are generated
-        Statement('v1', '=', '0*rand()*N', '', np.float),
-        Statement('v1', '=', '0/rand()*N', '', np.float)
+        Statement('v1', '=', '0*rand()*N', '', float),
+        Statement('v1', '=', '0/rand()*N', '', float)
     ]
     scalar, vector = optimise_statements([], statements, variables)
     for vs in vector[:3]:
@@ -277,26 +277,26 @@ def test_apply_loop_invariant_optimisation_simplification():
                  }
     statements = [
         # Should be simplified to 0.0
-        Statement('v1', '=', 'v1 - v1', '', np.float),
-        Statement('v1', '=', 'N*v1 - N*v1', '', np.float),
-        Statement('v1', '=', 'v1*N * 0', '', np.float),
-        Statement('v1', '=', 'v1 * 0', '', np.float),
-        Statement('v1', '=', 'v1 * 0.0', '', np.float),
-        Statement('v1', '=', '0.0 / (v1*N)', '', np.float),
+        Statement('v1', '=', 'v1 - v1', '', float),
+        Statement('v1', '=', 'N*v1 - N*v1', '', float),
+        Statement('v1', '=', 'v1*N * 0', '', float),
+        Statement('v1', '=', 'v1 * 0', '', float),
+        Statement('v1', '=', 'v1 * 0.0', '', float),
+        Statement('v1', '=', '0.0 / (v1*N)', '', float),
         # Should be simplified to 0
-        Statement('i1', '=', 'i1*N * 0', '', np.int),
-        Statement('i1', '=', '0 * i1', '', np.int),
-        Statement('i1', '=', '0 * i1*N', '', np.int),
-        Statement('i1', '=', 'i1 * 0', '', np.int),
+        Statement('i1', '=', 'i1*N * 0', '', int),
+        Statement('i1', '=', '0 * i1', '', int),
+        Statement('i1', '=', '0 * i1*N', '', int),
+        Statement('i1', '=', 'i1 * 0', '', int),
         # Should be simplified to v1*N
-        Statement('v2', '=', '0 + v1*N', '', np.float),
-        Statement('v2', '=', 'v1*N + 0.0', '', np.float),
-        Statement('v2', '=', 'v1*N - 0', '', np.float),
-        Statement('v2', '=', 'v1*N - 0.0', '', np.float),
-        Statement('v2', '=', '1 * v1*N', '', np.float),
-        Statement('v2', '=', '1.0 * v1*N', '', np.float),
-        Statement('v2', '=', 'v1*N / 1.0', '', np.float),
-        Statement('v2', '=', 'v1*N / 1', '', np.float),
+        Statement('v2', '=', '0 + v1*N', '', float),
+        Statement('v2', '=', 'v1*N + 0.0', '', float),
+        Statement('v2', '=', 'v1*N - 0', '', float),
+        Statement('v2', '=', 'v1*N - 0.0', '', float),
+        Statement('v2', '=', '1 * v1*N', '', float),
+        Statement('v2', '=', '1.0 * v1*N', '', float),
+        Statement('v2', '=', 'v1*N / 1.0', '', float),
+        Statement('v2', '=', 'v1*N / 1', '', float),
         # Should be simplified to i1
         Statement('i1', '=', 'i1*1', '', int),
         Statement('i1', '=', 'i1//1', '', int),
@@ -353,9 +353,9 @@ def test_apply_loop_invariant_optimisation_constant_evaluation():
                  'exp': DEFAULT_FUNCTIONS['exp']
                  }
     statements = [
-        Statement('v1', '=', 'v1 * (1 + 2 + 3)', '', np.float),
-        Statement('v1', '=', 'exp(N)*v1', '', np.float),
-        Statement('v1', '=', 'exp(0)*v1', '', np.float),
+        Statement('v1', '=', 'v1 * (1 + 2 + 3)', '', float),
+        Statement('v1', '=', 'exp(N)*v1', '', float),
+        Statement('v1', '=', 'exp(0)*v1', '', float),
     ]
     scalar, vector = optimise_statements([], statements, variables)
     # exp(N) should be pulled out of the vector statements, the rest should be
@@ -382,7 +382,7 @@ def test_automatic_augmented_assignments():
         'z': ArrayVariable('y', owner=None, size=10,
                            device=device),
         'b': ArrayVariable('b', owner=None, size=10,
-                           dtype=np.bool, device=device),
+                           dtype=bool, device=device),
         'clip': DEFAULT_FUNCTIONS['clip'],
         'inf': DEFAULT_CONSTANTS['inf']
     }
