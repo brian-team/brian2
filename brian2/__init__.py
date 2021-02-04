@@ -45,6 +45,11 @@ except ImportError:
     # don't let numpy's datetime hide stdlib
     import datetime
 
+from ._version import get_versions as _get_versions
+__version__ = _get_versions()['version']
+__release_date__ = _get_versions()['date'][:10]  #only use date part
+__git_revision__ = _get_versions()['full-revisionid']
+
 # Make sure that Brian's unit-aware functions are used, even when directly
 # using names prefixed with numpy or np
 import brian2.numpy_ as numpy
@@ -59,9 +64,6 @@ if 'rate' in globals():
     del rate
 
 __docformat__ = "restructuredtext en"
-
-__version__ = '2.4.2.dev0'
-__release_date__ = '2020-10-28'
 
 from brian2.only import *
 from brian2.only import test

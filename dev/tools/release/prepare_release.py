@@ -2,16 +2,9 @@ import os
 
 import brian2
 
-from setversion import setversion, setreleasedate
 # Ask for version number
 print('Current version is: ' + brian2.__version__)
 version = input('Enter new Brian2 version number: ').strip()
-
-# Set the version numbers
-print('Changing to new version', version)
-setversion(version)
-setreleasedate()
-print('Done')
 
 # generate the default preferences file
 base, _ = os.path.split(brian2.__file__)

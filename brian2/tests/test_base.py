@@ -81,6 +81,19 @@ def test_active_flag():
     assert_allclose(mon[0].v, 1.0)
 
 
+@pytest.mark.codegen_independent
+def test_version():
+    # Check that determining the Brian version works correctly
+    import brian2
+    version = brian2.__version__
+    assert version.startswith('2.')
+
+    # Check that the release date has the correct format
+    release_date = brian2.__release_date__
+    import datetime
+    datetime.datetime.strptime(release_date, '%Y-%m-%d')
+
+
 if __name__=='__main__':
     test_base()
     test_names()

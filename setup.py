@@ -6,11 +6,12 @@ import io
 import sys
 import os
 import platform
-
 from pkg_resources import parse_version
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from distutils.errors import CompileError, DistutilsPlatformError
+
+import versioneer
 
 REQUIRED_CYTHON_VERSION = '0.29'
 
@@ -121,7 +122,7 @@ with io.open(os.path.join(os.path.dirname(__file__), 'README.rst'),
     long_description = f.read()
 
 setup(name='Brian2',
-      version='2.4.2.dev0',
+      version=versioneer.get_version(),
       packages=find_packages(),
       package_data={# include template files
                     'brian2.codegen.runtime.numpy_rt': ['templates/*.py_'],
@@ -166,7 +167,7 @@ setup(name='Brian2',
       setup_requires=['numpy>=1.10',
                       'setuptools>=24.2'
                       ],
-      cmdclass={'build_ext': optional_build_ext},
+      cmdclass=versioneer.get_cmdclass({'build_ext': optional_build_ext}),
       provides=['brian2'],
       extras_require={'test': ['pytest',
                                'pytest-xdist>=1.22.3'],
