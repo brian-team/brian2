@@ -16,7 +16,7 @@ Poisson inputs
 For generating spikes according to a Poisson point process, `PoissonGroup` can
 be used, e.g.::
 
-    P = PoissonGroup(100, np.arange((100)*Hz + 10*Hz))
+    P = PoissonGroup(100, np.arange(100)*Hz + 10*Hz)
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     S = Synapses(P, G, on_pre='v+=0.1')
     S.connect(j='i')
@@ -197,9 +197,9 @@ a target variable based on the sum of independent Poisson processes::
     G = NeuronGroup(100, 'dv/dt = -v / (10*ms) : 1')
     P = PoissonInput(G, 'v', 100, 100*Hz, weight=0.1)
 
-Each input of the PoissonInput is connected to all the neurons of the target 
-NeuronGroup but each neuron receives independent realizations of the Poisson
-spike trains.The `PoissonInput` class is however more restrictive than
+Each input of the `PoissonInput` is connected to all the neurons of the target
+`NeuronGroup` but each neuron receives independent realizations of the Poisson
+spike trains. Note that the `PoissonInput` class is however more restrictive than
 `PoissonGroup`, it only allows for a constant rate across all neurons (but
 you can create several `PoissonInput` objects, targeting different subgroups). 
 It internally uses `BinomialFunction` which will draw a random number each time
