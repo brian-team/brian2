@@ -1,10 +1,13 @@
-name: Publish source package to TestPyPI
-on: [push]
+name: Build and publish to TestPyPI or PyPI
+on: [push, pull_request]
 
 jobs:
   build-n-publish:
-    name: Build and publish source package to TestPyPI and PyPI
-    runs-on: ubuntu-latest
+    name: Build wheels on ${{ matrix.os }} and publish to (Test)PyPI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-20.04, windows-2019, macOS-10.15 ]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -13,19 +16,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
-      - name: Install dependencies
+      - name: Install cibuildwheel & dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools cython
-      - name: Build source tarball
+          python -m pip install cibuildwheel==1.9.0 "cython>=0.29" numpy>=1.15 setuptools
+      - name: Build source tarball (only on Linux)
         run: python setup.py sdist --formats=gztar --with-cython --fail-on-error
-      - name: Build manylinux wheel
-        uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2010_x86_64
-        with:
-          python-versions: 'cp37-cp37m cp38-cp38 cp39-cp39'
-          build-requirements: 'cython>=0.29 numpy>=1.15'
-      - name: Remove unused wheels
-        run: rm dist/*-linux*.whl
+        if: ${{ Eq(matrix.os, 'ubuntu-20.04') }}
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir dist
       - name: Publish distribution 📦 to Test PyPI
         if: ${{ ! startsWith(github.ref, 'refs/tags') }}
         uses: pypa/gh-action-pypi-publish@master
