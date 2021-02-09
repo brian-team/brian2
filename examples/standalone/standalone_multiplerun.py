@@ -1,8 +1,8 @@
 '''
 This example shows how to use multiple run in standalone mode and necessarily is not the optimal choise.
 The example come from Tutorial part 3.
-for a discussion look here
-https://brian.discourse.group/t/multiple-run-in-standalone-mode/131
+for a discussion look [here](https://brian.discourse.group/t/multiple-run-in-standalone-mode/131)
+
 '''
 
 import numpy as np

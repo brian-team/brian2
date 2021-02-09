@@ -16,8 +16,7 @@ Reference:
 - [LINK to discussion](https://brian.discourse.group/t/how-to-implement-a-conductance-base-synapse/77/2)
 
 '''
-# ### Conductance Base Synapse with Brain2
-#
+
 
 from brian2 import *
 import matplotlib.pyplot as plt

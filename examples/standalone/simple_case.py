@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+'''
+The most simple case to shwo how to use standalone mode.
+'''
+
+
 import numpy as np
 import brian2 as b2
 import pylab as plt

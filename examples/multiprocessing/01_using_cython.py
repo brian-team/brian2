@@ -1,5 +1,15 @@
-# for discussion look at the issue 1154:
-# https://github.com/brian-team/brian2/issues/1154#issuecomment-582994117
+'''
+Parallel processes using Cython
+
+This example use multiprocessing to run the simulation.
+The code is speedup by default in cython.
+
+The `numb_proc` set the number of processors.
+`run_sim` is just a toy example that create a single neuron and connect a  `StateMonitor` to record the voltage.
+
+for more details look at the issue [1154](https://github.com/brian-team/brian2/issues/1154#issuecomment-582994117):
+
+'''
 
 import os
 import multiprocessing

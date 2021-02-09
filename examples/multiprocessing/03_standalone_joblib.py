@@ -1,6 +1,7 @@
 '''
-For discussion look here:
-https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2
+This example use standalone mode for the simulation and joblib library to parallel the code.
+for the discussios look at [here](https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2)
+
 '''
 from joblib import Parallel, delayed
 from time import time as wall_time
