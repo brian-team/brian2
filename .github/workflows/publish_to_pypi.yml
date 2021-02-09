@@ -22,7 +22,7 @@ jobs:
           python -m pip install cibuildwheel==1.9.0 "cython>=0.29" numpy>=1.15 setuptools
       - name: Build source tarball (only on Linux)
         run: python setup.py sdist --formats=gztar --with-cython --fail-on-error
-        if: ${{ Eq(matrix.os, 'ubuntu-20.04') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       - name: Build wheels
         run: python -m cibuildwheel --output-dir dist
       - name: Publish distribution 📦 to Test PyPI
