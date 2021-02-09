@@ -766,15 +766,16 @@ class Synapses(Group):
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
         model, constant_over_dt = extract_constant_subexpressions(model)
-
         # Separate the equations into event-driven equations,
         # continuously updated equations and summed variable updates
         event_driven = []
         continuous = []
         summed_updates = []
+        event_vars = []
         for single_equation in model.values():
             if 'event-driven' in single_equation.flags:
                 event_driven.append(single_equation)
+                event_vars.append(single_equation.varname)
             elif 'summed' in single_equation.flags:
                 summed_updates.append(single_equation)
             else:
@@ -794,6 +795,41 @@ class Synapses(Group):
                                 'clock_driven',
                                 once=True)
                 continuous.append(single_equation)
+        def recur_check_event_summed(var,eqs):
+            """
+            Recursive Function Used to identify whether a summed variable is 
+            referring to an event-driven variable.
+
+            Parammeters
+            ----------
+            var : str
+                variable that is required for checking
+            eqs : Equations Object
+                Equations object in which we need to check
+
+            Returns
+            ----------
+            val : boolean
+                Return True if a summed variable is referring to an 
+                event-driven variable, otherwise False or continues recursion
+            """
+            val = False
+            for eq in eqs.values():
+                if var in eq.identifiers:
+                    if val == True:
+                        break
+                    elif 'summed' in eq.flags:
+                        val = True
+                        break
+                    else:
+                        val = recur_check_event_summed(eq.varname,eqs)
+                    
+            return val
+        # Checking whether a summed variable is referring to an event-driven variable
+        if len(event_vars):
+            for v in event_vars:
+                if recur_check_event_summed(v,model):
+                    print("Event-Driven Variable " + v + " is being summed")
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
