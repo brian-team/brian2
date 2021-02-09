@@ -19,12 +19,15 @@ jobs:
       - name: Install cibuildwheel & dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install cibuildwheel==1.9.0 "cython>=0.29" numpy>=1.15 setuptools
+          python -m pip install cibuildwheel==1.9.0
       - name: Build source tarball (only on Linux)
         run: python setup.py sdist --formats=gztar --with-cython --fail-on-error
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       - name: Build wheels
         run: python -m cibuildwheel --output-dir dist
+        env:
+          CIBW_BEFORE_BUILD: pip install "cython>=0.29" numpy>=1.15 setuptools
+          CIBW_BUILD_VERBOSITY: 1
       - name: Publish distribution 📦 to Test PyPI
         if: ${{ ! startsWith(github.ref, 'refs/tags') }}
         uses: pypa/gh-action-pypi-publish@master
