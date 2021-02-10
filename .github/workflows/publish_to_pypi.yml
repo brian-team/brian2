@@ -28,6 +28,7 @@ jobs:
           output-dir: dist
         env:
           CIBW_BEFORE_BUILD: pip install "cython>=0.29" numpy>=1.15 setuptools
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_BUILD_VERBOSITY: 1
       - name: Publish distribution 📦 to Test PyPI
         if: ${{ ! startsWith(github.ref, 'refs/tags') }}
