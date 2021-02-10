@@ -22,6 +22,13 @@ jobs:
           python -m pip install "cython>=0.29" numpy>=1.15 setuptools
           python setup.py sdist --formats=gztar --with-cython --fail-on-error
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+      - name: Debug disk space on OS X
+        run: |
+          df -h /
+          df -h .
+          sudo du -hs /usr/local/*
+          sudo du -hs /opt/*
+        if: ${{ startsWith(matrix.os, 'macOS-') }}
       - name: Build wheels
         uses: joerick/cibuildwheel@v1.9.0
         with:
