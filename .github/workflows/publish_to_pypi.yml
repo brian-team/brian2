@@ -27,7 +27,7 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: pip install "cython>=0.29" numpy>=1.15 setuptools
+          CIBW_BEFORE_BUILD: pip install --only-binary numpy "cython>=0.29" numpy>=1.15 setuptools
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_BUILD_VERBOSITY: 1
