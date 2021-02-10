@@ -815,7 +815,7 @@ class Synapses(Group):
             """
             val = False
             for eq in eqs.values():
-                if var in eq.identifiers:
+                if var in eq.identifiers and eq.varname != var:
                     if val == True:
                         break
                     elif 'summed' in eq.flags:
