@@ -47,7 +47,10 @@ except ImportError:
 
 from ._version import get_versions as _get_versions
 __version__ = _get_versions()['version']
-__release_date__ = _get_versions()['date'][:10]  #only use date part
+__release_date__ = _get_versions()['date']
+
+if __release_date__ is not None:
+    __release_date__ = __release_date__[:10]  #only use date part
 __git_revision__ = _get_versions()['full-revisionid']
 
 # Make sure that Brian's unit-aware functions are used, even when directly
