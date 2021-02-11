@@ -188,6 +188,20 @@ prefs.register_preferences(
         '''),
     )
 
+# check whether compiler supports a flag
+def has_flag(compiler, flagname):
+    import tempfile
+    from distutils.errors import CompileError
+    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f:
+        f.write('int main (int argc, char **argv) { return 0; }')
+        try:
+            compiler.compile([f.name], extra_postargs=[flagname])
+        except CompileError:
+            logger.warn(f'Removing unsupported flag \'{flagname}\' from compiler flags, since it is '
+                        f'')
+            return False
+    return True
+
 
 def get_compiler_and_args():
     '''
@@ -199,7 +213,14 @@ def get_compiler_and_args():
     extra_compile_args = prefs['codegen.cpp.extra_compile_args']
     if extra_compile_args is None:
         if compiler in ('gcc', 'unix'):
-            extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
+            # TODO: cache this?
+            from distutils.ccompiler import new_compiler
+            from distutils.sysconfig import customize_compiler
+            compiler_obj = new_compiler(compiler=compiler, verbose=0)
+            customize_compiler(compiler_obj)
+            extra_compile_args = [flag
+                                  for flag in prefs['codegen.cpp.extra_compile_args_gcc']
+                                  if has_flag(compiler_obj, flag)]
         if compiler == 'msvc':
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
     return compiler, extra_compile_args
