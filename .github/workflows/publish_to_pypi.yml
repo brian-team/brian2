@@ -33,6 +33,7 @@ jobs:
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_SKIP: pp*
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
+          CIBW_TEST_REQUIRES: pytest
       - name: Publish distribution 📦 to Test PyPI
         if: ${{ ! startsWith(github.ref, 'refs/tags') }}
         run: |
