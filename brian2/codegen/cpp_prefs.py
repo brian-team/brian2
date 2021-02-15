@@ -206,7 +206,11 @@ def _determine_flag_compatibility(compiler, flagname):
 _compiler_flag_compatibility = {}
 def has_flag(compiler, flagname):
     if compiler.compiler_type == 'msvc':
-        compiler_exe = 'msvc'
+        # MSVC does not raise an error for illegal flags, so determining
+        # whether it accepts a flag would mean parsing the output for warnings
+        # This is non-trivial so we don't do it (the main reason to check
+        # flags in the first place are differences between gcc and clang)
+        return True
     else:
         compiler_exe = ' '.join(compiler.executables['compiler_cxx'])
 
