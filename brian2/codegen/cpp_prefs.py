@@ -225,8 +225,11 @@ def get_compiler_and_args():
     if extra_compile_args is None:
         if compiler in ('gcc', 'unix'):
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
-        if compiler == 'msvc':
+        elif compiler == 'msvc':
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
+        else:
+            extra_compile_args = []
+            logger.warn(f'Unsupported compiler \'{compiler}\'.')
 
     from distutils.ccompiler import new_compiler
     from distutils.sysconfig import customize_compiler
