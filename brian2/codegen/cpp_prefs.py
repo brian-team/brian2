@@ -9,7 +9,6 @@ Preferences
 from setuptools import msvc
 import distutils
 from distutils.ccompiler import get_default_compiler
-from distutils.msvccompiler import MSVCCompiler
 import json
 import os
 import platform
@@ -206,7 +205,7 @@ def _determine_flag_compatibility(compiler, flagname):
 
 _compiler_flag_compatibility = {}
 def has_flag(compiler, flagname):
-    if isinstance(compiler, MSVCCompiler):
+    if compiler.compiler_type == 'msvc':
         compiler_exe = 'msvc'
     else:
         compiler_exe = ' '.join(compiler.executables['compiler_cxx'])
