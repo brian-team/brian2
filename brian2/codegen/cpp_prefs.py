@@ -224,15 +224,18 @@ def get_compiler_and_args():
     extra_compile_args = prefs['codegen.cpp.extra_compile_args']
     if extra_compile_args is None:
         if compiler in ('gcc', 'unix'):
-            from distutils.ccompiler import new_compiler
-            from distutils.sysconfig import customize_compiler
-            compiler_obj = new_compiler(compiler=compiler, verbose=0)
-            customize_compiler(compiler_obj)
-            extra_compile_args = [flag
-                                  for flag in prefs['codegen.cpp.extra_compile_args_gcc']
-                                  if has_flag(compiler_obj, flag)]
+            extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
         if compiler == 'msvc':
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
+
+    from distutils.ccompiler import new_compiler
+    from distutils.sysconfig import customize_compiler
+    compiler_obj = new_compiler(compiler=compiler, verbose=0)
+    customize_compiler(compiler_obj)
+    extra_compile_args = [flag
+                          for flag in extra_compile_args
+                          if has_flag(compiler_obj, flag)]
+
     return compiler, extra_compile_args
 
 
@@ -253,7 +256,7 @@ def get_msvc_env():
                                                          arch_name=arch_name)
         return None, vcvars_cmd
 
-    # Search for MSVC environemtn if not already cached
+    # Search for MSVC environment if not already cached
     if _msvc_env is None:
         try:
             _msvc_env = msvc.msvc14_get_vc_env(arch_name)
