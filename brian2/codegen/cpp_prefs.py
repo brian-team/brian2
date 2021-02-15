@@ -190,25 +190,28 @@ prefs.register_preferences(
 
 # check whether compiler supports a flag
 # Adapted from https://github.com/pybind/pybind11/
+def _determine_flag_compatibility(compiler, flagname):
+    import tempfile
+    from distutils.errors import CompileError
+    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f, std_silent():
+        f.write('int main (int argc, char **argv) { return 0; }')
+        try:
+            compiler.compile([f.name], extra_postargs=[flagname])
+        except CompileError:
+            logger.warn(f'Removing unsupported flag \'{flagname}\' from '
+                        f'compiler flags.')
+            return False
+    return True
+
 _compiler_flag_compatibility = {}
 def has_flag(compiler, flagname):
     compiler_exe = ' '.join(compiler.executables['compiler_cxx'])
-    compatibility = _compiler_flag_compatibility.get((compiler_exe, flagname),
-                                                     None)
-    if compatibility is None:
-        import tempfile
-        from distutils.errors import CompileError
-        with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f, std_silent():
-            f.write('int main (int argc, char **argv) { return 0; }')
-            try:
-                compiler.compile([f.name], extra_postargs=[flagname])
-            except CompileError:
-                logger.warn(f'Removing unsupported flag \'{flagname}\' from '
-                            f'compiler flags.')
-                compatibility = False
-        compatibility = True
-    _compiler_flag_compatibility[(compiler_exe, flagname)] = compatibility
-    return compatibility
+
+    if (compiler_exe, flagname) not in _compiler_flag_compatibility:
+        compatibility = _determine_flag_compatibility(compiler, flagname)
+        _compiler_flag_compatibility[(compiler_exe, flagname)] = compatibility
+
+    return _compiler_flag_compatibility[(compiler_exe, flagname)]
 
 
 def get_compiler_and_args():
