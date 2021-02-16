@@ -456,21 +456,17 @@ def test_compiler_c99():
 def test_cpp_flags_support():
     from distutils.ccompiler import get_default_compiler
     compiler = get_default_compiler()
+    if compiler == 'msvc':
+        pytest.skip('No flag support check for msvc')
     old_prefs = prefs['codegen.cpp.extra_compile_args']
 
     # Should always be supported
-    if compiler in ('gcc', 'unix'):
-        prefs['codegen.cpp.extra_compile_args'] = ['-w']
-    else:
-        prefs['codegen.cpp.extra_compile_args'] = ['/w']
+    prefs['codegen.cpp.extra_compile_args'] = ['-w']
     _, compile_args = get_compiler_and_args()
     assert compile_args == prefs['codegen.cpp.extra_compile_args']
 
     # Should never be supported and raise a warning
-    if compiler in ('gcc', 'unix'):
-        prefs['codegen.cpp.extra_compile_args'] = ['-invalidxyz']
-    else:
-        prefs['codegen.cpp.extra_compile_args'] = ['/invalidxyz']
+    prefs['codegen.cpp.extra_compile_args'] = ['-invalidxyz']
     with catch_logs() as l:
         _, compile_args = get_compiler_and_args()
     assert len(l) == 1 and l[0][0] == 'WARNING'
