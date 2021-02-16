@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from brian2 import prefs, clear_cache, _cache_dirs_and_extensions
-from brian2.codegen.cpp_prefs import compiler_supports_c99
+from brian2.codegen.cpp_prefs import compiler_supports_c99, get_compiler_and_args
 from brian2.codegen.optimisation import optimise_statements
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
@@ -21,6 +21,7 @@ from brian2.core.functions import Function, DEFAULT_FUNCTIONS, DEFAULT_CONSTANTS
 from brian2.devices.device import auto_target, device
 from brian2.units.fundamentalunits import Unit
 from brian2.units import second, ms
+from brian2.utils.logger import catch_logs
 
 FakeGroup = namedtuple('FakeGroup', ['variables'])
 
@@ -450,6 +451,28 @@ def test_compiler_c99():
     # On our Azure test server we know that the compilers support C99
     if os.environ.get('AGENT_OS', ''):
         assert c99_support
+
+
+def test_cpp_flags_support():
+    from distutils.ccompiler import get_default_compiler
+    compiler = get_default_compiler()
+    if compiler == 'msvc':
+        pytest.skip('No flag support check for msvc')
+    old_prefs = prefs['codegen.cpp.extra_compile_args']
+
+    # Should always be supported
+    prefs['codegen.cpp.extra_compile_args'] = ['-w']
+    _, compile_args = get_compiler_and_args()
+    assert compile_args == prefs['codegen.cpp.extra_compile_args']
+
+    # Should never be supported and raise a warning
+    prefs['codegen.cpp.extra_compile_args'] = ['-invalidxyz']
+    with catch_logs() as l:
+        _, compile_args = get_compiler_and_args()
+    assert len(l) == 1 and l[0][0] == 'WARNING'
+    assert compile_args == []
+
+    prefs['codegen.cpp.extra_compile_args'] = old_prefs
 
 
 if __name__ == '__main__':
