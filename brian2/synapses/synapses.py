@@ -795,9 +795,10 @@ class Synapses(Group):
         
         # Checking whether a summed variable is referring to an event-driven variable
         for eq in event_driven:
-            if self._recur_check_event_summed(eq.varname,model):
+            val = self._recur_check_event_summed_clock(eq.varname,model)
+            if val == 1:
                 raise EquationError(f"A summed variable should not refer the event-driven variable {eq.varname}")
-            if self._recur_check_event_clock(eq.varname,model):
+            if val == 2:
                 raise EquationError(f"A clock-driven equation should not refer to the event-driven variable {eq.varname}")
 
         if len(event_driven):
@@ -947,10 +948,10 @@ class Synapses(Group):
         # Activate name attribute access
         self._enable_group_attributes()
     
-    def _recur_check_event_summed(self,var,eqs):
+    def _recur_check_event_summed_clock(self,var,eqs):
         """
-            Recursive Function Used to identify whether a summed variable is 
-            referring to an event-driven variable.
+            Recursive Function Used to identify whether a summed variable 
+            or a clock driven equation is referring to an event-driven variable.
 
             Parammeters
             ----------
@@ -961,51 +962,22 @@ class Synapses(Group):
 
             Returns
             ----------
-            val : boolean
-                Return True if a summed variable is referring to an 
-                event-driven variable, otherwise False or continues recursion
+            val : int
+                Return 1 if a summed variable is referring to an 
+                event-driven variable, returns 2 if a clock driven equation
+                is referring to an event-driven variable, otherwise 0 or continues recursion
 """
-        val = False
         for eq in eqs.values():
             if var in eq.identifiers and eq.varname != var:
-                if val == True:
-                    break
-                elif 'summed' in eq.flags:
-                    val = True
-                    break
-                else:
-                    val = self._recur_check_event_summed(eq.varname,eqs)
-        return val
-    
-    def _recur_check_event_clock(self,var,eqs):
-        """
-            Recursive Function Used to identify whether a clock-driven equation is 
-            referring to an event-driven variable.
-
-            Parammeters
-            ----------
-            var : str
-                variable that is required for checking
-            eqs : Equations Object
-                Equations object in which we need to check
-
-            Returns
-            ----------
-            val : boolean
-                Return True if a clock-driven equation is referring to an 
-                event-driven variable, otherwise False or continues recursion
-"""
-        val = False
-        for eq in eqs.values():
-            if var in eq.identifiers and eq.varname != var:
-                if val == True:
-                    break
+                if 'summed' in eq.flags:
+                    return 1
                 elif eq.type == DIFFERENTIAL_EQUATION and 'event-driven' not in eq.flags:
-                    val = True
-                    break
+                    return 2
                 else:
-                    val = self._recur_check_event_clock(eq.varname,eqs)
-        return val
+                    val = self._recur_check_event_summed_clock(eq.varname,eqs)
+                    if val != 0:
+                        return val
+        return 0
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
