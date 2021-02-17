@@ -20,7 +20,7 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER,
-                                        check_subexpressions)
+                                        check_subexpressions,EquationError)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater,
@@ -39,7 +39,6 @@ from brian2.core.spikesource import SpikeSource
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.parsing.bast import brian_ast
 from brian2.parsing.rendering import NodeRenderer
-
 MAX_SYNAPSES = 2147483647
 
 __all__ = ['Synapses']
@@ -771,11 +770,9 @@ class Synapses(Group):
         event_driven = []
         continuous = []
         summed_updates = []
-        event_vars = []
         for single_equation in model.values():
             if 'event-driven' in single_equation.flags:
                 event_driven.append(single_equation)
-                event_vars.append(single_equation.varname)
             elif 'summed' in single_equation.flags:
                 summed_updates.append(single_equation)
             else:
@@ -795,41 +792,11 @@ class Synapses(Group):
                                 'clock_driven',
                                 once=True)
                 continuous.append(single_equation)
-        def recur_check_event_summed(var,eqs):
-            """
-            Recursive Function Used to identify whether a summed variable is 
-            referring to an event-driven variable.
-
-            Parammeters
-            ----------
-            var : str
-                variable that is required for checking
-            eqs : Equations Object
-                Equations object in which we need to check
-
-            Returns
-            ----------
-            val : boolean
-                Return True if a summed variable is referring to an 
-                event-driven variable, otherwise False or continues recursion
-            """
-            val = False
-            for eq in eqs.values():
-                if var in eq.identifiers and eq.varname != var:
-                    if val == True:
-                        break
-                    elif 'summed' in eq.flags:
-                        val = True
-                        break
-                    else:
-                        val = recur_check_event_summed(eq.varname,eqs)
-                    
-            return val
+        
         # Checking whether a summed variable is referring to an event-driven variable
-        if len(event_vars):
-            for v in event_vars:
-                if recur_check_event_summed(v,model):
-                    print("Event-Driven Variable " + v + " is being summed")
+        for eq in event_driven:
+            if self._recur_check_event_summed(eq.varname,model):
+                raise EquationError(f"A summed variable should not refer the event-driven variable {eq.varname}")
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
@@ -977,6 +944,32 @@ class Synapses(Group):
 
         # Activate name attribute access
         self._enable_group_attributes()
+    
+    def _recur_check_event_summed(self,var,eqs):
+        """
+            Recursive Function Used to identify whether a summed variable is 
+            referring to an event-driven variable.
+
+            Parammeters
+            ----------
+            var : str
+                variable that is required for checking
+            eqs : Equations Object
+                Equations object in which we need to check
+
+            Returns
+            ----------
+            val : boolean
+                Return True if a summed variable is referring to an 
+                event-driven variable, otherwise False or continues recursion
+"""
+        for eq in eqs.values():
+            if var in eq.identifiers and eq.varname != var:
+                if 'summed' in eq.flags:
+                    return True
+                else:
+                    return self._recur_check_event_summed(eq.varname,eqs)
+        return False
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
