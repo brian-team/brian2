@@ -797,6 +797,8 @@ class Synapses(Group):
         for eq in event_driven:
             if self._recur_check_event_summed(eq.varname,model):
                 raise EquationError(f"A summed variable should not refer the event-driven variable {eq.varname}")
+            if self._recur_check_event_clock(eq.varname,model):
+                raise EquationError(f"A clock-driven equation should not refer to the event-driven variable {eq.varname}")
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
@@ -963,13 +965,47 @@ class Synapses(Group):
                 Return True if a summed variable is referring to an 
                 event-driven variable, otherwise False or continues recursion
 """
+        val = False
         for eq in eqs.values():
             if var in eq.identifiers and eq.varname != var:
-                if 'summed' in eq.flags:
-                    return True
+                if val == True:
+                    break
+                elif 'summed' in eq.flags:
+                    val = True
+                    break
                 else:
-                    return self._recur_check_event_summed(eq.varname,eqs)
-        return False
+                    val = self._recur_check_event_summed(eq.varname,eqs)
+        return val
+    
+    def _recur_check_event_clock(self,var,eqs):
+        """
+            Recursive Function Used to identify whether a clock-driven equation is 
+            referring to an event-driven variable.
+
+            Parammeters
+            ----------
+            var : str
+                variable that is required for checking
+            eqs : Equations Object
+                Equations object in which we need to check
+
+            Returns
+            ----------
+            val : boolean
+                Return True if a clock-driven equation is referring to an 
+                event-driven variable, otherwise False or continues recursion
+"""
+        val = False
+        for eq in eqs.values():
+            if var in eq.identifiers and eq.varname != var:
+                if val == True:
+                    break
+                elif eq.type == DIFFERENTIAL_EQUATION and 'event-driven' not in eq.flags:
+                    val = True
+                    break
+                else:
+                    val = self._recur_check_event_clock(eq.varname,eqs)
+        return val
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
