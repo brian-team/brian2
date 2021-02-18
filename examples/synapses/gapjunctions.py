@@ -20,8 +20,10 @@ trace = StateMonitor(neurons, 'v', record=[0, 5])
 
 S = Synapses(neurons, neurons, '''
              w : 1 # gap junction conductance
-             Igap_post = w * (v_pre - v_post) : 1 (summed)
-             ''')
+             dx/dt = -x/(10*ms) : 1 (event-driven)
+             dy/dt = (y-x)/(10*ms) : 1 (clock-driven)
+             Igap_post = w * (v_pre - v_post - y) : 1 (summed)
+             ''', on_pre='x += 1')
 S.connect()
 S.w = .02
 
