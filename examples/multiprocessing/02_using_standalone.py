@@ -1,51 +1,53 @@
 '''
 Parallel processes using standalone mode
 
-This example use multiprocessing to run the simulation.
-The c++ code is generator and then is compiled.
+This example use multiprocessing to run several simulations in parallel.
+The code is using the C++ standalone mode to compile and execute the code.
 
-The generated code is stored in `standalone{pid}` directory, which pid is the id of each processors.
+The generated code is stored in a `standalone{pid}` directory, with `pid` being
+the id of each process.
 
+Note that the `set_device` call should be in the `run_sim` function.
 
-`set_device` should be in the `run_sim` function.
-This line initialises the C++ Standalone Device that keeps track of wether your network has been build or run before.
+By moving the `set_device` line into the parallelised function, it creates one
+C++ standalone device per process.
+The `device.reinit()` needs to be called` if you are running multiple
+simulations per process (there is 10 tau values and num_proc = 4).
 
-By moving the set_device line into the parallelised function, it create one C++ Standalone Device per process.
-The `device.reinit()` need to be called` if you are running multiple simulations per process (there is 10 tau values and num_proc = 4).
+Each simulation uses it's own code folder to generate the code for the
+simulation, controlled by the directory keyword to the set_device
+call. By setting `directory=None`, a temporary folder with random name is
+created. This way, each simulation uses a different folder for code generation
+and there is nothing shared between the parallel processes.
 
-Each simulation uses it's own code folder to generate the code for the simulation. This is controlled by the directory keyword to your set_device call. By setting `directory=None`, a temporary folder with random name is created in your `/tmp/` directory (at least on linux) to generate your code. This way, each simulation uses a different folder for code generation and there is nothing shared between the parallel processes.
+If you don't set the directory argument, it defaults to `directory="output"`.
+In that case each process would use the same files to try to generate and
+compile your simulation, which would lead to compile/execution errors.
 
-If you don't set the directory argument, it defaults to `directory="output"`. In that case each process would use the same files to try to generate and compile your simulation, which would lead to compile/execution errors.
+Setting `directory=f"standalone{pid}"` is even better than using
+`directory=None` in this case. That is, giving each parallel process
+*it's own directory to work on*. This way you avoid the problem of multiple
+processes working on the same code directories. But you also don't need to
+recompile the entire project at each simulation. What happens is that in the
+generated code in two consecutive simulations in a single process will only
+differ slightly (in this case only the tau parameter). The compiler will
+therefore only recompile the file that has changed and not the entire project.
 
-Actually, the way of setting the `directory=f"standalone{pid}"` is even better than using `directory=None` in this case. That is, giving each parallel thread *it's own directory to work on*. This way you avoid the problem of multiple threads working on the same code directories. But you also don't need to recompile the entire project at each simulation. What happens is that in the generated code in two consecutive simulations in a single thread will only differ in slightly (in your case only the tau parameter). The compiler will therefore only recompile the file that has changed and not the entire project (and there might be some other caching going on as well, don't know the internals). Just make sure that you don’t set clean=True, otherwise everything is recompiled from scratch each time.
+The `numb_proc` sets the number of processes. `run_sim` is just a toy example
+that creates a single neuron and connects a `StateMonitor` to record the
+voltage.
 
-To avoid the recompiling most part of the code look at the next example `04_standalone_joblib_avoid_recompiling.py`.
-
-The `numb_proc` set the number of processors.
-`run_sim` is just a toy example that create a single neuron and connect a  `StateMonitor` to record the voltage.
-
-for the discussios look at [here](https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2)
-
+For more details see the [discussion in the Brian forum](https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2)
 '''
-
-# For discussion look here:
-# 
-
-
 import os
 import multiprocessing
 from time import time as wall_time
 from os import system
 from brian2 import *
 
-def clean_directories():
-    system("rm -rf standalone*")
-
-
 def run_sim(tau):
-    
     pid = os.getpid()
-    directory=f"standalone{pid}"
+    directory = f"standalone{pid}"
     set_device('cpp_standalone', directory=directory)
     print(f'RUNNING {pid}')
 
@@ -65,19 +67,16 @@ def run_sim(tau):
 
 
 if __name__ == "__main__":
-    
-    statr_time = wall_time()
+    start_time = wall_time()
     
     num_proc = 4
     tau_values = np.arange(10)*ms + 5*ms
     with multiprocessing.Pool(num_proc) as p:
         results = p.map(run_sim, tau_values)
 
-    print("Done in {:10.3f}".format(wall_time() - statr_time))
+    print("Done in {:10.3f}".format(wall_time() - start_time))
 
     for tau_value, (t, v) in zip(tau_values, results):
         plt.plot(t, v, label=str(tau_value))
     plt.legend()
     plt.show()
-
-    clean_directories()

@@ -1,22 +1,18 @@
 '''
-This example use standalone mode for the simulation and joblib library to parallel the code.
-for the discussios look at [here](https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2)
-
+This example use C++ standalone mode for the simulation and the
+[joblib library](https://joblib.readthedocs.io)
+to parallelize the code. See the previous example (`02_using_standalone.py`)
+for more explanations.
 '''
 from joblib import Parallel, delayed
 from time import time as wall_time
-from os import system
 from brian2 import *
 import os
 
-def clean_directories():
-    system("rm -rf standalone*")
-
 
 def run_sim(tau):
-    
     pid = os.getpid()
-    directory=f"standalone{pid}"
+    directory = f"standalone{pid}"
     set_device('cpp_standalone', directory=directory)
     print(f'RUNNING {pid}')
 
@@ -36,21 +32,17 @@ def run_sim(tau):
 
 
 if __name__ == "__main__":
-    
-    statr_time = wall_time()
+    start_time = wall_time()
     
     n_jobs = 4
     tau_values = np.arange(10)*ms + 5*ms
 
     results = Parallel(n_jobs=n_jobs)(map(delayed(run_sim), tau_values))
-    print(len(results), len(results[0]), results[0][1].shape)
-    
 
-    print("Done in {:10.3f}".format(wall_time() - statr_time))
+    print("Done in {:10.3f}".format(wall_time() - start_time))
 
     for tau_value, (t, v) in zip(tau_values, results):
         plt.plot(t, v, label=str(tau_value))
     plt.legend()
     plt.show()
 
-    clean_directories()
