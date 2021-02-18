@@ -232,10 +232,10 @@ class STDP(SpeedTest):
         dge/dt = -ge / taue : 1
         '''
 
-        input = PoissonGroup(N, rates=F)
+        poisson_input = PoissonGroup(N, rates=F)
         neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
                               method='exact')
-        S = Synapses(input, neurons,
+        S = Synapses(poisson_input, neurons,
                      '''w : 1
                         dApre/dt = -Apre / taupre : 1 (event-driven)
                         dApost/dt = -Apost / taupost : 1 (event-driven)''',
@@ -247,7 +247,7 @@ class STDP(SpeedTest):
                      )
         S.connect()
         S.w = 'rand() * gmax'
-        s_mon = SpikeMonitor(input)
+        s_mon = SpikeMonitor(poisson_input)
 
         self.timed_run(self.duration)
 

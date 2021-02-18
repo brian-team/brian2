@@ -9,7 +9,7 @@ from brian2.units.allunits import second
 from brian2.utils.logger import get_logger
 
 from .network import Network
-from .base import BrianObject, device_override    
+from .base import BrianObject
 
 __all__ = ['MagicNetwork', 'magic_network',
            'MagicError',

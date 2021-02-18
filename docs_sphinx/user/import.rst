@@ -9,7 +9,14 @@ wildcard import from this package, i.e.::
 you will not only get access to the ``brian2`` classes and functions, but also
 to everything in the ``pylab`` package, which includes the plotting functions
 from matplotlib_ and everything included in numpy/scipy (e.g. functions such
-as ``arange``, ``linspace``, etc.).
+as ``arange``, ``linspace``, etc.). Apart from this when you use the wildcard 
+import, the builtin `input` function is overshadowed by the `input` module in the 
+`brian2` package. If you wish to use the builtin `input` function in your program
+after importing the brian2 package then you can explicitly import the `input` function
+again as shown below::
+
+    from brian2 import *
+    from builtins import input
 
 .. admonition:: The following topics are not essential for beginners.
 
@@ -19,7 +26,8 @@ Precise control over importing
 ------------------------------
 
 If you want to use a wildcard import from Brian, but don't want to import all
-the additional symbols provided by ``pylab``, you can use::
+the additional symbols provided by ``pylab`` or don't want to overshadow the 
+builtin `input` function, you can use::
 
     from brian2.only import *
 

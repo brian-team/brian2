@@ -75,9 +75,6 @@ To run the test suite:
 Testing status for master branch
 --------------------------------
 
-.. image:: https://img.shields.io/travis/brian-team/brian2/master.svg
-  :target: https://travis-ci.org/brian-team/brian2?branch=master
-
 .. image:: https://dev.azure.com/brian-team/Brian2/_apis/build/status/brian-team.brian2?branchName=master
   :target: https://dev.azure.com/brian-team/Brian2/_build/latest?definitionId=3&branchName=master
 

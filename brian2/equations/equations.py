@@ -20,7 +20,7 @@ from brian2.units.fundamentalunits import (Unit, Quantity, get_unit,
                                            get_unit_for_display,
                                            DIMENSIONLESS,
                                            DimensionMismatchError,
-                                           get_dimensions, Dimension)
+                                           get_dimensions)
 from brian2.units.allunits import (metre, meter, second, amp, ampere, kelvin, mole,
                                    candle, kilogram, radian, steradian, hertz,
                                    newton, pascal, joule, watt, coulomb, volt,
@@ -579,10 +579,18 @@ class Equations(Hashable, Mapping):
                     raise EquationError(('The equation defining %s contains the '
                                          'symbol "xi" but is not a differential '
                                          'equation.') % eq.varname)
-                elif not uses_xi is None:
+                elif uses_xi is not None:
                     raise EquationError(('The equation defining %s contains the '
                                          'symbol "xi", but it is already used '
-                                         'in the equation defining %s.') %
+                                         'in the equation defining %s. Rename '
+                                         'the variables to "xi_..." to make '
+                                         'clear whether they are the same or '
+                                         'independent random variables. Using '
+                                         'the same name twice will lead to '
+                                         'identical noise realizations '
+                                         'whereas using different names will '
+                                         'lead to independent noise '
+                                         'realizations.') %
                                         (eq.varname, uses_xi))
                 else:
                     uses_xi = eq.varname
@@ -1038,7 +1046,6 @@ class Equations(Hashable, Mapping):
 
     def _latex(self, *args):        
         equations = []
-        t = sympy.Symbol('t')
         for eq in self._equations.values():
             # do not use SingleEquations._latex here as we want nice alignment
             varname = sympy.Symbol(eq.varname)

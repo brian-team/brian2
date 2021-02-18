@@ -22,3 +22,5 @@ exclude *.yml
 exclude .coveragerc
 exclude .gitattributes
 exclude .gitmodules
+include versioneer.py
+include brian2/_version.py

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from brian2 import prefs, clear_cache, _cache_dirs_and_extensions
+from brian2.codegen.cpp_prefs import compiler_supports_c99
 from brian2.codegen.optimisation import optimise_statements
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
@@ -439,6 +440,16 @@ def test_clear_cache():
             clear_cache(target)
 
         os.remove(fname)
+
+
+def test_compiler_c99():
+    # On a user's computer, we do not know whether the compiler actually
+    # has C99 support, so we just check whether the test does not raise an
+    # error
+    c99_support = compiler_supports_c99()
+    # On our Azure test server we know that the compilers support C99
+    if os.environ.get('AGENT_OS', ''):
+        assert c99_support
 
 
 if __name__ == '__main__':

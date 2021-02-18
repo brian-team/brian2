@@ -1,6 +1,44 @@
 Release notes
 =============
 
+Brian 2.4.2
+------------
+This is another bugfix release which fixes a number of bugs and updates our
+release infrastructure.
+
+Selected improvements and bug fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Fix incorrect integration of synaptic equations if they use a ``dt`` from
+  the connected neuron. Thanks to Jan Marker for reporting and fixing the
+  issue (:issue:`1248`).
+* Fix an issue with multiple runs in standalone mode (:issue:`1237`). Thanks
+  to Maurizio De Pittà for reporting the issue.
+* Uncaught error messages will now point to the Discourse forum instead of the
+  deprecated mailing list (:issue:`1242`). Thanks to Felix Kern for contributing
+  this fix.
+
+Infrastructure and documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* Tagging a release will now automatically upload the release to PyPI via a
+  GitHub Action.
+
+Contributions
+~~~~~~~~~~~~~
+Github code, documentation, and issue contributions (ordered by the number of
+contributions):
+* Marcel Stimberg (`@mstimberg <https://github.com/mstimberg>`_)
+* Dan Goodman (`@thesamovar <https://github.com/thesamovar>`_)
+* `@ramapati166 <https://github.com/ramapati166>`_
+* Yann Zerlaut (`@yzerlaut <https://github.com/yzerlaut>`_)
+* Maurizio De Pittà (`@mdepitta <https://github.com/mdepitta>`_)
+* Sebastian Schmitt (`@schmitts <https://github.com/schmitts>`_)
+* Felix Benjamin Kern (`@kernfel <https://github.com/kernfel>`_)
+* Eugen Skrebenkov (`@shcecter <https://github.com/shcecter>`_)
+* Simo (`@sivanni <https://github.com/sivanni>`_)
+* Ruben Tikidji-Hamburyan (`@rat-h <https://github.com/rat-h>`_)
+* Jan Marker (`@jangmarker <https://github.com/jangmarker>`_)
+* `@IrisHydi <https://github.com/IrisHydi>`_
+
 Brian 2.4.1
 -----------
 This is a bugfix release with a number of small fixes and updates to the continuous

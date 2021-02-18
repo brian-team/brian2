@@ -1312,16 +1312,10 @@ class Quantity(np.ndarray, object):
         '''
         return Quantity(np.ndarray.__getitem__(self, key), self.dim)
 
-    def __getslice__(self, start, end):
-        return self.__getitem__(slice(start, end))
-
     def __setitem__(self, key, value):
         fail_for_dimension_mismatch(self, value,
                                     'Inconsistent units in assignment')
         return super(Quantity, self).__setitem__(key, value)
-
-    def __setslice__(self, start, end, value):
-        return self.__setitem__(slice(start, end), value)
 
     #### ARITHMETIC ####
     def _binary_operation(self, other, operation,
@@ -1938,7 +1932,7 @@ class Unit(Quantity):
         scale = _siprefixes[scalefactor] + baseunit.scale
         if scalefactor == 'u':
             scalefactor = r'\mu'
-        latexname = r'\mathrm{' + scalefactor + '}' + r'\,' + baseunit.latexname
+        latexname = r'\mathrm{' + scalefactor + '}' + baseunit.latexname
 
         u = Unit(10.0**scale, dim=baseunit.dim,  name=name, dispname=dispname,
                  latexname=latexname, scale=scale)

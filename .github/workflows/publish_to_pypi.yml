@@ -1,0 +1,32 @@
+name: Publish source package to TestPyPI
+on: [push]
+
+jobs:
+  build-n-publish:
+    name: Build and publish source package to TestPyPI and PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools cython
+      - name: Build source tarball
+        run: python setup.py sdist --formats=gztar --with-cython --fail-on-error
+      - name: Publish distribution 📦 to Test PyPI
+        if: ${{ ! startsWith(github.ref, 'refs/tags') }}
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.test_pypi_password }}
+          repository_url: https://test.pypi.org/legacy/
+      - name: Publish distribution release 📦 to PyPI
+        if: startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.pypi_password }}

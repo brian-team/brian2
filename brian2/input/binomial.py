@@ -81,8 +81,6 @@ def _generate_cpp_code(n, p, use_normal, name):
     # Inversion transform sampling
     if use_normal:
         loc, scale = _pre_calc_constants_approximated(n, p)
-        loc = n*p
-        scale = np.sqrt(n*p*(1-p))
         cpp_code = '''
         float %NAME%(const int vectorisation_idx)
         {

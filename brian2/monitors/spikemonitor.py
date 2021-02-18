@@ -6,7 +6,7 @@ import numpy as np
 from brian2.core.variables import Variables
 from brian2.core.names import Nameable
 from brian2.core.spikesource import SpikeSource
-from brian2.units.fundamentalunits import Quantity, DIMENSIONLESS
+from brian2.units.fundamentalunits import Quantity
 from brian2.groups.group import CodeRunner, Group
 
 __all__ = ['EventMonitor', 'SpikeMonitor']

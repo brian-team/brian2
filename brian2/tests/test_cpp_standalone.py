@@ -344,6 +344,18 @@ def test_run_with_debug():
     mon = SpikeMonitor(group)
     run(defaultclock.dt)
 
+
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_run_with_synapses_and_profile():
+    set_device('cpp_standalone', build_on_run=True, directory=None)
+    group = NeuronGroup(1, 'v: 1', threshold='False', reset='')
+    syn = Synapses(group, group, on_pre='v += 1')
+    syn.connect()
+    mon = SpikeMonitor(group)
+    run(defaultclock.dt, profile=True)
+
+
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only
 def test_changing_profile_arg():
@@ -395,6 +407,7 @@ def test_changing_profile_arg():
             profiling_dict['op2_codeobject_2'] > 0*second)
     assert ('op3_codeobject_1' in profiling_dict and
             profiling_dict['op3_codeobject_1'] > 0*second)
+
 
 @pytest.mark.cpp_standalone
 @pytest.mark.standalone_only

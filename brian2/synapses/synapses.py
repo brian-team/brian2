@@ -17,9 +17,9 @@ from brian2.core.variables import (DynamicArrayVariable, Variables)
 from brian2.codegen.codeobject import create_runner_codeobj
 from brian2.codegen.translation import get_identifiers_recursively
 from brian2.devices.device import get_device
-from brian2.equations.equations import (Equations, SingleEquation,
+from brian2.equations.equations import (Equations,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
-                                        PARAMETER, INTEGER,
+                                        PARAMETER,
                                         check_subexpressions)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
@@ -578,8 +578,6 @@ class SynapticIndexing(object):
                                                'implemented yet'))
 
                 # We want to access the raw arrays here, not go through the Variable
-                pre_neurons = self.synaptic_pre.get_value()[matching_synapses]
-                post_neurons = self.synaptic_post.get_value()[matching_synapses]
                 synapse_numbers = self.synapse_number.get_value()[matching_synapses]
                 final_indices = np.intersect1d(matching_synapses,
                                                np.flatnonzero(test_k(synapse_numbers)),
@@ -1057,8 +1055,7 @@ class Synapses(Group):
         self.variables.add_dynamic_array('_synaptic_post', size=0,
                                          dtype=np.int32, constant=True,
                                          read_only=True)
-        self.variables.create_clock_variables(self._clock,
-                                              prefix='_clock_')
+        self.variables.create_clock_variables(self._clock)
         if '_offset' in self.target.variables:
             self.variables.add_reference('_target_offset', self.target,
                                          '_offset')

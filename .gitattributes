@@ -35,3 +35,4 @@ MANIFEST.in text
 *.png       binary
 *.pptx      binary
 
+brian2/_version.py export-subst
