@@ -793,13 +793,9 @@ class Synapses(Group):
                                 once=True)
                 continuous.append(single_equation)
         
-        # Checking whether a summed variable is referring to an event-driven variable
+        # Checking whether a summed variable or a clock-driven equation is referring to an event-driven variable
         for eq in event_driven:
-            val = self._recur_check_event_summed_clock(eq.varname,model)
-            if val == 1:
-                raise EquationError(f"A summed variable should not refer the event-driven variable {eq.varname}")
-            if val == 2:
-                raise EquationError(f"A clock-driven equation should not refer to the event-driven variable {eq.varname}")
+            self._recur_check_event_summed_clock(eq.varname,model)
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
@@ -951,7 +947,8 @@ class Synapses(Group):
     def _recur_check_event_summed_clock(self,var,eqs):
         """
             Recursive Function Used to identify whether a summed variable 
-            or a clock driven equation is referring to an event-driven variable.
+            or a clock driven equation is referring to an event-driven variable
+            and raise an EquationError.
 
             Parammeters
             ----------
@@ -962,22 +959,17 @@ class Synapses(Group):
 
             Returns
             ----------
-            val : int
-                Return 1 if a summed variable is referring to an 
-                event-driven variable, returns 2 if a clock driven equation
-                is referring to an event-driven variable, otherwise 0 or continues recursion
+            None
 """
         for eq in eqs.values():
             if var in eq.identifiers and eq.varname != var:
                 if 'summed' in eq.flags:
-                    return 1
+                    raise EquationError(f"The summed variable {eq.varname} should not refer a event-driven variable")
                 elif eq.type == DIFFERENTIAL_EQUATION and 'event-driven' not in eq.flags:
-                    return 2
+                    raise EquationError(f"The clock-driven equation for variable {eq.varname} should "
+                 "not refer to a event-driven variable")
                 else:
-                    val = self._recur_check_event_summed_clock(eq.varname,eqs)
-                    if val != 0:
-                        return val
-        return 0
+                    self._recur_check_event_summed_clock(eq.varname,eqs)
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
