@@ -1,8 +1,10 @@
 '''
-This example shows how to use multiple run in standalone mode and necessarily is not the optimal choise.
-The example come from Tutorial part 3.
-for a discussion look [here](https://brian.discourse.group/t/multiple-run-in-standalone-mode/131)
+This example shows how to run several, independent simulations in standalone
+mode. Note that this is not the optimal approach if running the same model with
+minor differences (as in this example).
 
+The example come from Tutorial part 3.
+For a discussion see this [post on the Brian forum](https://brian.discourse.group/t/multiple-run-in-standalone-mode/131)
 '''
 
 import numpy as np
@@ -10,23 +12,13 @@ import pylab as plt
 import brian2 as b2
 from time import time
 
-standalone_mode = True
-directory_name = "output"
-
-
-if standalone_mode:
-    b2.set_device('cpp_standalone',
-                  build_on_run=False,
-                  ditectory=directory_name)
+b2.set_device('cpp_standalone')
 
 
 def simulate(tau):
-    b2.start_scope()
-
-    if standalone_mode:
-        b2.get_device().reinit()
-        b2.get_device().activate(build_on_run=False,
-                                 directory=directory_name)
+    # These two lines are needed to start a new standalone simulation:
+    b2.device.reinit()
+    b2.device.activate()
 
     eqs = '''
     dv/dt = -v/tau : 1
@@ -38,24 +30,14 @@ def simulate(tau):
     S = b2.Synapses(P, G, on_pre='v += weight')
     S.connect()
     M = b2.SpikeMonitor(G)
-    net.add(P)
-    net.add(G)
-    net.add(S)
-    net.add(M)
+    net.add([P, G, S, M])
 
     net.run(1000 * b2.ms)
-    
-    if standalone_mode:
-        b2.get_device().build(directory=directory_name,
-                              compile=True,
-                              run=True,
-                              debug=False)
 
     return M
 
 
 if __name__ == "__main__":
-
     start_time = time()
     num_inputs = 100
     input_rate = 10 * b2.Hz
@@ -75,6 +57,3 @@ if __name__ == "__main__":
     plt.xlabel(r'$\tau$ (ms)')
     plt.ylabel('Firing rate (sp/s)')
     plt.show()
-
-# expected time to run the script:
-# 53 s
