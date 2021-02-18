@@ -5,11 +5,11 @@ This example use multiprocessing to run several simulations in parallel.
 The code is using the default runtime mode (and Cython compilation, if
 possible).
 
-The `numb_proc` variable set the number of processes. `run_sim` is just a toy
-example that creates a single neuron and connects a `StateMonitor` to record
-the voltage.
+The ``numb_proc`` variable set the number of processes. ``run_sim`` is just a
+toy example that creates a single neuron and connects a `StateMonitor` to
+record the voltage.
 
-For more details see the [github issue 1154](https://github.com/brian-team/brian2/issues/1154#issuecomment-582994117):
+For more details see the `github issue 1154 <https://github.com/brian-team/brian2/issues/1154#issuecomment-582994117>`_:
 '''
 import os
 import multiprocessing

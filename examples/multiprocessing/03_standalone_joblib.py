@@ -1,7 +1,7 @@
 '''
 This example use C++ standalone mode for the simulation and the
-[joblib library](https://joblib.readthedocs.io)
-to parallelize the code. See the previous example (`02_using_standalone.py`)
+`joblib library <https://joblib.readthedocs.io>`_
+to parallelize the code. See the previous example (``02_using_standalone.py``)
 for more explanations.
 '''
 from joblib import Parallel, delayed
@@ -45,4 +45,3 @@ if __name__ == "__main__":
         plt.plot(t, v, label=str(tau_value))
     plt.legend()
     plt.show()
-

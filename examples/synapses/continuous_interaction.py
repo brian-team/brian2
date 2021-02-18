@@ -15,15 +15,16 @@ less efficient. Also note that this model only works with (pre-synaptic) neuron
 models that model the action potential in detail, i.e. not with
 integrate-and-fire type models.
 
-There are two broad approaches (`s` as part of the pre-synaptic neuron or `s`
-as part of the Synapses object), all depends on whether the time constants are
-the same across all synapses or whether they can vary between synapses. In this
-example, the time constant is assumed to be the same and `s` is therefore part
-of the pre-synaptic neuron model.
+There are two broad approaches (``s`` as part of the pre-synaptic neuron or
+``s`` as part of the Synapses object), all depends on whether the time
+constants are the same across all synapses or whether they can vary between
+synapses. In this example, the time constant is assumed to be the same and
+``s`` is therefore part of the pre-synaptic neuron model.
 
 References:
+
 -  Introduction to modeling neural dynamics, Börgers, chapter 20
-- [Discussion in Brian forum](https://brian.discourse.group/t/how-to-implement-a-conductance-base-synapse/77/2)
+- `Discussion in Brian forum <https://brian.discourse.group/t/how-to-implement-a-conductance-base-synapse/77/2>`_
 '''
 from brian2 import *
 

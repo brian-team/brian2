@@ -159,6 +159,7 @@ def main(rootpath, destdir):
                                                       '.') + '.' + file + '.rst'
         category_additional_files[relpath].append((file, full_name))
         with codecs.open(fname, 'rU', encoding='utf-8') as f:
+            print(fname)
             content = f.read()
         output = file + '\n' + '=' * len(title) + '\n\n'
         output += '.. code:: none\n\n'

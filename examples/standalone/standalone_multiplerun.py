@@ -4,7 +4,7 @@ mode. Note that this is not the optimal approach if running the same model with
 minor differences (as in this example).
 
 The example come from Tutorial part 3.
-For a discussion see this [post on the Brian forum](https://brian.discourse.group/t/multiple-run-in-standalone-mode/131)
+For a discussion see this `post on the Brian forum <https://brian.discourse.group/t/multiple-run-in-standalone-mode/131>`_.
 '''
 
 import numpy as np
