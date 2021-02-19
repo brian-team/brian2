@@ -1,5 +1,7 @@
-import os, sys, subprocess, warnings, unittest
-import tempfile, pickle
+import os
+import sys
+import warnings
+import runpy
 import pytest
 
 from brian2 import device, set_device
@@ -50,11 +52,8 @@ class ExampleRun(pytest.Item):
         curdir = os.getcwd()
         os.chdir(os.path.dirname(self.filename))
         sys.path.append(os.path.dirname(self.filename))
-        import warnings
-        warnings.simplefilter('ignore')
         try:
-            with open(self.filename, 'r') as f:
-                exec(f.read())
+            runpy.run_path(self.filename, run_name='__main__')
             if self.codegen_target == 'cython' and self.dtype == np.float64:
                 for fignum in _mpl.pyplot.get_fignums():
                     fname = os.path.relpath(self.filename, self.example_dir)
@@ -66,6 +65,7 @@ class ExampleRun(pytest.Item):
                     ensure_directory_of_file(fname)
                     _mpl.pyplot.figure(fignum).savefig(fname)
         finally:
+            _mpl.pyplot.close('all')
             os.chdir(curdir)
             sys.path.remove(os.path.dirname(self.filename))
             device.reinit()
@@ -111,5 +111,5 @@ class Plugin:
 
 if __name__ == '__main__':
     example_dir = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'examples'))
-    if not pytest.main([__file__, '--verbose'], plugins=[Plugin(example_dir)]):
-        sys.exit(1)
+    sys.exit(pytest.main([__file__, '--verbose'],
+                         plugins=[Plugin(example_dir)]))
