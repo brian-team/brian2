@@ -96,11 +96,11 @@ else:
                              '-fno-finite-math-only', '-march=native',
                              '-std=c++11']
     elif re.match('^(alpha|ppc.*|sparc.*)$', machine):
-	default_buildopts = ['-w', '-O3', '-ffast-math',
-			     '-fno-finite-math-only', '-mcpu=native',
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-mcpu=native',
                              '-mtune=native', '-std=c++11']
     elif re.match('^(parisc.*|riscv.*)$', machine):
-	default_buildopts = ['-w', '-O3', '-ffast-math',
+        default_buildopts = ['-w', '-O3', '-ffast-math',
                              '-fno-finite-math-only', '-std=c++11']
     else:
         default_buildopts = ['-w']
