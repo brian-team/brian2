@@ -88,19 +88,22 @@ if platform.system() == 'Windows':
         if 'avx2' in flags:
             msvc_arch_flag = '/arch:AVX2'
 
-# Optimized default build options for a range a CPU architectures
-machine = os.uname().machine
-if re.match('^(x86_64|aarch64|arm.*|s390.*|i.86.*|mips.*)$', machine):
-    default_buildopts = ['-w', '-O3', '-ffast-math', '-fno-finite-math-only',
-                         '-march=native', '-std=c++11']
-elif re.match('^(alpha|ppc.*|sparc.*)$', machine):
-    default_buildopts = ['-w', '-O3', '-ffast-math', '-fno-finite-math-only',
-                         '-mcpu=native', '-mtune=native', '-std=c++11']
-elif re.match('^(parisc.*|riscv.*)$', machine):
-    default_buildopts = ['-w', '-O3', '-ffast-math', '-fno-finite-math-only',
-                         '-std=c++11']
 else:
-    default_buildopts = ['-w']
+    # Optimized default build options for a range a CPU architectures
+    machine = os.uname().machine
+    if re.match('^(x86_64|aarch64|arm.*|s390.*|i.86.*|mips.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-march=native',
+                             '-std=c++11']
+    elif re.match('^(alpha|ppc.*|sparc.*)$', machine):
+	default_buildopts = ['-w', '-O3', '-ffast-math',
+			     '-fno-finite-math-only', '-mcpu=native',
+                             '-mtune=native', '-std=c++11']
+    elif re.match('^(parisc.*|riscv.*)$', machine):
+	default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-std=c++11']
+    else:
+        default_buildopts = ['-w']
 
 # Preferences
 prefs.register_preferences(
