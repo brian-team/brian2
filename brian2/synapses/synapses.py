@@ -957,6 +957,13 @@ class Synapses(Group):
                 variable that is required for checking
             eqs : Equations Object
                 Equations object in which we need to check
+            orig_var : str
+                Carries the name of the original event-driven variable
+                Default Value - None
+            intermediate_vars : list
+                Carries the names of all the intermediate variables that have referred 
+                to the event-driven variable.
+                Default Value - []
 
             Returns
             ----------
@@ -976,10 +983,10 @@ class Synapses(Group):
                     raise EquationError(f"The clock-driven equation for variable {eq.varname} should "
                  f"not refer to a event-driven variable '{orig_var}' {via_str}")
                 else:
-                    temp = intermediate_vars.copy()
+                    temp_inter_vars = intermediate_vars.copy()
                     if orig_var != eq.varname and eq.varname not in intermediate_vars:
-                        temp.append(eq.varname)
-                    Synapses._recur_check_event_summed_clock(eq.varname,eqs,orig_var=orig_var,intermediate_vars=temp)
+                        temp_inter_vars.append(eq.varname)
+                    Synapses._recur_check_event_summed_clock(eq.varname,eqs,orig_var=orig_var,intermediate_vars=temp_inter_vars)
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
