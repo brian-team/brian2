@@ -28,6 +28,9 @@ __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
 
 logger = get_logger(__name__)
 
+# default_buildopts stores default build options for Gcc compiler
+default_buildopts = []
+
 # Try to get architecture information to get the best compiler setting for
 # Windows
 msvc_arch_flag = ''
