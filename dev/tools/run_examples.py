@@ -57,11 +57,12 @@ class ExampleRun(pytest.Item):
                 exec(f.read())
             if self.codegen_target == 'cython' and self.dtype == np.float64:
                 for fignum in _mpl.pyplot.get_fignums():
-                    fname = os.path.relpath(self.filename,
-                                            os.path.abspath(os.path.join(curdir, '..', '..', 'examples')))
+                    fname = os.path.relpath(self.filename, self.example_dir)
                     fname = fname.replace('/', '.').replace('\\\\', '.')
                     fname = fname.replace('.py', '.%d.png' % fignum)
-                    fname = os.path.abspath('../docs_sphinx/resources/examples_images/' + fname)
+                    fname = os.path.abspath(os.path.join(self.example_dir,
+                                                         '../docs_sphinx/resources/examples_images/',
+                                                         fname))
                     ensure_directory_of_file(fname)
                     _mpl.pyplot.figure(fignum).savefig(fname)
         finally:
@@ -92,10 +93,13 @@ class ExampleCollector(pytest.Collector):
         for dirname, dirs, files in os.walk(self.example_dir):
             for filename in files:
                 if filename.endswith('.py'):
-                    yield ExampleRun.from_parent(os.path.join(dirname, filename),
+                    run = ExampleRun.from_parent(os.path.join(dirname, filename),
                                                  'cython',
                                                  np.float64,
                                                  parent=self)
+                    run.example_dir = self.example_dir
+                    yield run
+
 
 class Plugin:
     def __init__(self, example_dir):
