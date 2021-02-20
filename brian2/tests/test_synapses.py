@@ -21,7 +21,7 @@ from brian2.devices.device import reinit_and_delete, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.tests.utils import assert_allclose
-
+from brian2.equations.equations import EquationError
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)),
@@ -1309,6 +1309,12 @@ def test_summed_variable_errors():
     with pytest.raises(ValueError):
         Synapses(G, G, '''p_post = 3*volt : volt (summed)
                           p_pre = 3*volt : volt (summed)''')
+    
+    #Summed variable referring to an event-driven variable
+    with pytest.raises(EquationError):
+        Synapses(G,G,'''ds/dt = -s/(3*ms) : 1 (event-driven)
+                        a = s : 1 (summed)
+                        ''',on_pre='s += 1')
 
 @pytest.mark.codegen_independent
 def test_multiple_summed_variables():
