@@ -20,7 +20,7 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER,
-                                        check_subexpressions,EquationError)
+                                        check_subexpressions, EquationError)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
                                        SubexpressionUpdater,
@@ -947,49 +947,57 @@ class Synapses(Group):
     @staticmethod
     def _recur_check_event_summed_clock(var, eqs, orig_var=None, intermediate_vars=None):
         """
-            Recursive Function Used to identify whether a summed variable 
+            Recursive function used to identify whether a summed variable
             or a clock driven equation is referring to an event-driven variable
             and raise an EquationError.
 
-            Parammeters
+            Parameters
             ----------
             var : str
                 variable that is required for checking
-            eqs : Equations Object
+            eqs : `Equations`
                 Equations object in which we need to check
-            orig_var : str
+            orig_var : str, optional
                 Carries the name of the original event-driven variable
-                Default Value - None
-            intermediate_vars : list
-                Carries the names of all the intermediate variables that have referred 
-                to the event-driven variable.
-                Default Value - []
+            intermediate_vars : list, optional
+                Carries the names of all the intermediate variables that have
+                referred to the event-driven variable.
 
-            Returns
-            ----------
-            None
+            Raises
+            ------
+            EquationError
+                If a clock-driven or summed variable refers to an event-driven
+                variable.
 """
-        if orig_var == None:
+        if orig_var is None:
             orig_var = var
         if intermediate_vars is None:
             intermediate_vars = []
         via_str = ""
         if intermediate_vars:
-            via_str = "(via " + ", ".join(f"'{v}'" for v in intermediate_vars) + ")"
+            via_str = "(via " + ", ".join(f"'{v}'"
+                                          for v in intermediate_vars) + ")"
         for eq in eqs.values():
             if var in eq.identifiers and eq.varname != var:
                 if 'summed' in eq.flags:
-                    raise EquationError(f"The summed variable '{eq.varname}' should not refer a"
-                f" event-driven variable '{orig_var}' {via_str}")
-                elif eq.type == DIFFERENTIAL_EQUATION and 'event-driven' not in eq.flags:
-                    raise EquationError(f"The clock-driven equation for variable {eq.varname} should "
-                 f"not refer to a event-driven variable '{orig_var}' {via_str}")
+                    raise EquationError(f"The summed variable '{eq.varname}' "
+                                        f"should not refer an event-driven "
+                                        f" variable '{orig_var}' {via_str}")
+                elif (eq.type == DIFFERENTIAL_EQUATION
+                      and 'event-driven' not in eq.flags):
+                    raise EquationError(f"The clock-driven equation for "
+                                        f"variable '{eq.varname}' should not "
+                                        f"refer to a event-driven variable "
+                                        f"'{orig_var}' {via_str}")
                 else:
                     temp_inter_vars = intermediate_vars.copy()
-                    if orig_var != eq.varname and eq.varname not in intermediate_vars:
+                    if (orig_var != eq.varname
+                            and eq.varname not in intermediate_vars):
                         temp_inter_vars.append(eq.varname)
-                    Synapses._recur_check_event_summed_clock(eq.varname, eqs, orig_var=orig_var,
-                    intermediate_vars=temp_inter_vars)
+                    Synapses._recur_check_event_summed_clock(eq.varname,
+                                                             eqs,
+                                                             orig_var=orig_var,
+                                                             intermediate_vars=temp_inter_vars)
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
