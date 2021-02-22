@@ -19,7 +19,7 @@ import sys
 import tempfile
 
 from brian2.core.preferences import prefs, BrianPreference
-from brian2.utils.logger import get_logger
+from brian2.utils.logger import get_logger, std_silent
 
 __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
            'C99Check']
@@ -188,6 +188,38 @@ prefs.register_preferences(
         '''),
     )
 
+# check whether compiler supports a flag
+# Adapted from https://github.com/pybind/pybind11/
+def _determine_flag_compatibility(compiler, flagname):
+    import tempfile
+    from distutils.errors import CompileError
+    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f, std_silent():
+        f.write('int main (int argc, char **argv) { return 0; }')
+        try:
+            compiler.compile([f.name], extra_postargs=[flagname])
+        except CompileError:
+            logger.warn(f'Removing unsupported flag \'{flagname}\' from '
+                        f'compiler flags.')
+            return False
+    return True
+
+_compiler_flag_compatibility = {}
+def has_flag(compiler, flagname):
+    if compiler.compiler_type == 'msvc':
+        # MSVC does not raise an error for illegal flags, so determining
+        # whether it accepts a flag would mean parsing the output for warnings
+        # This is non-trivial so we don't do it (the main reason to check
+        # flags in the first place are differences between gcc and clang)
+        return True
+    else:
+        compiler_exe = ' '.join(compiler.executables['compiler_cxx'])
+
+    if (compiler_exe, flagname) not in _compiler_flag_compatibility:
+        compatibility = _determine_flag_compatibility(compiler, flagname)
+        _compiler_flag_compatibility[(compiler_exe, flagname)] = compatibility
+
+    return _compiler_flag_compatibility[(compiler_exe, flagname)]
+
 
 def get_compiler_and_args():
     '''
@@ -200,8 +232,20 @@ def get_compiler_and_args():
     if extra_compile_args is None:
         if compiler in ('gcc', 'unix'):
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_gcc']
-        if compiler == 'msvc':
+        elif compiler == 'msvc':
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
+        else:
+            extra_compile_args = []
+            logger.warn(f'Unsupported compiler \'{compiler}\'.')
+
+    from distutils.ccompiler import new_compiler
+    from distutils.sysconfig import customize_compiler
+    compiler_obj = new_compiler(compiler=compiler, verbose=0)
+    customize_compiler(compiler_obj)
+    extra_compile_args = [flag
+                          for flag in extra_compile_args
+                          if has_flag(compiler_obj, flag)]
+
     return compiler, extra_compile_args
 
 
@@ -222,7 +266,7 @@ def get_msvc_env():
                                                          arch_name=arch_name)
         return None, vcvars_cmd
 
-    # Search for MSVC environemtn if not already cached
+    # Search for MSVC environment if not already cached
     if _msvc_env is None:
         try:
             _msvc_env = msvc.msvc14_get_vc_env(arch_name)
@@ -248,10 +292,10 @@ def compiler_supports_c99():
             os.close(fd)
             msvc_env, vcvars_cmd = get_msvc_env()
             if vcvars_cmd:
-                cmd = '{} && cl /E mytest.cpp > NUL 2>&1'.format(vcvars_cmd)
+                cmd = '{} && cl /E {} > NUL 2>&1'.format(vcvars_cmd, tmp_file)
             else:
                 os.environ.update(msvc_env)
-                cmd = 'cl /E mytest.cpp > NUL 2>&1'
+                cmd = 'cl /E {} > NUL 2>&1'.format(tmp_file)
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
             os.remove(tmp_file)

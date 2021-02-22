@@ -9,7 +9,7 @@ from brian2 import *
 # The common noisy input
 N = 25
 tau_input = 5*ms
-input = NeuronGroup(1, 'dx/dt = -x / tau_input + (2 /tau_input)**.5 * xi : 1')
+neuron_input = NeuronGroup(1, 'dx/dt = -x / tau_input + (2 /tau_input)**.5 * xi : 1')
 
 # The noisy neurons receiving the same input
 tau = 10*ms
@@ -21,7 +21,7 @@ I : 1 (linked)
 neurons = NeuronGroup(N, model=eqs_neurons, threshold='x > 1',
                       reset='x = 0', refractory=5*ms, method='euler')
 neurons.x = 'rand()'
-neurons.I = linked_var(input, 'x') # input.x is continuously fed into neurons.I
+neurons.I = linked_var(neuron_input, 'x') # input.x is continuously fed into neurons.I
 spikes = SpikeMonitor(neurons)
 
 run(500*ms)

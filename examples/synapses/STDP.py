@@ -27,10 +27,10 @@ dv/dt = (ge * (Ee-v) + El - v) / taum : volt
 dge/dt = -ge / taue : 1
 '''
 
-input = PoissonGroup(N, rates=F)
+poisson_input = PoissonGroup(N, rates=F)
 neurons = NeuronGroup(1, eqs_neurons, threshold='v>vt', reset='v = vr',
                       method='euler')
-S = Synapses(input, neurons,
+S = Synapses(poisson_input, neurons,
              '''w : 1
                 dApre/dt = -Apre / taupre : 1 (event-driven)
                 dApost/dt = -Apost / taupost : 1 (event-driven)''',
@@ -43,7 +43,7 @@ S = Synapses(input, neurons,
 S.connect()
 S.w = 'rand() * gmax'
 mon = StateMonitor(S, 'w', record=[0, 1])
-s_mon = SpikeMonitor(input)
+s_mon = SpikeMonitor(poisson_input)
 
 run(100*second, report='text')
 

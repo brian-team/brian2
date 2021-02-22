@@ -1,5 +1,7 @@
-import os, sys, subprocess, warnings, unittest
-import tempfile, pickle
+import os
+import sys
+import warnings
+import runpy
 import pytest
 
 from brian2 import device, set_device
@@ -14,8 +16,13 @@ class ExampleRun(pytest.Item):
     '''
     @classmethod
     def from_parent(cls, filename, codegen_target, dtype, parent):
-        new_node = super(ExampleRun, cls).from_parent(parent=parent,
-                                                      name=ExampleRun.id(filename))
+        super_class = super(ExampleRun, cls)
+        if hasattr(super_class, 'from_parent'):
+            new_node = super_class.from_parent(parent=parent,
+                                               name=ExampleRun.id(filename))
+        else:
+            # For pytest < 6
+            new_node = cls(parent=parent, name=ExampleRun.id(filename))
         new_node.filename = filename
         new_node.codegen_target = codegen_target
         new_node.dtype = dtype
@@ -45,21 +52,20 @@ class ExampleRun(pytest.Item):
         curdir = os.getcwd()
         os.chdir(os.path.dirname(self.filename))
         sys.path.append(os.path.dirname(self.filename))
-        import warnings
-        warnings.simplefilter('ignore')
         try:
-            with open(self.filename, 'r') as f:
-                exec(f.read())
+            runpy.run_path(self.filename, run_name='__main__')
             if self.codegen_target == 'cython' and self.dtype == np.float64:
                 for fignum in _mpl.pyplot.get_fignums():
-                    fname = os.path.relpath(self.filename,
-                                            os.path.abspath(os.path.join(curdir, '..', '..', 'examples')))
+                    fname = os.path.relpath(self.filename, self.example_dir)
                     fname = fname.replace('/', '.').replace('\\\\', '.')
                     fname = fname.replace('.py', '.%d.png' % fignum)
-                    fname = os.path.abspath('../docs_sphinx/resources/examples_images/' + fname)
+                    fname = os.path.abspath(os.path.join(self.example_dir,
+                                                         '../docs_sphinx/resources/examples_images/',
+                                                         fname))
                     ensure_directory_of_file(fname)
                     _mpl.pyplot.figure(fignum).savefig(fname)
         finally:
+            _mpl.pyplot.close('all')
             os.chdir(curdir)
             sys.path.remove(os.path.dirname(self.filename))
             device.reinit()
@@ -73,8 +79,13 @@ class ExampleRun(pytest.Item):
 class ExampleCollector(pytest.Collector):
     @classmethod
     def from_parent(cls, example_dir, parent):
-        new_collector = super(ExampleCollector, cls).from_parent(parent,
-                                                                 name='example_collector')
+        collector = super(ExampleCollector, cls)
+        if hasattr(collector, 'from_parent'):
+            new_collector = collector.from_parent(parent,
+                                                  name='example_collector')
+        else:
+            # For pytest < 6
+            new_collector = cls(parent=parent, name='example_collector')
         new_collector.example_dir = example_dir
         return new_collector
 
@@ -82,10 +93,13 @@ class ExampleCollector(pytest.Collector):
         for dirname, dirs, files in os.walk(self.example_dir):
             for filename in files:
                 if filename.endswith('.py'):
-                    yield ExampleRun.from_parent(os.path.join(dirname, filename),
+                    run = ExampleRun.from_parent(os.path.join(dirname, filename),
                                                  'cython',
                                                  np.float64,
                                                  parent=self)
+                    run.example_dir = self.example_dir
+                    yield run
+
 
 class Plugin:
     def __init__(self, example_dir):
@@ -97,5 +111,5 @@ class Plugin:
 
 if __name__ == '__main__':
     example_dir = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'examples'))
-    if not pytest.main([__file__, '--verbose'], plugins=[Plugin(example_dir)]):
-        sys.exit(1)
+    sys.exit(pytest.main([__file__, '--verbose'],
+                         plugins=[Plugin(example_dir)]))

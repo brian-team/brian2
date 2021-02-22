@@ -20,6 +20,9 @@ docs_sphinx/reference
 # Unit test / coverage reports
 .coverage
 
+# Test cache
+.pytest_cache
+
 # Eclipse project files and settings
 .project
 .pydevproject
