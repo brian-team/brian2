@@ -1312,9 +1312,8 @@ def test_summed_variable_errors():
     
     #Summed variable referring to an event-driven variable
     with pytest.raises(EquationError):
-        Synapses(G,G,'''ds/dt = -s/(3*ms) : 1 (event-driven)
-                        a = s : 1 (summed)
-                        ''',on_pre='s += 1')
+        Synapses(G, G, '''ds/dt = -s/(3*ms) : 1 (event-driven)
+                        a = s : 1 (summed)''', on_pre='s += 1')
 
 @pytest.mark.codegen_independent
 def test_multiple_summed_variables():
@@ -1574,11 +1573,11 @@ def test_event_driven_dependency_error2():
 
 @pytest.mark.codegen_independent
 def test_event_driven_dependency_error3():
-    P = NeuronGroup(10,'dv/dt = -v/(10*ms) : volt')
+    P = NeuronGroup(10, 'dv/dt = -v/(10*ms) : volt')
     with pytest.raises(EquationError):
-        syn = Synapses(P,P,'''ds/dt = -s/(3*ms) : 1 (event-driven)
+        Synapses(P, P, '''ds/dt = -s/(3*ms) : 1 (event-driven)
                             df/dt = f*s : 1 (clock-driven)
-                            ''',on_pre='s += 1')
+                            ''', on_pre='s += 1')
 
 
 @pytest.mark.codegen_independent

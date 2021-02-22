@@ -795,7 +795,7 @@ class Synapses(Group):
         
         # Checking whether a summed variable or a clock-driven equation is referring to an event-driven variable
         for eq in event_driven:
-            Synapses._recur_check_event_summed_clock(eq.varname,model)
+            Synapses._recur_check_event_summed_clock(eq.varname, model)
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
@@ -945,7 +945,7 @@ class Synapses(Group):
         self._enable_group_attributes()
     
     @staticmethod
-    def _recur_check_event_summed_clock(var,eqs,orig_var = None,intermediate_vars = []):
+    def _recur_check_event_summed_clock(var, eqs, orig_var=None, intermediate_vars=None):
         """
             Recursive Function Used to identify whether a summed variable 
             or a clock driven equation is referring to an event-driven variable
@@ -971,14 +971,16 @@ class Synapses(Group):
 """
         if orig_var == None:
             orig_var = var
+        if intermediate_vars is None:
+            intermediate_vars = []
         via_str = ""
         if intermediate_vars:
-            via_str = "(via "+", ".join(f"'{v}'" for v in intermediate_vars) + ")"
+            via_str = "(via " + ", ".join(f"'{v}'" for v in intermediate_vars) + ")"
         for eq in eqs.values():
             if var in eq.identifiers and eq.varname != var:
                 if 'summed' in eq.flags:
-                    raise EquationError(f"The summed variable '{eq.varname}' should not refer a event-driven"
-                f" variable '{orig_var}' {via_str}")
+                    raise EquationError(f"The summed variable '{eq.varname}' should not refer a"
+                f" event-driven variable '{orig_var}' {via_str}")
                 elif eq.type == DIFFERENTIAL_EQUATION and 'event-driven' not in eq.flags:
                     raise EquationError(f"The clock-driven equation for variable {eq.varname} should "
                  f"not refer to a event-driven variable '{orig_var}' {via_str}")
@@ -986,7 +988,8 @@ class Synapses(Group):
                     temp_inter_vars = intermediate_vars.copy()
                     if orig_var != eq.varname and eq.varname not in intermediate_vars:
                         temp_inter_vars.append(eq.varname)
-                    Synapses._recur_check_event_summed_clock(eq.varname,eqs,orig_var=orig_var,intermediate_vars=temp_inter_vars)
+                    Synapses._recur_check_event_summed_clock(eq.varname, eqs, orig_var=orig_var,
+                    intermediate_vars=temp_inter_vars)
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
