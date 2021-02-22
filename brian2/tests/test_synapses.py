@@ -1573,6 +1573,15 @@ def test_event_driven_dependency_error2():
         assert exc.errisinstance(UnsupportedEquationsException)
 
 @pytest.mark.codegen_independent
+def test_event_driven_dependency_error3():
+    P = NeuronGroup(10,'dv/dt = -v/(10*ms) : volt')
+    with pytest.raises(EquationError):
+        syn = Synapses(P,P,'''ds/dt = -s/(3*ms) : 1 (event-driven)
+                            df/dt = f*s : 1 (clock-driven)
+                            ''',on_pre='s += 1')
+
+
+@pytest.mark.codegen_independent
 def test_repr():
     G = NeuronGroup(1, 'v: volt', threshold='False')
     S = Synapses(G, G,
@@ -2745,6 +2754,7 @@ if __name__ == '__main__':
     test_event_driven()
     test_event_driven_dependency_error()
     test_event_driven_dependency_error2()
+    test_event_driven_dependency_error3()
     test_repr()
     test_pre_post_variables()
     test_variables_by_owner()
@@ -2777,3 +2787,4 @@ if __name__ == '__main__':
     test_synaptic_subgroups()
     test_incorrect_connect_N_incoming_outgoing()
     print('Tests took', time.time()-start)
+    
