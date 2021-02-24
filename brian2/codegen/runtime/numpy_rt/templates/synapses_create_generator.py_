@@ -21,7 +21,7 @@ except:
 
     from numpy.random import binomial as _binomial
     import bisect as _bisect
-    def _sample_without_replacement(low, high, step, p):
+    def _sample_without_replacement(low, high, step, p=None, size=None):
         if p == 0:
             return _numpy.array([], dtype=_numpy.int32)
         if p == 1:
@@ -30,8 +30,17 @@ except:
             n = (high-low-1)//step+1
         else:
             n = (low-high-1)//-step+1
-        if n <= 0:
+        if n <= 0 or (size is not None and size <= 0):
             return _numpy.array([], dtype=_numpy.int32)
+        if n == size:
+            return _numpy.arange(low, high, step)
+        if p is None:
+            if step == 0:
+                _choice = _numpy.random.choice(n,  size=size, replace=False) + low
+            else:
+                _chose_from = _numpy.arange(low, high, step)
+                _choice = _numpy.random.choice(_chose_from, size=size, replace=False)
+            return _numpy.sort(_choice)
         if n <= 1000 or p > 0.25: # based on rough profiling
             samples, = (_np_rand(n)<p).nonzero()
         else:
@@ -89,7 +98,11 @@ for _i in range(N_pre):
     {% if iterator_func=='range' %}
     {{iteration_variable}} = _numpy.arange(_iter_low, _iter_high, _iter_step)
     {% elif iterator_func=='sample' %}
+    {% if iterator_kwds['sample_size'] == 'fixed' %}
+    {{iteration_variable}} = _sample_without_replacement(_iter_low, _iter_high, _iter_step, None, size=_iter_size)
+    {% else %}
     {{iteration_variable}} = _sample_without_replacement(_iter_low, _iter_high, _iter_step, _iter_p)
+    {% endif %}
     {% endif %}
 
     _vectorisation_idx = {{iteration_variable}}

@@ -1696,10 +1696,6 @@ class Synapses(Group):
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
 
-        if (parsed['iterator_func'] == 'sample' and
-                    parsed['iterator_kwds']['sample_size']=='fixed'):
-            raise NotImplementedError("Fixed sample size not implemented yet.")
-
         abstract_code = {'setup_iterator': '',
                          'create_j': '',
                          'create_cond': '',
