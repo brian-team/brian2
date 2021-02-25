@@ -230,6 +230,11 @@ class CPPStandaloneDevice(Device):
         return None  # handled differently
 
     def freeze(self, code, ns):
+        # TODO: Remove this function at some point
+        logger.warn('The CPPStandaloneDevice.freeze function should no longer '
+                    'be used, add constant definitions directly to the '
+                    'code in the "CONSTANTS" section instead.',
+                    name_suffix='deprecated_freeze_use', once=True)
         # this is a bit of a hack, it should be passed to the template somehow
         for k, v in ns.items():
             if (isinstance(v, Variable) and
@@ -755,7 +760,8 @@ class CPPStandaloneDevice(Device):
         writer.write('main.cpp', main_tmp)
 
     def generate_codeobj_source(self, writer):
-                # Generate data for non-constant values
+        # Generate data for non-constant values
+        renderer = CPPNodeRenderer()
         code_object_defs = defaultdict(list)
         for codeobj in self.code_objects.values():
             lines = []
@@ -777,6 +783,13 @@ class CPPStandaloneDevice(Device):
                             lines.append('const size_t _num%s = %s;' % (k, v.size))
                     except TypeError:
                         pass
+                elif isinstance(v, Constant):
+                    value = repr(v.value)
+                    line = 'const {c_type} {name} = {value};'
+                    line = line.format(c_type=c_data_type(v.dtype),
+                                       name=k,
+                                       value=renderer.render_expr(value))
+                    lines.append(line)
             for line in lines:
                 # Sometimes an array is referred to by to different keys in our
                 # dictionary -- make sure to never add a line twice
@@ -790,7 +803,6 @@ class CPPStandaloneDevice(Device):
             # Before/after run code
             for block in codeobj.before_after_blocks:
                 cpp_code = getattr(codeobj.code, block + '_cpp_file')
-                cpp_code = self.freeze(cpp_code, ns)
                 cpp_code = cpp_code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
                 h_code = getattr(codeobj.code, block + '_h_file')
                 writer.write('code_objects/' + block + '_' + codeobj.name + '.cpp',
@@ -799,8 +811,7 @@ class CPPStandaloneDevice(Device):
                              h_code)
 
             # Main code
-            # TODO: fix these freeze/CONSTANTS hacks somehow - they work but not elegant.
-            code = self.freeze(codeobj.code.cpp_file, ns)
+            code = codeobj.code.cpp_file
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
 
             writer.write('code_objects/'+codeobj.name+'.cpp', code)
