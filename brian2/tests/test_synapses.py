@@ -2438,7 +2438,47 @@ def test_synapse_generator_random():
 
     assert len(S1) == 0
     _compare(S2, np.ones((len(G), len(G2))))
-    assert 0 <= len(S2) <= len(G) * len(G2)
+    assert 0 <= len(S3) <= len(G) * len(G2)
+    assert len(S4) == 7
+    assert_equal(S4.i, np.ones(7)*2)
+    assert_equal(S4.j, np.arange(7))
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_generator_fixed_random():
+    # Random samples with fixed size
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(j='k for k in sample(N_post, size=0)')
+
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(j='k for k in sample(N_post, size=N_post)')
+
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(j='k for k in sample(N_post, size=3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4.connect(j='k for k in sample(N_post, size=int(x_pre==2)*N_post)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, np.ones((len(G), len(G2))))
+    # Each neuron should have 3 outgoing connections
+    assert_array_equal(S3.N_outgoing_pre, np.ones(4)*3)
+    # Synapses should be sorted and unique
+    for source_idx in range(4):
+        assert len(set(S3.j[source_idx, :])) == 3
+        assert all(S3.j[source_idx, :] == sorted(S3.j[source_idx, :]))
     assert len(S4) == 7
     assert_equal(S4.i, np.ones(7)*2)
     assert_equal(S4.j, np.arange(7))
