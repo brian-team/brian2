@@ -38,10 +38,18 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     cdef size_t newsize
 
     # The following variables are only used for probabilistic connections
+    {% if iterator_func=='sample' %}
+    {% if iterator_kwds['sample_size'] == 'fixed' %}
+    cdef int _n_selected
+    cdef int _n_dealt_with
+    cdef int _n_total
+    cdef double _U
+    {% else %}
     cdef bool _jump_algo
     cdef double _log1p, _pconst
     cdef size_t _jump
-
+    {% endif %}
+    {% endif %}
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code['setup_iterator']|autoindent}}
@@ -61,6 +69,23 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% if iterator_func=='range' %}
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
         {% elif iterator_func=='sample' %}
+        {% if iterator_kwds['sample_size'] == 'fixed' %}
+        # Selection sampling technique
+        # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+        _n_selected = 0
+        _n_dealt_with = 0
+        if _iter_step > 0:
+            _n_total = (_iter_high - _iter_low - 1) // _iter_step + 1
+        else:
+            _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
+        for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
+            _U = _rand(_vectorisation_idx)
+            if (_n_total - _n_dealt_with)*_U >= _iter_size - _n_selected:
+                _n_dealt_with += 1
+                continue
+            _n_selected += 1
+            _n_dealt_with += 1
+        {% else %}
         if _iter_p==0:
             continue
         _jump_algo = _iter_p<0.25
@@ -80,6 +105,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             else:
                 if _rand(_vectorisation_idx)>=_iter_p:
                     continue
+        {% endif %}
         {% endif %}
 
             {{vector_code['create_j']|autoindent}}
