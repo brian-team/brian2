@@ -53,6 +53,7 @@
         long _uiter_high;
         long _uiter_step;
         {% if iterator_func=='sample' %}
+        long _uiter_size;
         double _uiter_p;
         {% endif %}
         {
@@ -61,13 +62,38 @@
             _uiter_high = _iter_high;
             _uiter_step = _iter_step;
             {% if iterator_func=='sample' %}
+            {% if iterator_kwds['sample_size'] == 'fixed' %}
+            _uiter_size = _iter_size;
+            {% else %}
             _uiter_p = _iter_p;
+            {% endif %}
             {% endif %}
         }
         {% if iterator_func=='range' %}
         for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
+        {% if iterator_kwds['sample_size'] == 'fixed' %}
+        // Selection sampling technique
+        // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+        int _n_selected = 0;
+        int _n_dealt_with = 0;
+        int _n_total;
+        if (_uiter_step > 0)
+            _n_total = (_uiter_high - _uiter_low - 1) / _uiter_step + 1;
+        else
+            _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
+        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
+        {
+            const double _U = _rand(_vectorisation_idx);
+            if ((_n_total - _n_dealt_with)*_U >= _uiter_size - _n_selected)
+            {
+                _n_dealt_with += 1;
+                continue;
+            }
+            _n_selected += 1;
+            _n_dealt_with += 1;
+        {% else %}
         if(_uiter_p==0) continue;
         const bool _jump_algo = _uiter_p<0.25;
         double _log1p;
@@ -87,6 +113,7 @@
             } else {
                 if(_rand(_vectorisation_idx)>=_uiter_p) continue;
             }
+        {% endif %}
         {% endif %}
             long __j, _j, _pre_idx, __pre_idx;
             {
