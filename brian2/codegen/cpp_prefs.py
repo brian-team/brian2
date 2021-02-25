@@ -11,6 +11,7 @@ import distutils
 from distutils.ccompiler import get_default_compiler
 import json
 import os
+import re
 import platform
 import socket
 import struct
@@ -26,6 +27,9 @@ __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
 
 
 logger = get_logger(__name__)
+
+# default_buildopts stores default build options for Gcc compiler
+default_buildopts = []
 
 # Try to get architecture information to get the best compiler setting for
 # Windows
@@ -87,6 +91,23 @@ if platform.system() == 'Windows':
         if 'avx2' in flags:
             msvc_arch_flag = '/arch:AVX2'
 
+else:
+    # Optimized default build options for a range a CPU architectures
+    machine = os.uname().machine
+    if re.match('^(x86_64|aarch64|arm.*|s390.*|i.86.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-march=native',
+                             '-std=c++11']
+    elif re.match('^(alpha|ppc.*|sparc.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-mcpu=native',
+                             '-mtune=native', '-std=c++11']
+    elif re.match('^(parisc.*|riscv.*|mips.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-std=c++11']
+    else:
+        default_buildopts = ['-w']
+
 # Preferences
 prefs.register_preferences(
     'codegen.cpp',
@@ -108,7 +129,7 @@ prefs.register_preferences(
         '''
         ),
     extra_compile_args_gcc=BrianPreference(
-        default=['-w', '-O3', '-ffast-math', '-fno-finite-math-only', '-march=native', '-std=c++11'],
+        default=default_buildopts,
         docs='''
         Extra compile arguments to pass to GCC compiler
         '''
