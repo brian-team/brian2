@@ -74,25 +74,26 @@
         {
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
-        // Selection sampling technique
-        // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
-        int _n_selected = 0;
-        int _n_dealt_with = 0;
-        int _n_total;
-        if (_uiter_step > 0)
-            _n_total = (_uiter_high - _uiter_low - 1) / _uiter_step + 1;
-        else
-            _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
+        // Reservoir sampling technique
+        int _element = 0;
+        int *_selected = (int *)(malloc(sizeof(int) * _uiter_size));
         for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
-            const double _U = _rand(_vectorisation_idx);
-            if ((_n_total - _n_dealt_with)*_U >= _uiter_size - _n_selected)
+            if (_element < _uiter_size)
+                _selected[_element] = {{iteration_variable}};
+            else
             {
-                _n_dealt_with += 1;
-                continue;
+                const int _r = _rand(_vectorisation_idx) * (_element + 1);
+                if (_r < _uiter_size)
+                    _selected[_r] = {{iteration_variable}};
             }
-            _n_selected += 1;
-            _n_dealt_with += 1;
+            _element++;
+        }
+        std::sort(_selected, _selected + _uiter_size);
+        for (int _element=0; _element < _uiter_size; _element++)
+        {
+            long {{iteration_variable}} = _selected[_element];
+
         {% else %}
         if(_uiter_p==0) continue;
         const bool _jump_algo = _uiter_p<0.25;
@@ -170,6 +171,9 @@
                 {{_dynamic__synaptic_post}}.push_back(_post_idx);
 			}
 		}
+		{% if iterator_func == 'sample' and iterator_kwds['sample_size'] == 'fixed' %}
+		free(_selected);
+		{% endif %}
 	}
 
 	// now we need to resize all registered variables

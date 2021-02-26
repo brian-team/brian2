@@ -40,10 +40,9 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     # The following variables are only used for probabilistic connections
     {% if iterator_func=='sample' %}
     {% if iterator_kwds['sample_size'] == 'fixed' %}
-    cdef int _n_selected
-    cdef int _n_dealt_with
-    cdef int _n_total
-    cdef double _U
+    cdef _numpy.ndarray _selected
+    cdef int _element
+    cdef int _r
     {% else %}
     cdef bool _jump_algo
     cdef double _log1p, _pconst
@@ -70,21 +69,20 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
-        # Selection sampling technique
-        # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
-        _n_selected = 0
-        _n_dealt_with = 0
-        if _iter_step > 0:
-            _n_total = (_iter_high - _iter_low - 1) // _iter_step + 1
-        else:
-            _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
+        # Reservoir sampling technique
+        _selected = _numpy.empty(_iter_size, dtype=_numpy.int32)
+        _element = 0
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
-            _U = _rand(_vectorisation_idx)
-            if (_n_total - _n_dealt_with)*_U >= _iter_size - _n_selected:
-                _n_dealt_with += 1
-                continue
-            _n_selected += 1
-            _n_dealt_with += 1
+            if _element < _iter_size:
+                _selected[_element] = {{iteration_variable}}
+            else:
+                _r = <int>(_rand(_vectorisation_idx) * (_element + 1))
+                if _r < _iter_size:
+                    _selected[_r] = {{iteration_variable}}
+            _element += 1
+        _selected.sort()
+        for _element in range(_iter_size):
+            {{iteration_variable}} = _selected[_element]
         {% else %}
         if _iter_p==0:
             continue
@@ -107,7 +105,6 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                     continue
         {% endif %}
         {% endif %}
-
             {{vector_code['create_j']|autoindent}}
             _raw_post_idx = _j + _target_offset
 
