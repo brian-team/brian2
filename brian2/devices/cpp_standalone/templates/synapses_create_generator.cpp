@@ -74,25 +74,42 @@
         {
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
-        // Reservoir sampling technique
-        int _element = 0;
-        int *_selected = (int *)(malloc(sizeof(int) * _uiter_size));
-        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
+        // Tracking sampling technique
+        std::set<int> _selected_set;
+        int _element;
+        int _n_total;
+        int _r;
+        int *_selected;
+        if (_uiter_step > 0)
+            _n_total = (_uiter_high - _uiter_low - 1) / _uiter_step + 1;
+        else
+            _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
+        _element = 0;
+        int *_candidates = (int *)malloc(_n_total*sizeof(int));
+        for(long _value=_uiter_low; _value<_uiter_high; _value+=_uiter_step)
         {
-            if (_element < _uiter_size)
-                _selected[_element] = {{iteration_variable}};
-            else
-            {
-                const int _r = _rand(_vectorisation_idx) * (_element + 1);
-                if (_r < _uiter_size)
-                    _selected[_r] = {{iteration_variable}};
-            }
+            _candidates[_element] = _value;
+            _element++;
+        }
+
+        for (_element=0; _element<_uiter_size; _element++)
+        {
+            _r = _rand(_vectorisation_idx) * _n_total;
+            while (_selected_set.find(_r) != _selected_set.end())
+                _r = _rand(_vectorisation_idx) * _n_total;
+            _selected_set.insert(_r);
+        }
+        _selected = (int *)malloc(_uiter_size*sizeof(int));
+        _element = 0;
+        for (std::set<int>::iterator _it=_selected_set.begin(); _it != _selected_set.end(); ++_it)
+        {
+            _selected[_element] = *_it;
             _element++;
         }
         std::sort(_selected, _selected + _uiter_size);
         for (int _element=0; _element < _uiter_size; _element++)
         {
-            long {{iteration_variable}} = _selected[_element];
+            long {{iteration_variable}} = _candidates[_selected[_element]];
 
         {% else %}
         if(_uiter_p==0) continue;
@@ -173,6 +190,7 @@
 		}
 		{% if iterator_func == 'sample' and iterator_kwds['sample_size'] == 'fixed' %}
 		free(_selected);
+		free(_candidates);
 		{% endif %}
 	}
 
