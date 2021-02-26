@@ -1,5 +1,5 @@
 import time
-import itertools
+import pickle
 from collections import defaultdict
 from processify import processify
 
@@ -44,17 +44,16 @@ if __name__ == '__main__':
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import numpy as np
-    total_sizes = [1_000, 10_000, 100_000, 1_000_000]
-    select_sizes = [0, 5, 10, 50, 100, 500, 1_000, 5_000, 10_000]
+    total_sizes = [10_000, 100_000]
+    select_p = [0., 0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 0.99, 1.]
     n_trials = 5
     targets = ['numpy', 'cython', 'cpp_standalone']
-    fig, axes = plt.subplots(2, 3, sharey='row')
+    fig, axes = plt.subplots(1, 3, sharey='row')
     for total_size, ax in zip(total_sizes, axes.flat):
         results_random = defaultdict(list)
         results_fixed = defaultdict(list)
-        for select_size in select_sizes:
-            if select_size > total_size:
-                break
+        for p in select_p:
+            select_size = int(p*total_size)
             for target in targets:
                 trial_times_random = []
                 trial_times_fixed = []
@@ -70,13 +69,13 @@ if __name__ == '__main__':
         pprint.pprint(results_random)
         pprint.pprint(results_fixed)
         for idx, target in enumerate(targets):
-            ax.plot(select_sizes[1:len(results_random[target])],
+            ax.plot(select_p[1:len(results_random[target])],
                     np.array(results_random[target][1:]) - results_random[target][0], 'o-', label=f'{target} (random)',
                     color=f'C{idx}', linestyle=':')
-            ax.plot(select_sizes[1:len(results_fixed[target])],
+            ax.plot(select_p[1:len(results_fixed[target])],
                     np.array(results_fixed[target][1:]) - results_fixed[target][0], 'o-', label=f'{target} (fixed)',
                     color=f'C{idx}')
-            ax.set(title=f'Total size: {total_size}', xlabel='selected',
+            ax.set(title=f'Total size: {total_size}', xlabel='p',
                    ylabel='time (s)')
     axes[-1, -1].axis('off')
     for idx, target in enumerate(targets):
@@ -86,4 +85,6 @@ if __name__ == '__main__':
                           color=f'C{idx}')
     axes[-1, -1].legend()
     fig.tight_layout()
-    fig.savefig('synapse_creation_benchmark.png')
+    fig.savefig('synapse_creation_benchmark_sampling.png')
+    with open('synapse_creation_sampling.pickle') as f:
+        pickle.dump(results_fixed, f)
