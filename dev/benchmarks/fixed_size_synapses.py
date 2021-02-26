@@ -22,7 +22,7 @@ def run_sim(target, n_select, n_total, fixed, trial):
             clear_cache(target)
 
         prefs.codegen.target = target
-    source_neurons = NeuronGroup(1, '')
+    source_neurons = NeuronGroup(1000, '')
     target_neurons = NeuronGroup(n_total, '')
     syn = Synapses(source_neurons, target_neurons)
     start = time.time()
@@ -35,7 +35,8 @@ def run_sim(target, n_select, n_total, fixed, trial):
         run(0*second)
     end = time.time()
     if fixed:
-        assert len(syn) == n_select
+        assert len(syn) == n_select*1000
+        assert all(syn.N_outgoing_pre == n_select)
     return end - start
 
 
@@ -50,41 +51,33 @@ if __name__ == '__main__':
     targets = ['numpy', 'cython', 'cpp_standalone']
     fig, axes = plt.subplots(1, 3, sharey='row')
     for total_size, ax in zip(total_sizes, axes.flat):
-        results_random = defaultdict(list)
+        print(total_size)
         results_fixed = defaultdict(list)
         for p in select_p:
+            print(p, end=' ')
             select_size = int(p*total_size)
             for target in targets:
-                trial_times_random = []
                 trial_times_fixed = []
                 for trial in range(n_trials):
-                    t = run_sim(target, select_size, total_size, False, trial)
-                    trial_times_random.append(t)
                     t = run_sim(target, select_size, total_size, True, trial)
                     trial_times_fixed.append(t)
-                results_random[target].append(np.mean(trial_times_random))
                 results_fixed[target].append(np.mean(trial_times_fixed))
+        print()
         import pprint
         print(total_size)
-        pprint.pprint(results_random)
         pprint.pprint(results_fixed)
         for idx, target in enumerate(targets):
-            ax.plot(select_p[1:len(results_random[target])],
-                    np.array(results_random[target][1:]) - results_random[target][0], 'o-', label=f'{target} (random)',
-                    color=f'C{idx}', linestyle=':')
             ax.plot(select_p[1:len(results_fixed[target])],
                     np.array(results_fixed[target][1:]) - results_fixed[target][0], 'o-', label=f'{target} (fixed)',
                     color=f'C{idx}')
             ax.set(title=f'Total size: {total_size}', xlabel='p',
                    ylabel='time (s)')
-    axes[-1, -1].axis('off')
+    axes[-1].axis('off')
     for idx, target in enumerate(targets):
-        axes[-1, -1].plot([], [], 'o-', label=f'{target} (random)',
-                          color=f'C{idx}', linestyle=':')
-        axes[-1, -1].plot([], [], 'o-', label=f'{target} (fixed)',
+        axes[-1].plot([], [], 'o-', label=f'{target} (fixed)',
                           color=f'C{idx}')
-    axes[-1, -1].legend()
+    axes[-1].legend()
     fig.tight_layout()
     fig.savefig('synapse_creation_benchmark_sampling.png')
-    with open('synapse_creation_sampling.pickle') as f:
+    with open('synapse_creation_sampling.pickle', 'wb') as f:
         pickle.dump(results_fixed, f)
