@@ -89,7 +89,7 @@
             }
             _element++;
         }
-        std::sort(_selected, _selected + _uiter_size);
+        //std::sort(_selected, _selected + _uiter_size);
         for (int _element=0; _element < _uiter_size; _element++)
         {
             long {{iteration_variable}} = _selected[_element];

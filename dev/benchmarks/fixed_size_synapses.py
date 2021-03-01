@@ -78,6 +78,6 @@ if __name__ == '__main__':
                           color=f'C{idx}')
     axes[-1].legend()
     fig.tight_layout()
-    fig.savefig('synapse_creation_benchmark_reservoir.png')
-    with open('synapse_creation_reservoir.pickle', 'wb') as f:
+    fig.savefig('synapse_creation_benchmark_reservoir_unsorted.png')
+    with open('synapse_creation_reservoir_unsorted.pickle', 'wb') as f:
         pickle.dump(results_fixed, f)

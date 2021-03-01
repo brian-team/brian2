@@ -40,7 +40,7 @@ except:
             else:
                 _chose_from = _numpy.arange(low, high, step)
                 _choice = _numpy.random.choice(_chose_from, size=size, replace=False)
-            return _numpy.sort(_choice)
+            return _choice
         if n <= 1000 or p > 0.25: # based on rough profiling
             samples, = (_np_rand(n)<p).nonzero()
         else:

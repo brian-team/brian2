@@ -80,7 +80,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 if _r < _iter_size:
                     _selected[_r] = {{iteration_variable}}
             _element += 1
-        _selected.sort()
+        # _selected.sort()
         for _element in range(_iter_size):
             {{iteration_variable}} = _selected[_element]
         {% else %}
