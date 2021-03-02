@@ -70,6 +70,8 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
         # Reservoir sampling technique
+        if _iter_size == 0:
+            continue
         _selected = _numpy.empty(_iter_size, dtype=_numpy.int32)
         _element = 0
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):

@@ -8,7 +8,7 @@ memory = Memory(location='.', verbose=0)
 
 @processify
 @memory.cache
-def run_sim(target, n_select, n_total, fixed, trial):
+def run_sim(target, n_select, n_total, fixed, trial, method):
     from brian2 import (set_device, device, NeuronGroup, Synapses, run,
                         clear_cache, prefs, second)
     assert n_select <= n_total
@@ -37,47 +37,34 @@ def run_sim(target, n_select, n_total, fixed, trial):
     if fixed:
         assert len(syn) == n_select*1000
         assert all(syn.N_outgoing_pre == n_select)
+    device.delete()
     return end - start
 
 
 if __name__ == '__main__':
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
     import numpy as np
-    total_sizes = [10_000, 100_000]
-    select_p = [0., 0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 0.99, 1.]
+    select_p = [0., 0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005,
+                0.01, 0.02, 0.05, 0.1, 0.2,
+                0.5, 0.75, 0.95, 0.98, 0.99, 0.999, 1.]
     n_trials = 5
     targets = ['numpy', 'cython', 'cpp_standalone']
-    fig, axes = plt.subplots(1, 3, sharey='row')
-    for total_size, ax in zip(total_sizes, axes.flat):
-        print(total_size)
-        results_fixed = defaultdict(list)
-        for p in select_p:
-            print(p, end=' ')
-            select_size = int(p*total_size)
-            for target in targets:
-                trial_times_fixed = []
-                for trial in range(n_trials):
-                    t = run_sim(target, select_size, total_size, True, trial)
-                    trial_times_fixed.append(t)
-                results_fixed[target].append(np.mean(trial_times_fixed))
-        print()
-        import pprint
-        print(total_size)
-        pprint.pprint(results_fixed)
-        for idx, target in enumerate(targets):
-            ax.plot(select_p[1:len(results_fixed[target])],
-                    np.array(results_fixed[target][1:]) - results_fixed[target][0], 'o-', label=f'{target} (fixed)',
-                    color=f'C{idx}')
-            ax.set(title=f'Total size: {total_size}', xlabel='p',
-                   ylabel='time (s)')
-    axes[-1].axis('off')
-    for idx, target in enumerate(targets):
-        axes[-1].plot([], [], 'o-', label=f'{target} (fixed)',
-                          color=f'C{idx}')
-    axes[-1].legend()
-    fig.tight_layout()
-    fig.savefig('synapse_creation_benchmark_reservoir_unsorted.png')
-    with open('synapse_creation_reservoir_unsorted.pickle', 'wb') as f:
-        pickle.dump(results_fixed, f)
+    method = 'reservoir_unsorted'
+    total_size = 100_000
+    print(total_size)
+    results_fixed = defaultdict(list)
+    for p in select_p:
+        print(p, end=' ')
+        select_size = int(p*total_size)
+        for target in targets:
+            trial_times_fixed = []
+            for trial in range(n_trials):
+                t = run_sim(target, select_size, total_size, True, trial,
+                            method=method)
+                trial_times_fixed.append(t)
+            results_fixed[target].append(np.mean(trial_times_fixed))
+    print()
+    import pprint
+    print(total_size)
+    pprint.pprint(results_fixed)
+    with open(f'synapse_creation_{method}.pickle', 'wb') as f:
+        pickle.dump(dict(results_fixed), f)

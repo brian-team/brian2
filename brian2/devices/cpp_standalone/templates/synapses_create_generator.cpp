@@ -75,6 +75,8 @@
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
         // Reservoir sampling technique
+        if (_uiter_size == 0)
+            continue;
         int _element = 0;
         int *_selected = (int *)(malloc(sizeof(int) * _uiter_size));
         for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
