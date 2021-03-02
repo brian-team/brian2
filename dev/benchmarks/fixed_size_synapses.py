@@ -48,7 +48,7 @@ if __name__ == '__main__':
                 0.5, 0.75, 0.95, 0.98, 0.99, 0.999, 1.]
     n_trials = 5
     targets = ['numpy', 'cython', 'cpp_standalone']
-    method = 'reservoir_unsorted'
+    method = 'reservoir'
     total_size = 100_000
     print(total_size)
     results_fixed = defaultdict(list)
