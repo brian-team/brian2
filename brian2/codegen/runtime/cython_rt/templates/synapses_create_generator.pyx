@@ -39,6 +39,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
     # The following variables are only used for probabilistic connections
     {% if iterator_func=='sample' %}
+    cdef int _iter_sign
     {% if iterator_kwds['sample_size'] == 'fixed' %}
     cdef int _n_selected
     cdef int _n_dealt_with
@@ -88,19 +89,23 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% else %}
         if _iter_p==0:
             continue
+        if _iter_step < 0:
+            _iter_sign = -1
+        else:
+            _iter_sign = 1
         _jump_algo = _iter_p<0.25
         if _jump_algo:
             _log1p = log(1-_iter_p)
         else:
             _log1p = 1.0 # will be ignored
         _pconst = 1.0/_log1p
-        {{iteration_variable}} = _iter_low-1
-        while {{iteration_variable}}+1<_iter_high:
-            {{iteration_variable}} += 1
+        {{iteration_variable}} = _iter_low-_iter_step
+        while _iter_sign*({{iteration_variable}} + _iter_step) < _iter_sign*_iter_high:
+            {{iteration_variable}} += _iter_step
             if _jump_algo:
-                _jump = int(floor(log(_rand(_vectorisation_idx))*_pconst))*_iter_step
+                _jump = <int>(log(_rand(_vectorisation_idx))*_pconst)*_iter_step
                 {{iteration_variable}} += _jump
-                if {{iteration_variable}}>=_iter_high:
+                if _iter_sign*{{iteration_variable}} >= _iter_sign*_iter_high:
                     break
             else:
                 if _rand(_vectorisation_idx)>=_iter_p:

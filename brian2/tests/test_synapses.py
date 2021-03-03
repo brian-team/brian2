@@ -2445,6 +2445,103 @@ def test_synapse_generator_random():
 
 
 @pytest.mark.standalone_compatible
+def test_synapse_generator_random_positive_steps():
+    # Test generator with sampling from stepped ranges (e.g. all even numbers)
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(j='k for k in sample(2, N_post, 2, p=0)')
+
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(j='k for k in sample(2, N_post, 2, p=1)')
+
+    # Just make sure using values between 0 and 1 work in principle (note that
+    # 0.25 is the cutoff between the general method and the "jump method", so
+    # we test a value above and below
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(j='k for k in sample(2, N_post, 2, p=0.2)')
+
+    S3b = Synapses(G, G2, 'w:1', 'v+=w')
+    S3b.connect(j='k for k in sample(2, N_post, 2, p=0.3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4.connect(j='k for k in sample(2, N_post, 2, p=int(x_pre==2)*1.0)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    S2_comp = np.zeros((len(G), len(G2)))
+    S2_comp[:, 2::2] = 1
+    _compare(S2, S2_comp)
+    assert 0 <= len(S3) <= len(G) * 3
+    assert all(S3.j[:] % 2 == 0)
+    assert all(S3.j >= 2)
+    assert 0 <= len(S3b) <= len(G) * 3
+    assert all(S3b.j[:] % 2 == 0)
+    assert all(S3b.j >= 2)
+    assert len(S4) == 3
+    assert_equal(S4.i, np.ones(3)*2)
+    assert_equal(S4.j, np.arange(2, 7, 2))
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_generator_random_negative_steps():
+    # Test generator with sampling from stepped ranges (e.g. all even numbers)
+    # going backwards
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False')
+    G2.y = '1.0*i/N'
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(j='k for k in sample(N_post-1, 0, -2, p=0)')
+
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(j='k for k in sample(N_post-1, 0, -2, p=1)')
+
+    # Just make sure using values between 0 and 1 work in principle (note that
+    # 0.25 is the cutoff between the general method and the "jump method", so
+    # we test a value above and below
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(j='k for k in sample(N_post-1, 0, -2, p=0.2)')
+
+    S3b = Synapses(G, G2, 'w:1', 'v+=w')
+    S3b.connect(j='k for k in sample(N_post-1, 0, -2, p=0.3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4.connect(j='k for k in sample(N_post-1, 0, -2, p=int(x_pre==2)*1.0)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    S2_comp = np.zeros((len(G), len(G2)))
+    S2_comp[:, 2::2] = 1
+    _compare(S2, S2_comp)
+    assert 0 <= len(S3) <= len(G) * 3
+    assert all(S3.j[:] % 2 == 0)
+    assert all(S3.j >= 2)
+    assert 0 <= len(S3b) <= len(G) * 3
+    assert all(S3b.j[:] % 2 == 0)
+    assert all(S3b.j >= 2)
+    assert len(S4) == 3
+    assert_array_equal(S4.i, np.ones(3)*2)
+    assert_array_equal(S4.j, [6, 4, 2])
+
+
+@pytest.mark.standalone_compatible
 def test_synapse_generator_fixed_random():
     # Random samples with fixed size
     G = NeuronGroup(4, '''v: 1

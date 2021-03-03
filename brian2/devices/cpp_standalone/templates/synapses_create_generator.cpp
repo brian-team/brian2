@@ -95,6 +95,7 @@
             _n_dealt_with += 1;
         {% else %}
         if(_uiter_p==0) continue;
+        const int _iter_sign = _uiter_step > 0 ? 1 : -1;
         const bool _jump_algo = _uiter_p<0.25;
         double _log1p;
         if(_jump_algo)
@@ -102,16 +103,16 @@
         else
             _log1p = 1.0; // will be ignored
         const double _pconst = 1.0/log(1-_uiter_p);
-        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
+        for(long {{iteration_variable}}=_uiter_low; _iter_sign*{{iteration_variable}}<_iter_sign*_uiter_high; {{iteration_variable}} += _uiter_step)
         {
             if(_jump_algo) {
                 const double _r = _rand(_vectorisation_idx);
                 if(_r==0.0) break;
                 const int _jump = floor(log(_r)*_pconst)*_uiter_step;
                 {{iteration_variable}} += _jump;
-                if({{iteration_variable}}>=_uiter_high) continue;
+                if (_iter_sign*{{iteration_variable}} >= _iter_sign * _uiter_high) continue;
             } else {
-                if(_rand(_vectorisation_idx)>=_uiter_p) continue;
+                if (_rand(_vectorisation_idx)>=_uiter_p) continue;
             }
         {% endif %}
         {% endif %}
