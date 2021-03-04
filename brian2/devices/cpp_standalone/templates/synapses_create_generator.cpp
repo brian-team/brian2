@@ -92,7 +92,7 @@
 
         if (_selection_algo)
         {
-            {{iteration_variable}} = _uiter_low;
+            {{iteration_variable}} = _uiter_low - _uiter_step;
         } else
         {
             // For the tracking algorithm, we have to first create all values
@@ -114,6 +114,7 @@
             {
                 // Selection sampling technique
                 // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+                {{iteration_variable}} += _uiter_step;
                 _n_dealt_with++;
                 const double _U = _rand(_vectorisation_idx);
                 if ((_n_total - _n_dealt_with) * _U >= _uiter_size - _n_selected)

@@ -88,14 +88,14 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         if _iter_size > _n_total:
             _iter_size = _n_total
         if _selection_algo:
-            {{iteration_variable}} = _iter_low
+            {{iteration_variable}} = _iter_low - _iter_step
         else:
             # For the tracking algorithm, we have to first create all values
             # to make sure they will be iterated in sorted order
             _selected_set.clear()
             while _n_selected < _iter_size:
                 _r = <int> (_rand(_vectorisation_idx) * _n_total)
-                while not _selected_set.insert(_r).second:
+                while not _selected_set.insert(_r).second:  # .second will be False if duplicate
                     _r = <int> (_rand(_vectorisation_idx) * _n_total)
                 _n_selected += 1
             _n_selected = 0
@@ -103,13 +103,13 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
         while _n_selected < _iter_size:
             if _selection_algo:
+                {{iteration_variable}} += _iter_step
                 # Selection sampling technique
                 # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2,
                 # Seminumerical Algorithms
                 _n_dealt_with += 1
                 _U = _rand(_vectorisation_idx)
                 if (_n_total - _n_dealt_with) * _U >= _iter_size - _n_selected:
-                    {{iteration_variable}} += _iter_step
                     continue
             else:
                 {{iteration_variable}} = _iter_low + _deref(_selected_it)*_iter_step
