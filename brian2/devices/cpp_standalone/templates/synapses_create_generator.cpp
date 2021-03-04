@@ -118,10 +118,7 @@
                 _n_dealt_with++;
                 const double _U = _rand(_vectorisation_idx);
                 if ((_n_total - _n_dealt_with) * _U >= _uiter_size - _n_selected)
-                {
-                    {{iteration_variable}} += _uiter_step;
                     continue;
-                }
             } else
             {
                 {{iteration_variable}} = _uiter_low + (*_selected_it)*_uiter_step;
