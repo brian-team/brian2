@@ -40,7 +40,10 @@ prefs.register_preferences('core', 'Core Brian preferences',
         Whether to raise an error for outdated dependencies (``True``) or just
         a warning (``False``).
         '''
-        )
+        ),
+    algo_cutoff=BrianPreference(default=0.1,
+                                docs='Cutoff value to chose between selection '
+                                     'and tracking algorithm')
     )
 
 prefs.register_preferences('legacy', 'Preferences to enable legacy behaviour',

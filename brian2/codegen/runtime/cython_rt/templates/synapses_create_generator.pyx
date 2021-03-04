@@ -41,6 +41,9 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {% if iterator_func=='sample' %}
     cdef int _iter_sign
     {% if iterator_kwds['sample_size'] == 'fixed' %}
+    cdef bool _selection_algo
+    cdef set[int] _selected_set = set[int]()
+    cdef set[int].iterator _selected_it
     cdef int _n_selected
     cdef int _n_dealt_with
     cdef int _n_total
@@ -71,21 +74,48 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
-        # Selection sampling technique
-        # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+        # Note that the following code is written in a slightly convoluted way,
+        # but we have to plug it together with the following code that checks
+        # for the fulfillment of the condition.
         _n_selected = 0
         _n_dealt_with = 0
-        if _iter_step > 0:
-            _n_total = (_iter_high - _iter_low - 1) // _iter_step + 1
+        with _cython.cdivision(True):
+            if _iter_step > 0:
+                _n_total = (_iter_high - _iter_low - 1) // _iter_step + 1
+            else:
+                _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
+            _selection_algo = _iter_size / _n_total > {{algo_cutoff}}
+        if _iter_size > _n_total:
+            _iter_size = _n_total
+        if _selection_algo:
+            {{iteration_variable}} = _iter_low
         else:
-            _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
-        for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
-            _U = _rand(_vectorisation_idx)
-            if (_n_total - _n_dealt_with)*_U >= _iter_size - _n_selected:
+            # For the tracking algorithm, we have to first create all values
+            # to make sure they will be iterated in sorted order
+            _selected_set.clear()
+            while _n_selected < _iter_size:
+                _r = <int> (_rand(_vectorisation_idx) * _n_total)
+                while not _selected_set.insert(_r).second:
+                    _r = <int> (_rand(_vectorisation_idx) * _n_total)
+                _n_selected += 1
+            _n_selected = 0
+            _selected_it = _selected_set.begin()
+
+        while _n_selected < _iter_size:
+            if _selection_algo:
+                # Selection sampling technique
+                # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2,
+                # Seminumerical Algorithms
                 _n_dealt_with += 1
-                continue
+                _U = _rand(_vectorisation_idx)
+                if (_n_total - _n_dealt_with) * _U >= _iter_size - _n_selected:
+                    {{iteration_variable}} += _iter_step
+                    continue
+            else:
+                {{iteration_variable}} = _iter_low + _deref(_selected_it)*_iter_step
+                _preinc(_selected_it)
             _n_selected += 1
-            _n_dealt_with += 1
+
         {% else %}
         if _iter_p==0:
             continue

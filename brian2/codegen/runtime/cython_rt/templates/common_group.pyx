@@ -17,6 +17,9 @@ from libc.stdlib cimport abs  # For integers
 from libc.math cimport abs  # For floating point values
 from libc.limits cimport INT_MIN, INT_MAX
 from libcpp cimport bool
+from libcpp.set cimport set
+from cython.operator cimport dereference as _deref, preincrement as _preinc
+cimport cython as _cython
 
 _numpy.import_array()
 cdef extern from "numpy/ndarraytypes.h":

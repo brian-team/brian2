@@ -75,8 +75,8 @@
         {% elif iterator_func=='sample' %}
         const int _iter_sign = _uiter_step > 0 ? 1 : -1;
         {% if iterator_kwds['sample_size'] == 'fixed' %}
-        // Selection sampling technique
-        // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+        std::set<int> _selected_set = std::set<int>();
+        std::set<int>::iterator _selected_it;
         int _n_selected = 0;
         int _n_dealt_with = 0;
         int _n_total;
@@ -84,16 +84,49 @@
             _n_total = (_uiter_high - _uiter_low - 1) / _uiter_step + 1;
         else
             _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
-        for(long {{iteration_variable}}=_uiter_low; _iter_sign*{{iteration_variable}}<_iter_sign*_uiter_high; {{iteration_variable}}+=_uiter_step)
+        const bool _selection_algo = _uiter_size / _n_total > {{algo_cutoff}};
+        if (_uiter_size > _n_total)
+            _uiter_size = _n_total;
+
+        long {{iteration_variable}};
+
+        if (_selection_algo)
         {
-            const double _U = _rand(_vectorisation_idx);
-            if ((_n_total - _n_dealt_with)*_U >= _uiter_size - _n_selected)
+            {{iteration_variable}} = _uiter_low;
+        } else
+        {
+            // For the tracking algorithm, we have to first create all values
+            // to make sure they will be iterated in sorted order
+            _selected_set.clear();
+            while (_n_selected < _uiter_size)
             {
-                _n_dealt_with += 1;
-                continue;
+                int _r = (int)(_rand(_vectorisation_idx) * _n_total);
+                while (! _selected_set.insert(_r).second)
+                    _r = (int)(_rand(_vectorisation_idx) * _n_total);
+                _n_selected++;
             }
-            _n_selected += 1;
-            _n_dealt_with += 1;
+            _n_selected = 0;
+            _selected_it = _selected_set.begin();
+        }
+        while (_n_selected < _uiter_size)
+        {
+            if (_selection_algo)
+            {
+                // Selection sampling technique
+                // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+                _n_dealt_with++;
+                const double _U = _rand(_vectorisation_idx);
+                if ((_n_total - _n_dealt_with) * _U >= _uiter_size - _n_selected)
+                {
+                    {{iteration_variable}} += _uiter_step;
+                    continue;
+                }
+            } else
+            {
+                {{iteration_variable}} = _uiter_low + (*_selected_it)*_uiter_step;
+                _selected_it++;
+            }
+            _n_selected++;
         {% else %}
         if(_uiter_p==0) continue;
         const bool _jump_algo = _uiter_p<0.25;
