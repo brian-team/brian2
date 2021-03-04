@@ -2618,6 +2618,8 @@ def test_synapse_generator_fixed_random_positive_steps():
     assert all(S3.N_outgoing_pre == 2)
     assert all(S3.j[:] % 2 == 0)
     assert all(S3.j >= 2)
+    assert all([len(S3.j[x, :]) == len(set(S3.j[x, :]))
+                for x in range(len(G))])
     assert len(S4) == 3
     assert_equal(S4.i, np.ones(3)*2)
     assert_equal(S4.j, np.arange(2, 7, 2))
@@ -2660,6 +2662,8 @@ def test_synapse_generator_fixed_random_negative_steps():
     assert all(S3.N_outgoing_pre == 2)
     assert all(S3.j[:] % 2 == 0)
     assert all(S3.j >= 2)
+    assert all([len(S3.j[x, :]) == len(set(S3.j[x, :]))
+                for x in range(len(G))])
     assert len(S4) == 3
     assert_equal(S4.i, np.ones(3) * 2)
     assert_equal(S4.j, np.arange(6, 0, -2))
