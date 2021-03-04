@@ -1795,9 +1795,6 @@ class Synapses(Group):
                       "using generator '%s'") % (self.source.name,
                                                  self.target.name,
                                                  parsed['original_expression']))
-        # FIXME: remove after benchmarking
-        from brian2 import prefs
-        template_kwds['algo_cutoff'] = prefs.core.algo_cutoff
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',

@@ -84,7 +84,8 @@
             _n_total = (_uiter_high - _uiter_low - 1) / _uiter_step + 1;
         else
             _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
-        const bool _selection_algo = 1.0*_uiter_size / _n_total > {{algo_cutoff}};
+        // Value determined by benchmarking, see github PR #1280
+        const bool _selection_algo = 1.0*_uiter_size / _n_total > 0.06;
         if (_uiter_size > _n_total)
         {
             {% if skip_if_invalid %}

@@ -84,7 +84,8 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 _n_total = (_iter_high - _iter_low - 1) // _iter_step + 1
             else:
                 _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
-            _selection_algo = 1.0*_iter_size / _n_total > {{algo_cutoff}}
+            # Value determined by benchmarking, see github PR #1280
+            _selection_algo = 1.0*_iter_size / _n_total > 0.06
         if _iter_size > _n_total:
             {% if skip_if_invalid %}
             _iter_size = _n_total
