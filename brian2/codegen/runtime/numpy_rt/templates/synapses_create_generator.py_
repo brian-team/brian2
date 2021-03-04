@@ -30,8 +30,21 @@ except:
             n = (high-low-1)//step+1
         else:
             n = (low-high-1)//-step+1
-        if n <= 0 or (size is not None and size <= 0):
+        if n <= 0 or (size is not None and size == 0):
             return _numpy.array([], dtype=_numpy.int32)
+        elif size is not None and size < 0:
+            {% if skip_if_invalid %}
+            return _numpy.array([], dtype=_numpy.int32)
+            {% else %}
+            raise IndexError('Requested sample size %d is negative.' % size)
+            {% endif %}
+        elif size is not None and size > n:
+            {% if skip_if_invalid %}
+            size = n
+            {% else %}
+            raise IndexError('Requested sample size %d is bigger than the '
+                             'population size %d.' % (size, n))
+            {% endif %}
         if n == size:
             return _numpy.arange(low, high, step)
         if p is None:

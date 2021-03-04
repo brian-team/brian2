@@ -2668,6 +2668,43 @@ def test_synapse_generator_fixed_random_negative_steps():
     assert_equal(S4.i, np.ones(3) * 2)
     assert_equal(S4.j, np.arange(6, 0, -2))
 
+@pytest.mark.standalone_compatible
+def test_synapse_generator_fixed_random_error1():
+    set_device('cpp_standalone')
+    G = NeuronGroup(5, '')
+    G2 = NeuronGroup(7, '')
+    S = Synapses(G, G2)
+    with pytest.raises((BrianObjectException, IndexError, RuntimeError)):
+        # Won't work for i=4
+        S.connect(j='k for k in sample(N_post, size=i+4)')
+        run(0*ms)  # for standalone
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_generator_fixed_random_error2():
+    G = NeuronGroup(5, '')
+    G2 = NeuronGroup(7, '')
+    S = Synapses(G, G2)
+    with pytest.raises((BrianObjectException, IndexError, RuntimeError)):
+        # Won't work for i=4
+        S.connect(j='k for k in sample(N_post, size=3-i)')
+        run(0*ms)  # for standalone
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_generator_fixed_random_skip_if_invalid():
+    G = NeuronGroup(5, '')
+    G2 = NeuronGroup(7, '')
+    S1 = Synapses(G, G2)
+    S2 = Synapses(G, G2)
+    # > N_post for i=4
+    S1.connect(j='k for k in sample(N_post, size=i+4)', skip_if_invalid=True)
+    # < 0 for i=4
+    S2.connect(j='k for k in sample(N_post, size=3-i)', skip_if_invalid=True)
+    run(0*ms)  # for standalone
+    assert_array_equal(S1.N_outgoing_pre, [4, 5, 6, 7, 7])
+    assert_array_equal(S2.N_outgoing_pre, [3, 2, 1, 0, 0])
+
 
 @pytest.mark.standalone_compatible
 def test_synapse_generator_random_with_condition():

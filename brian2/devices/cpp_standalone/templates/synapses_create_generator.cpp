@@ -86,8 +86,24 @@
             _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
         const bool _selection_algo = 1.0*_uiter_size / _n_total > {{algo_cutoff}};
         if (_uiter_size > _n_total)
+        {
+            {% if skip_if_invalid %}
             _uiter_size = _n_total;
-
+            {% else %}
+            cout << "Error: Requested sample size " << _uiter_size << " is bigger than the " <<
+                    "population size " << _n_total << "." << endl;
+            exit(1);
+            {% endif %}
+        } else if (_uiter_size < 0)
+        {
+            {% if skip_if_invalid %}
+            continue;
+            {% else %}
+            cout << "Error: Requested sample size " << _uiter_size << " is negative." << endl;
+            exit(1);
+            {% endif %}
+        } else if (_uiter_size == 0)
+            continue;
         long {{iteration_variable}};
 
         if (_selection_algo)

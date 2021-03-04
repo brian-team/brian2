@@ -86,7 +86,18 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
             _selection_algo = 1.0*_iter_size / _n_total > {{algo_cutoff}}
         if _iter_size > _n_total:
+            {% if skip_if_invalid %}
             _iter_size = _n_total
+            {% else %}
+            raise IndexError('Requested sample size %d is bigger than the '
+                             'population size %d.' % (_iter_size, _n_total))
+            {% endif %}
+        elif _iter_size < 0:
+            {% if skip_if_invalid %}
+            continue
+            {% else %}
+            raise IndexError('Requested sample size %d is negative.' % _iter_size)
+            {% endif %}
         if _selection_algo:
             {{iteration_variable}} = _iter_low - _iter_step
         else:
