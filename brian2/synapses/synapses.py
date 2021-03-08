@@ -1347,6 +1347,7 @@ class Synapses(Group):
         >>> S.connect(j='k for k in range(i+1)') # Connect neuron i to all j with 0<=j<=i
         >>> S.connect(j='i+(-1)**k for k in range(2) if i>0 and i<N_pre-1') # connect neuron i to its neighbours if it has both neighbours
         >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
+        >>> S.connect(j='k for k in sample(N_post, size=i//2)') # Each neuron connects to i//2 other neurons (chosen randomly)
         '''
         # check types
         if condition is not None and not isinstance(condition, (bool,

@@ -377,13 +377,18 @@ created. Finally, ``RANGE`` can be either:
 1. a Python ``range``, e.g. ``range(N)`` is the integers from
    0 to N-1, ``range(A, B)`` is the integers from A to B-1,
    ``range(low, high, step)`` is the integers from ``low`` to
-   ``high-1`` with steps of size ``step``, or
-2. it can be a random sample ``sample(N, p=0.1)`` gives a
+   ``high-1`` with steps of size ``step``;
+2. a random sample ``sample(N, p=0.1)`` gives a
    random sample of integers from 0 to N-1 with 10% probability
    of each integer appearing in the sample. This can have extra
    arguments like range, e.g. ``sample(low, high, step, p=0.1)``
    will give each integer in ``range(low, high, step)`` with
-   probability 10%.
+   probability 10%;
+3. a random sample ``sample(N, size=10)`` with a fixed size,
+   in this example 10 values chosen (without replacement) from
+   the integers from 0 to N-1. As for the random sample based on
+   a probability, the ``sample`` expression can take additional
+   arguments to sample from a restricted range.
 
 If you try to create an invalid synapse (i.e. connecting
 neurons that are outside the correct range) then you will get
@@ -397,6 +402,11 @@ is invalid. There is an option to just skip any synapses
 that are outside the valid range::
 
     S.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
+
+You can also use this argument to deal with random samples of
+incorrect size, i.e. a negative size or a size bigger than the
+total population size. With ``skip_if_invalid=True``, no error will
+be raised and a size of 0 or the population size will be used.
 
 Summed variables
 ----------------
@@ -567,7 +577,9 @@ interpreted in the following way:
     |        If uniform random number between 0 and 1 < p(i, j):
     |            Create n(i, j) synapses for (i, j)
 
-With the generator syntax ``j='EXPR for VAR in RANGE if COND'``, the interpretation is:
+With the generator syntax ``j='EXPR for VAR in RANGE if COND'`` (where the
+``RANGE`` can be a fukk range or a random sample as described above), the interpretation
+is:
 
     | For every i:
     |     for every VAR in RANGE:
