@@ -144,7 +144,7 @@ def get_dtype(equation, dtype=None):
 
     # Use default dtypes (or a provided standard dtype for floats)
     if equation.var_type == BOOLEAN:
-        return np.bool
+        return bool
     elif equation.var_type == INTEGER:
         return prefs['core.default_integer_dtype']
     elif equation.var_type == FLOAT:
@@ -253,7 +253,7 @@ class Indexing(object):
                 index_array = np.arange(start, stop, step, dtype=np.int32)
             else:
                 index_array = np.asarray(item)
-                if index_array.dtype == np.bool:
+                if index_array.dtype == bool:
                     index_array = np.nonzero(index_array)[0]
                 elif not np.issubdtype(index_array.dtype, np.signedinteger):
                     raise TypeError(('Indexing is only supported for integer '
@@ -290,7 +290,7 @@ class IndexWrapper(object):
         if isinstance(item, str):
             variables = Variables(None)
             variables.add_auxiliary_variable('_indices', dtype=np.int32)
-            variables.add_auxiliary_variable('_cond', dtype=np.bool)
+            variables.add_auxiliary_variable('_cond', dtype=bool)
 
             abstract_code = '_cond = ' + item
             namespace = get_local_namespace(level=1)
