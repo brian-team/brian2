@@ -404,7 +404,7 @@ class NeuronGroup(Group, SpikeSource):
     ----------
     N : int
         Number of neurons in the group.
-    model : (str, `Equations`)
+    model : str, `Equations`
         The differential equations defining the group
     method : (str, function), optional
         The numerical integration method. Either a string with the name of a
