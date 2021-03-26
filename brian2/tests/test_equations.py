@@ -486,6 +486,20 @@ def test_extract_subexpressions():
 
 
 @pytest.mark.codegen_independent
+def test_cyclical_subexpressions():
+    with pytest.raises(ValueError):
+        # dependency cycle
+        Equations('''dv/dt = (-v + s1)/ (10*ms) : 1
+                     s1 = 2 * s2 : 1
+                     s2 = s1/2 : 1''')
+
+    # With constant over dt, the cycle disappears
+    Equations('''dv/dt = (-v + s1)/ (10*ms) : 1
+                 s1 = 2 * s2 : 1
+                 s2 = s1/2 : 1 (constant over dt)''')
+
+
+@pytest.mark.codegen_independent
 def test_repeated_construction():
     eqs1 = Equations('dx/dt = x : 1')
     eqs2 = Equations('dx/dt = x : 1', x='y')
