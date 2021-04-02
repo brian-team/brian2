@@ -44,8 +44,8 @@ if platform.system() == 'Windows':
     hostname = socket.gethostname()
     if os.path.isfile(flag_file):
         try:
-            with open(flag_file, 'r') as f:
-                previously_stored_flags = json.load(f, encoding='utf-8')
+            with open(flag_file, 'r', encoding='utf-8') as f:
+                previously_stored_flags = json.load(f)
             if hostname not in previously_stored_flags:
                 logger.debug('Ignoring stored CPU flags for a different host')
             else:
