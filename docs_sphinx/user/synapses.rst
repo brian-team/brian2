@@ -578,7 +578,7 @@ interpreted in the following way:
     |            Create n(i, j) synapses for (i, j)
 
 With the generator syntax ``j='EXPR for VAR in RANGE if COND'`` (where the
-``RANGE`` can be a fukk range or a random sample as described above), the interpretation
+``RANGE`` can be a full range or a random sample as described above), the interpretation
 is:
 
     | For every i:
