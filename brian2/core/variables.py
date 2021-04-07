@@ -320,7 +320,7 @@ class Constant(Variable):
                    value is np.False_)
 
         if is_bool:
-            dtype = np.bool
+            dtype = bool
         else:
             dtype = get_dtype(value)
 
@@ -1023,7 +1023,7 @@ class VariableView(object):
         abstract_code_cond = '_cond = '+cond
         abstract_code = self.name + ' = ' + code
         variables = Variables(None)
-        variables.add_auxiliary_variable('_cond', dtype=np.bool)
+        variables.add_auxiliary_variable('_cond', dtype=bool)
         from brian2.codegen.codeobject import create_runner_codeobj
         # TODO: Have an additional argument to avoid going through the index
         # array for situations where iterate_all could be used
@@ -1069,7 +1069,7 @@ class VariableView(object):
         variables.add_auxiliary_variable('_variable', dimensions=variable.dim,
                                          dtype=variable.dtype,
                                          scalar=variable.scalar)
-        variables.add_auxiliary_variable('_cond', dtype=np.bool)
+        variables.add_auxiliary_variable('_cond', dtype=bool)
 
         abstract_code = '_variable = ' + self.name + '\n'
         abstract_code += '_cond = ' + code

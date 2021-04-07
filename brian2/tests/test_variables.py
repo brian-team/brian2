@@ -17,7 +17,7 @@ from brian2.units.allunits import second
 def test_construction_errors():
     # Boolean variable that isn't dimensionless
     with pytest.raises(ValueError):
-        Variable(name='name', dimensions=second.dim, dtype=np.bool)
+        Variable(name='name', dimensions=second.dim, dtype=bool)
 
     # Dynamic array variable that is constant but not constant in size
     with pytest.raises(ValueError):

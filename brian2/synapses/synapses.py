@@ -1762,7 +1762,7 @@ class Synapses(Group):
         variables.add_auxiliary_variable('_pre_idx', dtype=np.int32)
         variables.add_auxiliary_variable('_post_idx', dtype=np.int32)
         if parsed['if_expression'] is not None:
-            variables.add_auxiliary_variable('_cond', dtype=np.bool)
+            variables.add_auxiliary_variable('_cond', dtype=bool)
         variables.add_auxiliary_variable('_n', dtype=np.int32)
 
         if '_offset' in self.source.variables:

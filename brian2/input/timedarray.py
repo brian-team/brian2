@@ -201,7 +201,7 @@ class TimedArray(Function, Nameable, CacheKey):
         Nameable.__init__(self, name)
         dimensions = get_dimensions(values)
         self.dim = dimensions
-        values = np.asarray(values, dtype=np.double)
+        values = np.asarray(values, dtype=np.float64)
         self.values = values
         dt = float(dt)
         self.dt = dt

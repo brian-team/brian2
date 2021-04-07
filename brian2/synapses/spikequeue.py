@@ -84,12 +84,12 @@ class SpikeQueue(object):
             # adapt the spikes to the new dt if it changed
             if self._dt != dt:
                 spiketimes = spikes[:, 0] * self._dt
-                spikes[:, 0] = np.round(spiketimes / dt).astype(np.int)
+                spikes[:, 0] = np.round(spiketimes / dt).astype(int)
         else:
             spikes = None
 
         if len(delays):
-            delays = np.array(np.round(delays / dt)).astype(np.int)
+            delays = np.array(np.round(delays / dt)).astype(int)
             max_delays = max(delays)
             min_delays = min(delays)
         else:
