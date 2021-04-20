@@ -48,8 +48,8 @@ Dependencies
 ------------
 The following packages need to be installed to use Brian 2:
 
-* Python >= 3.5
-* NumPy >=1.10
+* Python >= 3.7
+* NumPy >=1.17
 * SymPy >= 1.2
 * Cython >= 0.29
 * PyParsing
