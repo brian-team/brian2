@@ -70,7 +70,7 @@ if platform.system() == 'Windows':
                     to_store[hostname] = flags
                 else:
                     to_store = {hostname: flags}
-                with open(flag_file, 'w') as f:
+                with open(flag_file, 'w', encoding='utf-8') as f:
                     json.dump(to_store, f)
             except (IOError, OSError) as ex:
                 logger.debug('Writing file "{}" to store CPU flags failed with '
