@@ -1347,6 +1347,7 @@ class Synapses(Group):
         >>> S.connect(j='k for k in range(i+1)') # Connect neuron i to all j with 0<=j<=i
         >>> S.connect(j='i+(-1)**k for k in range(2) if i>0 and i<N_pre-1') # connect neuron i to its neighbours if it has both neighbours
         >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
+        >>> S.connect(j='k for k in sample(N_post, size=i//2)') # Each neuron connects to i//2 other neurons (chosen randomly)
         '''
         # check types
         if condition is not None and not isinstance(condition, (bool,
@@ -1696,10 +1697,6 @@ class Synapses(Group):
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
 
-        if (parsed['iterator_func'] == 'sample' and
-                    parsed['iterator_kwds']['sample_size']=='fixed'):
-            raise NotImplementedError("Fixed sample size not implemented yet.")
-
         abstract_code = {'setup_iterator': '',
                          'create_j': '',
                          'create_cond': '',
@@ -1799,7 +1796,6 @@ class Synapses(Group):
                       "using generator '%s'") % (self.source.name,
                                                  self.target.name,
                                                  parsed['original_expression']))
-
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',

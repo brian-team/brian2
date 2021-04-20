@@ -38,10 +38,22 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     cdef size_t newsize
 
     # The following variables are only used for probabilistic connections
+    {% if iterator_func=='sample' %}
+    cdef int _iter_sign
+    {% if iterator_kwds['sample_size'] == 'fixed' %}
+    cdef bool _selection_algo
+    cdef set[int] _selected_set = set[int]()
+    cdef set[int].iterator _selected_it
+    cdef int _n_selected
+    cdef int _n_dealt_with
+    cdef int _n_total
+    cdef double _U
+    {% else %}
     cdef bool _jump_algo
     cdef double _log1p, _pconst
     cdef size_t _jump
-
+    {% endif %}
+    {% endif %}
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code['setup_iterator']|autoindent}}
@@ -61,25 +73,86 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% if iterator_func=='range' %}
         for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
         {% elif iterator_func=='sample' %}
+        {% if iterator_kwds['sample_size'] == 'fixed' %}
+        # Note that the following code is written in a slightly convoluted way,
+        # but we have to plug it together with the following code that checks
+        # for the fulfillment of the condition.
+        _n_selected = 0
+        _n_dealt_with = 0
+        with _cython.cdivision(True):
+            if _iter_step > 0:
+                _n_total = (_iter_high - _iter_low - 1) // _iter_step + 1
+            else:
+                _n_total = (_iter_low - _iter_high - 1) // -_iter_step + 1
+            # Value determined by benchmarking, see github PR #1280
+            _selection_algo = 1.0*_iter_size / _n_total > 0.06
+        if _iter_size > _n_total:
+            {% if skip_if_invalid %}
+            _iter_size = _n_total
+            {% else %}
+            raise IndexError('Requested sample size %d is bigger than the '
+                             'population size %d.' % (_iter_size, _n_total))
+            {% endif %}
+        elif _iter_size < 0:
+            {% if skip_if_invalid %}
+            continue
+            {% else %}
+            raise IndexError('Requested sample size %d is negative.' % _iter_size)
+            {% endif %}
+        if _selection_algo:
+            {{iteration_variable}} = _iter_low - _iter_step
+        else:
+            # For the tracking algorithm, we have to first create all values
+            # to make sure they will be iterated in sorted order
+            _selected_set.clear()
+            while _n_selected < _iter_size:
+                _r = <int> (_rand(_vectorisation_idx) * _n_total)
+                while not _selected_set.insert(_r).second:  # .second will be False if duplicate
+                    _r = <int> (_rand(_vectorisation_idx) * _n_total)
+                _n_selected += 1
+            _n_selected = 0
+            _selected_it = _selected_set.begin()
+
+        while _n_selected < _iter_size:
+            if _selection_algo:
+                {{iteration_variable}} += _iter_step
+                # Selection sampling technique
+                # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2,
+                # Seminumerical Algorithms
+                _n_dealt_with += 1
+                _U = _rand(_vectorisation_idx)
+                if (_n_total - _n_dealt_with) * _U >= _iter_size - _n_selected:
+                    continue
+            else:
+                {{iteration_variable}} = _iter_low + _deref(_selected_it)*_iter_step
+                _preinc(_selected_it)
+            _n_selected += 1
+
+        {% else %}
         if _iter_p==0:
             continue
+        if _iter_step < 0:
+            _iter_sign = -1
+        else:
+            _iter_sign = 1
         _jump_algo = _iter_p<0.25
         if _jump_algo:
             _log1p = log(1-_iter_p)
         else:
             _log1p = 1.0 # will be ignored
         _pconst = 1.0/_log1p
-        {{iteration_variable}} = _iter_low-1
-        while {{iteration_variable}}+1<_iter_high:
-            {{iteration_variable}} += 1
+        {{iteration_variable}} = _iter_low-_iter_step
+        while _iter_sign*({{iteration_variable}} + _iter_step) < _iter_sign*_iter_high:
+            {{iteration_variable}} += _iter_step
             if _jump_algo:
-                _jump = int(floor(log(_rand(_vectorisation_idx))*_pconst))*_iter_step
+                _jump = <int>(log(_rand(_vectorisation_idx))*_pconst)*_iter_step
                 {{iteration_variable}} += _jump
-                if {{iteration_variable}}>=_iter_high:
+                if _iter_sign*{{iteration_variable}} >= _iter_sign*_iter_high:
                     break
             else:
                 if _rand(_vectorisation_idx)>=_iter_p:
                     continue
+        {% endif %}
         {% endif %}
 
             {{vector_code['create_j']|autoindent}}

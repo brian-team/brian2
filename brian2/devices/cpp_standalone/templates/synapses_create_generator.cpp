@@ -53,6 +53,7 @@
         long _uiter_high;
         long _uiter_step;
         {% if iterator_func=='sample' %}
+        long _uiter_size;
         double _uiter_p;
         {% endif %}
         {
@@ -61,13 +62,87 @@
             _uiter_high = _iter_high;
             _uiter_step = _iter_step;
             {% if iterator_func=='sample' %}
+            {% if iterator_kwds['sample_size'] == 'fixed' %}
+            _uiter_size = _iter_size;
+            {% else %}
             _uiter_p = _iter_p;
+            {% endif %}
             {% endif %}
         }
         {% if iterator_func=='range' %}
         for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
+        const int _iter_sign = _uiter_step > 0 ? 1 : -1;
+        {% if iterator_kwds['sample_size'] == 'fixed' %}
+        std::set<int> _selected_set = std::set<int>();
+        std::set<int>::iterator _selected_it;
+        int _n_selected = 0;
+        int _n_dealt_with = 0;
+        int _n_total;
+        if (_uiter_step > 0)
+            _n_total = (_uiter_high - _uiter_low - 1) / _uiter_step + 1;
+        else
+            _n_total = (_uiter_low - _uiter_high - 1) / -_uiter_step + 1;
+        // Value determined by benchmarking, see github PR #1280
+        const bool _selection_algo = 1.0*_uiter_size / _n_total > 0.06;
+        if (_uiter_size > _n_total)
+        {
+            {% if skip_if_invalid %}
+            _uiter_size = _n_total;
+            {% else %}
+            cout << "Error: Requested sample size " << _uiter_size << " is bigger than the " <<
+                    "population size " << _n_total << "." << endl;
+            exit(1);
+            {% endif %}
+        } else if (_uiter_size < 0)
+        {
+            {% if skip_if_invalid %}
+            continue;
+            {% else %}
+            cout << "Error: Requested sample size " << _uiter_size << " is negative." << endl;
+            exit(1);
+            {% endif %}
+        } else if (_uiter_size == 0)
+            continue;
+        long {{iteration_variable}};
+
+        if (_selection_algo)
+        {
+            {{iteration_variable}} = _uiter_low - _uiter_step;
+        } else
+        {
+            // For the tracking algorithm, we have to first create all values
+            // to make sure they will be iterated in sorted order
+            _selected_set.clear();
+            while (_n_selected < _uiter_size)
+            {
+                int _r = (int)(_rand(_vectorisation_idx) * _n_total);
+                while (! _selected_set.insert(_r).second)
+                    _r = (int)(_rand(_vectorisation_idx) * _n_total);
+                _n_selected++;
+            }
+            _n_selected = 0;
+            _selected_it = _selected_set.begin();
+        }
+        while (_n_selected < _uiter_size)
+        {
+            if (_selection_algo)
+            {
+                // Selection sampling technique
+                // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
+                {{iteration_variable}} += _uiter_step;
+                _n_dealt_with++;
+                const double _U = _rand(_vectorisation_idx);
+                if ((_n_total - _n_dealt_with) * _U >= _uiter_size - _n_selected)
+                    continue;
+            } else
+            {
+                {{iteration_variable}} = _uiter_low + (*_selected_it)*_uiter_step;
+                _selected_it++;
+            }
+            _n_selected++;
+        {% else %}
         if(_uiter_p==0) continue;
         const bool _jump_algo = _uiter_p<0.25;
         double _log1p;
@@ -76,17 +151,18 @@
         else
             _log1p = 1.0; // will be ignored
         const double _pconst = 1.0/log(1-_uiter_p);
-        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}++)
+        for(long {{iteration_variable}}=_uiter_low; _iter_sign*{{iteration_variable}}<_iter_sign*_uiter_high; {{iteration_variable}} += _uiter_step)
         {
             if(_jump_algo) {
                 const double _r = _rand(_vectorisation_idx);
                 if(_r==0.0) break;
                 const int _jump = floor(log(_r)*_pconst)*_uiter_step;
                 {{iteration_variable}} += _jump;
-                if({{iteration_variable}}>=_uiter_high) continue;
+                if (_iter_sign*{{iteration_variable}} >= _iter_sign * _uiter_high) continue;
             } else {
-                if(_rand(_vectorisation_idx)>=_uiter_p) continue;
+                if (_rand(_vectorisation_idx)>=_uiter_p) continue;
             }
+        {% endif %}
         {% endif %}
             long __j, _j, _pre_idx, __pre_idx;
             {
