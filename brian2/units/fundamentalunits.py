@@ -623,7 +623,7 @@ def is_scalar_type(obj):
         dimensionless `Quantity`.
     """
     try:
-        return obj.ndim == 0
+        return obj.ndim == 0 and is_dimensionless(obj)
     except AttributeError:
         return np.isscalar(obj) and not isinstance(obj, str)
 
