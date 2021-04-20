@@ -1719,6 +1719,7 @@ class Quantity(np.ndarray, object):
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
     cumprod._do_not_run_doctests = True
 
+
 class Unit(Quantity):
     r'''
     A physical unit.
@@ -2062,7 +2063,8 @@ class Unit(Quantity):
             latexname += '^{%s}' % latex(other)
             scale = self.scale * other
             u = Unit(10.0**scale, dim=self.dim ** other, name=name,
-                     dispname=dispname, latexname=latexname, scale=scale)
+                     dispname=dispname, latexname=latexname, scale=scale,
+                     iscompound=True)  # To avoid issues with units like (second ** -1) ** -1
             return u
         else:
             return super(Unit, self).__pow__(other)
