@@ -61,7 +61,8 @@ if platform.system() == 'Windows':
         try:
             output = subprocess.check_output([sys.executable,
                                               get_cpu_flags_script],
-                                             universal_newlines=True)
+                                             universal_newlines=True,
+                                             encoding='utf-8')
             flags = json.loads(output)
             # Store flags to a file so we don't have to call cpuinfo next time
             try:

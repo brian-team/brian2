@@ -1,6 +1,8 @@
-
 from collections import namedtuple
+import json
 import os
+import platform
+import socket
 
 import numpy as np
 import pytest
@@ -475,6 +477,24 @@ def test_cpp_flags_support():
     prefs['codegen.cpp.extra_compile_args'] = old_prefs
 
 
+@pytest.mark.skipif(platform.system() != 'Windows',
+                    reason='MSVC flags are only relevant on Windows')
+@pytest.mark.skipif(prefs['codegen.target'] == 'numpy',
+                    reason='Test only relevant for compiled code')
+def test_msvc_flags():
+    # Very basic test that flags are stored to disk
+    import brian2.codegen.cpp_prefs as cpp_prefs
+    user_dir = os.path.join(os.path.expanduser('~'), '.brian')
+    flag_file = os.path.join(user_dir, 'cpu_flags.txt')
+    assert len(cpp_prefs.msvc_arch_flag)
+    assert os.path.exists(flag_file)
+    with open(flag_file, 'r', encoding='utf-8') as f:
+        previously_stored_flags = json.load(f)
+    hostname = socket.gethostname()
+    assert hostname in previously_stored_flags
+    assert len(previously_stored_flags[hostname])
+
+
 if __name__ == '__main__':
     test_auto_target()
     test_analyse_identifiers()
@@ -490,4 +510,4 @@ if __name__ == '__main__':
     test_apply_loop_invariant_optimisation_constant_evaluation()
     test_automatic_augmented_assignments()
     test_clear_cache()
-
+    test_msvc_flags()
