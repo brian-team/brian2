@@ -11,8 +11,8 @@ stages:
         vmImage: 'ubuntu-20.04'
       strategy:
         matrix:
-          Python36_runtime_1:
-            python.version: '3.6'
+          Python37_runtime_1:
+            python.version: '3.7'
             script_name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split_run: 1
@@ -21,6 +21,16 @@ stages:
             script_name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split_run: 1
+          Python37_runtime_2:
+            python.version: '3.7'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
+          Python39_runtime_2:
+            python.version: '3.9'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
           Python38_runtime_1:
             python.version: '3.8'
             script_name: dev/continuous-integration/run_test_suite.py
@@ -64,6 +74,21 @@ stages:
         vmImage: 'macOS-10.15'
       strategy:
         matrix:
+          Python37_runtime_1:
+            python.version: '3.7'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python37_runtime_2:
+            python.version: '3.7'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
+          Python39_runtime_2:
+            python.version: '3.9'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
           Python38_runtime_1:
             python.version: '3.8'
             script_name: dev/continuous-integration/run_test_suite.py
@@ -87,6 +112,26 @@ stages:
         vmImage: 'vs2017-win2016'
       strategy:
         matrix:
+          Python37_runtime_1:
+            python.version: '3.7'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python37_runtime_2:
+            python.version: '3.7'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
+          Python39_runtime_1:
+            python.version: '3.9'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 1
+          Python39_runtime_2:
+            python.version: '3.9'
+            script_name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split_run: 2
           Python38_runtime_1:
             python.version: '3.8'
             script_name: dev/continuous-integration/run_test_suite.py

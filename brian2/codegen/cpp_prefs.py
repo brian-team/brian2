@@ -20,6 +20,7 @@ import sys
 import tempfile
 
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.filetools import ensure_directory
 from brian2.utils.logger import get_logger, std_silent
 
 __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
@@ -40,6 +41,7 @@ if platform.system() == 'Windows':
 
     # Check whether we've already stored the CPU flags previously
     user_dir = os.path.join(os.path.expanduser('~'), '.brian')
+    ensure_directory(user_dir)
     flag_file = os.path.join(user_dir, 'cpu_flags.txt')
     hostname = socket.gethostname()
     if os.path.isfile(flag_file):
@@ -61,7 +63,8 @@ if platform.system() == 'Windows':
         try:
             output = subprocess.check_output([sys.executable,
                                               get_cpu_flags_script],
-                                             universal_newlines=True)
+                                             universal_newlines=True,
+                                             encoding='utf-8')
             flags = json.loads(output)
             # Store flags to a file so we don't have to call cpuinfo next time
             try:
