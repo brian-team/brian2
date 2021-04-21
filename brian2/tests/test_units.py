@@ -234,13 +234,16 @@ def test_str_repr():
                      Unit(1, dim=get_or_create_dimension(length=5, time=2)),
                      8000*umetre**3, [0.0001, 10000] * umetre**3,
                      1/metre, 1/(coulomb*metre**2), Unit(1)/second,
-                     3.*mM, 5*mole/liter, 7*liter/meter3]
+                     3.*mM, 5*mole/liter, 7*liter/meter3,
+                     1/second**2, volt**-2, (volt**2)**-1,
+                     (1/second)/meter, 1/(1/second)]
     
     unitless = [second/second, 5 * second/second, Unit(1)]
     
     for u in itertools.chain(units_which_should_exist, some_scaled_units,
                               powered_units, complex_units, unitless):
         assert(len(str(u)) > 0)
+        assert get_dimensions(eval(repr(u))) == get_dimensions(u)
         assert_allclose(eval(repr(u)), u)
 
     # test the `DIMENSIONLESS` object
