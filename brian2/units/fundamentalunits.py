@@ -734,7 +734,7 @@ def in_unit(x, u, precision=None):
     >>> in_unit(123123 * msecond, second, 2)
     '123.12 s'
     >>> in_unit(10 * uA/cm**2, nA/um**2)
-    '1.00000000e-04 nA/um^2'
+    '1.00000000e-04 nA/(um^2)'
     >>> in_unit(10 * mV, ohm * amp)
     '0.01 ohm A'
     >>> in_unit(10 * nS, ohm) # doctest: +NORMALIZE_WHITESPACE
@@ -1798,9 +1798,9 @@ class Unit(Quantity):
     used for display when appropriate:
 
     >>> usiemens/cm**2
-    usiemens / cmetre ** 2
-    >>> conductance/area  # same as before, but now Brian nows about uS/cm^2
-    50. * usiemens / cmetre ** 2
+    usiemens / (cmetre ** 2)
+    >>> conductance/area  # same as before, but now Brian knows about uS/cm^2
+    50. * usiemens / (cmetre ** 2)
 
     Note that user-defined units cannot override the standard units (`volt`,
     `second`, etc.) that are predefined by Brian. For example, the unit
@@ -2013,7 +2013,7 @@ class Unit(Quantity):
 
     def __div__(self, other):
         if isinstance(other, Unit):
-            if other.iscompound:
+            if self.iscompound:
                 dispname = '(' + self.dispname + ')'
                 name = '(' + self.name + ')'
             else:
@@ -2198,7 +2198,7 @@ def register_new_unit(u):
     2. * metre ** -4 * kilogram ** -1 * second ** 4 * amp ** 2
     >>> register_new_unit(pfarad / mmetre**2)
     >>> 2.0*farad/metre**2
-    2000000. * pfarad / mmetre ** 2
+    2000000. * pfarad / (mmetre ** 2)
     """
     user_unit_register.add(u)
 
