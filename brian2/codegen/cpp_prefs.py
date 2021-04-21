@@ -11,6 +11,7 @@ import distutils
 from distutils.ccompiler import get_default_compiler
 import json
 import os
+import re
 import platform
 import socket
 import struct
@@ -19,6 +20,7 @@ import sys
 import tempfile
 
 from brian2.core.preferences import prefs, BrianPreference
+from brian2.utils.filetools import ensure_directory
 from brian2.utils.logger import get_logger, std_silent
 
 __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
@@ -26,6 +28,9 @@ __all__ = ['get_compiler_and_args', 'get_msvc_env', 'compiler_supports_c99',
 
 
 logger = get_logger(__name__)
+
+# default_buildopts stores default build options for Gcc compiler
+default_buildopts = []
 
 # Try to get architecture information to get the best compiler setting for
 # Windows
@@ -36,12 +41,13 @@ if platform.system() == 'Windows':
 
     # Check whether we've already stored the CPU flags previously
     user_dir = os.path.join(os.path.expanduser('~'), '.brian')
+    ensure_directory(user_dir)
     flag_file = os.path.join(user_dir, 'cpu_flags.txt')
     hostname = socket.gethostname()
     if os.path.isfile(flag_file):
         try:
-            with open(flag_file, 'r') as f:
-                previously_stored_flags = json.load(f, encoding='utf-8')
+            with open(flag_file, 'r', encoding='utf-8') as f:
+                previously_stored_flags = json.load(f)
             if hostname not in previously_stored_flags:
                 logger.debug('Ignoring stored CPU flags for a different host')
             else:
@@ -57,7 +63,8 @@ if platform.system() == 'Windows':
         try:
             output = subprocess.check_output([sys.executable,
                                               get_cpu_flags_script],
-                                             universal_newlines=True)
+                                             universal_newlines=True,
+                                             encoding='utf-8')
             flags = json.loads(output)
             # Store flags to a file so we don't have to call cpuinfo next time
             try:
@@ -66,7 +73,7 @@ if platform.system() == 'Windows':
                     to_store[hostname] = flags
                 else:
                     to_store = {hostname: flags}
-                with open(flag_file, 'w') as f:
+                with open(flag_file, 'w', encoding='utf-8') as f:
                     json.dump(to_store, f)
             except (IOError, OSError) as ex:
                 logger.debug('Writing file "{}" to store CPU flags failed with '
@@ -86,6 +93,23 @@ if platform.system() == 'Windows':
             msvc_arch_flag = '/arch:AVX'
         if 'avx2' in flags:
             msvc_arch_flag = '/arch:AVX2'
+
+else:
+    # Optimized default build options for a range a CPU architectures
+    machine = os.uname().machine
+    if re.match('^(x86_64|aarch64|arm.*|s390.*|i.86.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-march=native',
+                             '-std=c++11']
+    elif re.match('^(alpha|ppc.*|sparc.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-mcpu=native',
+                             '-mtune=native', '-std=c++11']
+    elif re.match('^(parisc.*|riscv.*|mips.*)$', machine):
+        default_buildopts = ['-w', '-O3', '-ffast-math',
+                             '-fno-finite-math-only', '-std=c++11']
+    else:
+        default_buildopts = ['-w']
 
 # Preferences
 prefs.register_preferences(
@@ -108,7 +132,7 @@ prefs.register_preferences(
         '''
         ),
     extra_compile_args_gcc=BrianPreference(
-        default=['-w', '-O3', '-ffast-math', '-fno-finite-math-only', '-march=native', '-std=c++11'],
+        default=default_buildopts,
         docs='''
         Extra compile arguments to pass to GCC compiler
         '''

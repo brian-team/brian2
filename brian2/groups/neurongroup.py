@@ -232,7 +232,7 @@ class Thresholder(CodeRunner):
         template_kwds['eventspace_variable'] = group.variables[eventspace_name]
         needed_variables.append(eventspace_name)
         self.variables = Variables(self)
-        self.variables.add_auxiliary_variable('_cond', dtype=np.bool)
+        self.variables.add_auxiliary_variable('_cond', dtype=bool)
         CodeRunner.__init__(self, group,
                             'threshold',
                             code='',  # will be set in update_abstract_code
@@ -328,7 +328,7 @@ class NeuronGroup(Group, SpikeSource):
     ----------
     N : int
         Number of neurons in the group.
-    model : (str, `Equations`)
+    model : str, `Equations`
         The differential equations defining the group
     method : (str, function), optional
         The numerical integration method. Either a string with the name of a
@@ -660,7 +660,7 @@ class NeuronGroup(Group, SpikeSource):
             if value.index is not None:
                 try:
                     index_array = np.asarray(value.index)
-                    if not np.issubsctype(index_array.dtype, np.int):
+                    if not np.issubsctype(index_array.dtype, int):
                         raise TypeError()
                 except TypeError:
                     raise TypeError(('The index for a linked variable has '

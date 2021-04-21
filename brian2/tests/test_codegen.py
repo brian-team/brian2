@@ -1,6 +1,8 @@
-
 from collections import namedtuple
+import json
 import os
+import platform
+import socket
 
 import numpy as np
 import pytest
@@ -251,17 +253,17 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
                  'rand': DEFAULT_FUNCTIONS['rand']
                  }
     statements = [
-        # This hould not be simplified to 0!
-        Statement('v1', '=', 'rand() - rand()', '', np.float),
-        Statement('v1', '=', '3*rand() - 3*rand()', '', np.float),
-        Statement('v1', '=', '3*rand() - ((1+2)*rand())', '', np.float),
+        # This should not be simplified to 0!
+        Statement('v1', '=', 'rand() - rand()', '', float),
+        Statement('v1', '=', '3*rand() - 3*rand()', '', float),
+        Statement('v1', '=', '3*rand() - ((1+2)*rand())', '', float),
         # This should not pull out rand()*N
-        Statement('v1', '=', 's1*rand()*N', '', np.float),
-        Statement('v1', '=', 's2*rand()*N', '', np.float),
+        Statement('v1', '=', 's1*rand()*N', '', float),
+        Statement('v1', '=', 's2*rand()*N', '', float),
         # This is not important mathematically, but it would change the numbers
         # that are generated
-        Statement('v1', '=', '0*rand()*N', '', np.float),
-        Statement('v1', '=', '0/rand()*N', '', np.float)
+        Statement('v1', '=', '0*rand()*N', '', float),
+        Statement('v1', '=', '0/rand()*N', '', float)
     ]
     scalar, vector = optimise_statements([], statements, variables)
     for vs in vector[:3]:
@@ -278,26 +280,26 @@ def test_apply_loop_invariant_optimisation_simplification():
                  }
     statements = [
         # Should be simplified to 0.0
-        Statement('v1', '=', 'v1 - v1', '', np.float),
-        Statement('v1', '=', 'N*v1 - N*v1', '', np.float),
-        Statement('v1', '=', 'v1*N * 0', '', np.float),
-        Statement('v1', '=', 'v1 * 0', '', np.float),
-        Statement('v1', '=', 'v1 * 0.0', '', np.float),
-        Statement('v1', '=', '0.0 / (v1*N)', '', np.float),
+        Statement('v1', '=', 'v1 - v1', '', float),
+        Statement('v1', '=', 'N*v1 - N*v1', '', float),
+        Statement('v1', '=', 'v1*N * 0', '', float),
+        Statement('v1', '=', 'v1 * 0', '', float),
+        Statement('v1', '=', 'v1 * 0.0', '', float),
+        Statement('v1', '=', '0.0 / (v1*N)', '', float),
         # Should be simplified to 0
-        Statement('i1', '=', 'i1*N * 0', '', np.int),
-        Statement('i1', '=', '0 * i1', '', np.int),
-        Statement('i1', '=', '0 * i1*N', '', np.int),
-        Statement('i1', '=', 'i1 * 0', '', np.int),
+        Statement('i1', '=', 'i1*N * 0', '', int),
+        Statement('i1', '=', '0 * i1', '', int),
+        Statement('i1', '=', '0 * i1*N', '', int),
+        Statement('i1', '=', 'i1 * 0', '', int),
         # Should be simplified to v1*N
-        Statement('v2', '=', '0 + v1*N', '', np.float),
-        Statement('v2', '=', 'v1*N + 0.0', '', np.float),
-        Statement('v2', '=', 'v1*N - 0', '', np.float),
-        Statement('v2', '=', 'v1*N - 0.0', '', np.float),
-        Statement('v2', '=', '1 * v1*N', '', np.float),
-        Statement('v2', '=', '1.0 * v1*N', '', np.float),
-        Statement('v2', '=', 'v1*N / 1.0', '', np.float),
-        Statement('v2', '=', 'v1*N / 1', '', np.float),
+        Statement('v2', '=', '0 + v1*N', '', float),
+        Statement('v2', '=', 'v1*N + 0.0', '', float),
+        Statement('v2', '=', 'v1*N - 0', '', float),
+        Statement('v2', '=', 'v1*N - 0.0', '', float),
+        Statement('v2', '=', '1 * v1*N', '', float),
+        Statement('v2', '=', '1.0 * v1*N', '', float),
+        Statement('v2', '=', 'v1*N / 1.0', '', float),
+        Statement('v2', '=', 'v1*N / 1', '', float),
         # Should be simplified to i1
         Statement('i1', '=', 'i1*1', '', int),
         Statement('i1', '=', 'i1//1', '', int),
@@ -354,9 +356,9 @@ def test_apply_loop_invariant_optimisation_constant_evaluation():
                  'exp': DEFAULT_FUNCTIONS['exp']
                  }
     statements = [
-        Statement('v1', '=', 'v1 * (1 + 2 + 3)', '', np.float),
-        Statement('v1', '=', 'exp(N)*v1', '', np.float),
-        Statement('v1', '=', 'exp(0)*v1', '', np.float),
+        Statement('v1', '=', 'v1 * (1 + 2 + 3)', '', float),
+        Statement('v1', '=', 'exp(N)*v1', '', float),
+        Statement('v1', '=', 'exp(0)*v1', '', float),
     ]
     scalar, vector = optimise_statements([], statements, variables)
     # exp(N) should be pulled out of the vector statements, the rest should be
@@ -383,7 +385,7 @@ def test_automatic_augmented_assignments():
         'z': ArrayVariable('y', owner=None, size=10,
                            device=device),
         'b': ArrayVariable('b', owner=None, size=10,
-                           dtype=np.bool, device=device),
+                           dtype=bool, device=device),
         'clip': DEFAULT_FUNCTIONS['clip'],
         'inf': DEFAULT_CONSTANTS['inf']
     }
@@ -475,6 +477,24 @@ def test_cpp_flags_support():
     prefs['codegen.cpp.extra_compile_args'] = old_prefs
 
 
+@pytest.mark.skipif(platform.system() != 'Windows',
+                    reason='MSVC flags are only relevant on Windows')
+@pytest.mark.skipif(prefs['codegen.target'] == 'numpy',
+                    reason='Test only relevant for compiled code')
+def test_msvc_flags():
+    # Very basic test that flags are stored to disk
+    import brian2.codegen.cpp_prefs as cpp_prefs
+    user_dir = os.path.join(os.path.expanduser('~'), '.brian')
+    flag_file = os.path.join(user_dir, 'cpu_flags.txt')
+    assert len(cpp_prefs.msvc_arch_flag)
+    assert os.path.exists(flag_file)
+    with open(flag_file, 'r', encoding='utf-8') as f:
+        previously_stored_flags = json.load(f)
+    hostname = socket.gethostname()
+    assert hostname in previously_stored_flags
+    assert len(previously_stored_flags[hostname])
+
+
 if __name__ == '__main__':
     test_auto_target()
     test_analyse_identifiers()
@@ -490,4 +510,4 @@ if __name__ == '__main__':
     test_apply_loop_invariant_optimisation_constant_evaluation()
     test_automatic_augmented_assignments()
     test_clear_cache()
-
+    test_msvc_flags()

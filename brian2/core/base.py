@@ -1,6 +1,7 @@
 '''
 All Brian objects should derive from `BrianObject`.
 '''
+import functools
 import weakref
 import traceback
 import os
@@ -277,8 +278,8 @@ def device_override(name):
             else:
                 return func(*args, **kwds)
 
-        device_override_decorated_function.__doc__ = func.__doc__
         device_override_decorated_function.original_function = func
+        functools.update_wrapper(device_override_decorated_function, func)
 
         return device_override_decorated_function
 

@@ -82,7 +82,7 @@ def test_poissoninput_refractory():
     P = PoissonInput(G, 'v', 1, 1/defaultclock.dt, weight=1.0)
     mon = StateMonitor(G, 'v', record=5)
     run(10*defaultclock.dt)
-    expected = np.arange(10, dtype=np.float)
+    expected = np.arange(10, dtype=float)
     expected[6-int(schedule_propagation_offset()/defaultclock.dt):] = 0
     assert_allclose(mon[5].v[:], expected)
 

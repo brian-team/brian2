@@ -20,7 +20,7 @@ from brian2.devices.device import get_device
 from brian2.equations.equations import (Equations,
                                         DIFFERENTIAL_EQUATION, SUBEXPRESSION,
                                         PARAMETER,
-                                        check_subexpressions)
+                                        check_subexpressions, EquationError)
 from brian2.groups.group import Group, CodeRunner, get_dtype
 from brian2.groups.subgroup import Subgroup
 from brian2.groups.neurongroup import (extract_constant_subexpressions,
@@ -40,7 +40,6 @@ from brian2.core.spikesource import SpikeSource
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.parsing.bast import brian_ast
 from brian2.parsing.rendering import NodeRenderer
-
 MAX_SYNAPSES = 2147483647
 
 __all__ = ['Synapses']
@@ -767,7 +766,6 @@ class Synapses(Group):
         # Separate subexpressions depending whether they are considered to be
         # constant over a time step or not
         model, constant_over_dt = extract_constant_subexpressions(model)
-
         # Separate the equations into event-driven equations,
         # continuously updated equations and summed variable updates
         event_driven = []
@@ -795,6 +793,10 @@ class Synapses(Group):
                                 'clock_driven',
                                 once=True)
                 continuous.append(single_equation)
+        
+        # Checking whether a summed variable or a clock-driven equation is referring to an event-driven variable
+        for eq in event_driven:
+            Synapses._recur_check_event_summed_clock(eq.varname, model)
 
         if len(event_driven):
             self.event_driven = Equations(event_driven)
@@ -942,6 +944,61 @@ class Synapses(Group):
 
         # Activate name attribute access
         self._enable_group_attributes()
+    
+    @staticmethod
+    def _recur_check_event_summed_clock(var, eqs, orig_var=None, intermediate_vars=None):
+        """
+            Recursive function used to identify whether a summed variable
+            or a clock driven equation is referring to an event-driven variable
+            and raise an EquationError.
+
+            Parameters
+            ----------
+            var : str
+                variable that is required for checking
+            eqs : `Equations`
+                Equations object in which we need to check
+            orig_var : str, optional
+                Carries the name of the original event-driven variable
+            intermediate_vars : list, optional
+                Carries the names of all the intermediate variables that have
+                referred to the event-driven variable.
+
+            Raises
+            ------
+            EquationError
+                If a clock-driven or summed variable refers to an event-driven
+                variable.
+"""
+        if orig_var is None:
+            orig_var = var
+        if intermediate_vars is None:
+            intermediate_vars = []
+        via_str = ""
+        if intermediate_vars:
+            via_str = "(via " + ", ".join(f"'{v}'"
+                                          for v in intermediate_vars) + ")"
+        for eq in eqs.values():
+            if var in eq.identifiers and eq.varname != var:
+                if 'summed' in eq.flags:
+                    raise EquationError(f"The summed variable '{eq.varname}' "
+                                        f"should not refer an event-driven "
+                                        f" variable '{orig_var}' {via_str}")
+                elif (eq.type == DIFFERENTIAL_EQUATION
+                      and 'event-driven' not in eq.flags):
+                    raise EquationError(f"The clock-driven equation for "
+                                        f"variable '{eq.varname}' should not "
+                                        f"refer to a event-driven variable "
+                                        f"'{orig_var}' {via_str}")
+                else:
+                    temp_inter_vars = intermediate_vars.copy()
+                    if (orig_var != eq.varname
+                            and eq.varname not in intermediate_vars):
+                        temp_inter_vars.append(eq.varname)
+                    Synapses._recur_check_event_summed_clock(eq.varname,
+                                                             eqs,
+                                                             orig_var=orig_var,
+                                                             intermediate_vars=temp_inter_vars)
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
@@ -1297,6 +1354,7 @@ class Synapses(Group):
         >>> S.connect(j='k for k in range(i+1)') # Connect neuron i to all j with 0<=j<=i
         >>> S.connect(j='i+(-1)**k for k in range(2) if i>0 and i<N_pre-1') # connect neuron i to its neighbours if it has both neighbours
         >>> S.connect(j='k for k in sample(N_post, p=i*1.0/(N_pre-1))') # neuron i connects to j with probability i/(N-1)
+        >>> S.connect(j='k for k in sample(N_post, size=i//2)') # Each neuron connects to i//2 other neurons (chosen randomly)
         '''
         # check types
         if condition is not None and not isinstance(condition, (bool,
@@ -1646,10 +1704,6 @@ class Synapses(Group):
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
 
-        if (parsed['iterator_func'] == 'sample' and
-                    parsed['iterator_kwds']['sample_size']=='fixed'):
-            raise NotImplementedError("Fixed sample size not implemented yet.")
-
         abstract_code = {'setup_iterator': '',
                          'create_j': '',
                          'create_cond': '',
@@ -1715,7 +1769,7 @@ class Synapses(Group):
         variables.add_auxiliary_variable('_pre_idx', dtype=np.int32)
         variables.add_auxiliary_variable('_post_idx', dtype=np.int32)
         if parsed['if_expression'] is not None:
-            variables.add_auxiliary_variable('_cond', dtype=np.bool)
+            variables.add_auxiliary_variable('_cond', dtype=bool)
         variables.add_auxiliary_variable('_n', dtype=np.int32)
 
         if '_offset' in self.source.variables:
@@ -1749,7 +1803,6 @@ class Synapses(Group):
                       "using generator '%s'") % (self.source.name,
                                                  self.target.name,
                                                  parsed['original_expression']))
-
         codeobj = create_runner_codeobj(self,
                                         abstract_code,
                                         'synapses_create_generator',

@@ -494,6 +494,18 @@ def test_continued_standalone_runs():
     assert target.v[0] == 1  # Make sure the spike got delivered
 
 
+@pytest.mark.cpp_standalone
+@pytest.mark.standalone_only
+def test_constant_replacement():
+    # see github issue #1276
+    set_device('cpp_standalone')
+    x = 42
+    G = NeuronGroup(1, 'y : 1')
+    G.y = 'x'
+    run(0*ms)
+    assert G.y[0] == 42.
+
+
 if __name__=='__main__':
     for t in [
              test_cpp_standalone,

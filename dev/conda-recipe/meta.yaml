@@ -10,13 +10,13 @@ requirements:
   build:
     - {{ compiler('cxx') }}
   host:
-    - python
+    - python >=3.7
     - cython >=0.29
     - setuptools >=24
     # we build against the oldest supported numpy version
-    - numpy 1.15
+    - numpy 1.17
   run:
-    - python
+    - python >=3.7
     # we don't need the same version as during the build, newer versions are
     # still ABI-compatible
     - {{ pin_compatible('numpy') }}
