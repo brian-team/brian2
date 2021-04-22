@@ -66,23 +66,29 @@ def test_empty_network():
 
 class Counter(BrianObject):
     add_to_magic_network = True
+
     def __init__(self, **kwds):
         super(Counter, self).__init__(**kwds)
         self.count = 0
+        self.state = {'state': 0}
+
+    def get_states(self, *args, **kwds):
+        return dict(self.state)
+
+    def set_states(self, values, *args, **kwds):
+        for k, v in values.items():
+            self.state[k] = v
 
     def run(self):
         self.count += 1
 
-class CounterWithContained(BrianObject):
+class CounterWithContained(Counter):
     add_to_magic_network = True
+
     def __init__(self, **kwds):
         super(CounterWithContained, self).__init__(**kwds)
         self.sub_counter = Counter()
         self.contained_objects.append(self.sub_counter)
-        self.count = 0
-
-    def run(self):
-        self.count += 1
 
 
 @pytest.mark.codegen_independent
@@ -623,14 +629,27 @@ def test_contained_objects():
     net = Network(obj)
     # The contained object should not be stored explicitly
     assert len(net.objects) == 1
+    # It should be accessible via the network interface, though
+    assert len(net) == 2
     net.run(defaultclock.dt)
 
     # The contained object should be executed during the run
     assert obj.count == 1
     assert obj.sub_counter.count == 1
 
+    # contained objects should be accessible via get_states/set_states
+    states = net.get_states()
+    assert len(states) == 2
+    assert set(states.keys()) == {obj.name, obj.sub_counter.name}
+    assert set(states[obj.name].keys()) == {'state'}
+    assert set(states[obj.sub_counter.name].keys()) == {'state'}
+    net[obj.name].set_states({'state': 1})
+    net[obj.sub_counter.name].set_states({'state': 2})
+
     net.remove(obj)
     assert len(net.objects) == 0
+    assert len(net) == 0
+    assert len(net.get_states()) == 0
     net.run(defaultclock.dt)
     assert obj.count == 1
     assert obj.sub_counter.count == 1

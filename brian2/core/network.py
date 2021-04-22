@@ -426,7 +426,8 @@ class Network(Nameable):
         if not isinstance(item, str):
             raise TypeError(('Need a name to access objects in a Network, '
                              'got {type} instead').format(type=type(item)))
-        for obj in self.objects:
+        all_objects = _get_all_objects(self.objects)
+        for obj in all_objects:
             if obj.name == item:
                 return obj
 
@@ -444,16 +445,19 @@ class Network(Nameable):
         raise KeyError('No object with name "%s" found' % key)
 
     def __contains__(self, item):
-        for obj in self.objects:
+        all_objects = _get_all_objects(self.objects)
+        for obj in all_objects:
             if obj.name == item:
                 return True
         return False
 
     def __len__(self):
-        return len(self.objects)
+        all_objects = _get_all_objects(self.objects)
+        return len(all_objects)
 
     def __iter__(self):
-        return iter(self.objects)
+        all_objects = _get_all_objects(self.objects)
+        return iter(all_objects)
 
     def add(self, *objs):
         """
@@ -694,7 +698,7 @@ class Network(Nameable):
         VariableOwner.get_states
         '''
         states = dict()
-        for obj in self.objects:
+        for obj in self.sorted_objects:
             if hasattr(obj, 'get_states'):
                 states[obj.name] = obj.get_states(vars=None, units=units,
                                                   format=format,
@@ -731,7 +735,7 @@ class Network(Nameable):
                 raise KeyError(("Network does not include a network with "
                                 "name '%s'.") % obj_name)
             self[obj_name].set_states(obj_values, units=units, format=format,
-                                     level=level+1)
+                                      level=level+1)
 
 
     def _get_schedule(self):
