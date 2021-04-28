@@ -1307,9 +1307,10 @@ class Synapses(Group):
             The expression can depend on indices ``i`` and ``j`` and on
             pre- and post-synaptic variables. Can be combined with
             arguments ``n``, and ``p`` but not ``i`` or ``j``.
-        i : int, ndarray of int, optional
-            The presynaptic neuron indices (in the form of an index or an array
-            of indices). Must be combined with ``j`` argument.
+        i : int, ndarray of int, str, optional
+            The presynaptic neuron indices  It can be an index or array of
+            indices if combined with the ``j`` argument, or it can be a string
+            generator expression.
         j : int, ndarray of int, str, optional
             The postsynaptic neuron indices. It can be an index or array of
             indices if combined with the ``i`` argument, or it can be a string
@@ -1350,20 +1351,132 @@ class Synapses(Group):
         >>> S.connect(j='k for k in sample(N_post, size=i//2)') # Each neuron connects to i//2 other neurons (chosen randomly)
         '''
         # check types
+        self._verify_connect_argument_types(condition, i, j, n, p)
+
+        self._connect_called = True
+
+        # Get namespace information
+        if namespace is None:
+            namespace = get_local_namespace(level=level + 2)
+
+        try:  # wrap everything to catch IndexError
+            # which connection case are we in?
+            # 1: Connection condition
+            if condition is None and i is None and j is None:
+                condition = True
+            if condition is not None:
+                if i is not None or j is not None:
+                    raise ValueError("Cannot combine condition with i or j "
+                                     "arguments")
+                if condition is False or condition == 'False':
+                    # Nothing to do
+                    return
+                j = self._condition_to_generator_expression(condition, p, namespace)
+                self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
+                                             namespace=namespace, level=level + 2,
+                                             over_presynaptic=True)
+            # 2: connection indices
+            elif (i is not None and j is not None) and not (isinstance(i, str) or isinstance(j, str)):
+                if skip_if_invalid:
+                    raise ValueError("Can only use skip_if_invalid with string "
+                                     "syntax")
+                i, j, n = self._verify_connect_array_arguments(i, j, n)
+                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace)
+            # 3: Generator expression over post-synaptic cells (i='...')
+            elif isinstance(i, str):
+                i = self._finalize_generator_expression(i, j, p, 'i', 'j')
+                self._add_synapses_generator(i, n, skip_if_invalid=skip_if_invalid,
+                                             namespace=namespace, level=level + 2,
+                                             over_presynaptic=False)
+            # 4: Generator expression over pre-synaptic cells (i='...')
+            elif isinstance(j, str):
+                j = self._finalize_generator_expression(j, i, p, 'j', 'i')
+                self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
+                                             namespace=namespace, level=level + 2,
+                                             over_presynaptic=True)
+            else:
+                raise ValueError("Must specify at least one of condition, i or "
+                                 "j arguments")
+        except IndexError as e:
+            raise IndexError("Tried to create synapse indices outside valid "
+                             "range. Original error message: " + str(e))
+
+    # Helper functions for Synapses.connect ↑
+    def _verify_connect_array_arguments(self, i, j, n):
+        if hasattr(i, '_indices'):
+            i = i._indices()
+        i = np.asarray(i)
+        if not np.issubdtype(i.dtype, np.signedinteger):
+            raise TypeError(('Presynaptic indices have to be given as '
+                             'integers, are type %s '
+                             'instead.') % i.dtype)
+        if hasattr(j, '_indices'):
+            j = j._indices()
+        j = np.asarray(j)
+        if not np.issubdtype(j.dtype, np.signedinteger):
+            raise TypeError(('Presynaptic indices can only be combined '
+                             'with postsynaptic integer indices))'))
+        if isinstance(n, str):
+            raise TypeError(('Indices cannot be combined with a string'
+                             'expression for n. Either use an '
+                             'array/scalar for n, or a string '
+                             'expression for the connections'))
+        i, j, n = np.broadcast_arrays(i, j, n)
+        if i.ndim > 1:
+            raise ValueError('Can only use 1-dimensional indices')
+        return i, j, n
+
+    def _condition_to_generator_expression(self, condition, p, namespace):
+        if condition is True:
+            condition = 'True'
+        # Check that the condition is a boolean expresion
+        identifiers = get_identifiers(condition)
+        variables = self.resolve_all(identifiers, namespace)
+        if not is_boolean_expression(condition, variables):
+            raise TypeError(f'Condition \'{condition}\' is not a '
+                            f'boolean condition')
+        # Check the units (mostly to check for unit consistency within the condition)
+        dims = parse_expression_dimensions(condition, variables)
+        if dims is not DIMENSIONLESS:
+            # We should not get here normally
+            raise TypeError(f'Condition \'{condition}\' is not a '
+                            f'boolean condition')
+        condition = word_substitute(condition, {'j': '_k'})
+        if not isinstance(p, str) and p == 1:
+            j = ('_k for _k in range(N_post) '
+                 'if {expr}').format(expr=condition)
+        else:
+            j = None
+            if isinstance(p, str):
+                identifiers = get_identifiers(p)
+                variables = self.resolve_all(identifiers, namespace)
+                dim = parse_expression_dimensions(p, variables)
+                if dim is not DIMENSIONLESS:
+                    raise DimensionMismatchError('Expression for p should be dimensionless.')
+                p_dep = self._expression_index_dependence(p, namespace=namespace)
+                if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
+                    j = ('_k for _k in range(N_post) '
+                         'if ({expr}) and '
+                         'rand()<{p}').format(expr=condition, p=p)
+            if j is None:
+                j = ('_k for _k in sample(N_post, p={p}) '
+                     'if {expr}').format(expr=condition, p=p)
+        return j
+
+    def _verify_connect_argument_types(self, condition, i, j, n, p):
         if condition is not None and not isinstance(condition, (bool,
                                                                 str)):
             raise TypeError("condition argument must be bool or string. If you "
                             "want to connect based on indices, use "
                             "connect(i=..., j=...).")
-        if i is not None and (not (isinstance(i, (numbers.Integral,
+        if i is not None and not (isinstance(i, (numbers.Integral,
                                                  np.ndarray,
                                                  Sequence)) or
-                                   hasattr(i, '_indices')) or
-                              isinstance(i, str)):
-            raise TypeError("i argument must be int or array")
+                                  hasattr(i, '_indices')):
+            raise TypeError("i argument must be int, array or string")
         if j is not None and not (isinstance(j, (numbers.Integral,
-                                                np.ndarray,
-                                                Sequence)) or
+                                                 np.ndarray,
+                                                 Sequence)) or
                                   hasattr(j, '_indices')):
             raise TypeError("j argument must be int, array or string")
         # TODO: eliminate these restrictions
@@ -1372,123 +1485,10 @@ class Synapses(Group):
         if not isinstance(n, (int, str)):
             raise TypeError("n must be int or string")
         if isinstance(condition, str) and re.search(r'\bfor\b',
-                                                           condition):
+                                                    condition):
             raise ValueError("Generator expression given for condition, write "
                              "connect(j='{condition}'...) instead of "
                              "connect('{condition}'...).".format(condition=condition))
-
-        self._connect_called = True
-
-        # Get namespace information
-        if namespace is None:
-            namespace = get_local_namespace(level=level + 2)
-
-        # which connection case are we in?
-        if condition is None and i is None and j is None:
-            condition = True
-        try:
-            if condition is not None:
-                if i is not None or j is not None:
-                    raise ValueError("Cannot combine condition with i or j "
-                                     "arguments")
-                # convert to generator syntax
-                if condition is False:
-                    return
-                if condition is True:
-                    condition = 'True'
-                # Check that the condition is a boolean expresion
-                identifiers = get_identifiers(condition)
-                variables = self.resolve_all(identifiers, namespace)
-                if not is_boolean_expression(condition, variables):
-                    raise TypeError(f'Condition \'{condition}\' is not a '
-                                    f'boolean condition')
-
-                # Check the units (mostly to check for unit consistency within the condition)
-                dims = parse_expression_dimensions(condition, variables)
-                if dims is not DIMENSIONLESS:
-                    # We should not get here normally
-                    raise TypeError(f'Condition \'{condition}\' is not a '
-                                    f'boolean condition')
-
-                condition = word_substitute(condition, {'j': '_k'})
-                if not isinstance(p, str) and p == 1:
-                    j = ('_k for _k in range(N_post) '
-                         'if {expr}').format(expr=condition)
-                else:
-                    j = None
-                    if isinstance(p, str):
-                        identifiers = get_identifiers(p)
-                        variables = self.resolve_all(identifiers, namespace)
-                        dim = parse_expression_dimensions(p, variables)
-                        if dim is not DIMENSIONLESS:
-                            raise DimensionMismatchError('Expression for p should be dimensionless.')
-                        p_dep = self._expression_index_dependence(p, namespace=namespace)
-                        if '_postsynaptic_idx' in p_dep or '_iterator_idx' in p_dep:
-                            j = ('_k for _k in range(N_post) '
-                                 'if ({expr}) and '
-                                 'rand()<{p}').format(expr=condition, p=p)
-                    if j is None:
-                        j = ('_k for _k in sample(N_post, p={p}) '
-                             'if {expr}').format(expr=condition, p=p)
-                # will now call standard generator syntax (see below)
-            elif i is not None:
-                if j is None:
-                    raise ValueError("i argument must be combined with j "
-                                     "argument")
-                if skip_if_invalid:
-                    raise ValueError("Can only use skip_if_invalid with string "
-                                     "syntax")
-                if hasattr(i, '_indices'):
-                    i = i._indices()
-                i = np.asarray(i)
-                if not np.issubdtype(i.dtype, np.signedinteger):
-                    raise TypeError(('Presynaptic indices have to be given as '
-                                     'integers, are type %s '
-                                     'instead.') % i.dtype)
-
-                if hasattr(j, '_indices'):
-                    j = j._indices()
-                j = np.asarray(j)
-                if not np.issubdtype(j.dtype, np.signedinteger):
-                    raise TypeError(('Presynaptic indices can only be combined '
-                                     'with postsynaptic integer indices))'))
-                if isinstance(n, str):
-                    raise TypeError(('Indices cannot be combined with a string'
-                                     'expression for n. Either use an '
-                                     'array/scalar for n, or a string '
-                                     'expression for the connections'))
-                i, j, n = np.broadcast_arrays(i, j, n)
-                if i.ndim > 1:
-                    raise ValueError('Can only use 1-dimensional indices')
-                self._add_synapses_from_arrays(i, j, n, p, namespace=namespace)
-                return
-            elif j is not None:
-                if isinstance(p, str) or p != 1:
-                    raise ValueError("Generator syntax cannot be combined with "
-                                     "p argument")
-                if not re.search(r'\bfor\b', j):
-                    if_split = j.split(' if ')
-                    if len(if_split) == 1:
-                        j = '{j} for _ in range(1)'.format(j=j)
-                    elif len(if_split) == 2:
-                        j = '{target} for _ in range(1) if {cond}'.format(target=if_split[0],
-                                                                          cond=if_split[1])
-                    else:
-                        raise SyntaxError("Error parsing expression '{j}'. "
-                                          "Expression must have generator "
-                                          "syntax, for example 'k for k in "
-                                          "range(i-10, i+10)'".format(j=j))
-                    # will now call standard generator syntax (see below)
-            else:
-                raise ValueError("Must specify at least one of condition, i or "
-                                 "j arguments")
-
-            # standard generator syntax
-            self._add_synapses_generator(j, n, skip_if_invalid=skip_if_invalid,
-                                         namespace=namespace, level=level+2)
-        except IndexError as e:
-            raise IndexError("Tried to create synapse indices outside valid "
-                             "range. Original error message: " + str(e))
 
     def check_variable_write(self, variable):
         '''
@@ -1677,17 +1677,18 @@ class Synapses(Group):
             deps.remove('0')
         return deps
 
-    def _add_synapses_generator(self, j, n, skip_if_invalid=False, namespace=None, level=0):
+    def _add_synapses_generator(self, gen, n, skip_if_invalid=False,
+                                over_presynaptic=True, namespace=None, level=0):
         # Get the local namespace
         if namespace is None:
             namespace = get_local_namespace(level=level+1)
 
-        parsed = parse_synapse_generator(j)
+        parsed = parse_synapse_generator(gen)
         self._check_parsed_synapses_generator(parsed, namespace)
 
         # Referring to N_incoming/N_outgoing in the connect statement is
         # ill-defined (see github issue #1227)
-        identifiers = get_identifiers_recursively([j], self.variables)
+        identifiers = get_identifiers_recursively([gen], self.variables)
         for var in ['N_incoming', 'N_outgoing']:
             if var in identifiers:
                 raise ValueError(f'The connect statement cannot refer to '
@@ -1696,52 +1697,74 @@ class Synapses(Group):
         template_kwds, needed_variables = self._get_multisynaptic_indices()
         template_kwds.update(parsed)
         template_kwds['skip_if_invalid'] = skip_if_invalid
-
+        # To support both i='...' and j='...' syntax, we provide additional keywords
+        # to the template
+        base_var = 'i' if over_presynaptic else 'j'
+        base_var_size = 'N_pre' if over_presynaptic else 'N_post'
+        base_array = '_pre_idx' if over_presynaptic else '_post_idx'
+        base_offset = '_source_offset' if over_presynaptic else '_target_offset'
+        target_var = 'j' if over_presynaptic else 'i'
+        target_var_size = 'N_post' if over_presynaptic else 'N_pre'
+        target_idx = '_postsynaptic_idx' if over_presynaptic else '_presynaptic_idx'
+        target_array = '_post_idx' if over_presynaptic else '_pre_idx'
+        target_offset = '_target_offset' if over_presynaptic else '_source_offset'
+        # for error messages:
+        target_idx_name = 'postsynaptic' if over_presynaptic else 'presynaptic'
+        template_kwds.update({'base_var': base_var,
+                              'base_var_size': base_var_size,
+                              'base_array': base_array,
+                              'base_offset': base_offset,
+                              'target_var': target_var,
+                              'target_var_size': target_var_size,
+                              'target_idx': target_idx,
+                              'target_array': target_array,
+                              'target_offset': target_offset})
         abstract_code = {'setup_iterator': '',
-                         'create_j': '',
+                         'generator_expr': '',
                          'create_cond': '',
-                         'update_post': ''}
+                         'update': ''}
 
         additional_indices = {parsed['iteration_variable']: '_iterator_idx'}
 
         setupiter = ''
         for k, v in parsed['iterator_kwds'].items():
-            if v is not None and k!='sample_size':
+            if v is not None and k != 'sample_size':
                 deps = self._expression_index_dependence(v, namespace=namespace,
                                                          additional_indices=additional_indices)
-                if '_postsynaptic_idx' in deps or '_iterator_idx' in deps:
-                    raise ValueError('Expression "{}" depends on postsynaptic '
-                                     'index or iterator'.format(v))
-                setupiter += '_iter_'+k+' = '+v+'\n'
+                if target_idx in deps or '_iterator_idx' in deps:
+                    raise ValueError(f'Expression "{v}" depends on {target_idx_name} '
+                                     f'index or iterator')
+                setupiter += f'_iter_{k} = {v}\n'
 
         # rand() in the if condition depends on _vectorisation_idx, but not if
         # its in the range expression (handled above)
         additional_indices['_vectorisation_idx'] = '_iterator_idx'
 
-        postsynaptic_condition = False
-        postsynaptic_variable_used = False
+        target_idx_condition = False
+        target_variable_used = False
         if parsed['if_expression'] is not None:
             deps = self._expression_index_dependence(parsed['if_expression'],
                                                      namespace=namespace,
                                                      additional_indices=additional_indices)
-            if '_postsynaptic_idx' in deps:
-                postsynaptic_condition = True
-                postsynaptic_variable_used = True
+            if target_idx in deps:
+                target_idx_condition = True
+                target_variable_used = True
             elif '_iterator_idx' in deps:
-                postsynaptic_condition = True
-        template_kwds['postsynaptic_condition'] = postsynaptic_condition
-        template_kwds['postsynaptic_variable_used'] = postsynaptic_variable_used
+                target_idx_condition = True
+        template_kwds['target_condition'] = target_idx_condition
+        template_kwds['target_variable_used'] = target_variable_used
 
         abstract_code['setup_iterator'] += setupiter
-        abstract_code['create_j'] += '_pre_idx = _raw_pre_idx \n'
-        abstract_code['create_j'] += '_j = '+parsed['element']+'\n'
-        if postsynaptic_condition:
-            abstract_code['create_cond'] += '_post_idx = _raw_post_idx \n'
+        abstract_code['generator_expr'] += f'{base_array} = _raw{base_array} \n'
+        abstract_code['generator_expr'] += f'_{target_var} = {parsed["element"]}\n'
+
+        if target_idx_condition:
+            abstract_code['create_cond'] += f'{target_array} = _raw{target_array} \n'
         if parsed['if_expression'] is not None:
             abstract_code['create_cond'] += ('_cond = ' +
                                              parsed['if_expression'] + '\n')
-            abstract_code['update_post'] += '_post_idx = _raw_post_idx \n'
-        abstract_code['update_post'] += '_n = ' + str(n) + '\n'
+            abstract_code['update'] += f'{target_array} = _raw{target_array} \n'
+        abstract_code['update'] += '_n = ' + str(n) + '\n'
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary
         # This is necessary because in the context of synapse creation, i
@@ -1822,5 +1845,26 @@ class Synapses(Group):
                 annotated = brian_ast(arg, variables)
                 if annotated.dtype != 'integer':
                     raise TypeError('The "%s" argument of the range function was '
-                                      '"%s", but it needs to be an '
-                                      'integer.' % (argname, arg))
+                                    '"%s", but it needs to be an '
+                                    'integer.' % (argname, arg))
+
+    def _finalize_generator_expression(self, generator_expression, iteration_index, p,
+                                       target_index_name, iteration_index_name):
+        if iteration_index is not None:
+            raise TypeError(f'Generator syntax for {target_index_name} cannot be combined with '
+                            f'{iteration_index_name} argument')
+        if isinstance(p, str) or p != 1:
+            raise ValueError("Generator syntax cannot be combined with "
+                             "p argument")
+        if not re.search(r'\bfor\b', generator_expression):
+            if_split = generator_expression.split(' if ')
+            if len(if_split) == 1:
+                generator_expression = f'{generator_expression} for _ in range(1)'
+            elif len(if_split) == 2:
+                generator_expression = f'{if_split[0]} for _ in range(1) if {if_split[1]}'
+            else:
+                raise SyntaxError(f"Error parsing expression '{generator_expression}'. "
+                                  f"Expression must have generator "
+                                  f"syntax, for example 'k for k in "
+                                  f"range({iteration_index_name}-10, {iteration_index_name}+10)'")
+        return generator_expression
