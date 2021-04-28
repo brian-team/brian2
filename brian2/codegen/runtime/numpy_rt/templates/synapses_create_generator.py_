@@ -96,13 +96,18 @@ _cur_num_synapses = _old_num_synapses
 # scalar code
 _vectorisation_idx = 1
 {{scalar_code['setup_iterator']|autoindent}}
-{{scalar_code['create_j']|autoindent}}
+{{scalar_code['generator_expr']|autoindent}}
 {{scalar_code['create_cond']|autoindent}}
-{{scalar_code['update_post']|autoindent}}
+{{scalar_code['update']|autoindent}}
 
-for _i in range(N_pre):
-    _raw_pre_idx = _i + _source_offset
-    {% if not postsynaptic_condition %}
+{# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
+"j" is called the "target variable" (and "_post_idx" the "target array", etc.)
+"i" is called the "base variable" (and "_pre_idx" the "base array", etc.)
+"k" is called the iteration variable #}
+
+for _{{base_var}} in range({{base_var_size}}):
+    _raw{{base_array}} = _{{base_var}} + {{base_offset}}
+    {% if not target_condition %}
     {{vector_code['create_cond']|autoindent}}
     if not _cond:
         continue
@@ -119,76 +124,76 @@ for _i in range(N_pre):
     {% endif %}
 
     _vectorisation_idx = {{iteration_variable}}
-    {{vector_code['create_j']|autoindent}}
-    _vectorisation_idx = _j
-    _raw_post_idx = _j + _target_offset
-    {% if postsynaptic_condition %}
-    {% if postsynaptic_variable_used %}
+    {{vector_code['generator_expr']|autoindent}}
+    _vectorisation_idx = _{{target_var}}
+    _raw{{target_array}} = _{{target_var}} + {{target_offset}}
+    {% if target_condition %}
+    {% if target_variable_used %}
     {# The condition could index outside of array range #}
     {% if skip_if_invalid %}
-    if _numpy.isscalar(_j):
-        if _j<0 or _j>=N_post:
+    if _numpy.isscalar(_{{target_var}}):
+        if _{{target_var}}<0 or _{{target_var}}>={{target_var_size}}:
             continue
     else:
-        _in_range = _numpy.logical_and(_j>=0, _j<N_post)
-        _j = _j[_in_range]
+        _in_range = _numpy.logical_and(_{{target_var}}>=0, _{{target_var}}<{{target_var_size}})
+        _{{target_var}} = _{{target_var}}[_in_range]
     {% else %}
-    if _numpy.isscalar(_j):
-        _min_j = _max_j = _j
-    elif _j.shape == (0, ):
+    if _numpy.isscalar(_{{target_var}}):
+        _min_val = _max_val = _{{target_var}}
+    elif _{{target_var}}.shape == (0, ):
         continue
     else:
-        _min_j = _numpy.min(_j)
-        _max_j = _numpy.max(_j)
-    if _min_j < 0:
-        raise IndexError("index j=%d outside allowed range from 0 to %d, and the condition refers to a post-synaptic variable" % (_min_j, N_post-1))
-    elif _max_j >= N_post:
-        raise IndexError("index j=%d outside allowed range from 0 to %d, and the condition refers to a post-synaptic variable" % (_max_j, N_post-1))
+        _min_val = _numpy.min(_{{target_var}})
+        _max_val = _numpy.max(_{{target_var}})
+    if _min_val < 0:
+        raise IndexError("index {{target_var}}=%d outside allowed range from 0 to %d, and the condition refers to a post-synaptic variable" % (_min_val, {{target_var_size}}-1))
+    elif _max_val >= {{target_var_size}}:
+        raise IndexError("index {{target_var}}=%d outside allowed range from 0 to %d, and the condition refers to a post-synaptic variable" % (_max_val, {{target_var_size}}-1))
     {% endif %}
     {% endif %}
     {{vector_code['create_cond']|autoindent}}
     {% endif %}
-    {% if if_expression!='True' and postsynaptic_condition %}
-    _j, _cond = _numpy.broadcast_arrays(_j, _cond)
-    _j = _j[_cond]
+    {% if if_expression!='True' and target_condition %}
+    _{{target_var}}, _cond = _numpy.broadcast_arrays(_{{target_var}}, _cond)
+    _{{target_var}} = _{{target_var}}[_cond]
     {% else %}
-    _j, {{iteration_variable}} = _numpy.broadcast_arrays(_j, {{iteration_variable}})
+    _{{target_var}}, {{iteration_variable}} = _numpy.broadcast_arrays(_{{target_var}}, {{iteration_variable}})
     {% endif %}
 
     {% if skip_if_invalid %}
-    if _numpy.isscalar(_j):
-        if _j<0 or _j>=N_post:
+    if _numpy.isscalar(_{{target_var}}):
+        if _{{target_var}}<0 or _{{target_var}}>={{target_var_size}}:
             continue
     else:
-        _in_range = _numpy.logical_and(_j>=0, _j<N_post)
-        _j = _j[_in_range]
-    {% elif not postsynaptic_variable_used %}
+        _in_range = _numpy.logical_and(_{{target_var}}>=0, _{{target_var}}<{{target_var_size}})
+        _{{target_var}} = _{{target_var}}[_in_range]
+    {% elif not target_variable_used %}
     {# Otherwise, we already checked before #}
-    if _numpy.isscalar(_j):
-        _min_j = _max_j = _j
-    elif _j.shape == (0, ):
+    if _numpy.isscalar(_{{target_var}}):
+        _min_val = _max_val = _{{target_var}}
+    elif _{{target_var}}.shape == (0, ):
         continue
     else:
-        _min_j = _numpy.min(_j)
-        _max_j = _numpy.max(_j)
-    if _min_j < 0:
-        raise IndexError("index j=%d outside allowed range from 0 to %d" % (_min_j, N_post-1))
-    elif _max_j >= N_post:
-        raise IndexError("index j=%d outside allowed range from 0 to %d" % (_max_j, N_post-1))
+        _min_val = _numpy.min(_{{target_var}})
+        _max_val = _numpy.max(_{{target_var}})
+    if _min_val < 0:
+        raise IndexError("index _{{target_var}}=%d outside allowed range from 0 to %d" % (_min_val, {{target_var_size}}-1))
+    elif _max_val >= {{target_var_size}}:
+        raise IndexError("index _{{target_var}}=%d outside allowed range from 0 to %d" % (_max_val, {{target_var_size}}-1))
     {% endif %}
 
-    _vectorisation_idx = _j
-    _raw_post_idx = _j + _target_offset
-    {{vector_code['update_post']|autoindent}}
+    _vectorisation_idx = _{{target_var}}
+    _raw{{target_array}} = _{{target_var}} + {{target_offset}}
+    {{vector_code['update']|autoindent}}
 
     if not _numpy.isscalar(_n):
-        # The "n" expression involved j
-        _post_idx = _post_idx.repeat(_n[_j])
+        # The "n" expression involved the target variable
+        {{target_array}} = {{target_array}}.repeat(_n[_j])
     elif _n != 1:
-        # We have a j-independent number
-        _post_idx = _post_idx.repeat(_n)
+        # We have a target-independent number
+        {{target_array}} = {{target_array}}.repeat(_n)
+    _numnew = len({{target_array}})
 
-    _numnew = len(_post_idx)
     _new_num_synapses = _cur_num_synapses + _numnew
     {{_dynamic__synaptic_pre}}.resize(_new_num_synapses)
     {{_dynamic__synaptic_post}}.resize(_new_num_synapses)
