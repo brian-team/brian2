@@ -17,17 +17,22 @@
     {{_dynamic_N_incoming}}.resize(_N_post + _target_offset);
     {{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
     size_t _raw_pre_idx, _raw_post_idx;
+    {# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
+    "j" is called the "target variable" (and "_post_idx" the "target array", etc.)
+    "i" is called the "base variable" (and "_pre_idx" the "base array", etc.)
+    "k" is called the iteration variable #}
+    
     // scalar code
     const size_t _vectorisation_idx = -1;
     {{scalar_code['setup_iterator']|autoindent}}
-    {{scalar_code['create_j']|autoindent}}
+    {{scalar_code['generator_expr']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
-    {{scalar_code['update_post']|autoindent}}
-    for(size_t _i=0; _i<_N_pre; _i++)
+    {{scalar_code['update']|autoindent}}
+    for(size_t _{{base_var}}=0; _{{base_var}}<_{{base_var_size}}; _{{base_var}}++)
     {
         bool __cond, _cond;
-        _raw_pre_idx = _i + _source_offset;
-        {% if not postsynaptic_condition %}
+        _raw{{base_array}} = _{{base_var}} + {{base_offset}};
+        {% if not target_condition %}
         {
             {{vector_code['create_cond']|autoindent}}
             __cond = _cond;
@@ -164,26 +169,26 @@
             }
         {% endif %}
         {% endif %}
-            long __j, _j, _pre_idx, __pre_idx;
+            long __{{target_var}}, _{{target_var}}, {{base_array}}, _{{base_array}};
             {
-                {{vector_code['create_j']|autoindent}}
-                __j = _j; // pick up the locally scoped _j and store in __j
-                __pre_idx = _pre_idx;
+                {{vector_code['generator_expr']|autoindent}}
+                __{{target_var}} = _{{target_var}}; // pick up the locally scoped var and store in outer var
+                _{{base_array}} = {{base_array}};
             }
-            _j = __j; // make the previously locally scoped _j available
-            _pre_idx = __pre_idx;
-            _raw_post_idx = _j + _target_offset;
-            {% if postsynaptic_condition %}
+            _{{target_var}} = __{{target_var}}; // make the previously locally scoped var available
+            {{base_array}} = _{{base_array}};
+            _raw{{target_array}} = _{{target_var}} + {{target_offset}};
+            {% if target_condition %}
             {
-                {% if postsynaptic_variable_used %}
+                {% if target_variable_used %}
                 {# The condition could index outside of array range #}
-                if(_j<0 || _j>=_N_post)
+                if(_{{target_var}}<0 || _{{target_var}}>=_{{target_var_size}})
                 {
                     {% if skip_if_invalid %}
                     continue;
                     {% else %}
-                    cout << "Error: tried to create synapse to neuron j=" << _j << " outside range 0 to " <<
-                                            _N_post-1 << endl;
+                    cout << "Error: tried to create synapse to neuron {{target_var}}=" << _{{target_var}} << " outside range 0 to " <<
+                                            _{{target_var_size}}-1 << endl;
                     exit(1);
                     {% endif %}
                 }
@@ -197,20 +202,20 @@
             {% if if_expression!='True' %}
             if(!_cond) continue;
             {% endif %}
-            {% if not postsynaptic_variable_used %}
+            {% if not target_variable_used %}
             {# Otherwise, we already checked before #}
-            if(_j<0 || _j>=_N_post)
+            if(_{{target_var}}<0 || _{{target_var}}>=_{{target_var_size}})
             {
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
-                cout << "Error: tried to create synapse to neuron j=" << _j << " outside range 0 to " <<
-                        _N_post-1 << endl;
+                cout << "Error: tried to create synapse to neuron {{target_var}}=" << _{{target_var}} <<
+                        " outside range 0 to " << _{{target_var_size}}-1 << endl;
                 exit(1);
                 {% endif %}
             }
             {% endif %}
-            {{vector_code['update_post']|autoindent}}
+            {{vector_code['update']|autoindent}}
 
             for (size_t _repetition=0; _repetition<_n; _repetition++) {
                 {{_dynamic_N_outgoing}}[_pre_idx] += 1;
