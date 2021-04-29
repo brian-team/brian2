@@ -2670,7 +2670,6 @@ def test_synapse_generator_fixed_random_negative_steps():
 
 @pytest.mark.standalone_compatible
 def test_synapse_generator_fixed_random_error1():
-    set_device('cpp_standalone')
     G = NeuronGroup(5, '')
     G2 = NeuronGroup(7, '')
     S = Synapses(G, G2)
