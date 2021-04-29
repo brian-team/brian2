@@ -54,17 +54,23 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     cdef size_t _jump
     {% endif %}
     {% endif %}
+
+    {# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
+    "j" is called the "target variable" (and "_post_idx" the "target array", etc.)
+    "i" is called the "base variable" (and "_pre_idx" the "base array", etc.)
+    "k" is called the iteration variable #}
+
     # scalar code
     _vectorisation_idx = 1
     {{scalar_code['setup_iterator']|autoindent}}
-    {{scalar_code['create_j']|autoindent}}
+    {{scalar_code['generator_expr']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
-    {{scalar_code['update_post']|autoindent}}
+    {{scalar_code['update']|autoindent}}
 
-    for _i in range(N_pre):
-        _raw_pre_idx = _i + _source_offset
+    for _{{base_var}} in range({{base_var_size}}):
+        _raw{{base_array}} = _{{base_var}} + {{base_offset}}
 
-        {% if not postsynaptic_condition %}
+        {% if not target_condition %}
         {{vector_code['create_cond']|autoindent}}
         if not _cond:
             continue
@@ -155,35 +161,35 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
         {% endif %}
 
-            {{vector_code['create_j']|autoindent}}
-            _raw_post_idx = _j + _target_offset
+            {{vector_code['generator_expr']|autoindent}}
+            _raw{{target_array}} = _{{target_var}} + {{target_offset}}
 
-            {% if postsynaptic_condition %}
-            {% if postsynaptic_variable_used %}
+            {% if target_condition %}
+            {% if target_variable_used %}
             {# The condition could index outside of array range #}
-            if _j<0 or _j>=N_post:
+            if _{{target_var}}<0 or _{{target_var}}>={{target_var_size}}:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
-                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                raise IndexError("index {{target_var}}=%d outside allowed range from 0 to %d" % (_{{target_var}}, {{target_var_size}}-1))
                 {% endif %}
             {% endif %}
             {{vector_code['create_cond']|autoindent}}
             {% endif %}
-            {% if if_expression!='True' and postsynaptic_condition %}
+            {% if if_expression!='True' and target_condition %}
             if not _cond:
                 continue
             {% endif %}
-            {% if not postsynaptic_variable_used %}
+            {% if not target_variable_used %}
             {# Otherwise, we already checked before #}
-            if _j<0 or _j>=N_post:
+            if _{{target_var}}<0 or _{{target_var}}>={{target_var_size}}:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
-                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_j, N_post-1))
+                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_{{target_var}}, {{target_var_size}}-1))
                 {% endif %}
             {% endif %}
-            {{vector_code['update_post']|autoindent}}
+            {{vector_code['update']|autoindent}}
 
             for _repetition in range(_n):
                 _prebuf_ptr[_curbuf] = _pre_idx
