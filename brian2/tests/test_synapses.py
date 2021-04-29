@@ -2321,6 +2321,67 @@ def test_synapse_generator_deterministic():
 
 
 @pytest.mark.standalone_compatible
+def test_synapse_generator_deterministic_over_postsynaptic():
+    # Same as "test_connection_string_deterministic" but using the generator
+    # syntax and iterating over post-synaptic variables
+    G = NeuronGroup(16, 'v : 1', threshold='False', reset='')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1', threshold='False', reset='')
+    G2.v = '16 + i'
+
+    # Full connection
+    expected_full = np.ones((len(G), len(G2)))
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(i='k for k in range(N_pre)')
+
+    # Full connection without self-connections
+    expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
+
+    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2.connect(i='k for k in range(N_pre) if k != j')
+
+    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    # slightly confusing with i on the RHS, but it should work...
+    S3.connect(i='k for k in range(N_pre) if i != j')
+
+    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4.connect(j='k for k in range(N_pre) if v_pre != v_post')
+
+    # One-to-one connectivity
+    expected_one_to_one = np.eye(len(G))
+
+    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5.connect(i='k for k in range(N_pre) if k == j')  # inefficient
+
+    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    # slightly confusing with j on the RHS, but it should work...
+    S6.connect(i='k for k in range(N_pre) if i == j')  # inefficient
+
+    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7.connect(i='k for k in range(N_pre) if v_pre == v_post')  # inefficient
+
+    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8.connect(i='j for _ in range(1)')  # efficient
+
+    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9.connect(i='j')  # short form of the above
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    _compare(S1, expected_full)
+    _compare(S2, expected_no_self)
+    _compare(S3, expected_no_self)
+    _compare(S4, expected_no_self)
+    _compare(S5, expected_one_to_one)
+    _compare(S6, expected_one_to_one)
+    _compare(S7, expected_one_to_one)
+    _compare(S8, expected_one_to_one)
+    _compare(S9, expected_one_to_one)
+
+
+@pytest.mark.standalone_compatible
 @pytest.mark.long
 def test_synapse_generator_deterministic_2():
     # Same as "test_connection_string_deterministic" but using the generator
@@ -2442,6 +2503,43 @@ def test_synapse_generator_random():
     assert len(S4) == 7
     assert_equal(S4.i, np.ones(7)*2)
     assert_equal(S4.j, np.arange(7))
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_generator_random_over_postsynaptic():
+    # The same tests as test_connection_random_without_condition, but using
+    # the generator syntax and iterating over post-synaptic neurons
+    G = NeuronGroup(4, '''v: 1
+                          x : integer''', threshold='False', reset='')
+    G.x = 'i'
+    G2 = NeuronGroup(7, '''v: 1
+                           y : 1''', threshold='False', reset='')
+    G2.y = 'i'
+
+    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1.connect(i='k for k in sample(N_pre, p=0)')
+
+    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2.connect(i='k for k in sample(N_pre, p=1)')
+
+    # Just make sure using values between 0 and 1 work in principle
+    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3.connect(i='k for k in sample(N_pre, p=0.3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4.connect(i='k for k in sample(N_pre, p=int(y_post==2)*1.0)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, np.ones((len(G), len(G2))))
+    assert 0 <= len(S3) <= len(G) * len(G2)
+    assert len(S4) == 4
+    assert_equal(S4.i, np.arange(4))
+    assert_equal(S4.j, np.ones(4)*2)
 
 
 @pytest.mark.standalone_compatible
