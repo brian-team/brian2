@@ -2243,7 +2243,7 @@ def test_synapse_generator_syntax():
 
 
 def test_synapse_generator_out_of_range():
-    G = NeuronGroup(16, '')
+    G = NeuronGroup(16, 'v : 1')
     G2 = NeuronGroup(4, 'v : 1')
     G2.v = '16 + i'
 
