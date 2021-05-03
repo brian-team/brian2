@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Brian2
         run: |
-          source activate $HOME/test_env
+          conda activate $HOME/test_env
           conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
