@@ -12,7 +12,7 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Set up Python 3.x
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
@@ -21,7 +21,7 @@ jobs:
         run: echo "##vso[task.prependpath]$CONDA/bin"
       
       - name: Setup Conda Environment
-        run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=$(python.version) pip pytest
+        run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python='3.8' pip pytest
 
       - name: Install Brian2
         run: |
