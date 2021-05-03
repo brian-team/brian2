@@ -11,12 +11,32 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      
       - name: Set up Python 3.x
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
+      
       - name: Add conda to PATH
         run: echo "##vso[task.prependpath]$CONDA/bin"
+      
       - name: Setup Conda Environment
         run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=$(python.version) pip pytest
-        
+
+      - name: Install Brian2
+        run: |
+          source activate $HOME/test_env
+          conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
+          pip install .
+
+      - name: Run tests
+        run: |
+          source activate $HOME/test_env
+          SOURCE_PATH=$(pwd)
+          cd ..
+          coverage run --rcfile=$SOURCE_PATH/.coveragerc $SOURCE_PATH/$(script_name)
+        env:
+          script_name: dev/continuous-integration/run_test_suite.py
+          AGENT_OS: ${{runner.os}}
+
+ 
