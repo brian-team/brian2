@@ -195,4 +195,3 @@ def _check_caches():
             check_cache(target)
 
 _check_caches()
-print("Hello World")
