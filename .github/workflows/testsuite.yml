@@ -21,12 +21,12 @@ jobs:
         run: echo "##vso[task.prependpath]$CONDA/bin"
       
       - name: Setup Conda Environment
-        run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
+        run: $CONDA/bin/conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
 
       - name: Install Brian2
         run: |
           source activate $HOME/test_env
-          conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
+          $CONDA/bin/conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
       - name: Run tests
