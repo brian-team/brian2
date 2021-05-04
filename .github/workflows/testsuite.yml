@@ -21,13 +21,8 @@ jobs:
         run: echo "##vso[task.prependpath]$CONDA/bin"
       
       - name: Setup Conda Environment
-        run: |
-          conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
-          conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
-          pip install .
-          SOURCE_PATH=$(pwd)
-          cd ..
-          coverage run --rcfile=$SOURCE_PATH/.coveragerc $SOURCE_PATH/$(script_name)
+        run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
+        
         env:
           script_name: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
@@ -35,6 +30,8 @@ jobs:
       - name: Install Brian2
         run: |
           source activate $HOME/test_env
+          conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
+          pip install .
 
       - name: Run tests
         run: |
