@@ -1401,9 +1401,12 @@ def test_repr():
     # Test that string/LaTeX representations do not raise errors
     for func in [str, repr, sympy.latex]:
         assert len(func(G))
+        assert 'textbackslash' not in func(G)  # for LaTeX, see #1296
         assert len(func(G.equations))
+        assert 'textbackslash' not in func(G.equations)
         for eq in G.equations.values():
             assert len(func(eq))
+
 
 @pytest.mark.codegen_independent
 def test_ipython_html():
