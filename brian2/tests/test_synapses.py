@@ -2680,6 +2680,43 @@ def test_synapse_generator_fixed_random():
 
 
 @pytest.mark.standalone_compatible
+def test_synapse_generator_fixed_random_over_postsynaptic():
+    # Random samples with fixed size, iterating over post-synaptic neurons
+    G = NeuronGroup(4, '')
+    G2 = NeuronGroup(7, 'y : integer')
+    G2.y = 'i'
+
+    S1 = Synapses(G, G2)
+    S1.connect(i='k for k in sample(N_pre, size=0)')
+
+    S2 = Synapses(G, G2)
+    S2.connect(i='k for k in sample(N_pre, size=N_pre)')
+
+    S3 = Synapses(G, G2)
+    S3.connect(i='k for k in sample(N_pre, size=3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2)
+    S4.connect(i='k for k in sample(N_pre, size=int(y_post==2)*N_pre)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, np.ones((len(G), len(G2))))
+    # Each neuron should have 3 incoming connections
+    assert_array_equal(S3.N_incoming_post, np.ones(7)*3)
+    # Synapses should be sorted and unique
+    for target_idx in range(7):
+        assert len(set(S3.i[:, target_idx])) == 3
+        assert all(S3.i[:, target_idx] == sorted(S3.i[:, target_idx]))
+    assert len(S4) == 4
+    assert_equal(S4.j, np.ones(4)*2)
+    assert_equal(S4.i, np.arange(4))
+
+
+@pytest.mark.standalone_compatible
 def test_synapse_generator_fixed_random_positive_steps():
     # Test generator with fixed-size sampling from stepped ranges (e.g. all
     # even numbers)
