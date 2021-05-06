@@ -32,9 +32,9 @@ jobs:
         run: |
           source activate $HOME/test_env
           cd $GITHUB_WORKSPACE
-          coverage run $GITHUB_WORKSPACE/$(script_name)
+          coverage run $GITHUB_WORKSPACE/$SCRIPT_NAME
         env:
-          script_name: dev/continuous-integration/run_test_suite.py
+          SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
           COVERAGE_RCFILE: ${{github.workspace}}/.coveragerc
 
