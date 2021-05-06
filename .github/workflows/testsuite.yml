@@ -1,6 +1,6 @@
 name: TestSuite
 
-on: [push,pull_request]
+on: [push, pull_request]
 
 jobs:
   testing-ubuntu:
@@ -11,36 +11,30 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      
+
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
-      
-      - name: Add conda to PATH
-        run: echo "##vso[task.prependpath]$CONDA/bin"
-      
+          python-version: "3.8"
+      - name: Set up Conda
+        uses: s-weigand/setup-conda@v1.0.5
+
       - name: Setup Conda Environment
         run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
-        
-        env:
-          script_name: dev/continuous-integration/run_test_suite.py
-          AGENT_OS: ${{runner.os}}
-          
+
       - name: Install Brian2
         run: |
-          source activate $HOME/test_env
+          source activate $HOME/test_env   
           conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
-      - name: Run tests
+      - name: Run Tests
         run: |
-          source activate $HOME/test_env
-          SOURCE_PATH=$(pwd)
-          cd ..
-          coverage run --rcfile=$SOURCE_PATH/.coveragerc $SOURCE_PATH/$(script_name)
+          cd $GITHUB_WORKSPACE
+          coverage run $GITHUB_WORKSPACE/$(script_name)
         env:
           script_name: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
+          COVERAGE_RCFILE: ${{github.workspace}}/.coveragerc
 
  
