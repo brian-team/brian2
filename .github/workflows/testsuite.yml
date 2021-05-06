@@ -30,6 +30,7 @@ jobs:
 
       - name: Run Tests
         run: |
+          source activate $HOME/test_env
           cd $GITHUB_WORKSPACE
           coverage run $GITHUB_WORKSPACE/$(script_name)
         env:
