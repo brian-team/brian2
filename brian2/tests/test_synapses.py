@@ -397,7 +397,7 @@ def test_connection_random_with_condition():
 @pytest.mark.standalone_compatible
 @pytest.mark.long
 def test_connection_random_with_condition_2():
-    G = NeuronGroup(4)
+    G = NeuronGroup(4, '')
 
     # Just checking that everything works in principle (we can't check the
     # actual connections)
@@ -2404,8 +2404,8 @@ def test_synapse_generator_deterministic_over_postsynaptic():
 def test_synapse_generator_deterministic_2():
     # Same as "test_connection_string_deterministic" but using the generator
     # syntax
-    G = NeuronGroup(16)
-    G2 = NeuronGroup(4)
+    G = NeuronGroup(16, '')
+    G2 = NeuronGroup(4, '')
     # A few more tests of deterministic connections where the generator syntax
     # is particularly useful
 
