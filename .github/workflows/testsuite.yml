@@ -12,12 +12,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.8"
-      - name: Set up Conda
+      # - name: Set up Python 3.8
+      #   uses: actions/setup-python@v2
+      #   with:
+      #     python-version: "3.8"
+
+      - name: Set up Conda and Python
         uses: s-weigand/setup-conda@v1.0.5
+        with:
+          python-version: 3.8
+          conda-channels: conda-forge
 
       - name: Setup Conda Environment
         run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
