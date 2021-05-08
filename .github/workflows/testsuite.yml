@@ -43,7 +43,16 @@ jobs:
       - name: Upload coverage data to coveralls
         run: |
           pip install coveralls
-          pwd
-          ls -a
+          export CIRCLE_BRANCH=${GITHUB_REF##*/}
+          cp $GITHUB_WORKSPACE/../.coverage $GITHUB_WORKSPACE
+          coveralls --rcfile=$GITHUB_WORKSPACE/.coveragerc
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.coveralls }}
+          CIRCLECI: 1
+          CIRCLE_BUILD_NUM: ${{ github.run_id }}
+          COVERALLS_FLAG_NAME: ${{ github.job }}
+          COVERALLS_PARALLEL: true
+
+
 
  
