@@ -1699,40 +1699,39 @@ class Synapses(Group):
         template_kwds['skip_if_invalid'] = skip_if_invalid
         # To support both i='...' and j='...' syntax, we provide additional keywords
         # to the template
-        base_var = 'i' if over_presynaptic else 'j'
-        base_var_size = 'N_pre' if over_presynaptic else 'N_post'
-        base_array = '_pre_idx' if over_presynaptic else '_post_idx'
-        base_offset = '_source_offset' if over_presynaptic else '_target_offset'
-        target_var = 'j' if over_presynaptic else 'i'
-        target_var_size = 'N_post' if over_presynaptic else 'N_pre'
+        outer_index = 'i' if over_presynaptic else 'j'
+        outer_index_size = 'N_pre' if over_presynaptic else 'N_post'
+        outer_index_array = '_pre_idx' if over_presynaptic else '_post_idx'
+        outer_index_offset = '_source_offset' if over_presynaptic else '_target_offset'
+        result_index = 'j' if over_presynaptic else 'i'
+        result_index_size = 'N_post' if over_presynaptic else 'N_pre'
         target_idx = '_postsynaptic_idx' if over_presynaptic else '_presynaptic_idx'
-        target_array = '_post_idx' if over_presynaptic else '_pre_idx'
-        target_offset = '_target_offset' if over_presynaptic else '_source_offset'
-        # for error messages:
-        target_idx_name = 'postsynaptic' if over_presynaptic else 'presynaptic'
-        template_kwds.update({'base_var': base_var,
-                              'base_var_size': base_var_size,
-                              'base_array': base_array,
-                              'base_offset': base_offset,
-                              'target_var': target_var,
-                              'target_var_size': target_var_size,
-                              'target_idx': target_idx,
-                              'target_array': target_array,
-                              'target_offset': target_offset})
+        result_index_array = '_post_idx' if over_presynaptic else '_pre_idx'
+        result_index_offset = '_target_offset' if over_presynaptic else '_source_offset'
+        result_index_name = 'postsynaptic' if over_presynaptic else 'presynaptic'
+        template_kwds.update({'outer_index': outer_index,
+                              'outer_index_size': outer_index_size,
+                              'outer_index_array': outer_index_array,
+                              'outer_index_offset': outer_index_offset,
+                              'result_index': result_index,
+                              'result_index_size': result_index_size,
+                              'result_index_name': result_index_name,
+                              'result_index_array': result_index_array,
+                              'result_index_offset': result_index_offset})
         abstract_code = {'setup_iterator': '',
                          'generator_expr': '',
                          'create_cond': '',
                          'update': ''}
 
-        additional_indices = {parsed['iteration_variable']: '_iterator_idx'}
+        additional_indices = {parsed['inner_variable']: '_iterator_idx'}
 
         setupiter = ''
         for k, v in parsed['iterator_kwds'].items():
             if v is not None and k != 'sample_size':
                 deps = self._expression_index_dependence(v, namespace=namespace,
                                                          additional_indices=additional_indices)
-                if target_idx in deps or '_iterator_idx' in deps:
-                    raise ValueError(f'Expression "{v}" depends on {target_idx_name} '
+                if f'_{result_index_name}_idx' in deps or '_iterator_idx' in deps:
+                    raise ValueError(f'Expression "{v}" depends on {result_index_name} '
                                      f'index or iterator')
                 setupiter += f'_iter_{k} = {v}\n'
 
@@ -1740,30 +1739,30 @@ class Synapses(Group):
         # its in the range expression (handled above)
         additional_indices['_vectorisation_idx'] = '_iterator_idx'
 
-        target_idx_condition = False
-        target_variable_used = False
+        result_index_condition = False
+        result_index_used = False
         if parsed['if_expression'] is not None:
             deps = self._expression_index_dependence(parsed['if_expression'],
                                                      namespace=namespace,
                                                      additional_indices=additional_indices)
             if target_idx in deps:
-                target_idx_condition = True
-                target_variable_used = True
+                result_index_condition = True
+                result_index_used = True
             elif '_iterator_idx' in deps:
-                target_idx_condition = True
-        template_kwds['target_condition'] = target_idx_condition
-        template_kwds['target_variable_used'] = target_variable_used
+                result_index_condition = True
+        template_kwds['result_index_condition'] = result_index_condition
+        template_kwds['result_index_used'] = result_index_used
 
         abstract_code['setup_iterator'] += setupiter
-        abstract_code['generator_expr'] += f'{base_array} = _raw{base_array} \n'
-        abstract_code['generator_expr'] += f'_{target_var} = {parsed["element"]}\n'
+        abstract_code['generator_expr'] += f'{outer_index_array} = _raw{outer_index_array} \n'
+        abstract_code['generator_expr'] += f'_{result_index} = {parsed["element"]}\n'
 
-        if target_idx_condition:
-            abstract_code['create_cond'] += f'{target_array} = _raw{target_array} \n'
+        if result_index_condition:
+            abstract_code['create_cond'] += f'{result_index_array} = _raw{result_index_array} \n'
         if parsed['if_expression'] is not None:
             abstract_code['create_cond'] += ('_cond = ' +
                                              parsed['if_expression'] + '\n')
-            abstract_code['update'] += f'{target_array} = _raw{target_array} \n'
+            abstract_code['update'] += f'{result_index_array} = _raw{result_index_array} \n'
         abstract_code['update'] += '_n = ' + str(n) + '\n'
 
         # This overwrites 'i' and 'j' in the synapses' variables dictionary
@@ -1779,7 +1778,7 @@ class Synapses(Group):
         variables.add_auxiliary_variable('_iter_step', dtype=np.int32)
         variables.add_auxiliary_variable('_iter_p')
         variables.add_auxiliary_variable('_iter_size', dtype=np.int32)
-        variables.add_auxiliary_variable(parsed['iteration_variable'],
+        variables.add_auxiliary_variable(parsed['inner_variable'],
                                          dtype=np.int32)
         # Make sure that variables have the correct type in the code
         variables.add_auxiliary_variable('_pre_idx', dtype=np.int32)

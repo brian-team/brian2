@@ -56,9 +56,9 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {% endif %}
 
     {# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
-    "j" is called the "target variable" (and "_post_idx" the "target array", etc.)
-    "i" is called the "base variable" (and "_pre_idx" the "base array", etc.)
-    "k" is called the iteration variable #}
+    "j" is called the "result index" (and "_post_idx" the "result index array", etc.)
+    "i" is called the "outer index" (and "_pre_idx" the "outer index array", etc.)
+    "k" is called the inner variable #}
 
     # scalar code
     _vectorisation_idx = 1
@@ -67,17 +67,17 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update']|autoindent}}
 
-    for _{{base_var}} in range({{base_var_size}}):
-        _raw{{base_array}} = _{{base_var}} + {{base_offset}}
+    for _{{outer_index}} in range({{outer_index_size}}):
+        _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}}
 
-        {% if not target_condition %}
+        {% if not result_index_condition %}
         {{vector_code['create_cond']|autoindent}}
         if not _cond:
             continue
         {% endif %}
         {{vector_code['setup_iterator']|autoindent}}
         {% if iterator_func=='range' %}
-        for {{iteration_variable}} in range(_iter_low, _iter_high, _iter_step):
+        for {{inner_variable}} in range(_iter_low, _iter_high, _iter_step):
         {% elif iterator_func=='sample' %}
         {% if iterator_kwds['sample_size'] == 'fixed' %}
         # Note that the following code is written in a slightly convoluted way,
@@ -106,7 +106,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             raise IndexError('Requested sample size %d is negative.' % _iter_size)
             {% endif %}
         if _selection_algo:
-            {{iteration_variable}} = _iter_low - _iter_step
+            {{inner_variable}} = _iter_low - _iter_step
         else:
             # For the tracking algorithm, we have to first create all values
             # to make sure they will be iterated in sorted order
@@ -121,7 +121,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
 
         while _n_selected < _iter_size:
             if _selection_algo:
-                {{iteration_variable}} += _iter_step
+                {{inner_variable}} += _iter_step
                 # Selection sampling technique
                 # See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2,
                 # Seminumerical Algorithms
@@ -130,7 +130,7 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 if (_n_total - _n_dealt_with) * _U >= _iter_size - _n_selected:
                     continue
             else:
-                {{iteration_variable}} = _iter_low + _deref(_selected_it)*_iter_step
+                {{inner_variable}} = _iter_low + _deref(_selected_it)*_iter_step
                 _preinc(_selected_it)
             _n_selected += 1
 
@@ -147,13 +147,13 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         else:
             _log1p = 1.0 # will be ignored
         _pconst = 1.0/_log1p
-        {{iteration_variable}} = _iter_low-_iter_step
-        while _iter_sign*({{iteration_variable}} + _iter_step) < _iter_sign*_iter_high:
-            {{iteration_variable}} += _iter_step
+        {{inner_variable}} = _iter_low-_iter_step
+        while _iter_sign*({{inner_variable}} + _iter_step) < _iter_sign*_iter_high:
+            {{inner_variable}} += _iter_step
             if _jump_algo:
                 _jump = <int>(log(_rand(_vectorisation_idx))*_pconst)*_iter_step
-                {{iteration_variable}} += _jump
-                if _iter_sign*{{iteration_variable}} >= _iter_sign*_iter_high:
+                {{inner_variable}} += _jump
+                if _iter_sign*{{inner_variable}} >= _iter_sign*_iter_high:
                     break
             else:
                 if _rand(_vectorisation_idx)>=_iter_p:
@@ -162,31 +162,31 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
         {% endif %}
 
             {{vector_code['generator_expr']|autoindent}}
-            _raw{{target_array}} = _{{target_var}} + {{target_offset}}
+            _raw{{result_index_array}} = _{{result_index}} + {{result_index_offset}}
 
-            {% if target_condition %}
-            {% if target_variable_used %}
+            {% if result_index_condition %}
+            {% if result_index_used %}
             {# The condition could index outside of array range #}
-            if _{{target_var}}<0 or _{{target_var}}>={{target_var_size}}:
+            if _{{result_index}}<0 or _{{result_index}}>={{result_index_size}}:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
-                raise IndexError("index {{target_var}}=%d outside allowed range from 0 to %d" % (_{{target_var}}, {{target_var_size}}-1))
+                raise IndexError("index {{result_index}}=%d outside allowed range from 0 to %d" % (_{{result_index}}, {{result_index_size}}-1))
                 {% endif %}
             {% endif %}
             {{vector_code['create_cond']|autoindent}}
             {% endif %}
-            {% if if_expression!='True' and target_condition %}
+            {% if if_expression!='True' and result_index_condition %}
             if not _cond:
                 continue
             {% endif %}
-            {% if not target_variable_used %}
+            {% if not result_index_used %}
             {# Otherwise, we already checked before #}
-            if _{{target_var}}<0 or _{{target_var}}>={{target_var_size}}:
+            if _{{result_index}}<0 or _{{result_index}}>={{result_index_size}}:
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
-                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_{{target_var}}, {{target_var_size}}-1))
+                raise IndexError("index j=%d outside allowed range from 0 to %d" % (_{{result_index}}, {{result_index_size}}-1))
                 {% endif %}
             {% endif %}
             {{vector_code['update']|autoindent}}

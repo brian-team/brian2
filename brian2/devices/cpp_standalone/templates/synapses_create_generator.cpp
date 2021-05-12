@@ -18,9 +18,9 @@
     {{_dynamic_N_outgoing}}.resize(_N_pre + _source_offset);
     size_t _raw_pre_idx, _raw_post_idx;
     {# For a connect call j='k+i for k in range(0, N_post, 2) if k+i < N_post'
-    "j" is called the "target variable" (and "_post_idx" the "target array", etc.)
-    "i" is called the "base variable" (and "_pre_idx" the "base array", etc.)
-    "k" is called the iteration variable #}
+    "j" is called the "result index" (and "_post_idx" the "result index array", etc.)
+    "i" is called the "outer index" (and "_pre_idx" the "outer index array", etc.)
+    "k" is called the inner variable #}
     
     // scalar code
     const size_t _vectorisation_idx = -1;
@@ -28,11 +28,11 @@
     {{scalar_code['generator_expr']|autoindent}}
     {{scalar_code['create_cond']|autoindent}}
     {{scalar_code['update']|autoindent}}
-    for(size_t _{{base_var}}=0; _{{base_var}}<_{{base_var_size}}; _{{base_var}}++)
+    for(size_t _{{outer_index}}=0; _{{outer_index}}<_{{outer_index_size}}; _{{outer_index}}++)
     {
         bool __cond, _cond;
-        _raw{{base_array}} = _{{base_var}} + {{base_offset}};
-        {% if not target_condition %}
+        _raw{{outer_index_array}} = _{{outer_index}} + {{outer_index_offset}};
+        {% if not result_index_condition %}
         {
             {{vector_code['create_cond']|autoindent}}
             __cond = _cond;
@@ -75,7 +75,7 @@
             {% endif %}
         }
         {% if iterator_func=='range' %}
-        for(long {{iteration_variable}}=_uiter_low; {{iteration_variable}}<_uiter_high; {{iteration_variable}}+=_uiter_step)
+        for(long {{inner_variable}}=_uiter_low; {{inner_variable}}<_uiter_high; {{inner_variable}}+=_uiter_step)
         {
         {% elif iterator_func=='sample' %}
         const int _iter_sign = _uiter_step > 0 ? 1 : -1;
@@ -110,11 +110,11 @@
             {% endif %}
         } else if (_uiter_size == 0)
             continue;
-        long {{iteration_variable}};
+        long {{inner_variable}};
 
         if (_selection_algo)
         {
-            {{iteration_variable}} = _uiter_low - _uiter_step;
+            {{inner_variable}} = _uiter_low - _uiter_step;
         } else
         {
             // For the tracking algorithm, we have to first create all values
@@ -136,14 +136,14 @@
             {
                 // Selection sampling technique
                 // See section 3.4.2 of Donald E. Knuth, AOCP, Vol 2, Seminumerical Algorithms
-                {{iteration_variable}} += _uiter_step;
+                {{inner_variable}} += _uiter_step;
                 _n_dealt_with++;
                 const double _U = _rand(_vectorisation_idx);
                 if ((_n_total - _n_dealt_with) * _U >= _uiter_size - _n_selected)
                     continue;
             } else
             {
-                {{iteration_variable}} = _uiter_low + (*_selected_it)*_uiter_step;
+                {{inner_variable}} = _uiter_low + (*_selected_it)*_uiter_step;
                 _selected_it++;
             }
             _n_selected++;
@@ -156,39 +156,39 @@
         else
             _log1p = 1.0; // will be ignored
         const double _pconst = 1.0/log(1-_uiter_p);
-        for(long {{iteration_variable}}=_uiter_low; _iter_sign*{{iteration_variable}}<_iter_sign*_uiter_high; {{iteration_variable}} += _uiter_step)
+        for(long {{inner_variable}}=_uiter_low; _iter_sign*{{inner_variable}}<_iter_sign*_uiter_high; {{inner_variable}} += _uiter_step)
         {
             if(_jump_algo) {
                 const double _r = _rand(_vectorisation_idx);
                 if(_r==0.0) break;
                 const int _jump = floor(log(_r)*_pconst)*_uiter_step;
-                {{iteration_variable}} += _jump;
-                if (_iter_sign*{{iteration_variable}} >= _iter_sign * _uiter_high) continue;
+                {{inner_variable}} += _jump;
+                if (_iter_sign*{{inner_variable}} >= _iter_sign * _uiter_high) continue;
             } else {
                 if (_rand(_vectorisation_idx)>=_uiter_p) continue;
             }
         {% endif %}
         {% endif %}
-            long __{{target_var}}, _{{target_var}}, {{base_array}}, _{{base_array}};
+            long __{{result_index}}, _{{result_index}}, {{outer_index_array}}, _{{outer_index_array}};
             {
                 {{vector_code['generator_expr']|autoindent}}
-                __{{target_var}} = _{{target_var}}; // pick up the locally scoped var and store in outer var
-                _{{base_array}} = {{base_array}};
+                __{{result_index}} = _{{result_index}}; // pick up the locally scoped var and store in outer var
+                _{{outer_index_array}} = {{outer_index_array}};
             }
-            _{{target_var}} = __{{target_var}}; // make the previously locally scoped var available
-            {{base_array}} = _{{base_array}};
-            _raw{{target_array}} = _{{target_var}} + {{target_offset}};
-            {% if target_condition %}
+            _{{result_index}} = __{{result_index}}; // make the previously locally scoped var available
+            {{outer_index_array}} = _{{outer_index_array}};
+            _raw{{result_index_array}} = _{{result_index}} + {{result_index_offset}};
+            {% if result_index_condition %}
             {
-                {% if target_variable_used %}
+                {% if result_index_used %}
                 {# The condition could index outside of array range #}
-                if(_{{target_var}}<0 || _{{target_var}}>=_{{target_var_size}})
+                if(_{{result_index}}<0 || _{{result_index}}>=_{{result_index_size}})
                 {
                     {% if skip_if_invalid %}
                     continue;
                     {% else %}
-                    cout << "Error: tried to create synapse to neuron {{target_var}}=" << _{{target_var}} << " outside range 0 to " <<
-                                            _{{target_var_size}}-1 << endl;
+                    cout << "Error: tried to create synapse to neuron {{result_index}}=" << _{{result_index}} << " outside range 0 to " <<
+                                            _{{result_index_size}}-1 << endl;
                     exit(1);
                     {% endif %}
                 }
@@ -202,15 +202,15 @@
             {% if if_expression!='True' %}
             if(!_cond) continue;
             {% endif %}
-            {% if not target_variable_used %}
+            {% if not result_index_used %}
             {# Otherwise, we already checked before #}
-            if(_{{target_var}}<0 || _{{target_var}}>=_{{target_var_size}})
+            if(_{{result_index}}<0 || _{{result_index}}>=_{{result_index_size}})
             {
                 {% if skip_if_invalid %}
                 continue;
                 {% else %}
-                cout << "Error: tried to create synapse to neuron {{target_var}}=" << _{{target_var}} <<
-                        " outside range 0 to " << _{{target_var_size}}-1 << endl;
+                cout << "Error: tried to create synapse to neuron {{result_index}}=" << _{{result_index}} <<
+                        " outside range 0 to " << _{{result_index_size}}-1 << endl;
                 exit(1);
                 {% endif %}
             }
