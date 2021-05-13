@@ -34,11 +34,10 @@ jobs:
         run: |
           source activate $HOME/test_env
           cd $GITHUB_WORKSPACE
-          coverage run $GITHUB_WORKSPACE/$SCRIPT_NAME
+          coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
-          COVERAGE_RCFILE: ${{github.workspace}}/.coveragerc
       
       - name: Upload coverage data to coveralls
         uses: coverallsapp/github-action@master
