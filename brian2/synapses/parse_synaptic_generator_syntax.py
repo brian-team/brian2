@@ -86,11 +86,11 @@ def parse_synapse_generator(expr):
 
     The general form is:
 
-    ``element for iteration_variable in iterator_func(...)``
+    ``element for inner_variable in iterator_func(...)``
 
     or
 
-    ``element for iteration_variable in iterator_func(...) if if_expression``
+    ``element for inner_variable in iterator_func(...) if if_expression``
 
     Returns a dictionary with keys:
 
@@ -98,7 +98,7 @@ def parse_synapse_generator(expr):
         The original expression as a string.
     ``element``
         As above, a string expression.
-    ``iteration_variable``
+    ``inner_variable``
         A variable name, as above.
     ``iterator_func``
         String. Either ``range`` or ``sample``.
@@ -128,7 +128,7 @@ def parse_synapse_generator(expr):
     if _cname(target) != 'Name':
         raise SyntaxError(parse_error + " Generator must iterate over a single "
                                         "variable (not tuple, etc.).")
-    iteration_variable = target.id
+    inner_variable = target.id
     iterator = generator.iter
     if _cname(iterator) != 'Call' or _cname(iterator.func) !=  'Name':
         raise SyntaxError(parse_error + " Iterator expression must be one of "
@@ -163,7 +163,7 @@ def parse_synapse_generator(expr):
     parsed = {
         'original_expression': expr,
         'element': nr.render_node(element),
-        'iteration_variable': iteration_variable,
+        'inner_variable': inner_variable,
         'iterator_func': iterator_funcname,
         'iterator_kwds': iterator_kwds,
         'if_expression': nr.render_node(condition),

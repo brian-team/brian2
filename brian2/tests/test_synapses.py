@@ -141,6 +141,7 @@ def test_name_clashes():
     Synapses(G1, G2, 'a_syn : 1')
     Synapses(G1, G2, 'b_syn : 1')
 
+
 @pytest.mark.standalone_compatible
 def test_incoming_outgoing():
     '''
@@ -148,9 +149,9 @@ def test_incoming_outgoing():
     (It will be also automatically tested for all connection patterns that
     use the above _compare function for testing)
     '''
-    G1 = NeuronGroup(5, 'v: 1', threshold='False')
-    G2 = NeuronGroup(5, 'v: 1', threshold='False')
-    S = Synapses(G1, G2, 'w:1', on_pre='v+=w')
+    G1 = NeuronGroup(5, '')
+    G2 = NeuronGroup(5, '')
+    S = Synapses(G1, G2, '')
     S.connect(i=[0, 0, 0, 1, 1, 2],
               j=[0, 1, 2, 1, 2, 3])
     run(0*ms)  # to make this work for standalone
@@ -174,8 +175,8 @@ def test_connection_arrays():
     '''
     Test connecting synapses with explictly given arrays
     '''
-    G = NeuronGroup(42, 'v : 1')
-    G2 = NeuronGroup(17, 'v : 1')
+    G = NeuronGroup(42, '')
+    G2 = NeuronGroup(17, '')
 
     # one-to-one
     expected1 = np.eye(len(G2))
@@ -232,20 +233,19 @@ def test_connection_arrays():
     with pytest.raises(TypeError):
         S.connect(object())
 
+
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_full():
-    G = NeuronGroup(17, 'v : 1', threshold='False')
-    G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
-    G2.v = '17 + i'
+    G = NeuronGroup(17, '')
+    G2 = NeuronGroup(4, '')
 
     # Full connection
     expected_full = np.ones((len(G), len(G2)))
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2, '')
     S1.connect(True)
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2, '')
     S2.connect('True')
 
     run(0 * ms)  # for standalone
@@ -253,23 +253,24 @@ def test_connection_string_deterministic_full():
     _compare(S1, expected_full)
     _compare(S2, expected_full)
 
+
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_full_no_self():
-    G = NeuronGroup(17, 'v : 1', threshold='False')
+    G = NeuronGroup(17, 'v : 1')
     G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2 = NeuronGroup(4, 'v : 1')
     G2.v = '17 + i'
 
     # Full connection without self-connections
     expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
 
-    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1 = Synapses(G, G)
     S1.connect('i != j')
 
-    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2 = Synapses(G, G)
     S2.connect('v_pre != v_post')
 
-    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3 = Synapses(G, G)
     S3.connect(condition='i != j')
 
     run(0*ms)  # for standalone
@@ -278,29 +279,30 @@ def test_connection_string_deterministic_full_no_self():
     _compare(S2, expected_no_self)
     _compare(S3, expected_no_self)
 
+
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_full_one_to_one():
-    G = NeuronGroup(17, 'v : 1', threshold='False')
+    G = NeuronGroup(17, 'v : 1')
     G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2 = NeuronGroup(4, 'v : 1')
     G2.v = '17 + i'
 
     # One-to-one connectivity
     expected_one_to_one = np.eye(len(G))
 
-    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1 = Synapses(G, G)
     S1.connect('i == j')
 
-    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2 = Synapses(G, G)
     S2.connect('v_pre == v_post')
 
     S3 = Synapses(G, G, '''
                          sub_1 = v_pre : 1
                          sub_2 = v_post : 1
-                         w:1''', 'v+=w')
+                         w:1''')
     S3.connect('sub_1 == sub_2')
 
-    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4 = Synapses(G, G)
     S4.connect(j='i')
 
     run(0*ms)  # for standalone
@@ -310,20 +312,21 @@ def test_connection_string_deterministic_full_one_to_one():
     _compare(S3, expected_one_to_one)
     _compare(S4, expected_one_to_one)
 
+
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_full_custom():
-    G = NeuronGroup(17, 'v : 1', threshold='False')
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G = NeuronGroup(17, '')
+    G2 = NeuronGroup(4, '')
     # Everything except for the upper [2, 2] quadrant
     number = 2
     expected_custom = np.ones((len(G), len(G)))
     expected_custom[:number, :number] = 0
-    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1 = Synapses(G, G)
     S1.connect('(i >= number) or (j >= number)')
 
-    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2 = Synapses(G, G)
     S2.connect('(i >= explicit_number) or (j >= explicit_number)',
-                namespace={'explicit_number': number})
+               namespace={'explicit_number': number})
 
     # check that this mistaken syntax raises an error
     with pytest.raises(ValueError):
@@ -340,6 +343,7 @@ def test_connection_string_deterministic_full_custom():
     _compare(S1, expected_custom)
     _compare(S2, expected_custom)
 
+
 @pytest.mark.standalone_compatible
 def test_connection_string_deterministic_multiple_and():
     # In Brian versions 2.1.0-2.1.2, this fails on the numpy target
@@ -353,27 +357,27 @@ def test_connection_string_deterministic_multiple_and():
 
 @pytest.mark.standalone_compatible
 def test_connection_random_with_condition():
-    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G = NeuronGroup(4, '')
 
-    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1 = Synapses(G, G)
     S1.connect('i!=j', p=0.0)
 
-    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2 = Synapses(G, G)
     S2.connect('i!=j', p=1.0)
     expected2 = np.ones((len(G), len(G))) - np.eye(len(G))
 
-    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3 = Synapses(G, G)
     S3.connect('i>=2', p=0.0)
 
-    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4 = Synapses(G, G)
     S4.connect('i>=2', p=1.0)
     expected4 = np.zeros((len(G), len(G)))
     expected4[2, :] = 1
     expected4[3, :] = 1
 
-    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5 = Synapses(G, G)
     S5.connect('j<2', p=0.0)
-    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6 = Synapses(G, G)
     S6.connect('j<2', p=1.0)
     expected6 = np.zeros((len(G), len(G)))
     expected6[:, 0] = 1
@@ -389,55 +393,55 @@ def test_connection_random_with_condition():
     assert len(S5) == 0
     _compare(S6, expected6)
 
+
 @pytest.mark.standalone_compatible
 @pytest.mark.long
 def test_connection_random_with_condition_2():
-    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G = NeuronGroup(4, '')
 
     # Just checking that everything works in principle (we can't check the
     # actual connections)
-    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7 = Synapses(G, G)
     S7.connect('i!=j', p=0.01)
 
-    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8 = Synapses(G, G)
     S8.connect('i!=j', p=0.03)
 
-    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9 = Synapses(G, G)
     S9.connect('i!=j', p=0.3)
 
-    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10 = Synapses(G, G)
     S10.connect('i>=2', p=0.01)
 
-    S11 = Synapses(G, G, 'w:1', 'v+=w')
+    S11 = Synapses(G, G)
     S11.connect('i>=2', p=0.03)
 
-    S12 = Synapses(G, G, 'w:1', 'v+=w')
+    S12 = Synapses(G, G)
     S12.connect('i>=2', p=0.3)
 
-    S13 = Synapses(G, G, 'w:1', 'v+=w')
+    S13 = Synapses(G, G)
     S13.connect('j>=2', p=0.01)
 
-    S14 = Synapses(G, G, 'w:1', 'v+=w')
+    S14 = Synapses(G, G)
     S14.connect('j>=2', p=0.03)
 
-    S15 = Synapses(G, G, 'w:1', 'v+=w')
+    S15 = Synapses(G, G)
     S15.connect('j>=2', p=0.3)
 
-    S16 = Synapses(G, G, 'w:1', 'v+=w')
+    S16 = Synapses(G, G)
     S16.connect('i!=j', p='i*0.1')
 
-    S17 = Synapses(G, G, 'w:1', 'v+=w')
+    S17 = Synapses(G, G)
     S17.connect('i!=j', p='j*0.1')
 
     # Forces the use of the "jump algorithm"
-    big_group = NeuronGroup(10000, 'v: 1', threshold='False')
-    S18 = Synapses(big_group, big_group, 'w:1', 'v+=w')
+    big_group = NeuronGroup(10000, '')
+    S18 = Synapses(big_group, big_group)
     S18.connect('i != j', p=0.001)
 
     # See github issue #835 -- this failed when using numpy
-    S19 = Synapses(big_group, big_group, 'w:1', 'v+=w')
+    S19 = Synapses(big_group, big_group)
     S19.connect('i < int(N_post*0.5)', p=0.001)
-
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
@@ -460,40 +464,40 @@ def test_connection_random_with_indices():
     '''
     Test random connections.
     '''
-    G = NeuronGroup(4, 'v: 1', threshold='False')
-    G2 = NeuronGroup(7, 'v: 1', threshold='False')
+    G = NeuronGroup(4, '')
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(i=0, j=0, p=0.)
     expected1 = np.zeros((len(G), len(G2)))
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(i=0, j=0, p=1.)
     expected2 = np.zeros((len(G), len(G2)))
     expected2[0, 0] = 1
 
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(i=[0, 1], j=[0, 2], p=1.)
     expected3 = np.zeros((len(G), len(G2)))
     expected3[0, 0] = 1
     expected3[1, 2] = 1
 
     # Just checking that it works in principle
-    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4 = Synapses(G, G)
     S4.connect(i=0, j=0, p=0.01)
-    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5 = Synapses(G, G)
     S5.connect(i=[0, 1], j=[0, 2], p=0.01)
 
-    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6 = Synapses(G, G)
     S6.connect(i=0, j=0, p=0.03)
 
-    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7 = Synapses(G, G)
     S7.connect(i=[0, 1], j=[0, 2], p=0.03)
 
-    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8 = Synapses(G, G)
     S8.connect(i=0, j=0, p=0.3)
 
-    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9 = Synapses(G, G)
     S9.connect(i=[0, 1], j=[0, 2], p=0.3)
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -509,33 +513,34 @@ def test_connection_random_with_indices():
     assert 0 <= len(S8) <= 1
     assert 0 <= len(S9) <= 2
 
+
 @pytest.mark.standalone_compatible
 def test_connection_random_without_condition():
     G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+                          x : integer''')
     G.x = 'i'
     G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
+                           y : 1''')
     G2.y = '1.0*i/N'
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(True, p=0.0)
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(True, p=1.0)
 
     # Just make sure using values between 0 and 1 work in principle
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(True, p=0.3)
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(True, p='int(x_pre==2)*1.0')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S5 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S5 = Synapses(G, G2)
     S5.connect(True, p='int(x_pre==2 and y_post > 0.5)*1.0')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -557,27 +562,27 @@ def test_connection_multiple_synapses():
     '''
     Test multiple synapses per connection.
     '''
-    G = NeuronGroup(42, 'v: 1', threshold='False')
+    G = NeuronGroup(42, 'v: 1')
     G.v = 'i'
-    G2 = NeuronGroup(17, 'v: 1', threshold='False')
+    G2 = NeuronGroup(17, 'v: 1')
     G2.v = 'i'
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(True, n=0)
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(True, n=2)
 
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(True, n='j')
 
-    S4 = Synapses(G, G2, 'w:1', 'v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(True, n='i')
 
-    S5 = Synapses(G, G2, 'w:1', 'v+=w')
+    S5 = Synapses(G, G2)
     S5.connect(True, n='int(i>j)*2')
 
-    S6 = Synapses(G, G2, 'w:1', 'v+=w')
+    S6 = Synapses(G, G2)
     S6.connect(True, n='int(v_pre>v_post)*2')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -602,7 +607,7 @@ def test_state_variable_assignment():
     Assign values to state variables in various ways
     '''
 
-    G = NeuronGroup(10, 'v: volt', threshold='False')
+    G = NeuronGroup(10, 'v: volt')
     G.v = 'i*mV'
     S = Synapses(G, G, 'w:volt')
     S.connect(True)
@@ -889,8 +894,9 @@ def test_delays_pathways_subgroups():
     G = NeuronGroup(10, 'x: meter', threshold='False')
     G.x = 'i*mmeter'
     # Array delay
-    S = Synapses(G[:5], G[5:], 'w:1', on_pre={'pre1': 'v+=w',
-                                      'pre2': 'v+=w'},
+    S = Synapses(G[:5], G[5:], 'w:1',
+                 on_pre={'pre1': 'v+=w',
+                         'pre2': 'v+=w'},
                  on_post='v-=w')
     S.connect(j='i')
     assert len(S.pre1.delay[:]) == 5
@@ -909,6 +915,7 @@ def test_delays_pathways_subgroups():
     assert_allclose(S.pre1.delay[:], np.ones(5) * 5*ms)
     assert_allclose(S.pre2.delay[:], np.ones(5) * 10*ms)
     assert_allclose(S.post.delay[:], np.ones(5) * 1*ms)
+
 
 @pytest.mark.codegen_independent
 def test_pre_before_post():
@@ -959,6 +966,7 @@ def test_transmission_simple():
     assert_allclose(mon[1].v[mon.t<1*ms+offset], 0.)
     assert_allclose(mon[1].v[mon.t>=1*ms+offset], 1.)
 
+
 @pytest.mark.standalone_compatible
 def test_transmission_custom_event():
     source = NeuronGroup(2, '',
@@ -974,6 +982,7 @@ def test_transmission_custom_event():
     assert_allclose(mon[0].v[mon.t>=2*ms], 1.)
     assert_allclose(mon[1].v[mon.t<1*ms], 0.)
     assert_allclose(mon[1].v[mon.t>=1*ms], 1.)
+
 
 @pytest.mark.codegen_independent
 def test_invalid_custom_event():
@@ -1097,6 +1106,7 @@ def test_transmission_scalar_delay_different_clocks():
     assert_allclose(mon[1].v[mon.t<1.5*ms], 0)
     assert_allclose(mon[1].v[mon.t>=1.5*ms], 1)
 
+
 @pytest.mark.standalone_compatible
 def test_transmission_boolean_variable():
     source = SpikeGeneratorGroup(4, [0, 1, 2, 3], [2, 1, 2, 1] * ms)
@@ -1135,6 +1145,7 @@ def test_clocks():
     assert synapse.post._clock.dt == target_dt
     assert synapse._clock.dt == synapse_dt
 
+
 def test_equations_with_clocks():
     '''
     Make sure that dt of a `Synapse` object is correctly resolved.
@@ -1148,6 +1159,7 @@ def test_equations_with_clocks():
     run(1*ms)
 
     assert synapse.w[0] == 1
+
 
 def test_changed_dt_spikes_in_queue():
     defaultclock.dt = .5*ms
@@ -1339,6 +1351,7 @@ def test_multiple_summed_variables():
     with pytest.raises(NotImplementedError):
         net.run(0*ms)
 
+
 @pytest.mark.standalone_compatible
 def test_summed_variables_subgroups():
     source = NeuronGroup(1, '')
@@ -1352,6 +1365,7 @@ def test_summed_variables_subgroups():
     run(defaultclock.dt)
     assert_allclose(target.v[:6], 2*np.ones(6))
     assert_allclose(target.v[6:], 1 * np.ones(4))
+
 
 @pytest.mark.codegen_independent
 def test_summed_variables_overlapping_subgroups():
@@ -1368,6 +1382,7 @@ def test_summed_variables_overlapping_subgroups():
     net = Network(collect())
     with pytest.raises(NotImplementedError):
         net.run(0*ms)
+
 
 @pytest.mark.codegen_independent
 def test_summed_variables_linked_variables():
@@ -1449,6 +1464,7 @@ def test_scalar_subexpression():
                           sub = v_post + s : 1 (shared)''',
                  on_pre='v+=s')
 
+
 @pytest.mark.standalone_compatible
 def test_sim_with_scalar_variable():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
@@ -1462,6 +1478,7 @@ def test_sim_with_scalar_variable():
     run(2*defaultclock.dt)
     assert_allclose(out.v[:], [6, 7])
 
+
 @pytest.mark.standalone_compatible
 def test_sim_with_scalar_subexpression():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
@@ -1473,6 +1490,7 @@ def test_sim_with_scalar_subexpression():
     syn.w = [1, 2]
     run(2*defaultclock.dt)
     assert_allclose(out.v[:], [6, 7])
+
 
 @pytest.mark.standalone_compatible
 def test_sim_with_constant_subexpression():
@@ -2138,6 +2156,7 @@ def test_ufunc_at_vectorisation():
         finally:
             NumpyCodeGenerator._use_ufunc_at_vectorisation = True # restore it
 
+
 def test_fallback_loop_and_stateless_func():
     # See github issue #1024
     if prefs.codegen.target != 'numpy':
@@ -2154,7 +2173,7 @@ def test_fallback_loop_and_stateless_func():
 
 @pytest.mark.standalone_compatible
 def test_synapses_to_synapses_summed_variable():
-    source = NeuronGroup(5, '', threshold='False')
+    source = NeuronGroup(5, '')
     target = NeuronGroup(5, '')
     conn = Synapses(source, target, 'w : integer')
     conn.connect(j='i')
@@ -2171,7 +2190,7 @@ def test_synapses_to_synapses_summed_variable():
 def test_synapse_generator_syntax():
     parsed = parse_synapse_generator('k for k in sample(1, N, p=p) if abs(i-k)<10')
     assert parsed['element'] == 'k'
-    assert parsed['iteration_variable'] == 'k'
+    assert parsed['inner_variable'] == 'k'
     assert parsed['iterator_func'] == 'sample'
     assert parsed['iterator_kwds']['low'] == '1'
     assert parsed['iterator_kwds']['high'] == 'N'
@@ -2182,7 +2201,7 @@ def test_synapse_generator_syntax():
     assert parsed['if_expression'] == 'abs(i - k) < 10'
     parsed = parse_synapse_generator('k for k in sample(N, size=5) if abs(i-k)<10')
     assert parsed['element'] == 'k'
-    assert parsed['iteration_variable'] == 'k'
+    assert parsed['inner_variable'] == 'k'
     assert parsed['iterator_func'] == 'sample'
     assert parsed['iterator_kwds']['low'] == '0'
     assert parsed['iterator_kwds']['high'] == 'N'
@@ -2193,7 +2212,7 @@ def test_synapse_generator_syntax():
     assert parsed['if_expression'] == 'abs(i - k) < 10'
     parsed = parse_synapse_generator('k+1 for k in range(i-100, i+100, 2)')
     assert parsed['element'] == 'k + 1'
-    assert parsed['iteration_variable'] == 'k'
+    assert parsed['inner_variable'] == 'k'
     assert parsed['iterator_func'] == 'range'
     assert parsed['iterator_kwds']['low'] == 'i - 100'
     assert parsed['iterator_kwds']['high'] == 'i + 100'
@@ -2224,9 +2243,8 @@ def test_synapse_generator_syntax():
 
 
 def test_synapse_generator_out_of_range():
-    G = NeuronGroup(16, 'v : 1', threshold='False')
-    G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G = NeuronGroup(16, 'v : 1')
+    G2 = NeuronGroup(4, 'v : 1')
     G2.v = '16 + i'
 
     S1 = Synapses(G, G2, '')
@@ -2263,48 +2281,109 @@ def test_synapse_generator_out_of_range():
 def test_synapse_generator_deterministic():
     # Same as "test_connection_string_deterministic" but using the generator
     # syntax
-    G = NeuronGroup(16, 'v : 1', threshold='False')
+    G = NeuronGroup(16, 'v : 1')
     G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
+    G2 = NeuronGroup(4, 'v : 1')
     G2.v = '16 + i'
 
     # Full connection
     expected_full = np.ones((len(G), len(G2)))
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in range(N_post)')
 
     # Full connection without self-connections
     expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
 
-    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2 = Synapses(G, G)
     S2.connect(j='k for k in range(N_post) if k != i')
 
-    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3 = Synapses(G, G)
     # slightly confusing with j on the RHS, but it should work...
     S3.connect(j='k for k in range(N_post) if j != i')
 
-    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4 = Synapses(G, G)
     S4.connect(j='k for k in range(N_post) if v_post != v_pre')
 
     # One-to-one connectivity
     expected_one_to_one = np.eye(len(G))
 
-    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5 = Synapses(G, G)
     S5.connect(j='k for k in range(N_post) if k == i')  # inefficient
 
-    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6 = Synapses(G, G)
     # slightly confusing with j on the RHS, but it should work...
     S6.connect(j='k for k in range(N_post) if j == i')  # inefficient
 
-    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7 = Synapses(G, G)
     S7.connect(j='k for k in range(N_post) if v_pre == v_post')  # inefficient
 
-    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8 = Synapses(G, G)
     S8.connect(j='i for _ in range(1)')  # efficient
 
-    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9 = Synapses(G, G)
     S9.connect(j='i')  # short form of the above
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    _compare(S1, expected_full)
+    _compare(S2, expected_no_self)
+    _compare(S3, expected_no_self)
+    _compare(S4, expected_no_self)
+    _compare(S5, expected_one_to_one)
+    _compare(S6, expected_one_to_one)
+    _compare(S7, expected_one_to_one)
+    _compare(S8, expected_one_to_one)
+    _compare(S9, expected_one_to_one)
+
+
+@pytest.mark.standalone_compatible
+def test_synapse_generator_deterministic_over_postsynaptic():
+    # Same as "test_connection_string_deterministic" but using the generator
+    # syntax and iterating over post-synaptic variables
+    G = NeuronGroup(16, 'v : 1')
+    G.v = 'i'
+    G2 = NeuronGroup(4, 'v : 1')
+    G2.v = '16 + i'
+
+    # Full connection
+    expected_full = np.ones((len(G), len(G2)))
+
+    S1 = Synapses(G, G2)
+    S1.connect(i='k for k in range(N_pre)')
+
+    # Full connection without self-connections
+    expected_no_self = np.ones((len(G), len(G))) - np.eye(len(G))
+
+    S2 = Synapses(G, G)
+    S2.connect(i='k for k in range(N_pre) if k != j')
+
+    S3 = Synapses(G, G)
+    # slightly confusing with i on the RHS, but it should work...
+    S3.connect(i='k for k in range(N_pre) if i != j')
+
+    S4 = Synapses(G, G)
+    S4.connect(j='k for k in range(N_pre) if v_pre != v_post')
+
+    # One-to-one connectivity
+    expected_one_to_one = np.eye(len(G))
+
+    S5 = Synapses(G, G)
+    S5.connect(i='k for k in range(N_pre) if k == j')  # inefficient
+
+    S6 = Synapses(G, G)
+    # slightly confusing with j on the RHS, but it should work...
+    S6.connect(i='k for k in range(N_pre) if i == j')  # inefficient
+
+    S7 = Synapses(G, G)
+    S7.connect(i='k for k in range(N_pre) if v_pre == v_post')  # inefficient
+
+    S8 = Synapses(G, G)
+    S8.connect(i='j for _ in range(1)')  # efficient
+
+    S9 = Synapses(G, G)
+    S9.connect(i='j')  # short form of the above
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0*ms)  # for standalone
@@ -2325,16 +2404,13 @@ def test_synapse_generator_deterministic():
 def test_synapse_generator_deterministic_2():
     # Same as "test_connection_string_deterministic" but using the generator
     # syntax
-    G = NeuronGroup(16, 'v : 1', threshold='False')
-    G.v = 'i'
-    G2 = NeuronGroup(4, 'v : 1', threshold='False')
-    G2.v = '16 + i'
-
+    G = NeuronGroup(16, '')
+    G2 = NeuronGroup(4, '')
     # A few more tests of deterministic connections where the generator syntax
     # is particularly useful
 
     # Ring structure
-    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10 = Synapses(G, G)
     S10.connect(j='(i + (-1)**k) % N_post for k in range(2)')
     expected_ring = np.zeros((len(G), len(G)), dtype=np.int32)
     expected_ring[np.arange(15), np.arange(15)+1] = 1  # Next cell
@@ -2342,14 +2418,14 @@ def test_synapse_generator_deterministic_2():
     expected_ring[[0, 15], [15, 0]] = 1  # wrap around the ring
 
     # Diverging connection pattern
-    S11 = Synapses(G2, G, 'w:1', 'v+=w')
+    S11 = Synapses(G2, G)
     S11.connect(j='i*4 + k for k in range(4)')
     expected_diverging = np.zeros((len(G2), len(G)), dtype=np.int32)
     for source in range(4):
         expected_diverging[source, np.arange(4) + source*4] = 1
 
     # Diverging connection pattern within population (no self-connections)
-    S11b = Synapses(G2, G2, 'w:1', 'v+=w')
+    S11b = Synapses(G2, G2)
     S11b.connect(j='k for k in range(i-3, i+4) if i!=k', skip_if_invalid=True)
     expected_diverging_b = np.zeros((len(G2), len(G2)), dtype=np.int32)
     for source in range(len(G2)):
@@ -2357,21 +2433,21 @@ def test_synapse_generator_deterministic_2():
         expected_diverging_b[source, source] = 0
 
     # Converging connection pattern
-    S12 = Synapses(G, G2, 'w:1', 'v+=w')
+    S12 = Synapses(G, G2)
     S12.connect(j='int(i/4)')
     expected_converging = np.zeros((len(G), len(G2)), dtype=np.int32)
     for target in range(4):
         expected_converging[np.arange(4) + target*4, target] = 1
 
     # skip if invalid
-    S13 = Synapses(G2, G2, 'w:1', 'v+=w')
+    S13 = Synapses(G2, G2)
     S13.connect(j='i+(-1)**k for k in range(2)', skip_if_invalid=True)
     expected_offdiagonal = np.zeros((len(G2), len(G2)), dtype=np.int32)
     expected_offdiagonal[np.arange(len(G2)-1), np.arange(len(G2)-1)+1] = 1
     expected_offdiagonal[np.arange(len(G2)-1)+1, np.arange(len(G2)-1)] = 1
 
     # Converging connection pattern with restriction
-    S14 = Synapses(G, G2, 'w:1', 'v+=w')
+    S14 = Synapses(G, G2)
     S14.connect(j='int(i/4) if i % 2 == 0')
     expected_converging_restricted = np.zeros((len(G), len(G2)), dtype=np.int32)
     for target in range(4):
@@ -2411,26 +2487,23 @@ def test_synapse_generator_deterministic_2():
 def test_synapse_generator_random():
     # The same tests as test_connection_random_without_condition, but using
     # the generator syntax
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+    G = NeuronGroup(4, 'x : integer')
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in sample(N_post, p=0)')
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(j='k for k in sample(N_post, p=1)')
 
     # Just make sure using values between 0 and 1 work in principle
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(j='k for k in sample(N_post, p=0.3)')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(j='k for k in sample(N_post, p=int(x_pre==2)*1.0)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2445,33 +2518,64 @@ def test_synapse_generator_random():
 
 
 @pytest.mark.standalone_compatible
+def test_synapse_generator_random_over_postsynaptic():
+    # The same tests as test_connection_random_without_condition, but using
+    # the generator syntax and iterating over post-synaptic neurons
+    G = NeuronGroup(4, '')
+    G2 = NeuronGroup(7, 'y : 1')
+    G2.y = 'i'
+
+    S1 = Synapses(G, G2)
+    S1.connect(i='k for k in sample(N_pre, p=0)')
+
+    S2 = Synapses(G, G2)
+    S2.connect(i='k for k in sample(N_pre, p=1)')
+
+    # Just make sure using values between 0 and 1 work in principle
+    S3 = Synapses(G, G2)
+    S3.connect(i='k for k in sample(N_pre, p=0.3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2)
+    S4.connect(i='k for k in sample(N_pre, p=int(y_post==2)*1.0)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, np.ones((len(G), len(G2))))
+    assert 0 <= len(S3) <= len(G) * len(G2)
+    assert len(S4) == 4
+    assert_equal(S4.i, np.arange(4))
+    assert_equal(S4.j, np.ones(4)*2)
+
+
+@pytest.mark.standalone_compatible
 def test_synapse_generator_random_positive_steps():
     # Test generator with sampling from stepped ranges (e.g. all even numbers)
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+    G = NeuronGroup(4, 'x : integer')
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in sample(2, N_post, 2, p=0)')
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(j='k for k in sample(2, N_post, 2, p=1)')
 
     # Just make sure using values between 0 and 1 work in principle (note that
     # 0.25 is the cutoff between the general method and the "jump method", so
     # we test a value above and below
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(j='k for k in sample(2, N_post, 2, p=0.2)')
 
-    S3b = Synapses(G, G2, 'w:1', 'v+=w')
+    S3b = Synapses(G, G2)
     S3b.connect(j='k for k in sample(2, N_post, 2, p=0.3)')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(j='k for k in sample(2, N_post, 2, p=int(x_pre==2)*1.0)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2496,31 +2600,28 @@ def test_synapse_generator_random_positive_steps():
 def test_synapse_generator_random_negative_steps():
     # Test generator with sampling from stepped ranges (e.g. all even numbers)
     # going backwards
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+    G = NeuronGroup(4, 'x : integer')
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in sample(N_post-1, 0, -2, p=0)')
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(j='k for k in sample(N_post-1, 0, -2, p=1)')
 
     # Just make sure using values between 0 and 1 work in principle (note that
     # 0.25 is the cutoff between the general method and the "jump method", so
     # we test a value above and below
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(j='k for k in sample(N_post-1, 0, -2, p=0.2)')
 
-    S3b = Synapses(G, G2, 'w:1', 'v+=w')
+    S3b = Synapses(G, G2)
     S3b.connect(j='k for k in sample(N_post-1, 0, -2, p=0.3)')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(j='k for k in sample(N_post-1, 0, -2, p=int(x_pre==2)*1.0)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2544,25 +2645,22 @@ def test_synapse_generator_random_negative_steps():
 @pytest.mark.standalone_compatible
 def test_synapse_generator_fixed_random():
     # Random samples with fixed size
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+    G = NeuronGroup(4, 'x : integer')
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in sample(N_post, size=0)')
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(j='k for k in sample(N_post, size=N_post)')
 
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(j='k for k in sample(N_post, size=3)')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(j='k for k in sample(N_post, size=int(x_pre==2)*N_post)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2582,29 +2680,63 @@ def test_synapse_generator_fixed_random():
 
 
 @pytest.mark.standalone_compatible
+def test_synapse_generator_fixed_random_over_postsynaptic():
+    # Random samples with fixed size, iterating over post-synaptic neurons
+    G = NeuronGroup(4, '')
+    G2 = NeuronGroup(7, 'y : integer')
+    G2.y = 'i'
+
+    S1 = Synapses(G, G2)
+    S1.connect(i='k for k in sample(N_pre, size=0)')
+
+    S2 = Synapses(G, G2)
+    S2.connect(i='k for k in sample(N_pre, size=N_pre)')
+
+    S3 = Synapses(G, G2)
+    S3.connect(i='k for k in sample(N_pre, size=3)')
+
+    # Use pre-/post-synaptic variables for "stochastic" connections that are
+    # actually deterministic
+    S4 = Synapses(G, G2)
+    S4.connect(i='k for k in sample(N_pre, size=int(y_post==2)*N_pre)')
+
+    with catch_logs() as _:  # Ignore warnings about empty synapses
+        run(0*ms)  # for standalone
+
+    assert len(S1) == 0
+    _compare(S2, np.ones((len(G), len(G2))))
+    # Each neuron should have 3 incoming connections
+    assert_array_equal(S3.N_incoming_post, np.ones(7)*3)
+    # Synapses should be sorted and unique
+    for target_idx in range(7):
+        assert len(set(S3.i[:, target_idx])) == 3
+        assert all(S3.i[:, target_idx] == sorted(S3.i[:, target_idx]))
+    assert len(S4) == 4
+    assert_equal(S4.j, np.ones(4)*2)
+    assert_equal(S4.i, np.arange(4))
+
+
+@pytest.mark.standalone_compatible
 def test_synapse_generator_fixed_random_positive_steps():
     # Test generator with fixed-size sampling from stepped ranges (e.g. all
     # even numbers)
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+    G = NeuronGroup(4, 'x : integer')
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in sample(2, N_post, 2, size=0)')
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(j='k for k in sample(2, N_post, 2, size=3)')
 
     # Just make sure using values between 0 and 1 work in principle
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(j='k for k in sample(2, N_post, 2, size=2)')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2)
     S4.connect(j='k for k in sample(2, N_post, 2, size=int(x_pre==2)*3)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2629,26 +2761,23 @@ def test_synapse_generator_fixed_random_positive_steps():
 def test_synapse_generator_fixed_random_negative_steps():
     # Test generator with fixed-size sampling from stepped ranges (e.g. all
     # even numbers) going backwards
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''', threshold='False')
+    G = NeuronGroup(4, 'x : integer')
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''', threshold='False')
-    G2.y = '1.0*i/N'
+    G2 = NeuronGroup(7, '')
 
-    S1 = Synapses(G, G2, 'w:1', 'v+=w')
+    S1 = Synapses(G, G2)
     S1.connect(j='k for k in sample(N_post-1, 0, -2, size=0)')
 
-    S2 = Synapses(G, G2, 'w:1', 'v+=w')
+    S2 = Synapses(G, G2)
     S2.connect(j='k for k in sample(N_post-1, 0, -2, size=3)')
 
     # Just make sure using intermediate values between 0 and 1 work in principle
-    S3 = Synapses(G, G2, 'w:1', 'v+=w')
+    S3 = Synapses(G, G2)
     S3.connect(j='k for k in sample(N_post-1, 0, -2, size=2)')
 
     # Use pre-/post-synaptic variables for "stochastic" connections that are
     # actually deterministic
-    S4 = Synapses(G, G2, 'w:1', on_pre='v+=w')
+    S4 = Synapses(G, G2, 'w:1')
     S4.connect(j='k for k in sample(N_post-1, 0, -2, size=int(x_pre==2)*3)')
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2668,9 +2797,9 @@ def test_synapse_generator_fixed_random_negative_steps():
     assert_equal(S4.i, np.ones(3) * 2)
     assert_equal(S4.j, np.arange(6, 0, -2))
 
+
 @pytest.mark.standalone_compatible
 def test_synapse_generator_fixed_random_error1():
-    set_device('cpp_standalone')
     G = NeuronGroup(5, '')
     G2 = NeuronGroup(7, '')
     S = Synapses(G, G2)
@@ -2708,37 +2837,37 @@ def test_synapse_generator_fixed_random_skip_if_invalid():
 
 @pytest.mark.standalone_compatible
 def test_synapse_generator_random_with_condition():
-    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G = NeuronGroup(4, '')
 
-    S1 = Synapses(G, G, 'w:1', 'v+=w')
+    S1 = Synapses(G, G)
     S1.connect(j='k for k in sample(N_post, p=0) if i != k')
 
-    S2 = Synapses(G, G, 'w:1', 'v+=w')
+    S2 = Synapses(G, G)
     S2.connect(j='k for k in sample(N_post, p=1) if i != k')
     expected2 = np.ones((len(G), len(G))) - np.eye(len(G))
 
-    S3 = Synapses(G, G, 'w:1', 'v+=w')
+    S3 = Synapses(G, G)
     S3.connect(j='k for k in sample(N_post, p=0) if i >= 2')
 
-    S4 = Synapses(G, G, 'w:1', 'v+=w')
+    S4 = Synapses(G, G)
     S4.connect(j='k for k in sample(N_post, p=1.0) if i >= 2')
     expected4 = np.zeros((len(G), len(G)))
     expected4[2, :] = 1
     expected4[3, :] = 1
 
-    S5 = Synapses(G, G, 'w:1', 'v+=w')
+    S5 = Synapses(G, G)
     S5.connect(j='k for k in sample(N_post, p=0) if j < 2')  # inefficient
 
-    S6 = Synapses(G, G, 'w:1', 'v+=w')
+    S6 = Synapses(G, G)
     S6.connect(j='k for k in sample(2, p=0)')  # better
 
-    S7 = Synapses(G, G, 'w:1', 'v+=w')
+    S7 = Synapses(G, G)
     expected7 = np.zeros((len(G), len(G)))
     expected7[:, 0] = 1
     expected7[:, 1] = 1
     S7.connect(j='k for k in sample(N_post, p=1.0) if j < 2')  # inefficient
 
-    S8 = Synapses(G, G, 'w:1', 'v+=w')
+    S8 = Synapses(G, G)
     S8.connect(j='k for k in sample(2, p=1.0)')  # better
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
@@ -2757,65 +2886,64 @@ def test_synapse_generator_random_with_condition():
 @pytest.mark.standalone_compatible
 @pytest.mark.long
 def test_synapse_generator_random_with_condition_2():
-    G = NeuronGroup(4, 'v: 1', threshold='False')
+    G = NeuronGroup(4, '')
 
     # Just checking that everything works in principle (we can't check the
     # actual connections)
-    S9 = Synapses(G, G, 'w:1', 'v+=w')
+    S9 = Synapses(G, G)
     S9.connect(j='k for k in sample(N_post, p=0.001) if i != k')
 
-    S10 = Synapses(G, G, 'w:1', 'v+=w')
+    S10 = Synapses(G, G)
     S10.connect(j='k for k in sample(N_post, p=0.03) if i != k')
 
-    S11 = Synapses(G, G, 'w:1', 'v+=w')
+    S11 = Synapses(G, G)
     S11.connect(j='k for k in sample(N_post, p=0.1) if i != k')
 
-    S12 = Synapses(G, G, 'w:1', 'v+=w')
+    S12 = Synapses(G, G)
     S12.connect(j='k for k in sample(N_post, p=0.9) if i != k')
 
-    S13 = Synapses(G, G, 'w:1', 'v+=w')
+    S13 = Synapses(G, G)
     S13.connect(j='k for k in sample(N_post, p=0.001) if i >= 2')
 
-    S14 = Synapses(G, G, 'w:1', 'v+=w')
+    S14 = Synapses(G, G)
     S14.connect(j='k for k in sample(N_post, p=0.03) if i >= 2')
 
-    S15 = Synapses(G, G, 'w:1', 'v+=w')
+    S15 = Synapses(G, G)
     S15.connect(j='k for k in sample(N_post, p=0.1) if i >= 2')
 
-    S16 = Synapses(G, G, 'w:1', 'v+=w')
+    S16 = Synapses(G, G)
     S16.connect(j='k for k in sample(N_post, p=0.9) if i >= 2')
 
-    S17 = Synapses(G, G, 'w:1', 'v+=w')
+    S17 = Synapses(G, G)
     S17.connect(j='k for k in sample(N_post, p=0.001) if j < 2')
 
-    S18 = Synapses(G, G, 'w:1', 'v+=w')
+    S18 = Synapses(G, G)
     S18.connect(j='k for k in sample(N_post, p=0.03) if j < 2')
 
-    S19 = Synapses(G, G, 'w:1', 'v+=w')
+    S19 = Synapses(G, G)
     S19.connect(j='k for k in sample(N_post, p=0.1) if j < 2')
 
-    S20 = Synapses(G, G, 'w:1', 'v+=w')
+    S20 = Synapses(G, G)
     S20.connect(j='k for k in sample(N_post, p=0.9) if j < 2')
 
-    S21 = Synapses(G, G, 'w:1', 'v+=w')
+    S21 = Synapses(G, G)
     S21.connect(j='k for k in sample(2, p=0.001)')
 
-    S22 = Synapses(G, G, 'w:1', 'v+=w')
+    S22 = Synapses(G, G)
     S22.connect(j='k for k in sample(2, p=0.03)')
 
-    S23 = Synapses(G, G, 'w:1', 'v+=w')
+    S23 = Synapses(G, G)
     S23.connect(j='k for k in sample(2, p=0.1)')
 
-    S24 = Synapses(G, G, 'w:1', 'v+=w')
+    S24 = Synapses(G, G)
     S24.connect(j='k for k in sample(2, p=0.9)')
 
     # Some more tests specific to the generator syntax
-    S25 = Synapses(G, G, 'w:1', on_pre='v+=w')
+    S25 = Synapses(G, G)
     S25.connect(j='i+1 for _ in sample(1, p=0.5) if i < N_post-1')
 
-    S26 = Synapses(G, G, 'w:1', on_pre='v+=w')
+    S26 = Synapses(G, G)
     S26.connect(j='i+k for k in sample(N_post-i, p=0.5)')
-
 
     with catch_logs() as _:  # Ignore warnings about empty synapses
         run(0 * ms)  # for standalone
@@ -2869,6 +2997,7 @@ def test_synapses_refractory():
     assert_allclose(target.v[:5], 1)
     assert_allclose(target.v[5:], 0)
 
+
 @pytest.mark.standalone_compatible
 def test_synapses_refractory_rand():
     source = NeuronGroup(10, '', threshold='True')
@@ -2889,8 +3018,8 @@ def test_synapses_refractory_rand():
 @pytest.mark.codegen_independent
 def test_synapse_generator_range_noint():
     # arguments to `range` should only be integers (issue #781)
-    G = NeuronGroup(42, 'v: 1', threshold='False')
-    S = Synapses(G, G, 'w:1', 'v+=w')
+    G = NeuronGroup(42, '')
+    S = Synapses(G, G)
     msg = r'The "{}" argument of the range function was .+, but it needs to be an integer\.'
     with pytest.raises(TypeError, match=msg.format('high')):
         S.connect(j='k for k in range(42.0)')
@@ -2907,6 +3036,7 @@ def test_synapse_generator_range_noint():
     with pytest.raises(TypeError, match=msg.format('step')):
         S.connect(j='k for k in range(0, 42, True)')
 
+
 @pytest.mark.codegen_independent
 def test_missing_lastupdate_error_syn_pathway():
     G = NeuronGroup(1, 'v : 1', threshold='False')
@@ -2921,7 +3051,7 @@ def test_missing_lastupdate_error_syn_pathway():
 
 @pytest.mark.codegen_independent
 def test_missing_lastupdate_error_run_regularly():
-    G = NeuronGroup(1, 'v : 1', threshold='False')
+    G = NeuronGroup(1, 'v : 1')
     S = Synapses(G, G)
     S.connect()
     S.run_regularly('v += exp(-lastupdate/dt')
