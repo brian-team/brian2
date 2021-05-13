@@ -40,11 +40,16 @@ jobs:
           AGENT_OS: ${{runner.os}}
       
       - name: Upload coverage data to coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: ${{ github.workspace }}/.coverage
-
+        run: |
+          pip install coveralls
+          export CIRCLE_BRANCH=${GITHUB_REF##*/}
+          coveralls --rcfile=$GITHUB_WORKSPACE/.coveragerc
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CIRCLECI: 1
+          CIRCLE_BUILD_NUM: ${{ github.run_id }}
+          COVERALLS_FLAG_NAME: ${{ github.job }}
+          COVERALLS_PARALLEL: true
 
 
  
