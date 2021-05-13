@@ -26,13 +26,13 @@ jobs:
 
       - name: Install Brian2
         run: |
-          source activate $HOME/test_env   
+          conda activate $HOME/test_env   
           conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
       - name: Run Tests
         run: |
-          source activate $HOME/test_env
+          conda activate $HOME/test_env
           cd $GITHUB_WORKSPACE
           coverage run $GITHUB_WORKSPACE/$SCRIPT_NAME
         env:
@@ -41,17 +41,9 @@ jobs:
           COVERAGE_RCFILE: ${{github.workspace}}/.coveragerc
       
       - name: Upload coverage data to coveralls
-        run: |
-          pip install coveralls
-          export CIRCLE_BRANCH=${GITHUB_REF##*/}
-          cp $GITHUB_WORKSPACE/../.coverage $GITHUB_WORKSPACE
-          coveralls --rcfile=$GITHUB_WORKSPACE/.coveragerc
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.coveralls }}
-          CIRCLECI: 1
-          CIRCLE_BUILD_NUM: ${{ github.run_id }}
-          COVERALLS_FLAG_NAME: ${{ github.job }}
-          COVERALLS_PARALLEL: true
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
 
 
