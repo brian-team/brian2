@@ -26,6 +26,9 @@ jobs:
 
       - name: Install Brian2
         run: |
+          pwd
+          ls -a
+          echo $GITHUB_WORKSPACE
           source activate $HOME/test_env   
           conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
@@ -41,6 +44,9 @@ jobs:
       
       - name: Upload coverage data to coveralls
         run: |
+          pwd
+          ls -a
+          echo $GITHUB_WORKSPACE
           pip install coveralls
           export CIRCLE_BRANCH=${GITHUB_REF##*/}
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
