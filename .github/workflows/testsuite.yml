@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: 3.8
           conda-channels: conda-forge
+      
+      - name: Initalize Conda
+        run: conda init bash
 
       - name: Setup Conda Environment
         run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
