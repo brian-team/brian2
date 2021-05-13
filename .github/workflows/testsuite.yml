@@ -43,7 +43,7 @@ jobs:
         run: |
           pip install coveralls
           export CIRCLE_BRANCH=${GITHUB_REF##*/}
-          coveralls --rcfile=$GITHUB_WORKSPACE/.coveragerc
+          coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CIRCLECI: 1
