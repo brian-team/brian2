@@ -1,5 +1,6 @@
 """
 Model fitting with simulation-based inference
+---------------------------------------------
 
 In this example, a HH-type model is used to demonstrate simulation-based
 inference with the sbi toolbox (https://www.mackelab.org/sbi/). It is based
@@ -9,11 +10,12 @@ potassium conductances) are considered parameters of the model.
 
 For more details about this approach, see the references below.
 
-To run this example, you need to install the sbi package, e.g. with
+To run this example, you need to install the sbi package, e.g. with::
 
     pip install sbi
 
 References:
+
 * https://www.mackelab.org/sbi
 * Tejero-Cantero et al., (2020). sbi: A toolkit for simulation-based inference.
   Journal of Open Source Software, 5(52), 2505, https://doi.org/10.21105/joss.02505
