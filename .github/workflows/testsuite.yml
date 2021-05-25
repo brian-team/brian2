@@ -42,6 +42,7 @@ jobs:
       
       - name: Upload coverage data to coveralls
         run: |
+          cd  $GITHUB_WORKSPACE/..
           conda install --quiet --yes coveralls
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
