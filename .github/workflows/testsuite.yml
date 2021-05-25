@@ -34,7 +34,6 @@ jobs:
         run: |
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
-          coverage report -m
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
@@ -42,7 +41,7 @@ jobs:
       
       - name: Upload coverage data to coveralls
         run: |
-          cd  $GITHUB_WORKSPACE/..
+          cp  $GITHUB_WORKSPACE/../.coverage .
           conda install --quiet --yes coveralls
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
