@@ -32,7 +32,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          cd $GITHUB_WORKSPACE
+          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
           coverage report -m
         env:
