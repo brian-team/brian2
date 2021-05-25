@@ -43,14 +43,21 @@ jobs:
       - name: Upload coverage data to coveralls
         run: |
           pip install coveralls
-          export CIRCLE_BRANCH=${GITHUB_REF##*/}
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CIRCLECI: 1
-          CIRCLE_BUILD_NUM: ${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ github.job }}
           COVERALLS_PARALLEL: true
 
-
- 
+  coveralls:
+    name: Indicate completion to coveralls.io
+    needs: testing-ubuntu
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

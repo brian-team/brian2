@@ -1,6 +1,7 @@
 # .coveragerc to control coverage.py
 # following the example at http://nedbatchelder.com/code/coverage/config.html
 [run]
+relative_files = True
 branch = True
 source = brian2
 omit =
