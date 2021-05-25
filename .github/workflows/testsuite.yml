@@ -34,6 +34,7 @@ jobs:
         env:
           SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
+          SPLIT_RUN: 1
       
       - name: Upload coverage data to coveralls
         run: |
