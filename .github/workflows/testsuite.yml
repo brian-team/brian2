@@ -8,31 +8,26 @@ jobs:
     runs-on: ubuntu-20.04
     defaults:
       run:
-        shell: bash
+        shell: bash -l {0}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Set up Conda and Python
-        uses: s-weigand/setup-conda@v1.0.5
-        with:
-          python-version: 3.8
-          conda-channels: conda-forge
-
       - name: Setup Conda Environment
-        run: conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
+        run: |
+          conda create --prefix $HOME/test_env -c conda-forge --yes --quiet python=3.8 pip pytest
+          conda init bash
 
       - name: Install Brian2
         run: |
-          source activate $HOME/test_env   
-          conda install --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
+          conda install -n test_env --quiet --yes -c conda-forge pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
       - name: Run Tests
         run: |
-          source activate $HOME/test_env
+          conda activate test_env
           cd $GITHUB_WORKSPACE
           coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
           coverage report -m
@@ -42,7 +37,8 @@ jobs:
       
       - name: Upload coverage data to coveralls
         run: |
-          pip install coveralls
+          conda activate test_env
+          conda install --quiet --yes coveralls
           coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
