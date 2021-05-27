@@ -237,6 +237,7 @@ htmlhelp_basename = 'Brian2doc'
 suppress_warnings = ['image.nonlocal_uri']
 
 # -- Options for LaTeX output --------------------------------------------------
+latex_engine = 'xelatex'
 
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
