@@ -15,6 +15,12 @@ jobs:
             script-name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split-run: 1
+            upload-coverage: false
+          - name: Python39_runtime_1
+            python-version: 3.9
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 1
     defaults:
       run:
         shell: bash -l {0}
@@ -36,6 +42,7 @@ jobs:
 
       - name: Install Brian2 and dependencies
         run: |
+          echo ${{ matrix.upload-coverage }}
           conda install -n test_env --quiet --yes -c conda-forge pip pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
