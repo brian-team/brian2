@@ -15,12 +15,32 @@ jobs:
             script-name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split-run: 1
-            upload-coverage: false
+            
           - name: Python39_runtime_1
             python-version: 3.9
             script-name: dev/continuous-integration/run_test_suite.py
             standalone: false
             split-run: 1
+
+          - name: Python37_runtime_2
+            python-version: 3.7
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 2
+
+          - name: Python39_runtime_2
+            python-version: 3.9
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 2
+
+          - name: Python38_runtime_1
+            python-version: 3.8
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 1
+            upload-coverage: true
+
     defaults:
       run:
         shell: bash -l {0}
@@ -57,6 +77,7 @@ jobs:
           STANDALONE: ${{ matrix.standalone }}
       
       - name: Upload coverage data to coveralls
+        if: ${{ matrix.upload-coverage }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
           conda install --quiet --yes coveralls
