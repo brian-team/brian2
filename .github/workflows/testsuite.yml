@@ -4,8 +4,17 @@ on: [push, pull_request]
 
 jobs:
   testing-ubuntu:
-    name: TestSuite on Ubuntu-20.04
+    name: ${{ matrix.name }}
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Python37_runtime_1
+            python-version: 3.7
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 1
     defaults:
       run:
         shell: bash -l {0}
@@ -23,7 +32,7 @@ jobs:
           channels: conda-forge,defaults
           channel-priority: true
           activate-environment: 'test_env'
-          python-version: 3.8
+          python-version: ${{ matrix.python-version }}
 
       - name: Install Brian2 and dependencies
         run: |
@@ -35,9 +44,10 @@ jobs:
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
         env:
-          SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
+          SCRIPT_NAME: ${{ matrix.script-name }}
           AGENT_OS: ${{runner.os}}
-          SPLIT_RUN: 1
+          SPLIT_RUN: ${{ matrix.split-run }}
+          STANDALONE: ${{ matrix.standalone }}
       
       - name: Upload coverage data to coveralls
         run: |
