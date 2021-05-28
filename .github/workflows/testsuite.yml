@@ -41,6 +41,38 @@ jobs:
             split-run: 1
             upload-coverage: true
 
+          - name: Python38_runtime_2
+            python-version: 3.8
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 2
+          
+          - name: Python38_standalone
+            python-version: 3.8
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+            upload-coverage: true
+
+          - name: Python38_runtime_1_32bit
+            python-version: 3.8
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 1
+            float_dtype_32: true
+
+          - name: Python38_runtime_2_32bit
+            python-version: 3.8
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: false
+            split-run: 2
+            float_dtype_32: true
+          
+          - name: Python38_standalone_32bit
+            python-version: 3.8
+            script-name: dev/continuous-integration/run_test_suite.py
+            standalone: true
+            float_dtype_32: true
+
     defaults:
       run:
         shell: bash -l {0}
@@ -75,6 +107,7 @@ jobs:
           AGENT_OS: ${{runner.os}}
           SPLIT_RUN: ${{ matrix.split-run }}
           STANDALONE: ${{ matrix.standalone }}
+          FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
       
       - name: Upload coverage data to coveralls
         if: ${{ matrix.upload-coverage }}
