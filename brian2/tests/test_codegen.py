@@ -457,6 +457,8 @@ def test_compiler_c99():
 
 def test_cpp_flags_support():
     from distutils.ccompiler import get_default_compiler
+    from brian2.codegen.cpp_prefs import _compiler_flag_compatibility
+    _compiler_flag_compatibility.clear()  # make sure cache is empty
     compiler = get_default_compiler()
     if compiler == 'msvc':
         pytest.skip('No flag support check for msvc')

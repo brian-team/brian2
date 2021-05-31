@@ -1,0 +1,93 @@
+name: TestSuite
+
+on: [push, pull_request]
+
+jobs:
+  set_python_versions:
+    name: "Set Python versions"
+    runs-on: ubuntu-latest
+    outputs:
+      max_python: "3.9"
+      min_python: "3.7"
+    steps:
+      - name: "Do-nothing step"
+        run: echo Doing nothing
+  
+  testing:
+    needs: [set_python_versions]
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        standalone: [false, true]
+        float_dtype_32: [false, true]
+        python-version: ["${{ needs.set_python_versions.outputs.max_python }}"]
+        include:
+          - os: ubuntu-20.04
+            standalone: false
+            python-version: "${{ needs.set_python_versions.outputs.min_python }}"
+            float_dtype_32: false
+          - os: ubuntu-20.04
+            standalone: true
+            python-version: "${{ needs.set_python_versions.outputs.min_python }}"
+            float_dtype_32: false
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Conda and Python
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          auto-activate-base: false
+          channels: conda-forge,defaults
+          channel-priority: true
+          activate-environment: 'test_env'
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Brian2 and dependencies
+        run: |
+          conda install -n test_env --quiet --yes -c conda-forge pip pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
+          pip install .
+
+      - name: Run Tests
+        run: |
+          cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
+          coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
+        env:
+          SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
+          AGENT_OS: ${{runner.os}}
+          STANDALONE: ${{ matrix.standalone }}
+          FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
+      
+      - name: Upload coverage data to coveralls
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.set_python_versions.outputs.max_python }}
+        run: |
+          cp  $GITHUB_WORKSPACE/../.coverage .
+          conda install --quiet --yes coveralls
+          coveralls --service=github --rcfile=$GITHUB_WORKSPACE/.coveragerc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ github.job }}
+          COVERALLS_PARALLEL: true
+
+  coveralls:
+    name: Indicate completion to coveralls.io
+    needs: testing
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
