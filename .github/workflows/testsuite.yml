@@ -18,8 +18,20 @@ jobs:
             float_dtype_32: true
         include:
           - os: ubuntu-20.04
-            standalone: [false, true]
-            python-version: [3.7,3.9]
+            standalone: false
+            python-version: 3.7
+            float_dtype_32: false
+          - os: ubuntu-20.04
+            standalone: true
+            python-version: 3.7
+            float_dtype_32: false
+          - os: ubuntu-20.04
+            standalone: false
+            python-version: 3.9
+            float_dtype_32: false
+          - os: ubuntu-20.04
+            standalone: true
+            python-version: 3.9
             float_dtype_32: false
 
     defaults:
@@ -57,7 +69,7 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
       
       - name: Upload coverage data to coveralls
-        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.float_dtype_32 == false }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.float_dtype_32 != true && matrix.python-version == 3.8 }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
           conda install --quiet --yes coveralls
