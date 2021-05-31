@@ -2,12 +2,15 @@ name: TestSuite
 
 on: [push, pull_request]
 
-env:
-  MAX_PYTHON: 3.9
-  MIN_PYTHON: 3.7
-
 jobs:
+  set_python_versions:
+    name: "Set Python versions"
+    runs-on: ubuntu-latest
+    outputs:
+      max_python: 3.9
+      min_python: 3.7
   testing:
+    needs: [set_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
     runs-on: ${{ matrix.os }}
     strategy:
@@ -16,15 +19,15 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         standalone: [false, true]
         float_dtype_32: [false,true]
-        python_version: ${{ MAX_PYTHON }}
+        python_version: ${{ needs.set_python_versions.outputs.max_python }}
         include:
           - os: ubuntu-20.04
             standalone: false
-            python-version: ${{ MIN_PYTHON }}
+            python-version: ${{ needs.set_python_versions.outputs.min_python }}
             float_dtype_32: false
           - os: ubuntu-20.04
             standalone: true
-            python-version: ${{ MIN_PYTHON }}
+            python-version: ${{ needs.set_python_versions.outputs.min_python }}
             float_dtype_32: false
 
     defaults:
