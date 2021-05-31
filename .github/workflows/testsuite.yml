@@ -9,6 +9,9 @@ jobs:
     outputs:
       max_python: 3.9
       min_python: 3.7
+    steps:
+      - name: "Do-nothing step"
+
   testing:
     needs: [set_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
