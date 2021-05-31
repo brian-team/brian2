@@ -458,13 +458,13 @@ class SingleEquation(Hashable, CacheKey):
 
     def _latex(self, *args):
         if self.type == DIFFERENTIAL_EQUATION:
-            return (r'\frac{\mathrm{d}' + sympy.latex(self.varname) + r'}{\mathrm{d}t} = ' +
+            return (r'\frac{\mathrm{d}' + sympy.latex(sympy.Symbol(self.varname)) + r'}{\mathrm{d}t} = ' +
                     sympy.latex(str_to_sympy(self.expr.code)))
         elif self.type == SUBEXPRESSION:
-            return (sympy.latex(self.varname) + ' = ' +
+            return (sympy.latex(sympy.Symbol(self.varname)) + ' = ' +
                     sympy.latex(str_to_sympy(self.expr.code)))
         elif self.type == PARAMETER:
-            return sympy.latex(self.varname)
+            return sympy.latex(sympy.Symbol(self.varname))
 
     def __str__(self):
         if self.type == DIFFERENTIAL_EQUATION:
@@ -1065,7 +1065,7 @@ class Equations(Hashable, Mapping):
                                                               sympy.latex(get_unit(eq.dim)),
                                                               flag_str)
             else:
-                eq_latex = r'%s &= %s && \text{(unit of $%s$: $%s$%s)}' % (sympy.latex(lhs),
+                eq_latex = r'%s &= %s && \text{(unit of $%s$: $%s$%s)}' % (lhs,  # already a string
                                                                            sympy.latex(rhs),
                                                                            sympy.latex(varname),
                                                                            sympy.latex(get_unit(eq.dim)),

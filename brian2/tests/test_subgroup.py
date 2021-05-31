@@ -156,13 +156,13 @@ def test_shared_variable():
 
 @pytest.mark.standalone_compatible
 def test_synapse_creation():
-    G1 = NeuronGroup(10, '', threshold='False')
-    G2 = NeuronGroup(20, '', threshold='False')
+    G1 = NeuronGroup(10, '')
+    G2 = NeuronGroup(20, '')
     SG1 = G1[:5]
     SG2 = G2[10:]
-    S = Synapses(SG1, SG2, 'w:1')
+    S = Synapses(SG1, SG2)
     S.connect(i=2, j=2)  # Should correspond to (2, 12)
-    S.connect('i==2 and j==5') # Should correspond to (2, 15)
+    S.connect('i==2 and j==5')  # Should correspond to (2, 15)
 
     run(0*ms)  # for standalone
 
@@ -177,26 +177,27 @@ def test_synapse_creation():
     assert all(S.N_incoming[:, 2] == 1)
     assert all(S.N_incoming[:, 5] == 1)
 
+
 @pytest.mark.standalone_compatible
 def test_synapse_creation_state_vars():
-    G1 = NeuronGroup(10, 'v : 1', threshold='False')
-    G2 = NeuronGroup(20, 'v : 1', threshold='False')
+    G1 = NeuronGroup(10, 'v : 1')
+    G2 = NeuronGroup(20, 'v : 1')
     G1.v = 'i'
     G2.v = '10 + i'
     SG1 = G1[:5]
     SG2 = G2[10:]
 
     # connect based on pre-/postsynaptic state variables
-    S2 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S2 = Synapses(SG1, SG2, 'w:1')
     S2.connect('v_pre > 2')
 
-    S3 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S3 = Synapses(SG1, SG2, 'w:1')
     S3.connect('v_post < 25')
 
-    S4 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S4 = Synapses(SG2, SG1, 'w:1')
     S4.connect('v_post > 2')
 
-    S5 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S5 = Synapses(SG2, SG1, 'w:1')
     S5.connect('v_pre < 25')
 
     run(0*ms)  # for standalone
@@ -214,26 +215,26 @@ def test_synapse_creation_state_vars():
 
 @pytest.mark.standalone_compatible
 def test_synapse_creation_generator():
-    G1 = NeuronGroup(10, 'v:1', threshold='False')
-    G2 = NeuronGroup(20, 'v:1', threshold='False')
+    G1 = NeuronGroup(10, 'v:1')
+    G2 = NeuronGroup(20, 'v:1')
     G1.v = 'i'
     G2.v = '10 + i'
     SG1 = G1[:5]
     SG2 = G2[10:]
-    S = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S = Synapses(SG1, SG2, 'w:1')
     S.connect(j='i*2 + k for k in range(2)')  # diverging connections
 
     # connect based on pre-/postsynaptic state variables
-    S2 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S2 = Synapses(SG1, SG2, 'w:1')
     S2.connect(j='k for k in range(N_post) if v_pre > 2')
 
-    S3 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S3 = Synapses(SG1, SG2, 'w:1')
     S3.connect(j='k for k in range(N_post) if v_post < 25')
 
-    S4 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S4 = Synapses(SG2, SG1, 'w:1')
     S4.connect(j='k for k in range(N_post) if v_post > 2')
 
-    S5 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S5 = Synapses(SG2, SG1, 'w:1')
     S5.connect(j='k for k in range(N_post) if v_pre < 25')
 
     run(0*ms)  # for standalone
@@ -262,40 +263,40 @@ def test_synapse_creation_generator():
 
 @pytest.mark.standalone_compatible
 def test_synapse_creation_generator_multiple_synapses():
-    G1 = NeuronGroup(10, 'v:1', threshold='False')
-    G2 = NeuronGroup(20, 'v:1', threshold='False')
+    G1 = NeuronGroup(10, 'v:1')
+    G2 = NeuronGroup(20, 'v:1')
     G1.v = 'i'
     G2.v = '10 + i'
     SG1 = G1[:5]
     SG2 = G2[10:]
-    S1 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S1 = Synapses(SG1, SG2)
     S1.connect(j='k for k in range(N_post)', n='i')
 
-    S2 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S2 = Synapses(SG1, SG2)
     S2.connect(j='k for k in range(N_post)', n='j')
 
-    S3 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S3 = Synapses(SG2, SG1)
     S3.connect(j='k for k in range(N_post)', n='i')
 
-    S4 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S4 = Synapses(SG2, SG1)
     S4.connect(j='k for k in range(N_post)', n='j')
 
-    S5 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S5 = Synapses(SG1, SG2)
     S5.connect(j='k for k in range(N_post)', n='i+j')
 
-    S6 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S6 = Synapses(SG2, SG1)
     S6.connect(j='k for k in range(N_post)', n='i+j')
 
-    S7 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S7 = Synapses(SG1, SG2)
     S7.connect(j='k for k in range(N_post)', n='int(v_pre>2)*2')
 
-    S8 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S8 = Synapses(SG2, SG1)
     S8.connect(j='k for k in range(N_post)', n='int(v_post>2)*2')
 
-    S9 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S9 = Synapses(SG1, SG2)
     S9.connect(j='k for k in range(N_post)', n='int(v_post>22)*2')
 
-    S10 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S10 = Synapses(SG2, SG1)
     S10.connect(j='k for k in range(N_post)', n='int(v_pre>22)*2')
 
     run(0*ms)  # for standalone
@@ -320,21 +321,21 @@ def test_synapse_creation_generator_multiple_synapses():
 
 @pytest.mark.standalone_compatible
 def test_synapse_creation_generator_complex_ranges():
-    G1 = NeuronGroup(10, 'v:1', threshold='False')
-    G2 = NeuronGroup(20, 'v:1', threshold='False')
+    G1 = NeuronGroup(10, 'v:1')
+    G2 = NeuronGroup(20, 'v:1')
     G1.v = 'i'
     G2.v = '10 + i'
     SG1 = G1[:5]
     SG2 = G2[10:]
-    S = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S = Synapses(SG1, SG2)
     S.connect(j='i+k for k in range(N_post-i)')  # Connect to all j>i
 
     # connect based on pre-/postsynaptic state variables
-    S2 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S2 = Synapses(SG1, SG2)
     S2.connect(j='k for k in range(N_post * int(v_pre > 2))')
 
     # connect based on pre-/postsynaptic state variables
-    S3 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S3 = Synapses(SG2, SG1)
     S3.connect(j='k for k in range(N_post * int(v_pre > 22))')
 
     run(0*ms)  # for standalone
@@ -354,18 +355,18 @@ def test_synapse_creation_generator_complex_ranges():
 
 @pytest.mark.standalone_compatible
 def test_synapse_creation_generator_random():
-    G1 = NeuronGroup(10, 'v:1', threshold='False')
-    G2 = NeuronGroup(20, 'v:1', threshold='False')
+    G1 = NeuronGroup(10, 'v:1')
+    G2 = NeuronGroup(20, 'v:1')
     G1.v = 'i'
     G2.v = '10 + i'
     SG1 = G1[:5]
     SG2 = G2[10:]
 
     # connect based on pre-/postsynaptic state variables
-    S2 = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S2 = Synapses(SG1, SG2)
     S2.connect(j='k for k in sample(N_post, p=1.0*int(v_pre > 2))')
 
-    S3 = Synapses(SG2, SG1, 'w:1', on_pre='v+=w')
+    S3 = Synapses(SG2, SG1)
     S3.connect(j='k for k in sample(N_post, p=1.0*int(v_pre > 22))')
 
     run(0*ms)  # for standalone
@@ -377,13 +378,13 @@ def test_synapse_creation_generator_random():
 
 
 def test_synapse_access():
-    G1 = NeuronGroup(10, 'v:1', threshold='False')
+    G1 = NeuronGroup(10, 'v:1')
     G1.v = 'i'
-    G2 = NeuronGroup(20, 'v:1', threshold='False')
+    G2 = NeuronGroup(20, 'v:1')
     G2.v = 'i'
     SG1 = G1[:5]
     SG2 = G2[10:]
-    S = Synapses(SG1, SG2, 'w:1', on_pre='v+=w')
+    S = Synapses(SG1, SG2, 'w:1')
     S.connect(True)
     S.w['j == 0'] = 5
     assert all(S.w['j==0'] == 5)
@@ -466,6 +467,7 @@ def test_synapses_access_subgroups_problematic():
             assert len(l) == n_warnings, 'expected %d, got %d warnings' % (n_warnings, len(l))
             assert all([entry[1].endswith('ambiguous_string_expression')
                         for entry in l])
+
 
 @pytest.mark.standalone_compatible
 def test_subgroup_summed_variable():
