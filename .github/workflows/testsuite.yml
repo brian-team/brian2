@@ -16,15 +16,15 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         standalone: [false, true]
         float_dtype_32: [false,true]
-        python_version: ${{ env.MAX_PYTHON }}
+        python_version: ${{ MAX_PYTHON }}
         include:
           - os: ubuntu-20.04
             standalone: false
-            python-version: ${{ env.MIN_PYTHON }}
+            python-version: ${{ MIN_PYTHON }}
             float_dtype_32: false
           - os: ubuntu-20.04
             standalone: true
-            python-version: ${{ env.MIN_PYTHON }}
+            python-version: ${{ MIN_PYTHON }}
             float_dtype_32: false
 
     defaults:
