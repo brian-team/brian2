@@ -2,6 +2,10 @@ name: TestSuite
 
 on: [push, pull_request]
 
+env:
+  MAX_PYTHON: 3.9
+  MIN_PYTHON: 3.7
+  
 jobs:
   testing:
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
@@ -12,23 +16,15 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         standalone: [false, true]
         float_dtype_32: [false,true]
-        python-version: [3.8]
+        python-version: [${{ env.MAX_PYTHON }}]
         include:
           - os: ubuntu-20.04
             standalone: false
-            python-version: 3.7
+            python-version: ${{ env.MIN_PYTHON }}
             float_dtype_32: false
           - os: ubuntu-20.04
             standalone: true
-            python-version: 3.7
-            float_dtype_32: false
-          - os: ubuntu-20.04
-            standalone: false
-            python-version: 3.9
-            float_dtype_32: false
-          - os: ubuntu-20.04
-            standalone: true
-            python-version: 3.9
+            python-version: ${{ env.MIN_PYTHON }}
             float_dtype_32: false
 
     defaults:
@@ -66,7 +62,7 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
       
       - name: Upload coverage data to coveralls
-        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.float_dtype_32 != true && matrix.python-version == 3.8 }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == env.MAX_PYTHON }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
           conda install --quiet --yes coveralls
