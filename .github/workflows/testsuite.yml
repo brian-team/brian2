@@ -23,15 +23,15 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         standalone: [false, true]
         float_dtype_32: [false,true]
-        python_version: ${{ needs.set_python_versions.outputs.max_python }}
+        python_version: ["${{ needs.set_python_versions.outputs.max_python }}"]
         include:
           - os: ubuntu-20.04
             standalone: false
-            python-version: ${{ needs.set_python_versions.outputs.min_python }}
+            python-version: "${{ needs.set_python_versions.outputs.min_python }}"
             float_dtype_32: false
           - os: ubuntu-20.04
             standalone: true
-            python-version: ${{ needs.set_python_versions.outputs.min_python }}
+            python-version: "${{ needs.set_python_versions.outputs.min_python }}"
             float_dtype_32: false
 
     defaults:
