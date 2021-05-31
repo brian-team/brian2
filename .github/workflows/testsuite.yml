@@ -5,7 +5,7 @@ on: [push, pull_request]
 env:
   MAX_PYTHON: 3.9
   MIN_PYTHON: 3.7
-  
+
 jobs:
   testing:
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
@@ -16,7 +16,7 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         standalone: [false, true]
         float_dtype_32: [false,true]
-        python-version: [${{ env.MAX_PYTHON }}]
+        python_version: ${{ env.MAX_PYTHON }}
         include:
           - os: ubuntu-20.04
             standalone: false
