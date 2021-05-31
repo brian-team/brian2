@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   testing:
-    name: ${{ matrix.os }}-Standalone-${{ matrix.standalone}}-Float_dtype_32-${{ matrix.float_dtype_32 }}
+    name: ${{ matrix.os }}-PythonVersion-${{ matrix.python-version }}-Standalone-${{ matrix.standalone}}-Float_dtype_32-${{ matrix.float_dtype_32 }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -15,7 +15,12 @@ jobs:
         python-version: [3.8]
         exclude:
           - standalone: true
-            float_dtype_32: true 
+            float_dtype_32: true
+        include:
+          - os: ubuntu-20.04
+            standalone: [false, true]
+            python-version: [3.7,3.9]
+            float_dtype_32: false
 
     defaults:
       run:
