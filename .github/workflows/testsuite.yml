@@ -3,75 +3,19 @@ name: TestSuite
 on: [push, pull_request]
 
 jobs:
-  testing-ubuntu:
-    name: ${{ matrix.name }}
-    runs-on: ubuntu-20.04
+  testing:
+    name: ${{ matrix.os }}-Standalone-${{ matrix.standalone}}-Float_dtype_32-${{ matrix.float_dtype_32 }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: Python37_runtime_1
-            python-version: 3.7
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 1
-            
-          - name: Python39_runtime_1
-            python-version: 3.9
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 1
-
-          - name: Python37_runtime_2
-            python-version: 3.7
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 2
-
-          - name: Python39_runtime_2
-            python-version: 3.9
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 2
-
-          - name: Python38_runtime_1
-            python-version: 3.8
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 1
-            upload-coverage: true
-
-          - name: Python38_runtime_2
-            python-version: 3.8
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 2
-          
-          - name: Python38_standalone
-            python-version: 3.8
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: true
-            upload-coverage: true
-
-          - name: Python38_runtime_1_32bit
-            python-version: 3.8
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 1
-            float_dtype_32: true
-
-          - name: Python38_runtime_2_32bit
-            python-version: 3.8
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: false
-            split-run: 2
-            float_dtype_32: true
-          
-          - name: Python38_standalone_32bit
-            python-version: 3.8
-            script-name: dev/continuous-integration/run_test_suite.py
-            standalone: true
-            float_dtype_32: true
+        os: [ubuntu-20.04, windows-2019, macOS-10.15]
+        standalone: [false, true]
+        float_dtype_32: [false,true]
+        python-version: 3.8
+        exclude:
+          - standalone: true
+            float_dtype_32: true 
 
     defaults:
       run:
@@ -94,7 +38,6 @@ jobs:
 
       - name: Install Brian2 and dependencies
         run: |
-          echo ${{ matrix.upload-coverage }}
           conda install -n test_env --quiet --yes -c conda-forge pip pytest cython sympy future pyparsing numpy jinja2 six scipy sphinx gsl coverage
           pip install .
 
@@ -103,14 +46,13 @@ jobs:
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           coverage run --rcfile=$GITHUB_WORKSPACE/.coveragerc $GITHUB_WORKSPACE/$SCRIPT_NAME
         env:
-          SCRIPT_NAME: ${{ matrix.script-name }}
+          SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
           AGENT_OS: ${{runner.os}}
-          SPLIT_RUN: ${{ matrix.split-run }}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
       
       - name: Upload coverage data to coveralls
-        if: ${{ matrix.upload-coverage }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.float_dtype_32 == false }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
           conda install --quiet --yes coveralls
@@ -122,7 +64,7 @@ jobs:
 
   coveralls:
     name: Indicate completion to coveralls.io
-    needs: testing-ubuntu
+    needs: testing-python-38
     runs-on: ubuntu-latest
     container: python:3-slim
     steps:
