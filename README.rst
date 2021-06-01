@@ -75,11 +75,13 @@ To run the test suite:
 Testing status for master branch
 --------------------------------
 
-.. image:: https://dev.azure.com/brian-team/Brian2/_apis/build/status/brian-team.brian2?branchName=master
-  :target: https://dev.azure.com/brian-team/Brian2/_build/latest?definitionId=3&branchName=master
+.. image:: https://github.com/brian-team/brian2/actions/workflows/testsuite.yml/badge.svg
+  :target: https://github.com/brian-team/brian2/actions/workflows/testsuite.yml
+  :alt: Test status on GitHub Actions
 
 .. image:: https://img.shields.io/coveralls/brian-team/brian2/master.svg
   :target: https://coveralls.io/r/brian-team/brian2?branch=master
+  :alt: Test coverage
 
 .. image:: https://readthedocs.org/projects/brian2/badge/?version=stable
   :target: https://brian2.readthedocs.io/en/stable/?badge=stable
