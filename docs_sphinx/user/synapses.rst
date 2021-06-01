@@ -371,6 +371,8 @@ exists::
     # Insert the values from the Synapses object
     W[synapses.i[:], synapses.j[:]] = synapses.w[:]
 
+.. _generator_syntax:
+
 Creating synapses with the generator syntax
 -------------------------------------------
 
