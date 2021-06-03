@@ -30,7 +30,7 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
     :target: https://archive.softwareheritage.org/swh:1:rel:3f86a656a919ae3e6ed6dfc664e121ece3c85d75;origin=https://github.com/brian-team/brian2.git;visit=swh:1:snp:238d008c6403ba6f66c414510cd94b6beb6d51ad/
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-        :target: code-of-conduct.md
+        :target: CODE_OF_CONDUCT.md
         :alt: Contributor Covenant
 
 .. image:: https://badges.gitter.im/Join%20Chat.svg
