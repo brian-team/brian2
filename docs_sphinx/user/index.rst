@@ -17,3 +17,4 @@ User's guide
    multicompartmental
    computation
    converting_from_integrated_form
+   plotting_functions
