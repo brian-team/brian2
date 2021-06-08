@@ -26,7 +26,8 @@ def _find_K(group_dt, dt):
     dt_ratio = dt / group_dt
     if dt_ratio > 1 and np.floor(dt_ratio) != dt_ratio:
         logger.warn(('Group uses a dt of %s while TimedArray uses dt '
-                     'of %s') % (group_dt*second, dt*second), once=True)
+                     'of %s (ratio: 1/%s) → time grids not aligned') %
+                    (group_dt*second, dt*second, dt_ratio), once=True)
     # Find an upsampling factor that should avoid rounding issues even
     # for multistep methods
     K = max(int(2**np.ceil(np.log2(8/group_dt*dt))), 1)
