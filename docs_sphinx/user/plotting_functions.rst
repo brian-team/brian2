@@ -1,12 +1,11 @@
-Plotting functions
-==================
+How to plot functions
+=====================
 
 Models of synapses and neurons are typically composed of a series of functions.
 To affirm their correct implementation a plot is often helpful.
 
 Consider the following membrane voltage dependent Hodgkin-Huxley equations::
 
-	import matplotlib.pyplot as plt
 	from brian2 import *
 	
 	VT = -63*mV
@@ -25,9 +24,7 @@ Consider the following membrane voltage dependent Hodgkin-Huxley equations::
 
 We can do the following to plot them as function of membrane voltage::
 
-	group = NeuronGroup(100,
-	                    eq+Equations("dv/dt = -v / (10*ms) : volt"),
-	                    method='euler')
+	group = NeuronGroup(100, eq + Equations("v : volt"))
 	group.v = np.linspace(-100, 100, len(group))*mV
 	
 	plt.plot(group.v/mV, group.tau_m[:]/ms, label="tau_m")
@@ -36,7 +33,9 @@ We can do the following to plot them as function of membrane voltage::
 	plt.xlabel('membrane voltage / mV')
 	plt.ylabel('tau / ms')
 	plt.legend()
-	plt.show()
 
-Note how we evaluated (``[:]``) the result to allow for the magic replacement of ``VT``.
-Alternatively we could have supplied the `NeuronGroup` a namespace, see :doc:`/advanced/namespaces`.
+.. image:: images/function_plot.png
+
+Note that we need to use ``[:]`` for the ``tau_...`` equations, because Brian cannot
+resolve the external constant ``VT`` otherwise. Alternatively we could have supplied
+the constant in the namespace of the `NeuronGroup`, see :doc:`/advanced/namespaces`.
