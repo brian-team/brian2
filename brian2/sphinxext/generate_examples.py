@@ -161,7 +161,7 @@ def main(rootpath, destdir):
         with codecs.open(fname, 'rU', encoding='utf-8') as f:
             print(fname)
             content = f.read()
-        output = file + '\n' + '=' * len(title) + '\n\n'
+        output = file + '\n' + '=' * len(file) + '\n\n'
         output += '.. code:: none\n\n'
         content_lines = ['\t' + l for l in content.split('\n')]
         output += '\n'.join(content_lines)
