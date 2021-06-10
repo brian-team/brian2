@@ -54,9 +54,9 @@ def auto_find_examples(obj, headersymbol='='):
     '''
     name = obj.__name__
     examples_map = get_examples_map()
-    examples = the_examples_map[name]
+    examples = sorted(the_examples_map[name])
     tutorials_map = get_tutorials_map()
-    tutorials = the_tutorials_map[name]
+    tutorials = sorted(the_tutorials_map[name])
     if len(examples+tutorials)==0:
         return ''
     txt = 'Tutorials and examples using this'
