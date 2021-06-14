@@ -306,87 +306,70 @@ def main(parameters):
     return fig
 
 
-if __name__ == '__main__':
+parameters = {
 
-    parser = argparse.ArgumentParser(description='Hodgkin-Huxley approximated')
+    # Boltzmann function parameters
+    'v_n_half': 12*mV,
+    'v_m_half': 25*mV,
+    'v_h_half': 3*mV,
 
-    parser.add_argument('--show', help="show plot",
-                        action="store_true", default=False)
-    parser.add_argument('--save', help="save to given file name")
+    'k_n': 15*mV,
+    'k_m': 9*mV,
+    'k_h': -7*mV,
 
-    args = parser.parse_args()
+    # Gaussian function parameters
+    'v_n_max': -14*mV,
+    'v_m_max': 27*mV,
+    'v_h_max': -2*mV,
 
-    if not args.show and not args.save:
-        print("Neither --show nor --save selected, simulation will run but no output will be produced.")
+    'sigma_n': 50*mV,
+    'sigma_m': 30*mV,
+    'sigma_h': 20*mV,
 
-    parameters = {
+    'c_n_amp': 4.7*ms,
+    'c_m_amp': 0.46*ms,
+    'c_h_amp': 7.4*ms,
 
-        # Boltzmann function parameters
-        'v_n_half': 12*mV,
-        'v_m_half': 25*mV,
-        'v_h_half': 3*mV,
+    'c_n_base': 1.1*ms,
+    'c_m_base': 0.04*ms,
+    'c_h_base': 1.2*ms,
 
-        'k_n': 15*mV,
-        'k_m': 9*mV,
-        'k_h': -7*mV,
+    # conductances
+    'g_K_bar': 36*mS / (cmeter**2),
+    'g_Na_bar': 120*mS / (cmeter**2),
+    'g_L': 0.3*mS / (cmeter**2),
 
-        # Gaussian function parameters
-        'v_n_max': -14*mV,
-        'v_m_max': 27*mV,
-        'v_h_max': -2*mV,
+    # reversal potentials
+    'e_K': -12*mV,
+    'e_Na': 120*mV,
+    'e_L': 10.6*mV,
 
-        'sigma_n': 50*mV,
-        'sigma_m': 30*mV,
-        'sigma_h': 20*mV,
+    # membrane capacitance
+    'C_mem': 1*uF / cmeter**2,
 
-        'c_n_amp': 4.7*ms,
-        'c_m_amp': 0.46*ms,
-        'c_h_amp': 7.4*ms,
+    # initial membrane voltage
+    'v_initial': 0*mV,
 
-        'c_n_base': 1.1*ms,
-        'c_m_base': 0.04*ms,
-        'c_h_base': 1.2*ms,
+    # initial gating variable activations
+    'm_initial': 0.05,
+    'n_initial': 0.32,
+    'h_initial': 0.60,
 
-        # conductances
-        'g_K_bar': 36*mS / (cmeter**2),
-        'g_Na_bar': 120*mS / (cmeter**2),
-        'g_L': 0.3*mS / (cmeter**2),
+    # external stimulus at 2 ms with 4 uA/cm^2 and at 10 ms with 15 uA/cm^2
+    # for 0.5 ms each
+    'I_stim': TimedArray(values=([0]*4+[4]+[0]*15+[15]+[0])*uA/(cmeter**2),
+                         dt=0.5*ms),
 
-        # reversal potentials
-        'e_K': -12*mV,
-        'e_Na': 120*mV,
-        'e_L': 10.6*mV,
+    # simulation time step
+    'defaultclock_dt': 0.01*ms,
 
-        # membrane capacitance
-        'C_mem': 1*uF / cmeter**2,
+    # simulation duration
+    'duration': 20*ms
+}
 
-        # initial membrane voltage
-        'v_initial': 0*mV,
+linestyle_cycler = cycler('linestyle',['-','--',':','-.'])
+plt.rc('axes', prop_cycle=linestyle_cycler)
 
-        # initial gating variable activations
-        'm_initial': 0.05,
-        'n_initial': 0.32,
-        'h_initial': 0.60,
+fig = main(parameters)
 
-        # external stimulus at 2 ms with 4 uA/cm^2 and at 10 ms with 15 uA/cm^2
-        # for 0.5 ms each
-        'I_stim': TimedArray(values=([0]*4+[4]+[0]*15+[15]+[0])*uA/(cmeter**2),
-                             dt=0.5*ms),
-
-        # simulation time step
-        'defaultclock_dt': 0.01*ms,
-
-        # simulation duration
-        'duration': 20*ms
-    }
-
-    linestyle_cycler = cycler('linestyle',['-','--',':','-.'])
-    plt.rc('axes', prop_cycle=linestyle_cycler)
-
-    fig = main(parameters)
-
-    if args.save:
-        fig.savefig(args.save)
-
-    if args.show:
-        plt.show()
+plt.show()
