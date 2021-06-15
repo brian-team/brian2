@@ -40,22 +40,25 @@ def get_linear_system(eqs, variables):
     ValueError
         If the equations cannot be converted into an M * X + B form.
     '''
-    diff_eqs = eqs.get_substituted_expressions(variables)
-    diff_eq_names = [name for name, _ in diff_eqs]
+    diff_eqs = {name: str_to_sympy(expr.code, variables).expand()
+                for name, expr in eqs.get_substituted_expressions(variables)}
 
-    symbols = [Symbol(name, real=True) for name in diff_eq_names]
+    # Sometimes, in particular in testing, variables defined as differential
+    # equations are actually constant (e.g. `dv/dt = 0/second`). We ignore
+    # them here
+    symbols = [Symbol(name, real=True) for name, expr in diff_eqs.items()
+               if expr != 0]
 
-    coefficients = sp.zeros(len(diff_eq_names))
-    constants = sp.zeros(len(diff_eq_names), 1)
+    coefficients = sp.zeros(len(symbols))
+    constants = sp.zeros(len(symbols), 1)
 
-    for row_idx, (name, expr) in enumerate(diff_eqs):
-        s_expr = str_to_sympy(expr.code, variables).expand()
-
+    for row_idx, symbol in enumerate(symbols):
+        s_expr = diff_eqs[symbol.name]
         current_s_expr = s_expr
         for col_idx, symbol in enumerate(symbols):
             current_s_expr = current_s_expr.collect(symbol)
             constant_wildcard = Wild('c', exclude=[symbol])
-            factor_wildcard = Wild('c_'+name, exclude=symbols)
+            factor_wildcard = Wild('c_'+symbol.name, exclude=symbols)
             one_pattern = factor_wildcard*symbol + constant_wildcard
             matches = current_s_expr.match(one_pattern)
             if matches is None:
@@ -64,7 +67,8 @@ def get_linear_system(eqs, variables):
                                                      '%s, could not be '
                                                      'separated into linear '
                                                      'components.') %
-                                                    (expr, name))
+                                                    (sympy_to_str(s_expr),
+                                                     symbol.name))
 
             coefficients[row_idx, col_idx] = matches[factor_wildcard]
             current_s_expr = matches[constant_wildcard]
@@ -72,7 +76,7 @@ def get_linear_system(eqs, variables):
         # The remaining constant should be a true constant
         constants[row_idx] = current_s_expr
 
-    return (diff_eq_names, coefficients, constants)
+    return [s.name for s in symbols], coefficients, constants
 
 
 class IndependentStateUpdater(StateUpdateMethod):
@@ -191,14 +195,6 @@ class LinearStateUpdater(StateUpdateMethod):
                     ('Expression "{}" is not guaranteed to be constant over a '
                      'time step').format(sympy_to_str(entry)))
 
-        symbols = [Symbol(variable, real=True) for variable in varnames]
-        solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
-        if solution is None or set(symbols) != set(solution.keys()):
-            raise UnsupportedEquationsException('Cannot solve the given '
-                                                'equations with this '
-                                                'stateupdater.')
-        b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols])
-
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
         try:
@@ -207,10 +203,33 @@ class LinearStateUpdater(StateUpdateMethod):
             raise UnsupportedEquationsException('Cannot solve the given '
                                                 'equations with this '
                                                 'stateupdater.')
+
         if method_options['simplify']:
             A = A.applyfunc(lambda x:
                             sp.factor_terms(sp.cancel(sp.signsimp(x))))
-        C = sp.ImmutableMatrix(A * b) - b
+
+        if constants != sp.zeros(constants.rows, 1):  # non-homogeneous system
+            symbols = [Symbol(variable, real=True) for variable in varnames]
+            solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
+            # we are only interested in solutions for non-zero rows
+            non_zero = [symbol for symbol, row in zip(symbols, matrix)
+                        if matrix != sp.zeros(1, matrix.cols)]
+            if (len(non_zero) and solution is None or
+                    (solution is not None and len(solution) < len(non_zero))):
+                raise UnsupportedEquationsException('Cannot solve the given '
+                                                    'equations with this '
+                                                    'stateupdater.')
+
+            b = sp.Matrix([solution[symbol] if symbol in non_zero else 1
+                           for symbol in symbols])
+            C = sp.Matrix(A * b) - b
+            for row_idx, (s, c) in enumerate(zip(symbols, constants)):
+                if s not in non_zero:
+                   C[row_idx] = dt * c
+            C = sp.ImmutableMatrix(C)
+        else:  # homogeneous system
+            C = sp.zeros(A.rows, 1)
+
         _S = sp.MatrixSymbol('_S', len(varnames), 1)
         updates = A * _S + C
         updates = updates.as_explicit()
