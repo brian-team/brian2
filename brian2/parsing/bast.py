@@ -57,7 +57,7 @@ def brian_dtype_from_value(value):
 # so we don't use numpy.issubdtype but instead a precalculated list of all
 # standard types
 
-bool_dtype =numpy.dtype(numpy.bool)
+bool_dtype = numpy.dtype(bool)
 def is_boolean_dtype(obj):
     return numpy.dtype(obj) is bool_dtype
 
