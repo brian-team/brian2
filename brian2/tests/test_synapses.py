@@ -1,6 +1,3 @@
-
-
-
 import uuid
 import logging
 
@@ -22,6 +19,9 @@ from brian2.codegen.permutation_analysis import check_for_order_independence, Or
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
 from brian2.tests.utils import assert_allclose
 from brian2.equations.equations import EquationError
+
+from .utils import exc_isinstance
+
 
 def _compare(synapses, expected):
     conn_matrix = np.zeros((len(synapses.source), len(synapses.target)),
@@ -795,7 +795,7 @@ def test_equations_unit_check():
     net = Network(group, syn)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
 
 def test_delay_specification():
@@ -1194,7 +1194,7 @@ def test_no_synapses():
     net = Network(G1, G2, S)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
 
 
 @pytest.mark.codegen_independent
@@ -1582,7 +1582,7 @@ def test_event_driven_dependency_error():
     net = Network(collect())
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
 
 @pytest.mark.codegen_independent
@@ -1598,7 +1598,7 @@ def test_event_driven_dependency_error2():
     net = Network(collect())
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
 
 @pytest.mark.codegen_independent
@@ -2271,10 +2271,12 @@ def test_synapse_generator_out_of_range():
     # the post-synaptic condition, we could find out that the value of this
     # variable is actually irrelevant, but that makes things too complicated.
     S3 = Synapses(G, G, '')
-    with pytest.raises(BrianObjectException) as exc:
+    try:
         S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0')
-        assert exc.errisinstance(IndexError)
-        exc.match('outside allowed range')
+        raise AssertionError('No BrianObjectException raised.')
+    except BrianObjectException as ex:
+        assert isinstance(ex.__cause__, IndexError)
+        assert 'outside allowed range' in str(ex.__cause__)
 
 
 @pytest.mark.standalone_compatible
@@ -3044,9 +3046,9 @@ def test_missing_lastupdate_error_syn_pathway():
     S.connect()
     with pytest.raises(BrianObjectException) as exc:
         run(0*ms)
-        assert exc.errisinstance(KeyError)
-        exc.match('lastupdate = t')
-        exc.match('lastupdate : second')
+    assert exc_isinstance(exc, KeyError)
+    assert 'lastupdate = t' in str(exc.value.__cause__)
+    assert 'lastupdate : second' in str(exc.value.__cause__)
 
 
 @pytest.mark.codegen_independent
@@ -3057,9 +3059,9 @@ def test_missing_lastupdate_error_run_regularly():
     S.run_regularly('v += exp(-lastupdate/dt')
     with pytest.raises(BrianObjectException) as exc:
         run(0*ms)
-        assert exc.errisinstance(KeyError)
-        exc.match('lastupdate = t')
-        exc.match('lastupdate : second')
+    assert exc_isinstance(exc, KeyError)
+    assert 'lastupdate = t' in str(exc.value.__cause__)
+    assert 'lastupdate : second' in str(exc.value.__cause__)
 
 
 @pytest.mark.codegen_independent

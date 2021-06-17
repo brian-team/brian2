@@ -1,5 +1,3 @@
-
-
 import re
 import logging
 
@@ -12,6 +10,7 @@ from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.stateupdaters.base import UnsupportedEquationsException
 from brian2.tests.utils import assert_allclose
 
+from .utils import exc_isinstance
 
 @pytest.mark.codegen_independent
 def test_explicit_stateupdater_parsing():
@@ -172,7 +171,7 @@ def test_multiplicative_noise():
     net1 = Network(group1)
     with pytest.raises(BrianObjectException) as exc:
         net1.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Noise is multiplicative (multiplied with time)
     Eq2 = Equations('dv/dt = (t/ms)*xi*(5*ms)**-0.5 :1')
@@ -180,7 +179,7 @@ def test_multiplicative_noise():
     net2 = Network(group2)
     with pytest.raises(BrianObjectException) as exc:
         net2.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Noise is multiplicative (multiplied with time-varying variable)
     Eq3 = Equations('''dv/dt = w*xi*(5*ms)**-0.5 :1
@@ -189,7 +188,7 @@ def test_multiplicative_noise():
     net3 = Network(group3)
     with pytest.raises(BrianObjectException) as exc:
         net3.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # One of the equations has multiplicative noise
     Eq4 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
@@ -198,7 +197,7 @@ def test_multiplicative_noise():
     net4 = Network(group4)
     with pytest.raises(BrianObjectException) as exc:
         net4.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # One of the equations has multiplicative noise
     Eq5 = Equations('''dv/dt = xi_1*(5*ms)**-0.5 : 1
@@ -207,7 +206,7 @@ def test_multiplicative_noise():
     net5 = Network(group4)
     with pytest.raises(BrianObjectException) as exc:
         net5.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
 
 def test_pure_noise_deterministic(fake_randn_randn_fixture):
@@ -673,7 +672,7 @@ def test_locally_constant_check():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Arbitrary functions are not constant over a time step
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*t)*Hz : 1',
@@ -681,7 +680,7 @@ def test_locally_constant_check():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Stateful functions aren't either
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + rand()*Hz : 1',
@@ -689,14 +688,14 @@ def test_locally_constant_check():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # Neither is "t" itself
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + t/second**2 : 1', method='exact')
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException)
 
     # But if the argument is not referring to t, all should be well
     G = NeuronGroup(1, 'dv/dt = -v/(10*ms) + sin(2*pi*100*Hz*5*second)*Hz : 1',

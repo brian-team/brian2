@@ -1,4 +1,3 @@
-
 from collections import Counter
 
 import pytest
@@ -10,6 +9,9 @@ from brian2 import *
 from brian2.equations.refractory import add_refractoriness
 from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
+
+from .utils import exc_isinstance
+
 
 @pytest.mark.codegen_independent
 def test_add_refractoriness():
@@ -187,19 +189,19 @@ def test_refractoriness_types():
     group = NeuronGroup(1, '', refractory='3*Hz')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     group = NeuronGroup(1, 'ref: Hz', refractory='ref')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     group = NeuronGroup(1, '', refractory='3')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     group = NeuronGroup(1, 'ref: 1', refractory='ref')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
 
 @pytest.mark.codegen_independent
 def test_conditional_write_set():

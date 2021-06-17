@@ -1,4 +1,3 @@
-
 from numpy.testing import assert_equal
 import pytest
 
@@ -7,6 +6,7 @@ from brian2.devices.device import reinit_and_delete
 from brian2.core.network import schedule_propagation_offset
 from brian2.tests.utils import assert_allclose
 
+from .utils import exc_isinstance
 
 @pytest.mark.standalone_compatible
 def test_poissoninput():
@@ -68,7 +68,7 @@ def test_poissoninput_errors():
     net = Network(collect())
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
     defaultclock.dt = old_dt
 
 

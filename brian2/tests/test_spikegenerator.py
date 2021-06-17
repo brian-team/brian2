@@ -15,6 +15,8 @@ from brian2.devices.device import reinit_and_delete
 from brian2.tests.utils import assert_allclose
 from brian2.utils.logger import catch_logs
 
+from .utils import exc_isinstance
+
 
 @pytest.mark.standalone_compatible
 def test_spikegenerator_connected():
@@ -131,7 +133,7 @@ def test_spikegenerator_period_rounding():
     net = Network(s)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(ValueError)
+    assert exc_isinstance(exc, ValueError)
 
 
 def test_spikegenerator_period_repeat():
@@ -246,19 +248,19 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=0.101 * ms, dt=0.1 * ms)
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
 
     SG = SpikeGeneratorGroup(1, [], [] * second, period=3.333 * ms, dt=0.1 * ms)
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, NotImplementedError)
 
     # This should not raise an error (see #1041)
     SG = SpikeGeneratorGroup(1, [], []*ms, period=150*ms, dt=0.1*ms)
@@ -270,7 +272,7 @@ def test_spikegenerator_incorrect_period():
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(ValueError)
+    assert exc_isinstance(exc, ValueError)
 
 
 def test_spikegenerator_rounding():
@@ -353,7 +355,8 @@ def test_spikegenerator_multiple_spikes_per_bin():
     net = Network(SG)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    print(exc.value.__cause__)
+    assert exc_isinstance(exc, ValueError)
 
     # More complicated scenario where dt changes between runs
     defaultclock.dt = 0.1*ms
@@ -363,7 +366,7 @@ def test_spikegenerator_multiple_spikes_per_bin():
     defaultclock.dt = 0.2*ms  # Now the two spikes fall into the same bin
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(NotImplementedError)
+    assert exc_isinstance(exc, ValueError)
 
 
 @pytest.mark.standalone_compatible
