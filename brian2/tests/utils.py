@@ -27,7 +27,7 @@ def assert_allclose(actual, desired, rtol=4.5e8, atol=0, **kwds):
     rtol = eps*rtol
     numpy_allclose(np.asarray(actual), np.asarray(desired), rtol=rtol, atol=atol, **kwds)
 
-def exc_isinstance(exc_info, expected_exception):
+def exc_isinstance(exc_info, expected_exception, raise_not_implemented=False):
     """
     Simple helper function as an alternative to calling
     `~.pytest.ExceptionInfo.errisinstance` which will take into account all
@@ -39,6 +39,10 @@ def exc_isinstance(exc_info, expected_exception):
         The exception info as returned by `pytest.raises`.
     expected_exception : `type`
         The expected exception class
+    raise_not_implemented : bool, optional
+        Whether to re-raise a `NotImplementedError` – necessary for tests that
+        should be skipped with ``@skip_if_not_implemented``. Defaults to
+        ``False``.
 
     Returns
     -------
@@ -50,7 +54,10 @@ def exc_isinstance(exc_info, expected_exception):
         return False
     if hasattr(exc_info, 'value'):
         exc_info = exc_info.value
+
     if isinstance(exc_info, expected_exception):
         return True
+    elif raise_not_implemented and isinstance(exc_info, NotImplementedError):
+        raise exc_info
 
     return exc_isinstance(exc_info.__cause__, expected_exception)
