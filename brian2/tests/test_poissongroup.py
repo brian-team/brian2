@@ -7,8 +7,7 @@ from brian2 import *
 from brian2.core.network import schedule_propagation_offset
 from brian2.devices.device import reinit_and_delete
 from brian2.utils.logger import catch_logs
-
-from .utils import exc_isinstance
+from brian2.tests.utils import exc_isinstance
 
 
 @pytest.mark.standalone_compatible

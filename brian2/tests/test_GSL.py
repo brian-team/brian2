@@ -7,8 +7,7 @@ from brian2.core.preferences import PreferenceError
 
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
 from brian2.stateupdaters.base import UnsupportedEquationsException
-
-from .utils import exc_isinstance
+from brian2.tests.utils import exc_isinstance
 
 max_difference = .1*mV
 

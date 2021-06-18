@@ -8,9 +8,7 @@ from brian2 import *
 from brian2.utils.logger import catch_logs
 from brian2.core.variables import ArrayVariable, Variable, Constant
 from brian2.stateupdaters.base import UnsupportedEquationsException
-from brian2.tests.utils import assert_allclose
-
-from .utils import exc_isinstance
+from brian2.tests.utils import assert_allclose, exc_isinstance
 
 @pytest.mark.codegen_independent
 def test_explicit_stateupdater_parsing():

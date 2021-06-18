@@ -24,8 +24,7 @@ from brian2.units.fundamentalunits import (DimensionMismatchError,
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
-
-from .utils import exc_isinstance
+from brian2.tests.utils import exc_isinstance
 
 
 @pytest.mark.codegen_independent

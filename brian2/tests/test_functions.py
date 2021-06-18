@@ -9,11 +9,9 @@ from brian2.core.functions import timestep
 from brian2.devices import RuntimeDevice
 from brian2.parsing.sympytools import str_to_sympy, sympy_to_str
 from brian2.utils.logger import catch_logs
-from brian2.tests.utils import assert_allclose
+from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.codegen.generators import CodeGenerator
 from brian2.codegen.codeobject import CodeObject
-
-from .utils import exc_isinstance
 
 
 @pytest.mark.codegen_independent

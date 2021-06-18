@@ -17,10 +17,8 @@ from brian2.utils.stringtools import get_identifiers, word_substitute, indent, d
 from brian2.devices.device import reinit_and_delete, all_devices, get_device
 from brian2.codegen.permutation_analysis import check_for_order_independence, OrderDependenceError
 from brian2.synapses.parse_synaptic_generator_syntax import parse_synapse_generator
-from brian2.tests.utils import assert_allclose
+from brian2.tests.utils import assert_allclose, exc_isinstance
 from brian2.equations.equations import EquationError
-
-from .utils import exc_isinstance
 
 
 def _compare(synapses, expected):
