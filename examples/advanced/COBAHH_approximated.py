@@ -90,7 +90,7 @@ def plot_tau(ax, parameters):
     """
 
     tau_group = NeuronGroup(100,
-                            Equations('dv/dt = -v/(10*ms) : volt') +
+                            Equations('v : volt') +
                             reduce(operator.add, [construct_gating_variable_tau_equation(
                                 gv) for gv in ['m', 'n', 'h']]),
                             method='euler', namespace=parameters)
@@ -118,7 +118,7 @@ def plot_inf(ax, parameters):
     """
 
     inf_group = NeuronGroup(100,
-                            Equations('dv/dt = -v/(10*ms) : volt') +
+                            Equations('v : volt') +
                             reduce(operator.add, [construct_gating_variable_inf_equation(
                                 gv) for gv in ['m', 'n', 'h']]),
                             method='euler', namespace=parameters)
