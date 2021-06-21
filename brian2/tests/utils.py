@@ -60,4 +60,5 @@ def exc_isinstance(exc_info, expected_exception, raise_not_implemented=False):
     elif raise_not_implemented and isinstance(exc_info, NotImplementedError):
         raise exc_info
 
-    return exc_isinstance(exc_info.__cause__, expected_exception)
+    return exc_isinstance(exc_info.__cause__, expected_exception,
+                          raise_not_implemented=raise_not_implemented)
