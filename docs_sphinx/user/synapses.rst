@@ -94,8 +94,9 @@ By default, differential equations are integrated in a clock-driven fashion, as 
 `NeuronGroup`. This is potentially very time consuming, because all synapses are updated at every
 timestep and Brian will therefore emit a warning. If you are sure about integrating the equations at
 every timestep (e.g. because you want to record the values continuously), then you should specify
-the flag ``(clock-driven)``. To ask Brian 2 to simulate differential equations in an event-driven fashion
-use the flag ``(event-driven)``. A typical example is pre- and postsynaptic traces in STDP::
+the flag ``(clock-driven)``, which will silence the warning. To ask Brian 2 to simulate differential
+equations in an event-driven fashion use the flag ``(event-driven)``. A typical example is pre- and
+postsynaptic traces in STDP::
 
   model='''w:1
            dApre/dt=-Apre/taupre : 1 (event-driven)
