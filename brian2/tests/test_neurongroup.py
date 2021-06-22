@@ -24,6 +24,7 @@ from brian2.units.fundamentalunits import (DimensionMismatchError,
 from brian2.units.stdunits import ms, mV, Hz
 from brian2.units.unitsafefunctions import linspace
 from brian2.utils.logger import catch_logs
+from brian2.tests.utils import exc_isinstance
 
 
 @pytest.mark.codegen_independent
@@ -644,7 +645,7 @@ def test_linked_var_in_reset_incorrect():
     # (as for any other shared variable)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(SyntaxError)
+    assert exc_isinstance(exc, SyntaxError)
 
 @pytest.mark.codegen_independent
 def test_incomplete_namespace():
@@ -671,21 +672,21 @@ def test_namespace_errors():
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError)
 
     # reset uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='False', reset='v = v_r')
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError)
 
     # threshold uses unknown identifier
     G = NeuronGroup(1, 'dv/dt = -v/tau : 1', threshold='v > v_th')
     net = Network(G)
     with pytest.raises(BrianObjectException) as exc:
         net.run(1*ms)
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError)
 
 
 @pytest.mark.codegen_independent
@@ -788,7 +789,7 @@ def test_unit_errors_threshold_reset():
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1', threshold='v > -20*mV')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     # Unit error in reset
     group = NeuronGroup(1, 'dv/dt = -v/(10*ms) : 1',
@@ -796,7 +797,7 @@ def test_unit_errors_threshold_reset():
                         reset='v = -65*mV')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     # More complicated unit reset with an intermediate variable
     # This should pass
@@ -819,7 +820,7 @@ def test_unit_errors_threshold_reset():
                                  v = temp_var''')
     with pytest.raises(BrianObjectException) as exc:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
     # Resets with an in-place modification
     # This should work
@@ -834,7 +835,7 @@ def test_unit_errors_threshold_reset():
                         reset='''v -= 60*mV''')
     with pytest.raises(BrianObjectException) as ecx:
         Network(group).run(0*ms)
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError)
 
 
 @pytest.mark.codegen_independent
@@ -901,7 +902,7 @@ def test_incorrect_custom_event_definition():
     G = NeuronGroup(1, '', events={'my_event': 10*mV})
     with pytest.raises(BrianObjectException) as exc:
         Network(G).run(0*ms)
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError)
     # schedule for a non-existing event
     G = NeuronGroup(1, '', threshold='False', events={'my_event': 'True'})
     with pytest.raises(ValueError):
@@ -1313,7 +1314,7 @@ def test_scalar_subexpression():
     net = Network(group)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms)
-        assert exc.errisinstance(SyntaxError)
+    assert exc_isinstance(exc, SyntaxError)
 
 
 @pytest.mark.standalone_compatible
@@ -1389,7 +1390,7 @@ def test_subexpression_checks():
     net = Network(group)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0 * ms)
-        assert exc.errisinstance(SyntaxError)
+    assert exc_isinstance(exc, SyntaxError)
 
 
 @pytest.mark.codegen_independent

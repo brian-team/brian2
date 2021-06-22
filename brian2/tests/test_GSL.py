@@ -7,6 +7,7 @@ from brian2.core.preferences import PreferenceError
 
 from brian2.codegen.runtime.GSLcython_rt import IntegrationError
 from brian2.stateupdaters.base import UnsupportedEquationsException
+from brian2.tests.utils import exc_isinstance
 
 max_difference = .1*mV
 
@@ -185,7 +186,9 @@ def test_GSL_stochastic():
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={'tau': tau,
                                  'sigma': sigma})
-        assert exc.errisinstance(UnsupportedEquationsException)
+    assert exc_isinstance(exc, UnsupportedEquationsException,
+                          raise_not_implemented=True)
+
 
 @pytest.mark.standalone_compatible
 @skip_if_not_implemented
@@ -200,7 +203,8 @@ def test_GSL_error_dimension_mismatch_unit():
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
@@ -216,7 +220,8 @@ def test_GSL_error_dimension_mismatch_dimensionless1():
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
@@ -232,7 +237,8 @@ def test_GSL_error_dimension_mismatch_dimensionless2():
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(DimensionMismatchError)
+    assert exc_isinstance(exc, DimensionMismatchError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
@@ -248,7 +254,8 @@ def test_GSL_error_nonexisting_variable():
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
@@ -268,10 +275,12 @@ def test_GSL_error_incorrect_error_format():
     net2 = Network(neuron2)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError,
+                          raise_not_implemented=True)
     with pytest.raises(BrianObjectException) as exc:
         net2.run(0*ms, namespace={})
-        assert exc.errisinstance(TypeError)
+    assert exc_isinstance(exc, TypeError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
@@ -287,7 +296,8 @@ def test_GSL_error_nonODE_variable():
     net = Network(neuron)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={})
-        assert exc.errisinstance(KeyError)
+    assert exc_isinstance(exc, KeyError,
+                          raise_not_implemented=True)
 
 
 @pytest.mark.standalone_compatible
