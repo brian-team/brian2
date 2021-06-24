@@ -978,7 +978,7 @@ def test_numpy_functions_logical():
                 # one argument
                 result_units = eval('np.%s(value1)' % ufunc)        
                 result_array = eval('np.%s(np.array(value1))' % ufunc)                
-            except ValueError:
+            except (ValueError, TypeError):
                 # two arguments
                 result_units = eval('np.%s(value1, value2)' % ufunc)        
                 result_array = eval('np.%s(np.array(value1), np.array(value2))' % ufunc)
