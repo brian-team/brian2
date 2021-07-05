@@ -1504,6 +1504,8 @@ class CPPStandaloneDevice(Device):
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
 
+        net.after_run()
+
         # Manually set the cache for the clocks, simulation scripts might
         # want to access the time (which has been set in code and is therefore
         # not accessible by the normal means until the code has been built and
