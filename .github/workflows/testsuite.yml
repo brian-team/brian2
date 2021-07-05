@@ -3,18 +3,21 @@ name: TestSuite
 on: [push, pull_request]
 
 jobs:
-  set_python_versions:
-    name: "Set Python versions"
+  get_python_versions:
+    name: "Determine Python versions"
     runs-on: ubuntu-latest
     outputs:
-      max_python: "3.9"
-      min_python: "3.7"
+      min-python: ${{ steps.nep29.outputs.min-python }}
+      max-python: ${{ steps.nep29.outputs.max-python }}
     steps:
-      - name: "Do-nothing step"
-        run: echo Doing nothing
+      - name: "calculate versions according to NEP29"
+        id: nep29
+        uses: mstimberg/github-calc-nep29@v0.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
   
   testing:
-    needs: [set_python_versions]
+    needs: [get_python_versions]
     name: "Python ${{ matrix.python-version }} on ${{ matrix.os }} (standalone: ${{ matrix.standalone }}, 32bit: ${{ matrix.float_dtype_32 }})"
     runs-on: ${{ matrix.os }}
     strategy:
@@ -23,15 +26,15 @@ jobs:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         standalone: [false, true]
         float_dtype_32: [false, true]
-        python-version: ["${{ needs.set_python_versions.outputs.max_python }}"]
+        python-version: ["${{ needs.get_python_versions.outputs.max-python }}"]
         include:
           - os: ubuntu-20.04
             standalone: false
-            python-version: "${{ needs.set_python_versions.outputs.min_python }}"
+            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
           - os: ubuntu-20.04
             standalone: true
-            python-version: "${{ needs.set_python_versions.outputs.min_python }}"
+            python-version: "${{ needs.get_python_versions.outputs.min-python }}"
             float_dtype_32: false
 
     defaults:
@@ -69,7 +72,7 @@ jobs:
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
       
       - name: Upload coverage data to coveralls
-        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.set_python_versions.outputs.max_python }}
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.python-version == needs.get_python_versions.outputs.max-python }}
         run: |
           cp  $GITHUB_WORKSPACE/../.coverage .
           conda install --quiet --yes coveralls
