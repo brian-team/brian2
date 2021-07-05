@@ -537,6 +537,19 @@ def test_network_active_flag():
     assert_equal(y.count, 0)
 
 
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_spikes_after_deactivating():
+    # Make sure that a spike in the last time step gets cleared. See #1319
+    always_spike = NeuronGroup(1, '', threshold='True', reset='')
+    spike_mon = SpikeMonitor(always_spike)
+    run(defaultclock.dt)
+    always_spike.active = False
+    run(defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    assert_equal(spike_mon.t[:], [0]*second)
+
+
 @pytest.mark.codegen_independent
 def test_network_t():
     # test that Network.t works as expected
