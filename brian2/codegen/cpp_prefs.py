@@ -118,9 +118,11 @@ prefs.register_preferences(
     compiler = BrianPreference(
         default='',
         docs='''
-        Compiler to use (uses default if empty)
-        
-        Should be gcc or msvc.
+        Compiler to use (uses default if empty).
+        Should be ``'unix'`` or ``'msvc'``.
+
+        To specify a specific compiler binary on unix systems, set the `CXX` environment
+        variable instead.
         '''
         ),
     extra_compile_args=BrianPreference(
