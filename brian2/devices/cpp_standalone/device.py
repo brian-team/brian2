@@ -144,8 +144,8 @@ class CPPStandaloneDevice(Device):
         #: List of all arrays to be filled with numbers (list of
         #: (var, varname, start) tuples
         self.arange_arrays = []
-        #: List of all existing synapses
-        self.synapses = []
+        #: Set of all existing synapses
+        self.synapses = set()
         #: Whether the simulation has been run
         self.has_been_run = False
 
@@ -175,7 +175,6 @@ class CPPStandaloneDevice(Device):
         self.networks = set()
         self.static_array_specs = []
         self.report_func = ''
-        self.synapses = []
 
         #: Code lines that have been manually added with `device.insert_code`
         #: Dictionary mapping slot names to lists of lines.
@@ -1374,8 +1373,8 @@ class CPPStandaloneDevice(Device):
             namespace = get_local_namespace(level=level+2)
 
         net.before_run(namespace)
-        self.synapses.extend([s for s in net.objects
-                              if isinstance(s, Synapses)])
+        self.synapses |= {s for s in net.objects
+                          if isinstance(s, Synapses)}
         self.clocks.update(net._clocks)
         net.t_ = float(t_end)
 
