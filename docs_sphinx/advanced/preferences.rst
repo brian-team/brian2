@@ -3,7 +3,7 @@ Preferences
 
 Brian has a system of global preferences that affect how certain objects
 behave. These can be set either in scripts by using the `prefs` object
-or in a file. Each preference looks like ``codegen.c.compiler``, i.e. dotted
+or in a file. Each preference looks like ``codegen.cpp.compiler``, i.e. dotted
 names.
 
 Accessing and setting preferences
@@ -11,8 +11,8 @@ Accessing and setting preferences
 Preferences can be accessed and set either keyword-based or attribute-based.
 The following are equivalent::
 
-    prefs['codegen.c.compiler'] = 'gcc'
-    prefs.codegen.c.compiler = 'gcc'
+    prefs['codegen.cpp.compiler'] = 'gcc'
+    prefs.codegen.cpp.compiler = 'gcc'
 
 Using the attribute-based form can be particulary useful for interactive
 work, e.g. in ipython, as it offers autocompletion and documentation.
