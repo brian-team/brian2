@@ -11,13 +11,13 @@ Accessing and setting preferences
 Preferences can be accessed and set either keyword-based or attribute-based.
 The following are equivalent::
 
-    prefs['codegen.cpp.compiler'] = 'gcc'
-    prefs.codegen.cpp.compiler = 'gcc'
+    prefs['codegen.cpp.compiler'] = 'unix'
+    prefs.codegen.cpp.compiler = 'unix'
 
 Using the attribute-based form can be particulary useful for interactive
 work, e.g. in ipython, as it offers autocompletion and documentation.
-In ipython, ``prefs.codegen.c?`` would display a docstring with all
-the preferences available in the ``codegen.c`` category.
+In ipython, ``prefs.codegen.cpp?`` would display a docstring with all
+the preferences available in the ``codegen.cpp`` category.
 
 Preference files
 ----------------
