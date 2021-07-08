@@ -281,27 +281,14 @@ class SynapticPathway(CodeRunner, Group):
     def update_abstract_code(self, run_namespace=None, level=0):
         if self.synapses.event_driven is not None:
             event_driven_eqs = self.synapses.event_driven
-            clock_driven_eqs = self.synapses.equations
             try:
                 event_driven_update = linear(event_driven_eqs,
                                              self.group.variables)
             except UnsupportedEquationsException:
-                # Check whether equations are independent
-                for var, expr in event_driven_eqs.diff_eq_expressions:
-                    for identifier in expr.identifiers:
-                        if identifier == var:
-                            continue
-                        if (identifier in event_driven_eqs.diff_eq_names or
-                                identifier in clock_driven_eqs):
-                            err = ("Cannot solve the differential equation for "
-                                   "'{}' as event-driven, it depends on "
-                                   "another variable '{}'. Use (clock-driven) "
-                                   "instead.".format(var,
-                                                                    identifier))
-                            raise UnsupportedEquationsException(err)
-                # All equations are independent, go ahead
-                event_driven_update = independent(self.synapses.event_driven,
-                                                  self.group.variables)
+                err = ("Cannot solve the differential equations as "
+                       "event-driven. Use (clock-driven) instead.")
+                raise UnsupportedEquationsException(err)
+
             # TODO: Any way to do this more elegantly?
             event_driven_update = re.sub(r'\bdt\b', '(t - lastupdate)',
                                          event_driven_update)
@@ -792,12 +779,54 @@ class Synapses(Group):
                                 'clock_driven',
                                 once=True)
                 continuous.append(single_equation)
-        
-        # Checking whether a summed variable or a clock-driven equation is referring to an event-driven variable
-        for eq in event_driven:
-            Synapses._recur_check_event_summed_clock(eq.varname, model)
+                if single_equation.type != DIFFERENTIAL_EQUATION:
+                    # General subexpressions (not summed variables) or
+                    # parameters, might be referred from event-driven equations
+                    # as well.
+                    # Note that the code generation step will ignore them if
+                    # nothing refers to them.
+                    event_driven.append(single_equation)
+        # Get the dependencies of all equations
+        dependencies = model.dependencies
+        # Check whether there are dependencies between summed
+        # variables/clocked-driven equations and event-driven variables
+        for eq_name, deps in dependencies.items():
+            eq = model[eq_name]
+            if not (eq.type == DIFFERENTIAL_EQUATION or 'summed' in eq.flags):
+                continue
+            if eq in continuous or 'summed' in eq.flags:
+                # Clock driven equation or summed variable
+                for dep in deps:
+                    if (dep.equation in event_driven and
+                            dep.equation.type == DIFFERENTIAL_EQUATION):
+                        via_str = ''
+                        if dep.via:
+                            via_str = " (via " + ", ".join(f"'{v}'"
+                                                           for v in
+                                                           dep.via) + ")"
+                        if eq in continuous:
+                            eq_type = 'clock-driven equation'
+                        else:
+                            eq_type = '''summed variable'''
+                        raise EquationError(f"The {eq_type} '{eq_name}' should "
+                                            f"not depend on the event-driven "
+                                            f"variable "
+                                            f"'{dep.equation.varname}'{via_str}.")
+            elif eq in event_driven:
+                for dep in deps:
+                    if (dep.equation in continuous and
+                            dep.equation.type == DIFFERENTIAL_EQUATION):
+                        via_str = ''
+                        if dep.via:
+                            via_str = " (via " + ", ".join(f"'{v}'"
+                                                           for v in
+                                                           dep.via) + ")"
+                        raise EquationError(f"The event-driven variable "
+                                            f"'{eq_name}' should not depend "
+                                            f"on the clock-driven variable "
+                                            f"'{dep.equation.varname}'{via_str}.")
 
-        if len(event_driven):
+        if any(eq.type == DIFFERENTIAL_EQUATION for eq in event_driven):
             self.event_driven = Equations(event_driven)
             # Add the lastupdate variable, needed for event-driven updates
             model += Equations('lastupdate : second')
@@ -943,61 +972,6 @@ class Synapses(Group):
 
         # Activate name attribute access
         self._enable_group_attributes()
-    
-    @staticmethod
-    def _recur_check_event_summed_clock(var, eqs, orig_var=None, intermediate_vars=None):
-        """
-            Recursive function used to identify whether a summed variable
-            or a clock driven equation is referring to an event-driven variable
-            and raise an EquationError.
-
-            Parameters
-            ----------
-            var : str
-                variable that is required for checking
-            eqs : `Equations`
-                Equations object in which we need to check
-            orig_var : str, optional
-                Carries the name of the original event-driven variable
-            intermediate_vars : list, optional
-                Carries the names of all the intermediate variables that have
-                referred to the event-driven variable.
-
-            Raises
-            ------
-            EquationError
-                If a clock-driven or summed variable refers to an event-driven
-                variable.
-"""
-        if orig_var is None:
-            orig_var = var
-        if intermediate_vars is None:
-            intermediate_vars = []
-        via_str = ""
-        if intermediate_vars:
-            via_str = "(via " + ", ".join(f"'{v}'"
-                                          for v in intermediate_vars) + ")"
-        for eq in eqs.values():
-            if var in eq.identifiers and eq.varname != var:
-                if 'summed' in eq.flags:
-                    raise EquationError(f"The summed variable '{eq.varname}' "
-                                        f"should not refer an event-driven "
-                                        f" variable '{orig_var}' {via_str}")
-                elif (eq.type == DIFFERENTIAL_EQUATION
-                      and 'event-driven' not in eq.flags):
-                    raise EquationError(f"The clock-driven equation for "
-                                        f"variable '{eq.varname}' should not "
-                                        f"refer to a event-driven variable "
-                                        f"'{orig_var}' {via_str}")
-                else:
-                    temp_inter_vars = intermediate_vars.copy()
-                    if (orig_var != eq.varname
-                            and eq.varname not in intermediate_vars):
-                        temp_inter_vars.append(eq.varname)
-                    Synapses._recur_check_event_summed_clock(eq.varname,
-                                                             eqs,
-                                                             orig_var=orig_var,
-                                                             intermediate_vars=temp_inter_vars)
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
