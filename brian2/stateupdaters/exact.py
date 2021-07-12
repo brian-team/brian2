@@ -197,6 +197,17 @@ class LinearStateUpdater(StateUpdateMethod):
 
         # Solve the system
         dt = Symbol('dt', real=True, positive=True)
+        # Add the constant terms as new variables
+        const_vars = []
+        const_terms = []
+        for idx, (varname, const_term) in enumerate(zip(varnames, constants)):
+            if const_term != 0:
+                matrix = matrix.col_insert(matrix.cols, sp.Matrix([1 if i == idx else 0
+                                                                   for i in range(matrix.rows)]))
+                matrix = matrix.row_insert(matrix.rows, sp.zeros(1, matrix.cols))
+                const_vars.append('_const_term_' + varname)
+                const_terms.append(const_term)
+
         try:
             A = (matrix * dt).exp()
         except NotImplementedError:
@@ -208,42 +219,25 @@ class LinearStateUpdater(StateUpdateMethod):
             A = A.applyfunc(lambda x:
                             sp.factor_terms(sp.cancel(sp.signsimp(x))))
 
-        if constants != sp.zeros(constants.rows, 1):  # non-homogeneous system
-            symbols = [Symbol(variable, real=True) for variable in varnames]
-            solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
-            # we are only interested in solutions for non-zero rows
-            non_zero = [symbol for symbol, row in zip(symbols, matrix)
-                        if matrix != sp.zeros(1, matrix.cols)]
-            if (len(non_zero) and solution is None or
-                    (solution is not None and len(solution) < len(non_zero))):
-                raise UnsupportedEquationsException('Cannot solve the given '
-                                                    'equations with this '
-                                                    'stateupdater.')
-
-            b = sp.Matrix([solution[symbol] if symbol in non_zero else 1
-                           for symbol in symbols])
-            C = sp.Matrix(A * b) - b
-            for row_idx, (s, c) in enumerate(zip(symbols, constants)):
-                if s not in non_zero:
-                   C[row_idx] = dt * c
-            C = sp.ImmutableMatrix(C)
-        else:  # homogeneous system
-            C = sp.zeros(A.rows, 1)
-
-        _S = sp.MatrixSymbol('_S', len(varnames), 1)
-        updates = A * _S + C
+        _S = sp.MatrixSymbol('_S', len(varnames) + len(const_vars), 1)
+        updates = A * _S
         updates = updates.as_explicit()
+        abstract_code = []
+
+        # Add code for the constant terms:
+        for const_var, const_term in zip(const_vars, const_terms):
+            abstract_code.append(const_var + ' = ' + sympy_to_str(const_term))
 
         # The solution contains _S[0, 0], _S[1, 0] etc. for the state variables,
-        # replace them with the state variable names 
-        abstract_code = []
-        for idx, (variable, update) in enumerate(zip(varnames, updates)):
+        # replace them with the state variable names
+        for variable, update in zip(varnames, updates[:len(varnames)]):
             rhs = update
             if rhs.has(I, re, im):
                 raise UnsupportedEquationsException('The solution to the linear system '
                                                     'contains complex values '
                                                     'which is currently not implemented.')
-            for row_idx, varname in enumerate(varnames):
+
+            for row_idx, varname in enumerate(itertools.chain(varnames, const_vars)):
                 rhs = rhs.subs(_S[row_idx, 0], varname)
 
             # Do not overwrite the real state variables yet, the update step
