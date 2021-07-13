@@ -1962,7 +1962,8 @@ def test_vectorisation_STDP_like():
     neurons = NeuronGroup(6, '''dv/dt = rate : 1
                                 ge : 1
                                 rate : Hz
-                                dA/dt = -A/(1*ms) : 1''', threshold='v>1', reset='v=0')
+                                dA/dt = -A/(1*ms) : 1''', threshold='v>1',
+                          reset='v=0', method='euler')
     # Note that the synapse does not actually increase the target v, we want
     # to have simple control about when neurons spike. Also, we separate the
     # "depression" and "facilitation" completely. The example also uses
