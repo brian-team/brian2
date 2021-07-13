@@ -1574,14 +1574,14 @@ def test_event_driven_dependency_checks():
 
     # Dependency on parameter
     syn = Synapses(dummy, dummy, '''
-                   da/dt = -b / (5*ms) : 1 (event-driven)
+                   da/dt = (a-b) / (5*ms): 1 (event-driven)
                    b : 1''',
                    on_pre='b+=1')
     syn.connect()
 
     # Dependency on parameter via subexpression
     syn2 = Synapses(dummy, dummy, '''
-                   da/dt = -b / (5*ms) : 1 (event-driven)
+                   da/dt = (a-b) / (5*ms): 1 (event-driven)
                    b = c : 1
                    c : 1''',
                    on_pre='c+=1')
