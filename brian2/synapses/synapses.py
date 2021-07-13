@@ -784,7 +784,7 @@ class Synapses(Group):
                     # parameters, might be referred from event-driven equations
                     # as well.
                     # Note that the code generation step will ignore them if
-                    # nothing refers to them.
+                    # nothing refers to them, so we don't have to filter here.
                     event_driven.append(single_equation)
         # Get the dependencies of all equations
         dependencies = model.dependencies
@@ -794,37 +794,15 @@ class Synapses(Group):
             eq = model[eq_name]
             if not (eq.type == DIFFERENTIAL_EQUATION or 'summed' in eq.flags):
                 continue
-            if eq in continuous or 'summed' in eq.flags:
-                # Clock driven equation or summed variable
-                for dep in deps:
-                    if (dep.equation in event_driven and
-                            dep.equation.type == DIFFERENTIAL_EQUATION):
-                        via_str = ''
-                        if dep.via:
-                            via_str = " (via " + ", ".join(f"'{v}'"
-                                                           for v in
-                                                           dep.via) + ")"
-                        if eq in continuous:
-                            eq_type = 'clock-driven equation'
-                        else:
-                            eq_type = '''summed variable'''
-                        raise EquationError(f"The {eq_type} '{eq_name}' should "
-                                            f"not depend on the event-driven "
-                                            f"variable "
-                                            f"'{dep.equation.varname}'{via_str}.")
+            if eq in continuous:
+                Synapses.verify_dependencies(eq, "clock-driven", deps,
+                                             event_driven, 'event-driven')
+            elif 'summed' in eq.flags:
+                Synapses.verify_dependencies(eq, "summed", deps,
+                                             event_driven, 'event-driven')
             elif eq in event_driven:
-                for dep in deps:
-                    if (dep.equation in continuous and
-                            dep.equation.type == DIFFERENTIAL_EQUATION):
-                        via_str = ''
-                        if dep.via:
-                            via_str = " (via " + ", ".join(f"'{v}'"
-                                                           for v in
-                                                           dep.via) + ")"
-                        raise EquationError(f"The event-driven variable "
-                                            f"'{eq_name}' should not depend "
-                                            f"on the clock-driven variable "
-                                            f"'{dep.equation.varname}'{via_str}.")
+                Synapses.verify_dependencies(eq, "event-driven", deps,
+                                             continuous, 'clock-driven')
 
         if any(eq.type == DIFFERENTIAL_EQUATION for eq in event_driven):
             self.event_driven = Equations(event_driven)
@@ -972,6 +950,46 @@ class Synapses(Group):
 
         # Activate name attribute access
         self._enable_group_attributes()
+
+    @staticmethod
+    def verify_dependencies(eq, eq_type, deps,
+                            should_not_depend_on, should_not_depend_on_name):
+        """
+        Helper function to verify that event-driven equations do not depend
+        on clock-driven equations and the other way round.
+
+        Parameters
+        ----------
+        eq : `SingleEquation`
+            The equation to verify
+        eq_type : str
+            The type of the equation (for the error message)
+        deps : list
+            A list of dependencies
+        should_not_depend_on : list
+            A list of equations to verify against the dependencies
+        should_not_depend_on_name : str
+            The name of the list of equations (for the error message)
+
+        Raises
+        ------
+        `EquationError`
+            If the given equation depends on something in the other set of
+            equations.
+        """
+        for dep in deps:
+            if (dep.equation in should_not_depend_on and
+                    (dep.equation.type == DIFFERENTIAL_EQUATION
+                     or 'summed' in dep.equation.flags)):
+                via_str = ''
+                if dep.via:
+                    via_str = " (via " + ", ".join(f"'{v}'"
+                                                   for v in
+                                                   dep.via) + ")"
+                raise EquationError(f"The {eq_type} '{eq.varname}' should "
+                                    f"not depend on the "
+                                    f"{should_not_depend_on_name} variable "
+                                    f"'{dep.equation.varname}'{via_str}.")
 
     N_outgoing_pre = property(fget= lambda self: self.variables['N_outgoing'].get_value(),
                               doc='The number of outgoing synapses for each neuron in the '
