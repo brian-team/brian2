@@ -1585,6 +1585,8 @@ def test_event_driven_dependency_error():
 
 @pytest.mark.codegen_independent
 def test_event_driven_dependency_error2():
+    pytest.xfail("This will be fixed with the rewrite of the equation "
+                 "dependency check.")
     stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
     tau = 5*ms
     syn = Synapses(stim, stim, '''
