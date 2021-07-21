@@ -222,6 +222,7 @@ class MagicNetwork(Network):
                     break
 
     def after_run(self):
+        super(MagicNetwork, self).after_run()
         self.objects.clear()
         gc.collect()  # Make sure that all unused objects are cleared
 

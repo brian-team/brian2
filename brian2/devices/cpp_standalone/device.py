@@ -144,7 +144,8 @@ class CPPStandaloneDevice(Device):
         #: List of all arrays to be filled with numbers (list of
         #: (var, varname, start) tuples
         self.arange_arrays = []
-
+        #: Set of all existing synapses
+        self.synapses = set()
         #: Whether the simulation has been run
         self.has_been_run = False
 
@@ -174,7 +175,6 @@ class CPPStandaloneDevice(Device):
         self.networks = set()
         self.static_array_specs = []
         self.report_func = ''
-        self.synapses = []
 
         #: Code lines that have been manually added with `device.insert_code`
         #: Dictionary mapping slot names to lists of lines.
@@ -1232,12 +1232,8 @@ class CPPStandaloneDevice(Device):
                              'standalone mode, the following name(s) were used '
                              'more than once: %s' % formatted_names)
 
-        net_synapses = [s for net in self.networks
-                        for s in net.objects
-                        if isinstance(s, Synapses)]
-
         self.generate_objects_source(self.writer, self.arange_arrays,
-                                     net_synapses, self.static_array_specs,
+                                     self.synapses, self.static_array_specs,
                                      self.networks)
         self.generate_main_source(self.writer)
         self.generate_codeobj_source(self.writer)
@@ -1253,13 +1249,6 @@ class CPPStandaloneDevice(Device):
                                linker_flags=' '.join(linker_flags),
                                nb_threads=nb_threads,
                                debug=debug)
-
-        # Not sure what the best place is to call Network.after_run -- at the
-        # moment the only important thing it does is to clear the objects stored
-        # in magic_network. If this is not done, this might lead to problems
-        # for repeated runs of standalone (e.g. in the test suite).
-        for net in self.networks:
-            net.after_run()
 
         if compile:
             self.compile_source(directory, compiler, debug, clean)
@@ -1384,7 +1373,8 @@ class CPPStandaloneDevice(Device):
             namespace = get_local_namespace(level=level+2)
 
         net.before_run(namespace)
-
+        self.synapses |= {s for s in net.objects
+                          if isinstance(s, Synapses)}
         self.clocks.update(net._clocks)
         net.t_ = float(t_end)
 
@@ -1503,6 +1493,8 @@ class CPPStandaloneDevice(Device):
                                                                                               report_call=report_call,
                                                                                               report_period=float(report_period)))
         self.main_queue.append(('run_network', (net, run_lines)))
+
+        net.after_run()
 
         # Manually set the cache for the clocks, simulation scripts might
         # want to access the time (which has been set in code and is therefore

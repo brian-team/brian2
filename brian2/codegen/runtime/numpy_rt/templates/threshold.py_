@@ -40,3 +40,8 @@ else:
 {{lastspike}}[_events] = {{t}}
 {% endif %}
 {% endblock %}
+
+{% block after_code %}
+{% set _eventspace = get_array_name(eventspace_variable) %}
+{{_eventspace}}[-1] = 0
+{% endblock %}
