@@ -1159,25 +1159,25 @@ class CPPStandaloneDevice(Device):
                                 self.code_objects.values()
                                 for include_dir in
                                 codeobj.compiler_kwds.get('include_dirs', [])]
-        include_dirs = (self.include_dirs +
-                        prefs['codegen.cpp.include_dirs'] +
-                        codeobj_include_dirs)
+        include_dirs = (prefs['codegen.cpp.include_dirs'] +
+                        codeobj_include_dirs +
+                        self.include_dirs)
 
         codeobj_library_dirs = [library_dir for codeobj in
                                 self.code_objects.values()
                                 for library_dir in
                                 codeobj.compiler_kwds.get('library_dirs', [])]
-        library_dirs = (self.library_dirs +
-                        prefs['codegen.cpp.library_dirs'] +
-                        codeobj_library_dirs)
+        library_dirs = (prefs['codegen.cpp.library_dirs'] +
+                        codeobj_library_dirs +
+                        self.library_dirs)
 
         codeobj_runtime_dirs = [runtime_dir for codeobj in
                                 self.code_objects.values()
                                 for runtime_dir in
                                 codeobj.compiler_kwds.get('runtime_library_dirs', [])]
-        runtime_library_dirs = (self.runtime_library_dirs +
-                                prefs['codegen.cpp.runtime_library_dirs'] +
-                                codeobj_runtime_dirs)
+        runtime_library_dirs = (prefs['codegen.cpp.runtime_library_dirs'] +
+                                codeobj_runtime_dirs +
+                                self.runtime_library_dirs)
 
         codeobj_libraries = [library for codeobj in
                              self.code_objects.values()
