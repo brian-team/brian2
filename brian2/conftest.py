@@ -6,7 +6,7 @@ import re
 import numpy as np
 import pytest
 
-from brian2.devices import reinit_devices
+from brian2.devices import reinit_devices, get_device
 from brian2.units import ms
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
@@ -99,6 +99,9 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     if rep.outcome == 'failed':
+        project_dir = get_device().project_dir
+        if project_dir is not None:
+            rep.sections.append(('Standalone project directory', f'{project_dir}'))
         reinit_devices()
         if not fail_for_not_implemented:
             exc_cause = getattr(call.excinfo.value, '__cause__', None)
