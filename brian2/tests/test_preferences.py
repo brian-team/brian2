@@ -169,6 +169,9 @@ def test_brianglobalpreferences():
     # check that load_preferences works, but nothing about its values
     gp = BrianGlobalPreferences()
     gp.load_preferences()
+    # Check that resetting to default preferences works
+    gp = BrianGlobalPreferences()
+    gp.reset_to_defaults()
 
 
 @pytest.mark.codegen_independent
