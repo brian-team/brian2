@@ -33,19 +33,23 @@ varying_poisson = PoissonGroup(1, rates='varying_stimulus(t)')
 # dw_plus/dw_minus determines scales the steady stimulus rate to the target firing rate, must not be larger 1
 # the magntude of dw_plus and dw_minus determines the "speed" of the homeostasis
 parameters = {
-    'tau' : 10 * ms,   # membrane time constant
-    'dw_plus' : 0.05,  # weight increment on pre spike
-    'dw_minus' : 0.05, # weight increment on post spike
-    'w_max' : 2,       # maximum plastic weight
-    'w_initial' : 0    # initial plastic weight
+    'tau': 10*ms,  # membrane time constant
+    'dw_plus': 0.05,  # weight increment on pre spike
+    'dw_minus': 0.05,  # weight increment on post spike
+    'w_max': 2,  # maximum plastic weight
+    'w_initial': 0  # initial plastic weight
 }
 
 eqs = 'dv/dt = (0 - v)/tau : 1 (unless refractory)'
 
-neuron_with_homeostasis = NeuronGroup(1, eqs, threshold='v > 1', reset='v = -1',
-                                     method='euler', refractory=1*ms, namespace=parameters)
-neuron_without_homeostasis = NeuronGroup(1, eqs, threshold='v > 1', reset='v = -1',
-                                        method='euler', refractory=1*ms, namespace=parameters)
+neuron_with_homeostasis = NeuronGroup(1, eqs,
+                                      threshold='v > 1', reset='v = -1',
+                                      method='euler', refractory=1*ms,
+                                      namespace=parameters)
+neuron_without_homeostasis = NeuronGroup(1, eqs,
+                                         threshold='v > 1', reset='v = -1',
+                                         method='euler', refractory=1*ms,
+                                         namespace=parameters)
 
 plastic_synapse = Synapses(steady_poisson, neuron_with_homeostasis,
                            'w : 1',
@@ -60,13 +64,13 @@ plastic_synapse.connect()
 plastic_synapse.w = parameters['w_initial']
 
 non_plastic_synapse_neuron_without_homeostasis = Synapses(varying_poisson,
-                                                         neuron_without_homeostasis,
-                                                         'w : 1', on_pre = 'v_post += w')
+                                                          neuron_without_homeostasis,
+                                                          'w : 1', on_pre='v_post += w')
 non_plastic_synapse_neuron_without_homeostasis.connect()
 non_plastic_synapse_neuron_without_homeostasis.w = 2
 
 non_plastic_synapse_neuron = Synapses(varying_poisson, neuron_with_homeostasis,
-                                      'w : 1', on_pre = 'v_post += w')
+                                      'w : 1', on_pre='v_post += w')
 non_plastic_synapse_neuron.connect()
 non_plastic_synapse_neuron.w = 2
 
@@ -77,7 +81,7 @@ M_rate_neuron_without_homeostasis = PopulationRateMonitor(neuron_without_homeost
 
 duration = 40*second
 defaultclock.dt = 0.1*ms
-run(duration)
+run(duration, report='text')
 
 fig, axes = plt.subplots(3, sharex=True)
 
@@ -94,14 +98,14 @@ axes[1].set_ylabel("rate [Hz]")
 axes[1].legend()
 
 # in ms
-smooth_width=100
+smooth_width = 100*ms
 axes[2].plot(M_rate_neuron_with_homeostasis.t/second,
-             M_rate_neuron_with_homeostasis.smooth_rate(width=smooth_width*ms)/Hz,
+             M_rate_neuron_with_homeostasis.smooth_rate(width=smooth_width)/Hz,
              label="with homeostasis")
 axes[2].plot(M_rate_neuron_without_homeostasis.t/second,
-             M_rate_neuron_without_homeostasis.smooth_rate(width=smooth_width*ms)/Hz,
+             M_rate_neuron_without_homeostasis.smooth_rate(width=smooth_width)/Hz,
              label="without homeostasis")
-axes[2].set_ylabel(f"firing rate [Hz]")
+axes[2].set_ylabel("firing rate [Hz]")
 axes[2].legend()
 
 plt.xlabel('Time (s)')
