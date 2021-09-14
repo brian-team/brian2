@@ -99,7 +99,7 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     if rep.outcome == 'failed':
-        project_dir = get_device().project_dir
+        project_dir = getattr(get_device(), 'project_dir', None)
         if project_dir is not None:
             rep.sections.append(('Standalone project directory', f'{project_dir}'))
         reinit_devices()
