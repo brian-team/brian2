@@ -1,4 +1,3 @@
-
 from numpy import float64, float32
 from io import StringIO
 
@@ -169,6 +168,16 @@ def test_brianglobalpreferences():
     # check that load_preferences works, but nothing about its values
     gp = BrianGlobalPreferences()
     gp.load_preferences()
+
+    # Check that resetting to default preferences works
+    gp = BrianGlobalPreferences()
+    gp.register_preferences('a', 'docs for a',
+                            b=BrianPreference(5, 'docs for b'))
+    assert gp['a.b'] == 5
+    gp['a.b'] = 7
+    assert gp['a.b'] == 7
+    gp.reset_to_defaults()
+    assert gp['a.b'] == 5
 
 
 @pytest.mark.codegen_independent

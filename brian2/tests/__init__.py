@@ -254,11 +254,8 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
     if reset_preferences:
         print('Resetting to default preferences')
-
-    if reset_preferences:
         stored_prefs = prefs.as_file
-        prefs.read_preference_file(StringIO(prefs.defaults_as_file))
-
+        prefs.reset_to_defaults()
 
     # Avoid failures in the tests for user-registered units
     import copy
