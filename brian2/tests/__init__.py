@@ -437,7 +437,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
         if reset_preferences:
             # Restore the user preferences
-            prefs.load_preferences(stored_prefs)
+            prefs.read_preference_file(StringIO(stored_prefs))
             prefs._backup()
 
         fundamentalunits.user_unit_register = old_unit_registry
