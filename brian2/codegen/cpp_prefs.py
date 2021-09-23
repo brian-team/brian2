@@ -327,7 +327,7 @@ def compiler_supports_c99():
             os.remove(tmp_file)
         else:
             cmd = ('echo "#if (__STDC_VERSION__ < 199901L)\n#error\n#endif" | '
-                  'cc -xc -c - > /dev/null 2>&1')
+                  'cc -xc -E - > /dev/null 2>&1')
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
     return _compiler_supports_c99

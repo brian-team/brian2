@@ -449,7 +449,12 @@ def test_compiler_c99():
     # On a user's computer, we do not know whether the compiler actually
     # has C99 support, so we just check whether the test does not raise an
     # error
+
+    # The compiler check previously created spurious '-.o' files (see #1348)
+    if os.path.exists('-.o'):
+        os.remove('-.o')
     c99_support = compiler_supports_c99()
+    assert not os.path.exists('-.o')
     # On our Azure test server we know that the compilers support C99
     if os.environ.get('AGENT_OS', ''):
         assert c99_support
