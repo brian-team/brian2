@@ -73,9 +73,6 @@ sm = StateMonitor(n,['y4','y1','y3','y0','y5','y2'],record=True)
 run(5*second,report='text')
 
 
-# In[2]:
-
-
 #This code goes over all models with different parameters and plot activity of each population.
 
 figure(1,figsize=(22,16))
@@ -98,7 +95,6 @@ for p in [0,1,2,3,4,5]:
     plot(sm.t[idx1]/second, sm[p].y2[idx1],'r-')
     if o == 15: xlabel("Time (seconds)")
     o += 3
-    
-savefig(f"JR1995_SingleColumn_Figure3.jpg")
+
 show()
 
