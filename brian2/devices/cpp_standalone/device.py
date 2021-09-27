@@ -205,18 +205,8 @@ class CPPStandaloneDevice(Device):
         self.define_macros = []
         self.headers = []
         self.include_dirs = ['brianlib/randomkit']
-        if sys.platform == 'win32':
-            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
-        else:
-            self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = ['brianlib/randomkit']
-        if sys.platform == 'win32':
-            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'Lib')]
-        else:
-            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.runtime_library_dirs = []
-        if sys.platform.startswith('linux'):
-            self.runtime_library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.run_environment_variables = {}
         if sys.platform.startswith('darwin'):
             if 'DYLD_LIBRARY_PATH' in os.environ:

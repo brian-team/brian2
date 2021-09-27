@@ -93,17 +93,9 @@ class CythonCodeObject(NumpyCodeObject):
         self.include_dirs = (list(prefs['codegen.cpp.include_dirs']) +
                              compiler_kwds.get('include_dirs', []))
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
-        if sys.platform == 'win32':
-            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
-        else:
-            self.include_dirs += [os.path.join(sys.prefix, 'include')]
 
         self.library_dirs = (list(prefs['codegen.cpp.library_dirs']) +
                              compiler_kwds.get('library_dirs', []))
-        if sys.platform == 'win32':
-            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
-        else:
-            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
 
         self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']),
                                      compiler_kwds.get('runtime_library_dirs', []))
