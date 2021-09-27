@@ -179,13 +179,14 @@ prefs.register_preferences(
         '''
     ),
     runtime_library_dirs=BrianPreference(
-        default=[os.path.join(prefix_dir, 'lib')],
+        default=[os.path.join(prefix_dir, 'lib')]
+                    if sys.platform != 'win32' else [],
         docs='''
         List of directories to search for C/C++ libraries at run time.
-        The default value is ``$prefix/lib`` (or ``$prefix/Library/lib``
-        on Windows), where ``$prefix`` is Python's site-specific directory
-        prefix as returned by `sys.prefix`. This will make compilation use
-        library files installed into a conda environment.
+        The default value is ``$prefix/lib`` (not used on Windows), where
+        ``$prefix`` is Python's site-specific directory prefix as returned by
+        `sys.prefix`. This will make compilation use library files installed
+        into a conda environment.
         '''
     ),
     libraries=BrianPreference(
