@@ -1241,7 +1241,7 @@ class CPPStandaloneDevice(Device):
         self.write_static_arrays(directory)
 
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in net.objects]
+        names = [obj.name for net in self.networks for obj in net.sorted_objects]
         non_unique_names = [name for name, count in Counter(names).items()
                             if count > 1]
         if len(non_unique_names):
