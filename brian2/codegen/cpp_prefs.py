@@ -111,6 +111,11 @@ else:
     else:
         default_buildopts = ['-w']
 
+if sys.platform == 'win32':
+    prefix_dir = os.path.join(sys.prefix, 'Library')
+else:
+    prefix_dir = sys.prefix
+
 # Preferences
 prefs.register_preferences(
     'codegen.cpp',
@@ -154,26 +159,34 @@ prefs.register_preferences(
         '''
     ),
     include_dirs=BrianPreference(
-        default=[],
+        default=[os.path.join(prefix_dir, 'include')],
         docs='''
-        Include directories to use. Note that ``$prefix/include`` will be
-        appended to the end automatically, where ``$prefix`` is Python's
-        site-specific directory prefix as returned by `sys.prefix`.
+        Include directories to use.
+        The default value is ``$prefix/include`` (or ``$prefix/Library/include``
+        on Windows), where ``$prefix`` is Python's site-specific directory
+        prefix as returned by `sys.prefix`. This will make compilation use
+        library files installed into a conda environment.
         '''
         ),
     library_dirs=BrianPreference(
-        default=[],
+        default=[os.path.join(prefix_dir, 'lib')],
         docs='''
         List of directories to search for C/C++ libraries at link time.
-        Note that ``$prefix/lib`` will be appended to the end automatically,
-        where ``$prefix`` is Python's site-specific directory prefix as returned
-        by `sys.prefix`.
+        The default value is ``$prefix/lib`` (or ``$prefix/Library/lib``
+        on Windows), where ``$prefix`` is Python's site-specific directory
+        prefix as returned by `sys.prefix`. This will make compilation use
+        library files installed into a conda environment.
         '''
     ),
     runtime_library_dirs=BrianPreference(
-        default=[],
+        default=[os.path.join(prefix_dir, 'lib')]
+                    if sys.platform != 'win32' else [],
         docs='''
         List of directories to search for C/C++ libraries at run time.
+        The default value is ``$prefix/lib`` (not used on Windows), where
+        ``$prefix`` is Python's site-specific directory prefix as returned by
+        `sys.prefix`. This will make compilation use library files installed
+        into a conda environment.
         '''
     ),
     libraries=BrianPreference(

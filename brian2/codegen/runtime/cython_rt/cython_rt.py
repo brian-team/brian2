@@ -93,19 +93,11 @@ class CythonCodeObject(NumpyCodeObject):
         self.include_dirs = (list(prefs['codegen.cpp.include_dirs']) +
                              compiler_kwds.get('include_dirs', []))
         self.include_dirs = list(prefs['codegen.cpp.include_dirs'])
-        if sys.platform == 'win32':
-            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
-        else:
-            self.include_dirs += [os.path.join(sys.prefix, 'include')]
 
         self.library_dirs = (list(prefs['codegen.cpp.library_dirs']) +
                              compiler_kwds.get('library_dirs', []))
-        if sys.platform == 'win32':
-            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'lib')]
-        else:
-            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
 
-        self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']),
+        self.runtime_library_dirs = (list(prefs['codegen.cpp.runtime_library_dirs']) +
                                      compiler_kwds.get('runtime_library_dirs', []))
 
         self.libraries = (list(prefs['codegen.cpp.libraries']) +
@@ -126,7 +118,8 @@ class CythonCodeObject(NumpyCodeObject):
                                                                  extra_compile_args=extra_compile_args,
                                                                  extra_link_args=prefs['codegen.cpp.extra_link_args'],
                                                                  include_dirs=prefs['codegen.cpp.include_dirs'],
-                                                                 library_dirs=prefs['codegen.cpp.library_dirs'])
+                                                                 library_dirs=prefs['codegen.cpp.library_dirs'],
+                                                                 runtime_library_dirs=prefs['codegen.cpp.runtime_library_dirs'])
             compiled.main()
             return True
         except Exception as ex:
@@ -148,6 +141,7 @@ class CythonCodeObject(NumpyCodeObject):
             extra_link_args=self.extra_link_args,
             include_dirs=self.include_dirs,
             library_dirs=self.library_dirs,
+            runtime_library_dirs=self.runtime_library_dirs,
             compiler=self.compiler,
             owner_name=self.owner.name+'_'+self.template_name,
             sources=self.sources

@@ -191,6 +191,8 @@ class CythonExtensionManager(object):
                 include_dirs = []
             if library_dirs is None:
                 library_dirs = []
+            if runtime_library_dirs is None:
+                runtime_library_dirs = []
             if extra_compile_args is None:
                 extra_compile_args = []
             if extra_link_args is None:
