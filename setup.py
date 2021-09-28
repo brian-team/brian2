@@ -152,9 +152,7 @@ setup(name='Brian2',
                                         'stdint_compat.h'],
                     # include randomkit
                     'brian2.random': ['randomkit/randomkit.c',
-                                      'randomkit/randomkit.h'],
-                    # include default_preferences file
-                    'brian2': ['default_preferences']
+                                      'randomkit/randomkit.h']
                     },
       install_requires=['numpy>=1.17',
                         'cython>=0.29',

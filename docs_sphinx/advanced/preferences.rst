@@ -26,7 +26,6 @@ Preferences are stored in a hierarchy of files, with the following order
 (each step overrides the values in the previous step but no error is raised
 if one is missing):
 
-* The global defaults are stored in the installation directory.
 * The user default are stored in ``~/.brian/user_preferences`` (which works on
   Windows as well as Linux). The ``~`` symbol refers to the user directory.
 * The file ``brian_preferences`` in the current directory.

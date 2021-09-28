@@ -428,10 +428,9 @@ class BrianGlobalPreferences(MutableMapping):
         Load all the preference files, but do not validate them.
     
         Preference files are read in the following order:
-        
-        1. ``brian2/default_preferences`` from the Brian installation directory.
-        2. ``~/.brian/user_preferences`` from the user's home directory
-        3. ``./brian_preferences`` from the current directory
+
+        1. ``~/.brian/user_preferences`` from the user's home directory
+        2. ``./brian_preferences`` from the current directory
         
         Files that are missing are ignored. Preferences read at each step
         override preferences from previous steps.
@@ -441,12 +440,10 @@ class BrianGlobalPreferences(MutableMapping):
         read_preference_file
         '''
         curdir, _ = os.path.split(__file__)
-        basedir = os.path.normpath(os.path.join(curdir, '..'))
-        default_prefs = os.path.join(basedir, 'default_preferences')
         user_prefs = os.path.join(os.path.expanduser('~'),
                                   '.brian/user_preferences')
         cur_prefs = 'brian_preferences'
-        files = [default_prefs, user_prefs, cur_prefs]
+        files = [user_prefs, cur_prefs]
         for file in files:
             try:
                 self.read_preference_file(file)
