@@ -439,17 +439,36 @@ class BrianGlobalPreferences(MutableMapping):
         --------        
         read_preference_file
         '''
-        curdir, _ = os.path.split(__file__)
-        user_prefs = os.path.join(os.path.expanduser('~'),
-                                  '.brian/user_preferences')
+        user_dir = os.path.join(os.path.expanduser('~'), '.brian')
+        user_prefs = os.path.join(user_dir, 'user_preferences')
         cur_prefs = 'brian_preferences'
+
         files = [user_prefs, cur_prefs]
         for file in files:
             try:
                 self.read_preference_file(file)
             except IOError:
                 pass
-            
+
+        # The "default_preferences" file is no longer used, but we raise a
+        # warning if it is present (note that we do this after reading the
+        # preference files, since they can affect the preferences of the logger
+        # itself)
+        curdir, _ = os.path.split(__file__)
+        basedir = os.path.normpath(os.path.join(curdir, '..'))
+        default_prefs = os.path.join(basedir, 'default_preferences')
+        if os.path.exists(default_prefs):
+            from brian2.utils.logger import get_logger
+            logger = get_logger(__name__)
+            logger.warn(f"Brian no longer loads preferences from the "
+                        f"'default_preferences' file (in '{basedir}'). Use a "
+                        f"'user_preferences' file in "
+                        f"'{user_dir}', "
+                        f"or a 'brian_preferences' file in the current "
+                        f"directory instead.",
+                        name_suffix='deprecated_default_preferences',
+                        once=True)
+
     def reset_to_defaults(self):
         '''
         Resets the parameters to their default values.
