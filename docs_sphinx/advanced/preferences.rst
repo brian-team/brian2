@@ -40,7 +40,19 @@ The preference files are of the following form::
     b.e = 3
     
 This would set preferences ``a.b.c=1``, ``a.b.d=2`` and ``a.b.e=3``.
- 
+
+.. raw:: html
+
+    <details><summary>File setting all preferences to their default values</summary>
+
+.. document_brian_prefs::
+    :nolinks:
+    :as_file:
+
+.. raw:: html
+
+    </details>
+
 List of preferences
 -------------------
 Brian itself defines the following preferences (including their default
