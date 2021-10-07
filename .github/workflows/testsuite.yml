@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       min-python: ${{ steps.nep29.outputs.min-python }}
-      max-python: ${{ steps.nep29.outputs.max-python }}
+      max-python: "3.9"
     steps:
       - name: "calculate versions according to NEP29"
         id: nep29
