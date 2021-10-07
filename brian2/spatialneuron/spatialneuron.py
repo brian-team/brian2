@@ -167,9 +167,9 @@ class SpatialNeuron(NeuronGroup):
     ----------
     morphology : `Morphology`
         The morphology of the neuron.
-    model : (str, `Equations`)
+    model : str, `Equations`
         The equations defining the group.
-    method : (str, function), optional
+    method : str, function, optional
         The numerical integration method. Either a string with the name of a
         registered method (e.g. "euler") or a function that receives an
         `Equations` object and returns the corresponding abstract code. If no
@@ -495,11 +495,17 @@ class SpatialNeuron(NeuronGroup):
             start, stop = to_start_stop(item.indices[:], neuron._N)
         else:
             start, stop = to_start_stop(item, neuron._N)
+            if isinstance(neuron, SpatialSubgroup):
+                start += neuron.start
+                stop += neuron.start
 
         if start >= stop:
             raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
                              (start, stop))
-
+        if isinstance(neuron, SpatialSubgroup):
+            # Note that the start/stop values calculated above are always
+            # absolute values, even for subgroups
+            neuron = neuron.source
         return Subgroup(neuron, start, stop)
 
 
@@ -522,6 +528,10 @@ class SpatialSubgroup(Subgroup):
 
     def __init__(self, source, start, stop, morphology, name=None):
         self.morphology = morphology
+        if isinstance(source, SpatialSubgroup):
+            source = source.source
+            start += source.start
+            stop += source.start
         Subgroup.__init__(self, source, start, stop, name)
 
     def __getattr__(self, name):
