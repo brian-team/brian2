@@ -227,7 +227,7 @@ class MagicNetwork(Network):
         gc.collect()  # Make sure that all unused objects are cleared
 
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=False, level=0):
+            namespace=None, profile=None, level=0):
         self._update_magic_objects(level=level+1)
         Network.run(self, duration, report=report, report_period=report_period,
                     namespace=namespace, profile=profile, level=level+1)
@@ -311,7 +311,7 @@ def collect(level=0):
 
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=10*second, namespace=None,
-        profile=False, level=0):
+        profile=None, level=0):
     '''
     run(duration, report=None, report_period=10*second, namespace=None, level=0)
     
@@ -347,7 +347,8 @@ def run(duration, report=None, report_period=10*second, namespace=None,
         How frequently (in real time) to report progress.
     profile : bool, optional
         Whether to record profiling information (see `Network.profiling_info`).
-        Defaults to ``False``.
+        Defaults to ``None`` (which will use the value set by ``set_device``,
+        if any).
     namespace : dict-like, optional
         A namespace in which objects which do not define their own
         namespace will be run. If not namespace is given, the locals and

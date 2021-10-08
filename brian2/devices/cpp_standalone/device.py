@@ -1363,7 +1363,7 @@ class CPPStandaloneDevice(Device):
                                         name_suffix='delete_skips_directory')
 
     def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, profile=False, level=0, **kwds):
+                    namespace=None, profile=None, level=0, **kwds):
         self.networks.add(net)
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
@@ -1374,10 +1374,8 @@ class CPPStandaloneDevice(Device):
 
         # Allow setting `profile` in the `set_device` call (used e.g. in brian2cuda
         # SpeedTest configurations)
-        if 'profile' in self.build_options:
-            build_profile = self.build_options.pop('profile')
-            if build_profile:
-                self.enable_profiling = True
+        if profile is None:
+            self.enable_profiling = self.build_options.get('profile', False)
 
         all_objects = net.sorted_objects
         net._clocks = {obj.clock for obj in all_objects}
