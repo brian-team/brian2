@@ -108,6 +108,7 @@ def make_argv(dirnames, markers=None, doctests=False, test_GSL=False):
             '--quiet',
             '--doctest-modules',
             '--doctest-glob=*.rst',
+            '--doctest-ignore-import-errors',
             '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..')),
             '--pyargs', 'brian2'
         ]
