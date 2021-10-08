@@ -1,4 +1,3 @@
-
 import weakref
 import copy
 import logging
@@ -7,7 +6,7 @@ import os
 import uuid
 
 import numpy as np
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_array_equal
 import pytest
 
 from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
@@ -1272,6 +1271,39 @@ def test_restore_with_random_state():
 
 
 @pytest.mark.codegen_independent
+def test_store_restore_restore_synapses():
+    group = NeuronGroup(10, 'x : 1', threshold='False', reset='', name='group')
+    synapses = Synapses(group, group, on_pre='x += 1', name='synapses')
+    synapses.connect(i=[1, 3, 5], j=[6, 4, 2])
+    net = Network(group, synapses)
+
+    tmp_file = tempfile.mktemp()
+    net.store(filename=tmp_file)
+
+    # clear up
+    del net
+    del synapses
+    del group
+
+    # Recreate the network without connecting the synapses
+    group = NeuronGroup(10, 'x: 1', threshold='False', reset='', name='group')
+    synapses = Synapses(group, group, '', on_pre='x += 1', name='synapses')
+    net = Network(group, synapses)
+    try:
+        net.restore(filename=tmp_file)
+
+        assert len(synapses) == 3
+        assert_array_equal(synapses.i, [1, 3, 5])
+        assert_array_equal(synapses.j, [6, 4, 2])
+
+        # Tunning the network should not raise an error, despite the lack
+        # of Synapses.connect
+        net.run(0*ms)
+    finally:
+        os.remove(tmp_file)
+
+
+@pytest.mark.codegen_independent
 def test_defaultclock_dt_changes():
     BrianLogger.suppress_name('resolution_conflict')
     for dt in [0.1*ms, 0.01*ms, 0.5*ms, 1*ms, 3.3*ms]:
@@ -1587,6 +1619,7 @@ if __name__ == '__main__':
             test_store_restore_magic,
             test_store_restore_magic_to_file,
             test_store_restore_spikequeue,
+            test_store_restore_restore_synapses,
             test_defaultclock_dt_changes,
             test_dt_changes_between_runs,
             test_dt_restore,
