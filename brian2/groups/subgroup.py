@@ -22,15 +22,11 @@ class Subgroup(Group, SpikeSource):
         A unique name for the group, or use ``source.name+'_subgroup_0'``, etc.
     '''
     def __init__(self, source, start, stop, name=None):
-        # First check if the source is itself a Subgroup
-        # If so, then make this a Subgroup of the original Group
-        if isinstance(source, Subgroup):
-            source = source.source
-            start = start + source.start
-            stop = stop + source.start
-            self.source = source
-        else:
-            self.source = weakproxy_with_fallback(source)
+        # A Subgroup should never be constructed from another Subgroup
+        # Instead, use Subgroup(source.source,
+        #                       start + source.start, stop + source.start)
+        assert not isinstance(source, Subgroup)
+        self.source = weakproxy_with_fallback(source)
 
         # Store a reference to the source's equations (if any)
         self.equations = None

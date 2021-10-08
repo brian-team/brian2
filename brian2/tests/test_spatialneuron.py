@@ -626,7 +626,7 @@ def test_spatialneuron_indexing():
     sec.sec2 = Cylinder(length=50 * um, diameter=10 * um, n=16)
     sec.sec2.sec21 = Cylinder(length=50 * um, diameter=10 * um, n=32)
     neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
-
+    neuron.v = 'i*volt'
     # Accessing indices/variables of a subtree refers to the full subtree
     assert len(neuron.indices[:]) == 1 + 2 + 4 + 8 + 16 + 32
     assert len(neuron.sec1.indices[:]) == 2 + 4 + 8
@@ -659,6 +659,10 @@ def test_spatialneuron_indexing():
     assert len(neuron[0:1].indices[:]) == 1
     assert len(neuron[sec.sec2.indices[:]]) == 16
     assert len(neuron[sec.sec2]) == 16
+    assert_equal(neuron.sec1.sec11.v, [3, 4, 5, 6]*volt)
+    assert_equal(neuron.sec1.sec11[1].v, neuron.sec1.sec11.v[1])
+    assert_equal(neuron.sec1.sec11[1:3].v, neuron.sec1.sec11.v[1:3])
+    assert_equal(neuron.sec1.sec11[1:3].v, [4, 5]*volt)
 
 
 @pytest.mark.codegen_independent
