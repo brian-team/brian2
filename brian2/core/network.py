@@ -985,8 +985,12 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        all_objects = self.sorted_objects
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
+
+        if profile is None:
+            profile = device.build_options.get('profile', False)
+
+        all_objects = self.sorted_objects
         self._clocks = {obj.clock for obj in all_objects}
         single_clock = len(self._clocks) == 1
 
