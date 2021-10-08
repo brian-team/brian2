@@ -6,7 +6,7 @@ object ``prefs``.
 import re
 import os
 from collections.abc import MutableMapping
-from io import BytesIO
+from io import StringIO
 
 from brian2.utils.stringtools import deindent, indent
 from brian2.units.fundamentalunits import have_same_dimensions, Quantity
@@ -457,7 +457,7 @@ class BrianGlobalPreferences(MutableMapping):
         '''
         Resets the parameters to their default values.
         '''
-        self.read_preference_file(BytesIO(self.defaults_as_file))
+        self.read_preference_file(StringIO(self.defaults_as_file))
 
     def register_preferences(self, prefbasename, prefbasedoc, **prefs):
         '''

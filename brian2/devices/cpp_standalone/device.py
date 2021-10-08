@@ -65,6 +65,21 @@ prefs.register_preferences(
         neurons. Now, its value is ignored.
         '''
         ),
+    make_cmd_unix=BrianPreference(
+        default='make',
+        docs='''
+        The make command used to compile the standalone project. Defaults to the
+        standard GNU make commane "make".'''
+        ),
+    run_cmd_unix=BrianPreference(
+        default='./main',
+        validator=lambda val: isinstance(val, str) or isinstance(val, list),
+        docs='''
+        The command used to run the compiled standalone project. Defaults to executing
+        the compiled binary with "./main". Must be a single binary as string or a list
+        of command arguments (e.g. ["./binary", "--key", "value"]).
+        '''
+        ),
     extra_make_args_unix=BrianPreference(
         default=['-j'],
         docs='''
@@ -190,18 +205,8 @@ class CPPStandaloneDevice(Device):
         self.define_macros = []
         self.headers = []
         self.include_dirs = ['brianlib/randomkit']
-        if sys.platform == 'win32':
-            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
-        else:
-            self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = ['brianlib/randomkit']
-        if sys.platform == 'win32':
-            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'Lib')]
-        else:
-            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.runtime_library_dirs = []
-        if sys.platform.startswith('linux'):
-            self.runtime_library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.run_environment_variables = {}
         if sys.platform.startswith('darwin'):
             if 'DYLD_LIBRARY_PATH' in os.environ:
@@ -989,8 +994,9 @@ class CPPStandaloneDevice(Device):
                 with std_silent(debug):
                     if clean:
                         os.system('make clean >/dev/null 2>&1')
+                    make_cmd = prefs.devices.cpp_standalone.make_cmd_unix
                     make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
-                    x = os.system('make %s' % (make_args, ))
+                    x = os.system('%s %s' % (make_cmd, make_args, ))
                     if x != 0:
                         error_message = ('Project compilation failed (error '
                                          'code: %u).') % x
@@ -1030,7 +1036,10 @@ class CPPStandaloneDevice(Device):
             if os.name == 'nt':
                 x = subprocess.call(['main'] + run_args, stdout=stdout)
             else:
-                x = subprocess.call(['./main'] + run_args, stdout=stdout)
+                run_cmd = prefs.devices.cpp_standalone.run_cmd_unix
+                if isinstance(run_cmd, str):
+                    run_cmd = [run_cmd]
+                x = subprocess.call(run_cmd + run_args, stdout=stdout)
             if stdout is not None:
                 stdout.close()
             if x:
@@ -1222,7 +1231,7 @@ class CPPStandaloneDevice(Device):
         self.write_static_arrays(directory)
 
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in net.objects]
+        names = [obj.name for net in self.networks for obj in net.sorted_objects]
         non_unique_names = [name for name, count in Counter(names).items()
                             if count > 1]
         if len(non_unique_names):

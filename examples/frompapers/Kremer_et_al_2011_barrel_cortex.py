@@ -108,10 +108,10 @@ feedforward = Synapses(layer4, layer23exc,
                                 dA_target/dt = -A_target/taud : volt (event-driven)''',
                        on_pre='''ge+=w
                               A_source += Ap
-                              w = clip(w+A_target, 0, EPSC)''',
+                              w = clip(w+A_target, 0*volt, EPSC)''',
                        on_post='''
                               A_target += Ad
-                              w = clip(w+A_source, 0, EPSC)''',
+                              w = clip(w+A_source, 0*volt, EPSC)''',
                        name='feedforward')
 # Connect neurons in the same barrel with 50% probability
 feedforward.connect('(barrel_x_pre + barrelarraysize*barrel_y_pre) == barrel_idx_post',
