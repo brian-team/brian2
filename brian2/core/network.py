@@ -943,7 +943,7 @@ class Network(Nameable):
     @device_override('network_run')
     @check_units(duration=second, report_period=second)
     def run(self, duration, report=None, report_period=10*second,
-            namespace=None, profile=False, level=0):
+            namespace=None, profile=None, level=0):
         '''
         run(duration, report=None, report_period=60*second, namespace=None, level=0)
         
@@ -972,7 +972,8 @@ class Network(Nameable):
             and globals around the run function will be used.
         profile : bool, optional
             Whether to record profiling information (see
-            `Network.profiling_info`). Defaults to ``False``.
+            `Network.profiling_info`). Defaults to ``None`` (which will use the
+            value set by ``set_device``, if any).
         level : int, optional
             How deep to go up the stack frame to look for the locals/global
             (see `namespace` argument). Only used by run functions that call
@@ -984,8 +985,12 @@ class Network(Nameable):
         The simulation can be stopped by calling `Network.stop` or the
         global `stop` function.
         '''
-        all_objects = self.sorted_objects
         device = get_device()  # Do not use the ProxyDevice -- slightly faster
+
+        if profile is None:
+            profile = device.build_options.get('profile', False)
+
+        all_objects = self.sorted_objects
         self._clocks = {obj.clock for obj in all_objects}
         single_clock = len(self._clocks) == 1
 
