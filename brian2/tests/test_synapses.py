@@ -1290,7 +1290,7 @@ def test_summed_variable_differing_group_size():
 def test_summed_variable_errors():
     G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : volt
                            sub = 2*v : volt
-                           p : volt''')
+                           p : volt''', threshold='False', reset='')
 
     # Using the (summed) flag for a differential equation or a parameter
     with pytest.raises(ValueError):
@@ -1322,18 +1322,25 @@ def test_summed_variable_errors():
     
     # Summed variable referring to an event-driven variable
     with pytest.raises(EquationError) as ex:
-        Synapses(G, G, '''ds/dt = -s/(3*ms) : 1 (event-driven)
-                          a = s : 1 (summed)''', on_pre='s += 1')
-    assert "'a'" in str(ex.value) and "'s'" in str(ex.value)
+        Synapses(G, G, '''ds/dt = -s/(3*ms) : volt (event-driven)
+                          p_post = s : volt (summed)''', on_pre='s += 1*mV')
+    assert "'p_post'" in str(ex.value) and "'s'" in str(ex.value)
 
     # Indirect dependency
     with pytest.raises(EquationError) as ex:
-        Synapses(G, G, '''ds/dt = -s/(3*ms) : 1 (event-driven)
-                          x = s : 1
-                          y = x : 1
-                          a = y : 1 (summed)''', on_pre='s += 1')
-    assert "'a'" in str(ex.value) and "'s'" in str(ex.value)
+        Synapses(G, G, '''ds/dt = -s/(3*ms) : volt (event-driven)
+                          x = s : volt
+                          y = x : volt
+                          p_post = y : 1 (summed)''', on_pre='s += 1*mV')
+    assert "'p_post'" in str(ex.value) and "'s'" in str(ex.value)
     assert "'x'" in str(ex.value) and "'y'" in str(ex.value)
+
+    with pytest.raises(BrianObjectException) as ex:
+        S = Synapses(G, G, '''y : siemens
+                              p_post = y : volt (summed)''')
+        run(0 * ms)
+
+    assert isinstance(ex.value.__cause__, DimensionMismatchError)
 
 
 @pytest.mark.codegen_independent
