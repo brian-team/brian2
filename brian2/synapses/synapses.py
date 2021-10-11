@@ -130,6 +130,22 @@ class SummedVariableUpdater(CodeRunner):
                             name=synapses.name + '_summed_variable_' + target_varname,
                             template_kwds=template_kwds)
 
+    def before_run(self, run_namespace):
+        variables = self.group.resolve_all(self.expression.identifiers,
+                                           run_namespace)
+        rhs_unit = parse_expression_dimensions(self.expression.code, variables)
+        fail_for_dimension_mismatch(self.target_var,
+                                    # Using a quantity instead of dimensions
+                                    # here makes fail_for_dimension_mismatch
+                                    # state the dimensions as part of the error
+                                    # message
+                                    Quantity(1, dim=rhs_unit),
+                                    f"The target variable "
+                                    f"'{self.target_varname}' does not have "
+                                    f"the same dimensions as the right-hand "
+                                    f"side expression '{self.expression}'.")
+        super(SummedVariableUpdater, self).before_run(run_namespace)
+
 
 class SynapticPathway(CodeRunner, Group):
     '''
