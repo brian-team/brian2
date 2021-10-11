@@ -18,10 +18,9 @@ from brian2.utils.logger import catch_logs
 class SimpleGroup(Group):
     def __init__(self, variables, namespace=None):
         self.variables = variables
-        self.namespace = namespace
         # We use a unique name to get repeated warnings
-        Group.__init__(self, name='simplegroup_' +
-                                  str(uuid.uuid4()).replace('-', '_'))
+        Group.__init__(self, namespace=namespace,
+                       name='simplegroup_' + str(uuid.uuid4()).replace('-', '_'))
 
 def _assert_one_warning(l):
     assert len(l) == 1, "expected one warning got %d" % len(l)
@@ -84,6 +83,9 @@ def test_errors():
     with pytest.raises(KeyError):
         group._resolve('nonexisting_variable', {})
 
+    # Illegal name
+    with pytest.raises(ValueError):
+        SimpleGroup(namespace={'_illegal': 3.0}, variables={})
 
 @pytest.mark.codegen_independent
 def test_resolution():
