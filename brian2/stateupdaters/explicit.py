@@ -60,8 +60,8 @@ def split_expression(expr):
     (dt*__f(__x, __t), None)
     >>> split_expression('dt * __f(__x, __t) + __dW * __g(__x, __t)')
     (dt*__f(__x, __t), __dW*__g(__x, __t))
-    >>> split_expression('1/(2*dt**.5)*(__g_support - __g(__x, __t))*(__dW**2)')
-    (0, __dW**2*__g_support*dt**(-0.5)/2 - __dW**2*dt**(-0.5)*__g(__x, __t)/2)
+    >>> split_expression('1/(2*sqrt(dt))*(__g_support - __g(__x, __t))*(sqrt(__dW))')
+    (0, sqrt(__dW)*__g_support/(2*sqrt(dt)) - sqrt(__dW)*__g(__x, __t)/(2*sqrt(dt)))
     '''
     
     f = SYMBOLS['__f']
