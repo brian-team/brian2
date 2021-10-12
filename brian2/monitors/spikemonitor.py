@@ -70,9 +70,19 @@ class EventMonitor(Group, CodeRunner):
         self.count = None
         del self.count # this is handled by the Variable mechanism
 
+        if event not in source.events:
+            if event == 'spike':
+                threshold_text = " Did you forget to set a 'threshold'?"
+            else:
+                threshold_text = ''
+            raise ValueError(("Recorded group '%s' does not define an event "
+                              "'%s'.%s") % (source.name, event,
+                                            threshold_text))
         if when is None:
             if order is not None:
                 raise ValueError('Cannot specify order if when is not specified.')
+            # TODO: Would be nicer if there was a common way of accessing the
+            #       relevant object for NeuronGroup and SpikeGeneratorGroup
             if hasattr(source, 'thresholder'):
                 parent_obj = source.thresholder[event]
             else:
