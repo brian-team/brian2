@@ -1088,8 +1088,13 @@ class Synapses(Group):
             raise AssertionError(('"prepost" argument has to be "pre" or '
                                   '"post", is "%s".') % prepost)
         if event not in spike_group.events:
-            raise ValueError(("%s group does not define an event "
-                              "'%s'.") % (group_name, event))
+            if event == 'spike':
+                threshold_text = " Did you forget to set a 'threshold'?"
+            else:
+                threshold_text = ''
+            raise ValueError(("%s group '%s' does not define an event "
+                              "'%s'.%s") % (group_name, spike_group.name,
+                                            event, threshold_text))
 
         if not isinstance(spike_group, SpikeSource) or not hasattr(spike_group, 'clock'):
             raise TypeError(('%s has to be a SpikeSource with spikes and'

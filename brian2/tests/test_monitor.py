@@ -13,6 +13,7 @@ from brian2.tests.utils import assert_allclose
 
 @pytest.mark.standalone_compatible
 def test_spike_monitor():
+    G_without_threshold = NeuronGroup(5, 'x : 1')
     G = NeuronGroup(3, '''dv/dt = rate : 1
                           rate: Hz''', threshold='v>1', reset='v=0')
     # We don't use 100 and 1000Hz, because then the membrane potential would
@@ -24,6 +25,10 @@ def test_spike_monitor():
 
     with pytest.raises(ValueError):
         SpikeMonitor(G, order=1)  # need to specify 'when' as well
+    with pytest.raises(ValueError) as ex:
+        SpikeMonitor(G_without_threshold)
+    assert 'threshold' in str(ex)
+
     # Creating a SpikeMonitor for a Synapses object should not work
     S = Synapses(G, G, on_pre='v += 0')
     S.connect()
