@@ -40,17 +40,23 @@ class BrianObject(Nameable):
     order : int, optional
         The priority of this object for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
+    namespace: dict, optional
+        A dictionary mapping identifier names to objects. If not given, the
+        namespace will be filled in at the time of the call of `Network.run`,
+        with either the values from the ``namespace`` argument of the
+        `Network.run` method or from the local context, if no such argument is
+        given.
     name : str, optional
         A unique name for the object - one will be assigned automatically if
         not provided (of the form ``brianobject_1``, etc.).
-
     Notes
     -----
         
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
     '''    
     @check_units(dt=second)
-    def __init__(self, dt=None, clock=None, when='start', order=0, name='brianobject*'):
+    def __init__(self, dt=None, clock=None, when='start', order=0,
+                 namespace=None, name='brianobject*'):
         # Setup traceback information for this object
         creation_stack = []
         bases = []
@@ -125,7 +131,18 @@ class BrianObject(Nameable):
         
         #: The scope key is used to determine which objects are collected by magic
         self._scope_key = self._scope_current_key
-        
+
+        # Make sure that keys in the namespace are valid
+        if namespace is None:
+            namespace = {}
+        for key in namespace:
+            if key.startswith('_'):
+                raise ValueError("Names starting with underscores are "
+                                 "reserved for internal use an cannot be "
+                                 "defined in the namespace argument.")
+        #: The group-specific namespace
+        self.namespace = namespace
+
         logger.diagnostic("Created BrianObject with name {self.name}, "
                           "clock={self._clock}, "
                           "when={self.when}, order={self.order}".format(self=self))

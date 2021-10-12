@@ -52,13 +52,8 @@ class PoissonGroup(Group, SpikeSource):
                  order=0, namespace=None, name='poissongroup*',
                  codeobj_class=None):
 
-        if namespace is None:
-            namespace = {}
-        #: The group-specific namespace
-        self.namespace = namespace
-
         Group.__init__(self, dt=dt, clock=clock, when=when, order=order,
-                       name=name)
+                       namespace=namespace, name=name)
 
         self.codeobj_class = codeobj_class
 

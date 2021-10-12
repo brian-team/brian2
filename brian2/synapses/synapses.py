@@ -725,7 +725,7 @@ class Synapses(Group):
             on_post = post
 
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
-                       name=name)
+                       namespace=namespace, name=name)
 
         if dtype is None:
             dtype = {}
@@ -823,11 +823,6 @@ class Synapses(Group):
 
         self._create_variables(model, user_dtype=dtype)
         self.equations = Equations(continuous)
-
-        if namespace is None:
-            namespace = {}
-        #: The group-specific namespace
-        self.namespace = namespace
 
         #: Set of `Variable` objects that should be resized when the
         #: number of synapses changes

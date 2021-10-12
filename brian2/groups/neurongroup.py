@@ -477,7 +477,7 @@ class NeuronGroup(Group, SpikeSource):
                  name='neurongroup*',
                  codeobj_class=None):
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
-                       name=name)
+                       namespace=namespace, name=name)
         if dtype is None:
             dtype = {}
         if isinstance(dtype, MutableMapping):
@@ -530,11 +530,6 @@ class NeuronGroup(Group, SpikeSource):
         self._linked_variables = set()
         logger.diagnostic("Creating NeuronGroup of size {self._N}, "
                           "equations {self.equations}.".format(self=self))
-
-        if namespace is None:
-            namespace = {}
-        #: The group-specific namespace
-        self.namespace = namespace
 
         # All of the following will be created in before_run
 
