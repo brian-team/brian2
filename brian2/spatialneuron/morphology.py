@@ -1,7 +1,7 @@
-'''
+"""
 Neuronal morphology module.
 This module defines classes to load and build neuronal morphologies.
-'''
+"""
 import abc
 import numbers
 from abc import abstractmethod
@@ -25,10 +25,10 @@ Node = namedtuple('Node',
 
 
 def _to_meters(value):
-    '''
+    """
     Helper function to convert a floating point value (or array) to a `Quantity`
     in units of "meter", but also allow for ``None`` and return it as it is.
-    '''
+    """
     if value is None:
         return None
     else:
@@ -36,37 +36,37 @@ def _to_meters(value):
 
 
 def _from_morphology(variable, i, j):
-    '''
+    """
     Helper function to return coordinates from a main morphology (used by
     `SubMorphology`), dealing with ``None``.
-    '''
+    """
     if variable is None:
         return None
     return variable[i:j]
 
 
 class MorphologyIndexWrapper(object):
-    '''
+    """
     A simpler version of `~brian2.groups.group.IndexWrapper`, not allowing for
     string indexing (`Morphology` is not a `Group`). It allows to use
     ``morphology.indices[...]`` instead of ``morphology[...]._indices()``.
-    '''
+    """
     def __init__(self, morphology):
         self.morphology = morphology
 
     def __getitem__(self, item):
         if isinstance(item, str):
-            raise NotImplementedError(('Morphologies do not support string '
-                                       'indexing'))
+            raise NotImplementedError("Morphologies do not support string "
+                                      "indexing")
         assert isinstance(self.morphology, (SubMorphology, Morphology))
         return self.morphology._indices(item)
 
 
 def _calc_start_idx(section):
-    '''
+    """
     Calculate the absolute start index that will be used by a flattened
     representation.
-    '''
+    """
     # calculate the absolute start index of this section
     # 1. find the root of the tree
     root = section
@@ -94,10 +94,10 @@ def _find_start_index(current, target_section, index=0):
 
 
 class Topology(object):
-    '''
+    """
     A representation of the topology of a `Morphology`. Has a useful string
     representation, inspired by NEURON's ``topology`` function.
-    '''
+    """
     def __init__(self, morphology):
         self.morphology = morphology
 
@@ -109,10 +109,10 @@ class Topology(object):
     @staticmethod
     def _str_topology(morphology, indent=0, named_path='',
                       compartments_divisor=1, parent=None):
-        '''
+        """
         A simple string-based representation of a morphology. Inspired by
         NEURON's ``topology`` function.
-        '''
+        """
         description = ' '*indent
         length = max([1, morphology.n//compartments_divisor])
         if parent is not None:
@@ -125,12 +125,12 @@ class Topology(object):
         if len(named_path) == 0:
             description += '  [root] \n'
         else:
-            description += '  ' + named_path + '\n'
+            description += f"  {named_path}\n"
         for child in morphology.children:
             name = morphology.children.name(child)
             description += Topology._str_topology(child,
                                                   indent=indent+2+length,
-                                                  named_path=named_path+'.'+name,
+                                                  named_path=f"{named_path}.{name}",
                                                   compartments_divisor=compartments_divisor,
                                                   parent=morphology)
         return description
@@ -139,7 +139,7 @@ class Topology(object):
 
 
 def _rotate(vec, axis, angle):
-    '''
+    """
     Rotate a vector around an arbitrary axis.
 
     Parameters
@@ -155,7 +155,7 @@ def _rotate(vec, axis, angle):
     -------
     rotated : `ndarray`
         The rotated vector.
-    '''
+    """
     return (vec*np.cos(angle) -
             np.cross(axis, vec)*np.sin(angle) +
             axis*np.dot(axis, vec)*(1 - np.cos(angle)))
@@ -264,8 +264,7 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
                               z=coordinates[:, 2],
                               type=orig_morphology.type)
         else:
-            raise NotImplementedError(('Do not know how to deal with section of '
-                                       'type %s.' % type(orig_morphology)))
+            raise NotImplementedError(f'Do not know how to deal with section of type {type(orig_morphology)}.')
     if parent is None:
         root = section
     else:
@@ -282,11 +281,11 @@ def _add_coordinates(orig_morphology, root=None, parent=None, name=None,
 
 
 class Children(object):
-    '''
+    """
     Helper class to represent the children (sub trees) of a section. Can be
     used like a dictionary (mapping names to `Morphology` objects), but iterates
     over the values (sub trees) instead of over the keys (names).
-    '''
+    """
     def __init__(self, owner):
         self._owner = owner
         self._counter = 0
@@ -304,7 +303,7 @@ class Children(object):
         return item in self._named_children
 
     def name(self, child):
-        '''
+        """
         Return the given name (i.e. not the automatic name such as ``1``) for a
         child subtree.
 
@@ -316,17 +315,17 @@ class Children(object):
         -------
         name : str
             The given name for the ``child``.
-        '''
+        """
         return self._given_name[child]
 
     def __getitem__(self, item):
         if isinstance(item, str):
             return self._named_children[item]
         else:
-            raise TypeError('Index has to be an integer or a string.')
+            raise TypeError("Index has to be an integer or a string.")
 
     def add(self, name, subtree, automatic_name=False):
-        '''
+        """
         Add a new child to the morphology.
 
         Parameters
@@ -339,7 +338,7 @@ class Children(object):
             Whether to chose a new name automatically, if a subtree of the same
             name already exists (uses e.g. ``"dend2"`` instead ``"dend"``).
             Defaults to ``False`` and will raise an error instead.
-        '''
+        """
         if (name in self._named_children and
                     self._named_children[name] is not subtree):
             if automatic_name:
@@ -349,8 +348,7 @@ class Children(object):
                     counter += 1
                     name = basename + str(counter)
             else:
-                raise AttributeError('The name %s is already used for a '
-                                     'subtree.' % name)
+                raise AttributeError(f'The name {name} is already used for a subtree.')
 
         if subtree not in self._children:
             self._counter += 1
@@ -364,16 +362,16 @@ class Children(object):
         subtree._parent = self._owner
 
     def remove(self, name):
-        '''
+        """
         Remove a subtree from this morphology.
 
         Parameters
         ----------
         name : str
             The name of the sub tree to remove.
-        '''
+        """
         if name not in self:
-            raise AttributeError('The subtree ' + name + ' does not exist')
+            raise AttributeError(f"The subtree {name} does not exist")
         subtree = self._named_children[name]
         del self._named_children[name]
         self._children.remove(subtree)
@@ -381,15 +379,15 @@ class Children(object):
 
     def __repr__(self):
         n = len(self._children)
-        s = '<%d children' % n
+        s = f'<{int(n)} children'
         if n > 0:
             name_dict = {self.name(sec): sec for sec in self._children}
-            s += ': %r' % name_dict
-        return s + '>'
+            s += f': {name_dict!r}'
+        return f"{s}>"
 
 
 class Morphology(object, metaclass=abc.ABCMeta):
-    '''
+    """
     Neuronal morphology (tree structure).
 
     The data structure is a tree where each node is an un-branched section
@@ -400,46 +398,46 @@ class Morphology(object, metaclass=abc.ABCMeta):
     -----
     You cannot create objects of this class, create a `Soma`, a `Section`, or
     a `Cylinder` instead.
-    '''
+    """
 
     @check_units(n=1)
     def __init__(self, n, type=None):
         if isinstance(n, str):
-            raise TypeError('Need the number of compartments, not a string. '
-                            'If you want to load a morphology from a file, '
-                            'use Morphology.from_file instead.')
+            raise TypeError("Need the number of compartments, not a string. "
+                            "If you want to load a morphology from a file, "
+                            "use 'Morphology.from_file' instead.")
         self._n = int(n)
         if self._n != n:
-            raise TypeError('The number of compartments n has to be an integer '
-                            'value.')
+            raise TypeError("The number of compartments n has to be an integer "
+                            "value.")
         if n <= 0:
-            raise ValueError('The number of compartments n has to be at least 1.')
+            raise ValueError("The number of compartments n has to be at least 1.")
         self.type = type
         self._children = Children(self)
         self._parent = None
         self.indices = MorphologyIndexWrapper(self)
 
     def __getitem__(self, item):
-        '''
+        """
         Return the subtree with the given name/index.
 
         Ex.: ```neuron['axon']``` or ```neuron['11213']```
         ```neuron[10*um:20*um]``` returns the subbranch from 10 um to 20 um.
         ```neuron[10*um]``` returns one compartment.
         ```neuron[5]``` returns compartment number 5.
-        '''
+        """
         if isinstance(item, slice):  # neuron[10*um:20*um] or neuron[1:3]
             using_lengths = all([arg is None or have_same_dimensions(arg, meter)
                                  for arg in [item.start, item.stop]])
             using_ints = all([arg is None or int(arg) == float(arg)
                               for arg in [item.start, item.stop]])
             if not (using_lengths or using_ints):
-                raise TypeError('Index slice has to use lengths or integers')
+                raise TypeError("Index slice has to use lengths or integers")
 
             if using_lengths:
                 if item.step is not None:
-                    raise TypeError(('Cannot provide a step argument when '
-                                     'slicing with lengths'))
+                    raise TypeError("Cannot provide a step argument when "
+                                    "slicing with lengths")
                 l = np.cumsum(np.asarray(self.length))  # coordinate on the section
                 # We use a special handling for values very close to the points
                 # between the compartments to avoid non-intuitive rounding
@@ -466,12 +464,13 @@ class Morphology(object, metaclass=abc.ABCMeta):
             else:  # integers
                 i, j, step = item.indices(self.n)
                 if step != 1:
-                    raise TypeError('Can only slice a contiguous segment')
+                    raise TypeError("Can only slice a contiguous segment")
         elif isinstance(item, Quantity) and have_same_dimensions(item, meter):
             l = np.hstack([0, np.cumsum(np.asarray(self.length))])  # coordinate on the section
             if float(item) < 0 or float(item) > (1 + 1e-12) * l[-1]:
-                raise IndexError(('Invalid index %s, has to be in the interval '
-                                  '[%s, %s].' % (item, 0*meter, l[-1]*meter)))
+                raise IndexError(
+                    f"Invalid index {item}, has to be in the interval "
+                    f"[{0 * meter!s}, {l[-1] * meter!s}].")
             diff = np.abs(float(item) - l)
             if min(diff) < 1e-12 * l[-1]:
                 i = np.argmin(diff)
@@ -482,8 +481,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
             if item < 0:  # allows e.g. to use -1 to get the last compartment
                 item += self.n
             if item >= self.n:
-                raise IndexError(('Invalid index %d '
-                                  'for %d compartments') % (item, self.n))
+                raise IndexError(f"Invalid index {item} for {self.n} compartments")
             i = item
             j = i + 1
         elif isinstance(item, str):
@@ -494,17 +492,17 @@ class Morphology(object, metaclass=abc.ABCMeta):
             elif item in self._children:
                 return self._children[item]
             else:
-                raise AttributeError('The subtree ' + item + ' does not exist')
+                raise AttributeError(f"The subtree {item} does not exist")
         else:
-            raise TypeError('Index of type %s not understood' % type(item))
+            raise TypeError(f"Index of type {type(item)} not understood")
 
         return SubMorphology(self, i, j)
 
     def __setitem__(self, item, child):
-        '''
+        """
         Inserts the subtree and name it ``item``.
         Ex.: ``neuron['axon']`` or ``neuron['11213']``
-        '''
+        """
         item = str(item)  # convert int to string
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
@@ -513,9 +511,9 @@ class Morphology(object, metaclass=abc.ABCMeta):
             self.children.add(item, child)
 
     def __delitem__(self, item):
-        '''
+        """
         Remove the subtree ``item``.
-        '''
+        """
         item = str(item)  # convert int to string
         if (len(item) > 1) and all([c in 'LR123456789' for c in item]):
             # binary string of the form LLLRLR or 1213 (or mixed)
@@ -524,40 +522,40 @@ class Morphology(object, metaclass=abc.ABCMeta):
             self._children.remove(item)
 
     def __getattr__(self, item):
-        '''
+        """
         Return the subtree named ``item``.
 
         Ex.: ``axon = neuron.axon``
-        '''
+        """
         if item.startswith('_'):
             return super(object, self).__getattr__(item)
         else:
             return self[item]
 
     def __setattr__(self, item, child):
-        '''
+        """
         Attach a subtree and name it ``item``.
 
         Ex.: ``neuron.axon = Soma(diameter=10*um)``
-        '''
+        """
         if isinstance(child, Morphology) and not item.startswith('_'):
             self[item] = child
         else:  # If it is not a subtree, then it's a normal class attribute
             object.__setattr__(self, item, child)
 
     def __delattr__(self, item):
-        '''
+        """
         Remove the subtree ``item``.
-        '''
+        """
         del self[item]
 
     def _indices(self, item=None, index_var='_idx'):
-        '''
+        """
         Return compartment indices for the main section, relative to the
         original morphology.
-        '''
+        """
         if index_var != '_idx':
-            raise AssertionError('Unexpected index %s' % index_var)
+            raise AssertionError(f'Unexpected index {index_var}')
         if not (item is None or item == slice(None)):
             if isinstance(item, slice):
                 # So that this always returns an array of values, even if it is
@@ -573,7 +571,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 return np.arange(start_idx, start_idx + self.n)
 
     def topology(self):
-        '''
+        """
         Return a representation of the topology
 
         Returns
@@ -581,14 +579,14 @@ class Morphology(object, metaclass=abc.ABCMeta):
         topology : `Topology`
             An object representing the topology (can be converted to a string
             by using ``str(...)`` or simply by printing it with `print`.)
-        '''
+        """
         return Topology(self)
 
     def generate_coordinates(self,
                              section_randomness=0.0,
                              compartment_randomness=0.0,
                              overwrite_existing=False):
-        r'''
+        r"""
         Create a new `Morphology`, with coordinates filled in place where the
         previous morphology did not have any. This is mostly useful for
         plotting a morphology, it does not affect its electrical properties.
@@ -627,7 +625,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         -------
         morpho_with_coordinates : `Morphology`
             The same morphology, but with coordinates
-        '''
+        """
         # Convert to radians
         section_randomness *= np.pi/180
         compartment_randomness *= np.pi/180
@@ -637,7 +635,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
     @abstractmethod
     def copy_section(self):
-        '''
+        """
         Create a copy of the current section (attributes of this section only,
         not re-creating the parent/children relation)
 
@@ -645,289 +643,289 @@ class Morphology(object, metaclass=abc.ABCMeta):
         -------
         copy : `Morphology`
             A copy of this section (without the links to the parent/children)
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def n(self):
-        '''
+        """
         The number of compartments in this section.
-        '''
+        """
         return self._n
 
     def __len__(self):
-        '''
+        """
         This is not well-defined, use `Morphology.n` or
         `Morphology.total_compartments` instead.
-        '''
-        raise TypeError('The "length" of a Morphology is ambiguous, use its '
-                        '"n" attribute for the number of compartments in this '
-                        'section or the "total_compartments" attribute for the '
-                        'total number of compartments in the whole sub-tree.')
+        """
+        raise TypeError("The 'length' of a Morphology is ambiguous, use its "
+                        "'n' attribute for the number of compartments in this "
+                        "section or the 'total_compartments' attribute for the "
+                        "total number of compartments in the whole sub-tree.")
 
     @property
     def total_compartments(self):
-        '''
+        """
         The total number of compartments in this subtree (i.e. the number of
         compartments in this section plus all the compartments in the sections
         deeper in the tree).
-        '''
+        """
         return self.n + sum(c.total_compartments for c in self.children)
 
     @property
     def total_sections(self):
-        '''
+        """
         The total number of sections in this subtree.
-        '''
+        """
         return 1 + sum(c.total_sections for c in self.children)
 
     @property
     def parent(self):
-        '''
+        """
         The parent section of this section.
-        '''
+        """
         return self._parent
 
     @property
     def children(self):
-        '''
+        """
         The children (as a `Children` object) of this section.
-        '''
+        """
         return self._children
 
     @property
     @abc.abstractmethod
     def end_distance(self):
-        '''
+        """
         The distance to the root of the morphology at the end of this section.
-        '''
+        """
         raise NotImplementedError()
 
     # Per-compartment attributes
     @property
     @abc.abstractmethod
     def area(self):
-        '''
+        """
         The membrane surface area of each compartment in this section.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def volume(self):
-        '''
+        """
         The volume of each compartment in this section.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def length(self):
-        '''
+        """
         The length of each compartment in this section.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def r_length_1(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def r_length_2(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
-        '''
+        """
         raise NotImplementedError()
 
     # At-midpoint attributes
     @property
     @abc.abstractmethod
     def diameter(self):
-        '''
+        """
         The diameter at the middle of each compartment in this section.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def distance(self):
-        '''
+        """
         The total distance between the midpoint of each compartment and the root
         of the morphology.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def start_x(self):
-        '''
+        """
         The x coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.start_x_)
 
     @property
     def start_y(self):
-        '''
+        """
         The y coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.start_y_)
 
     @property
     def start_z(self):
-        '''
+        """
         The z coordinate at the beginning of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.start_z_)
 
     @property
     @abc.abstractmethod
     def start_x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the beginning
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def start_y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the beginning
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def start_z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the beginning
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def x(self):
-        '''
+        """
         The x coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.x_)
 
     @property
     def y(self):
-        '''
+        """
         The y coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.y_)
 
     @property
     def z(self):
-        '''
+        """
         The y coordinate at the midpoint of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.z_)
 
     @property
     @abc.abstractmethod
     def x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the midpoint
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the midpoint
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the midpoint
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def end_x(self):
-        '''
+        """
         The x coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.end_x_)
 
     @property
     def end_y(self):
-        '''
+        """
         The y coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.end_y_)
 
     @property
     def end_z(self):
-        '''
+        """
         The z coordinate at the end of each compartment. Returns ``None``
         for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.end_z_)
 
     @property
     @abc.abstractmethod
     def end_x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the end of
         each compartment. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def end_y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the end of
         each compartment. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     @abc.abstractmethod
     def end_z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the end of
         each compartment. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def coordinates(self):
-        r'''
+        r"""
         Array with all coordinates at the start- and end-points of each
         compartment in this section. The array has size :math:`(n+1) \times 3`,
         where :math:`n` is the number of compartments in this section. Each
@@ -935,7 +933,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         compartment, end point of second compartment, ...), with the columns
         being the x, y, and z coordinates. Returns ``None`` for morphologies
         without coordinates.
-        '''
+        """
         if self.x_ is None:
             return None
         else:
@@ -943,7 +941,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
     @property
     def coordinates_(self):
-        r'''
+        r"""
         Array with all coordinates (as unitless floating point numbers) at the
         start- and end-points of each compartment in this section. The array has
         size :math:`(n+1) \times 3`, where :math:`n` is the number of
@@ -951,7 +949,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         first compartment, end point of first compartment, end point of second
         compartment, ...), with the columns being the x, y, and z coordinates.
         Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         if self.x_ is None:
             return None
         else:
@@ -1070,9 +1068,9 @@ class Morphology(object, metaclass=abc.ABCMeta):
             if not all(abs(c.diameter - soma_c[0].diameter) < 1e-15
                        for c in soma_c):
                 indices = ', '.join(str(c.index) for c in soma_c)
-                raise ValueError('Found a "3-point-soma" (lines: %s), but not '
-                                 'all the diameters are '
-                                 'identical.' % indices)
+                raise ValueError(f"Found a '3-point-soma' (lines: {indices}), but not "
+                                 f"all the diameters are "
+                                 f"identical.")
             diameter = soma_c[0].diameter
             point_0 = np.array([soma_c[0].x, soma_c[0].y, soma_c[0].z])
             point_1 = np.array([soma_c[1].x, soma_c[1].y, soma_c[1].z])
@@ -1081,14 +1079,12 @@ class Morphology(object, metaclass=abc.ABCMeta):
             length_2 = np.sqrt(np.sum((point_2 - point_0) ** 2))
             if (np.abs(length_1 - diameter / 2) > 0.01 or
                         np.abs(length_2 - diameter / 2) > 0.01):
-                raise ValueError(('Cannot replace "3-point-soma" by a single '
-                                  'point, the second and third points should '
-                                  'be positioned one radius away from the '
-                                  'first point. Distances are %.3fum and '
-                                  '%.3fum, respectively, while the '
-                                  'radius is %.3fum.') % (length_1,
-                                                          length_2,
-                                                          diameter / 2))
+                raise ValueError(f"Cannot replace '3-point-soma' by a single "
+                                 f"point, the second and third points should "
+                                 f"be positioned one radius away from the "
+                                 f"first point. Distances are {length_1:.3d}um and "
+                                 f"{length_2:.3f}um, respectively, while the "
+                                 f"radius is {diameter / 2:.3f}um.")
             children = [c for c in compartment.children
                         if not c in soma_c]
             compartment = Node(index=compartment.index, comp_name='soma',
@@ -1107,7 +1103,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
     @staticmethod
     def from_points(points, spherical_soma=True):
-        '''
+        """
         Create a morphology from a sequence of points (similar to the ``SWC``
         format, see `Morphology.from_swc_file`). Each point has to be
         a 7-tuple: ``(index, name, x, y, z, diameter, parent)``
@@ -1131,28 +1127,26 @@ class Morphology(object, metaclass=abc.ABCMeta):
         `Morphology.from_swc_file`) with two differences: the ``type`` should
         be a string (e.g. ``'soma'``) instead of an integer and the 6-th element
         should be the diameter and not the radius.
-        '''
+        """
         # First pass through all points to get the dependency structure
         compartments = OrderedDict()
         for counter, point in enumerate(points):
             if len(point) != 7:
-                raise ValueError('Each point needs to be described by 7 '
-                                 'values, got %d instead.' % len(point))
+                raise ValueError(f'Each point needs to be described by 7 values, got {len(point)} instead.')
             index, name, x, y, z, diameter, parent_idx = point
 
             if index in compartments:
-                raise ValueError('Two compartments with index %d' % index)
+                raise ValueError(f'Two compartments with index {int(index)}')
             if parent_idx == index:
-                raise ValueError('Compartment %d lists itself as the parent '
-                                 'compartment.' % index)
+                raise ValueError(f'Compartment {int(index)} lists itself as the parent compartment.')
 
             if counter == 0 and parent_idx == -1:
                 parent = None  # The first compartment does not have a parent
             elif parent_idx not in compartments:
-                raise ValueError(('Did not find the compartment %d (parent '
-                                  'compartment of compartment %d). Make sure '
-                                  'that parent compartments are listed before '
-                                  'their children.') % (parent_idx, index))
+                raise ValueError(f"Did not find the compartment {parent_idx} (parent "
+                                 f"compartment of compartment {index}). Make sure "
+                                 f"that parent compartments are listed before "
+                                 f"their children.")
             else:
                 parent = compartments[parent_idx]
             children = []
@@ -1181,7 +1175,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
                 if len(children) <= 2:
                     name = 'L' if nth_child == 1 else 'R'
                 else:
-                    name = '%d' % nth_child
+                    name = f'{int(nth_child)}'
                 children.add(name, section)
 
         # There should only be one section without parents
@@ -1191,7 +1185,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
     @staticmethod
     def from_swc_file(filename, spherical_soma=True):
-        '''
+        """
         Load a morphology from a ``SWC`` file. A large database of morphologies
         in this format can be found at http://neuromorpho.org
 
@@ -1222,7 +1216,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
         -------
         morpho : `Morphology`
             The morphology stored in the given file.
-        '''
+        """
         swc_types = defaultdict(lambda: None)
         # The following names will be translated into names, all other will be
         # ignored
@@ -1237,10 +1231,9 @@ class Morphology(object, metaclass=abc.ABCMeta):
                     continue
                 splitted = line.split()
                 if len(splitted) != 7:
-                    raise ValueError('Each line of an SWC file has to contain '
-                                     '7 space-separated entries, but line %d '
-                                     'contains %d.' % (line_no + 1,
-                                                       len(splitted)))
+                    raise ValueError(f"Each line of an SWC file has to contain "
+                                     f"7 space-separated entries, but line "
+                                     f"{line_no + 1} contains {len(splitted)}.")
                 index, comp_type, x, y, z, radius, parent = splitted
                 points.append((int(index),
                                swc_types[comp_type],
@@ -1254,7 +1247,7 @@ class Morphology(object, metaclass=abc.ABCMeta):
 
     @staticmethod
     def from_file(filename, spherical_soma=True):
-        '''
+        """
         Convencience method to load a morphology from a given file. At the
         moment, only ``SWC`` files are supported, calling this function is
         therefore equivalent to calling `Morphology.from_swc_file` directly.
@@ -1269,20 +1262,20 @@ class Morphology(object, metaclass=abc.ABCMeta):
         -------
         morphology : `Morphology`
             The morphology stored in the given file.
-        '''
+        """
         _, ext = os.path.splitext(filename)
         if ext.lower() == '.swc':
             return Morphology.from_swc_file(filename,
                                             spherical_soma=spherical_soma)
         else:
-            raise NotImplementedError('Currently, SWC is the only supported '
-                                      'file format.')
+            raise NotImplementedError("Currently, SWC is the only supported "
+                                      "file format.")
 
 
 class SubMorphology(object):
-    '''
+    """
     A view on a subset of a section in a morphology.
-    '''
+    """
     def __init__(self, morphology, i, j):
         self._morphology = morphology
         self.indices = MorphologyIndexWrapper(self)
@@ -1291,7 +1284,7 @@ class SubMorphology(object):
 
     def _indices(self, item=None):
         if not (item is None or item == slice(None)):
-            raise IndexError('Cannot index a view on a subset of a section further')
+            raise IndexError("Cannot index a view on a subset of a section further")
         # Start index of the main section
         start_idx = _calc_start_idx(self._morphology)
         if item is None and self.n == 1:
@@ -1301,9 +1294,9 @@ class SubMorphology(object):
 
     @property
     def n(self):
-        '''
+        """
         The number of compartments in this sub-section.
-        '''
+        """
         return self._j - self._i
 
     def __len__(self):
@@ -1311,224 +1304,224 @@ class SubMorphology(object):
 
     @property
     def n_sections(self):
-        '''
+        """
         The number of sections in this sub-section (always 1).
-        '''
+        """
         return 1
 
     # Per-compartment attributes
     @property
     def area(self):
-        '''
+        """
         The membrane surface area of each compartment in this sub-section.
-        '''
+        """
         return self._morphology.area[self._i:self._j]
 
     @property
     def volume(self):
-        '''
+        """
         The volume of each compartment in this sub-section.
-        '''
+        """
         return self._morphology.volume[self._i:self._j]
 
     @property
     def length(self):
-        '''
+        """
         The length of each compartment in this sub-section.
-        '''
+        """
         return self._morphology.length[self._i:self._j]
 
     @property
     def r_length_1(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         start and the midpoint of each compartment in this sub-section.
         Dividing this value by the Intracellular resistivity gives the
         conductance.
-        '''
+        """
         return self._morphology.r_length_1[self._i:self._j]
 
     @property
     def r_length_2(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         midpoint and the end of each compartment in this sub-section. Dividing
         this value by the Intracellular resistivity gives the conductance.
-        '''
+        """
         return self._morphology.r_length_2[self._i:self._j]
 
     # At-midpoint attributes
     @property
     def diameter(self):
-        '''
+        """
         The diameter at the middle of each compartment in this sub-section.
-        '''
+        """
         return self._morphology.diameter[self._i:self._j]
 
     @property
     def distance(self):
-        '''
+        """
         The total distance between the midpoint of each compartment in this
         sub-section and the root of the morphology.
-        '''
+        """
         return self._morphology.distance[self._i:self._j]
 
     @property
     def start_x(self):
-        '''
+        """
         The x coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.start_x_)
 
     @property
     def start_y(self):
-        '''
+        """
         The y coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.start_y_)
 
     @property
     def start_z(self):
-        '''
+        """
         The x coordinate at the beginning of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.start_z_)
 
     @property
     def start_x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the beginning
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.start_x_, self._i, self._j)
 
     @property
     def start_y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the beginning
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.start_y_, self._i, self._j)
 
     @property
     def start_z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the beginning
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.start_z_, self._i, self._j)
 
     @property
     def x(self):
-        '''
+        """
         The x coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.x_)
 
     @property
     def y(self):
-        '''
+        """
         The y coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.y_)
 
     @property
     def z(self):
-        '''
+        """
         The z coordinate at the midpoint of each compartment in this
         sub-section. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.z_)
 
     @property
     def x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the midpoint
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.x_, self._i, self._j)
 
     @property
     def y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the midpoint
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.y_, self._i, self._j)
 
     @property
     def z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the midpoint
         of each compartment in this sub-section. Returns ``None`` for
         morphologies without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.z_, self._i, self._j)
 
     @property
     def end_x(self):
-        '''
+        """
         The x coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.end_x_)
 
     @property
     def end_y(self):
-        '''
+        """
         The y coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.end_y_)
 
     @property
     def end_z(self):
-        '''
+        """
         The z coordinate at the end of each compartment in this sub-section.
         Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         return _to_meters(self.end_z_)
 
     @property
     def end_x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the end of
         each compartment in this sub-section. Returns ``None`` for morphologies
         without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.end_x_, self._i, self._j)
 
     @property
     def end_y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the end of
         each compartment in this sub-section. Returns ``None`` for morphologies
         without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.end_y_, self._i, self._j)
 
     @property
     def end_z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the end of
         each compartment in this sub-section. Returns ``None`` for morphologies
         without coordinates.
-        '''
+        """
         return _from_morphology(self._morphology.end_z_, self._i, self._j)
 
 
 class Soma(Morphology):
-    '''
+    """
     A spherical, iso-potential soma.
 
     Parameters
@@ -1543,16 +1536,16 @@ class Soma(Morphology):
         The z coordinate of the position of the soma.
     type : str, optional
         The ``type`` of this section, defaults to ``'soma'``.
-    '''
+    """
 
     @check_units(diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, diameter, x=None, y=None, z=None, type='soma'):
         Morphology.__init__(self, n=1, type=type)
         if diameter.shape != () and len(diameter) != 1:
-            raise TypeError('Diameter has to be a scalar value.')
+            raise TypeError("Diameter has to be a scalar value.")
         for coord in [x, y, z]:
             if coord is not None and coord.shape != () and len(coord) != 1:
-                raise TypeError('Coordinates have to be scalar values.')
+                raise TypeError("Coordinates have to be scalar values.")
         self._diameter = np.ones(1) * diameter
         if any(coord is not None for coord in (x, y, z)):
             default_value = np.array([0.0])
@@ -1563,15 +1556,12 @@ class Soma(Morphology):
         self._z = np.atleast_1d(np.asarray(z)) if z is not None else default_value
 
     def __repr__(self):
-        s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
-                                                 diam=self.diameter[0])
+        s = f'{self.__class__.__name__}(diameter={self.diameter[0]!r}'
         if self._x is not None:
-            s += ', x={x!r}, y={y!r}, z={z!r}'.format(x=self.x[0],
-                                                      y=self.y[0],
-                                                      z=self.z[0])
+            s += f', x={self.x[0]!r}, y={self.y[0]!r}, z={self.z[0]!r}'
         if self.type != 'soma':
-            s += ', type={type!r}'.format(type=self.type)
-        return s + ')'
+            s += f', type={self.type!r}'
+        return f"{s})"
 
     def copy_section(self):
         return Soma(self.diameter, x=self.x, y=self.y, z=self.z,
@@ -1581,167 +1571,167 @@ class Soma(Morphology):
     # i.e. for the soma arrays of length 1 instead of scalar values
     @property
     def area(self):
-        '''
+        """
         The membrane surface area of this section (as an array of length 1).
-        '''
+        """
         return np.pi * self.diameter ** 2
 
     @property
     def volume(self):
-        '''
+        """
         The volume of this section (as an array of length 1).
-        '''
+        """
         return (np.pi * self.diameter ** 3)/6
 
     @property
     def length(self):
-        '''
+        """
         The "length" (equal to `diameter`) of this section (as an array of
         length 1).
-        '''
+        """
         return self.diameter
 
     @property
     def r_length_1(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         start and the midpoint of each compartment. Returns a fixed (high)
         value for a `Soma`, corresponding to a section with very low
         intracellular resistance.
-        '''
+        """
         return [1]*meter
 
     @property
     def r_length_2(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         midpoint and the end of each compartment. Returns a fixed (high)
         value for a `Soma`, corresponding to a section with very low
         intracellular resistance.
-        '''
+        """
         return [1]*meter
 
     @property
     def diameter(self):
-        '''
+        """
         The diameter of this section (as an array of length 1).
-        '''
+        """
         return self._diameter
 
     @property
     def distance(self):
-        '''
+        """
         The total distance between the midpoint of this section and the root
         of the morphology. The `Soma` is most likely the root of the
         morphology, and therefore the `distance` is 0.
-        '''
+        """
         dist = self._parent.distance[-1:] if self._parent is not None else [0]*um
         return dist
 
     @property
     def start_x_(self):
-        '''
+        """
         The x-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._x
 
     @property
     def start_y_(self):
-        '''
+        """
         The y-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._y
 
     @property
     def start_z_(self):
-        '''
+        """
         The z-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._z
 
     @property
     def x_(self):
-        '''
+        """
         The x-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._x
 
     @property
     def y_(self):
-        '''
+        """
         The y-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._y
 
     @property
     def z_(self):
-        '''
+        """
         The z-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._z
 
     @property
     def end_x_(self):
-        '''
+        """
         The x-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._x
 
     @property
     def end_y_(self):
-        '''
+        """
         The y-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._y
 
     @property
     def end_z_(self):
-        '''
+        """
         The z-coordinate of the current section (as an array of length 1). Note
         that a `Soma` is modelled as a "point" with finite surface/volume,
         equivalent to that of a sphere with the given `diameter`. It's start-,
         midpoint-, and end-coordinates are therefore identical.
-        '''
+        """
         return self._z
 
     @property
     def end_distance(self):
-        '''
+        """
         The distance to the root of the morphology at the end of this section.
         Note that since a `Soma` is modeled as a point (see docs of `x`, etc.),
         it does not add anything to the total distance, e.g. a section
         connecting to a `Soma` has a `distance` of 0 um at its start.
-        '''
+        """
         dist = self._parent.end_distance if self._parent is not None else 0 * um
         return dist
 
 
 class Section(Morphology):
-    '''
+    """
     A section (unbranched structure), described as a sequence of truncated
     cones with potentially varying diameters and lengths per compartment.
 
@@ -1778,7 +1768,7 @@ class Section(Morphology):
         See ``x``
     type : str, optional
         The type (e.g. ``"axon"``) of this `Section`.
-    '''
+    """
     @check_units(n=1, length=meter, diameter=meter, start_diameter=meter,
                  x=meter, y=meter, z=meter)
     def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
@@ -1787,31 +1777,33 @@ class Section(Morphology):
         Morphology.__init__(self, n=n, type=type)
 
         if diameter.ndim != 1 or len(diameter) != n+1:
-            raise TypeError('The diameter argument has to be a one-dimensional '
-                            'array of length %d' % (n + 1))
+            raise TypeError(
+                f"The diameter argument has to be a one-dimensional array of length "
+                f"{int(n + 1)}")
         self._diameter = Quantity(diameter, copy=True).reshape((n+1, ))
 
         if ((x is not None or y is not None or z is not None) and
                 length is not None):
-            raise TypeError('Cannot specify coordinates and length at the same '
-                            'time.')
+            raise TypeError("Cannot specify coordinates and length at the same "
+                            "time.")
 
         if length is not None:
             # Length
             if length.ndim != 1 or len(length) != n:
-                raise TypeError('The length argument has to be a '
-                                'one-dimensional array of length %d' % n)
+                raise TypeError(
+                    f"The length argument has to be a one-dimensional array of length "
+                    f"{int(n)}")
             self._length = Quantity(length, copy=True).reshape((n, ))
             self._x = self._y = self._z = None
         else:
             # Coordinates
             if x is None and y is None and z is None:
-                raise TypeError('No length specified, need to specify at least '
-                                'one out of x, y, or z.')
+                raise TypeError("No length specified, need to specify at least "
+                                "one out of x, y, or z.")
             for name, value in [('x', x), ('y', y), ('z', z)]:
                 if value is not None and (value.ndim != 1 or len(value) != n + 1):
-                    raise TypeError(('%s needs to be a 1-dimensional array '
-                                     'of length %d.') % (name, n + 1))
+                    raise TypeError(f"'{name}' needs to be a 1-dimensional array "
+                                    f"of length {n + 1}.")
             self._x = np.asarray(x).reshape((n+1, )) if x is not None else np.zeros(n + 1)
             self._y = np.asarray(y).reshape((n+1, )) if y is not None else np.zeros(n + 1)
             self._z = np.asarray(z).reshape((n+1, )) if z is not None else np.zeros(n + 1)
@@ -1828,19 +1820,16 @@ class Section(Morphology):
         else:
             diam = np.hstack([np.asarray(self.start_diameter[0]),
                               np.asarray(self.end_diameter)])*meter
-        s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
-                                               diam=diam)
+        s = f'{self.__class__.__name__}(diameter={diam!r}'
         if self.n != 1:
-            s += ', n={n}'.format(n=self.n)
+            s += f', n={self.n}'
         if self._x is not None:
-            s += ', x={x!r}, y={y!r}, z={z!r}'.format(x=self._x,
-                                                      y=self._y,
-                                                      z=self._z)
+            s += f', x={self._x!r}, y={self._y!r}, z={self._z!r}'
         else:
-            s += ', length={length!r}'.format(length=sum(self._length))
+            s += f', length={sum(self._length)!r}'
         if self.type is not None:
-            s += ', type={type!r}'.format(type=self.type)
-        return s + ')'
+            s += f', type={self.type!r}'
+        return f"{s})"
 
     def copy_section(self):
         if self.x is None:
@@ -1854,7 +1843,7 @@ class Section(Morphology):
 
     @property
     def area(self):
-        r'''
+        r"""
         The membrane surface area of each compartment in this section. The
         surface area of each compartment is calculated as
         :math:`\frac{\pi}{2}(d_1 + d_2)\sqrt{\frac{(d_1 - d_2)^2}{4} + l^2)}`,
@@ -1862,51 +1851,51 @@ class Section(Morphology):
         :math:`d_2` are the diameter at the start and end of the compartment,
         respectively. Note that this surface area does not contain the area of
         the two disks at the two sides of the truncated cone.
-        '''
+        """
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         return np.pi/2*(d_1 + d_2)*np.sqrt(((d_1 - d_2)**2)/4 + self._length**2)
 
     @property
     def volume(self):
-        r'''
+        r"""
         The volume of each compartment in this section. The volume of each
         compartment is calculated as
         :math:`\frac{\pi}{12} l (d_1^2 + d_1 d_2 + d_2^2)`,
         where :math:`l` is the length of the compartment, and :math:`d_1` and
         :math:`d_2` are the diameter at the start and end of the compartment,
         respectively.
-        '''
+        """
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         return np.pi * self._length * (d_1**2 + d_1*d_2 + d_2**2)/12
 
     @property
     def length(self):
-        '''
+        """
         The length of each compartment in this section.
-        '''
+        """
         return self._length
 
     @property
     def start_diameter(self):
-        '''
+        """
         The diameter at the start of each compartment in this section.
-        '''
+        """
         return Quantity(self._diameter[:-1], copy=True)
 
     @property
     def end_diameter(self):
-        '''
+        """
         The diameter at the end of each compartment in this section.
-        '''
+        """
         return Quantity(self._diameter[1:], copy=True)
 
     @property
     def diameter(self):
-        '''
+        """
         The diameter at the middle of each compartment in this section.
-        '''
+        """
         d_1 = self.start_diameter
         d_2 = self.end_diameter
         # Diameter at the center
@@ -1914,49 +1903,49 @@ class Section(Morphology):
 
     @property
     def distance(self):
-        '''
+        """
         The total distance between the midpoint of each compartment and the root
         of the morphology.
-        '''
+        """
         dist = self._parent.end_distance if self._parent is not None else 0 * um
         return dist + np.cumsum(self.length) - 0.5 * self.length
 
     @property
     def end_distance(self):
-        '''
+        """
         The distance to the root of the morphology at the end of this section.
-        '''
+        """
         return self.distance[-1] + 0.5 * self.length[-1]
 
     @property
     def r_length_1(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
-        '''
+        """
         d_1 = self.start_diameter
         d_2 = (self.start_diameter + self.end_diameter)*0.5
         return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
     def r_length_2(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
-        '''
+        """
         d_1 = (self.start_diameter + self.end_diameter)*0.5
         d_2 = self.end_diameter
         return np.pi/2 * (d_1 * d_2)/self._length
 
     @property
     def start_x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the beginning
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         if self._x is None:
             return None
         parent_end_x = self.parent.end_x_ if self.parent is not None else None
@@ -1967,11 +1956,11 @@ class Section(Morphology):
 
     @property
     def start_y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the beginning
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         if self._y is None:
             return None
         parent_end_y = self.parent.end_y_ if self.parent is not None else None
@@ -1982,11 +1971,11 @@ class Section(Morphology):
 
     @property
     def start_z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the beginning
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         if self._z is None:
             return None
         parent_end_z = self.parent.end_z_ if self.parent is not None else None
@@ -1997,11 +1986,11 @@ class Section(Morphology):
 
     @property
     def x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the midpoint
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         if self._x is None:
             return None
         start_x = self.start_x_
@@ -2010,11 +1999,11 @@ class Section(Morphology):
 
     @property
     def y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the midpoint
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         if self._y is None:
             return None
         start_y = self.start_y_
@@ -2023,11 +2012,11 @@ class Section(Morphology):
 
     @property
     def z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the midpoint
         of each compartment. Returns ``None`` for morphologies without
         coordinates.
-        '''
+        """
         if self._z is None:
             return None
         start_z = self.start_z_
@@ -2036,10 +2025,10 @@ class Section(Morphology):
 
     @property
     def end_x_(self):
-        '''
+        """
         The x coordinate (as a unitless floating point number) at the end of
         each compartment. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         if self._x is None:
             return None
         parent_end_x = self.parent.end_x_ if self.parent is not None else None
@@ -2050,10 +2039,10 @@ class Section(Morphology):
 
     @property
     def end_y_(self):
-        '''
+        """
         The y coordinate (as a unitless floating point number) at the end of
         each compartment. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         if self._y is None:
             return None
         parent_end_y = self.parent.end_y_ if self.parent is not None else None
@@ -2064,10 +2053,10 @@ class Section(Morphology):
 
     @property
     def end_z_(self):
-        '''
+        """
         The z coordinate (as a unitless floating point number) at the end of
         each compartment. Returns ``None`` for morphologies without coordinates.
-        '''
+        """
         if self._z is None:
             return None
         parent_end_z = self.parent.end_z_ if self.parent is not None else None
@@ -2078,7 +2067,7 @@ class Section(Morphology):
 
 
 class Cylinder(Section):
-    '''
+    """
     A cylindrical section. For sections with more complex geometry (varying
     length and/or diameter of each compartment), use the `Section` class.
 
@@ -2107,7 +2096,7 @@ class Cylinder(Section):
         See ``x``
     type : str, optional
         The type (e.g. ``"axon"``) of this `Cylinder`.
-    '''
+    """
     @check_units(n=1, length=meter, diameter=meter, x=meter, y=meter, z=meter)
     def __init__(self, diameter, n=1, length=None, x=None, y=None, z=None,
                  type=None):
@@ -2116,30 +2105,31 @@ class Cylinder(Section):
 
         # Diameter
         if diameter.shape != () and (diameter.ndim > 1 or len(diameter) != 1):
-            raise TypeError('The diameter argument has to be a single value.')
+            raise TypeError("The diameter argument has to be a single value.")
         diameter = np.ones(n) * diameter
         self._diameter = diameter
 
         if ((x is not None or y is not None or z is not None) and
                     length is not None):
-            raise TypeError('Cannot specify coordinates and length at the same '
-                            'time.')
+            raise TypeError("Cannot specify coordinates and length at the same "
+                            "time.")
 
         if length is not None:
             # Length
             if length.shape != () and (length.ndim > 1 or len(length) != 1):
-                raise TypeError('The length argument has to be a single value.')
+                raise TypeError("The length argument has to be a single value.")
             self._length = np.ones(n) * (length/n)  # length was total length
             self._x = self._y = self._z = None
         else:
             # Coordinates
             if x is None and y is None and z is None:
-                raise TypeError('No length specified, need to specify at least '
-                                'one out of x, y, or z.')
+                raise TypeError("No length specified, need to specify at least "
+                                "one out of x, y, or z.")
             for name, value in [('x', x), ('y', y), ('z', z)]:
                 if value is not None and (value.ndim != 1 or len(value) != 2):
-                    raise TypeError('%s needs to be a 1-dimensional array of '
-                                    'length 2 (start and end point)' % name)
+                    raise TypeError(
+                        f"{name} needs to be a 1-dimensional array of length 2 (start "
+                        f"and end point)")
             self._x = np.asarray(np.linspace(x[0], x[1], n+1)) if x is not None else np.zeros(n+1)
             self._y = np.asarray(np.linspace(y[0], y[1], n+1)) if y is not None else np.zeros(n+1)
             self._z = np.asarray(np.linspace(z[0], z[1], n+1)) if z is not None else np.zeros(n+1)
@@ -2149,19 +2139,16 @@ class Cylinder(Section):
             self._length = length
 
     def __repr__(self):
-        s = '{klass}(diameter={diam!r}'.format(klass=self.__class__.__name__,
-                                               diam=self.diameter[0])
+        s = f'{self.__class__.__name__}(diameter={self.diameter[0]!r}'
         if self.n != 1:
-            s += ', n={n}'.format(n=self.n)
+            s += f', n={self.n}'
         if self._x is not None:
-            s += ', x={x!r}, y={y!r}, z={z!r}'.format(x=self._x[[0, -1]],
-                                                      y=self._y[[0, -1]],
-                                                      z=self._z[[0, -1]])
+            s += f', x={self._x[[0, -1]]!r}, y={self._y[[0, -1]]!r}, z={self._z[[0, -1]]!r}'
         else:
-            s += ', length={length!r}'.format(length=sum(self._length))
+            s += f', length={sum(self._length)!r}'
         if self.type is not None:
-            s += ', type={type!r}'.format(type=self.type)
-        return s + ')'
+            s += f', type={self.type!r}'
+        return f"{s})"
 
     def copy_section(self):
         if self.x is None:
@@ -2175,62 +2162,62 @@ class Cylinder(Section):
     # Overwrite the properties that differ from `Section`
     @property
     def area(self):
-        r'''
+        r"""
         The membrane surface area of each compartment in this section. The
         surface area of each compartment is calculated as
         :math:`\pi d l`,
         where :math:`l` is the length of the compartment, and :math:`d` is its
         diameter. Note that this surface area does not contain the area of
         the two disks at the two sides of the cylinder.
-        '''
+        """
         return np.pi * self._diameter * self.length
 
     @property
     def start_diameter(self):
-        '''
+        """
         The diameter at the start of each compartment in this section.
-        '''
+        """
         return self._diameter
 
     @property
     def diameter(self):
-        '''
+        """
         The diameter at the middle of each compartment in this section.
-        '''
+        """
         return self._diameter
 
     @property
     def end_diameter(self):
-        '''
+        """
         The diameter at the end of each compartment in this section.
-        '''
+        """
         return self._diameter
 
     @property
     def volume(self):
-        r'''
+        r"""
         The volume of each compartment in this section. The volume of each
         compartment is calculated as
         :math:`\pi \frac{d}{2}^2 l` ,
         where :math:`l` is the length of the compartment, and :math:`d` is its
         diameter.
-        '''
+        """
         return np.pi * (self._diameter/2)**2 * self.length
 
     @property
     def r_length_1(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         start and the midpoint of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
-        '''
+        """
         return np.pi/2 * (self._diameter**2)/self.length
 
     @property
     def r_length_2(self):
-        '''
+        """
         The geometry-dependent term to calculate the conductance between the
         midpoint and the end of each compartment. Dividing this value by the
         Intracellular resistivity gives the conductance.
-        '''
+        """
         return np.pi/2 * (self._diameter**2)/self.length

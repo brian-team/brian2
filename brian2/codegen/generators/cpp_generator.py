@@ -22,10 +22,10 @@ __all__ = ['CPPCodeGenerator',
 
 
 def c_data_type(dtype):
-    '''
+    """
     Gives the C language specifier for numpy data types. For example,
     ``numpy.int32`` maps to ``int32_t`` in C.
-    '''
+    """
     # this handles the case where int is specified, it will be int32 or int64
     # depending on platform
     if dtype is int:
@@ -54,7 +54,7 @@ def c_data_type(dtype):
     elif dtype == numpy.bool_ or dtype is bool:
         dtype = 'char'
     else:
-        raise ValueError("dtype " + str(dtype) + " not known.")
+        raise ValueError(f"dtype {str(dtype)} not known.")
     return dtype
 
 
@@ -64,16 +64,16 @@ prefs.register_preferences(
     'C++ codegen preferences',
     restrict_keyword = BrianPreference(
         default='__restrict',
-        docs='''
+        docs="""
         The keyword used for the given compiler to declare pointers as restricted.
         
         This keyword is different on different compilers, the default works for
         gcc and MSVS.
-        ''',
+        """,
         ),
     flush_denormals = BrianPreference(
         default=False,
-        docs='''
+        docs="""
         Adds code to flush denormals to zero.
         
         The code is gcc and architecture specific, so may not compile on all
@@ -85,7 +85,7 @@ prefs.register_preferences(
             __builtin_ia32_ldmxcsr(csr);
             
         Found at `<http://stackoverflow.com/questions/2487653/avoiding-denormal-values-in-c>`_.
-        ''',
+        """,
         ),
     )
 
@@ -96,11 +96,11 @@ hightype_support_code = 'template < typename T1, typename T2 > struct _higher_ty
 for ix, xtype in enumerate(typestrs):
     for iy, ytype in enumerate(typestrs):
         hightype = typestrs[max(ix, iy)]
-        hightype_support_code += '''
+        hightype_support_code += f"""
 template < > struct _higher_type<{xtype},{ytype}> {{ typedef {hightype} type; }};
-        '''.format(hightype=hightype, xtype=xtype, ytype=ytype)
+        """
 
-mod_support_code = '''
+mod_support_code = """
 
 template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
@@ -108,9 +108,9 @@ _brian_mod(T1 x, T2 y)
 {{
     return x-y*floor(1.0*x/y);
 }}
-'''
+"""
 
-floordiv_support_code = '''
+floordiv_support_code = """
 
 template < typename T1, typename T2 >
 static inline typename _higher_type<T1,T2>::type
@@ -118,22 +118,22 @@ _brian_floordiv(T1 x, T2 y)
 {{
     return floor(1.0*x/y);
 }}
-'''
+"""
 
-pow_support_code = '''
+pow_support_code = """
 #ifdef _MSC_VER
 #define _brian_pow(x, y) (pow((double)(x), (y)))
 #else
 #define _brian_pow(x, y) (pow((x), (y)))
 #endif
-'''
+"""
 
 _universal_support_code = (hightype_support_code + mod_support_code +
                            floordiv_support_code + pow_support_code)
 
 
 class CPPCodeGenerator(CodeGenerator):
-    '''
+    """
     C++ language
     
     C++ code templates should provide Jinja2 macros with the following names:
@@ -152,7 +152,7 @@ class CPPCodeGenerator(CodeGenerator):
         The ``#define`` code added to the main loop.
         
     See `TimedArray` for an example of these keys.
-    '''
+    """
 
     class_name = 'cpp'
 
@@ -164,7 +164,7 @@ class CPPCodeGenerator(CodeGenerator):
 
     @property
     def restrict(self):
-        return prefs['codegen.generators.cpp.restrict_keyword'] + ' '
+        return f"{prefs['codegen.generators.cpp.restrict_keyword']} "
 
     @property
     def flush_denormals(self):
@@ -176,7 +176,7 @@ class CPPCodeGenerator(CodeGenerator):
         from brian2.devices.device import get_device
         device = get_device()
         if access_data:
-            return '_ptr' + device.get_array_name(var)
+            return f"_ptr{device.get_array_name(var)}"
         else:
             return device.get_array_name(var, access_data=False)
 
@@ -197,7 +197,7 @@ class CPPCodeGenerator(CodeGenerator):
                 # we have to declare the variable outside the if/then statement (which
                 # unfortunately means we can't make it const but the optimisation is worth
                 # it anyway).
-                codelines = [self.c_data_type(statement.dtype) + ' ' + var + ';']
+                codelines = [f"{self.c_data_type(statement.dtype)} {var};"]
                 op = '='
             else:
                 codelines = []
@@ -211,30 +211,30 @@ class CPPCodeGenerator(CodeGenerator):
                     if boolval:
                         atomics.append(boolvar)
                     else:
-                        atomics.append('!'+boolvar)
+                        atomics.append(f"!{boolvar}")
                 if firstline:
                     line = ''
                 else:
                     line = 'else '
                 # only need another if statement when we have more than one boolean variables
                 if firstline or len(used_boolvars)>1:
-                    line += 'if('+(' && '.join(atomics))+')'
+                    line += f"if({' && '.join(atomics)})"
                 line += '\n    '
-                line += var + ' ' + op + ' ' + self.translate_expression(simp_expr) + ';'
+                line += f"{var} {op} {self.translate_expression(simp_expr)};"
                 codelines.append(line)
                 firstline = False
             code = '\n'.join(codelines)
         else:
             if op == ':=':
-                decl = self.c_data_type(statement.dtype) + ' '
+                decl = f"{self.c_data_type(statement.dtype)} "
                 op = '='
                 if statement.constant:
-                    decl = 'const ' + decl
+                    decl = f"const {decl}"
             else:
                 decl = ''
-            code = decl + var + ' ' + op + ' ' + self.translate_expression(expr) + ';'
+            code = f"{decl + var} {op} {self.translate_expression(expr)};"
         if len(comment):
-            code += ' // ' + comment
+            code += f" // {comment}"
         return code
     
     def translate_to_read_arrays(self, read, write, indices):
@@ -247,8 +247,8 @@ class CPPCodeGenerator(CodeGenerator):
                 line = 'const '
             else:
                 line = ''
-            line = line + self.c_data_type(var.dtype) + ' ' + varname + ' = '
-            line = line + self.get_array_name(var) + '[' + index_var + '];'
+            line = f"{line + self.c_data_type(var.dtype)} {varname} = "
+            line = f"{line + self.get_array_name(var)}[{index_var}];"
             lines.append(line)
         return lines
 
@@ -258,7 +258,7 @@ class CPPCodeGenerator(CodeGenerator):
         for varname in write:
             if varname not in read and varname not in indices:
                 var = self.variables[varname]
-                line = self.c_data_type(var.dtype) + ' ' + varname + ';'
+                line = f"{self.c_data_type(var.dtype)} {varname};"
                 lines.append(line)
         return lines
 
@@ -269,8 +269,8 @@ class CPPCodeGenerator(CodeGenerator):
             line = self.translate_statement(stmt)
             if stmt.var in conditional_write_vars:
                 condvar = conditional_write_vars[stmt.var]
-                lines.append('if(%s)' % condvar)
-                lines.append('    '+line)
+                lines.append(f'if({condvar})')
+                lines.append(f"    {line}")
             else:
                 lines.append(line)
         return lines
@@ -281,7 +281,7 @@ class CPPCodeGenerator(CodeGenerator):
         for varname in write:
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
-            line = self.get_array_name(var) + '[' + index_var + '] = ' + varname + ';'
+            line = f"{self.get_array_name(var)}[{index_var}] = {varname};"
             lines.append(line)
         return lines
 
@@ -349,12 +349,12 @@ class CPPCodeGenerator(CodeGenerator):
 
     def denormals_to_zero_code(self):
         if self.flush_denormals:
-            return '''
+            return """
             #define CSR_FLUSH_TO_ZERO         (1 << 15)
             unsigned csr = __builtin_ia32_stmxcsr();
             csr |= CSR_FLUSH_TO_ZERO;
             __builtin_ia32_ldmxcsr(csr);
-            '''
+            """
         else:
             return ''
 
@@ -390,12 +390,11 @@ class CPPCodeGenerator(CodeGenerator):
                         raise NotImplementedError((
                         'Directly replace scalar values in the function '
                         'instead of providing them via the namespace'))
-                    type_str = self.c_data_type(ns_value.dtype) + '*'
+                    type_str = f"{self.c_data_type(ns_value.dtype)}*"
                 else:  # e.g. a function
                     type_str = 'py::object'
-                support_code.append('static {0} _namespace{1};'.format(type_str,
-                                                                       ns_key))
-                pointers.append('_namespace{0} = {1};'.format(ns_key, ns_key))
+                support_code.append(f'static {type_str} _namespace{ns_key};')
+                pointers.append(f'_namespace{ns_key} = {ns_key};')
             support_code.append(deindent(funccode.get('support_code', '')))
             hash_defines.append(deindent(funccode.get('hashdefine_code', '')))
 
@@ -447,10 +446,7 @@ class CPPCodeGenerator(CodeGenerator):
                 # turn off restricted pointers for scalars for safety
                 if var.scalar or var.size == 1:
                     restrict = ' '
-                line = '{0}* {1} {2} = {3};'.format(self.c_data_type(var.dtype),
-                                                    restrict,
-                                                    pointer_name,
-                                                    array_name)
+                line = f'{self.c_data_type(var.dtype)}* {restrict} {pointer_name} = {array_name};'
                 pointers.append(line)
                 handled_pointers.add(pointer_name)
 
@@ -502,7 +498,7 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
-exprel_code = '''
+exprel_code = """
 static inline double _exprel(double x)
 {
     if (fabs(x) < 1e-16)
@@ -511,20 +507,20 @@ static inline double _exprel(double x)
         return INFINITY;
     return expm1(x)/x;
 }
-'''
+"""
 DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CPPCodeGenerator,
                                                                code=exprel_code,
                                                                name='_exprel',
                                                                availability_check=C99Check('exprel'))
 
-abs_code = '''
+abs_code = """
 #define _brian_abs std::abs
-'''
+"""
 DEFAULT_FUNCTIONS['abs'].implementations.add_implementation(CPPCodeGenerator,
                                                             code=abs_code,
                                                             name='_brian_abs')
 
-clip_code = '''
+clip_code = """
         template <typename T>
         static inline T _clip(const T value, const double a_min, const double a_max)
         {
@@ -534,31 +530,31 @@ clip_code = '''
 	            return a_max;
 	        return value;
 	    }
-        '''
+        """
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=clip_code,
                                                              name='_clip')
 
-sign_code = '''
+sign_code = """
         template <typename T> static inline int _sign(T val) {
             return (T(0) < val) - (val < T(0));
         }
-        '''
+        """
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CPPCodeGenerator,
                                                              code=sign_code,
                                                              name='_sign')
 
-timestep_code = '''
+timestep_code = """
 static inline int64_t _timestep(double t, double dt)
 {
     return (int64_t)((t + 1e-3*dt)/dt); 
 }
-'''
+"""
 DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CPPCodeGenerator,
                                                                  code=timestep_code,
                                                                  name='_timestep')
 
-poisson_code = '''
+poisson_code = """
 double _loggam(double x) {
   double x0, x2, xp, gl, gl0;
   int32_t k, n;
@@ -643,7 +639,7 @@ int32_t _poisson(double lam, int32_t _idx) {
   else
     return _poisson_mult(lam, _idx);
 }
-'''
+"""
 
 DEFAULT_FUNCTIONS['poisson'].implementations.add_implementation(CPPCodeGenerator,
                                                                 code=poisson_code,

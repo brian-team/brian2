@@ -38,9 +38,9 @@ __all__ = [
 unit_checking = True
 
 def _flatten(iterable):
-    '''
+    """
     Flatten a given list `iterable`.
-    '''
+    """
     for e in iterable:
         if isinstance(e, list):
             for f in _flatten(e):
@@ -50,10 +50,10 @@ def _flatten(iterable):
 
 
 def _short_str(arr):
-    '''
+    """
     Return a short string representation of an array, suitable for use in
     error messages.
-    '''
+    """
     arr = np.asanyarray(arr)
     old_printoptions = np.get_printoptions()
     np.set_printoptions(edgeitems=2, threshold=5)
@@ -111,7 +111,7 @@ UFUNCS_INTEGERS = ['bitwise_and', 'bitwise_or', 'bitwise_xor', 'invert',
 
 def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
                                 **error_quantities):
-    '''
+    """
     Compare the dimensions of two objects.
 
     Parameters
@@ -146,7 +146,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
     -----
     Implements special checking for ``0``, treating it as having "any
     dimensions".
-    '''
+    """
     if not unit_checking:
         return None, None
 
@@ -190,7 +190,7 @@ def fail_for_dimension_mismatch(obj1, obj2=None, error_message=None,
 
 
 def wrap_function_dimensionless(func):
-    '''
+    """
     Returns a new function that wraps the given function `func` so that it
     raises a DimensionMismatchError if the function is called on a quantity
     with dimensions (excluding dimensionless quantities). Quantities are
@@ -198,7 +198,7 @@ def wrap_function_dimensionless(func):
 
     These checks/transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
-    '''
+    """
     def f(x, *args, **kwds): # pylint: disable=C0111
         fail_for_dimension_mismatch(x,
                                     error_message=('%s expects a dimensionless '
@@ -215,7 +215,7 @@ def wrap_function_dimensionless(func):
 
 
 def wrap_function_keep_dimensions(func):
-    '''
+    """
     Returns a new function that wraps the given function `func` so that it
     keeps the dimensions of its input. Quantities are transformed to
     unitless numpy arrays before calling `func`, the output is a quantity
@@ -224,7 +224,7 @@ def wrap_function_keep_dimensions(func):
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched, allowing to work functions like
     ``sum`` to work as expected with additional ``axis`` etc. arguments.
-    '''
+    """
     def f(x, *args, **kwds):  # pylint: disable=C0111
         return Quantity(func(np.array(x, copy=False), *args, **kwds), dim=x.dim)
     f._arg_units = [None]
@@ -236,7 +236,7 @@ def wrap_function_keep_dimensions(func):
 
 
 def wrap_function_change_dimensions(func, change_dim_func):
-    '''
+    """
     Returns a new function that wraps the given function `func` so that it
     changes the dimensions of its input. Quantities are transformed to
     unitless numpy arrays before calling `func`, the output is a quantity
@@ -246,7 +246,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
 
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
-    '''
+    """
     def f(x, *args, **kwds):  # pylint: disable=C0111
         ar = np.array(x, copy=False)
         return Quantity(func(ar, *args, **kwds),
@@ -260,7 +260,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
 
 
 def wrap_function_remove_dimensions(func):
-    '''
+    """
     Returns a new function that wraps the given function `func` so that it
     removes any dimensions from its input. Useful for functions that are
     returning integers (indices) or booleans, irrespective of the datatype
@@ -268,7 +268,7 @@ def wrap_function_remove_dimensions(func):
 
     These transformations apply only to the very first argument, all
     other arguments are ignored/untouched.
-    '''
+    """
     def f(x, *args, **kwds):  # pylint: disable=C0111
         return func(np.array(x, copy=False), *args, **kwds)
     f._arg_units = [None]
@@ -308,7 +308,7 @@ _siprefixes = {"y": -24, "z": -21, "a": -18, "f": -15, "p": -12,
 
 
 class Dimension(object):
-    '''
+    """
     Stores the indices of the 7 basic SI unit dimension (length, mass, etc.).
 
     Provides a subset of arithmetic operations appropriate to dimensions:
@@ -326,7 +326,7 @@ class Dimension(object):
     instance, use `get_or_create_dimension` instead. This function makes
     sure that only one Dimension instance exists for every combination of
     indices, allowing for a very fast dimensionality check with ``is``.
-    '''
+    """
     __slots__ = ["_dims"]
 
     __array_priority__ = 1000
@@ -355,24 +355,24 @@ class Dimension(object):
 
     @property
     def is_dimensionless(self):
-        '''
+        """
         Whether this Dimension is dimensionless.
 
         Notes
         -----
         Normally, instead one should check dimension for being identical to
         `DIMENSIONLESS`.
-        '''
+        """
         return all([x == 0 for x in self._dims])
 
     @property
     def dim(self):
-        '''
+        """
         Returns the `Dimension` object itself. This can be useful, because it
         allows to check for the dimension of an object by checking its ``dim``
         attribute -- this will return a `Dimension` object for `Quantity`,
         `Unit` and `Dimension`.
-        '''
+        """
         return self
 
     #### REPRESENTATION ####
@@ -401,7 +401,7 @@ class Dimension(object):
         if python_code:
             s = " * ".join(parts)
             if not len(s):
-                return "%s()" % self.__class__.__name__
+                return f"{self.__class__.__name__}()"
         else:
             s = " ".join(parts)
             if not len(s):
@@ -422,7 +422,7 @@ class Dimension(object):
         return s.strip()
 
     def _repr_latex(self):
-        return '$%s$' % latex(self)
+        return f'${latex(self)}$'
 
     def __repr__(self):
         return self._str_representation(python_code=True)
@@ -448,20 +448,20 @@ class Dimension(object):
     def __pow__(self, value):
         value = np.array(value, copy=False)
         if value.size > 1:
-            raise TypeError('Too many exponents')
+            raise TypeError("Too many exponents")
         return get_or_create_dimension([x * value for x in self._dims])
 
     def __imul__(self, value):
-        raise TypeError('Dimension object is immutable')
+        raise TypeError("Dimension object is immutable")
 
     def __idiv__(self, value):
-        raise TypeError('Dimension object is immutable')
+        raise TypeError("Dimension object is immutable")
 
     def __itruediv__(self, value):
-        raise TypeError('Dimension object is immutable')
+        raise TypeError("Dimension object is immutable")
 
     def __ipow__(self, value):
-        raise TypeError('Dimension object is immutable')
+        raise TypeError("Dimension object is immutable")
 
     #### COMPARISON ####
     def __eq__(self, value):
@@ -539,7 +539,7 @@ def get_or_create_dimension(*args, **kwds):
             if len(dims) != 7:
                 raise TypeError()
         except TypeError:
-            raise TypeError('Need a sequence of exactly 7 items')
+            raise TypeError("Need a sequence of exactly 7 items")
     else:
         # initialisation by keywords
         dims = [0, 0, 0, 0, 0, 0, 0]
@@ -585,23 +585,19 @@ class DimensionMismatchError(Exception):
 
     def __repr__(self):
         dims_repr = [repr(dim) for dim in self.dims]
-        return '%s(%r, %s)' % (self.__class__.__name__,
-                               self.desc, ', '.join(dims_repr))
+        return f"{self.__class__.__name__}({self.desc!r}, {', '.join(dims_repr)})"
 
     def __str__(self):
         s = self.desc
         if len(self.dims) == 0:
             pass
         elif len(self.dims) == 1:
-            s += ' (unit is ' + get_unit_for_display(self.dims[0])
+            s += f" (unit is {get_unit_for_display(self.dims[0])}"
         elif len(self.dims) == 2:
             d1, d2 = self.dims
-            s += ' (units are %s and %s' % (get_unit_for_display(d1),
-                                            get_unit_for_display(d2))
+            s += f' (units are {get_unit_for_display(d1)} and {get_unit_for_display(d2)}'
         else:
-            s += (' (units are ' +
-                  ' '.join(['(' + get_unit_for_display(d) + ')'
-                            for d in self.dims]))
+            s += f" (units are {' '.join([f'({get_unit_for_display(d)})' for d in self.dims])}"
         if len(self.dims):
             s += ').'
         return s
@@ -658,8 +654,7 @@ def get_dimensions(obj):
         try:
             return Quantity(obj).dim
         except TypeError:
-            raise TypeError('Object of type %s does not have dimensions' %
-                            type(obj))
+            raise TypeError(f'Object of type {type(obj)} does not have dimensions')
 
 
 def is_dimensionless(obj):
@@ -800,7 +795,7 @@ def in_best_unit(x, precision=None):
 
 
 def quantity_with_dimensions(floatval, dims):
-    '''
+    """
     Create a new `Quantity` with the given dimensions. Calls
     `get_or_create_dimensions` with the dimension tuple of the `dims`
     argument to make sure that unpickling (which calls this function) does not
@@ -828,7 +823,7 @@ def quantity_with_dimensions(floatval, dims):
     See Also
     --------
     get_or_create_dimensions
-    '''
+    """
     return Quantity(floatval, get_or_create_dimension(dims._dims))
 
 
@@ -926,7 +921,7 @@ class Quantity(np.ndarray, object):
         # We only want numerical datatypes
         if not np.issubclass_(np.dtype(subarr.dtype).type,
                               (np.number, np.bool_)):
-            raise TypeError('Quantities can only be created from numerical data.')
+            raise TypeError("Quantities can only be created from numerical data.")
 
         # If a dimension is given, force this dimension
         if dim is not None:
@@ -953,15 +948,15 @@ class Quantity(np.ndarray, object):
                     one_dim = dims[0]
                     for d in dims:
                         if d != one_dim:
-                            raise DimensionMismatchError('Mixing quantities '
-                                                         'with different '
-                                                         'dimensions is not '
-                                                         'allowed',
+                            raise DimensionMismatchError("Mixing quantities "
+                                                         "with different "
+                                                         "dimensions is not "
+                                                         "allowed",
                                                          d, one_dim)
                     subarr.dim = dims[0]
                 elif any(is_quantity):
-                    raise TypeError('Mixing quantities and non-quantities is '
-                                    'not allowed.')
+                    raise TypeError("Mixing quantities and non-quantities is "
+                                    "not allowed.")
 
         return subarr
 
@@ -981,7 +976,7 @@ class Quantity(np.ndarray, object):
             pass
         elif uf.__name__ in UFUNCS_INTEGERS:
             # Numpy should already raise a TypeError by itself
-            raise TypeError('%s cannot be used on quantities.' % uf.__name__)
+            raise TypeError(f'{uf.__name__} cannot be used on quantities.')
         elif uf.__name__ in UFUNCS_MATCHING_DIMENSIONS + UFUNCS_COMPARISONS:
             # Ok if dimension of arguments match
             fail_for_dimension_mismatch(args[0], args[1],
@@ -1022,12 +1017,12 @@ class Quantity(np.ndarray, object):
                                                       'was {value}',
                                         value=args[1])
             if np.array(args[1], copy=False).size != 1:
-                raise TypeError('Only length-1 arrays can be used as an '
-                                'exponent for quantities.')
+                raise TypeError("Only length-1 arrays can be used as an "
+                                "exponent for quantities.")
         elif uf.__name__ in ('sign', 'ones_like'):
             return np.array(array, copy=False)
         else:
-            warn("Unknown ufunc '%s' in __array_prepare__" % uf.__name__)
+            warn(f"Unknown ufunc '{uf.__name__}' in __array_prepare__")
 
         return array
 
@@ -1062,7 +1057,7 @@ class Quantity(np.ndarray, object):
             elif uf.__name__ in ('multiply', 'dot', 'matmul'):
                 dim = get_dimensions(args[0]) * get_dimensions(args[1])
             else:
-                warn("Unknown ufunc '%s' in __array_wrap__" % uf.__name__)
+                warn(f"Unknown ufunc '{uf.__name__}' in __array_wrap__")
                 #TODO: Remove units in this case?
 
         # This seems to be better than using type(self) instead of quantity
@@ -1119,13 +1114,13 @@ class Quantity(np.ndarray, object):
 
     ### ATTRIBUTES ###
     is_dimensionless = property(lambda self: self.dim.is_dimensionless,
-                                doc='Whether this is a dimensionless quantity.')
+                                doc="Whether this is a dimensionless quantity.")
 
     @property
     def dimensions(self):
-        '''
+        """
         The physical dimensions of this quantity.
-        '''
+        """
         return self.dim
 
     @dimensions.setter
@@ -1212,16 +1207,16 @@ class Quantity(np.ndarray, object):
         if not u.is_dimensionless:
             if isinstance(u, Unit):
                 if python_code:
-                    s += ' * ' + repr(u)
+                    s += f" * {repr(u)}"
                 else:
-                    s += ' ' + str(u)
+                    s += f" {str(u)}"
             else:
                 if python_code:
-                    s += ' * ' + repr(u.dim)
+                    s += f" * {repr(u.dim)}"
                 else:
-                    s += ' ' + str(u.dim)
+                    s += f" {str(u.dim)}"
         elif python_code == True:  # Make a quantity without unit recognisable
-            return '%s(%s)' % (self.__class__.__name__, s.strip())
+            return f'{self.__class__.__name__}({s.strip()})'
         return s.strip()
 
     def get_best_unit(self, *regs):
@@ -1307,9 +1302,9 @@ class Quantity(np.ndarray, object):
 
     #### Setting/getting items ####
     def __getitem__(self, key):
-        ''' Overwritten to assure that single elements (i.e., indexed with a
+        """ Overwritten to assure that single elements (i.e., indexed with a
         single integer or a tuple of integers) retain their unit.
-        '''
+        """
         return Quantity(np.ndarray.__getitem__(self, key), self.dim)
 
     def __setitem__(self, key, value):
@@ -1321,7 +1316,7 @@ class Quantity(np.ndarray, object):
     def _binary_operation(self, other, operation,
                           dim_operation=lambda a, b: a, fail_for_mismatch=False,
                           operator_str=None, inplace=False):
-        '''
+        """
         General implementation for binary operations.
 
         Parameters
@@ -1351,7 +1346,7 @@ class Quantity(np.ndarray, object):
         is returned, i.e. it rather works like a fundamental Python type and
         not like a numpy array scalar, preventing weird effects when a reference
         to the same value was stored in another variable. See github issue #469.
-        '''
+        """
         other_dim = None
 
         if fail_for_mismatch:
@@ -1479,20 +1474,19 @@ class Quantity(np.ndarray, object):
             else:
                 return NotImplemented
         else:
-            raise DimensionMismatchError(('Cannot calculate '
-                                          '{base} ** {exponent}, the '
-                                          'exponent has to be '
-                                          'dimensionless').format(base=_short_str(other),
-                                                                  exponent=_short_str(self)),
+            base = _short_str(other)
+            exponent = _short_str(self)
+            raise DimensionMismatchError(f"Cannot calculate {base} ** {exponent}, "
+                                         f"the exponent has to be dimensionless.",
                                          self.dim)
 
     def __ipow__(self, other):
         if isinstance(other, np.ndarray) or is_scalar_type(other):
             fail_for_dimension_mismatch(other,
-                                        error_message='Cannot calculate '
-                                                      '... **= {exponent}, '
-                                                      'the exponent has to be '
-                                                      'dimensionless',
+                                        error_message="Cannot calculate "
+                                                      "... **= {exponent}, "
+                                                      "the exponent has to be "
+                                                      "dimensionless",
                                         exponent=other)
             other = np.array(other, copy=False)
             super(Quantity, self).__ipow__(other)
@@ -1511,27 +1505,27 @@ class Quantity(np.ndarray, object):
         return Quantity(abs(np.array(self, copy=False)), self.dim)
 
     def tolist(self):
-        '''
+        """
         Convert the array into a list.
 
         Returns
         -------
         l : list of `Quantity`
             A (possibly nested) list equivalent to the original array.
-        '''
+        """
         def replace_with_quantity(seq, dim):
-            '''
+            """
             Replace all the elements in the list with an equivalent `Quantity`
             with the given `dim`.
-            '''
+            """
             # No recursion needed for single values
             if not isinstance(seq, list):
                 return Quantity(seq, dim)
 
             def top_replace(s):
-                '''
+                """
                 Recursivley descend into the list.
-                '''
+                """
                 for i in s:
                     if not isinstance(i, list):
                         yield Quantity(i, dim)
@@ -1595,10 +1589,10 @@ class Quantity(np.ndarray, object):
             sympy_quantity = np.float(unitless)
         else:
             sympy_quantity = Matrix(unitless)
-        return latex(sympy_quantity) + '\\,' + best_unit_latex
+        return f"{latex(sympy_quantity)}\\,{best_unit_latex}"
 
     def _repr_latex_(self):
-        return '$' + latex(self) + '$'
+        return f"${latex(self)}$"
 
     def __str__(self):
         return self.in_best_unit()
@@ -1713,15 +1707,15 @@ class Quantity(np.ndarray, object):
 
     def cumprod(self, *args, **kwds):  # pylint: disable=C0111
         if not self.is_dimensionless:
-            raise TypeError('cumprod over array elements on quantities '
-                            'with dimensions is not possible.')
+            raise TypeError("cumprod over array elements on quantities "
+                            "with dimensions is not possible.")
         return Quantity(np.array(self, copy=False).cumprod(*args, **kwds))
     cumprod.__doc__ = np.ndarray.cumprod.__doc__
     cumprod._do_not_run_doctests = True
 
 
 class Unit(Quantity):
-    r'''
+    r"""
     A physical unit.
 
     Normally, you do not need to worry about the implementation of
@@ -1813,7 +1807,7 @@ class Unit(Quantity):
     >>> 3*Nm
     3. * joule
 
-    '''
+    """
     __slots__ = ["dim", "scale", "_dispname", "_name",
                  "_latexname", "iscompound"]
 
@@ -1842,9 +1836,7 @@ class Unit(Quantity):
     def __init__(self, value, dim=None, scale=0, name=None, dispname=None,
                  latexname='', iscompound=False):
         if value != 10.0**scale:
-            raise AssertionError('Unit value has to be 10**scale '
-                                 '(scale={scale}, value={value})'.format(scale=scale,
-                                                                         value=value))
+            raise AssertionError(f'Unit value has to be 10**scale (scale={scale}, value={value})')
         if dim is None:
             dim = DIMENSIONLESS
         self.dim = dim  #: The Dimensions of this unit
@@ -1903,7 +1895,7 @@ class Unit(Quantity):
         name = str(name)
         dispname = str(dispname)
         if latexname is None:
-            latexname = r'\mathrm{' + dispname + '}'
+            latexname = f"\\mathrm{{{dispname}}}"
 
         u = Unit(10.0**scale, dim=dim, scale=scale, name=name,
                  dispname=dispname, latexname=latexname)
@@ -1933,7 +1925,7 @@ class Unit(Quantity):
         scale = _siprefixes[scalefactor] + baseunit.scale
         if scalefactor == 'u':
             scalefactor = r'\mu'
-        latexname = r'\mathrm{' + scalefactor + '}' + baseunit.latexname
+        latexname = f"\\mathrm{{{scalefactor}}}{baseunit.latexname}"
 
         u = Unit(10.0**scale, dim=baseunit.dim,  name=name, dispname=dispname,
                  latexname=latexname, scale=scale)
@@ -1947,9 +1939,9 @@ class Unit(Quantity):
         .. deprecated:: 2.1
             Create a new unit with `Unit.create` instead.
         """
-        raise NotImplementedError('Setting the name for a unit after'
-                                  'its creation is no longer supported, use'
-                                  '"Unit.create" to create a new unit.')
+        raise NotImplementedError("Setting the name for a unit after"
+                                  "its creation is no longer supported, use"
+                                  "'Unit.create' to create a new unit.")
 
 
     def set_display_name(self, name):
@@ -1958,9 +1950,9 @@ class Unit(Quantity):
         .. deprecated:: 2.1
             Create a new unit with `Unit.create` instead.
         """
-        raise NotImplementedError('Setting the display name for a unit after'
-                                  'its creation is no longer supported, use'
-                                  '"Unit.create" to create a new unit.')
+        raise NotImplementedError("Setting the display name for a unit after"
+                                  "its creation is no longer supported, use"
+                                  "'Unit.create' to create a new unit.")
 
     def set_latex_name(self, name):
         """Sets the LaTeX name for the unit.
@@ -1968,18 +1960,18 @@ class Unit(Quantity):
         .. deprecated:: 2.1
             Create a new unit with `Unit.create` instead.
         """
-        raise NotImplementedError('Setting the LaTeX name for a unit after'
-                                  'its creation is no longer supported, use'
-                                  '"Unit.create" to create a new unit.')
+        raise NotImplementedError("Setting the LaTeX name for a unit after"
+                                  "its creation is no longer supported, use"
+                                  "'Unit.create' to create a new unit.")
 
     name = property(fget=lambda self: self._name, fset=set_name,
-                    doc='The name of the unit')
+                    doc="The name of the unit")
 
     dispname = property(fget=lambda self: self._dispname, fset=set_display_name,
-                        doc='The display name of the unit')
+                        doc="The display name of the unit")
 
     latexname = property(fget=lambda self: self._latexname, fset=set_latex_name,
-                         doc='The LaTeX name of the unit')
+                         doc="The LaTeX name of the unit")
 
     #### REPRESENTATION ####
     def __repr__(self):
@@ -1992,14 +1984,14 @@ class Unit(Quantity):
         return self.latexname
 
     def _repr_latex_(self):
-        return '$' + latex(self) + '$'
+        return f"${latex(self)}$"
 
     #### ARITHMETIC ####
     def __mul__(self, other):
         if isinstance(other, Unit):
-            name = self.name + " * " + other.name
-            dispname = self.dispname + ' ' + other.dispname
-            latexname = self.latexname + r'\,' + other.latexname
+            name = f"{self.name} * {other.name}"
+            dispname = f"{self.dispname} {other.dispname}"
+            latexname = f"{self.latexname}\\,{other.latexname}"
             scale = self.scale + other.scale
             u = Unit(10.0**scale, dim=self.dim * other.dim, name=name,
                      dispname=dispname, latexname=latexname, iscompound=True,
@@ -2014,16 +2006,16 @@ class Unit(Quantity):
     def __div__(self, other):
         if isinstance(other, Unit):
             if self.iscompound:
-                dispname = '(' + self.dispname + ')'
-                name = '(' + self.name + ')'
+                dispname = f"({self.dispname})"
+                name = f"({self.name})"
             else:
                 dispname = self.dispname
                 name = self.name
             dispname += '/'
             name += ' / '
             if other.iscompound:
-                dispname += '(' + other.dispname + ')'
-                name += '(' + other.name + ')'
+                dispname += f"({other.dispname})"
+                name += f"({other.name})"
             else:
                 dispname += other.dispname
                 name += other.name
@@ -2051,15 +2043,15 @@ class Unit(Quantity):
     def __pow__(self, other):
         if is_scalar_type(other):
             if self.iscompound:
-                dispname = '(' + self.dispname + ')'
-                name = '(' + self.name + ')'
+                dispname = f"({self.dispname})"
+                name = f"({self.name})"
                 latexname = r'\left(%s\right)' % self.latexname
             else:
                 dispname = self.dispname
                 name = self.name
                 latexname = self.latexname
-            dispname += '^' + str(other)
-            name += ' ** ' + repr(other)
+            dispname += f"^{str(other)}"
+            name += f" ** {repr(other)}"
             latexname += '^{%s}' % latex(other)
             scale = self.scale * other
             u = Unit(10.0**scale, dim=self.dim ** other, name=name,
@@ -2070,28 +2062,28 @@ class Unit(Quantity):
             return super(Unit, self).__pow__(other)
 
     def __iadd__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __isub__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __imul__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __idiv__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __itruediv__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __ifloordiv__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __imod__(self, other):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __ipow__(self, other, modulo=None):
-        raise TypeError('Units cannot be modified in-place')
+        raise TypeError("Units cannot be modified in-place")
 
     def __eq__(self, other):
         if isinstance(other, Unit):
@@ -2212,7 +2204,7 @@ user_unit_register = UnitRegistry()
 
 
 def get_unit(d):
-    '''
+    """
     Find an unscaled unit (e.g. `volt` but not `mvolt`) for a `Dimension`.
 
     Parameters
@@ -2225,7 +2217,7 @@ def get_unit(d):
     u : `Unit`
         A registered unscaled `Unit` for the dimensions ``d``, or a new `Unit`
         if no unit was found.
-    '''
+    """
     for unit_register in [standard_unit_register,
                           user_unit_register,
                           additional_unit_register]:
@@ -2235,7 +2227,7 @@ def get_unit(d):
 
 
 def get_unit_for_display(d):
-    '''
+    """
     Return a string representation of an appropriate unscaled unit or ``'1'``
     for a dimensionless quantity.
 
@@ -2248,7 +2240,7 @@ def get_unit_for_display(d):
     -------
     s : str
         A string representation of the respective unit or the string ``'1'``.
-    '''
+    """
     if (isinstance(d, int) and d == 1) or d is DIMENSIONLESS:
         return '1'
     else:
@@ -2325,7 +2317,7 @@ def check_units(**au):
 
     >>> @check_units(summand_1=None, summand_2='summand_1')
     ... def multiply_sum(multiplicand, summand_1, summand_2):
-    ...     '''Calculates multiplicand*(summand_1 + summand_2)'''
+    ...     "Calculates multiplicand*(summand_1 + summand_2)"
     ...     return multiplicand*(summand_1 + summand_2)
     >>> multiply_sum(3, 4*mV, 5*mV)
     27. * mvolt
@@ -2373,12 +2365,12 @@ def check_units(**au):
                         v = Quantity(v)
                     except TypeError:
                         if have_same_dimensions(au[n], 1):
-                            raise TypeError(('Argument %s is not a unitless '
-                                             'value/array.') % n)
+                            raise TypeError(f"Argument {n} is not a unitless "
+                                            f"value/array.")
                         else:
-                            raise TypeError(('Argument %s is not a quantity, '
-                                             'expected a quantity with dimensions '
-                                             '%s') % (n, au[n]))
+                            raise TypeError(f"Argument '{n}' is not a quantity, "
+                                            f"expected a quantity with dimensions "
+                                            f"{au[n]}")
                 newkeyset[n] = v
 
             for k in newkeyset:
@@ -2391,39 +2383,38 @@ def check_units(**au):
 
                     if au[k] == bool:
                         if not isinstance(newkeyset[k], bool):
-                            error_message = ('Function "{f.__name__}" '
-                                             'expected a boolean value '
-                                             'for argument "{k}" but got '
-                                             '{value}').format(f=f, k=k,
-                                                               value=newkeyset[k])
+                            value = newkeyset[k]
+                            error_message = (f"Function '{f.__name__}' "
+                                             f"expected a boolean value "
+                                             f"for argument '{k}' but got "
+                                             f"'{value}'")
                             raise TypeError(error_message)
                     elif isinstance(au[k], str):
                         if not au[k] in newkeyset:
-                            error_message = ('Function "{f.__name__}" '
-                                             'expected its argument to have the '
-                                             'same units as argument "{k}", but '
-                                             'there is no argument of that '
-                                             'name').format(f=f, k=k)
+                            error_message = (f"Function '{f.__name__}' "
+                                             f"expected its argument to have the "
+                                             f"same units as argument '{k}', but "
+                                             f"there is no argument of that name")
                             raise TypeError(error_message)
                         if not have_same_dimensions(newkeyset[k], newkeyset[au[k]]):
                             d1 = get_dimensions(newkeyset[k])
                             d2 = get_dimensions(newkeyset[au[k]])
                             error_message = (
-                                f'Function \'{f.__name__}\' expected '
-                                f'the argument \'{k}\' to have the same '
-                                f'units as argument \'{au[k]}\', but '
-                                f'argument \'{k}\' has '
-                                f'unit {get_unit_for_display(d1)}, '
-                                f'while argument \'{au[k]}\' '
-                                f'has unit {get_unit_for_display(d2)}.')
+                                f"Function '{f.__name__}' expected "
+                                f"the argument '{k}' to have the same "
+                                f"units as argument '{au[k]}', but "
+                                f"argument '{k}' has "
+                                f"unit {get_unit_for_display(d1)}, "
+                                f"while argument '{au[k]}' "
+                                f"has unit {get_unit_for_display(d2)}.")
                             raise DimensionMismatchError(error_message)
                     elif not have_same_dimensions(newkeyset[k], au[k]):
-                        error_message = ('Function "{f.__name__}" '
-                                         'expected a quantitity with unit '
-                                         '{unit} for argument "{k}" but got '
-                                         '{value}').format(f=f, k=k,
-                                                           unit=repr(au[k]),
-                                                           value=newkeyset[k])
+                        unit = repr(au[k])
+                        value = newkeyset[k]
+                        error_message = (f"Function '{f.__name__}' "
+                                         f"expected a quantitity with unit "
+                                         f"{unit} for argument '{k}' but got "
+                                         f"'{value}'")
                         raise DimensionMismatchError(error_message,
                                                      get_dimensions(newkeyset[k]))
 
@@ -2436,19 +2427,17 @@ def check_units(**au):
                     expected_result = au['result']
                 if au['result'] == bool:
                     if not isinstance(result, bool):
-                        error_message = ('The return value of function '
-                                         '"{f.__name__}" was expected to be '
-                                         'a boolean value, but was of type '
-                                         '{type}').format(f=f,
-                                                          type=type(result))
+                        error_message = (f"The return value of function "
+                                         f"'{f.__name__}' was expected to be "
+                                         f"a boolean value, but was of type "
+                                         f"{type(result)}")
                         raise TypeError(error_message)
                 elif not have_same_dimensions(result, expected_result):
-                    error_message = ('The return value of function '
-                                     '"{f.__name__}" was expected to have '
-                                     'unit {unit} but was '
-                                     '{value}').format(f=f,
-                                                       unit=get_unit_for_display(expected_result),
-                                                       value=result)
+                    unit = get_unit_for_display(expected_result)
+                    error_message = (f"The return value of function "
+                                     f"'{f.__name__}' was expected to have "
+                                     f"unit {unit} but was "
+                                     f"'{result}'")
                     raise DimensionMismatchError(error_message,
                                                  get_dimensions(result))
             return result

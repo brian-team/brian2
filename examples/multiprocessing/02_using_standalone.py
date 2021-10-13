@@ -1,4 +1,4 @@
-'''
+"""
 Parallel processes using standalone mode
 
 This example use multiprocessing to run several simulations in parallel.
@@ -38,7 +38,7 @@ example that creates a single neuron and connects a `StateMonitor` to record
 the voltage.
 
 For more details see the `discussion in the Brian forum <https://brian.discourse.group/t/multiprocessing-in-standalone-mode/142/2>`_.
-'''
+"""
 import os
 import multiprocessing
 from time import time as wall_time
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     with multiprocessing.Pool(num_proc) as p:
         results = p.map(run_sim, tau_values)
 
-    print("Done in {:10.3f}".format(wall_time() - start_time))
+    print(f"Done in {wall_time() - start_time:10.3f}")
 
     for tau_value, (t, v) in zip(tau_values, results):
         plt.plot(t, v, label=str(tau_value))

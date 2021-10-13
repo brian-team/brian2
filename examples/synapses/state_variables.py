@@ -1,6 +1,6 @@
-'''
+"""
 Set state variable values with a string (using code generation).
-'''
+"""
 
 from brian2 import *
 

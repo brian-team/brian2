@@ -15,10 +15,10 @@ def test_custom_events():
     # Set (could be moved in a setup)
     EL = -65*mV
     gL = 0.0003*siemens/cm**2
-    ev = '''
+    ev = """
     Im = gL * (EL - v) : amp/meter**2
     event_time1 : second
-    '''
+    """
     # Create a three compartments morphology
     morpho = Soma(diameter=10*um)
     morpho.dend1 = Cylinder(n=1, diameter=1*um, length=10*um )
@@ -42,18 +42,18 @@ def test_construction():
     morpho.right.nextone = Cylinder(length=2*um, diameter=1*um, n=3)
     gL=1e-4*siemens/cm**2
     EL=-70*mV
-    eqs='''
+    eqs="""
     Im=gL*(EL-v) : amp/meter**2
     I : meter (point current)
-    '''
+    """
 
     # Check units of currents
     with pytest.raises(DimensionMismatchError):
         SpatialNeuron(morphology=morpho, model=eqs)
 
-    eqs='''
+    eqs="""
     Im=gL*(EL-v) : amp/meter**2
-    '''
+    """
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
     # Test initialization of values
     neuron.LL.v = EL
@@ -102,18 +102,18 @@ def test_construction_coordinates():
                                     diameter=1*um, n=3)
     gL=1e-4*siemens/cm**2
     EL=-70*mV
-    eqs='''
+    eqs="""
     Im=gL*(EL-v) : amp/meter**2
     I : meter (point current)
-    '''
+    """
 
     # Check units of currents
     with pytest.raises(DimensionMismatchError):
         SpatialNeuron(morphology=morpho, model=eqs)
 
-    eqs='''
+    eqs="""
     Im=gL*(EL-v) : amp/meter**2
-    '''
+    """
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1 * uF / cm ** 2, Ri=100 * ohm * cm)
 
     # Test initialization of values
@@ -152,9 +152,9 @@ def test_construction_coordinates():
 
 @pytest.mark.long
 def test_infinitecable():
-    '''
+    """
     Test simulation of an infinite cable vs. theory for current pulse (Green function)
-    '''
+    """
     BrianLogger.suppress_name('resolution_conflict')
     defaultclock.dt = 0.001*ms
 
@@ -167,10 +167,10 @@ def test_infinitecable():
 
     # Passive channels
     gL=1e-4*siemens/cm**2
-    eqs='''
+    eqs="""
     Im=-gL*v : amp/meter**2
     I : amp (point current)
-    '''
+    """
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
 
@@ -195,9 +195,9 @@ def test_infinitecable():
 
 @pytest.mark.standalone_compatible
 def test_finitecable():
-    '''
+    """
     Test simulation of short cylinder vs. theory for constant current.
-    '''
+    """
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -213,10 +213,10 @@ def test_finitecable():
     # Passive channels
     gL = 1e-4*siemens/cm**2
     EL = -70*mV
-    eqs = '''
+    eqs = """
     Im=gL*(EL-v) : amp/meter**2
     I : amp (point current)
-    '''
+    """
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
@@ -235,9 +235,9 @@ def test_finitecable():
 
 @pytest.mark.standalone_compatible
 def test_rallpack1():
-    '''
+    """
     Rallpack 1
-    '''
+    """
     if prefs.core.default_float_dtype is np.float32:
         pytest.skip('Need double precision for this test')
     defaultclock.dt = 0.05*ms
@@ -253,10 +253,10 @@ def test_rallpack1():
     # Passive channels
     gL = 1./(40000*ohm*cm**2)
     EL = -65*mV
-    eqs = '''
+    eqs = """
     Im = gL*(EL - v) : amp/meter**2
     I : amp (point current, constant)
-    '''
+    """
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
 
@@ -295,9 +295,9 @@ def test_rallpack1():
 
 @pytest.mark.standalone_compatible
 def test_rallpack2():
-    '''
+    """
     Rallpack 2
-    '''
+    """
     if prefs.core.default_float_dtype is np.float32:
         pytest.skip('Need double precision for this test')
     defaultclock.dt = 0.1*ms
@@ -327,10 +327,10 @@ def test_rallpack2():
     # Passive channels
     gL = 1./(40000*ohm*cm**2)
     EL = -65*mV
-    eqs = '''
+    eqs = """
     Im = gL*(EL - v) : amp/meter**2
     I : amp (point current, constant)
-    '''
+    """
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri,
                            method='rk4')
     neuron.v = EL
@@ -380,9 +380,9 @@ def test_rallpack2():
 @pytest.mark.standalone_compatible
 @pytest.mark.long
 def test_rallpack3():
-    '''
+    """
     Rallpack 3
-    '''
+    """
     if prefs.core.default_float_dtype is np.float32:
         pytest.skip('Need double precision for this test')
     defaultclock.dt = 1*usecond
@@ -402,7 +402,7 @@ def test_rallpack3():
     EK = -77*mV
     gNa = 120*msiemens/cm**2
     gK = 36*msiemens/cm**2
-    eqs = '''
+    eqs = """
     Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) + gK * n**4 * (EK-v) : amp/meter**2
     dm/dt = alpham * (1-m) - betam * m : 1
     dn/dt = alphan * (1-n) - betan * n : 1
@@ -415,7 +415,7 @@ def test_rallpack3():
     alphan = (0.01/mV) * (-v_shifted+10*mV) / (exp((-v_shifted+10*mV) / (10*mV)) - 1)/ms : Hz
     betan = 0.125*exp(-v_shifted/(80*mV))/ms : Hz
     I : amp (point current, constant)
-    '''
+    """
     axon = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri, method='exponential_euler')
     axon.v = El
     # Pre-calculated equilibrium values at v = El
@@ -461,9 +461,9 @@ def test_rallpack3():
 
 @pytest.mark.standalone_compatible
 def test_rall():
-    '''
+    """
     Test simulation of a cylinder plus two branches, with diameters according to Rall's formula
-    '''
+    """
     BrianLogger.suppress_name('resolution_conflict')
 
     defaultclock.dt = 0.01*ms
@@ -495,10 +495,10 @@ def test_rall():
     L2 = (L1/l1)*l2
     morpho.R=Cylinder(diameter=d2, length=L2, n=N)
 
-    eqs='''
+    eqs="""
     Im=gL*(EL-v) : amp/meter**2
     I : amp (point current)
-    '''
+    """
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=Cm, Ri=Ri)
     neuron.v = EL
@@ -538,10 +538,10 @@ def test_basic_diffusion():
     EL = -70*mV
     gL = 1e-4*siemens/cm**2
     target = -10*mV
-    eqs = '''
+    eqs = """
     Im = gL*(EL-v) + gClamp*(target-v): amp/meter**2
     gClamp : siemens/meter**2
-    '''
+    """
 
     morph = Soma(diameter=30*um)
     morph.axon = Cylinder(n=10, diameter=10*um, length=100*um)
@@ -573,40 +573,40 @@ def test_allowed_integration():
     def user_fun(voltage):
         return voltage  # could be an arbitrary function and is therefore unsafe
     allowed_eqs = ['Im = gL*(EL-v) : amp/meter**2',
-                   '''Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) : amp/meter**2
+                   """Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) : amp/meter**2
                       dm/dt = alpham * (1-m) - betam * m : 1
                       dh/dt = alphah * (1-h) - betah * h : 1
                       alpham = (0.1/mV) * (-v+25*mV) / (exp((-v+25*mV) / (10*mV)) - 1)/ms : Hz
                       betam = 4 * exp(-v/(18*mV))/ms : Hz
                       alphah = 0.07 * exp(-v/(20*mV))/ms : Hz
-                      betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz''',
-                   '''Im = gl * (El-v) : amp/meter**2
-                      I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)''',
-                   '''Im = I_leak + I_spike : amp/meter**2
+                      betah = 1/(exp((-v+30*mV) / (10*mV)) + 1)/ms : Hz""",
+                   """Im = gl * (El-v) : amp/meter**2
+                      I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp (point current)""",
+                   """Im = I_leak + I_spike : amp/meter**2
                       I_leak = gL*(EL - v) : amp/meter**2
                       I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2 (constant over dt)
-                   ''',
-                   '''
+                   """,
+                   """
                    Im = gL*(EL-v) : amp/meter**2
                    I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
                    gNMDA : siemens
                    Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1 (constant over dt)
-                   ''',
+                   """,
                    'Im = gL*(EL - v) + gL*DeltaT*exp((v - VT)/DeltaT) : amp/meter**2',
-                   '''Im = I_leak + I_spike : amp/meter**2
+                   """Im = I_leak + I_spike : amp/meter**2
                       I_leak = gL*(EL - v) : amp/meter**2
                       I_spike = gL*DeltaT*exp((v - VT)/DeltaT): amp/meter**2
-                   ''',
-                   '''
+                   """,
+                   """
                    Im = gL*(EL-v) : amp/meter**2
                    I_NMDA = gNMDA*(ENMDA-v)*Mgblock : amp (point current)
                    gNMDA : siemens
                    Mgblock = 1./(1. +  exp(-0.062*v/mV)/3.57) : 1
-                   ''',
+                   """,
                    ]
     forbidden_eqs = [
-                    '''Im = gl * (El-v + user_fun(v)) : amp/meter**2''',
-                    '''Im = gl * clip(El-v, -100*mV, 100*mV) : amp/meter**2''',
+                    """Im = gl * (El-v + user_fun(v)) : amp/meter**2""",
+                    """Im = gl * clip(El-v, -100*mV, 100*mV) : amp/meter**2""",
                     ]
     for eqs in allowed_eqs:
         # Should not raise an error
@@ -687,13 +687,13 @@ def test_tree_index_consistency():
 
         # Create a tree according to the description
         for idx in range(root_children):
-            setattr(sec, 'sec%d' % (idx + 1),
+            setattr(sec, f'sec{int(idx + 1)}',
                     Cylinder(length=50*um, diameter=10*um, n=2*(idx + 1)))
         for child in range(root_children):
-            subsec = getattr(sec, 'sec%d' % (child + 1))
+            subsec = getattr(sec, f'sec{int(child + 1)}')
             subsec_children = tree_description[child + 1]
             for idx in range(subsec_children):
-                setattr(subsec, 'sec%d%d' % (child + 1, idx + 1),
+                setattr(subsec, f'sec{int(child + 1)}{int(idx + 1)}',
                         Cylinder(length=50 * um, diameter=10 * um, n=1 + (child + 1) * idx))
 
         neuron = SpatialNeuron(sec, 'Im = 0*amp/meter**2 : amp/meter**2')
@@ -702,11 +702,11 @@ def test_tree_index_consistency():
 
         all_subsec_indices = []
         for child in range(root_children):
-            subsec = getattr(neuron, 'sec%d' % (child + 1))
+            subsec = getattr(neuron, f'sec{int(child + 1)}')
             sub_indices = set(subsec.main.indices[:])
             subsec_children = tree_description[child + 1]
             for idx in range(subsec_children):
-                subsubsec = getattr(subsec, 'sec%d%d' % (child + 1, idx + 1))
+                subsubsec = getattr(subsec, f'sec{int(child + 1)}{int(idx + 1)}')
                 sub_indices |= set(subsubsec.main.indices[:])
             # The indices for a full subtree should be the union of the indices
             # for all subsections within that subtree
@@ -782,7 +782,7 @@ def test_spatialneuron_capacitive_currents():
     gK = 36*msiemens/cm**2
 
     # Typical equations
-    eqs = '''
+    eqs = """
     # The same equations for the whole neuron, but possibly different parameter values
     # distributed transmembrane current
     Im = gl * (El-v) + gNa * m**3 * h * (ENa-v) + gK * n**4 * (EK-v) : amp/meter**2
@@ -797,7 +797,7 @@ def test_spatialneuron_capacitive_currents():
     alphan = (0.01/mV) * (-v+10*mV) / (exp((-v+10*mV) / (10*mV)) - 1)/ms : Hz
     betan = 0.125*exp(-v/(80*mV))/ms : Hz
     gNa : siemens/meter**2
-    '''
+    """
 
     neuron = SpatialNeuron(morphology=morpho, model=eqs, Cm=1*uF/cm**2,
                            Ri=35.4*ohm*cm, method="exponential_euler")
@@ -815,9 +815,9 @@ def test_spatialneuron_capacitive_currents():
 @pytest.mark.codegen_independent
 def test_point_current():
     soma = Soma(10*um)
-    eqs = '''Im = 0*nA/cm**2 : amp/meter**2
+    eqs = """Im = 0*nA/cm**2 : amp/meter**2
              I1 = 1*nA : amp (point current)
-             I2 = 1*nA : amp (point current, constant over dt)'''
+             I2 = 1*nA : amp (point current, constant over dt)"""
     neuron = SpatialNeuron(soma, eqs)
     assert 'I1/area' in neuron.equations['Im'].expr.code
     assert 'I2/area' in neuron.equations['Im'].expr.code  # see issue #1160

@@ -1,8 +1,8 @@
-'''
+"""
 Compartmental models.
 This module defines the `SpatialNeuron` class, which defines multicompartmental
 models.
-'''
+"""
 import weakref
 import copy
 
@@ -33,11 +33,11 @@ logger = get_logger(__name__)
 
 
 class FlatMorphology(object):
-    '''
+    """
     Container object to store the flattened representation of a morphology.
     Note that all values are stored as numpy arrays without unit information
     (i.e. in base units).
-    '''
+    """
     def __init__(self, morphology):
         self.n = n = morphology.total_compartments  # Total number of compartments
         # Per-compartment attributes
@@ -160,7 +160,7 @@ class FlatMorphology(object):
 
 
 class SpatialNeuron(NeuronGroup):
-    '''
+    """
     A single neuron with a morphology and possibly many compartments.
 
     Parameters
@@ -224,7 +224,7 @@ class SpatialNeuron(NeuronGroup):
         step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         A unique name for the group, otherwise use ``spatialneuron_0``, etc.
-    '''
+    """
 
     def __init__(self, morphology=None, model=None, threshold=None,
                  refractory=False, reset=None, events=None,
@@ -238,8 +238,8 @@ class SpatialNeuron(NeuronGroup):
         if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
-            raise TypeError(('model has to be a string or an Equations '
-                             'object, is "%s" instead.') % type(model))
+            raise TypeError(f"model has to be a string or an Equations "
+                            f"object, is '{type(model)}' instead.")
 
         # Insert the threshold mechanism at the specified location
         if threshold_location is not None:
@@ -250,9 +250,9 @@ class SpatialNeuron(NeuronGroup):
                 if len(threshold_location) == 1:
                     threshold_location = threshold_location[0]
                 else:
-                    raise AttributeError(('Threshold can only be applied on a '
-                                          'single location'))
-            threshold = '(' + threshold + ') and (i == ' + str(threshold_location) + ')'
+                    raise AttributeError("Threshold can only be applied on a "
+                                         "single location")
+            threshold = f"({threshold}) and (i == {str(threshold_location)})"
 
         # Check flags (we have point currents)
         model.check_flags({DIFFERENTIAL_EQUATION: ('point current',),
@@ -273,11 +273,11 @@ class SpatialNeuron(NeuronGroup):
         # Extract membrane equation
         if 'Im' in model:
             if len(model['Im'].flags):
-                raise TypeError('Cannot specify any flags for the transmembrane '
-                                'current Im.')
+                raise TypeError("Cannot specify any flags for the transmembrane "
+                                "current 'Im'.")
             membrane_expr = model['Im'].expr  # the membrane equation
         else:
-            raise TypeError('The transmembrane current Im must be defined')
+            raise TypeError("The transmembrane current 'Im' must be defined")
 
         model_equations = []
         # Insert point currents in the membrane equation
@@ -286,9 +286,9 @@ class SpatialNeuron(NeuronGroup):
                 continue  # ignore -- handled separately
             if 'point current' in eq.flags:
                 fail_for_dimension_mismatch(eq.dim, amp,
-                                            "Point current " + eq.varname + " should be in amp")
+                                            f"Point current {eq.varname} should be in amp")
                 membrane_expr = Expression(
-                    str(membrane_expr.code) + '+' + eq.varname + '/area')
+                    f"{str(membrane_expr.code)}+{eq.varname}/area")
                 eq = SingleEquation(eq.type, eq.varname, eq.dim, expr=eq.expr,
                                     flags=list(set(eq.flags)-{'point current'}))
             model_equations.append(eq)
@@ -306,7 +306,7 @@ class SpatialNeuron(NeuronGroup):
                 Im_expr = expr
                 break
         else:
-            raise AssertionError('Model equations did not contain Im!')
+            raise AssertionError("Model equations did not contain Im!")
 
         # Differentiate Im with respect to v
         Im_sympy_exp = str_to_sympy(Im_expr.code)
@@ -315,8 +315,8 @@ class SpatialNeuron(NeuronGroup):
 
         unevaled_derivatives = diffed.atoms(sp.Derivative)
         if len(unevaled_derivatives):
-            raise TypeError('Cannot take the derivative of "{Im}" with respect '
-                            'to v.'.format(Im=Im_expr.code))
+            raise TypeError(
+                f"Cannot take the derivative of '{Im_expr.code}' with respect to v.")
 
         gtot_str = sympy_to_str(sp.simplify(-diffed))
         I0_str = sympy_to_str(sp.simplify(Im_sympy_exp - diffed*v_sympy))
@@ -325,10 +325,10 @@ class SpatialNeuron(NeuronGroup):
             gtot_str += '*siemens/meter**2'
         if I0_str == '0':
             I0_str += '*amp/meter**2'
-        gtot_str = "gtot__private=" + gtot_str + ": siemens/meter**2"
-        I0_str = "I0__private=" + I0_str + ": amp/meter**2"
+        gtot_str = f"gtot__private={gtot_str}: siemens/meter**2"
+        I0_str = f"I0__private={I0_str}: amp/meter**2"
 
-        model += Equations(gtot_str + "\n" + I0_str)
+        model += Equations(f"{gtot_str}\n{I0_str}")
 
         # Insert morphology (store a copy)
         self.morphology = copy.deepcopy(morphology)
@@ -356,11 +356,11 @@ class SpatialNeuron(NeuronGroup):
                          (2*(Ri*gtot__private)**(1.0/2.0)) : meter
         """)
         if self.flat_morphology.has_coordinates:
-            eqs_constants += Equations('''
+            eqs_constants += Equations("""
             x : meter (constant)
             y : meter (constant)
             z : meter (constant)
-            ''')
+            """)
 
         NeuronGroup.__init__(self, morphology.total_compartments,
                              model=model + eqs_constants,
@@ -417,22 +417,22 @@ class SpatialNeuron(NeuronGroup):
             self.contained_objects.append(self.subexpression_updater)
 
     def __getattr__(self, name):
-        '''
+        """
         Subtrees are accessed by attribute, e.g. neuron.axon.
-        '''
+        """
         return self.spatialneuron_attribute(self, name)
 
     def __getitem__(self, item):
-        '''
+        """
         Selects a segment, where x is a slice of either compartment
         indexes or distances.
         Note a: segment is not a SpatialNeuron, only a Group.
-        '''
+        """
         return self.spatialneuron_segment(self, item)
 
     @staticmethod
     def _find_subtree_end(morpho):
-        '''
+        """
         Go down a morphology recursively to find the (absolute) index of the
         "final" compartment (i.e. the one with the highest index) of the
         subtree.
@@ -446,7 +446,7 @@ class SpatialNeuron(NeuronGroup):
         -------
         index : int
             The highest index within the subtree.
-        '''
+        """
         indices = [morpho.indices[-1]]
         for child in morpho.children:
             indices.append(SpatialNeuron._find_subtree_end(child))
@@ -454,10 +454,10 @@ class SpatialNeuron(NeuronGroup):
 
     @staticmethod
     def spatialneuron_attribute(neuron, name):
-        '''
+        """
         Selects a subtree from `SpatialNeuron` neuron and returns a `SpatialSubgroup`.
         If it does not exist, returns the `Group` attribute.
-        '''
+        """
         if name == 'main':  # Main section, without the subtrees
             indices = neuron.morphology.indices[:]
             start, stop = indices[0], indices[-1]
@@ -474,20 +474,20 @@ class SpatialNeuron(NeuronGroup):
 
     @staticmethod
     def spatialneuron_segment(neuron, item):
-        '''
+        """
         Selects a segment from `SpatialNeuron` neuron, where item is a slice of
         either compartment indexes or distances.
         Note a: segment is not a `SpatialNeuron`, only a `Group`.
-        '''
+        """
         if isinstance(item, slice) and isinstance(item.start, Quantity):
             if item.step is not None:
-                raise ValueError('Cannot specify a step size for slicing based'
-                                 'on length.')
+                raise ValueError("Cannot specify a step size for slicing based"
+                                 "on length.")
             start, stop = item.start, item.stop
             if (not have_same_dimensions(start, meter) or
                     not have_same_dimensions(stop, meter)):
-                raise DimensionMismatchError('Start and stop should have units '
-                                             'of meter', start, stop)
+                raise DimensionMismatchError("Start and stop should have units "
+                                             "of meter", start, stop)
             # Convert to integers (compartment numbers)
             indices = neuron.morphology.indices[item]
             start, stop = indices[0], indices[-1] + 1
@@ -500,8 +500,7 @@ class SpatialNeuron(NeuronGroup):
                 stop += neuron.start
 
         if start >= stop:
-            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                             (start, stop))
+            raise IndexError(f'Illegal start/end values for subgroup, {int(start)}>={int(stop)}')
         if isinstance(neuron, SpatialSubgroup):
             # Note that the start/stop values calculated above are always
             # absolute values, even for subgroups
@@ -510,7 +509,7 @@ class SpatialNeuron(NeuronGroup):
 
 
 class SpatialSubgroup(Subgroup):
-    '''
+    """
     A subgroup of a `SpatialNeuron`.
 
     Parameters
@@ -524,7 +523,7 @@ class SpatialSubgroup(Subgroup):
         morphology).
     name : str, optional
         Name of the subgroup.
-    '''
+    """
 
     def __init__(self, source, start, stop, morphology, name=None):
         self.morphology = morphology
@@ -542,10 +541,10 @@ class SpatialSubgroup(Subgroup):
 
 
 class SpatialStateUpdater(CodeRunner, Group):
-    '''
+    """
     The `CodeRunner` that updates the state variables of a `SpatialNeuron`
     at every timestep.
-    '''
+    """
 
     def __init__(self, group, method, clock, order=0):
         # group is the neuron (a group of compartments)
@@ -557,12 +556,12 @@ class SpatialStateUpdater(CodeRunner, Group):
 
         CodeRunner.__init__(self, group,
                             'spatialstateupdate',
-                            code='''_gtot = gtot__private
-                                    _I0 = I0__private''',
+                            code="""_gtot = gtot__private
+                                    _I0 = I0__private""",
                             clock=clock,
                             when='groups',
                             order=order,
-                            name=group.name + '_spatialstateupdater*',
+                            name=f"{group.name}_spatialstateupdater*",
                             check_units=False,
                             template_kwds={'number_sections': sections})
 

@@ -1,6 +1,6 @@
-'''
+"""
 Demonstrate the usage of the `Morphology` object.
-'''
+"""
 from brian2 import *
 
 # Morphology

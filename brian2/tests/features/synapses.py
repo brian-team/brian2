@@ -1,8 +1,8 @@
 
 
-'''
+"""
 Check that the features of `Synapses` are available and correct.
-'''
+"""
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError
 import numpy
@@ -16,10 +16,10 @@ class SynapsesPre(FeatureTest):
     
     def run(self):
         tau = 5*ms
-        eqs = '''
+        eqs = """
         dV/dt = k/tau : 1
         k : 1
-        '''
+        """
         G = NeuronGroup(10, eqs, threshold='V>1', reset='V=0')
         G.k = linspace(1, 5, len(G))
         H = NeuronGroup(10, 'V:1')
@@ -43,10 +43,10 @@ class SynapsesPost(FeatureTest):
     
     def run(self):
         tau = 5*ms
-        eqs = '''
+        eqs = """
         dV/dt = k/tau : 1
         k : 1
-        '''
+        """
         G = NeuronGroup(10, eqs, threshold='V>1', reset='V=0')
         G.k = linspace(1, 5, len(G))
         H = NeuronGroup(10, 'V:1')
@@ -98,24 +98,24 @@ class SynapsesSTDP(FeatureTest):
                                            replace=False)*ms
         v_init       = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
     
-        eqs  = Equations('''
+        eqs  = Equations("""
         dv/dt = (g-(v-El))/taum : volt
         dg/dt = -g/taus         : volt
-        ''')
+        """)
         
         P    = NeuronGroup(n_cells, model=eqs, threshold='v>Vt', reset='v=Vr', refractory=5 * ms)
         Q    = SpikeGeneratorGroup(n_cells, sources, times)
         P.v  = v_init
         P.g  = 0 * mV
         S    = Synapses(P, P, 
-                            model = '''dApre/dt=-Apre/taupre    : 1 (event-driven)    
+                            model = """dApre/dt=-Apre/taupre    : 1 (event-driven)    
                                        dApost/dt=-Apost/taupost : 1 (event-driven)
-                                       w                        : 1''', 
-                            pre = '''g     += w*mV
+                                       w                        : 1""", 
+                            pre = """g     += w*mV
                                      Apre  += dApre
-                                     w      = w + Apost''',
-                            post = '''Apost += dApost
-                                      w      = w + Apre''')
+                                     w      = w + Apost""",
+                            post = """Apost += dApost
+                                      w      = w + Apre""")
         S.connect()
         
         S.w       = fac*connectivity.flatten()

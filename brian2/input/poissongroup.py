@@ -1,7 +1,7 @@
 
-'''
+"""
 Implementation of `PoissonGroup`.
-'''
+"""
 import numpy as np
 
 from brian2.core.spikesource import SpikeSource
@@ -19,7 +19,7 @@ __all__ = ['PoissonGroup']
 
 
 class PoissonGroup(Group, SpikeSource):
-    '''
+    """
     Poisson spike source
     
     Parameters
@@ -44,7 +44,7 @@ class PoissonGroup(Group, SpikeSource):
         step and in the same scheduling slot. Defaults to 0.
     name : str, optional
         Unique name, or use poissongroup, poissongroup_1, etc.
-    '''
+    """
     add_to_magic_network = True
 
     @check_units(rates=Hz)
@@ -97,13 +97,12 @@ class PoissonGroup(Group, SpikeSource):
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
-            raise TypeError('Subgroups can only be constructed using slicing syntax')
+            raise TypeError("Subgroups can only be constructed using slicing syntax")
         start, stop, step = item.indices(self._N)
         if step != 1:
-            raise IndexError('Subgroups have to be contiguous')
+            raise IndexError("Subgroups have to be contiguous")
         if start >= stop:
-            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                             (start, stop))
+            raise IndexError(f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}")
 
         return Subgroup(self, start, stop)
 
@@ -125,9 +124,9 @@ class PoissonGroup(Group, SpikeSource):
 
     @property
     def spikes(self):
-        '''
+        """
         The spikes returned by the most recent thresholding operation.
-        '''
+        """
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
@@ -135,7 +134,5 @@ class PoissonGroup(Group, SpikeSource):
         return spikespace[:spikespace[-1]]
 
     def __repr__(self):
-        description = '{classname}({N}, rates={rates})'
-        return description.format(classname=self.__class__.__name__,
-                                  N=self.N, rates=repr(self._rates))
-
+        classname = self.__class__.__name__
+        return f"{classname}({self.N}, rates={self._rates!r})"

@@ -1,6 +1,6 @@
-'''
+"""
 The unit system.
-'''
+"""
 from .allunits import (
                        # basic units
                        pamp, namp, uamp, mamp, amp,

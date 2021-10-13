@@ -1,6 +1,6 @@
-'''
+"""
 Some basic tests for the `Variable` system
-'''
+"""
 
 from collections import namedtuple
 

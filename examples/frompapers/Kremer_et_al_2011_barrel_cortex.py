@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Late Emergence of the Whisker Direction Selectivity Map in the Rat Barrel Cortex.
 Kremer Y, Leger JF, Goodman DF, Brette R, Bourdieu L (2011).
 J Neurosci 31(29):10689-700.
@@ -8,7 +8,7 @@ Development of direction maps with pinwheels in the barrel cortex.
 Whiskers are deflected with random moving bars.
 
 N.B.: network construction can be long.
-'''
+"""
 from brian2 import *
 import time
 

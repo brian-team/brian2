@@ -34,7 +34,7 @@ from .docscrape_sphinx import get_doc_object, SphinxDocString
 
 
 class BrianPrefsDirective(Directive):
-    '''
+    """
     A sphinx 'Directive' for automatically generated documentation of Brian preferences.
     
     The directive takes an optional argument, the basename of the preferences
@@ -53,7 +53,7 @@ class BrianPrefsDirective(Directive):
     
         .. document_brian_prefs::
            :nolinks:
-    '''
+    """
     required_arguments = 0
     optional_arguments = 1
     final_argument_whitespace = True
@@ -75,16 +75,16 @@ class BrianPrefsDirective(Directive):
 
 
 def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
-    '''
+    """
     A Sphinx role, used as a wrapper for the default `py:obj` role, allowing
     us to use the simple backtick syntax for brian classes/functions without
     having to qualify the package for classes/functions that are available after
     a `from brian2 import *`, e.g `NeuronGroup`.
     Also allows to directly link to preference names using the same syntax.
-    '''
+    """
     if text in prefs:
         linktext = text.replace('_', '-').replace('.', '-')
-        text = '%s <brian-pref-%s>' % (text, linktext)
+        text = f'{text} <brian-pref-{linktext}>'
         # Use sphinx's cross-reference role
         xref = XRefRole(warn_dangling=True)
         return xref('std:ref', rawtext, text, lineno, inliner, options, content)
@@ -96,7 +96,7 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
                     module = __import__('brian2', fromlist=[str(text)])
                     imported = getattr(module, str(text), None)
                     if getattr(imported, '__module__', None):
-                        text = '~' + imported.__module__ + '.' + text
+                        text = f"~{imported.__module__}.{text}"
                         if inspect.isfunction(imported):
                             text += '()'
                 # Possibly a method/classmethod/attribute name
@@ -117,11 +117,8 @@ def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
                         else:
                             parentheses = ''
 
-                        text = ('{classname}.{attrname}{parentheses} '
-                                '<{modname}.{classname}.{attrname}>').format(classname=classname,
-                                                                             attrname=attrname,
-                                                                             modname=imported.__module__,
-                                                                             parentheses=parentheses)
+                        text = (f"{classname}.{attrname}{parentheses} "
+                                f"<{imported.__module__}.{classname}.{attrname}>")
 
             except ImportError:
                 pass
@@ -142,10 +139,10 @@ def mangle_docstrings(app, what, name, obj, options, lines,
         if exported_members:
             lines.append('*Exported members:* ')
             # do not print more than 25 members
-            lines.append(', '.join(['`%s`' % member for
+            lines.append(', '.join([f'`{member}`' for
                                     member in exported_members[:25]]))
             if len(exported_members) > 25:
-                lines.append('... (%d more members)' % (len(exported_members) - 25))
+                lines.append(f'... ({int(len(exported_members) - 25)} more members)')
 
             lines.append('')
     else:
@@ -167,13 +164,13 @@ def mangle_docstrings(app, what, name, obj, options, lines,
         for i, line in enumerate(lines):
             for r in references:
                 if re.match(r'^\d+$', r):
-                    new_r = "R%d" % (reference_offset[0] + int(r))
+                    new_r = f"R{int(reference_offset[0] + int(r))}"
                 else:
-                    new_r = "%s%d" % (r, reference_offset[0])
-                lines[i] = lines[i].replace('[%s]_' % r,
-                                            '[%s]_' % new_r)
-                lines[i] = lines[i].replace('.. [%s]' % r,
-                                            '.. [%s]' % new_r)
+                    new_r = f"{r}{int(reference_offset[0])}"
+                lines[i] = lines[i].replace(f'[{r}]_',
+                                            f'[{new_r}]_')
+                lines[i] = lines[i].replace(f'.. [{r}]',
+                                            f'.. [{new_r}]')
 
     reference_offset[0] += len(references)
 

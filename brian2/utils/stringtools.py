@@ -18,7 +18,7 @@ __all__ = ['indent',
 
 
 def indent(text, numtabs=1, spacespertab=4, tab=None):
-    '''
+    """
     Indents a given multiline string.
     
     By default, indentation is done using spaces rather than tab characters.
@@ -30,8 +30,8 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
     
     Examples
     --------
-    >>> multiline = """def f(x):
-    ...     return x*x"""
+    >>> multiline = '''def f(x):
+    ...     return x*x'''
     >>> print(multiline)
     def f(x):
         return x*x
@@ -47,15 +47,15 @@ def indent(text, numtabs=1, spacespertab=4, tab=None):
     >>> print(indent(multiline, tab='####'))
     ####def f(x):
     ####    return x*x
-    '''
+    """
     if tab is None:
         tab = ' '*spacespertab
     indent = tab*numtabs
-    indentedstring = indent+text.replace('\n', '\n'+indent)
+    indentedstring = indent+text.replace('\n', f"\n{indent}")
     return indentedstring
 
 def deindent(text, numtabs=None, spacespertab=4, docstring=False):
-    '''
+    """
     Returns a copy of the string with the common indentation removed.
     
     Note that all tab characters are replaced with ``spacespertab`` spaces.
@@ -70,8 +70,8 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     --------
     Normal strings, e.g. function definitions:
     
-    >>> multiline = """    def f(x):
-    ...          return x**2"""
+    >>> multiline = '''    def f(x):
+    ...          return x**2'''
     >>> print(multiline)
         def f(x):
              return x**2
@@ -87,15 +87,15 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     
     Docstrings:
     
-    >>> docstring = """First docstring line.
-    ...     This line determines the indentation."""
+    >>> docstring = '''First docstring line.
+    ...     This line determines the indentation.'''
     >>> print(docstring)
     First docstring line.
         This line determines the indentation.
     >>> print(deindent(docstring, docstring=True))
     First docstring line.
     This line determines the indentation.
-    '''
+    """
     text = text.replace('\t', ' '*spacespertab)
     lines = text.split('\n')
     # if it's a docstring, we search for the common tabulation starting from
@@ -120,7 +120,7 @@ def deindent(text, numtabs=None, spacespertab=4, docstring=False):
     return '\n'.join(lines)
 
 def word_substitute(expr, substitutions):
-    '''
+    """
     Applies a dict of word substitutions.
     
     The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
@@ -133,17 +133,17 @@ def word_substitute(expr, substitutions):
     >>> expr = 'a*_b+c5+8+f(A)'
     >>> print(word_substitute(expr, {'a':'banana', 'f':'func'}))
     banana*_b+c5+8+func(A)
-    '''
+    """
     for var, replace_var in substitutions.items():
-        expr = re.sub(r'\b' + var + r'\b', str(replace_var), expr)
+        expr = re.sub(f"\\b{var}\\b", str(replace_var), expr)
     return expr
 
 
 def replace(s, substitutions):
-    '''
+    """
     Applies a dictionary of substitutions. Simpler than `word_substitute`, it
     does not attempt to only replace words
-    '''
+    """
     for before, after in substitutions.items():
         s = s.replace(before, after)
     return s
@@ -153,7 +153,7 @@ KEYWORDS = {'and', 'or', 'not', 'True', 'False'}
 
 
 def get_identifiers(expr, include_numbers=False):
-    '''
+    """
     Return all the identifiers in a given string ``expr``, that is everything
     that matches a programming language variable like expression, which is
     here implemented as the regexp ``\\b[A-Za-z_][A-Za-z0-9_]*\\b``.
@@ -179,7 +179,7 @@ def get_identifiers(expr, include_numbers=False):
     >>> ids = get_identifiers(expr, include_numbers=True)
     >>> print(sorted(list(ids)))
     ['.3e-10', '17', '3', '8', 'A', '_b', 'a', 'c5', 'f', 'tau_2']
-    '''
+    """
     identifiers = set(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b', expr))
     if include_numbers:
         # only the number, not a + or -
@@ -191,41 +191,41 @@ def get_identifiers(expr, include_numbers=False):
 
 
 def strip_empty_lines(s):
-    '''
+    """
     Removes all empty lines from the multi-line string `s`.
     
     Examples
     --------
     
-    >>> multiline = """A string with
+    >>> multiline = '''A string with
     ... 
-    ... an empty line."""
+    ... an empty line.'''
     >>> print(strip_empty_lines(multiline))
     A string with
     an empty line.
-    '''
+    """
     return '\n'.join(line for line in s.split('\n') if line.strip())
 
 def strip_empty_leading_and_trailing_lines(s):
-    '''
+    """
     Removes all empty leading and trailing lines in the multi-line string `s`.
-    '''
+    """
     lines = s.split('\n')
     while lines and not lines[0].strip():  del lines[0]
     while lines and not lines[-1].strip(): del lines[-1]
     return '\n'.join(lines)
 
 def stripped_deindented_lines(code):
-    '''
+    """
     Returns a list of the lines in a multi-line string, deindented.
-    '''
+    """
     code = deindent(code)
     code = strip_empty_lines(code)
     lines = code.split('\n')
     return lines
 
 def code_representation(code):
-    '''
+    """
     Returns a string representation for several different formats of code
     
     Formats covered include:
@@ -233,7 +233,7 @@ def code_representation(code):
     - A list of statements/strings
     - A dict of strings
     - A dict of lists of statements/strings
-    '''
+    """
     if not isinstance(code, (str, list, tuple, dict)):
         code = str(code)
     if isinstance(code, str):
@@ -250,7 +250,7 @@ def code_representation(code):
         return strip_empty_leading_and_trailing_lines(list(code.values())[0])
     output = []
     for k, v in code.items():
-        msg = 'Key %s:\n' % k
+        msg = f'Key {k}:\n'
         msg += indent(str(v))
         output.append(msg)
     return strip_empty_leading_and_trailing_lines('\n'.join(output))
@@ -259,7 +259,7 @@ def code_representation(code):
 # The below is adapted from Peter Norvig's spelling corrector
 # http://norvig.com/spell.py (MIT licensed)
 class SpellChecker(object):
-    '''
+    """
     A simple spell checker that will be used to suggest the correct name if the
     user made a typo (e.g. for state variable names).
 
@@ -270,9 +270,9 @@ class SpellChecker(object):
     alphabet : iterable of str, optional
         The allowed characters. Defaults to the characters allowed for
         identifiers, i.e. ascii characters, digits and the underscore.
-    '''
+    """
     def __init__(self, words,
-                 alphabet=string.ascii_lowercase+string.digits+'_'):
+                 alphabet=f"{string.ascii_lowercase + string.digits}_"):
         self.words = words
         self.alphabet = alphabet
 

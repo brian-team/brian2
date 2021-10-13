@@ -1,8 +1,8 @@
-'''
+"""
 Hodgkin-Huxley equations (1952).
 
 Spikes are recorded along the axon, and then velocity is calculated.
-'''
+"""
 from brian2 import *
 from scipy import stats
 

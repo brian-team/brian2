@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-'''
+"""
 The most simple case how to use standalone mode with several `run` calls.
-'''
+"""
 from brian2 import *
 set_device('cpp_standalone', build_on_run=False)
 

@@ -14,8 +14,8 @@ from brian2.tests.utils import assert_allclose
 @pytest.mark.standalone_compatible
 def test_spike_monitor():
     G_without_threshold = NeuronGroup(5, 'x : 1')
-    G = NeuronGroup(3, '''dv/dt = rate : 1
-                          rate: Hz''', threshold='v>1', reset='v=0')
+    G = NeuronGroup(3, """dv/dt = rate : 1
+                          rate: Hz""", threshold='v>1', reset='v=0')
     # We don't use 100 and 1000Hz, because then the membrane potential would
     # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
     # issues this will not be exact,
@@ -82,9 +82,9 @@ def test_spike_monitor_indexing():
 
 @pytest.mark.standalone_compatible
 def test_spike_monitor_variables():
-    G = NeuronGroup(3, '''dv/dt = rate : 1
+    G = NeuronGroup(3, """dv/dt = rate : 1
                           rate : Hz
-                          prev_spikes : integer''',
+                          prev_spikes : integer""",
                     threshold='v>1', reset='v=0; prev_spikes += 1')
     # We don't use 100 and 1000Hz, because then the membrane potential would
     # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
@@ -110,9 +110,9 @@ def test_spike_monitor_variables():
 
 @pytest.mark.standalone_compatible
 def test_spike_monitor_get_states():
-    G = NeuronGroup(3, '''dv/dt = rate : 1
+    G = NeuronGroup(3, """dv/dt = rate : 1
                           rate : Hz
-                          prev_spikes : integer''',
+                          prev_spikes : integer""",
                     threshold='v>1', reset='v=0; prev_spikes += 1')
     # We don't use 100 and 1000Hz, because then the membrane potential would
     # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
@@ -131,7 +131,7 @@ def test_spike_monitor_get_states():
 
 @pytest.mark.standalone_compatible
 def test_spike_monitor_subgroups():
-    G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
+    G = NeuronGroup(6, """do_spike : boolean""", threshold='do_spike')
     G.do_spike = [True, False, False, False, True, True]
     spikes_all = SpikeMonitor(G)
     spikes_1 = SpikeMonitor(G[:2])
@@ -153,7 +153,7 @@ def test_spike_monitor_bug_824():
     if prefs.codegen.target != 'numpy':
         pytest.skip('numpy-only test')
 
-    G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
+    G = NeuronGroup(6, """do_spike : boolean""", threshold='do_spike')
     G.do_spike = [True, False, False, True, False, False]
     spikes_1 = SpikeMonitor(G[:3])
     spikes_2 = SpikeMonitor(G[3:])
@@ -164,8 +164,8 @@ def test_spike_monitor_bug_824():
 
 @pytest.mark.standalone_compatible
 def test_event_monitor():
-    G = NeuronGroup(3, '''dv/dt = rate : 1
-                          rate: Hz''', events={'my_event': 'v>1'})
+    G = NeuronGroup(3, """dv/dt = rate : 1
+                          rate: Hz""", events={'my_event': 'v>1'})
     G.run_on_event('my_event', 'v=0')
     # We don't use 100 and 1000Hz, because then the membrane potential would
     # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
@@ -207,8 +207,8 @@ def test_event_monitor():
 @pytest.mark.standalone_compatible
 def test_event_monitor_no_record():
     # Check that you can switch off recording spike times/indices
-    G = NeuronGroup(3, '''dv/dt = rate : 1
-                          rate: Hz''', events={'my_event': 'v>1'},
+    G = NeuronGroup(3, """dv/dt = rate : 1
+                          rate: Hz""", events={'my_event': 'v>1'},
                     threshold='v>1', reset='v=0')
     # We don't use 100 and 1000Hz, because then the membrane potential would
     # be exactly at 1 after 10 resp. 100 timesteps. Due to floating point
@@ -251,7 +251,7 @@ def test_spike_trains():
     run(19.1*ms)
     trains = monitor.spike_trains()
     for idx, spike_times in trains.items():
-        assert all(np.diff(spike_times) > 0*ms), 'Spike times for neuron %d are not sorted' % idx
+        assert all(np.diff(spike_times) > 0*ms), f'Spike times for neuron {int(idx)} are not sorted'
 
 
 def test_synapses_state_monitor():
@@ -276,11 +276,11 @@ def test_synapses_state_monitor():
 @pytest.mark.standalone_compatible
 def test_state_monitor():
     # Unique name to get the warning even for repeated runs of the test
-    unique_name = 'neurongroup_' + str(uuid.uuid4()).replace('-', '_')
+    unique_name = f"neurongroup_{str(uuid.uuid4()).replace('-', '_')}"
     # Check that all kinds of variables can be recorded
-    G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
+    G = NeuronGroup(2, """dv/dt = -v / (10*ms) : 1
                           f = clip(v, 0.1, 0.9) : 1
-                          rate: Hz''', threshold='v>1', reset='v=0',
+                          rate: Hz""", threshold='v>1', reset='v=0',
                     refractory=2*ms, name=unique_name)
     G.rate = [100, 1000] * Hz
     G.v = 1
@@ -399,9 +399,9 @@ def test_state_monitor_indexing():
 
 @pytest.mark.standalone_compatible
 def test_state_monitor_get_states():
-    G = NeuronGroup(2, '''dv/dt = -v / (10*ms) : 1
+    G = NeuronGroup(2, """dv/dt = -v / (10*ms) : 1
                           f = clip(v, 0.1, 0.9) : 1
-                          rate: Hz''', threshold='v>1', reset='v=0',
+                          rate: Hz""", threshold='v>1', reset='v=0',
                     refractory=2*ms)
     G.rate = [100, 1000] * Hz
     G.v = 1
@@ -536,8 +536,8 @@ def test_rate_monitor_get_states():
 def test_rate_monitor_subgroups():
     old_dt = defaultclock.dt
     defaultclock.dt = 0.01*ms
-    G = NeuronGroup(4, '''dv/dt = rate : 1
-                          rate : Hz''', threshold='v>0.999', reset='v=0')
+    G = NeuronGroup(4, """dv/dt = rate : 1
+                          rate : Hz""", threshold='v>0.999', reset='v=0')
     G.rate = [100, 200, 400, 800] * Hz
     rate_all = PopulationRateMonitor(G)
     rate_1 = PopulationRateMonitor(G[:2])
@@ -552,7 +552,7 @@ def test_rate_monitor_subgroups():
 
 @pytest.mark.standalone_compatible
 def test_rate_monitor_subgroups_2():
-    G = NeuronGroup(6, '''do_spike : boolean''', threshold='do_spike')
+    G = NeuronGroup(6, """do_spike : boolean""", threshold='do_spike')
     G.do_spike = [True, False, False, False, True, True]
     rate_all = PopulationRateMonitor(G)
     rate_1 = PopulationRateMonitor(G[:2])

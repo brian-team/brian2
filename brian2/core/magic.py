@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 
 
 def _get_contained_objects(obj):
-    '''
+    """
     Helper function to recursively get all contained objects.
 
     Parameters
@@ -34,7 +34,7 @@ def _get_contained_objects(obj):
     -------
     l : list of `BrianObject`
         A list of all the objects contained in `obj`
-    '''
+    """
     l = []
     contained_objects = getattr(obj, 'contained_objects', [])
     l.extend(contained_objects)
@@ -45,7 +45,7 @@ def _get_contained_objects(obj):
 
 
 def get_objects_in_namespace(level):
-    '''
+    """
     Get all the objects in the current namespace that derive from `BrianObject`.
     Used to determine the objects for the `MagicNetwork`.
 
@@ -60,7 +60,7 @@ def get_objects_in_namespace(level):
     -------
     objects : set
         A set with weak references to the `BrianObject`\ s in the namespace.
-    '''
+    """
     # Get the locals and globals from the stack frame
     objects = set()
     frame = inspect.stack()[level + 1][0]
@@ -75,16 +75,16 @@ def get_objects_in_namespace(level):
 
 
 class MagicError(Exception):
-    '''
+    """
     Error that is raised when something goes wrong in `MagicNetwork`
     
     See notes to `MagicNetwork` for more details.
-    '''
+    """
     pass
 
 
 class MagicNetwork(Network):
-    '''
+    """
     `Network` that automatically adds all Brian objects
     
     In order to avoid bugs, this class will occasionally raise
@@ -134,7 +134,7 @@ class MagicNetwork(Network):
     See Also
     --------
     Network, collect, run, stop, store, restore
-    '''
+    """
     
     _already_created = False
     
@@ -148,15 +148,15 @@ class MagicNetwork(Network):
         self._previous_refs = set()
         
     def add(self, *objs):
-        '''
+        """
         You cannot add objects directly to `MagicNetwork`
-        '''
+        """
         raise MagicError("Cannot directly modify MagicNetwork")
 
     def remove(self, *objs):
-        '''
+        """
         You cannot remove objects directly from `MagicNetwork`
-        '''
+        """
         raise MagicError("Cannot directly modify MagicNetwork")
 
     def _update_magic_objects(self, level):
@@ -181,14 +181,14 @@ class MagicNetwork(Network):
             # do not have to deal with this case here.
 
         if some_known and some_new:
-            raise MagicError(('The magic network contains a mix of objects '
-                              'that has been run before and new objects, Brian '
-                              'does not know whether you want to start a new '
-                              'simulation or continue an old one. Consider '
-                              'explicitly creating a Network object. Also note '
-                              'that you can find out which objects will be '
-                              'included in a magic network with the '
-                              'collect() function.'))
+            raise MagicError("The magic network contains a mix of objects "
+                             "that has been run before and new objects, Brian "
+                             "does not know whether you want to start a new "
+                             "simulation or continue an old one. Consider "
+                             "explicitly creating a Network object. Also note "
+                             "that you can find out which objects will be "
+                             "included in a magic network with the "
+                             "collect() function.")
         elif some_new:  # all objects are new, start a new simulation
             # reset time
             self.t_ = 0.0
@@ -200,11 +200,10 @@ class MagicNetwork(Network):
                 obj._network = self.id
 
         self.objects = objects
-        logger.debug("Updated MagicNetwork to include {numobjs} objects "
-                     "with names {names}".format(
-                numobjs=len(self.objects),
-                names=', '.join(obj.name for obj in self.objects)),
-                name_suffix='magic_objects')
+        numobjs = len(self.objects)
+        names = ', '.join(obj.name for obj in self.objects)
+        logger.debug(f"Updated MagicNetwork to include {numobjs} objects "
+                     f"with names {names}", name_suffix='magic_objects')
 
     def check_dependencies(self):
         all_ids = {obj.id for obj in self.objects}
@@ -213,10 +212,9 @@ class MagicNetwork(Network):
                 continue  # object is already inactive, no need to check it
             for dependency in obj._dependencies:
                 if dependency not in all_ids:
-                    logger.warn(('"%s" has been included in the network but '
-                                 'not the object on which it depends.'
-                                 'Setting "%s" to inactive.') % (obj.name,
-                                                                 obj.name),
+                    logger.warn(f"'{obj.name}' has been included in the network but "
+                                f"not the object on which it depends."
+                                f"Setting '{obj.name}' to inactive.",
                                 name_suffix='dependency_warning')
                     obj.active = False
                     break
@@ -233,18 +231,18 @@ class MagicNetwork(Network):
                     namespace=namespace, profile=profile, level=level+1)
 
     def store(self, name='default', filename=None, level=0):
-        '''
+        """
         See `Network.store`.
-        '''
+        """
         self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).store(name=name, filename=filename)
         self.objects.clear()
 
     def restore(self, name='default', filename=None, restore_random_state=False,
                 level=0):
-        '''
+        """
         See `Network.restore`.
-        '''
+        """
         self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).restore(name=name, filename=filename,
                                           restore_random_state=restore_random_state)
@@ -252,9 +250,9 @@ class MagicNetwork(Network):
 
     def get_states(self, units=True, format='dict', subexpressions=False,
                    level=0):
-        '''
+        """
         See `Network.get_states`.
-        '''
+        """
         self._update_magic_objects(level=level+1)
         states = super(MagicNetwork, self).get_states(units, format,
                                                       subexpressions,
@@ -263,9 +261,9 @@ class MagicNetwork(Network):
         return states
 
     def set_states(self, values, units=True, format='dict', level=0):
-        '''
+        """
         See `Network.set_states`.
-        '''
+        """
         self._update_magic_objects(level=level+1)
         super(MagicNetwork, self).set_states(values, units, format,
                                              level=level+1)
@@ -281,7 +279,7 @@ magic_network = MagicNetwork()
 
 
 def collect(level=0):
-    '''
+    """
     Return the list of `BrianObject`\ s that will be simulated if `run` is
     called.
 
@@ -296,7 +294,7 @@ def collect(level=0):
     -------
     objects : set of `BrianObject`
         The objects that will be simulated.
-    '''
+    """
     all_objects = set()
     for obj in get_objects_in_namespace(level=level+1):
         obj = obj()
@@ -312,7 +310,7 @@ def collect(level=0):
 @check_units(duration=second, report_period=second)
 def run(duration, report=None, report_period=10*second, namespace=None,
         profile=None, level=0):
-    '''
+    """
     run(duration, report=None, report_period=10*second, namespace=None, level=0)
     
     Runs a simulation with all "visible" Brian objects for the given duration.
@@ -371,14 +369,14 @@ def run(duration, report=None, report_period=10*second, namespace=None,
     MagicError
         Error raised when it was not possible for Brian to safely guess the
         intended use. See `MagicNetwork` for more details.
-    '''
+    """
     return magic_network.run(duration, report=report, report_period=report_period,
                              namespace=namespace, profile=profile, level=2+level)
 run.__module__ = __name__
 
 
 def store(name='default', filename=None):
-    '''
+    """
     Store the state of the network and all included objects.
 
     Parameters
@@ -392,12 +390,12 @@ def store(name='default', filename=None):
     See Also
     --------
     Network.store
-    '''
+    """
     magic_network.store(name=name, filename=filename, level=1)
 
 
 def restore(name='default', filename=None, restore_random_state=False):
-    '''
+    """
     Restore the state of the network and all included objects.
 
     Parameters
@@ -423,28 +421,28 @@ def restore(name='default', filename=None, restore_random_state=False):
     See Also
     --------
     Network.restore
-    '''
+    """
     magic_network.restore(name=name, filename=filename,
                           restore_random_state=restore_random_state, level=1)
 
 
 def stop():
-    '''
+    """
     Stops all running simulations.
     
     See Also
     --------
     
     Network.stop, run, reinit
-    '''
+    """
     Network._globally_stopped = True
 
 
 def start_scope():
-    '''
+    """
     Starts a new scope for magic functions
     
     All objects created before this call will no longer be automatically
     included by the magic functions such as `run`.
-    '''
+    """
     BrianObject._scope_current_key += 1

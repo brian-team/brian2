@@ -32,38 +32,38 @@ prefs.register_preferences(
     'Cython runtime codegen preferences',
     multiprocess_safe = BrianPreference(
         default=True,
-        docs='''
+        docs="""
         Whether to use a lock file to prevent simultaneous write access
         to cython .pyx and .so files.
-        '''
+        """
         ),
     cache_dir = BrianPreference(
         default=None,
         validator=lambda x: x is None or isinstance(x, str),
-        docs='''
+        docs="""
         Location of the cache directory for Cython files. By default,
         will be stored in a ``brian_extensions`` subdirectory
         where Cython inline stores its temporary files
         (the result of ``get_cython_cache_dir()``).
-        '''
+        """
         ),
     delete_source_files = BrianPreference(
         default=True,
-        docs='''
+        docs="""
         Whether to delete source files after compiling. The Cython
         source files can take a significant amount of disk space, and
         are not used anymore when the compiled library file exists.
         They are therefore deleted by default, but keeping them around
         can be useful for debugging.
-        '''
+        """
         )
     )
 
 
 class CythonCodeObject(NumpyCodeObject):
-    '''
+    """
     Execute code using Cython.
-    '''
+    """
     templater = Templater('brian2.codegen.runtime.cython_rt', '.pyx',
                           env_globals={'cpp_dtype': get_cpp_dtype,
                                        'numpy_dtype': get_numpy_dtype,
@@ -108,11 +108,11 @@ class CythonCodeObject(NumpyCodeObject):
     def is_available(cls):
         try:
             compiler, extra_compile_args = get_compiler_and_args()
-            code = '''
+            code = """
             #cython: language_level=3
             def main():
                 cdef int x
-                x = 0'''
+                x = 0"""
             compiled = cython_extension_manager.create_extension(code,
                                                                  compiler=compiler,
                                                                  extra_compile_args=extra_compile_args,
@@ -123,9 +123,7 @@ class CythonCodeObject(NumpyCodeObject):
             compiled.main()
             return True
         except Exception as ex:
-            logger.warn(('Cannot use Cython, a test compilation '
-                         'failed: %s (%s)' % (str(ex),
-                                              ex.__class__.__name__)),
+            logger.warn(f'Cannot use Cython, a test compilation failed: {str(ex)} ({ex.__class__.__name__})',
                         'failed_compile_test')
             return False
 
@@ -143,7 +141,7 @@ class CythonCodeObject(NumpyCodeObject):
             library_dirs=self.library_dirs,
             runtime_library_dirs=self.runtime_library_dirs,
             compiler=self.compiler,
-            owner_name=self.owner.name+'_'+self.template_name,
+            owner_name=f"{self.owner.name}_{self.template_name}",
             sources=self.sources
             )
         
@@ -153,8 +151,8 @@ class CythonCodeObject(NumpyCodeObject):
             try:
                 return compiled_code.main(self.namespace)
             except Exception as exc:
-                message = ('An exception occured during the execution of the {} '
-                           'block of code object {}.\n').format(block, self.name)
+                message = (f"An exception occured during the execution of the "
+                           f"'{block}' block of code object '{self.name}'.\n")
                 raise BrianObjectException(message, self.owner) from exc
 
     def _insert_func_namespace(self, func):
@@ -191,7 +189,7 @@ class CythonCodeObject(NumpyCodeObject):
             if isinstance(var, ArrayVariable):
                 self.namespace[self.device.get_array_name(var,
                                                             self.variables)] = value
-                self.namespace['_num'+name] = var.get_len()
+                self.namespace[f"_num{name}"] = var.get_len()
                 if var.scalar and var.constant:
                     self.namespace[name] = value.item()
             else:
@@ -205,7 +203,7 @@ class CythonCodeObject(NumpyCodeObject):
 
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
-            self.namespace['_var_'+name] = var
+            self.namespace[f"_var_{name}"] = var
 
         # Get all identifiers in the code -- note that this is not a smart
         # function, it will get identifiers from strings, comments, etc. This
@@ -227,8 +225,8 @@ class CythonCodeObject(NumpyCodeObject):
                 array_name = self.device.get_array_name(var, self.variables)
                 if array_name in self.namespace:
                     self.nonconstant_values.append((array_name, var.get_value))
-                if '_num'+name in self.namespace:
-                    self.nonconstant_values.append(('_num'+name, var.get_len))
+                if f"_num{name}" in self.namespace:
+                    self.nonconstant_values.append((f"_num{name}", var.get_len))
 
     def update_namespace(self):
         # update the values of the non-constant values in the namespace

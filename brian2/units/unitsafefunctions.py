@@ -97,11 +97,11 @@ ones_like = wrap_function_remove_dimensions(np.ones_like)
 zeros_like = wrap_function_remove_dimensions(np.zeros_like)
 
 def wrap_function_to_method(func):
-    '''
+    """
     Wraps a function so that it calls the corresponding method on the
     Quantities object (if called with a Quantities object as the first
     argument). All other arguments are left untouched.
-    '''
+    """
     @wraps(func)
     def f(x, *args, **kwds):  # pylint: disable=C0111
         if isinstance(x, Quantity):
@@ -126,35 +126,35 @@ def arange(*args, **kwargs):
     stop = kwargs.pop('stop', None)
     if len(args) == 1:
         if stop is not None:
-            raise TypeError('Duplicate definition of "stop"')
+            raise TypeError("Duplicate definition of 'stop'")
         stop = args[0]
     elif len(args) == 2:
         if start != 0:
-            raise TypeError('Duplicate definition of "start"')
+            raise TypeError("Duplicate definition of 'start'")
         if stop is not None:
-            raise TypeError('Duplicate definition of "stop"')
+            raise TypeError("Duplicate definition of 'stop'")
         start, stop = args
     elif len(args) == 3:
         if start != 0:
-            raise TypeError('Duplicate definition of "start"')
+            raise TypeError("Duplicate definition of 'start'")
         if stop is not None:
-            raise TypeError('Duplicate definition of "stop"')
+            raise TypeError("Duplicate definition of 'stop'")
         if step != 1:
-            raise TypeError('Duplicate definition of "step"')
+            raise TypeError("Duplicate definition of 'step'")
         start, stop, step = args
     elif len(args) > 3:
-        raise TypeError('Need between 1 and 3 non-keyword arguments')
+        raise TypeError("Need between 1 and 3 non-keyword arguments")
     if stop is None:
-        raise TypeError('Missing stop argument.')
+        raise TypeError("Missing stop argument.")
     fail_for_dimension_mismatch(start, stop,
-                                error_message=('Start value {start} and stop '
-                                               'value {stop} have to have the '
-                                               'same units.'),
+                                error_message=("Start value {start} and stop "
+                                               "value {stop} have to have the "
+                                               "same units."),
                                 start=start, stop=stop)
     fail_for_dimension_mismatch(stop, step,
-                                error_message=('Stop value {stop} and step '
-                                               'value {step} have to have the '
-                                               'same units.'),
+                                error_message=("Stop value {stop} and step "
+                                               "value {step} have to have the "
+                                               "same units."),
                                 stop=stop, step=step)
     dim = getattr(stop, 'dim', DIMENSIONLESS)
     return Quantity(np.arange(start=np.asarray(start),
@@ -166,14 +166,14 @@ def arange(*args, **kwargs):
 @wraps(np.linspace)
 def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
     fail_for_dimension_mismatch(start, stop,
-                                error_message=('Start value {start} and stop '
-                                               'value {stop} have to have the '
-                                               'same units.'),
+                                error_message=("Start value {start} and stop "
+                                               "value {stop} have to have the "
+                                               "same units."),
                                 start=start, stop=stop)
     dim = getattr(start, 'dim', DIMENSIONLESS)
     if pkg_resources.parse_version(np.__version__) < pkg_resources.parse_version('1.9.0'):
         if dtype is not None:
-            raise TypeError('The "dtype" argument needs numpy >= 1.9.0')
+            raise TypeError("The 'dtype' argument needs numpy >= 1.9.0")
         result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
                              endpoint=endpoint, retstep=retstep)
     else:

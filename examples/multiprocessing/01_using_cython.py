@@ -1,4 +1,4 @@
-'''
+"""
 Parallel processes using Cython
 
 This example use multiprocessing to run several simulations in parallel.
@@ -10,7 +10,7 @@ toy example that creates a single neuron and connects a `StateMonitor` to
 record the voltage.
 
 For more details see the `github issue 1154 <https://github.com/brian-team/brian2/issues/1154#issuecomment-582994117>`_:
-'''
+"""
 import os
 import multiprocessing
 

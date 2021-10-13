@@ -1,10 +1,10 @@
-'''
+"""
 A dummy package to allow wildcard import from brian2 without also importing
 the pylab (numpy + matplotlib) namespace.
 
 Usage: ``from brian2.only import *``
 
-'''
+"""
 # To minimize the problems with imports, import the packages in a sensible
 # order
 
@@ -54,13 +54,13 @@ prefs._backup()
 set_device(all_devices['runtime'])
 
 def restore_initial_state():
-    '''
+    """
     Restores internal Brian variables to the state they are in when Brian is imported
 
     Resets ``defaultclock.dt = 0.1*ms``, 
     `BrianGlobalPreferences._restore` preferences, and set
     `BrianObject._scope_current_key` back to 0.
-    '''
+    """
     import gc
     prefs._restore()
     BrianObject._scope_current_key = 0

@@ -1,4 +1,4 @@
-'''
+"""
 Reproduces Figure 12 (simplified three-compartment model) from the following
 paper:
 
@@ -6,7 +6,7 @@ Dendritic Low-Threshold Calcium Currents in Thalamic Relay Cells
 Alain Destexhe, Mike Neubig, Daniel Ulrich, John Huguenard
 Journal of Neuroscience 15 May 1998, 18 (10) 3574-3588
 
-The original NEURON code is available on ModelDB: https://senselab.med.yale.edu/modeldb/ShowModel.cshtml?model=279 
+The original NEURON code is available on ModelDB: https://senselab.med.yale.edu/modeldb/ShowModel.cshtml?model=279
 
 Reference for the original morphology:
 
@@ -32,7 +32,7 @@ Notes
   setting g_L to 0.15 mS/cm^2 for the whole neuron.
 * Other small discrepancies with the paper -- values from the NEURON code were
   used whenever different from the values stated in the paper
-'''
+"""
 
 from brian2 import *
 from brian2.units.constants import (zero_celsius, faraday_constant as F,

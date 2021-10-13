@@ -1,6 +1,6 @@
-'''
+"""
 All Brian objects should derive from `BrianObject`.
-'''
+"""
 import functools
 import weakref
 import traceback
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 class BrianObject(Nameable):
-    '''
+    """
     All Brian objects derive from this class, defines magic tracking and update.
 
     See the documentation for `Network` for an explanation of which
@@ -53,7 +53,7 @@ class BrianObject(Nameable):
     -----
         
     The set of all `BrianObject` objects is stored in ``BrianObject.__instances__()``.
-    '''    
+    """    
     @check_units(dt=second)
     def __init__(self, dt=None, clock=None, when='start', order=0,
                  namespace=None, name='brianobject*'):
@@ -66,19 +66,17 @@ class BrianObject(Nameable):
                 bases.append(base)
         for fname, linenum, funcname, line in traceback.extract_stack():
             if all(base not in fname for base in bases):
-                s = '  File "{fname}", line {linenum}, in {funcname}\n    {line}'.format(fname=fname,
-                                                                                         linenum=linenum,
-                                                                                         funcname=funcname,
-                                                                                         line=line)
+                s = (f"  File '{fname}', line {linenum}, in {funcname}\n" 
+                     f"    {line}")
                 creation_stack.append(s)
         creation_stack = [''] + creation_stack
         #: A string indicating where this object was created (traceback with any parts of Brian code removed)
-        self._creation_stack = ('Object was created here (most recent call only, full details in '
-                                'debug log):\n'+creation_stack[-1])
-        self._full_creation_stack = 'Object was created here:\n'+'\n'.join(creation_stack)
+        self._creation_stack = ("Object was created here (most recent call only, full details in "
+                                "debug log):\n" + creation_stack[-1])
+        self._full_creation_stack = "Object was created here:\n"+"\n".join(creation_stack)
 
         if dt is not None and clock is not None:
-            raise ValueError('Can only specify either a dt or a clock, not both.')
+            raise ValueError("Can only specify either a dt or a clock, not both.")
 
         if not isinstance(when, str):
             from brian2.core.clocks import Clock
@@ -143,9 +141,9 @@ class BrianObject(Nameable):
         #: The group-specific namespace
         self.namespace = namespace
 
-        logger.diagnostic("Created BrianObject with name {self.name}, "
-                          "clock={self._clock}, "
-                          "when={self.when}, order={self.order}".format(self=self))
+        logger.diagnostic(f"Created BrianObject with name {self.name}, "
+                          f"clock={self._clock}, "
+                          f"when={self.when}, order={self.order}")
 
     #: Global key value for ipython cell restrict magic
     _scope_current_key = 0
@@ -161,7 +159,7 @@ class BrianObject(Nameable):
     add_to_magic_network = False
 
     def add_dependency(self, obj):
-        '''
+        """
         Add an object to the list of dependencies. Takes care of handling
         subgroups correctly (i.e., adds its parent object).
 
@@ -169,7 +167,7 @@ class BrianObject(Nameable):
         ----------
         obj : `BrianObject`
             The object that this object depends on.
-        '''
+        """
         from brian2.groups.subgroup import Subgroup
         if isinstance(obj, Subgroup):
             self._dependencies.add(obj.source.id)
@@ -177,20 +175,20 @@ class BrianObject(Nameable):
             self._dependencies.add(obj.id)
 
     def before_run(self, run_namespace):
-        '''
+        """
         Optional method to prepare the object before a run.
 
         Called by `Network.after_run` before the main simulation loop starts.
-        '''
+        """
         for codeobj in self._code_objects:
             codeobj.before_run()
     
     def after_run(self):
-        '''
+        """
         Optional method to do work after a run is finished.
         
         Called by `Network.after_run` after the main simulation loop terminated.
-        '''
+        """
         for codeobj in self._code_objects:
             codeobj.after_run()
 
@@ -199,7 +197,7 @@ class BrianObject(Nameable):
             codeobj()
 
     contained_objects = property(fget=lambda self:self._contained_objects,
-                                 doc='''
+                                 doc="""
          The list of objects contained within the `BrianObject`.
          
          When a `BrianObject` is added to a `Network`, its contained objects will
@@ -208,35 +206,35 @@ class BrianObject(Nameable):
          
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.contained_objects.extend([A, B])``.
-         ''')
+         """)
 
     code_objects = property(fget=lambda self:self._code_objects,
-                                 doc='''
+                                 doc="""
          The list of `CodeObject` contained within the `BrianObject`.
          
          TODO: more details.
                   
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.code_objects.extend([A, B])``.
-         ''')
+         """)
 
     updaters = property(fget=lambda self:self._updaters,
-                                 doc='''
+                                 doc="""
          The list of `Updater` that define the runtime behaviour of this object.
          
          TODO: more details.
                   
          Note that this attribute cannot be set directly, you need to modify
          the underlying list, e.g. ``obj.updaters.extend([A, B])``.
-         ''')
+         """)
     
     clock = property(fget=lambda self: self._clock,
-                     doc='''
+                     doc="""
                      The `Clock` determining when the object should be updated.
                      
                      Note that this cannot be changed after the object is
                      created.
-                     ''')
+                     """)
     
     def _set_active(self, val):
         val = bool(val)
@@ -246,22 +244,20 @@ class BrianObject(Nameable):
 
     active = property(fget=lambda self:self._active,
                       fset=_set_active,
-                      doc='''
+                      doc="""
                         Whether or not the object should be run.
                         
                         Inactive objects will not have their `update`
                         method called in `Network.run`. Note that setting or
                         unsetting the `active` attribute will set or unset
                         it for all `contained_objects`. 
-                        ''')
+                        """)
 
     def __repr__(self):
-        description = ('{classname}(clock={clock}, when={when}, order={order}, name={name})')
-        return description.format(classname=self.__class__.__name__,
-                                  when=self.when,
-                                  clock=self._clock,
-                                  order=self.order,
-                                  name=repr(self.name))
+        classname = self.__class__.__name__
+        description = (f"{classname}(clock={self._clock}, when={self.when}, "
+                       f"order={self.order}, name={self.name!r})")
+        return description
 
     # This is a repeat from Nameable.name, but we want to get the documentation
     # here again
@@ -269,23 +265,23 @@ class BrianObject(Nameable):
 
 
 def weakproxy_with_fallback(obj):
-    '''
+    """
     Attempts to create a `weakproxy` to the object, but falls back to the object if not possible.
-    '''
+    """
     try:
         return weakref.proxy(obj)
     except TypeError:
         return obj
 
 def device_override(name):
-    '''
+    """
     Decorates a function/method to allow it to be overridden by the current `Device`.
 
     The ``name`` is the function name in the `Device` to use as an override if it exists.
     
     The returned function has an additional attribute ``original_function``
     which is a reference to the original, undecorated function.
-    '''
+    """
     def device_override_decorator(func):
         def device_override_decorated_function(*args, **kwds):
             from brian2.devices.device import get_device
@@ -304,7 +300,7 @@ def device_override(name):
 
 
 class BrianObjectException(Exception):
-    '''
+    """
     High level exception that adds extra Brian-specific information to exceptions
 
     This exception should only be raised at a fairly high level in Brian code to
@@ -321,26 +317,24 @@ class BrianObjectException(Exception):
         The object that caused the error to happen.
     original_exception : Exception
         The original exception that was raised.
-    '''
+    """
     def __init__(self, message, brianobj):
         self._brian_message = message
         self._brian_objname = brianobj.name
         self._brian_objcreate = brianobj._creation_stack
-        logger.diagnostic('Error was encountered with object "{objname}":\n{fullstack}'.format(
-            objname=self._brian_objname,
-            fullstack=brianobj._full_creation_stack))
+        logger.diagnostic(f"Error was encountered with object "
+                          f"'{self._brian_objname}':\n"
+                          f"{brianobj._full_creation_stack}")
 
     def __str__(self):
-        return ('Error encountered with object named "{objname}".\n'
-                '{objcreate}\n\n'
-                '{message} '
-                '(See above for original error message and traceback.)'
-                ).format(objname=self._brian_objname, message=self._brian_message,
-                         objcreate=self._brian_objcreate)
+        return (f"Error encountered with object named '{self._brian_objname}'.\n"
+                f"{self._brian_objcreate}\n\n"
+                f"{self._brian_message} "
+                f"(See above for original error message and traceback.)")
 
 
 def brian_object_exception(message, brianobj, original_exception):
-    '''
+    """
     Returns a `BrianObjectException` derived from the original exception.
 
     Creates a new class derived from the class of the original exception
@@ -348,7 +342,7 @@ def brian_object_exception(message, brianobj, original_exception):
     respond both to the original exception class and `BrianObjectException`.
 
     See `BrianObjectException` for arguments and notes.
-    '''
+    """
 
-    raise NotImplementedError('The brian_object_exception function is no longer used. '
-                              'Raise a BrianObjectException directly.')
+    raise NotImplementedError("The brian_object_exception function is no longer used. "
+                              "Raise a BrianObjectException directly.")

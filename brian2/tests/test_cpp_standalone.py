@@ -16,9 +16,9 @@ def test_cpp_standalone():
     set_device('cpp_standalone', build_on_run=False)
     ##### Define the model
     tau = 1*ms
-    eqs = '''
+    eqs = """
     dV/dt = (-40*mV-V)/tau : volt (unless refractory)
-    '''
+    """
     threshold = 'V>-50*mV'
     reset = 'V=-60*mV'
     refractory = 5*ms
@@ -63,10 +63,10 @@ def test_multiple_connects():
 @pytest.mark.standalone_only
 def test_storing_loading():
     set_device('cpp_standalone', build_on_run=False)
-    G = NeuronGroup(10, '''v : volt
+    G = NeuronGroup(10, """v : volt
                            x : 1
                            n : integer
-                           b : boolean''')
+                           b : boolean""")
     v = np.arange(10)*volt
     x = np.arange(10, 20)
     n = np.arange(20, 30)
@@ -75,10 +75,10 @@ def test_storing_loading():
     G.x = x
     G.n = n
     G.b = b
-    S = Synapses(G, G, '''v_syn : volt
+    S = Synapses(G, G, """v_syn : volt
                           x_syn : 1
                           n_syn : integer
-                          b_syn : boolean''')
+                          b_syn : boolean""")
     S.connect(j='i')
     S.v_syn = v
     S.x_syn = x
@@ -127,10 +127,10 @@ def test_openmp_consistency():
                                        replace=False)*ms
     v_init       = Vr + numpy.random.rand(n_cells) * (Vt - Vr)
 
-    eqs  = Equations('''
+    eqs  = Equations("""
     dv/dt = (g-(v-El))/taum : volt
     dg/dt = -g/taus         : volt
-    ''')
+    """)
 
     results = {}
 
@@ -150,14 +150,14 @@ def test_openmp_consistency():
         P.v  = v_init
         P.g  = 0 * mV
         S    = Synapses(P, P, 
-                            model = '''dApre/dt=-Apre/taupre    : 1 (event-driven)    
+                            model = """dApre/dt=-Apre/taupre    : 1 (event-driven)    
                                        dApost/dt=-Apost/taupost : 1 (event-driven)
-                                       w                        : 1''', 
-                            pre = '''g     += w*mV
+                                       w                        : 1""", 
+                            pre = """g     += w*mV
                                      Apre  += dApre
-                                     w      = w + Apost''',
-                            post = '''Apost += dApost
-                                      w      = w + Apre''')
+                                     w      = w + Apost""",
+                            post = """Apost += dApost
+                                      w      = w + Apre""")
         S.connect()
         
         S.w       = fac*connectivity.flatten()
@@ -264,11 +264,11 @@ def test_time_after_run():
 def test_array_cache():
     # Check that variables are only accessible from Python when they should be
     set_device('cpp_standalone', build_on_run=False)
-    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : 1
+    G = NeuronGroup(10, """dv/dt = -v / (10*ms) : 1
                            w : 1
                            x : 1
                            y : 1
-                           z : 1 (shared)''',
+                           z : 1 (shared)""",
                     threshold='v>1')
     S = Synapses(G, G, 'weight: 1', on_pre='w += weight')
     S.connect(p=0.2)

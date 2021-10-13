@@ -1,6 +1,6 @@
-'''
+"""
 An (almost) infinite cable with pulse injection in the middle.
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = 0.001*ms

@@ -1,5 +1,5 @@
 # coding=utf-8
-r'''
+r"""
 A module providing some physical units as `Quantity` objects. Note that these
 units are not imported by wildcard imports (e.g. `from brian2 import *`), they
 have to be imported explicitly. You can use ``import ... as ...`` to import them
@@ -23,7 +23,7 @@ Magnetic constant    :math:`\mu_0`      ``magnetic_constant``   :math:`12.566370
 Molar mass constant  :math:`M_u`        ``molar_mass_constant`` :math:`1\times 10^{-3}\,\mathrm{kg}\,\mathrm{mol}^{-1}`
 0°C                                     ``zero_celsius``        :math:`273.15\,\mathrm{K}`
 ==================== ================== ======================= ==================================================================
-'''
+"""
 
 import numpy as np
 

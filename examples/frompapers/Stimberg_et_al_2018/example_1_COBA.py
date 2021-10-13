@@ -159,7 +159,7 @@ ax[0].plot([state_mon.t[0]/ms, state_mon.t[-1]/ms], [0, 0], color='grey',
 # Adjust axis
 pu.adjust_spines(ax[0], ['left'])
 ax[0].set(xlim=(0., duration/ms), ylim=(-5.0, 0.25),
-          ylabel='postsyn.\nconduct.\n(${0}$)'.format(sympy.latex(nS)))
+          ylabel=f"postsyn.\nconduct.\n(${sympy.latex(nS)}$)")
 
 ### Membrane potential
 ax[1].axhline(V_th/mV, color='C2', linestyle=':')  # Threshold
@@ -168,7 +168,7 @@ ax[1].plot(state_mon.t/ms, state_mon.v[0]/mV, color='black')
 ax[1].vlines(exc_mon.t[exc_mon.i == ni]/ms, V_th/mV, 0, color='black')
 pu.adjust_spines(ax[1], ['left'])
 ax[1].set(xlim=(0., duration/ms), ylim=(-1+V_r/mV, 0.),
-          ylabel='membrane\npotential\n(${0}$)'.format(sympy.latex(mV)))
+          ylabel=f"membrane\npotential\n(${sympy.latex(mV)}$)")
 
 ### Synaptic variables
 # Retrieves indexes of spikes in the synaptic monitor using the fact that we

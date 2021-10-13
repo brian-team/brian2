@@ -117,7 +117,7 @@ class NumpyDocString(object):
 
     def __setitem__(self, key, val):
         if key not in self._parsed_data:
-            warn("Unknown section %s" % key)
+            warn(f"Unknown section {key}")
         else:
             self._parsed_data[key] = val
 
@@ -210,7 +210,7 @@ class NumpyDocString(object):
                     return g[3], None
                 else:
                     return g[2], g[1]
-            raise ValueError("%s is not a item name" % text)
+            raise ValueError(f"{text} is not a item name")
 
         def push_item(name, rest):
             if not name:
@@ -334,7 +334,7 @@ class NumpyDocString(object):
         if self[name]:
             out += self._str_header(name)
             for param, param_type, desc in self[name]:
-                out += ['%s : %s' % (param, param_type)]
+                out += [f'{param} : {param_type}']
                 out += self._str_indent(desc)
             out += ['']
         return out
@@ -355,16 +355,16 @@ class NumpyDocString(object):
         last_had_desc = True
         for func, desc, role in self['See Also']:
             if role:
-                link = ':%s:`%s`' % (role, func)
+                link = f':{role}:`{func}`'
             elif func_role:
-                link = ':%s:`%s`' % (func_role, func)
+                link = f':{func_role}:`{func}`'
             else:
-                link = "`%s`_" % func
+                link = f"`{func}`_"
             if desc or last_had_desc:
                 out += ['']
                 out += [link]
             else:
-                out[-1] += ", %s" % link
+                out[-1] += f", {link}"
             if desc:
                 out += self._str_indent([' '.join(desc)])
                 last_had_desc = True
@@ -376,11 +376,11 @@ class NumpyDocString(object):
     def _str_index(self):
         idx = self['index']
         out = []
-        out += ['.. index:: %s' % idx.get('default', '')]
+        out += [f".. index:: {idx.get('default', '')}"]
         for section, references in idx.items():
             if section == 'default':
                 continue
-            out += ['   :%s: %s' % (section, ', '.join(references))]
+            out += [f"   :{section}: {', '.join(references)}"]
         return out
 
     def __str__(self, func_role=''):
@@ -413,7 +413,7 @@ def dedent_lines(lines):
     return textwrap.dedent("\n".join(lines)).split("\n")
 
 def header(text, style='-'):
-    return text + '\n' + style*len(text) + '\n'
+    return f"{text}\n{style * len(text)}\n"
 
 
 class FunctionDoc(NumpyDocString):
@@ -434,9 +434,9 @@ class FunctionDoc(NumpyDocString):
                 argspec = inspect.getargspec(func)
                 argspec = inspect.formatargspec(*argspec)
                 argspec = argspec.replace('*', r'\*')
-                signature = '%s%s' % (func_name, argspec)
+                signature = f'{func_name}{argspec}'
             except TypeError:
-                signature = '%s()' % func_name
+                signature = f'{func_name}()'
             self['Signature'] = signature
 
     def get_func(self):
@@ -457,9 +457,8 @@ class FunctionDoc(NumpyDocString):
 
         if self._role:
             if self._role not in roles:
-                print("Warning: invalid role %s" % self._role)
-            out += '.. %s:: %s\n    \n\n' % (roles.get(self._role, ''),
-                                             func_name)
+                print(f"Warning: invalid role {self._role}")
+            out += f".. {roles.get(self._role, '')}:: {func_name}\n    \n\n"
 
         out += super(FunctionDoc, self).__str__(func_role=self._role)
         return out
@@ -472,7 +471,7 @@ class ClassDoc(NumpyDocString):
     def __init__(self, cls, doc=None, modulename='', func_doc=FunctionDoc,
                  config={}):
         if not inspect.isclass(cls) and cls is not None:
-            raise ValueError("Expected a class or None, but got %r" % cls)
+            raise ValueError(f"Expected a class or None, but got {cls!r}")
         self._cls = cls
 
         if modulename and not modulename.endswith('.'):

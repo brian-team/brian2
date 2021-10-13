@@ -1,5 +1,5 @@
 # encoding: utf8
-'''
+"""
 Morris-Lecar model
 
 Reproduces Fig. 9 of:
@@ -7,7 +7,7 @@ Reproduces Fig. 9 of:
 Catherine Morris and Harold Lecar.
 “Voltage Oscillations in the Barnacle Giant Muscle Fiber.”
 Biophysical Journal 35, no. 1 (1981): 193–213.
-'''
+"""
 from brian2 import *
 set_device('cpp_standalone')
 defaultclock.dt = 0.01*ms

@@ -5,15 +5,15 @@ from weakref import ref
 __all__ = ['Trackable']
 
 class InstanceTrackerSet(set):
-    '''
+    """
     A `set` of `weakref.ref` to all existing objects of a certain class.
     
     Should not normally be directly used.
-    '''
+    """
     def add(self, value):
-        '''
+        """
         Adds a `weakref.ref` to the ``value``
-        '''
+        """
         # The second argument to ref is a callback that is called with the
         # ref as argument when the object has been deleted, here we just
         # remove it from the set in that case
@@ -21,12 +21,12 @@ class InstanceTrackerSet(set):
         set.add(self, wr)
         
     def remove(self, value):
-        '''
+        """
         Removes the ``value`` (which should be a weakref) if it is in the set
         
         Sometimes the value will have been removed from the set by `clear`,
         so we ignore `KeyError` in this case.
-        '''
+        """
         try:
             set.remove(self, value)
         except KeyError:
@@ -52,12 +52,12 @@ class InstanceFollower(object):
 
 
 class Trackable(object):
-    '''
+    """
     Classes derived from this will have their instances tracked.
     
     The `classmethod` `__instances__()` will return an `InstanceTrackerSet`
     of the instances of that class, and its subclasses.
-    '''
+    """
     __instancefollower__ = InstanceFollower() # static property of all objects of class derived from Trackable
     def __new__(typ, *args, **kw):
         obj = object.__new__(typ)
