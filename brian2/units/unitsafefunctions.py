@@ -171,14 +171,8 @@ def linspace(start, stop, num=50, endpoint=True, retstep=False, dtype=None):
                                                "same units."),
                                 start=start, stop=stop)
     dim = getattr(start, 'dim', DIMENSIONLESS)
-    if pkg_resources.parse_version(np.__version__) < pkg_resources.parse_version('1.9.0'):
-        if dtype is not None:
-            raise TypeError("The 'dtype' argument needs numpy >= 1.9.0")
-        result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
-                             endpoint=endpoint, retstep=retstep)
-    else:
-        result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
-                             endpoint=endpoint, retstep=retstep, dtype=dtype)
+    result = np.linspace(np.asarray(start), np.asarray(stop), num=num,
+                         endpoint=endpoint, retstep=retstep, dtype=dtype)
     return Quantity(result, dim=dim, copy=False)
 linspace._do_not_run_doctests = True
 

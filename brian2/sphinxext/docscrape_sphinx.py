@@ -187,10 +187,7 @@ class SphinxDocString(NumpyDocString):
             out += ['']
             # Latex collects all references to a separate bibliography,
             # so we need to insert links to it
-            if sphinx.__version__ >= "0.6":
-                out += ['.. only:: latex', '']
-            else:
-                out += ['.. latexonly::', '']
+            out += ['.. only:: latex', '']
             items = []
             for line in self['References']:
                 m = re.match(r'.. \[([a-z0-9._-]+)\]', line, re.I)

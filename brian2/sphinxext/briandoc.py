@@ -22,11 +22,8 @@ import inspect
 from docutils import statemachine
 from docutils.parsers.rst import directives, Directive
 
-import sphinx
 from sphinx.roles import XRefRole
 from sphinx.domains.python import PyXRefRole
-if sphinx.__version__ < '1.0.1':
-    raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
 from brian2.core.preferences import prefs
 
