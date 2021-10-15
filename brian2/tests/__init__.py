@@ -1,6 +1,6 @@
-'''
+"""
 Package contain all unit/integration tests for the `brian2` package.
-'''
+"""
 import os
 import sys
 from io import StringIO
@@ -80,7 +80,7 @@ def clear_caches():
 
 
 def make_argv(dirnames, markers=None, doctests=False, test_GSL=False):
-    '''
+    """
     Create the list of arguments for the ``pytests`` call.
 
     Parameters
@@ -99,10 +99,10 @@ def make_argv(dirnames, markers=None, doctests=False, test_GSL=False):
     argv : list of str
         The arguments for `pytest.main`.
 
-    '''
+    """
     if doctests:
         if markers is not None:
-            raise TypeError('Cannot give markers for doctests')
+            raise TypeError("Cannot give markers for doctests")
         argv = dirnames + [
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
@@ -114,14 +114,14 @@ def make_argv(dirnames, markers=None, doctests=False, test_GSL=False):
         ]
         if len(dirnames) == 2:
             # If we are testing files in docs_sphinx, ignore conf.py
-            argv += ['--ignore=' + os.path.join(dirnames[1], 'conf.py')]
+            argv += [f"--ignore={os.path.join(dirnames[1], 'conf.py')}"]
     else:
         if not test_GSL:
             markers += " and not gsl"
         argv = dirnames + [
             '-c', os.path.join(os.path.dirname(__file__), 'pytest.ini'),
             '--quiet',
-            '-m', '{}'.format(markers),
+            '-m', f'{markers}',
             '--confcutdir', os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             ]
     return argv
@@ -133,7 +133,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         reset_preferences=True, fail_for_not_implemented=True, test_GSL=False,
         build_options=None, extra_test_dirs=None, float_dtype=None,
         additional_args=None):
-    '''
+    """
     Run brian's test suite. Needs an installation of the pytest testing tool.
 
     For testing, the preferences will be reset to the default preferences.
@@ -185,9 +185,9 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
         from the default `core.default_float_dtype` setting.
     additional_args : list of str, optional
         Optional command line arguments to pass to ``pytest``
-    '''
+    """
     if pytest is None:
-        raise ImportError('Running the test suite requires the "pytest" package.')
+        raise ImportError("Running the test suite requires the 'pytest' package.")
 
     if build_options is None:
         build_options = {}
@@ -217,27 +217,24 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     dirnames = [dirname] + extra_test_dirs
 
-    print('Running tests in %s ' % (', '.join(dirnames)), end='')
+    print(f"Running tests in {', '.join(dirnames)} ", end='')
     if codegen_targets:
-        print('for targets %s' % (', '.join(codegen_targets)), end='')
+        print(f"for targets {', '.join(codegen_targets)}", end='')
     ex_in = 'including' if long_tests else 'excluding'
-    print(' (%s long tests)' % ex_in)
+    print(f' ({ex_in} long tests)')
 
-    print("Running Brian version {} "
-          "from '{}'".format(brian2.__version__,
-                             os.path.dirname(brian2.__file__)))
+    print(f"Running Brian version {brian2.__version__} from '{os.path.dirname(brian2.__file__)}'")
 
     all_targets = set(codegen_targets)
 
     if test_standalone:
         if not isinstance(test_standalone, str):
-            raise ValueError('test_standalone argument has to be the name of a '
-                             'standalone device (e.g. "cpp_standalone")')
+            raise ValueError("test_standalone argument has to be the name of a "
+                             "standalone device (e.g. 'cpp_standalone')")
         if test_standalone not in all_devices:
-            raise ValueError('test_standalone argument "%s" is not a known '
-                             'device. Known devices are: '
-                             '%s' % (test_standalone,
-                                     ', '.join(repr(d) for d in all_devices)))
+            known_devices = ", ".join(repr(d) for d in all_devices)
+            raise ValueError(f"test_standalone argument 'test_standalone' is not a known "
+                             f"device. Known devices are: {known_devices}.")
         print('Testing standalone')
         all_targets.add(test_standalone)
     if test_codegen_independent:
@@ -248,8 +245,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     if parallel_tests:
         try:
             import xdist
-            print('Testing with multiple processes for %s' % ', '.join(
-                parallel_tests))
+            print(f"Testing with multiple processes for {', '.join(parallel_tests)}")
         except ImportError:
             test_in_parallel = []
 
@@ -265,8 +261,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
     fundamentalunits.user_unit_register = fundamentalunits.UnitRegistry()
 
     if float_dtype is not None:
-        print('Setting dtype for floating point variables to: '
-                         '{}'.format(float_dtype.__name__))
+        print(f'Setting dtype for floating point variables to: {float_dtype.__name__}')
 
         prefs['core.default_float_dtype'] = float_dtype
 
@@ -327,7 +322,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             clear_caches()
 
         for target in codegen_targets:
-            print('Running tests for target %s:' % target)
+            print(f'Running tests for target {target}:')
             # Also set the target for string-expressions -- otherwise we'd only
             # ever test numpy for those
             prefs['codegen.target'] = target
@@ -349,11 +344,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             from brian2.devices.device import get_device, set_device
             pref_plugin.device_options = {'directory': None, 'with_output': False}
             pref_plugin.device_options.update(build_options)
-            print('Testing standalone device "%s"' % test_standalone)
+            print(f'Testing standalone device "{test_standalone}"')
             print('Running standalone-compatible standard tests (single run statement)')
             markers = 'and not long' if not long_tests else ''
             markers += ' and not multiple_runs'
-            argv = make_argv(dirnames, 'standalone_compatible ' + markers,
+            argv = make_argv(dirnames, f"standalone_compatible {markers}",
                              test_GSL=test_GSL)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
@@ -370,7 +365,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
             pref_plugin.device_options.update(build_options)
             markers = ' and not long' if not long_tests else ''
             markers += ' and multiple_runs'
-            argv = make_argv(dirnames, 'standalone_compatible' + markers,
+            argv = make_argv(dirnames, f"standalone_compatible{markers}",
                              test_GSL=test_GSL)
             if test_standalone in test_in_parallel:
                 argv.extend(multiprocess_arguments)
@@ -389,7 +384,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers = ' and not long' if not long_tests else ''
                 markers += ' and not multiple_runs'
                 argv = make_argv(dirnames,
-                                 'standalone_compatible' + markers,
+                                 f"standalone_compatible{markers}",
                                  test_GSL=test_GSL)
                 success.append(pytest.main(argv + additional_args,
                                            plugins=[pref_plugin]) in [0, 5])
@@ -404,7 +399,7 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
                 markers = ' and not long' if not long_tests else ''
                 markers += ' and multiple_runs'
                 argv = make_argv(dirnames,
-                                 'standalone_compatible' + markers,
+                                 f"standalone_compatible{markers}",
                                  test_GSL=test_GSL)
                 success.append(pytest.main(argv + additional_args,
                                            plugins=[pref_plugin]) in [0, 5])
@@ -425,12 +420,11 @@ def run(codegen_targets=None, long_tests=False, test_codegen_independent=True,
 
         all_success = all(success)
         if not all_success:
-            print(('ERROR: %d/%d test suite(s) did not complete '
-                   'successfully (see above).') % (len(success) - sum(success),
-                                                   len(success)))
+            print(f"ERROR: {len(success) - sum(success)}/{len(success)} test suite(s) "
+                  f"did not complete successfully (see above).")
         else:
-            print(('OK: %d/%d test suite(s) did complete '
-                   'successfully.') % (len(success), len(success)))
+            print(f"OK: {len(success)}/{len(success)} test suite(s) did complete "
+                  f"successfully.")
         return all_success
 
     finally:

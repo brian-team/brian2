@@ -10,9 +10,9 @@ from brian2.utils.stringtools import SpellChecker
 
 @pytest.mark.codegen_independent
 def test_environment():
-    '''
+    """
     Test information about the environment we are running under.
-    '''
+    """
     if hasattr(builtins, '__IPYTHON__'):
         testing_under_ipython = True
         del builtins.__IPYTHON__

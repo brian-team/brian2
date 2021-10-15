@@ -35,13 +35,13 @@ def test_auto_target():
 
 @pytest.mark.codegen_independent
 def test_analyse_identifiers():
-    '''
+    """
     Test that the analyse_identifiers function works on a simple clear example.
-    '''
-    code = '''
+    """
+    code = """
     a = b+c
     d = e+f
-    '''
+    """
     known = {'b': Variable(name='b'),
              'c': Variable(name='c'),
              'd': Variable(name='d'),
@@ -56,9 +56,9 @@ def test_analyse_identifiers():
 
 @pytest.mark.codegen_independent
 def test_get_identifiers_recursively():
-    '''
+    """
     Test finding identifiers including subexpressions.
-    '''
+    """
     variables = {'sub1': Subexpression(name='sub1',
                                        dtype=np.float32, expr='sub2 * z',
                                        owner=FakeGroup(variables={}),
@@ -100,19 +100,19 @@ def test_repeated_subexpressions():
     }
     # subexpression a (referring to z) is used twice, but can be reused the
     # second time (no change to z)
-    code = '''
+    code = """
     x = a
     y = a
-    '''
+    """
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
     assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'y']
     assert vector_stmts[0].constant
 
-    code = '''
+    code = """
     x = a
     z *= 2
-    '''
+    """
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
     assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'z']
@@ -123,11 +123,11 @@ def test_repeated_subexpressions():
 
     # a refers to z, therefore we have to redefine a after z changed, and a
     # cannot be constant
-    code = '''
+    code = """
     x = a
     z *= 2
     y = a
-    '''
+    """
     scalar_stmts, vector_stmts = make_statements(code, variables, np.float32)
     assert len(scalar_stmts) == 0
     assert [stmt.var for stmt in vector_stmts] == ['a', 'x', 'z', 'a', 'y']
@@ -136,16 +136,16 @@ def test_repeated_subexpressions():
 
 @pytest.mark.codegen_independent
 def test_nested_subexpressions():
-    '''
+    """
     This test checks that code translation works with nested subexpressions.
-    '''
-    code = '''
+    """
+    code = """
     x = a + b + c
     c = 1
     x = a + b + c
     d = 1
     x = a + b + c
-    '''
+    """
     variables = {
         'a': Subexpression(name='a', dtype=np.float32, owner=FakeGroup(variables={}), device=None,
                            expr='b*b+d'),
@@ -267,9 +267,9 @@ def test_apply_loop_invariant_optimisation_no_optimisation():
     ]
     scalar, vector = optimise_statements([], statements, variables)
     for vs in vector[:3]:
-        assert vs.expr.count('rand()') == 2, 'Expression should still contain two rand() calls, but got ' + str(vs)
+        assert vs.expr.count('rand()') == 2, f"Expression should still contain two rand() calls, but got {str(vs)}"
     for vs in vector[3:]:
-        assert vs.expr.count('rand()') == 1, 'Expression should still contain a rand() call, but got ' + str(vs)
+        assert vs.expr.count('rand()') == 1, f"Expression should still contain a rand() call, but got {str(vs)}"
 
 @pytest.mark.codegen_independent
 def test_apply_loop_invariant_optimisation_simplification():
@@ -411,19 +411,20 @@ def test_automatic_augmented_assignments():
     for orig, rewritten in statements:
         scalar, vector = make_statements(orig, variables, np.float32)
         try:  # we augment the assertion error with the original statement
-            assert len(scalar) == 0, 'Did not expect any scalar statements but got ' + str(scalar)
-            assert len(vector) == 1, 'Did expect a single statement but got ' + str(vector)
+            assert len(scalar) == 0, f"Did not expect any scalar statements but got {str(scalar)}"
+            assert len(vector) == 1, f"Did expect a single statement but got {str(vector)}"
             statement = vector[0]
             expected_var, expected_op, expected_expr, _ = parse_statement(rewritten)
-            assert expected_var == statement.var, 'expected write to variable %s, not to %s' % (expected_var, statement.var)
-            assert expected_op == statement.op, 'expected operation %s, not %s' % (expected_op, statement.op)
+            assert expected_var == statement.var, f'expected write to variable {expected_var}, not to {statement.var}'
+            assert expected_op == statement.op, f'expected operation {expected_op}, not {statement.op}'
             # Compare the two expressions using sympy to allow for different order etc.
             sympy_expected = str_to_sympy(expected_expr)
             sympy_actual = str_to_sympy(statement.expr)
-            assert sympy_expected == sympy_actual, ('RHS expressions "%s" and "%s" are not identical' % (sympy_to_str(sympy_expected),
-                                                                                                         sympy_to_str(sympy_actual)))
+            assert sympy_expected == sympy_actual, (
+                f"RHS expressions '{sympy_to_str(sympy_expected)}' and '{sympy_to_str(sympy_actual)}' are not identical")
         except AssertionError as ex:
-            raise AssertionError('Transformation for statement "%s" gave an unexpected result: %s' % (orig, str(ex)))
+            raise AssertionError(
+                f"Transformation for statement '{orig}' gave an unexpected result: {ex}")
 
 
 def test_clear_cache():

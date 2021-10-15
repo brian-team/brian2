@@ -1,4 +1,4 @@
-'''
+"""
 This is only a bridge for using Brian 1 hears with Brian 2.
 
 .. deprecated:: 2.2.2.2
@@ -14,7 +14,7 @@ TODO: handle properties (e.g. sound.duration)
 Not working examples:
 
 * time_varying_filter1 (care with units)
-'''
+"""
 
 
 try:
@@ -52,7 +52,7 @@ def convert_unit_b2_to_b1(val):
 
 
 def modify_arg(arg):
-    '''
+    """
     Modify arguments to make them compatible with Brian 1.
     
     - Arrays of units are replaced with straight arrays
@@ -61,7 +61,7 @@ def modify_arg(arg):
     
     The second part was necessary because some functions/classes test if an object is an array or not to see if it
     is a sequence, but because brian2.Quantity derives from ndarray this was causing problems.
-    '''
+    """
     if isinstance(arg, Quantity):
         if len(arg.shape)==0:
             arg = b1.Quantity.with_dimensions(float(arg), arg.dim._dims)
@@ -72,10 +72,10 @@ def modify_arg(arg):
     return arg
 
 def wrap_units(f):
-    '''
+    """
     Wrap a function to convert units into a form that Brian 1 can handle. Also, check the output argument, if it is
     a ``b1h.Sound`` wrap it.
-    '''
+    """
     def new_f(*args, **kwds):
         newargs = []
         newkwds = {}
@@ -105,9 +105,9 @@ def wrap_units_property(p):
     return new_p
 
 def wrap_units_class(_C):
-    '''
+    """
     Wrap a class to convert units into a form that Brian 1 can handle in all methods
-    '''
+    """
     class new_class(_C):
         for _k in _C.__dict__:
             _v = getattr(_C, _k)
@@ -115,10 +115,10 @@ def wrap_units_class(_C):
                 continue
             if ismethod(_v):
                 _v = wrap_units(_v)
-                exec('%s = _v' % _k)
+                exec(f'{_k} = _v')
             elif isinstance(_v, property):
                 _v = wrap_units_property(_v)
-                exec('%s = _v' % _k)
+                exec(f'{_k} = _v')
         del _k
         del _v
     return new_class
@@ -126,9 +126,9 @@ def wrap_units_class(_C):
 
 WrappedSound = wrap_units_class(b1h.Sound)
 class BridgeSound(WrappedSound):
-    '''
+    """
     We add a new method slice because slicing with units can't work with Brian 2 units.
-    '''
+    """
     def slice(self, *args):
         return self.__getitem__(slice(*args))
 Sound = BridgeSound
@@ -144,7 +144,7 @@ class FilterbankGroup(NeuronGroup):
         # Sanitize the clock - does it have the right dt value?
         if 'clock' in kwds:
             if int(1/kwds['clock'].dt)!=int(filterbank.samplerate):
-                raise ValueError('Clock should have 1/dt=samplerate')
+                raise ValueError("Clock should have 1/dt=samplerate")
             kwds['clock'] = Clock(dt=float(kwds['clock'].dt)*second)
         else:
             kwds['clock'] = Clock(dt=1*second/float(filterbank.samplerate))        
@@ -187,7 +187,7 @@ for k in __all__:
             curobj = wrap_units_class(curobj)
         else:
             curobj = wrap_units(curobj)
-    exec('%s = curobj' % k)
+    exec(f'{k} = curobj')
 
 __all__.extend(['convert_unit_b1_to_b2',
                 'convert_unit_b2_to_b1',

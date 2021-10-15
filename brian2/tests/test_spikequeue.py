@@ -9,11 +9,11 @@ from brian2.memory.dynamicarray import DynamicArray1D
 
 
 def create_all_to_all(N, dt):
-    '''
+    """
     Return a tuple containing `synapses` and `delays` in the form that is needed
     for the `SpikeQueue` initializer.
     Every synapse has a delay depending on the presynaptic neuron.
-    '''
+    """
     data = np.repeat(np.arange(N, dtype=np.int32), N)
     delays = DynamicArray1D(data.shape, dtype=np.float64)
     delays[:] = data * dt
@@ -22,11 +22,11 @@ def create_all_to_all(N, dt):
 
 
 def create_one_to_one(N, dt):
-    '''
+    """
     Return a tuple containing `synapses` and `delays` in the form that is needed
     for the `SpikeQueue` initializer.
     Every synapse has a delay depending on the presynaptic neuron.
-    '''
+    """
     data = np.arange(N, dtype=np.int32)
     delays = DynamicArray1D(data.shape, dtype=np.float64)
     delays[:] = data * dt

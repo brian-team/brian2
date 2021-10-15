@@ -1,8 +1,8 @@
-'''
+"""
 Brian AST representation
 
 This is a standard Python AST representation with additional information added.
-'''
+"""
 
 
 import ast
@@ -42,16 +42,16 @@ def is_float(value):
 
 
 def brian_dtype_from_value(value):
-    '''
+    """
     Returns 'boolean', 'integer' or 'float'
-    '''
+    """
     if is_float(value):
         return 'float'
     elif is_integer(value):
         return 'integer'
     elif is_boolean(value):
         return 'boolean'
-    raise TypeError("Unknown dtype for value "+str(value))
+    raise TypeError(f"Unknown dtype for value {str(value)}")
 
 # The following functions are called very often during the optimisation process
 # so we don't use numpy.issubdtype but instead a precalculated list of all
@@ -71,20 +71,20 @@ def is_float_dtype(obj):
 
 
 def brian_dtype_from_dtype(dtype):
-    '''
+    """
     Returns 'boolean', 'integer' or 'float'
-    '''
+    """
     if is_float_dtype(dtype):
         return 'float'
     elif is_integer_dtype(dtype):
         return 'integer'
     elif is_boolean_dtype(dtype):
         return 'boolean'
-    raise TypeError("Unknown dtype: "+str(dtype))
+    raise TypeError(f"Unknown dtype: {str(dtype)}")
 
 
 def brian_ast(expr, variables):
-    '''
+    """
     Returns an AST tree representation with additional information
 
     Each node will be a standard Python ``ast`` node with the
@@ -107,16 +107,16 @@ def brian_ast(expr, variables):
         The expression to convert into an AST representation
     variables : dict
         The dictionary of `Variable` objects used in the expression.
-    '''
+    """
     node = ast.parse(expr, mode='eval').body
     renderer = BrianASTRenderer(variables)
     return renderer.render_node(node)
 
 
 class BrianASTRenderer(object):
-    '''
+    """
     This class is modelled after `NodeRenderer` - see there for details.
-    '''
+    """
     def __init__(self, variables, copy_variables=True):
         if copy_variables:
             self.variables = variables.copy()
@@ -125,15 +125,15 @@ class BrianASTRenderer(object):
 
     def render_node(self, node):
         nodename = node.__class__.__name__
-        methname = 'render_'+nodename
+        methname = f"render_{nodename}"
         try:
             return getattr(self, methname)(node)
         except AttributeError:
-            raise SyntaxError("Unknown syntax: " + nodename)
+            raise SyntaxError(f"Unknown syntax: {nodename}")
 
     def render_NameConstant(self, node):
         if node.value is not True and node.value is not False:
-            raise SyntaxError("Unknown NameConstant "+str(node.value))
+            raise SyntaxError(f"Unknown NameConstant {str(node.value)}")
         # NameConstant only used for True and False and None, and we don't support None
         node.dtype = 'boolean'
         node.scalar = True
@@ -197,8 +197,9 @@ class BrianASTRenderer(object):
             node_arg_types = [subnode.dtype for subnode in node.args]
             for subnode, argtype in zip(node.args, funcvar._arg_types):
                 if argtype!='any' and argtype!=subnode.dtype:
-                    raise TypeError("Function %s takes arguments with types %s but "
-                                    "received %s" % (node.func.id, funcvar._arg_types, node_arg_types))
+                    raise TypeError(f"Function '{node.func.id}' takes arguments with "
+                                    f"types {funcvar._arg_types} but "
+                                    f"received {node_arg_types}.")
             # compute return type
             return_type = funcvar._return_type
             if return_type=='highest':
@@ -266,7 +267,7 @@ class BrianASTRenderer(object):
         node.operand = self.render_node(node.operand)
         node.dtype = node.operand.dtype
         if node.dtype=='boolean' and node.op.__class__.__name__ != 'Not':
-            raise TypeError("Unary operator %s does not apply to boolean types" % node.op.__class__.__name__)
+            raise TypeError(f"Unary operator {node.op.__class__.__name__} does not apply to boolean types")
         node.scalar = node.operand.scalar
         node.complexity = 1+node.operand.complexity
         node.stateless = node.operand.stateless

@@ -1,6 +1,6 @@
-'''
+"""
 Ball and stick with Na and K channels
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = 0.025*ms

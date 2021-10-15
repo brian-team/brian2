@@ -36,9 +36,9 @@ def test_brianpreference():
 
 @pytest.mark.codegen_independent
 def test_preference_name_checking():
-    '''
+    """
     Test that you cannot set illegal preference names.
-    '''
+    """
     gp = BrianGlobalPreferences()
     
     # Name that starts with an underscore
@@ -124,30 +124,30 @@ def test_brianglobalpreferences():
     gp.as_file
     gp.defaults_as_file
     # test that reading a preference file works as expected
-    pref_file = StringIO('''
+    pref_file = StringIO("""
         # a comment
         a.b = 10
         [a]
         c = 5*volt
         d = 1
         e = float64
-        ''')
+        """)
     gp.read_preference_file(pref_file)
     assert gp['a.b']==10
     assert gp['a.c']==5*volt
     assert gp['a.d']==1
     assert gp['a.e']==float64
     # test that reading a badly formatted prefs file fails
-    pref_file = StringIO('''
+    pref_file = StringIO("""
         [a
         b = 10
-        ''')
+        """)
     with pytest.raises(PreferenceError):
         gp.read_preference_file(pref_file)
     # test that reading a well formatted prefs file with an invalid value fails
-    pref_file = StringIO('''
+    pref_file = StringIO("""
         a.b = 'oh no, not a string'
-        ''')
+        """)
     with pytest.raises(PreferenceError):
         gp.read_preference_file(pref_file)
     # assert that writing the prefs to a file and loading them gives the
@@ -182,9 +182,9 @@ def test_brianglobalpreferences():
 
 @pytest.mark.codegen_independent
 def test_preference_name_access():
-    '''
+    """
     Test various ways of accessing preferences
-    '''
+    """
     
     gp = BrianGlobalPreferences()
     

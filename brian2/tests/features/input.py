@@ -1,6 +1,6 @@
-'''
+"""
 Tests of input features
-'''
+"""
 
 
 from brian2 import *

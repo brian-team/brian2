@@ -4,8 +4,8 @@ from pyparsing import (CharsNotIn, Optional, Suppress, Word, Regex,
 
 from brian2.utils.caching import cached
 
-VARIABLE = Word(alphas + '_',
-                  alphas + nums + '_').setResultsName('variable')
+VARIABLE = Word(f"{alphas}_",
+                  f"{alphas + nums}_").setResultsName('variable')
 
 OP = Regex(r'(\+|\-|\*|/|//|%|\*\*|>>|<<|&|\^|\|)?=').setResultsName('operation')
 EXPR = CharsNotIn('#').setResultsName('expression')
@@ -15,7 +15,7 @@ STATEMENT = VARIABLE + OP + EXPR + Optional(Suppress('#') + COMMENT)
 
 @cached
 def parse_statement(code):
-    '''
+    """
     parse_statement(code)
 
     Parses a single line of code into "var op expr".
@@ -37,15 +37,15 @@ def parse_statement(code):
     ('v', '=', '-65*mV', 'reset the membrane potential')
     >>> parse_statement('v += dt*(-v/tau)')
     ('v', '+=', 'dt*(-v/tau)', '')
-    '''
+    """
     try:
         parsed = STATEMENT.parseString(code, parseAll=True)
     except ParseException as p_exc:
-        raise ValueError('Parsing the statement failed: \n' + str(p_exc.line) +
-                         '\n' + ' ' * (p_exc.column - 1) + '^\n' + str(p_exc))
+        raise ValueError("Parsing the statement failed: \n" + str(p_exc.line) +
+                         "\n" + " " * (p_exc.column - 1) + "^\n" + str(p_exc))
     if len(parsed['expression'].strip()) == 0:
-        raise ValueError(('Empty expression in the RHS of the statement:'
-                          '"%s" ') % code)
+        raise ValueError(f"Empty expression in the RHS of the statement:"
+                         f"'{code}' ")
     parsed_statement = (parsed['variable'].strip(),
                         parsed['operation'],
                         parsed['expression'].strip(),

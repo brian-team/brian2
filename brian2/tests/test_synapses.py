@@ -52,9 +52,9 @@ def _compare(synapses, expected):
 
 @pytest.mark.codegen_independent
 def test_creation():
-    '''
+    """
     A basic test that creating a Synapses object works.
-    '''
+    """
     G = NeuronGroup(42, 'v: 1', threshold='False')
     S = Synapses(G, G, 'w:1', on_pre='v+=w')
     # We store weakref proxys, so we can't directly compare the objects
@@ -142,11 +142,11 @@ def test_name_clashes():
 
 @pytest.mark.standalone_compatible
 def test_incoming_outgoing():
-    '''
+    """
     Test the count of outgoing/incoming synapses per neuron.
     (It will be also automatically tested for all connection patterns that
     use the above _compare function for testing)
-    '''
+    """
     G1 = NeuronGroup(5, '')
     G2 = NeuronGroup(5, '')
     S = Synapses(G1, G2, '')
@@ -170,9 +170,9 @@ def test_incoming_outgoing():
 
 @pytest.mark.standalone_compatible
 def test_connection_arrays():
-    '''
+    """
     Test connecting synapses with explictly given arrays
-    '''
+    """
     G = NeuronGroup(42, '')
     G2 = NeuronGroup(17, '')
 
@@ -294,10 +294,10 @@ def test_connection_string_deterministic_full_one_to_one():
     S2 = Synapses(G, G)
     S2.connect('v_pre == v_post')
 
-    S3 = Synapses(G, G, '''
+    S3 = Synapses(G, G, """
                          sub_1 = v_pre : 1
                          sub_2 = v_post : 1
-                         w:1''')
+                         w:1""")
     S3.connect('sub_1 == sub_2')
 
     S4 = Synapses(G, G)
@@ -459,9 +459,9 @@ def test_connection_random_with_condition_2():
 
 @pytest.mark.standalone_compatible
 def test_connection_random_with_indices():
-    '''
+    """
     Test random connections.
-    '''
+    """
     G = NeuronGroup(4, '')
     G2 = NeuronGroup(7, '')
 
@@ -514,11 +514,11 @@ def test_connection_random_with_indices():
 
 @pytest.mark.standalone_compatible
 def test_connection_random_without_condition():
-    G = NeuronGroup(4, '''v: 1
-                          x : integer''')
+    G = NeuronGroup(4, """v: 1
+                          x : integer""")
     G.x = 'i'
-    G2 = NeuronGroup(7, '''v: 1
-                           y : 1''')
+    G2 = NeuronGroup(7, """v: 1
+                           y : 1""")
     G2.y = '1.0*i/N'
 
     S1 = Synapses(G, G2)
@@ -557,9 +557,9 @@ def test_connection_random_without_condition():
 
 @pytest.mark.standalone_compatible
 def test_connection_multiple_synapses():
-    '''
+    """
     Test multiple synapses per connection.
-    '''
+    """
     G = NeuronGroup(42, 'v: 1')
     G.v = 'i'
     G2 = NeuronGroup(17, 'v: 1')
@@ -601,9 +601,9 @@ def test_connection_multiple_synapses():
 
 
 def test_state_variable_assignment():
-    '''
+    """
     Assign values to state variables in various ways
-    '''
+    """
 
     G = NeuronGroup(10, 'v: volt')
     G.v = 'i*mV'
@@ -725,15 +725,15 @@ def test_indices():
 
 
 def test_subexpression_references():
-    '''
+    """
     Assure that subexpressions in targeted groups are handled correctly.
-    '''
-    G = NeuronGroup(10, '''v : 1
-                           v2 = 2*v : 1''')
+    """
+    G = NeuronGroup(10, """v : 1
+                           v2 = 2*v : 1""")
     G.v = np.arange(10)
-    S = Synapses(G, G, '''w : 1
+    S = Synapses(G, G, """w : 1
                           u = v2_post + 1 : 1
-                          x = v2_pre + 1 : 1''')
+                          x = v2_pre + 1 : 1""")
     S.connect('i==(10-1-j)')
     assert_equal(S.u[:], np.arange(10)[::-1]*2+1)
     assert_equal(S.x[:], np.arange(10)*2+1)
@@ -742,13 +742,13 @@ def test_subexpression_references():
 @pytest.mark.standalone_compatible
 def test_constant_variable_subexpression_in_synapses():
     G = NeuronGroup(10, '')
-    S = Synapses(G, G, ''' dv1/dt = -v1**2 / (10*ms) : 1 (clock-driven)
+    S = Synapses(G, G, """ dv1/dt = -v1**2 / (10*ms) : 1 (clock-driven)
                            dv2/dt = -v_const**2 / (10*ms) : 1 (clock-driven)
                            dv3/dt = -v_var**2 / (10*ms) : 1 (clock-driven)
                            dv4/dt = -v_noflag**2 / (10*ms) : 1 (clock-driven)
                            v_const = v2 : 1 (constant over dt)
                            v_var = v3 : 1
-                           v_noflag = v4 : 1''',
+                           v_noflag = v4 : 1""",
                  method='rk2')
     S.connect(j='i')
     S.v1 = '1.0*i/N'
@@ -767,12 +767,12 @@ def test_constant_variable_subexpression_in_synapses():
 
 @pytest.mark.standalone_compatible
 def test_nested_subexpression_references():
-    '''
+    """
     Assure that subexpressions in targeted groups are handled correctly.
-    '''
-    G = NeuronGroup(10, '''v : 1
+    """
+    G = NeuronGroup(10, """v : 1
                            v2 = 2*v : 1
-                           v3 = 1.5*v2 : 1''',
+                           v3 = 1.5*v2 : 1""",
                     threshold='v>=5')
     G2 = NeuronGroup(10, 'v : 1')
     G.v = np.arange(10)
@@ -786,8 +786,8 @@ def test_nested_subexpression_references():
 @pytest.mark.codegen_independent
 def test_equations_unit_check():
     group = NeuronGroup(1, 'v : volt', threshold='True')
-    syn = Synapses(group, group, '''sub1 = 3 : 1
-                                    sub2 = sub1 + 1*mV : volt''',
+    syn = Synapses(group, group, """sub1 = 3 : 1
+                                    sub2 = sub1 + 1*mV : volt""",
                    on_pre='v += sub2')
     syn.connect()
     net = Network(group, syn)
@@ -918,8 +918,8 @@ def test_delays_pathways_subgroups():
 @pytest.mark.codegen_independent
 def test_pre_before_post():
     # The pre pathway should be executed before the post pathway
-    G = NeuronGroup(1, '''x : 1
-                          y : 1''', threshold='True')
+    G = NeuronGroup(1, """x : 1
+                          y : 1""", threshold='True')
     S = Synapses(G, G, '', on_pre='x=1; y=1', on_post='x=2')
     S.connect()
     run(defaultclock.dt)
@@ -935,8 +935,8 @@ def test_pre_post_simple():
     G1 = SpikeGeneratorGroup(1, [0], [1]*ms)
     G2 = SpikeGeneratorGroup(1, [0], [2]*ms)
     with catch_logs() as l:
-        S = Synapses(G1, G2, '''pre_value : 1
-                                post_value : 1''',
+        S = Synapses(G1, G2, """pre_value : 1
+                                post_value : 1""",
                      pre='pre_value +=1',
                      post='post_value +=2')
     S.connect()
@@ -1004,8 +1004,8 @@ def test_transmission():
               [2, 1, 0, 1] * ms]
     for delay in delays:
         # Make sure that the Synapses class actually propagates spikes :)
-        source = NeuronGroup(4, '''dv/dt = rate : 1
-                                   rate : Hz''', threshold='v>1', reset='v=0')
+        source = NeuronGroup(4, """dv/dt = rate : 1
+                                   rate : Hz""", threshold='v>1', reset='v=0')
         source.rate = [51, 101, 101, 51] * Hz
         target = NeuronGroup(4, 'v:1', threshold='v>1', reset='v=0')
 
@@ -1126,9 +1126,9 @@ def test_transmission_boolean_variable():
 
 @pytest.mark.codegen_independent
 def test_clocks():
-    '''
+    """
     Make sure that a `Synapse` object uses the correct clocks.
-    '''
+    """
     source_dt = 0.05*ms
     target_dt = 0.1*ms
     synapse_dt = 0.2*ms
@@ -1146,9 +1146,9 @@ def test_clocks():
 
 
 def test_equations_with_clocks():
-    '''
+    """
     Make sure that dt of a `Synapse` object is correctly resolved.
-    '''
+    """
     source_dt = 0.1*ms
     synapse_dt = 1*ms
     source_target = NeuronGroup(1, 'v:1', dt=source_dt, threshold='False')
@@ -1214,9 +1214,9 @@ def test_summed_variable():
     source = NeuronGroup(2, 'v : volt', threshold='v>1*volt', reset='v=0*volt')
     source.v = 1.1*volt  # will spike immediately
     target = NeuronGroup(2, 'v : volt')
-    S = Synapses(source, target, '''w : volt
+    S = Synapses(source, target, """w : volt
                                     x : volt
-                                    v_post = 2*x : volt (summed)''', on_pre='x+=w',
+                                    v_post = 2*x : volt (summed)""", on_pre='x+=w',
                  multisynaptic_index='k')
     S.connect('i==j', n=2)
     S.w['k == 0'] = 'i*volt'
@@ -1230,21 +1230,21 @@ def test_summed_variable():
 
 @pytest.mark.standalone_compatible
 def test_summed_variable_pre_and_post():
-    G1 = NeuronGroup(4, '''neuron_var : 1
+    G1 = NeuronGroup(4, """neuron_var : 1
                            syn_sum : 1
-                           neuron_sum : 1''')
+                           neuron_sum : 1""")
     G1.neuron_var = 'i'
-    G2 = NeuronGroup(4, '''neuron_var : 1
+    G2 = NeuronGroup(4, """neuron_var : 1
                                syn_sum : 1
-                               neuron_sum : 1''')
+                               neuron_sum : 1""")
     G2.neuron_var = 'i+4'
 
-    synapses = Synapses(G1, G2, '''syn_var : 1
+    synapses = Synapses(G1, G2, """syn_var : 1
                                     neuron_sum_pre = neuron_var_post : 1 (summed)
                                     syn_sum_pre = syn_var : 1 (summed)
                                     neuron_sum_post = neuron_var_pre : 1 (summed)
                                     syn_sum_post = syn_var : 1 (summed)
-                                    ''')
+                                    """)
     # The first three cells in G1 connect to the first cell in G2
     # The remaining three cells of G2 all connect to the last cell of G1
     synapses.connect(i=[0, 1, 2, 3, 3, 3], j=[0, 0, 0, 1, 2, 3])
@@ -1263,8 +1263,8 @@ def test_summed_variable_differing_group_size():
     G2 = NeuronGroup(10, 'var : 1', name='G2')
     G2.var[:5] = 1
     G2.var[5:] = 10
-    syn1 = Synapses(G1, G2, '''syn_var : 1
-                              var_pre = syn_var + var_post : 1 (summed)''')
+    syn1 = Synapses(G1, G2, """syn_var : 1
+                              var_pre = syn_var + var_post : 1 (summed)""")
     syn1.connect(i=0, j=[0, 1, 2, 3, 4])
     syn1.connect(i=1, j=[5, 6, 7, 8, 9])
     syn1.syn_var = np.arange(10)
@@ -1273,8 +1273,8 @@ def test_summed_variable_differing_group_size():
     G4 = NeuronGroup(2, 'var : 1', name='G4')
     G3.var[:5] = 1
     G3.var[5:] = 10
-    syn2 = Synapses(G3, G4, '''syn_var : 1
-                               var_post = syn_var + var_pre : 1 (summed)''')
+    syn2 = Synapses(G3, G4, """syn_var : 1
+                               var_post = syn_var + var_pre : 1 (summed)""")
     syn2.connect(i=[0, 1, 2, 3, 4], j=0)
     syn2.connect(i=[5, 6, 7, 8, 9], j=1)
     syn2.syn_var = np.arange(10)
@@ -1289,56 +1289,56 @@ def test_summed_variable_differing_group_size():
 
 
 def test_summed_variable_errors():
-    G = NeuronGroup(10, '''dv/dt = -v / (10*ms) : volt
+    G = NeuronGroup(10, """dv/dt = -v / (10*ms) : volt
                            sub = 2*v : volt
-                           p : volt''', threshold='False', reset='')
+                           p : volt""", threshold='False', reset='')
 
     # Using the (summed) flag for a differential equation or a parameter
     with pytest.raises(ValueError):
-        Synapses(G, G, '''dp_post/dt = -p_post / (10*ms) : volt (summed)''')
+        Synapses(G, G, """dp_post/dt = -p_post / (10*ms) : volt (summed)""")
     with pytest.raises(ValueError):
-        Synapses(G, G, '''p_post : volt (summed)''')
+        Synapses(G, G, """p_post : volt (summed)""")
 
     # Using the (summed) flag for a variable name without _pre or _post suffix
     with pytest.raises(ValueError):
-        Synapses(G, G, '''p = 3*volt : volt (summed)''')
+        Synapses(G, G, """p = 3*volt : volt (summed)""")
     # Using the name of a variable that does not exist
     with pytest.raises(ValueError):
-        Synapses(G, G, '''q_post = 3*volt : volt (summed)''')
+        Synapses(G, G, """q_post = 3*volt : volt (summed)""")
 
     # Target equation is not a parameter
     with pytest.raises(ValueError):
-        Synapses(G, G, '''sub_post = 3*volt : volt (summed)''')
+        Synapses(G, G, """sub_post = 3*volt : volt (summed)""")
     with pytest.raises(ValueError):
-        Synapses(G, G, '''v_post = 3*volt : volt (summed)''')
+        Synapses(G, G, """v_post = 3*volt : volt (summed)""")
 
     # Unit mismatch between synapses and target
     with pytest.raises(DimensionMismatchError):
-        Synapses(G, G, '''p_post = 3*second : second (summed)''')
+        Synapses(G, G, """p_post = 3*second : second (summed)""")
 
     # Two summed variable equations targetting the same variable
     with pytest.raises(ValueError):
-        Synapses(G, G, '''p_post = 3*volt : volt (summed)
-                          p_pre = 3*volt : volt (summed)''')
+        Synapses(G, G, """p_post = 3*volt : volt (summed)
+                          p_pre = 3*volt : volt (summed)""")
     
     # Summed variable referring to an event-driven variable
     with pytest.raises(EquationError) as ex:
-        Synapses(G, G, '''ds/dt = -s/(3*ms) : volt (event-driven)
-                          p_post = s : volt (summed)''', on_pre='s += 1*mV')
+        Synapses(G, G, """ds/dt = -s/(3*ms) : volt (event-driven)
+                          p_post = s : volt (summed)""", on_pre='s += 1*mV')
     assert "'p_post'" in str(ex.value) and "'s'" in str(ex.value)
 
     # Indirect dependency
     with pytest.raises(EquationError) as ex:
-        Synapses(G, G, '''ds/dt = -s/(3*ms) : volt (event-driven)
+        Synapses(G, G, """ds/dt = -s/(3*ms) : volt (event-driven)
                           x = s : volt
                           y = x : volt
-                          p_post = y : 1 (summed)''', on_pre='s += 1*mV')
+                          p_post = y : 1 (summed)""", on_pre='s += 1*mV')
     assert "'p_post'" in str(ex.value) and "'s'" in str(ex.value)
     assert "'x'" in str(ex.value) and "'y'" in str(ex.value)
 
     with pytest.raises(BrianObjectException) as ex:
-        S = Synapses(G, G, '''y : siemens
-                              p_post = y : volt (summed)''')
+        S = Synapses(G, G, """y : siemens
+                              p_post = y : volt (summed)""")
         run(0 * ms)
 
     assert isinstance(ex.value.__cause__, DimensionMismatchError)
@@ -1407,11 +1407,11 @@ def test_summed_variables_linked_variables():
 
 
 def test_scalar_parameter_access():
-    G = NeuronGroup(10, '''v : 1
-                           scalar : Hz (shared)''', threshold='False')
-    S = Synapses(G, G, '''w : 1
+    G = NeuronGroup(10, """v : 1
+                           scalar : Hz (shared)""", threshold='False')
+    S = Synapses(G, G, """w : 1
                           s : Hz (shared)
-                          number : 1 (shared)''',
+                          number : 1 (shared)""",
                  on_pre='v+=w*number')
     S.connect()
 
@@ -1455,10 +1455,10 @@ def test_scalar_parameter_access():
 
 
 def test_scalar_subexpression():
-    G = NeuronGroup(10, '''v : 1
-                           number : 1 (shared)''', threshold='False')
-    S = Synapses(G, G, '''s : 1 (shared)
-                          sub = number_post + s : 1 (shared)''',
+    G = NeuronGroup(10, """v : 1
+                           number : 1 (shared)""", threshold='False')
+    S = Synapses(G, G, """s : 1 (shared)
+                          sub = number_post + s : 1 (shared)""",
                  on_pre='v+=s')
     S.connect()
     S.s = 100
@@ -1466,8 +1466,8 @@ def test_scalar_subexpression():
     assert S.sub[:] == 150
 
     with pytest.raises(SyntaxError):
-        Synapses(G, G, '''s : 1 (shared)
-                          sub = v_post + s : 1 (shared)''',
+        Synapses(G, G, """s : 1 (shared)
+                          sub = v_post + s : 1 (shared)""",
                  on_pre='v+=s')
 
 
@@ -1475,8 +1475,8 @@ def test_scalar_subexpression():
 def test_sim_with_scalar_variable():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
     out = NeuronGroup(2, 'v : 1')
-    syn = Synapses(inp, out, '''w : 1
-                                s : 1 (shared)''',
+    syn = Synapses(inp, out, """w : 1
+                                s : 1 (shared)""",
                    on_pre='v += s + w')
     syn.connect(j='i')
     syn.w = [1, 2]
@@ -1489,8 +1489,8 @@ def test_sim_with_scalar_variable():
 def test_sim_with_scalar_subexpression():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
     out = NeuronGroup(2, 'v : 1')
-    syn = Synapses(inp, out, '''w : 1
-                                s = 5 : 1 (shared)''',
+    syn = Synapses(inp, out, """w : 1
+                                s = 5 : 1 (shared)""",
                    on_pre='v += s + w')
     syn.connect(j='i')
     syn.w = [1, 2]
@@ -1502,8 +1502,8 @@ def test_sim_with_scalar_subexpression():
 def test_sim_with_constant_subexpression():
     inp = SpikeGeneratorGroup(2, [0, 1], [0, 0]*ms)
     out = NeuronGroup(2, 'v : 1')
-    syn = Synapses(inp, out, '''w : 1
-                                s = 5 : 1 (constant over dt)''',
+    syn = Synapses(inp, out, """w : 1
+                                s = 5 : 1 (constant over dt)""",
                    on_pre='v += s + w')
     syn.connect(j='i')
     syn.w = [1, 2]
@@ -1530,11 +1530,11 @@ def test_event_driven():
     # Fake example, where the synapse is actually not changing the state of the
     # postsynaptic neuron, the pre- and post spiketrains are regular spike
     # trains with different rates
-    pre = NeuronGroup(2, '''dv/dt = rate : 1
-                            rate : Hz''', threshold='v>1', reset='v=0')
+    pre = NeuronGroup(2, """dv/dt = rate : 1
+                            rate : Hz""", threshold='v>1', reset='v=0')
     pre.rate = [1000, 1500] * Hz
-    post = NeuronGroup(2, '''dv/dt = rate : 1
-                             rate : Hz''', threshold='v>1', reset='v=0')
+    post = NeuronGroup(2, """dv/dt = rate : 1
+                             rate : Hz""", threshold='v>1', reset='v=0')
     post.rate = [1100, 1400] * Hz
     # event-driven formulation
     taupre = 20 * ms
@@ -1546,28 +1546,28 @@ def test_event_driven():
     dApre *= gmax
     # event-driven
     S1 = Synapses(pre, post,
-                  '''w : 1
+                  """w : 1
                      dApre/dt = -Apre/taupre : 1 (event-driven)
-                     dApost/dt = -Apost/taupost : 1 (event-driven)''',
-                  on_pre='''Apre += dApre
-                         w = clip(w+Apost, 0, gmax)''',
-                  on_post='''Apost += dApost
-                          w = clip(w+Apre, 0, gmax)''')
+                     dApost/dt = -Apost/taupost : 1 (event-driven)""",
+                  on_pre="""Apre += dApre
+                         w = clip(w+Apost, 0, gmax)""",
+                  on_post="""Apost += dApost
+                          w = clip(w+Apre, 0, gmax)""")
     S1.connect(j='i')
     # not event-driven
     S2 = Synapses(pre, post,
-                  '''w : 1
+                  """w : 1
                      Apre : 1
                      Apost : 1
-                     lastupdate : second''',
-                  on_pre='''Apre=Apre*exp((lastupdate-t)/taupre)+dApre
+                     lastupdate : second""",
+                  on_pre="""Apre=Apre*exp((lastupdate-t)/taupre)+dApre
                          Apost=Apost*exp((lastupdate-t)/taupost)
                          w = clip(w+Apost, 0, gmax)
-                         lastupdate = t''',
-                  on_post='''Apre=Apre*exp((lastupdate-t)/taupre)
+                         lastupdate = t""",
+                  on_post="""Apre=Apre*exp((lastupdate-t)/taupre)
                           Apost=Apost*exp((lastupdate-t)/taupost) +dApost
                           w = clip(w+Apre, 0, gmax)
-                          lastupdate = t''')
+                          lastupdate = t""")
     S2.connect(j='i')
     S1.w = 0.5*gmax
     S2.w = 0.5*gmax
@@ -1579,10 +1579,10 @@ def test_event_driven():
 @pytest.mark.codegen_independent
 def test_event_driven_dependency_error():
     stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
-    syn = Synapses(stim, stim, '''
+    syn = Synapses(stim, stim, """
                    da/dt = -a / (5*ms) : 1 (event-driven)
                    db/dt = -b / (5*ms) : 1 (event-driven)
-                   dc/dt = a*b / (5*ms) : 1 (event-driven)''',
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)""",
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
@@ -1595,10 +1595,10 @@ def test_event_driven_dependency_error():
 def test_event_driven_dependency_error2():
     stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
     tau = 5*ms
-    syn = Synapses(stim, stim, '''
+    syn = Synapses(stim, stim, """
                    da/dt = -a / (5*ms) : 1 (clock-driven)
                    db/dt = -b / (5*ms) : 1 (clock-driven)
-                   dc/dt = a*b / (5*ms) : 1 (event-driven)''',
+                   dc/dt = a*b / (5*ms) : 1 (event-driven)""",
                    on_pre='a+=1')
     syn.connect()
     net = Network(collect())
@@ -1611,18 +1611,18 @@ def test_event_driven_dependency_error2():
 def test_event_driven_dependency_error3():
     P = NeuronGroup(10, 'dv/dt = -v/(10*ms) : volt')
     with pytest.raises(EquationError) as ex:
-        Synapses(P, P, '''ds/dt = -s/(3*ms) : 1 (event-driven)
+        Synapses(P, P, """ds/dt = -s/(3*ms) : 1 (event-driven)
                           df/dt = f*s/(5*ms) : 1 (clock-driven)
-                          ''', on_pre='s += 1')
+                          """, on_pre='s += 1')
     assert "'s'" in str(ex.value) and "'f'" in str(ex.value)
 
     # Indirect dependency
     with pytest.raises(EquationError) as ex:
-        Synapses(P, P, '''ds/dt = -s/(3*ms) : 1 (event-driven)
+        Synapses(P, P, """ds/dt = -s/(3*ms) : 1 (event-driven)
                           x = s : 1
                           y = x : 1
                           df/dt = f*y/(5*ms) : 1 (clock-driven)
-                          ''', on_pre='s += 1')
+                          """, on_pre='s += 1')
     assert "'s'" in str(ex.value) and "'f'" in str(ex.value)
     assert "'x'" in str(ex.value) and "'y'" in str(ex.value)
 
@@ -1631,13 +1631,13 @@ def test_event_driven_dependency_error3():
 def test_repr():
     G = NeuronGroup(1, 'v: volt', threshold='False')
     S = Synapses(G, G,
-                 '''w : 1
+                 """w : 1
                     dApre/dt = -Apre/taupre : 1 (event-driven)
-                    dApost/dt = -Apost/taupost : 1 (event-driven)''',
-                 on_pre='''Apre += dApre
-                        w = clip(w+Apost, 0, gmax)''',
-                 on_post='''Apost += dApost
-                         w = clip(w+Apre, 0, gmax)''')
+                    dApost/dt = -Apost/taupost : 1 (event-driven)""",
+                 on_pre="""Apre += dApre
+                        w = clip(w+Apost, 0, gmax)""",
+                 on_post="""Apost += dApost
+                         w = clip(w+Apre, 0, gmax)""")
     # Test that string/LaTeX representations do not raise errors
     for func in [str, repr, sympy.latex]:
         assert len(func(S.equations))
@@ -1646,8 +1646,8 @@ def test_repr():
 @pytest.mark.codegen_independent
 def test_pre_post_variables():
     G = NeuronGroup(10, 'v : 1', threshold='False')
-    G2 = NeuronGroup(10, '''v : 1
-                            w : 1''', threshold='False')
+    G2 = NeuronGroup(10, """v : 1
+                            w : 1""", threshold='False')
     S = Synapses(G, G2, 'x : 1')
     # Check for the most important variables
     for var in ['v_pre', 'v', 'v_post', 'w', 'w_post', 'x',
@@ -1670,8 +1670,8 @@ def test_pre_post_variables():
 def test_variables_by_owner():
     # Test the `variables_by_owner` convenience function
     G = NeuronGroup(10, 'v : 1')
-    G2 = NeuronGroup(10, '''v : 1
-                            w : 1''')
+    G2 = NeuronGroup(10, """v : 1
+                            w : 1""")
     S = Synapses(G, G2, 'x : 1')
 
     # Check that the variables returned as owned by the pre/post groups are the
@@ -1748,14 +1748,14 @@ def numerically_check_permutation_code(code):
                 for var, idx in indices.items()
                 if not var.endswith('_const'))
     code = word_substitute(code, subs)
-    code = '''
+    code = f"""
 from numpy import *
 from numpy.random import rand, randn
 for _idx in shuffled_indices:
     _presynaptic_idx = presyn[_idx]
     _postsynaptic_idx = postsyn[_idx]
-{code}
-    '''.format(code=indent(code))
+{indent(code)}
+    """
     ns = vals.copy()
     ns['shuffled_indices'] = arange(9)
     ns['presyn'] = arange(9)%3
@@ -1819,59 +1819,59 @@ permutation_analysis_good_examples = [
     'w_syn *= 2',
     'w_syn *= c_const',
     'w_syn *= x_shared',
-    '''
+    """
     w_syn = a_syn
     a_syn += 1
-    ''',
-    '''
+    """,
+    """
     w_syn = a_syn
     a_syn += c_const
-    ''',
-    '''
+    """,
+    """
     w_syn = a_syn
     a_syn += x_shared
-    ''',
+    """,
     'v_post *= 2',
     'v_post *= w_syn',
-    '''
+    """
     v_pre = 0
     w_syn = v_pre
-    ''',
-    '''
+    """,
+    """
     v_pre = c_const
     w_syn = v_pre
-    ''',
-    '''
+    """,
+    """
     v_pre = x_shared
     w_syn = v_pre
-    ''',
-    '''
+    """,
+    """
     ge_syn += w_syn
     Apre_syn += 3
     w_syn = clip(w_syn + Apost_syn, 0, 10)
-    ''',
-    '''
+    """,
+    """
     ge_syn += w_syn
     Apre_syn += c_const
     w_syn = clip(w_syn + Apost_syn, 0, 10)
-    ''',
-    '''
+    """,
+    """
     ge_syn += w_syn
     Apre_syn += x_shared
     w_syn = clip(w_syn + Apost_syn, 0, 10)
-    ''',
-    '''
+    """,
+    """
     a_syn = v_pre
     v_post += a_syn
-    ''',
-    '''
+    """,
+    """
     v_post += v_post # NOT_UFUNC_AT_VECTORISABLE
     v_post += v_post
-    ''',
-    '''
+    """,
+    """
     v_post += 1
     x = v_post
-    ''',
+    """,
     ]
 
 permutation_analysis_bad_examples = [
@@ -1880,34 +1880,34 @@ permutation_analysis_bad_examples = [
     'v_post = w_syn',
     'v_post += w_syn+v_post',
     'v_post += rand()', # rand() has state, and therefore this is order dependent
-    '''
+    """
     a_syn = v_post
     v_post += w_syn
-    ''',
-    '''
+    """,
+    """
     x = w_syn
     v_pre = x
-    ''',
-    '''
+    """,
+    """
     x = v_pre
     v_post = x
-    ''',
-    '''
+    """,
+    """
     v_post += v_pre
     v_pre += v_post
-    ''',
-    '''
+    """,
+    """
     b_syn = v_post
     v_post += a_syn
-    ''',
-    '''
+    """,
+    """
     v_post += w_syn
     u_post += v_post
-    ''',
-    '''
+    """,
+    """
     v_post += 1
     w_syn = v_post
-    ''',
+    """,
     ]
 
 
@@ -1919,15 +1919,15 @@ def test_permutation_analysis():
             try:
                 numerically_check_permutation_code(example)
             except OrderDependenceError:
-                raise AssertionError(('Test unexpectedly raised a numerical '
-                                      'OrderDependenceError on these '
-                                      'statements:\n') + example)
+                raise AssertionError("Test unexpectedly raised a numerical "
+                                     "OrderDependenceError on these "
+                                     "statements:\n" + example)
         try:
             check_permutation_code(example)
         except OrderDependenceError:
-            raise AssertionError(('Test unexpectedly raised an '
-                                  'OrderDependenceError on these '
-                                  'statements:\n') + example)
+            raise AssertionError("Test unexpectedly raised an "
+                                 "OrderDependenceError on these "
+                                 "statements:\n" + example)
 
     for example in permutation_analysis_bad_examples:
         if SANITY_CHECK_PERMUTATION_ANALYSIS_EXAMPLE:
@@ -1946,12 +1946,12 @@ def test_permutation_analysis():
 @pytest.mark.standalone_compatible
 def test_vectorisation():
     source = NeuronGroup(10, 'v : 1', threshold='v>1')
-    target = NeuronGroup(10, '''x : 1
-                                y : 1''')
+    target = NeuronGroup(10, """x : 1
+                                y : 1""")
     syn = Synapses(source, target, 'w_syn : 1',
-                   on_pre='''v_pre += w_syn
+                   on_pre="""v_pre += w_syn
                           x_post = y_post
-                       ''')
+                       """)
     syn.connect()
     syn.w_syn = 1
     source.v['i<5'] = 2
@@ -1967,25 +1967,25 @@ def test_vectorisation_STDP_like():
     # Test the use of pre- and post-synaptic traces that are stored in the
     # pre/post group instead of in the synapses
     w_max = 10
-    neurons = NeuronGroup(6, '''dv/dt = rate : 1
+    neurons = NeuronGroup(6, """dv/dt = rate : 1
                                 ge : 1
                                 rate : Hz
-                                dA/dt = -A/(1*ms) : 1''', threshold='v>1', reset='v=0')
+                                dA/dt = -A/(1*ms) : 1""", threshold='v>1', reset='v=0')
     # Note that the synapse does not actually increase the target v, we want
     # to have simple control about when neurons spike. Also, we separate the
     # "depression" and "facilitation" completely. The example also uses
     # subgroups, which should complicate things further.
     # This test should try to capture the spirit of indexing in such a use case,
     # it simply compares the results to fixed pre-calculated values
-    syn = Synapses(neurons[:3], neurons[3:], '''w_dep : 1
-                                                w_fac : 1''',
-                   on_pre='''ge_post += w_dep - w_fac
+    syn = Synapses(neurons[:3], neurons[3:], """w_dep : 1
+                                                w_fac : 1""",
+                   on_pre="""ge_post += w_dep - w_fac
                           A_pre += 1
                           w_dep = clip(w_dep + A_post, 0, w_max)
-                       ''',
-                   on_post='''A_post += 1
+                       """,
+                   on_post="""A_post += 1
                            w_fac = clip(w_fac + A_pre, 0, w_max)
-                        ''')
+                        """)
     syn.connect()
     neurons.rate = 1000*Hz
     neurons.v = 'abs(3-i)*0.1 + 0.7'
@@ -2170,8 +2170,8 @@ def test_fallback_loop_and_stateless_func():
     source = NeuronGroup(2, '', threshold='True')
     target = NeuronGroup(1, 'v : 1')
     synapses = Synapses(source, target, 'x : 1',
-                        on_pre='''x = rand()
-                                  v_post += 0.5*(1-v_post)''')
+                        on_pre="""x = rand()
+                                  v_post += 0.5*(1-v_post)""")
     synapses.connect()
     with catch_logs():  # Suppress the warning
         run(defaultclock.dt)
@@ -2184,8 +2184,8 @@ def test_synapses_to_synapses_summed_variable():
     conn = Synapses(source, target, 'w : integer')
     conn.connect(j='i')
     conn.w = 1
-    summed_conn = Synapses(source, conn, '''w_post = x : integer (summed)
-                                            x : integer''')
+    summed_conn = Synapses(source, conn, """w_post = x : integer (summed)
+                                            x : integer""")
     summed_conn.connect('i>=j')
     summed_conn.x = 'i'
     run(defaultclock.dt)
@@ -2279,7 +2279,7 @@ def test_synapse_generator_out_of_range():
     S3 = Synapses(G, G, '')
     try:
         S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0')
-        raise AssertionError('No BrianObjectException raised.')
+        raise AssertionError("No BrianObjectException raised.")
     except BrianObjectException as ex:
         assert isinstance(ex.__cause__, IndexError)
         assert 'outside allowed range' in str(ex.__cause__)
@@ -3028,7 +3028,7 @@ def test_synapse_generator_range_noint():
     # arguments to `range` should only be integers (issue #781)
     G = NeuronGroup(42, '')
     S = Synapses(G, G)
-    msg = r'The "{}" argument of the range function was .+, but it needs to be an integer\.'
+    msg = r"The '{}' argument of the range function was .+, but it needs to be an integer\."
     with pytest.raises(TypeError, match=msg.format('high')):
         S.connect(j='k for k in range(42.0)')
     with pytest.raises(TypeError, match=msg.format('low')):

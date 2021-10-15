@@ -1,6 +1,6 @@
-'''
+"""
 AST parsing based analysis of expressions
-'''
+"""
 import ast
 
 from brian2.core.functions import Function
@@ -16,7 +16,7 @@ __all__ = ['parse_expression_dimensions']
 
 
 def is_boolean_expression(expr, variables):
-    '''
+    """
     Determines if an expression is of boolean type or not
     
     Parameters
@@ -54,7 +54,7 @@ def is_boolean_expression(expr, variables):
     * The node is a unary operation, we return ``True`` if the operation is
       ``not``, otherwise ``False``.
     * Otherwise we return ``False``.
-    '''
+    """
 
     # If we are working on a string, convert to the top level node    
     if isinstance(expr, str):
@@ -73,7 +73,7 @@ def is_boolean_expression(expr, variables):
         if value is True or value is False:
             return True
         elif value is None:
-            raise ValueError('Do not know how to deal with "None"')
+            raise ValueError("Do not know how to deal with 'None'")
     elif expr.__class__ is ast.Name:
         name = expr.id
         if name in variables:
@@ -85,7 +85,7 @@ def is_boolean_expression(expr, variables):
         if name in variables and hasattr(variables[name], '_returns_bool'):
             return variables[name]._returns_bool
         else:
-            raise SyntaxError('Unknown function %s' % name)
+            raise SyntaxError(f'Unknown function {name}')
     elif expr.__class__ is ast.Compare:
         return True
     elif expr.__class__ is ast.UnaryOp:
@@ -95,7 +95,7 @@ def is_boolean_expression(expr, variables):
 
 
 def _get_value_from_expression(expr, variables):
-    '''
+    """
     Returns the scalar value of an expression, and checks its validity.
 
     Parameters
@@ -117,7 +117,7 @@ def _get_value_from_expression(expr, variables):
         If the expression cannot be evaluated to a scalar value
     DimensionMismatchError
         If any part of the expression is dimensionally inconsistent.
-    '''
+    """
     # If we are working on a string, convert to the top level node
     if isinstance(expr, str):
         mod = ast.parse(expr, mode='eval')
@@ -127,20 +127,20 @@ def _get_value_from_expression(expr, variables):
         name = expr.id
         if name in variables:
             if not getattr(variables[name], 'constant', False):
-                raise SyntaxError('Value %s is not constant' % name)
+                raise SyntaxError(f'Value {name} is not constant')
             if not getattr(variables[name], 'scalar', False):
-                raise SyntaxError('Value %s is not scalar' % name)
+                raise SyntaxError(f'Value {name} is not scalar')
             return variables[name].get_value()
         elif name in ['True', 'False']:
             return 1.0 if name == 'True' else 0.0
         else:
-            raise ValueError('Unknown identifier %s' % name)
+            raise ValueError(f'Unknown identifier {name}')
     elif expr.__class__ is getattr(ast, 'NameConstant', None):
         value = expr.value
         if value is True or value is False:
             return 1.0 if value else 0.0
         else:
-            raise ValueError('Do not know how to deal with value %s' % value)
+            raise ValueError(f'Do not know how to deal with value {value}')
     elif (expr.__class__ is ast.Num or
           expr.__class__ is getattr(ast, 'Constant', None)):  # Python 3.8
         # In Python 3.8, boolean values are represented by Constant, not by
@@ -150,11 +150,13 @@ def _get_value_from_expression(expr, variables):
         else:
             return expr.n
     elif expr.__class__ is ast.BoolOp:
-        raise SyntaxError('Cannot determine the numerical value for a boolean operation.')
+        raise SyntaxError(
+            "Cannot determine the numerical value for a boolean operation.")
     elif expr.__class__ is ast.Compare:
-        raise SyntaxError('Cannot determine the numerical value for a boolean operation.')
+        raise SyntaxError(
+            "Cannot determine the numerical value for a boolean operation.")
     elif expr.__class__ is ast.Call:
-        raise SyntaxError('Cannot determine the numerical value for a function call.')
+        raise SyntaxError("Cannot determine the numerical value for a function call.")
     elif expr.__class__ is ast.BinOp:
         op = expr.op.__class__.__name__
         left = _get_value_from_expression(expr.left, variables)
@@ -172,25 +174,25 @@ def _get_value_from_expression(expr, variables):
         elif op == 'Mod':
             v = left % right
         else:
-            raise SyntaxError("Unsupported operation "+op)
+            raise SyntaxError(f"Unsupported operation {op}")
         return v
     elif expr.__class__ is ast.UnaryOp:
         op = expr.op.__class__.__name__
         # check validity of operand and get its unit
         v =  _get_value_from_expression(expr.operand, variables)
         if op == 'Not':
-            raise SyntaxError(('Cannot determine the numerical value '
-                               'for a boolean operation.'))
+            raise SyntaxError("Cannot determine the numerical value "
+                              "for a boolean operation.")
         if op == 'USub':
             return -v
         else:
-            raise SyntaxError('Unknown unary operation ' + op)
+            raise SyntaxError(f"Unknown unary operation {op}")
     else:
-        raise SyntaxError('Unsupported operation ' + str(expr.__class__))
+        raise SyntaxError(f"Unsupported operation {str(expr.__class__)}")
 
     
 def parse_expression_dimensions(expr, variables, orig_expr=None):
-    '''
+    """
     Returns the unit value of an expression, and checks its validity
     
     Parameters
@@ -213,7 +215,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         anything other than a constant number.
     DimensionMismatchError
         If any part of the expression is dimensionally inconsistent.
-    '''
+    """
 
     # If we are working on a string, convert to the top level node    
     if isinstance(expr, str):
@@ -226,14 +228,13 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         if value is True or value is False:
             return DIMENSIONLESS
         else:
-            raise ValueError('Do not know how to handle value %s' % value)
+            raise ValueError(f'Do not know how to handle value {value}')
     if expr.__class__ is ast.Name:
         name = expr.id
         # Raise an error if a function is called as if it were a variable
         # (most of the time this happens for a TimedArray)
         if name in variables and isinstance(variables[name], Function):
-            raise SyntaxError('%s was used like a variable/constant, but it is '
-                              'a function.' % name,
+            raise SyntaxError(f'{name} was used like a variable/constant, but it is a function.',
                               ("<string>",
                                expr.lineno,
                                expr.col_offset + 1,
@@ -244,7 +245,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         elif name in ['True', 'False']:
             return DIMENSIONLESS
         else:
-            raise KeyError('Unknown identifier %s' % name)
+            raise KeyError(f'Unknown identifier {name}')
     elif (expr.__class__ is ast.Num or
           expr.__class__ is getattr(ast, 'Constant', None)):  # Python 3.8
         return DIMENSIONLESS
@@ -262,10 +263,13 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
             subunits.append(parse_expression_dimensions(node, variables, orig_expr=orig_expr))
         for left_dim, right_dim in zip(subunits[:-1], subunits[1:]):
             if not have_same_dimensions(left_dim, right_dim):
-                msg = ('Comparison of expressions with different units. Expression '
-                       '"{}" has unit ({}), while expression "{}" has units ({})').format(
-                            NodeRenderer().render_node(expr.left), get_dimensions(left_dim),
-                            NodeRenderer().render_node(expr.comparators[0]), get_dimensions(right_dim))
+                left_expr = NodeRenderer().render_node(expr.left)
+                right_expr = NodeRenderer().render_node(expr.comparators[0])
+                dim_left = get_dimensions(left_dim)
+                dim_right = get_dimensions(right_dim)
+                msg = (f"Comparison of expressions with different units. Expression "
+                       f"'{left_expr}' has unit ({dim_left}), while expression "
+                       f"'{right_expr}' has units ({dim_right}).")
                 raise DimensionMismatchError(msg)
         # but the result is a bool, so we just return 1 as the unit
         return DIMENSIONLESS
@@ -279,21 +283,20 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
 
         func = variables.get(expr.func.id, None)
         if func is None:
-            raise SyntaxError('Unknown function %s' % expr.func.id,
+            raise SyntaxError(f'Unknown function {expr.func.id}',
                               ("<string>",
                                expr.lineno,
                                expr.col_offset + 1,
                                orig_expr)
                               )
         if not hasattr(func, '_arg_units') or not hasattr(func, '_return_unit'):
-            raise ValueError(('Function %s does not specify how it '
-                              'deals with units.') % expr.func.id)
+            raise ValueError(f"Function {expr.func_id} does not specify how it "
+                             f"deals with units.")
 
         if len(func._arg_units) != len(expr.args):
-            raise SyntaxError('Function %s was called with %d parameters, '
-                              'needs %d.' % (expr.func.id,
-                                             len(expr.args),
-                                             len(func._arg_units)),
+            raise SyntaxError(f"Function '{expr.func.id}' was called with "
+                              f"{len(expr.args)} parameters, needs "
+                              f"{len(func._arg_units)}.",
                               ("<string>",
                                expr.lineno,
                                expr.col_offset + len(expr.func.id) + 1,
@@ -318,25 +321,26 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                     msg = (f'Argument number {idx + 1} for function '
                            f'{expr.func.id} was supposed to have the '
                            f'same units as argument number {arg_idx + 1}, but '
-                           f'\'{NodeRenderer().render_node(arg)}\' has unit '
+                           f"'{NodeRenderer().render_node(arg)}' has unit "
                            f'{get_unit_for_display(arg_unit)}, while '
-                           f'\'{NodeRenderer().render_node(expr.args[arg_idx])}\' '
+                           f"'{NodeRenderer().render_node(expr.args[arg_idx])}' "
                            f'has unit {get_unit_for_display(expected_unit)}')
                     raise DimensionMismatchError(msg)
             elif expected_unit == bool:
                 if not is_boolean_expression(arg, variables):
-                    raise TypeError(('Argument number %d for function %s was '
-                                     'expected to be a boolean value, but is '
-                                     '"%s".') % (idx + 1, expr.func.id,
-                                                 NodeRenderer().render_node(arg)))
+                    rendered_arg = NodeRenderer().render_node(arg)
+                    raise TypeError(f"Argument number {idx + 1} for function "
+                                    f"'{expr.func.id}' was expected to be a boolean "
+                                    f"value, but is '{rendered_arg}'.")
             else:
                 if not have_same_dimensions(arg_unit, expected_unit):
-                    msg = ('Argument number {} for function {} does not have the '
-                           'correct units. Expression "{}" has units ({}), but '
-                           'should be ({}).').format(
-                        idx+1, expr.func.id,
-                        NodeRenderer().render_node(arg),
-                        get_dimensions(arg_unit), get_dimensions(expected_unit))
+                    rendered_arg = NodeRenderer().render_node(arg)
+                    arg_unit_dim = get_dimensions(arg_unit)
+                    expected_unit_dim = get_dimensions(expected_unit)
+                    msg = (f"Argument number {idx+1} for function {expr.func.id} does "
+                           f"not have the correct units. Expression '{rendered_arg}' "
+                           f"has units ({arg_unit_dim}), but " f"should be "
+                           f"({expected_unit_dim}).")
                     raise DimensionMismatchError(msg)
 
         if func._return_unit == bool:
@@ -362,14 +366,10 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                 right_str = NodeRenderer().render_node(expr.right)
                 left_unit = get_unit_for_display(left_dim)
                 right_unit = get_unit_for_display(right_dim)
-                error_msg = ('Expression "{left} {op} {right}" uses '
-                             'inconsistent units ("{left}" has unit '
-                             '{left_unit}; "{right}" '
-                             'has unit {right_unit})').format(left=left_str,
-                                                             right=right_str,
-                                                             op=op_symbol,
-                                                             left_unit=left_unit,
-                                                             right_unit=right_unit)
+                error_msg = (f"Expression '{left_str} {op_symbol} {right_str}' uses "
+                             f"inconsistent units ('{left_str}' has unit "
+                             f"{left_unit}; '{right_str}' "
+                             f"has unit {right_unit}).")
                 raise DimensionMismatchError(error_msg)
             u = left_dim
         elif op == 'Mult':
@@ -382,8 +382,8 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
                     col_offset = expr.right.col_offset + 1
                 else:
                     col_offset = expr.left.col_offset + 1
-                raise SyntaxError('Floor division can only be used on '
-                                  'dimensionless values.',
+                raise SyntaxError("Floor division can only be used on "
+                                  "dimensionless values.",
                                   ("<string>",
                                    expr.lineno,
                                    col_offset,
@@ -396,7 +396,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
             n = _get_value_from_expression(expr.right, variables)
             u = left_dim**n
         else:
-            raise SyntaxError("Unsupported operation "+op,
+            raise SyntaxError(f"Unsupported operation {op}",
                               ("<string>",
                                expr.lineno,
                                getattr(expr.left, 'end_col_offset',
@@ -413,7 +413,7 @@ def parse_expression_dimensions(expr, variables, orig_expr=None):
         else:
             return u
     else:
-        raise SyntaxError('Unsupported operation ' + str(expr.__class__.__name__),
+        raise SyntaxError(f"Unsupported operation {str(expr.__class__.__name__)}",
                           ("<string>",
                            expr.lineno,
                            expr.col_offset + 1,

@@ -1,6 +1,6 @@
-'''
+"""
 Utility functions for parsing expressions and statements.
-'''
+"""
 
 import re
 from collections import Counter
@@ -24,20 +24,19 @@ def check_expression_for_multiple_stateful_functions(expr, variables):
     for identifier, count in identifier_count.items():
         var = variables.get(identifier, None)
         if count > 1 and isinstance(var, Function) and not var.stateless:
-            raise NotImplementedError(('The expression "{expr}" contains '
-                                       'more than one call of {func}, this '
-                                       'is currently not supported since '
-                                       '{func} is a stateful function and '
-                                       'its multiple calls might be '
-                                       'treated incorrectly (e.g.'
-                                       '"rand() - rand()" could be '
-                                       ' simplified to '
-                                       '"0.0").').format(expr=expr,
-                                                         func=identifier))
+            raise NotImplementedError(f"The expression '{expr}' contains "
+                                      f"more than one call of {identifier}. This "
+                                      f"is currently not supported since "
+                                      f"{identifier} is a stateful function and "
+                                      f"its multiple calls might be "
+                                      f"treated incorrectly (e.g."
+                                      f"'rand() - rand()' could be "
+                                      f" simplified to "
+                                      f"'0.0').")
 
 
 def str_to_sympy(expr, variables=None):
-    '''
+    """
     Parses a string into a sympy expression. There are two reasons for not
     using `sympify` directly: 1) sympify does a ``from sympy import *``,
     adding all functions to its namespace. This leads to issues when trying to
@@ -65,7 +64,7 @@ def str_to_sympy(expr, variables=None):
     ------
     SyntaxError
         In case of any problems during parsing.
-    '''
+    """
     if variables is None:
         variables = {}
     check_expression_for_multiple_stateful_functions(expr, variables)
@@ -82,48 +81,48 @@ def _str_to_sympy(expr):
     try:
         s_expr = SympyNodeRenderer().render_expr(expr)
     except (TypeError, ValueError, NameError) as ex:
-        raise SyntaxError(('Error during evaluation of sympy expression '
-                           '"{expr}": {ex}').format(expr=expr, ex=str(ex)))
+        raise SyntaxError(f"Error during evaluation of sympy expression "
+                          f"'{expr}': {ex}")
 
     return s_expr
 
 
 class CustomSympyPrinter(StrPrinter):
-    '''
+    """
     Printer that overrides the printing of some basic sympy objects. E.g.
     print "a and b" instead of "And(a, b)".
-    '''
+    """
 
     def _print_And(self, expr):
-        return ' and '.join(['(%s)' % self.doprint(arg) for arg in expr.args])
+        return ' and '.join([f'({self.doprint(arg)})' for arg in expr.args])
 
     def _print_Or(self, expr):
-        return ' or '.join(['(%s)' % self.doprint(arg) for arg in expr.args])
+        return ' or '.join([f'({self.doprint(arg)})' for arg in expr.args])
 
     def _print_Not(self, expr):
         if len(expr.args) != 1:
-            raise AssertionError('"Not" with %d arguments?' % len(expr.args))
-        return 'not (%s)' % self.doprint(expr.args[0])
+            raise AssertionError(f'"Not" with {len(expr.args)} arguments?')
+        return f'not ({self.doprint(expr.args[0])})'
 
     def _print_Relational(self, expr):
-        return '%s %s %s' % (self.parenthesize(expr.lhs, precedence(expr)),
-                             self._relationals.get(expr.rel_op) or expr.rel_op,
-                             self.parenthesize(expr.rhs, precedence(expr)))
+        return (f"{self.parenthesize(expr.lhs, precedence(expr))} "
+                f"{self._relationals.get(expr.rel_op) or expr.rel_op} "
+                f"{self.parenthesize(expr.rhs, precedence(expr))}")
 
     def _print_Function(self, expr):
         # Special workaround for the int function
         if expr.func.__name__ == 'int_':
-            return "int(%s)" % self.stringify(expr.args, ", ")
+            return f"int({self.stringify(expr.args, ', ')})"
         elif expr.func.__name__ == 'Mod':
-            return '((%s)%%(%s))' % (self.doprint(expr.args[0]), self.doprint(expr.args[1]))
+            return f'(({self.doprint(expr.args[0])})%({self.doprint(expr.args[1])}))'
         else:
-            return expr.func.__name__ + "(%s)" % self.stringify(expr.args, ", ")
+            return f"{expr.func.__name__}({self.stringify(expr.args, ', ')})"
 
 PRINTER = CustomSympyPrinter()
 
 @cached
 def sympy_to_str(sympy_expr):
-    '''
+    """
     sympy_to_str(sympy_expr)
 
     Converts a sympy expression into a string. This could be as easy as 
@@ -140,7 +139,7 @@ def sympy_to_str(sympy_expr):
     Returns
     str_expr : str
         A string representing the sympy expression.
-    '''
+    """
     # replace the standard functions by our names if necessary
     replacements = dict((f.sympy_func, sympy.Function(name)) for
                         name, f in DEFAULT_FUNCTIONS.items()
@@ -165,7 +164,7 @@ def sympy_to_str(sympy_expr):
 
 
 def expression_complexity(expr, complexity=None):
-    '''
+    """
     Returns the complexity of an expression (either string or sympy)
 
     The complexity is defined as 1 for each arithmetic operation except divide which is 2,
@@ -185,7 +184,7 @@ def expression_complexity(expr, complexity=None):
     -------
     complexity: int
         The complexity of the expression.
-    '''
+    """
     if isinstance(expr, str):
         # we do this because sympy.count_ops doesn't handle inequalities (TODO: handle sympy as well str)
         for op in ['<=', '>=', '==', '<', '>']:

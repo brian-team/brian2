@@ -1,9 +1,9 @@
-'''
+"""
 Module providing the `Statement` class.
-'''
+"""
 
 class Statement(object):
-    '''
+    """
     A single line mathematical statement.
     
     The structure is ``var op expr``.
@@ -60,7 +60,7 @@ class Statement(object):
     variables with an ``if/then`` sequence where each subexpression is
     simplified. It is optional to use this (e.g. the numpy codegen does
     not, but the cython one does).
-    '''
+    """
     def __init__(self, var, op, expr, comment, dtype,
                  constant=False, subexpression=False, scalar=False):
         self.var = var.strip()
@@ -72,7 +72,7 @@ class Statement(object):
         self.subexpression = subexpression
         self.scalar = scalar
         if constant and self.op!=':=':
-            raise ValueError("Should not set constant flag for operation "+self.op)
+            raise ValueError(f"Should not set constant flag for operation {self.op}")
         if op.endswith('=') and op!='=' and op!=':=':
             self.inplace = True
         else:
@@ -81,7 +81,7 @@ class Statement(object):
         self.boolean_simplified_expressions = None
 
     def __str__(self):
-        s = self.var+' '+self.op+' '+str(self.expr)
+        s = f"{self.var} {self.op} {str(self.expr)}"
         if self.constant:
             s += ' (constant)'
         if self.subexpression:
@@ -89,7 +89,7 @@ class Statement(object):
         if self.inplace:
             s += ' (in-place)'
         if len(self.comment):
-            s += ' # ' + self.comment
+            s += f" # {self.comment}"
         return s
     __repr__ = __str__
 

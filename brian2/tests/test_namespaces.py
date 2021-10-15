@@ -20,18 +20,18 @@ class SimpleGroup(Group):
         self.variables = variables
         # We use a unique name to get repeated warnings
         Group.__init__(self, namespace=namespace,
-                       name='simplegroup_' + str(uuid.uuid4()).replace('-', '_'))
+                       name=f"simplegroup_{str(uuid.uuid4()).replace('-', '_')}")
 
 def _assert_one_warning(l):
-    assert len(l) == 1, "expected one warning got %d" % len(l)
-    assert l[0][0] == 'WARNING', "expected a WARNING, got %s instead" % l[0][0]
+    assert len(l) == 1, f"expected one warning got {len(l)}"
+    assert l[0][0] == 'WARNING', f"expected a WARNING, got {l[0][0]} instead"
 
 
 @pytest.mark.codegen_independent
 def test_default_content():
-    '''
+    """
     Test that the default namespace contains standard units and functions.
-    '''
+    """
     group = Group()
     # Units
     assert group._resolve('second', {}).get_value_with_unit() == second
@@ -56,7 +56,7 @@ def test_default_content():
 
 @pytest.mark.codegen_independent
 def test_explicit_namespace():
-    ''' Test resolution with an explicitly provided namespace '''
+    """ Test resolution with an explicitly provided namespace """
     group = SimpleGroup(namespace={'variable': 42}, variables={})
 
     # Explicitly provided
@@ -122,12 +122,12 @@ def test_warning():
     with catch_logs() as l:
         resolved = group.resolve_all(['exp'], namespace)['exp']
         assert resolved == DEFAULT_FUNCTIONS['exp']
-        assert len(l) == 1, 'got warnings: %s' % str(l)
+        assert len(l) == 1, f'got warnings: {str(l)}'
         assert l[0][1].endswith('.resolution_conflict')
     with catch_logs() as l:
         resolved = group.resolve_all(['cm'], namespace)['cm']
         assert resolved.get_value_with_unit() == brian_cm
-        assert len(l) == 1, 'got warnings: %s' % str(l)
+        assert len(l) == 1, f'got warnings: {str(l)}'
         assert l[0][1].endswith('.resolution_conflict')
 
 @pytest.mark.codegen_independent
@@ -138,10 +138,10 @@ def test_warning_internal_variables():
                          variables={'N': Constant('N', 7)})
     with catch_logs() as l:
         group1.resolve_all(['N'], run_namespace={'N': 5})  # should not raise a warning
-        assert len(l) == 0, 'got warnings: %s' % str(l)
+        assert len(l) == 0, f'got warnings: {str(l)}'
     with catch_logs() as l:
         group2.resolve_all(['N'], run_namespace={'N': 5})  # should raise a warning
-        assert len(l) == 1, 'got warnings: %s' % str(l)
+        assert len(l) == 1, f'got warnings: {str(l)}'
         assert l[0][1].endswith('.resolution_conflict')
 
 

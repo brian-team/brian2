@@ -96,14 +96,14 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
             {% if skip_if_invalid %}
             _iter_size = _n_total
             {% else %}
-            raise IndexError('Requested sample size %d is bigger than the '
-                             'population size %d.' % (_iter_size, _n_total))
+            raise IndexError(f"Requested sample size {_iter_size} is bigger than the "
+                             f"population size {_n_total}.")
             {% endif %}
         elif _iter_size < 0:
             {% if skip_if_invalid %}
             continue
             {% else %}
-            raise IndexError('Requested sample size %d is negative.' % _iter_size)
+            raise IndexError(f"Requested sample size {_iter_size} is negative.")
             {% endif %}
         if _selection_algo:
             {{inner_variable}} = _iter_low - _iter_step
@@ -171,6 +171,8 @@ cdef void _flush_buffer(buf, dynarr, int buf_len):
                 {% if skip_if_invalid %}
                 continue
                 {% else %}
+                # Note that with Jinja using a lot of curly braces, it is a better
+                # solution to use the outdated % syntax instead of f-strings here.
                 raise IndexError("index {{result_index}}=%d outside allowed range from 0 to %d" % (_{{result_index}}, {{result_index_size}}-1))
                 {% endif %}
             {% endif %}

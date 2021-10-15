@@ -1,6 +1,6 @@
-'''
+"""
 Classes for providing external input to a network.
-'''
+"""
 
 from .binomial import *
 from .poissongroup import *

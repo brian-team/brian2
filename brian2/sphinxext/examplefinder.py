@@ -1,6 +1,6 @@
-'''
+"""
 Automatically find examples of a Brian object or function.
-'''
+"""
 
 
 
@@ -22,7 +22,7 @@ def get_map(environ_var, relrootdir, pattern, the_map, path_exclusions=[]):
     else:
         rootdir, _ = os.path.split(__file__)
         rootdir = os.path.normpath(os.path.join(rootdir, relrootdir))
-    fnames = [fname for fname in GlobDirectoryWalker(rootdir, '*'+pattern)]
+    fnames = [fname for fname in GlobDirectoryWalker(rootdir, f"*{pattern}")]
     for exclude in path_exclusions:
         fnames = [fname for fname in fnames if exclude not in fname]
     shortfnames = [os.path.relpath(fname, rootdir) for fname in fnames]
@@ -46,12 +46,12 @@ def get_tutorials_map():
 
 
 def auto_find_examples(obj, headersymbol='='):
-    '''
+    """
     Returns a restructured text section listing all the examples and
     tutorials making use of the specified object (as determined by
     the name being in the list of identifiers, which may occasionally
     make mistakes but is usually going to be correct).
-    '''
+    """
     name = obj.__name__
     examples_map = get_examples_map()
     examples = sorted(the_examples_map[name])
@@ -60,14 +60,14 @@ def auto_find_examples(obj, headersymbol='='):
     if len(examples+tutorials)==0:
         return ''
     txt = 'Tutorials and examples using this'
-    txt = txt+'\n'+headersymbol*len(txt)+'\n\n'
+    txt = f"{txt}\n{headersymbol * len(txt)}\n\n"
     for tutname, tutloc in tutorials:
         tutname = tutname.replace('.ipynb', '')
-        txt += '* Tutorial :doc:`%s </resources/tutorials/%s>`\n' % (tutname, tutloc)
+        txt += f'* Tutorial :doc:`{tutname} </resources/tutorials/{tutloc}>`\n'
     for exname, exloc in examples:
         exname = exname.replace('.py', '')
-        txt += '* Example :doc:`%s </examples/%s>`\n' % (exname, exloc)
-    return txt+'\n'
+        txt += f'* Example :doc:`{exname} </examples/{exloc}>`\n'
+    return f"{txt}\n"
     
     
 if __name__=='__main__':

@@ -105,7 +105,7 @@ def test_poissongroup_namespace():
     rate_const = 0*Hz
     P = PoissonGroup(1, rates='rate_const', namespace={'rate_const':
                                                        1/defaultclock.dt},
-                     name='poissongroup_%s' % (uuid.uuid4().hex))
+                     name=f'poissongroup_{uuid.uuid4().hex}')
     P2 = PoissonGroup(1, rates='rate_const')
     mon = SpikeMonitor(P)
     mon2 = SpikeMonitor(P2)

@@ -1,6 +1,6 @@
-'''
+"""
 Module implementing the C++ "standalone" `CodeObject`
-'''
+"""
 
 from brian2.codegen.codeobject import CodeObject, constant_or_scalar
 from brian2.codegen.targets import codegen_targets
@@ -27,7 +27,7 @@ def openmp_pragma(pragma_type):
             return ''
         elif nb_threads > 0:
             # We have to fix the exact number of threads in all parallel sections
-            return 'omp_set_dynamic(0);\nomp_set_num_threads(%d);' %nb_threads
+            return f'omp_set_dynamic(0);\nomp_set_num_threads({int(nb_threads)});'
     elif pragma_type == 'get_thread_num':
         if not openmp_on:
             return '0'
@@ -37,7 +37,7 @@ def openmp_pragma(pragma_type):
         if not openmp_on:
             return '1'
         else:
-            return '%d' %nb_threads
+            return f'{int(nb_threads)}'
     elif pragma_type == 'with_openmp':
         # The returned value is a proper Python boolean, i.e. not something
         # that should be included in the generated code but rather for use
@@ -81,17 +81,17 @@ def openmp_pragma(pragma_type):
     elif pragma_type == 'section':
         return '#pragma omp section'
     else:
-        raise ValueError('Unknown OpenMP pragma "%s"' % pragma_type)
+        raise ValueError(f'Unknown OpenMP pragma "{pragma_type}"')
 
 
 class CPPStandaloneCodeObject(CodeObject):
-    '''
+    """
     C++ standalone code object
     
     The ``code`` should be a `~brian2.codegen.templates.MultiTemplate`
     object with two macros defined, ``main`` (for the main loop code) and
     ``support_code`` for any support code (e.g. function definitions).
-    '''
+    """
     templater = Templater('brian2.devices.cpp_standalone', '.cpp',
                           env_globals={'c_data_type': c_data_type,
                                        'openmp_pragma': openmp_pragma,
@@ -113,12 +113,12 @@ class CPPStandaloneCodeObject(CodeObject):
 
     def run_block(self, block):
         if block == 'run':
-            get_device().main_queue.append((block + '_code_object', (self,)))
+            get_device().main_queue.append((f"{block}_code_object", (self,)))
         else:
             # Check the C++ code whether there is anything to run
-            cpp_code = getattr(self.code, block + '_cpp_file')
+            cpp_code = getattr(self.code, f"{block}_cpp_file")
             if len(cpp_code) and 'EMPTY_CODE_BLOCK' not in cpp_code:
-                get_device().main_queue.append((block + '_code_object', (self,)))
+                get_device().main_queue.append((f"{block}_code_object", (self,)))
                 self.before_after_blocks.append(block)
 
 
@@ -140,11 +140,11 @@ def generate_rand_code(rand_func, owner):
         rk_call = 'rk_gauss'
     else:
         raise AssertionError(rand_func)
-    code = '''
+    code = """
            double _%RAND_FUNC%(const int _vectorisation_idx) {
                return %RK_CALL%(brian::_mersenne_twister_states[%THREAD_NUMBER%]);
            }
-           '''
+           """
     code = replace(code, {'%THREAD_NUMBER%': thread_number,
                           '%RAND_FUNC%': rand_func,
                           '%RK_CALL%': rk_call})

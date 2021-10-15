@@ -1,6 +1,6 @@
-'''
+"""
 Numerical integration functions.
-'''
+"""
 import string
 import operator
 from functools import reduce
@@ -23,7 +23,7 @@ __all__ = ['milstein', 'heun', 'euler', 'rk2', 'rk4', 'ExplicitStateUpdater']
 #===============================================================================
 
 def _symbol(name, positive=None):
-    ''' Shorthand for ``sympy.Symbol(name, real=True)``. '''
+    """ Shorthand for ``sympy.Symbol(name, real=True)``. """
     return sympy.Symbol(name, real=True, positive=positive)
 
 #: reserved standard symbols
@@ -37,7 +37,7 @@ SYMBOLS = {'__x' : _symbol('__x'),
 
 
 def split_expression(expr):
-    '''
+    """
     Split an expression into a part containing the function ``f`` and another
     one containing the function ``g``. Returns a tuple of the two expressions
     (as sympy expressions).
@@ -62,7 +62,7 @@ def split_expression(expr):
     (dt*__f(__x, __t), __dW*__g(__x, __t))
     >>> split_expression('1/(2*sqrt(dt))*(__g_support - __g(__x, __t))*(sqrt(__dW))')
     (0, sqrt(__dW)*__g_support/(2*sqrt(dt)) - sqrt(__dW)*__g(__x, __t)/(2*sqrt(dt)))
-    '''
+    """
     
     f = SYMBOLS['__f']
     g = SYMBOLS['__g']
@@ -94,8 +94,7 @@ def split_expression(expr):
     matches = sympy_expr.match(match_expr)
     
     if matches is None:
-        raise ValueError(('Expression "%s" in the state updater description '
-                          'could not be parsed.' % sympy_expr))
+        raise ValueError(f'Expression "{sympy_expr}" in the state updater description could not be parsed.')
     
     # Non-stochastic part    
     if x_f in matches:
@@ -122,7 +121,7 @@ def split_expression(expr):
 
 
 class ExplicitStateUpdater(StateUpdateMethod):
-    '''
+    """
     An object that can be used for defining state updaters via a simple
     description (see below). Resulting instances can be passed to the
     ``method`` argument of the `NeuronGroup` constructor. As other state
@@ -199,15 +198,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
     See also
     --------
     euler, rk2, rk4, milstein
-    ''' 
+    """ 
     
     #===========================================================================
     # Parsing definitions
     #===========================================================================
     #: Legal names for temporary variables
-    TEMP_VAR = ~Literal('x_new') + Word(string.ascii_letters + '_',
-                                        string.ascii_letters +
-                                        string.digits + '_').setResultsName('identifier')
+    TEMP_VAR = ~Literal('x_new') + Word(f"{string.ascii_letters}_",
+                                        f"{string.ascii_letters + string.digits}_").setResultsName('identifier')
     
     #: A single expression
     EXPRESSION = restOfLine.setResultsName('expression')
@@ -231,7 +229,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             parsed = ExplicitStateUpdater.DESCRIPTION.parseString(description,
                                                                   parseAll=True)
         except ParseException as p_exc:
-            ex = SyntaxError('Parsing failed: ' + str(p_exc.msg))
+            ex = SyntaxError(f"Parsing failed: {str(p_exc.msg)}")
             ex.text = str(p_exc.line)
             ex.offset = p_exc.column
             ex.lineno = p_exc.lineno
@@ -253,38 +251,35 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 if symbol.name == 'dt':
                     unique_symbols.append(symbol)
                 else:
-                    unique_symbols.append(_symbol('__' + symbol.name))
+                    unique_symbols.append(_symbol(f"__{symbol.name}"))
             for symbol, unique_symbol in zip(symbols, unique_symbols):
                 expression = expression.subs(symbol, unique_symbol)
 
             self.symbols.update(dict(((symbol.name, symbol)
                                       for symbol in unique_symbols)))
             if element.getName() == 'statement':
-                self.statements.append(('__'+element.identifier, expression))
+                self.statements.append((f"__{element.identifier}", expression))
             elif element.getName() == 'output':
                 self.output = expression
             else:
-                raise AssertionError('Unknown element name: %s' %
-                                     element.getName())
+                raise AssertionError(f'Unknown element name: {element.getName()}')
 
     def __repr__(self):
         # recreate a description string
-        description = '\n'.join(['%s = %s' % (var, expr)
+        description = '\n'.join([f'{var} = {expr}'
                                  for var, expr in self.statements])
         if len(description):
             description += '\n'
-        description += 'x_new = ' + str(self.output)
-        r = "{classname}('''{description}''', stochastic={stochastic})"
-        return r.format(classname=self.__class__.__name__,
-                        description=description,
-                        stochastic=repr(self.stochastic))
+        description += f"x_new = {str(self.output)}"
+        classname = self.__class__.__name__
+        return f"{classname}('''{description}''', stochastic={self.stochastic!r})"
 
     def __str__(self):
-        s = '%s\n' % self.__class__.__name__
+        s = f'{self.__class__.__name__}\n'
         
         if len(self.statements) > 0:
             s += 'Intermediate statements:\n'
-            s += '\n'.join([(var + ' = ' + sympy_to_str(expr))
+            s += '\n'.join([f"{var} = {sympy_to_str(expr)}"
                             for var, expr in self.statements])
             s += '\n'
             
@@ -297,9 +292,9 @@ class ExplicitStateUpdater(StateUpdateMethod):
         s = [r'\begin{equation}']
         for var, expr in self.statements:      
             expr = expr.subs(Symbol('x'), Symbol('x_t'))      
-            s.append(latex(Symbol(var)) + ' = ' + latex(expr) + r'\\')
+            s.append(f"{latex(Symbol(var))} = {latex(expr)}\\\\")
         expr = self.output.subs(Symbol('x'), 'x_t')
-        s.append(r'x_{t+1} = ' + latex(expr))
+        s.append(f"x_{{t+1}} = {latex(expr)}")
         s.append(r'\end{equation}')
         return '\n'.join(s)
 
@@ -308,7 +303,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
     def replace_func(self, x, t, expr, temp_vars, eq_symbols,
                      stochastic_variable=None):
-        '''
+        """
         Used to replace a single occurance of ``f(x, t)`` or ``g(x, t)``:
         `expr` is the non-stochastic (in the case of ``f``) or stochastic
         part (``g``) of the expression defining the right-hand-side of the
@@ -323,13 +318,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
         Note that this deals with only one state variable `var`, given as
         an argument to the surrounding `_generate_RHS` function.
-        '''
+        """
 
         try:
             s_expr = str_to_sympy(str(expr))
         except SympifyError as ex:
-            raise ValueError('Error parsing the expression "%s": %s' %
-                             (expr, str(ex)))
+            raise ValueError(f'Error parsing the expression "{expr}": {str(ex)}')
 
         for var in eq_symbols:
             # Generate specific temporary variables for the state variable,
@@ -337,11 +331,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # variable 'k'.
             if stochastic_variable is None:
                 temp_var_replacements = dict(((self.symbols[temp_var],
-                                               _symbol(temp_var+'_'+var))
+                                               _symbol(f"{temp_var}_{var}"))
                                               for temp_var in temp_vars))
             else:
                 temp_var_replacements = dict(((self.symbols[temp_var],
-                                               _symbol(temp_var+'_'+var+'_'+stochastic_variable))
+                                               _symbol(f"{temp_var}_{var}_{stochastic_variable}"))
                                               for temp_var in temp_vars))
             # In the expression given as 'x', replace 'x' by the variable
             # 'var' and all the temporary variables by their
@@ -379,7 +373,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
                 eq_symbols[var])
             # Replace intermediate variables
             temp_var_replacements = dict((self.symbols[temp_var],
-                                          _symbol(temp_var + '_' + var))
+                                          _symbol(f"{temp_var}_{var}"))
                                          for temp_var in temp_vars)
             non_stochastic_result = non_stochastic_result.subs(
                 temp_var_replacements)
@@ -399,7 +393,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # Replace intermediate variables
             temp_var_replacements = dict((self.symbols[temp_var],
                                           _symbol(
-                                              temp_var + '_' + var + '_' + stochastic_variable))
+                                              f"{temp_var}_{var}_{stochastic_variable}"))
                                          for temp_var in temp_vars)
 
             non_stochastic_result = non_stochastic_result.subs(
@@ -419,7 +413,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # Replace intermediate variables
             temp_var_replacements = dict((self.symbols[temp_var],
                                           reduce(operator.add, [_symbol(
-                                              temp_var + '_' + var + '_' + xi)
+                                              f"{temp_var}_{var}_{xi}")
                                                                 for xi in
                                                                 stochastic_variable]))
                                          for temp_var in temp_vars)
@@ -450,7 +444,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
             # Replace intermediate variables
             temp_var_replacements = dict((self.symbols[temp_var],
                                           _symbol(
-                                              temp_var + '_' + var + '_' + stochastic_variable))
+                                              f"{temp_var}_{var}_{stochastic_variable}"))
                                          for temp_var in temp_vars)
 
             stochastic_result = stochastic_result.subs(temp_var_replacements)
@@ -475,7 +469,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
 
                 # Replace intermediate variables
                 temp_var_replacements = dict((self.symbols[temp_var],
-                                              _symbol(temp_var + '_' + var + '_' + xi))
+                                              _symbol(f"{temp_var}_{var}_{xi}"))
                                              for temp_var in temp_vars)
 
                 stochastic_result = stochastic_result.subs(
@@ -486,7 +480,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
     def _generate_RHS(self, eqs, var, eq_symbols, temp_vars, expr,
                       non_stochastic_expr, stochastic_expr,
                       stochastic_variable=()):
-        '''
+        """
         Helper function used in `__call__`. Generates the right hand side of
         an abstract code statement by appropriately replacing f, g and t.
         For example, given a differential equation ``dv/dt = -(v + I) / tau``
@@ -496,7 +490,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         ``x + dt*f(x +  k/2, t + dt/2)`` and `stochastic_expr` is ``None``),
         produces ``v + dt*(-v - _k_v/2 + I + _k_I/2)/tau``.
                 
-        '''
+        """
         
         # Note: in the following we are silently ignoring the case that a
         # state updater does not care about either the non-stochastic or the
@@ -547,7 +541,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         return sympy_to_str(RHS)
 
     def __call__(self, eqs, variables=None, method_options=None):
-        '''
+        """
         Apply a state updater description to model equations.
         
         Parameters
@@ -575,14 +569,14 @@ class ExplicitStateUpdater(StateUpdateMethod):
         __k_4_v = -dt*(__k_3_v + v)/tau
         _v = __k_1_v/6 + __k_2_v/3 + __k_3_v/3 + __k_4_v/6 + v
         v = _v
-        '''
+        """
         extract_method_options(method_options, {})
         # Non-stochastic numerical integrators should work for all equations,
         # except for stochastic equations
         if eqs.is_stochastic and self.stochastic is None:
-            raise UnsupportedEquationsException('Cannot integrate '
-                                                'stochastic equations with '
-                                                'this state updater.')
+            raise UnsupportedEquationsException("Cannot integrate "
+                                                "stochastic equations with "
+                                                "this state updater.")
         if self.custom_check:
             self.custom_check(eqs, variables)
         # The final list of statements
@@ -600,7 +594,7 @@ class ExplicitStateUpdater(StateUpdateMethod):
         
         # Generate the random numbers for the stochastic variables
         for stochastic_variable in stochastic_variables:
-            statements.append(stochastic_variable + ' = ' + 'dt**.5 * randn()')
+            statements.append(f"{stochastic_variable} = dt**.5 * randn()")
 
         substituted_expressions = eqs.get_substituted_expressions(variables)
 
@@ -619,12 +613,12 @@ class ExplicitStateUpdater(StateUpdateMethod):
                     RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                              expr, non_stochastic_expr,
                                              stochastic_expr, xi)
-                    statements.append(intermediate_var+'_'+var+'_'+xi+' = '+RHS)
+                    statements.append(f"{intermediate_var}_{var}_{xi} = {RHS}")
                 if not stochastic_variables:   # no stochastic variables
                     RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                              expr, non_stochastic_expr,
                                              stochastic_expr)
-                    statements.append(intermediate_var+'_'+var+' = '+RHS)
+                    statements.append(f"{intermediate_var}_{var} = {RHS}")
                 
         # Process the "return" line of the stateupdater description
         non_stochastic_expr, stochastic_expr = split_expression(self.output)
@@ -651,10 +645,10 @@ class ExplicitStateUpdater(StateUpdateMethod):
                     # via differential equations.
                     if (not is_constant_over_dt(sympy_expr, variables, dt_value)
                             or len(stoch_expr.identifiers & eqs.diff_eq_names)):
-                        raise UnsupportedEquationsException('Cannot integrate '
-                                                            'equations with '
-                                                            'multiplicative noise with '
-                                                            'this state updater.')
+                        raise UnsupportedEquationsException("Cannot integrate "
+                                                            "equations with "
+                                                            "multiplicative noise with "
+                                                            "this state updater.")
 
         # Assign a value to all the model variables described by differential
         # equations
@@ -662,11 +656,11 @@ class ExplicitStateUpdater(StateUpdateMethod):
             RHS = self._generate_RHS(eqs, var, eq_variables, intermediate_vars,
                                      expr, non_stochastic_expr, stochastic_expr,
                                      stochastic_variables)
-            statements.append('_' + var + ' = ' + RHS)
+            statements.append(f"_{var} = {RHS}")
         
         # Assign everything to the final variables
         for var, expr in substituted_expressions:
-            statements.append(var + ' = ' + '_' + var)
+            statements.append(f"{var} = _{var}")
 
         return '\n'.join(statements)
 
@@ -681,21 +675,21 @@ euler = ExplicitStateUpdater('x_new = x + dt * f(x,t) + g(x,t) * dW',
                              stochastic='additive')
 
 #: Second order Runge-Kutta method (midpoint method)
-rk2 = ExplicitStateUpdater('''
+rk2 = ExplicitStateUpdater("""
     k = dt * f(x,t)
-    x_new = x + dt*f(x +  k/2, t + dt/2)''')
+    x_new = x + dt*f(x +  k/2, t + dt/2)""")
 
 #: Classical Runge-Kutta method (RK4)
-rk4 = ExplicitStateUpdater('''
+rk4 = ExplicitStateUpdater("""
     k_1 = dt*f(x,t)
     k_2 = dt*f(x+k_1/2,t+dt/2)
     k_3 = dt*f(x+k_2/2,t+dt/2)
     k_4 = dt*f(x+k_3,t+dt)
     x_new = x+(k_1+2*k_2+2*k_3+k_4)/6
-    ''')
+    """)
 
 def diagonal_noise(equations, variables):
-    '''
+    """
     Checks whether we deal with diagonal noise, i.e. one independent noise
     variable per variable.
 
@@ -703,7 +697,7 @@ def diagonal_noise(equations, variables):
     ------
     UnsupportedEquationsException
         If the noise is not diagonal.
-    '''
+    """
     if not equations.is_stochastic:
         return
 
@@ -712,32 +706,32 @@ def diagonal_noise(equations, variables):
         expr_stochastic_vars = expr.stochastic_variables
         if len(expr_stochastic_vars) > 1:
             # More than one stochastic variable --> no diagonal noise
-            raise UnsupportedEquationsException('Cannot integrate stochastic '
-                                                'equations with non-diagonal '
-                                                'noise with this state '
-                                                'updater.')
+            raise UnsupportedEquationsException("Cannot integrate stochastic "
+                                                "equations with non-diagonal "
+                                                "noise with this state "
+                                                "updater.")
         stochastic_vars.extend(expr_stochastic_vars)
 
     # If there's no stochastic variable is used in more than one equation, we
     # have diagonal noise
     if len(stochastic_vars) != len(set(stochastic_vars)):
-        raise UnsupportedEquationsException('Cannot integrate stochastic '
-                                            'equations with non-diagonal '
-                                            'noise with this state '
-                                            'updater.')
+        raise UnsupportedEquationsException("Cannot integrate stochastic "
+                                            "equations with non-diagonal "
+                                            "noise with this state "
+                                            "updater.")
 
 #: Derivative-free Milstein method
-milstein = ExplicitStateUpdater('''
+milstein = ExplicitStateUpdater("""
     x_support = x + dt*f(x, t) + dt**.5 * g(x, t)
     g_support = g(x_support, t)
     k = 1/(2*dt**.5)*(g_support - g(x, t))*(dW**2)
     x_new = x + dt*f(x,t) + g(x, t) * dW + k
-    ''', stochastic='multiplicative', custom_check=diagonal_noise)
+    """, stochastic='multiplicative', custom_check=diagonal_noise)
 
 #: Stochastic Heun method (for multiplicative Stratonovic SDEs with non-diagonal
 #: diffusion matrix)
-heun = ExplicitStateUpdater('''
+heun = ExplicitStateUpdater("""
     x_support = x + g(x,t) * dW
     g_support = g(x_support,t+dt)
     x_new = x + dt*f(x,t) + .5*dW*(g(x,t)+g_support)
-    ''', stochastic='multiplicative')
+    """, stochastic='multiplicative')

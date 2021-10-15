@@ -16,18 +16,18 @@ from brian2.codegen.codeobject import CodeObject
 
 @pytest.mark.codegen_independent
 def test_constants_sympy():
-    '''
+    """
     Make sure that symbolic constants are understood correctly by sympy
-    '''
+    """
     assert sympy_to_str(str_to_sympy('1.0/inf')) == '0'
     assert sympy_to_str(str_to_sympy('sin(pi)')) == '0'
     assert sympy_to_str(str_to_sympy('log(e)')) == '1'
 
 @pytest.mark.standalone_compatible
 def test_constants_values():
-    '''
+    """
     Make sure that symbolic constants use the correct values in code
-    '''
+    """
     G = NeuronGroup(3, 'v : 1')
     G.v[0] = 'pi'
     G.v[1] = 'e'
@@ -49,10 +49,10 @@ int_.__name__ = 'int'
                           (np.ceil, False), (np.floor, False), (np.sign, False), (int_, False)])
 @pytest.mark.standalone_compatible
 def test_math_functions(func, needs_c99_support):
-    '''
+    """
     Test that math functions give the same result, regardless of whether used
     directly or in generated Python or C++ code.
-    '''
+    """
     if not get_device() == RuntimeDevice or prefs.codegen.target != 'numpy':
         if needs_c99_support and not compiler_supports_c99():
             pytest.skip('Support for function "{}" needs a compiler with C99 '
@@ -71,15 +71,15 @@ def test_math_functions(func, needs_c99_support):
         else:
             func_name = func.__name__
         G = NeuronGroup(len(test_array),
-                        '''func = {func}(variable) : 1
-                           variable : 1'''.format(func=func_name))
+                        f"""func = {func_name}(variable) : 1
+                           variable : 1""")
         G.variable = test_array
         mon = StateMonitor(G, 'func', record=True)
         net = Network(G, mon)
         net.run(defaultclock.dt)
 
         assert_allclose(numpy_result, mon.func_.flatten(),
-                        err_msg='Function %s did not return the correct values' % func.__name__)
+                        err_msg=f'Function {func.__name__} did not return the correct values')
 
 @pytest.mark.standalone_compatible
 @pytest.mark.parametrize("func,operator", [(np.power, '**'), (np.mod, '%')])
@@ -95,20 +95,20 @@ def test_math_operators(func, operator):
     # Calculate the result in a somewhat complicated way by using a
     # subexpression in a NeuronGroup
     G = NeuronGroup(len(test_array),
-                    '''func = variable {op} scalar : 1
-                       variable : 1'''.format(op=operator))
+                    f"""func = variable {operator} scalar : 1
+                       variable : 1""")
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
     net.run(defaultclock.dt)
 
     assert_allclose(numpy_result, mon.func_.flatten(),
-                    err_msg='Function %s did not return the correct values' % func.__name__)
+                    err_msg=f'Function {func.__name__} did not return the correct values')
 
 
 @pytest.mark.standalone_compatible
 def test_clip():
-    G = NeuronGroup(4, '''
+    G = NeuronGroup(4, """
                        clipexpr1 = clip(integer_var1, 0, 1) : integer
                        clipexpr2 = clip(integer_var2, -0.5, 1.5) : integer
                        clipexpr3 = clip(float_var1, 0, 1) : 1
@@ -117,7 +117,7 @@ def test_clip():
                        integer_var2 : integer
                        float_var1 : 1
                        float_var2 : 1
-                       ''')
+                       """)
     G.integer_var1 = [0, 1, -1, 2]
     G.integer_var2 = [0, 1, -1, 2]
     G.float_var1 = [0., 1., -1., 2.]
@@ -135,12 +135,12 @@ def test_clip():
 def test_bool_to_int():
     # Test that boolean expressions and variables are correctly converted into
     # integers
-    G = NeuronGroup(2, '''
+    G = NeuronGroup(2, """
                        intexpr1 = int(bool_var) : integer
                        intexpr2 = int(float_var > 1.0) : integer
                        bool_var : boolean
                        float_var : 1
-                       ''')
+                       """)
     G.bool_var = [True, False]
     G.float_var = [2.0, 0.5]
     s_mon = StateMonitor(G, ['intexpr1', 'intexpr2'], record=True)
@@ -166,8 +166,8 @@ def test_timestep_function():
 
 @pytest.mark.standalone_compatible
 def test_timestep_function_during_run():
-    group = NeuronGroup(2, '''ref_t : second
-                              ts = timestep(ref_t, dt) + timestep(t, dt) : integer''')
+    group = NeuronGroup(2, """ref_t : second
+                              ts = timestep(ref_t, dt) + timestep(t, dt) : integer""")
     group.ref_t = [-1e4*second, 5*defaultclock.dt]
     mon = StateMonitor(group, 'ts', record=True)
     run(5*defaultclock.dt)
@@ -183,10 +183,10 @@ def test_user_defined_function():
                     return sin(x);
                 }
                 """)
-    @implementation('cython', '''
+    @implementation('cython', """
             cdef double usersin(double x):
                 return sin(x)
-            ''')
+            """)
     @check_units(x=1, result=1)
     def usersin(x):
         return np.sin(x)
@@ -194,17 +194,17 @@ def test_user_defined_function():
     default_dt = defaultclock.dt
     test_array = np.array([0, 1, 2, 3])
     G = NeuronGroup(len(test_array),
-                    '''func = usersin(variable) : 1
-                              variable : 1''')
+                    """func = usersin(variable) : 1
+                              variable : 1""")
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True)
     run(default_dt)
     assert_allclose(np.sin(test_array), mon.func_.flatten())
 
 def test_user_defined_function_units():
-    '''
+    """
     Test the preparation of functions for use in code with check_units.
-    '''
+    """
     prefs.codegen.target = 'numpy'
     if prefs.codegen.target != 'numpy':
         pytest.skip('numpy-only test')
@@ -217,9 +217,9 @@ def test_user_defined_function_units():
     consistent_units = check_units(x=None, y=None, z='y',
                                    result=lambda x, y, z: x*y)(nothing_specified)
 
-    G = NeuronGroup(1, '''a : 1
+    G = NeuronGroup(1, """a : 1
                           b : second
-                          c : second''',
+                          c : second""",
                     namespace={'nothing_specified': nothing_specified,
                                'no_result_unit': no_result_unit,
                                'all_specified': all_specified,
@@ -254,8 +254,8 @@ def test_simple_user_defined_function():
     default_dt = defaultclock.dt
     test_array = np.array([0, 1, 2, 3])
     G = NeuronGroup(len(test_array),
-                    '''func = usersin(variable) : 1
-                       variable : 1''',
+                    """func = usersin(variable) : 1
+                       variable : 1""",
                     codeobj_class=NumpyCodeObject)
     G.variable = test_array
     mon = StateMonitor(G, 'func', record=True, codeobj_class=NumpyCodeObject)
@@ -307,29 +307,29 @@ def test_manual_user_defined_function():
         bar(2, 3 * volt, 5 * amp)
 
     # Incorrect argument units
-    group = NeuronGroup(1, '''
+    group = NeuronGroup(1, """
                        dv/dt = foo(x, y)/ms : volt
                        x : 1
-                       y : 1''')
+                       y : 1""")
     net = Network(group)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={'foo': foo})
     assert exc_isinstance(exc, DimensionMismatchError)
 
     # Incorrect output unit
-    group = NeuronGroup(1, '''
+    group = NeuronGroup(1, """
                        dv/dt = foo(x, y)/ms : 1
                        x : volt
-                       y : volt''')
+                       y : volt""")
     net = Network(group)
     with pytest.raises(BrianObjectException) as exc:
         net.run(0*ms, namespace={'foo': foo})
     assert exc_isinstance(exc, DimensionMismatchError)
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     G.x = 1*volt
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True)
@@ -341,10 +341,10 @@ def test_manual_user_defined_function():
     # discard units
     foo.implementations.add_numpy_implementation(orig_foo,
                                                  discard_units=True)
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     G.x = 1*volt
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True)
@@ -359,11 +359,11 @@ def test_manual_user_defined_function():
 def test_manual_user_defined_function_cpp_standalone_compiler_args():
     set_device('cpp_standalone', directory=None)
 
-    @implementation('cpp', '''
+    @implementation('cpp', """
     static inline double foo(const double x, const double y)
     {
         return x + y + _THREE;
-    }''',  # just check whether we can specify the supported compiler args,
+    }""",  # just check whether we can specify the supported compiler args,
            # only the define macro is actually used
         headers=[], sources=[], libraries=[], include_dirs=[],
         library_dirs=[], runtime_library_dirs=[],
@@ -372,10 +372,10 @@ def test_manual_user_defined_function_cpp_standalone_compiler_args():
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     G.x = 1*volt
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True)
@@ -389,19 +389,19 @@ def test_manual_user_defined_function_cpp_standalone_compiler_args():
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
     set_device('cpp_standalone', directory=None)
 
-    @implementation('cpp', '''
+    @implementation('cpp', """
     static inline double foo(const double x, const double y)
     {
         return x + y + _THREE;
-    }''',  some_arg=[])  # non-existing argument
+    }""",  some_arg=[])  # non-existing argument
     @check_units(x=volt, y=volt, result=volt)
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
     with pytest.raises(BrianObjectException) as exc:
@@ -414,19 +414,19 @@ def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args1():
 def test_manual_user_defined_function_cpp_standalone_wrong_compiler_args2():
     set_device('cpp_standalone', directory=None)
 
-    @implementation('cpp', '''
+    @implementation('cpp', """
     static inline double foo(const double x, const double y)
     {
         return x + y + _THREE;
-    }''',  headers='<stdio.h>')  # existing argument, wrong value type
+    }""",  headers='<stdio.h>')  # existing argument, wrong value type
     @check_units(x=volt, y=volt, result=volt)
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
     with pytest.raises(BrianObjectException) as exc:
@@ -438,19 +438,19 @@ def test_manual_user_defined_function_cython_compiler_args():
     if prefs.codegen.target != 'cython':
         pytest.skip('Cython-only test')
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef double foo(double x, const double y):
         return x + y + 3
-    ''',  # just check whether we can specify the supported compiler args,
+    """,  # just check whether we can specify the supported compiler args,
         libraries=[], include_dirs=[], library_dirs=[], runtime_library_dirs=[])
     @check_units(x=volt, y=volt, result=volt)
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     G.x = 1*volt
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True)
@@ -463,18 +463,18 @@ def test_manual_user_defined_function_cython_wrong_compiler_args1():
     if prefs.codegen.target != 'cython':
         pytest.skip('Cython-only test')
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef double foo(double x, const double y):
         return x + y + 3
-    ''',  some_arg=[])  # non-existing argument
+    """,  some_arg=[])  # non-existing argument
     @check_units(x=volt, y=volt, result=volt)
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
     with pytest.raises(BrianObjectException) as exc:
@@ -486,18 +486,18 @@ def test_manual_user_defined_function_cython_wrong_compiler_args2():
     if prefs.codegen.target != 'cython':
         pytest.skip('Cython-only test')
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef double foo(double x, const double y):
         return x + y + 3
-    ''',   libraries='cstdio')  # existing argument, wrong value type
+    """,   libraries='cstdio')  # existing argument, wrong value type
     @check_units(x=volt, y=volt, result=volt)
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     mon = StateMonitor(G, 'func', record=True)
     net = Network(G, mon)
     with pytest.raises(BrianObjectException) as exc:
@@ -516,10 +516,10 @@ def test_external_function_cython():
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     G.x = 1*volt
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True)
@@ -541,10 +541,10 @@ def test_external_function_cpp_standalone():
     def foo(x, y):
         return x + y + 3*volt
 
-    G = NeuronGroup(1, '''
+    G = NeuronGroup(1, """
                        func = foo(x, y) : volt
                        x : volt
-                       y : volt''')
+                       y : volt""")
     G.x = 1*volt
     G.y = 2*volt
     mon = StateMonitor(G, 'func', record=True)
@@ -656,10 +656,10 @@ def test_function_dependencies_cython():
     if prefs.codegen.target != 'cython':
         pytest.skip('cython-only test')
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef float foo(float x):
         return 42*0.001
-    ''')
+    """)
     @check_units(x=volt, result=volt)
     def foo(x):
         return 42*mV
@@ -667,10 +667,10 @@ def test_function_dependencies_cython():
     # Second function with an independent implementation for numpy and an
     # implementation for C++ that makes use of the previous function.
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef float bar(float x):
         return 2*foo(x)
-    ''', dependencies={'foo': foo})
+    """, dependencies={'foo': foo})
     @check_units(x=volt, result=volt)
     def bar(x):
         return 84*mV
@@ -687,10 +687,10 @@ def test_function_dependencies_cython_rename():
     if prefs.codegen.target != 'cython':
         pytest.skip('cython-only test')
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef float _foo(float x):
         return 42*0.001
-    ''', name='_foo')
+    """, name='_foo')
     @check_units(x=volt, result=volt)
     def foo(x):
         return 42*mV
@@ -698,10 +698,10 @@ def test_function_dependencies_cython_rename():
     # Second function with an independent implementation for numpy and an
     # implementation for C++ that makes use of the previous function.
 
-    @implementation('cython', '''
+    @implementation('cython', """
     cdef float bar(float x):
         return 2*my_foo(x)
-    ''', dependencies={'my_foo': foo})
+    """, dependencies={'my_foo': foo})
     @check_units(x=volt, result=volt)
     def bar(x):
         return 84*mV
@@ -717,11 +717,11 @@ def test_function_dependencies_numpy():
     if prefs.codegen.target != 'numpy':
         pytest.skip('numpy-only test')
 
-    @implementation('cpp', '''
+    @implementation('cpp', """
     float foo(float x)
     {
         return 42*0.001;
-    }''')
+    }""")
     @check_units(x=volt, result=volt)
     def foo(x):
         return 42*mV
@@ -733,11 +733,11 @@ def test_function_dependencies_numpy():
     # numpy, since the Python function stores a reference to the referenced
     # function directly
 
-    @implementation('cpp', '''
+    @implementation('cpp', """
     float bar(float x)
     {
         return 84*0.001;
-    }''')
+    }""")
     @check_units(x=volt, result=volt)
     def bar(x):
         return 2*foo(x)
@@ -768,10 +768,10 @@ def test_binomial():
 
     # Just check that it does not raise an error and that it produces some
     # values
-    G = NeuronGroup(1, '''x : 1
-                          y : 1''')
-    G.run_regularly('''x = binomial_f_approximated()
-                       y = binomial_f()''')
+    G = NeuronGroup(1, """x : 1
+                          y : 1""")
+    G.run_regularly("""x = binomial_f_approximated()
+                       y = binomial_f()""")
     mon = StateMonitor(G, ['x', 'y'], record=0)
     run(1*ms)
     assert np.var(mon[0].x) > 0
@@ -782,15 +782,15 @@ def test_binomial():
 def test_poisson():
     # Just check that it does not raise an error and that it produces some
     # values
-    G = NeuronGroup(5, '''l : 1
+    G = NeuronGroup(5, """l : 1
                           x : integer
                           y : integer
                           z : integer
-                          ''')
+                          """)
     G.l = [0, 1, 5, 15, 25]
-    G.run_regularly('''x = poisson(l)
+    G.run_regularly("""x = poisson(l)
                        y = poisson(5)
-                       z = poisson(0)''')
+                       z = poisson(0)""")
     mon = StateMonitor(G, ['x', 'y', 'z'], record=True)
     run(100*defaultclock.dt)
     assert_equal(mon.x[0], 0)
@@ -843,9 +843,9 @@ def test_declare_types():
         @check_units(a=volt, b=1, result=volt)
         def f(a, b):
             return a*b
-        eqs = '''
+        eqs = """
         dv/dt = f(v, 1)/second : 1
-        '''
+        """
         G = NeuronGroup(1, eqs)
         Network(G).run(1*ms)
     with pytest.raises(BrianObjectException) as exc:
@@ -858,10 +858,10 @@ def test_declare_types():
         @check_units(a=1, result=1)
         def f(a):
             return a
-        eqs = '''
+        eqs = """
         a : integer
         dv/dt = f(a)*v/second : 1
-        '''
+        """
         G = NeuronGroup(1, eqs)
         Network(G).run(1*ms)
     with pytest.raises(BrianObjectException) as exc:

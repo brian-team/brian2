@@ -1,6 +1,6 @@
-'''
+"""
 A short cylinder with constant injection at one end.
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = 0.01*ms

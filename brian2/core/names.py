@@ -28,13 +28,13 @@ def find_name(name):
 
     # Name is already taken, try _1, _2, etc.
     i = 1
-    while name+'_'+str(i) in allnames:
+    while f"{name}_{str(i)}" in allnames:
         i += 1
-    return name+'_'+str(i)
+    return f"{name}_{str(i)}"
 
 
 class Nameable(Trackable):
-    '''
+    """
     Base class to find a unique name for an object
     
     If you specify a name explicitly, and it has already been taken, a
@@ -59,7 +59,7 @@ class Nameable(Trackable):
     ------
     ValueError
         If the name is already taken.
-    '''    
+    """    
     def __init__(self, name):
         if getattr(self, '_name', None) is not None and name is None:
             # name has already been specified previously
@@ -68,39 +68,40 @@ class Nameable(Trackable):
         self.assign_id()
 
         if not isinstance(name, str):
-            raise TypeError(('"name" argument has to be a string, is type '
-                             '{type} instead').format(type=repr(type(name))))
+            raise TypeError(f"'name' argument has to be a string, is type "
+                            f"{repr(type(name))} instead")
         if not re.match(r"[_A-Za-z][_a-zA-Z0-9]*\*?$", name):
-            raise ValueError("Name %s not valid variable name" % name)
+            raise ValueError(f"Name {name} not valid variable name")
 
         self._name = find_name(name)
-        logger.diagnostic("Created object of class "+self.__class__.__name__+" with name "+self._name)
+        logger.diagnostic(f"Created object of class {self.__class__.__name__} "
+                          f"with name {self._name}")
 
     def assign_id(self):
-        '''
+        """
         Assign a new id to this object. Under most circumstances, this method
         should only be called once at the creation of the object to generate a
         unique id. In the case of the `MagicNetwork`, however, the id should
         change when a new, independent set of objects is simulated.
-        '''
+        """
         self._id = uuid.uuid4()
 
     name = property(fget=lambda self:self._name,
-                    doc='''
+                    doc="""
                         The unique name for this object.
                         
                         Used when generating code. Should be an acceptable
                         variable name, i.e. starting with a letter
                         character and followed by alphanumeric characters and
                         ``_``.
-                        ''')
+                        """)
 
     id = property(fget=lambda self:self._id,
-                  doc='''
+                  doc="""
                         A unique id for this object.
 
                         In contrast to names, which may be reused, the id stays
                         unique. This is used in the dependency checking to not
                         have to deal with the chore of comparing weak
                         references, weak proxies and strong references.
-                        ''')
+                        """)

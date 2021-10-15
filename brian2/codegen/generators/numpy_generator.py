@@ -22,11 +22,11 @@ class VectorisationError(Exception):
 
 
 class NumpyCodeGenerator(CodeGenerator):
-    '''
+    """
     Numpy language
     
     Essentially Python but vectorised.
-    '''
+    """
 
     class_name = 'numpy'
 
@@ -57,12 +57,11 @@ class NumpyCodeGenerator(CodeGenerator):
                     expr_true = simp_expr
                 else:
                     expr_false = simp_expr
-            code = '{var} {op} _numpy.where({boolvar}, {expr_true}, {expr_false})'.format(
-                        var=var, op=op, boolvar=boolvar, expr_true=expr_true, expr_false=expr_false)
+            code = f'{var} {op} _numpy.where({boolvar}, {expr_true}, {expr_false})'
         else:
-            code = var + ' ' + op + ' ' + self.translate_expression(expr)
+            code = f"{var} {op} {self.translate_expression(expr)}"
         if len(comment):
-            code += ' # ' + comment
+            code += f" # {comment}"
         return code
 
     def ufunc_at_vectorisation(self, statement, variables, indices,
@@ -85,7 +84,7 @@ class NumpyCodeGenerator(CodeGenerator):
                 op = '='
             else:
                 op = statement.op
-            line = '{var} {op} {expr}'.format(var=statement.var, op=op, expr=expr)
+            line = f'{statement.var} {op} {expr}'
         elif statement.inplace:
             if statement.op == '+=':
                 ufunc_name = '_numpy.add'
@@ -97,12 +96,9 @@ class NumpyCodeGenerator(CodeGenerator):
                 ufunc_name = '_numpy.subtract'
             else:
                 raise VectorisationError()
-
-            line = '{ufunc_name}.at({array_name}, {idx}, {expr})'.format(
-                ufunc_name=ufunc_name,
-                array_name=device.get_array_name(variables[statement.var]),
-                idx=indices[statement.var],
-                expr=expr)
+            array_name = device.get_array_name(variables[statement.var])
+            idx = indices[statement.var]
+            line = f'{ufunc_name}.at({array_name}, {idx}, {expr})'
             line = self.conditional_write(line, statement, variables,
                                           conditional_write_vars=conditional_write_vars,
                                           created_vars=created_vars)
@@ -110,7 +106,7 @@ class NumpyCodeGenerator(CodeGenerator):
             raise VectorisationError()
 
         if len(statement.comment):
-            line += ' # ' + statement.comment
+            line += f" # {statement.comment}"
 
         return line
 
@@ -120,9 +116,7 @@ class NumpyCodeGenerator(CodeGenerator):
             lines = []
             used_variables = set()
             for statement in statements:
-                lines.append('#  Abstract code:  {var} {op} {expr}'.format(var=statement.var,
-                                                                           op=statement.op,
-                                                                           expr=statement.expr))
+                lines.append(f'#  Abstract code:  {statement.var} {statement.op} {statement.expr}')
                 # We treat every statement individually with its own read and write code
                 # to be on the safe side
                 read, write, indices, conditional_write_vars = self.arrays_helper([statement])
@@ -170,7 +164,7 @@ class NumpyCodeGenerator(CodeGenerator):
             for statement in statements:
                 line = self.translate_statement(statement)
                 if statement.var in conditional_write_vars:
-                    lines.append(indent('if {}:'.format(conditional_write_vars[statement.var])))
+                    lines.append(indent(f'if {conditional_write_vars[statement.var]}:'))
                     lines.append(indent(line, 2))
                 else:
                     lines.append(indent(line))
@@ -190,9 +184,9 @@ class NumpyCodeGenerator(CodeGenerator):
             #            else:
             #                line = '{varname} = {array_name}.take({index})'
             #            line = line.format(varname=varname, array_name=self.get_array_name(var), index=index)
-            line = varname + ' = ' + self.get_array_name(var)
+            line = f"{varname} = {self.get_array_name(var)}"
             if not index in self.iterate_all:
-                line += '[' + index + ']'
+                line += f"[{index}]"
             elif varname in write:
                 # avoid potential issues with aliased variables, see github #259
                 line += '.copy()'
@@ -218,10 +212,10 @@ class NumpyCodeGenerator(CodeGenerator):
             if not all_inplace:
                 line = self.get_array_name(var)
                 if index_var in self.iterate_all:
-                    line = line + '[:]'
+                    line = f"{line}[:]"
                 else:
-                    line = line + '[' + index_var + ']'
-                line = line + ' = ' + varname
+                    line = f"{line}[{index_var}]"
+                line = f"{line} = {varname}"
                 lines.append(line)
         return lines
 
@@ -236,12 +230,12 @@ class NumpyCodeGenerator(CodeGenerator):
             repl_string = '#$(@#&$@$*U#@)$@(#'  # this string shouldn't occur anywhere I hope! :)
             for varname, var in list(variables.items()):
                 if isinstance(var, ArrayVariable) and not var.scalar:
-                    subs[varname] = varname + '[' + repl_string + ']'
+                    subs[varname] = f"{varname}[{repl_string}]"
             # all newly created vars are arrays and will need indexing
             for varname in created_vars:
-                subs[varname] = varname + '[' + repl_string + ']'
+                subs[varname] = f"{varname}[{repl_string}]"
             # Also index _vectorisation_idx so that e.g. rand() works correctly
-            subs['_vectorisation_idx'] = '_vectorisation_idx' + '[' + repl_string + ']'
+            subs['_vectorisation_idx'] = f"_vectorisation_idx[{repl_string}]"
 
             line = word_substitute(line, subs)
             line = line.replace(repl_string, index)

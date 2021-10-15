@@ -1,12 +1,12 @@
-'''
+"""
 Helper module containing functions that operate on numpy arrays.
-'''
+"""
 
 import numpy as np
 
 
 def calc_repeats(delay):
-    '''
+    """
     Calculates offsets corresponding to an array, where repeated values are
     subsequently numbered, i.e. if there n identical values, the returned array
     will have values from 0 to n-1 at their positions.
@@ -22,7 +22,7 @@ def calc_repeats(delay):
     >>> import numpy as np
     >>> print(calc_repeats(np.array([7, 5, 7, 3, 7, 5])))
     [0 0 1 0 2 1]
-    '''
+    """
     # We use merge sort because it preserves the input order of equal
     # elements in the sorted output
     I = np.argsort(delay, kind='mergesort')

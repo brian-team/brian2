@@ -12,9 +12,9 @@ from brian2.tests.utils import assert_allclose
 
 @pytest.mark.codegen_independent
 def test_str_repr():
-    '''
+    """
     Test the string representation of a subgroup.
-    '''
+    """
     G = NeuronGroup(10, 'v:1')
     SG = G[5:8]
     # very basic test, only make sure no error is raised
@@ -23,9 +23,9 @@ def test_str_repr():
 
 
 def test_state_variables():
-    '''
+    """
     Test the setting and accessing of state variables in subgroups.
-    '''
+    """
     G = NeuronGroup(10, 'v : volt')
     SG = G[4:9]
     with pytest.raises(DimensionMismatchError):
@@ -66,11 +66,11 @@ def test_state_variables():
 
 @pytest.mark.standalone_compatible
 def test_state_variables_simple():
-    G = NeuronGroup(10, '''a : 1
+    G = NeuronGroup(10, """a : 1
                            b : 1
                            c : 1
                            d : 1
-                           ''')
+                           """)
     SG = G[3:7]
     SG.a = 1
     SG.a['i == 0'] = 2
@@ -87,9 +87,9 @@ def test_state_variables_simple():
 
 
 def test_state_variables_string_indices():
-    '''
+    """
     Test accessing subgroups with string indices.
-    '''
+    """
     G = NeuronGroup(10, 'v : volt')
     SG = G[4:9]
     assert len(SG.v['i>3']) == 1
@@ -125,7 +125,7 @@ def test_state_variables_group_as_index_problematic():
     for value, n_warnings in tests:
         with catch_logs() as l:
             G.v.__setitem__(SG, value)
-            assert len(l) == n_warnings, 'expected %d, got %d warnings' % (n_warnings, len(l))
+            assert len(l) == n_warnings, f'expected {int(n_warnings)}, got {len(l)} warnings'
             assert all([entry[1].endswith('ambiguous_string_expression')
                         for entry in l])
 
@@ -147,7 +147,7 @@ def test_state_monitor():
 
 
 def test_shared_variable():
-    '''Make sure that shared variables work with subgroups'''
+    """Make sure that shared variables work with subgroups"""
     G = NeuronGroup(10, 'v : volt (shared)')
     G.v = 1*volt
     SG = G[5:]
@@ -204,12 +204,12 @@ def test_synapse_creation_state_vars():
 
     assert len(S2) == 2 * len(SG2), str(len(S2))
     assert all(S2.v_pre[:] > 2)
-    assert len(S3) == 5 * len(SG1), '%s != %s ' % (len(S3), 5 * len(SG1))
+    assert len(S3) == 5 * len(SG1), f'{len(S3)} != {5 * len(SG1)} '
     assert all(S3.v_post[:] < 25)
 
     assert len(S4) == 2 * len(SG2), str(len(S4))
     assert all(S4.v_post[:] > 2)
-    assert len(S5) == 5 * len(SG1), '%s != %s ' % (len(53), 5 * len(SG1))
+    assert len(S5) == 5 * len(SG1), f'{len(53)} != {5 * len(SG1)} '
     assert all(S5.v_pre[:] < 25)
 
 
@@ -252,12 +252,12 @@ def test_synapse_creation_generator():
 
     assert len(S2) == 2 * len(SG2), str(len(S2))
     assert all(S2.v_pre[:] > 2)
-    assert len(S3) == 5 * len(SG1), '%s != %s ' % (len(S3), 5 * len(SG1))
+    assert len(S3) == 5 * len(SG1), f'{len(S3)} != {5 * len(SG1)} '
     assert all(S3.v_post[:] < 25)
 
     assert len(S4) == 2 * len(SG2), str(len(S4))
     assert all(S4.v_post[:] > 2)
-    assert len(S5) == 5 * len(SG1), '%s != %s ' % (len(S5), 5 * len(SG1))
+    assert len(S5) == 5 * len(SG1), f'{len(S5)} != {5 * len(SG1)} '
     assert all(S5.v_pre[:] < 25)
 
 
@@ -464,7 +464,7 @@ def test_synapses_access_subgroups_problematic():
     for item, value, n_warnings in tests:
         with catch_logs() as l:
             S.w.__setitem__(item, value)
-            assert len(l) == n_warnings, 'expected %d, got %d warnings' % (n_warnings, len(l))
+            assert len(l) == n_warnings, f'expected {int(n_warnings)}, got {len(l)} warnings'
             assert all([entry[1].endswith('ambiguous_string_expression')
                         for entry in l])
 
@@ -489,36 +489,36 @@ def test_subgroup_summed_variable():
 
 
 def test_subexpression_references():
-    '''
+    """
     Assure that subexpressions in targeted groups are handled correctly.
-    '''
-    G = NeuronGroup(10, '''v : 1
-                           v2 = 2*v : 1''')
+    """
+    G = NeuronGroup(10, """v : 1
+                           v2 = 2*v : 1""")
     G.v = np.arange(10)
     SG1 = G[:5]
     SG2 = G[5:]
 
-    S1 = Synapses(SG1, SG2, '''w : 1
+    S1 = Synapses(SG1, SG2, """w : 1
                           u = v2_post + 1 : 1
-                          x = v2_pre + 1 : 1''')
+                          x = v2_pre + 1 : 1""")
     S1.connect('i==(5-1-j)')
     assert_equal(S1.i[:], np.arange(5))
     assert_equal(S1.j[:], np.arange(5)[::-1])
     assert_equal(S1.u[:], np.arange(10)[:-6:-1]*2+1)
     assert_equal(S1.x[:], np.arange(5)*2+1)
 
-    S2 = Synapses(G, SG2, '''w : 1
+    S2 = Synapses(G, SG2, """w : 1
                              u = v2_post + 1 : 1
-                             x = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1""")
     S2.connect('i==(5-1-j)')
     assert_equal(S2.i[:], np.arange(5))
     assert_equal(S2.j[:], np.arange(5)[::-1])
     assert_equal(S2.u[:], np.arange(10)[:-6:-1]*2+1)
     assert_equal(S2.x[:], np.arange(5)*2+1)
 
-    S3 = Synapses(SG1, G, '''w : 1
+    S3 = Synapses(SG1, G, """w : 1
                              u = v2_post + 1 : 1
-                             x = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1""")
     S3.connect('i==(10-1-j)')
     assert_equal(S3.i[:], np.arange(5))
     assert_equal(S3.j[:], np.arange(10)[:-6:-1])
@@ -527,37 +527,37 @@ def test_subexpression_references():
 
 
 def test_subexpression_no_references():
-    '''
+    """
     Assure that subexpressions  are handled correctly, even
     when the subgroups are created on-the-fly.
-    '''
-    G = NeuronGroup(10, '''v : 1
-                           v2 = 2*v : 1''')
+    """
+    G = NeuronGroup(10, """v : 1
+                           v2 = 2*v : 1""")
     G.v = np.arange(10)
 
     assert_equal(G[5:].v2, np.arange(5, 10)*2)
 
-    S1 = Synapses(G[:5], G[5:], '''w : 1
+    S1 = Synapses(G[:5], G[5:], """w : 1
                           u = v2_post + 1 : 1
-                          x = v2_pre + 1 : 1''')
+                          x = v2_pre + 1 : 1""")
     S1.connect('i==(5-1-j)')
     assert_equal(S1.i[:], np.arange(5))
     assert_equal(S1.j[:], np.arange(5)[::-1])
     assert_equal(S1.u[:], np.arange(10)[:-6:-1]*2+1)
     assert_equal(S1.x[:], np.arange(5)*2+1)
 
-    S2 = Synapses(G, G[5:], '''w : 1
+    S2 = Synapses(G, G[5:], """w : 1
                              u = v2_post + 1 : 1
-                             x = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1""")
     S2.connect('i==(5-1-j)')
     assert_equal(S2.i[:], np.arange(5))
     assert_equal(S2.j[:], np.arange(5)[::-1])
     assert_equal(S2.u[:], np.arange(10)[:-6:-1]*2+1)
     assert_equal(S2.x[:], np.arange(5)*2+1)
 
-    S3 = Synapses(G[:5], G, '''w : 1
+    S3 = Synapses(G[:5], G, """w : 1
                              u = v2_post + 1 : 1
-                             x = v2_pre + 1 : 1''')
+                             x = v2_pre + 1 : 1""")
     S3.connect('i==(10-1-j)')
     assert_equal(S3.i[:], np.arange(5))
     assert_equal(S3.j[:], np.arange(10)[:-6:-1])
@@ -682,9 +682,9 @@ def test_alternative_indexing():
 
 
 def test_no_reference_1():
-    '''
+    """
     Using subgroups without keeping an explicit reference. Basic access.
-    '''
+    """
     G = NeuronGroup(10, 'v:1')
     G.v = np.arange(10)
     assert_equal(G[:5].v[:], G.v[:5])
@@ -692,9 +692,9 @@ def test_no_reference_1():
 
 @pytest.mark.standalone_compatible
 def test_no_reference_2():
-    '''
+    """
     Using subgroups without keeping an explicit reference. Monitors
-    '''
+    """
     G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
     G.v = [0, 1.1]
     state_mon = StateMonitor(G[:1], 'v', record=True)
@@ -709,9 +709,9 @@ def test_no_reference_2():
 
 @pytest.mark.standalone_compatible
 def test_no_reference_3():
-    '''
+    """
     Using subgroups without keeping an explicit reference. Monitors
-    '''
+    """
     G = NeuronGroup(2, 'v:1', threshold='v>1', reset='v=0')
     G.v = [1.1, 0]
     S = Synapses(G[:1], G[1:], on_pre='v+=1')
@@ -722,9 +722,9 @@ def test_no_reference_3():
 
 @pytest.mark.standalone_compatible
 def test_no_reference_4():
-    '''
+    """
     Using subgroups without keeping an explicit reference. Synapses
-    '''
+    """
     G1 = NeuronGroup(10, 'v:1', threshold='v>1', reset='v=0')
     G1.v['i%2==1'] = 1.1 # odd numbers should spike
     G2 = NeuronGroup(20, 'v:1')
@@ -738,9 +738,9 @@ def test_no_reference_4():
 
 
 def test_recursive_subgroup():
-    '''
+    """
     Create a subgroup of a subgroup
-    '''
+    """
     G = NeuronGroup(10, 'v : 1')
     G.v = 'i'
     SG = G[3:8]

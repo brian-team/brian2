@@ -1,6 +1,6 @@
-'''
+"""
 Implementation of `BinomialFunction`
-'''
+"""
 
 import numpy as np
 
@@ -35,12 +35,12 @@ def _generate_cython_code(n, p, use_normal, name):
     # Inversion transform sampling
     if use_normal:
         loc, scale = _pre_calc_constants_approximated(n, p)
-        cython_code = '''
+        cython_code = """
         cdef float %NAME%(const int vectorisation_idx):
             return _randn(vectorisation_idx) * %SCALE% + %LOC%
-        '''
-        cython_code = replace(cython_code, {'%SCALE%': '%.15f' % scale,
-                                            '%LOC%': '%.15f' % loc,
+        """
+        cython_code = replace(cython_code, {'%SCALE%': f'{scale:.15f}',
+                                            '%LOC%': f'{loc:.15f}',
                                             '%NAME%': name})
         dependencies = {'_randn': DEFAULT_FUNCTIONS['randn']}
     else:
@@ -48,7 +48,7 @@ def _generate_cython_code(n, p, use_normal, name):
         # The following code is an almost exact copy of numpy's
         # rk_binomial_inversion function
         # (numpy/random/mtrand/distributions.c)
-        cython_code = '''
+        cython_code = """
         cdef long %NAME%(const int vectorisation_idx):
             cdef long X = 0
             cdef double px = %QN%
@@ -63,13 +63,13 @@ def _generate_cython_code(n, p, use_normal, name):
                     U -= px
                     px = ((%N%-X+1) * %P% * px)/(X*%Q%)
             return %RETURN_VALUE%
-        '''
-        cython_code = replace(cython_code, {'%N%': '%d' % n,
-                                            '%P%': '%.15f' % p,
-                                            '%Q%': '%.15f' % q,
-                                            '%QN%': '%.15f' % qn,
-                                            '%BOUND%': '%.15f' % bound,
-                                            '%RETURN_VALUE%': '%d-X' % n if reverse else 'X',
+        """
+        cython_code = replace(cython_code, {'%N%': f'{int(n)}',
+                                            '%P%': f'{p:.15f}',
+                                            '%Q%': f'{q:.15f}',
+                                            '%QN%': f'{qn:.15f}',
+                                            '%BOUND%': f'{bound:.15f}',
+                                            '%RETURN_VALUE%': f'{int(n)}-X' if reverse else 'X',
                                             '%NAME%': name})
         dependencies = {'_rand': DEFAULT_FUNCTIONS['rand']}
 
@@ -81,14 +81,14 @@ def _generate_cpp_code(n, p, use_normal, name):
     # Inversion transform sampling
     if use_normal:
         loc, scale = _pre_calc_constants_approximated(n, p)
-        cpp_code = '''
+        cpp_code = """
         float %NAME%(const int vectorisation_idx)
         {
             return _randn(vectorisation_idx) * %SCALE% + %LOC%;
         }
-        '''
-        cpp_code = replace(cpp_code, {'%SCALE%': '%.15f' % scale,
-                                      '%LOC%': '%.15f' % loc,
+        """
+        cpp_code = replace(cpp_code, {'%SCALE%': f'{scale:.15f}',
+                                      '%LOC%': f'{loc:.15f}',
                                       '%NAME%': name})
         dependencies = {'_randn': DEFAULT_FUNCTIONS['randn']}
     else:
@@ -96,7 +96,7 @@ def _generate_cpp_code(n, p, use_normal, name):
         # The following code is an almost exact copy of numpy's
         # rk_binomial_inversion function
         # (numpy/random/mtrand/distributions.c)
-        cpp_code = '''
+        cpp_code = """
         long %NAME%(const int vectorisation_idx)
         {
             long X = 0;
@@ -118,13 +118,13 @@ def _generate_cpp_code(n, p, use_normal, name):
             }
             return %RETURN_VALUE%;
         }
-        '''
-        cpp_code = replace(cpp_code, {'%N%': '%d' % n,
-                                      '%P%': '%.15f' % P,
-                                      '%Q%': '%.15f' % q,
-                                      '%QN%': '%.15f' % qn,
-                                      '%BOUND%': '%.15f' % bound,
-                                      '%RETURN_VALUE%': '%d-X' % n if reverse else 'X',
+        """
+        cpp_code = replace(cpp_code, {'%N%': f'{int(n)}',
+                                      '%P%': f'{P:.15f}',
+                                      '%Q%': f'{q:.15f}',
+                                      '%QN%': f'{qn:.15f}',
+                                      '%BOUND%': f'{bound:.15f}',
+                                      '%RETURN_VALUE%': f'{int(n)}-X' if reverse else 'X',
                                       '%NAME%': name})
         dependencies = {'_rand': DEFAULT_FUNCTIONS['rand']}
 
@@ -132,7 +132,7 @@ def _generate_cpp_code(n, p, use_normal, name):
 
 
 class BinomialFunction(Function, Nameable):
-    '''
+    """
     BinomialFunction(n, p, approximate=True, name='_binomial*')
 
     A function that generates samples from a binomial distribution.
@@ -146,7 +146,7 @@ class BinomialFunction(Function, Nameable):
     approximate : bool, optional
         Whether to approximate the binomial with a normal distribution if
         :math:`n p > 5 \wedge n (1 - p) > 5`. Defaults to ``True``.
-    '''
+    """
 
     #: Container for implementing functions for different targets
     #: This container can be extended by other codegeneration targets/devices
