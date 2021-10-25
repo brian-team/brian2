@@ -132,7 +132,8 @@ class BrianObject(Nameable):
 
         # Make sure that keys in the namespace are valid
         if namespace is None:
-            namespace = {}
+            # Do not overwrite namespace if already set (e.g. in StateMonitor)
+            namespace = getattr(self, 'namespace', {})
         for key in namespace:
             if key.startswith('_'):
                 raise ValueError("Names starting with underscores are "
