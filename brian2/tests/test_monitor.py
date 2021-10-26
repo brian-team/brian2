@@ -432,6 +432,15 @@ def test_state_monitor_resize():
     # variable that is visible to the user
     assert mon.variables['v'].size == (10, 2)
 
+@pytest.mark.codegen_independent
+def test_statemonitor_namespace():
+    # Make sure that StateMonitor is correctly inheriting its source's namespace
+    G = NeuronGroup(2, 'x = i + y : integer', namespace={'y': 3})
+    mon = StateMonitor(G, 'x', record=True)
+    run(defaultclock.dt, namespace={})
+    assert_array_equal(mon.x, [[3], [4]])
+
+
 @pytest.mark.standalone_compatible
 def test_rate_monitor_1():
     G = NeuronGroup(5, 'v : 1', threshold='v>1') # no reset
