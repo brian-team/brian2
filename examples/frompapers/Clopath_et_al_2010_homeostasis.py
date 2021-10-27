@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 This code contains an adapted version of the voltage-dependent triplet STDP rule from:
 Clopath et al., Connectivity reflects coding: a model of voltage-based STDP with homeostasis, Nature Neuroscience, 2010
 (http://dx.doi.org/10.1038/nn.2479)
@@ -17,7 +17,7 @@ behavior of the original work, but need additional fitting.
 We kindly ask to cite the article when using the model presented below.
 
 This code was written by Jacopo Bono, 12/2015
-'''
+"""
 from brian2 import *
 
 ################################################################################

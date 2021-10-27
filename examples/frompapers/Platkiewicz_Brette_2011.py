@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Slope-threshold relationship with noisy inputs, in the adaptive threshold model
 -------------------------------------------------------------------------------
 Fig. 5E,F from:
@@ -7,7 +7,7 @@ Fig. 5E,F from:
 Platkiewicz J and R Brette (2011). Impact of Fast Sodium Channel Inactivation on Spike
 Threshold Dynamics and Synaptic Integration. PLoS Comp Biol 7(5):
 e1001129. doi:10.1371/journal.pcbi.1001129
-'''
+"""
 from scipy import optimize
 from scipy.stats import linregress
 

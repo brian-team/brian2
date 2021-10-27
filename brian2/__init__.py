@@ -1,35 +1,35 @@
-'''
+"""
 Brian 2
-'''
+"""
 
 
 def _check_dependencies():
-    '''Check basic dependencies'''
+    """Check basic dependencies"""
     import sys
     missing = []
     try:
         import numpy
     except ImportError as ex:
-        sys.stderr.write('Importing numpy failed: %s\n' % ex)
+        sys.stderr.write(f"Importing numpy failed: '{ex}'\n")
         missing.append('numpy')
     try:
         import sympy
     except ImportError as ex:
-        sys.stderr.write('Importing sympy failed: %s\n' % ex)
+        sys.stderr.write(f"Importing sympy failed: '{ex}'\n")
         missing.append('sympy')
     try:
         import pyparsing
     except ImportError as ex:
-        sys.stderr.write('Importing pyparsing failed: %s\n' % ex)
+        sys.stderr.write(f"Importing pyparsing failed: '{ex}'\n")
         missing.append('pyparsing')
     try:
         import jinja2
     except ImportError as ex:
-        sys.stderr.write('Importing Jinja2 failed: %s\n' % ex)
+        sys.stderr.write(f"Importing Jinja2 failed: '{ex}'\n")
         missing.append('jinja2')
 
     if len(missing):
-        raise ImportError('Some required dependencies are missing:\n' + ', '.join(missing))
+        raise ImportError(f"Some required dependencies are missing:\n{', '.join(missing)}")
 
 _check_dependencies()
 
@@ -83,9 +83,7 @@ def _check_dependency_version(name, version):
     if not isinstance(module.__version__, str):  # mocked module
         return
     if not LooseVersion(module.__version__) >= LooseVersion(version):
-        message = '%s is outdated (got version %s, need version %s)' % (name,
-                                                                        module.__version__,
-                                                                        version)
+        message = f'{name} is outdated (got version {module.__version__}, need version {version})'
         if prefs.core.outdated_dependency_error:
             raise ImportError(message)
         else:
@@ -132,18 +130,16 @@ def check_cache(target):
     size = _get_size_recursively(cache_dir)
     size_in_mb = int(round(size/1024./1024.))
     if size_in_mb > prefs.codegen.max_cache_dir_size:
-        logger.info('Cache size for target "{target}": {size} MB.\n'
-                    'You can call "clear_cache(\'{target}\')" to delete all '
-                    'files from the cache or manually delete files in the '
-                    '"{cache_dir}" directory.'.format(target=target,
-                                                      size=size_in_mb,
-                                                      cache_dir=cache_dir))
+        logger.info(f"Cache size for target '{target}': {size} MB.\n"
+                    f"You can call clear_cache('{target}') to delete all "
+                    f"files from the cache or manually delete files in the "
+                    f"'{cache_dir}' directory.")
     else:
-        logger.debug('Cache size for target "%s": %s MB' % (target, size_in_mb))
+        logger.debug(f"Cache size for target '{target}': {size_in_mb} MB")
 
 
 def clear_cache(target):
-    '''
+    """
     Clears the on-disk cache with the compiled files for a given code generation
     target.
 
@@ -159,13 +155,12 @@ def clear_cache(target):
     IOError
         If the cache directory contains unexpected files, suggesting that
         deleting it would also delete files unrelated to the cache.
-    '''
+    """
     import os
     import shutil
     cache_dir, extensions = _cache_dirs_and_extensions.get(target, (None, None))
     if cache_dir is None:
-        raise ValueError('No cache directory registered for target '
-                         '"%s".' % target)
+        raise ValueError(f'No cache directory registered for target "{target}".')
     cache_dir = os.path.abspath(cache_dir)  # just to make sure...
     for folder, _, files in os.walk(cache_dir):
         for f in files:
@@ -173,15 +168,12 @@ def clear_cache(target):
                 if f.endswith(ext):
                     break
             else:
-                raise IOError("The cache directory for target '{}' contains "
-                              "the file '{}' of an unexpected type and "
-                              "will therefore not be removed. Delete files in "
-                              "'{}' manually".format(target,
-                                                     os.path.join(folder, f),
-                                                     cache_dir))
+                raise IOError(f"The cache directory for target '{target}' contains "
+                              f"the file '{os.path.join(folder, f)}' of an unexpected type and "
+                              f"will therefore not be removed. Delete files in "
+                              f"'{cache_dir}' manually")
 
-    logger.debug('Clearing cache for target "%s" (directory "%s").' %
-                 (target, cache_dir))
+    logger.debug(f"Clearing cache for target '{target}' (directory '{cache_dir}').")
     shutil.rmtree(cache_dir)
 
 

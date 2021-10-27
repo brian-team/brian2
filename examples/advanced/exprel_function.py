@@ -1,5 +1,5 @@
 # coding=utf-8
-'''
+"""
 Show the improved numerical accuracy when using the `exprel` function in rate equations.
 
 Rate equations for channel opening/closing rates often include a term of the form
@@ -14,7 +14,7 @@ function `exprel`, which is equivalent to :math:`\frac{\exp(x) - 1}{x}`, but
 with better accuracy and the expected result at :math:`x = 0`. In this example,
 we demonstrate the advantage of expressing a typical rate equation from the HH
 model with `exprel`.
-'''
+"""
 from brian2 import *
 
 # Dummy group to evaluate the rate equation at various points

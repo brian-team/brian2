@@ -48,16 +48,17 @@ class CythonNodeRenderer(NodeRenderer):
 
     def render_BinOp(self, node):
         if node.op.__class__.__name__=='Mod':
-            return '((({left})%({right}))+({right}))%({right})'.format(left=self.render_node(node.left),
-                                                                       right=self.render_node(node.right))
+            left = self.render_node(node.left)
+            right = self.render_node(node.right)
+            return f'((({left})%({right}))+({right}))%({right})'
         else:
             return super(CythonNodeRenderer, self).render_BinOp(node)
 
 
 class CythonCodeGenerator(CodeGenerator):
-    '''
+    """
     Cython code generator
-    '''
+    """
 
     class_name = 'cython'
 
@@ -93,24 +94,24 @@ class CythonCodeGenerator(CodeGenerator):
                     if boolval:
                         atomics.append(boolvar)
                     else:
-                        atomics.append('not '+boolvar)
+                        atomics.append(f"not {boolvar}")
                 # use if/else/elif correctly
                 if firstline:
-                    line = 'if '+(' and '.join(atomics))+':'
+                    line = f"if {' and '.join(atomics)}:"
                 else:
                     if len(used_boolvars)>1:
-                        line = 'elif '+(' and '.join(atomics))+':'
+                        line = f"elif {' and '.join(atomics)}:"
                     else:
                         line = 'else:'
                 line += '\n    '
-                line += var + ' ' + op + ' ' + self.translate_expression(simp_expr)
+                line += f"{var} {op} {self.translate_expression(simp_expr)}"
                 codelines.append(line)
                 firstline = False
             code = '\n'.join(codelines)
         else:
-            code = var + ' ' + op + ' ' + self.translate_expression(expr)
+            code = f"{var} {op} {self.translate_expression(expr)}"
         if len(comment):
-            code += ' # ' + comment
+            code += f" # {comment}"
         return code
 
     def translate_one_statement_sequence(self, statements, scalar=False):
@@ -134,11 +135,8 @@ class CythonCodeGenerator(CodeGenerator):
         for varname in itertools.chain(indices, read):
             var = self.variables[varname]
             index = self.variable_indices[varname]
-            line = ('{varname} = '
-                    '{arrayname}[{index}]').format(varname=varname,
-                                                   arrayname=self.get_array_name(
-                                                       var),
-                                                   index=index)
+            arrayname = self.get_array_name(var)
+            line = f'{varname} = {arrayname}[{index}]'
             lines.append(line)
         return lines
 
@@ -151,7 +149,7 @@ class CythonCodeGenerator(CodeGenerator):
             if stmt.var in conditional_write_vars:
                 subs = {}
                 condvar = conditional_write_vars[stmt.var]
-                lines.append('if %s:' % condvar)
+                lines.append(f'if {condvar}:')
                 lines.append(indent(line))
             else:
                 lines.append(line)
@@ -162,8 +160,7 @@ class CythonCodeGenerator(CodeGenerator):
         for varname in write:
             index_var = self.variable_indices[varname]
             var = self.variables[varname]
-            line = self.get_array_name(var,
-                                       self.variables) + '[' + index_var + '] = ' + varname
+            line = f"{self.get_array_name(var, self.variables)}[{index_var}] = {varname}"
             lines.append(line)
         return lines
 
@@ -230,7 +227,7 @@ class CythonCodeGenerator(CodeGenerator):
                 func_namespace = impl.get_namespace(self.owner) or {}
                 for ns_key, ns_value in func_namespace.items():
                     load_namespace.append(
-                        '# namespace for function %s' % varname)
+                        f'# namespace for function {varname}')
                     if hasattr(ns_value, 'dtype'):
                         if ns_value.shape == ():
                             raise NotImplementedError((
@@ -244,9 +241,7 @@ class CythonCodeGenerator(CodeGenerator):
                             "_namespace_num{var_name} = len(_namespace['{var_name}'])"
                         ]
                         support_code.append(
-                            "cdef {cpp_dtype} *_namespace{var_name}".format(
-                                cpp_dtype=get_cpp_dtype(ns_value.dtype),
-                                var_name=ns_key))
+                            f"cdef {get_cpp_dtype(ns_value.dtype)} *_namespace{ns_key}")
 
                     else:  # e.g. a function
                         newlines = [
@@ -270,14 +265,12 @@ class CythonCodeGenerator(CodeGenerator):
                 support_code.append(deindent(func_code))
             elif callable(func_code):
                 self.variables[varname] = func_code
-                line = '{0} = _namespace["{1}"]'.format(varname, varname)
+                line = f'{varname} = _namespace["{varname}"]'
                 load_namespace.append(line)
             else:
-                raise TypeError(('Provided function implementation '
-                                 'for function %s is neither a string '
-                                 'nor callable (is type %s instead)') % (
-                                varname,
-                                type(func_code)))
+                raise TypeError(f"Provided function implementation for function "
+                                f"'{varname}' is neither a string nor callable (is "
+                                f"type {type(func_code)} instead).")
 
         dep_support_code = []
         dep_load_namespace = []
@@ -308,25 +301,22 @@ class CythonCodeGenerator(CodeGenerator):
         added = set()
         for varname, var in sorted(self.variables.items()):
             if isinstance(var, Variable) and not isinstance(var, (Subexpression, AuxiliaryVariable)):
-                load_namespace.append('_var_{0} = _namespace["_var_{1}"]'.format(varname, varname))
+                load_namespace.append(f'_var_{varname} = _namespace["_var_{varname}"]')
             if isinstance(var, AuxiliaryVariable):
-                line = "cdef {dtype} {varname}".format(
-                                dtype=get_cpp_dtype(var.dtype),
-                                varname=varname)
+                line = f"cdef {get_cpp_dtype(var.dtype)} {varname}"
                 load_namespace.append(line)
             elif isinstance(var, Subexpression):
                 dtype = get_cpp_dtype(var.dtype)
-                line = "cdef {dtype} {varname}".format(dtype=dtype,
-                                                       varname=varname)
+                line = f"cdef {dtype} {varname}"
                 load_namespace.append(line)
             elif isinstance(var, Constant):
                 dtype_name = get_cpp_dtype(var.value)
-                line = 'cdef {dtype} {varname} = _namespace["{varname}"]'.format(dtype=dtype_name, varname=varname)
+                line = f'cdef {dtype_name} {varname} = _namespace["{varname}"]'
                 load_namespace.append(line)
             elif isinstance(var, Variable):
                 if var.dynamic:
-                    load_namespace.append('{0} = _namespace["{1}"]'.format(self.get_array_name(var, False),
-                                                                           self.get_array_name(var, False)))
+                    pointer_name = self.get_array_name(var, False)
+                    load_namespace.append(f'{pointer_name} = _namespace["{pointer_name}"]')
 
                 # This is the "true" array name, not the restricted pointer.
                 array_name = device.get_array_name(var)
@@ -369,12 +359,11 @@ class CythonCodeGenerator(CodeGenerator):
                     user_functions.extend(uf)
             else:
                 # fallback to Python object
-                load_namespace.append('{0} = _namespace["{1}"]'.format(varname, varname))
+                load_namespace.append(f'{varname} = _namespace["{varname}"]')
 
         for varname, dtype in sorted(self.temporary_vars):
             cpp_dtype = get_cpp_dtype(dtype)
-            line = "cdef {cpp_dtype} {varname}".format(cpp_dtype=cpp_dtype,
-                                                       varname=varname)
+            line = f"cdef {cpp_dtype} {varname}"
             load_namespace.append(line)
 
         return {'load_namespace': '\n'.join(load_namespace),
@@ -403,7 +392,7 @@ for func, func_cpp in [('arcsin', 'asin'), ('arccos', 'acos'), ('arctan', 'atan'
                                                                code=None,
                                                                name=func_cpp)
 
-exprel_code = '''
+exprel_code = """
 cdef inline double _exprel(double x) nogil:
     if fabs(x) < 1e-16:
         return 1.0
@@ -411,14 +400,14 @@ cdef inline double _exprel(double x) nogil:
         return NPY_INFINITY
     else:
         return expm1(x) / x
-'''
+"""
 DEFAULT_FUNCTIONS['exprel'].implementations.add_implementation(CythonCodeGenerator,
                                                                code=exprel_code,
                                                                name='_exprel',
                                                                availability_check=C99Check('exprel'))
 _BUFFER_SIZE = 20000
 
-rand_code = '''
+rand_code = """
 cdef double _rand(int _idx):
     cdef double **buffer_pointer = <double**>_namespace_rand_buffer
     cdef double *buffer = buffer_pointer[0]
@@ -437,11 +426,11 @@ cdef double _rand(int _idx):
     if _namespace_rand_buffer_index[0] == _BUFFER_SIZE:
         _namespace_rand_buffer_index[0] = 0
     return val
-'''.replace('_BUFFER_SIZE', str(_BUFFER_SIZE))
+""".replace('_BUFFER_SIZE', str(_BUFFER_SIZE))
 
 randn_code = rand_code.replace('rand', 'randn').replace('randnom', 'random')
 
-poisson_code = '''
+poisson_code = """
 cdef double _loggam(double x):
   cdef double x0, x2, xp, gl, gl0
   cdef int32_t k, n
@@ -519,7 +508,7 @@ cdef int32_t _poisson(double lam, int32_t _idx):
     return 0
   else:
     return _poisson_mult(lam, _idx)
-'''
+"""
 
 device = all_devices['runtime']
 DEFAULT_FUNCTIONS['rand'].implementations.add_implementation(CythonCodeGenerator,
@@ -539,7 +528,7 @@ DEFAULT_FUNCTIONS['poisson'].implementations.add_implementation(CythonCodeGenera
                                                                 name='_poisson',
                                                                 dependencies={'_rand': DEFAULT_FUNCTIONS['rand']})
 
-sign_code = '''
+sign_code = """
 ctypedef fused _to_sign:
     char
     short
@@ -550,12 +539,12 @@ ctypedef fused _to_sign:
 
 cdef int _sign(_to_sign x):
     return (0 < x) - (x < 0)
-'''
+"""
 DEFAULT_FUNCTIONS['sign'].implementations.add_implementation(CythonCodeGenerator,
                                                              code=sign_code,
                                                              name='_sign')
 
-clip_code = '''
+clip_code = """
 ctypedef fused _to_clip:
     char
     short
@@ -570,15 +559,15 @@ cdef _to_clip _clip(_to_clip x, double low, double high):
     if x > high:
         return <_to_clip?>high
     return x
-'''
+"""
 DEFAULT_FUNCTIONS['clip'].implementations.add_implementation(CythonCodeGenerator,
                                                              code=clip_code,
                                                              name='_clip')
 
-timestep_code = '''
+timestep_code = """
 cdef int64_t _timestep(double t, double dt):
     return <int64_t>((t + 1e-3*dt)/dt)
-'''
+"""
 DEFAULT_FUNCTIONS['timestep'].implementations.add_implementation(CythonCodeGenerator,
                                                                  code=timestep_code,
                                                                  name='_timestep')

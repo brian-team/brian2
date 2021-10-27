@@ -1,7 +1,7 @@
-'''
+"""
 Demonstrate the correctness of the "derivative-free Milstein method" for
 multiplicative noise.
-'''
+"""
 from brian2 import *
 # We only get exactly the same random numbers for the exact solution and the
 # simulation if we use the numpy code generation target
@@ -18,9 +18,9 @@ runtime = 1*second
 
 
 def simulate(method, dt):
-    '''
+    """
     simulate geometrical Brownian with the given method
-    ''' 
+    """
     np.random.seed(seed)
     G = NeuronGroup(1, 'dX/dt = (mu - 0.5*second*sigma**2)*X + X*sigma*xi*second**.5: 1',
                     dt=dt, method=method)
@@ -32,10 +32,10 @@ def simulate(method, dt):
 
 
 def exact_solution(t, dt):
-    '''
+    """
     Return the exact solution for geometrical Brownian motion at the given
     time points
-    '''
+    """
     # Remove units for simplicity
     my_mu = float(mu)
     my_sigma = float(sigma)

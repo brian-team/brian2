@@ -1,15 +1,14 @@
 #!/usr/bin/env python
-
-'''
+"""
 Sample-specific persistent activity
 -----------------------------------
 
 Five subpopulations with three selective and one reset stimuli example.
 Analog to figure 6b in the paper.
 
-BRUNEL, Nicolas et WANG, Xiao-Jing. Effects of neuromodulation in a cortical network model of object working memory 
+BRUNEL, Nicolas et WANG, Xiao-Jing. Effects of neuromodulation in a cortical network model of object working memory
 dominated by recurrent inhibition. Journal of computational neuroscience, 2001, vol. 11, no 1, p. 63-85.
-'''
+"""
 
 from brian2 import *
 
@@ -203,20 +202,23 @@ plot(r_E.t / ms, r_E.smooth_rate(width=25 * ms) / Hz, label='nonselective')
 plot(r_I.t / ms, r_I.smooth_rate(width=25 * ms) / Hz, label='inhibitory')
 
 for i, r_E_sel in enumerate(r_E_sels[::-1]):
-    plot(r_E_sel.t / ms, r_E_sel.smooth_rate(width=25 * ms) / Hz, label='selective {}'.format(p - i))
+    plot(r_E_sel.t / ms, r_E_sel.smooth_rate(width=25 * ms) / Hz,
+         label=f"selective {p - i}")
 
 legend()
 figure()
 
-title('Population activities ({} neurons/pop)'.format(N_activity_plot))
+title(f"Population activities ({N_activity_plot} neurons/pop)")
 xlabel('ms')
 yticks([])
 
-plot(sp_E.t / ms, sp_E.i + (p + 1) * N_activity_plot, '.', markersize=2, label='nonselective')
-plot(sp_I.t / ms, sp_I.i + p * N_activity_plot, '.', markersize=2, label='inhibitory')
+plot(sp_E.t / ms, sp_E.i + (p + 1) * N_activity_plot, '.', markersize=2,
+     label="nonselective")
+plot(sp_I.t / ms, sp_I.i + p * N_activity_plot, '.', markersize=2, label="inhibitory")
 
 for i, sp_E_sel in enumerate(sp_E_sels[::-1]):
-    plot(sp_E_sel.t / ms, sp_E_sel.i + (p - i - 1) * N_activity_plot, '.', markersize=2, label='selective {}'.format(p - i))
+    plot(sp_E_sel.t / ms, sp_E_sel.i + (p - i - 1) * N_activity_plot, '.', markersize=2,
+         label=f"selective {p - i}")
 
 legend()
 show()

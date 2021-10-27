@@ -15,19 +15,19 @@ from brian2.core.preferences import prefs
 import brian2
 
 def sympy_equals(expr1, expr2):
-    '''
+    """
     Test that whether two string expressions are equal using sympy, allowing
     e.g. for ``sympy_equals("x * x", "x ** 2") == True``.
-    '''
+    """
     s_expr1 = sympy.nsimplify(sympy.sympify(expr1).expand())
     s_expr2 = sympy.nsimplify(sympy.sympify(expr2).expand())
     return s_expr1 == s_expr2
 
 @pytest.mark.codegen_independent
 def test_expr_creation():
-    '''
+    """
     Test creating expressions.
-    '''
+    """
     expr = Expression('v > 5 * mV')
     assert expr.code == 'v > 5 * mV'
     assert ('v' in expr.identifiers and 'mV' in expr.identifiers and
@@ -72,12 +72,12 @@ def test_split_stochastic():
 
 @pytest.mark.codegen_independent
 def test_str_repr():
-    '''
+    """
     Test the string representation of expressions and statements. Assumes that
     __str__ returns the complete expression/statement string and __repr__ a
     string of the form "Expression(...)" or "Statements(...)" that can be
     evaluated.
-    '''
+    """
     expr_string = '(v - I)/ tau'
     expr = Expression(expr_string)
     

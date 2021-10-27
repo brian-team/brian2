@@ -1,7 +1,7 @@
-'''
+"""
 Module containg the StateUpdateMethod for integration using the ODE solver
 provided in the GNU Scientific Library (GSL)
-'''
+"""
 
 import sys
 
@@ -26,10 +26,10 @@ default_method_options = {
 
 
 class GSLContainer(object):
-    '''
+    """
     Class that contains information (equation- or integrator-related) required
     for later code generation
-    '''
+    """
     def __init__(self, method_options, integrator, abstract_code=None,
                  needed_variables=[], variable_flags=[]):
         self.method_options = method_options
@@ -39,7 +39,7 @@ class GSLContainer(object):
         self.variable_flags = variable_flags
 
     def get_codeobj_class(self):
-        '''
+        """
         Return codeobject class based on target language and device.
 
         Choose which version of the GSL `CodeObject` to use. If
@@ -52,7 +52,7 @@ class GSLContainer(object):
         code_object : class
             The respective `CodeObject` class (i.e. either
             `GSLCythonCodeObject` or `GSLCPPStandaloneCodeObject`).
-        '''
+        """
         # imports in this function to avoid circular imports
         from brian2.devices.cpp_standalone.device import CPPStandaloneDevice
         from brian2.devices.device import get_device
@@ -108,7 +108,7 @@ class GSLContainer(object):
                                        ).format(device=device_name[0]))
 
     def __call__(self, obj):
-        '''
+        """
         Transfer the code object class saved in self to the object sent as an argument.
 
         This method is returned when calling `GSLStateUpdater`. This class inherits
@@ -129,7 +129,7 @@ class GSLContainer(object):
         abstract_code : str
             The abstract code (translated equations), that is returned conventionally
             by brian and used for later code generation in the `CodeGenerator.translate` method.
-        '''
+        """
         obj.codeobj_class = self.get_codeobj_class()
         obj._gsl_variable_flags = self.variable_flags
         obj.method_options = self.method_options
@@ -139,17 +139,17 @@ class GSLContainer(object):
 
 
 class GSLStateUpdater(StateUpdateMethod):
-    '''
+    """
     A statupdater that rewrites the differential equations so that the GSL generator
     knows how to write the code in the target language.
 
     .. versionadded:: 2.1
-    '''
+    """
     def __init__(self, integrator):
         self.integrator = integrator
 
     def __call__(self, equations, variables=None, method_options=None):
-        '''
+        """
         Translate equations to abstract_code.
 
         Parameters
@@ -164,16 +164,16 @@ class GSLStateUpdater(StateUpdateMethod):
         method : callable
             Method that needs to be called with `StateUpdater` to add CodeObject
             class and some other variables so these can be sent to the `CodeGenerator`
-        '''
+        """
         logger.warn("Integrating equations with GSL is still considered experimental", once=True)
 
         method_options = extract_method_options(method_options,
                                                 default_method_options)
 
         if equations.is_stochastic:
-            raise UnsupportedEquationsException('Cannot solve stochastic '
-                                                'equations with the GSL state '
-                                                'updater.')
+            raise UnsupportedEquationsException("Cannot solve stochastic "
+                                                "equations with the GSL state "
+                                                "updater.")
 
         # the approach is to 'tag' the differential equation variables so they can
         # be translated to GSL code
@@ -189,9 +189,7 @@ class GSLStateUpdater(StateUpdateMethod):
             # know to add the variable to the namespace, so we add it to needed_variables
             diff_vars += [diff_name]
             counter[diff_name] = count_statevariables
-            code += ['_gsl_{var}_f{count} = {expr}'.format(var=diff_name,
-                                                           expr=expr,
-                                                           count=counter[diff_name])]
+            code += [f'_gsl_{diff_name}_f{counter[diff_name]} = {expr}']
             count_statevariables += 1
 
         # add flags to variables objects because some of them we need in the GSL generator

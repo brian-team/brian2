@@ -26,7 +26,6 @@ for our code. This in particular includes the following conventions:
   that starts an indexing or slicing.
 * Avoid using a backslash for continuing lines whenever possible, instead use
   Python's implicit line joining inside parentheses, brackets and braces.
-* The core code should only contain ASCII characters, no encoding has to be declared
 * imports should be on different lines (e.g. do not use ``import sys, os``) and
   should be grouped in the following order, using blank lines between each group:
   
@@ -51,3 +50,53 @@ for our code. This in particular includes the following conventions:
   to specify what is being made available with a wildcard import. As an
   exception from this rule, the main ``brian2/__init__.py`` may use wildcard
   imports.
+
+String formatting
+-----------------
+In general, we use Python `f-strings <https://docs.python.org/3/reference/lexical_analysis.html#formatted-string-literals>`__
+instead of the ``.format`` method or the `%` operator to format strings. For example, rather use::
+
+    raise KeyError(f"Unknown variable '{var}'")  # ✔
+
+instead of::
+
+    raise KeyError("Unknown variable '{}'".format(var))  #  ❌
+    raise KeyError("Unknown variable %s" % var)  #  ❌
+
+There are some corner cases where it still makes sense to use either of these, though.
+The `~str.format` method can be useful when processing several strings instead of single literals::
+
+    formatted = []
+    for s in strings:
+        formatted.append(s.format(**values))
+
+The `%` operator, or string concatenation, can be used when dealing with strings that contain curly braces, which would
+become difficult to read as an f-string::
+
+    latex_code = r'\begin{equation}%s\end{equation}' % equation  # OK
+    latex_code = r'\begin{equation}' + equation + r'\end{equation}' # OK
+
+Python does not make a difference between single quotation marks and double quotation marks. For consistency, try to
+follow the following rules:
+
+* docstrings should always be enclosed in triple double quotes, following `PEP 257 <https://www.python.org/dev/peps/pep-0257/>`__.
+* User-facing text (e.g. error messages) should use double quotes, and single quotes for marking words within the string.
+  Example: ``"Missing 'threshold' argument"``
+* General strings with internal meaning (e.g. dictionary keys) should use single quotation marks.
+  Example: ``events['spike']``
+* Use your own judgement for other strings, e.g. generated code. If you need to use single or double quotes *within* the
+  string, use the other quote type to avoid having to resort to backslashes.
+  Example: ``include = f'#include "{header_file}"'``
+
+Commits only changing the style
+-------------------------------
+Please do not make commits that only change the code style in a file, even though many files do not completely follow
+the rules mentioned earlier. However, if you are commiting edits to a file for different reasons, please do follow this
+style for your changes and, if necessary, change the surrounding code to fit the style (within reason).
+
+We sometimes do make big commits updating the style in our code, which can make using tools like ``git blame`` more
+difficult, since many lines affected by such commits. We add the references to such commits to a file
+``.git-blame-ignore-revs`` in the main directory, and you can tell ``git blame`` to ignore these commits with::
+
+    git config blame.ignoreRevsFile .git-blame-ignore-revs
+

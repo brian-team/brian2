@@ -1,7 +1,7 @@
-'''
+"""
 A simple example showing how string expressions can be used to implement
 spatial (deterministic or stochastic) connection patterns.
-'''
+"""
 from brian2 import *
 
 rows, cols = 20, 20

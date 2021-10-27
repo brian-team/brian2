@@ -9,7 +9,7 @@ __all__ = ['Subgroup']
 
 
 class Subgroup(Group, SpikeSource):
-    '''
+    """
     Subgroup of any `Group`
     
     Parameters
@@ -20,17 +20,13 @@ class Subgroup(Group, SpikeSource):
         Select only spikes with indices from ``start`` to ``stop-1``.
     name : str, optional
         A unique name for the group, or use ``source.name+'_subgroup_0'``, etc.
-    '''
+    """
     def __init__(self, source, start, stop, name=None):
-        # First check if the source is itself a Subgroup
-        # If so, then make this a Subgroup of the original Group
-        if isinstance(source, Subgroup):
-            source = source.source
-            start = start + source.start
-            stop = stop + source.start
-            self.source = source
-        else:
-            self.source = weakproxy_with_fallback(source)
+        # A Subgroup should never be constructed from another Subgroup
+        # Instead, use Subgroup(source.source,
+        #                       start + source.start, stop + source.start)
+        assert not isinstance(source, Subgroup)
+        self.source = weakproxy_with_fallback(source)
 
         # Store a reference to the source's equations (if any)
         self.equations = None
@@ -38,7 +34,7 @@ class Subgroup(Group, SpikeSource):
             self.equations = weakproxy_with_fallback(self.source.equations)
 
         if name is None:
-            name = source.name + '_subgroup*'
+            name = f"{source.name}_subgroup*"
         # We want to update the spikes attribute after it has been updated
         # by the parent, we do this in slot 'thresholds' with an order
         # one higher than the parent order to ensure it takes place after the
@@ -89,9 +85,8 @@ class Subgroup(Group, SpikeSource):
             elif value == '_idx':
                 continue  # nothing to do, already uses _sub_idx correctly
             else:
-                raise ValueError(('Do not know how to deal with variable %s '
-                                  'using  index %s in a subgroup') % (key,
-                                                                      value))
+                raise ValueError(f"Do not know how to deal with variable '{key}' "
+                                 f"using index '{value}' in a subgroup.")
 
         self.namespace = self.source.namespace
         self.codeobj_class = self.source.codeobj_class
@@ -102,19 +97,16 @@ class Subgroup(Group, SpikeSource):
 
     def __getitem__(self, item):
         if not isinstance(item, slice):
-            raise TypeError('Subgroups can only be constructed using slicing syntax')
+            raise TypeError("Subgroups can only be constructed using slicing syntax")
         start, stop, step = item.indices(self._N)
         if step != 1:
-            raise IndexError('Subgroups have to be contiguous')
+            raise IndexError("Subgroups have to be contiguous")
         if start >= stop:
-            raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                             (start, stop))
+            raise IndexError(
+                f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}")
         return Subgroup(self.source, self.start + start, self.start + stop)
 
     def __repr__(self):
-        description = '<{classname} {name} of {source} from {start} to {end}>'
-        return description.format(classname=self.__class__.__name__,
-                                  name=repr(self.name),
-                                  source=repr(self.source.name),
-                                  start=self.start,
-                                  end=self.stop)
+        classname = self.__class__.__name__
+        return (f"<{classname} {self.name!r} of {self.source.name!r} "
+                f"from {self.start} to {self.stop}>")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Phase locking in leaky integrate-and-fire model
 -----------------------------------------------
 Fig. 2A from:
@@ -10,7 +10,7 @@ J Math Biol 48(1): 38-56.
 This shows the phase-locking structure of a LIF driven by a sinusoidal
 current. When the current crosses the threshold (a<3), the model
 almost always phase locks (in a measure-theoretical sense).
-'''
+"""
 from brian2 import *
 
 # defaultclock.dt = 0.01*ms  # for a more precise picture

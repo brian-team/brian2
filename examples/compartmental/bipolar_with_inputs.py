@@ -1,7 +1,7 @@
-'''
+"""
 A pseudo MSO neuron, with two dendrites (fake geometry).
 There are synaptic inputs.
-'''
+"""
 from brian2 import *
 
 # Morphology

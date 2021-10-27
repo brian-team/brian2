@@ -1,7 +1,7 @@
-'''
+"""
 Implementation of the namespace system, used to resolve the identifiers in
 model equations of `NeuronGroup` and `Synapses`
-'''
+"""
 
 import collections
 import inspect
@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 def get_local_namespace(level):
-    '''
+    """
     Get the surrounding namespace.
 
     Parameters
@@ -36,7 +36,7 @@ def get_local_namespace(level):
     -------
     namespace : dict
         The locals and globals at the given depth of the stack frame.
-    '''
+    """
     # Get the locals and globals from the stack frame
     frame = inspect.currentframe()
     for _ in range(level + 1):
@@ -50,7 +50,7 @@ def get_local_namespace(level):
 
 
 def _get_default_unit_namespace():
-    '''
+    """
     Return the namespace that is used by default for looking up units when
     defining equations. Contains all registered units and everything from
     `brian2.units.stdunits` (ms, mV, nS, etc.).
@@ -59,7 +59,7 @@ def _get_default_unit_namespace():
     -------
     namespace : dict
         The unit namespace
-    '''
+    """
     namespace = collections.OrderedDict(standard_unit_register.units)
     namespace.update(stdunits)
     # Include all "simple" units from additional_units, i.e. units like mliter

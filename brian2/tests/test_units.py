@@ -47,14 +47,12 @@ def assert_quantity(q, values, unit):
                                        (values.shape == () or
                                         isinstance(q, np.ndarray))), q
     assert_allclose(np.asarray(q), values)
-    assert have_same_dimensions(q, unit), ('Dimension mismatch: (%s) (%s)' %
-                                           (get_dimensions(q),
-                                            get_dimensions(unit)))
+    assert have_same_dimensions(q, unit), (f'Dimension mismatch: ({get_dimensions(q)}) ({get_dimensions(unit)})')
 
 
 @pytest.mark.codegen_independent
 def test_construction():
-    ''' Test the construction of quantity objects '''
+    """ Test the construction of quantity objects """
     q = 500 * ms
     assert_quantity(q, 0.5, second)
     q = np.float64(500) * ms
@@ -110,9 +108,9 @@ def test_construction():
 
 @pytest.mark.codegen_independent
 def test_get_dimensions():
-    '''
+    """
     Test various ways of getting/comparing the dimensions of a quantity.
-    '''
+    """
     q = 500 * ms
     assert get_dimensions(q) is get_or_create_dimension(q.dimensions._dims)
     assert get_dimensions(q) is q.dimensions
@@ -145,9 +143,9 @@ def test_get_dimensions():
 
 @pytest.mark.codegen_independent
 def test_display():
-    '''
+    """
     Test displaying a quantity in different units
-    '''
+    """
     assert_equal(in_unit(3 * volt, mvolt), '3000. mV')
     assert_equal(in_unit(10 * mV, ohm * amp), '0.01 ohm A')
     with pytest.raises(DimensionMismatchError):
@@ -167,13 +165,13 @@ def test_scale():
     for prefix in siprefixes:
         if prefix in ['c', 'd', 'da', 'h']:
             continue
-        scaled_unit = DEFAULT_UNITS[prefix + 'meter']
+        scaled_unit = DEFAULT_UNITS[f"{prefix}meter"]
         assert_allclose(float(scaled_unit), siprefixes[prefix])
         assert_allclose(5*scaled_unit/meter, 5*siprefixes[prefix])
-        scaled_unit = DEFAULT_UNITS[prefix + 'meter2']
+        scaled_unit = DEFAULT_UNITS[f"{prefix}meter2"]
         assert_allclose(float(scaled_unit), siprefixes[prefix]**2)
         assert_allclose(5 * scaled_unit / meter2, 5 * siprefixes[prefix] ** 2)
-        scaled_unit = DEFAULT_UNITS[prefix + 'meter3']
+        scaled_unit = DEFAULT_UNITS[f"{prefix}meter3"]
         assert_allclose(float(scaled_unit), siprefixes[prefix]**3)
         assert_allclose(5 * scaled_unit / meter3, 5 * siprefixes[prefix] ** 3)
         # liter, gram, and molar are special, they are not base units with a
@@ -191,9 +189,9 @@ def test_scale():
 
 @pytest.mark.codegen_independent
 def test_pickling():
-    '''
+    """
     Test pickling of units.
-    '''
+    """
     for q in [500 * mV, 500 * mV/mV, np.arange(10) * mV,
               np.arange(12).reshape(4, 3) * mV/ms]:
         pickled = pickle.dumps(q)
@@ -205,10 +203,10 @@ def test_pickling():
 
 @pytest.mark.codegen_independent
 def test_str_repr():
-    '''
+    """
     Test that str representations do not raise any errors and that repr
     fullfills eval(repr(x)) == x.
-    '''
+    """
     from numpy import array # necessary for evaluating repr    
     
     units_which_should_exist = [metre, meter, kilogram, kilogramme, second, amp, kelvin, mole, candle,
@@ -251,9 +249,9 @@ def test_str_repr():
     assert repr(DIMENSIONLESS) == 'Dimension()'
     
     # test DimensionMismatchError (only that it works without raising an error
-    for error in [DimensionMismatchError('A description'),
-                  DimensionMismatchError('A description', DIMENSIONLESS),
-                  DimensionMismatchError('A description', DIMENSIONLESS,
+    for error in [DimensionMismatchError("A description"),
+                  DimensionMismatchError("A description", DIMENSIONLESS),
+                  DimensionMismatchError("A description", DIMENSIONLESS,
                                          second.dim)]:
         assert len(str(error))
         assert len(repr(error))
@@ -414,9 +412,9 @@ def test_addition_subtraction():
         
         # using unsupported objects should fail
         with pytest.raises(TypeError):
-            q + 'string'
+            "string" + q
         with pytest.raises(TypeError):
-            'string' + q
+            q + "string"
         with pytest.raises(TypeError):
             q - 'string'
         with pytest.raises(TypeError):
@@ -433,10 +431,10 @@ def test_unary_operations():
 
 @pytest.mark.codegen_independent
 def test_binary_operations():
-    ''' Test whether binary operations work when they should and raise
+    """ Test whether binary operations work when they should and raise
     DimensionMismatchErrors when they should.
     Does not test for the actual result.
-    '''
+    """
     from operator import add, sub, lt, le, gt, ge, eq, ne
 
     def assert_operations_work(a, b):
@@ -455,8 +453,7 @@ def test_binary_operations():
                 numpy_func(a, b)
                 numpy_func(b, a)
         except DimensionMismatchError as ex:
-            raise AssertionError('Operation raised unexpected '
-                                 'exception: %s' % ex)
+            raise AssertionError(f'Operation raised unexpected exception: {ex}')
 
     def assert_operations_do_not_work(a, b):
         # Test python builtins
@@ -541,9 +538,9 @@ def test_binary_operations():
 
 @pytest.mark.codegen_independent
 def test_power():
-    '''
+    """
     Test raising quantities to a power.
-    '''
+    """
     values = [2 * kilogram, np.array([2]) * kilogram,
               np.array([1, 2]) * kilogram]
     for value in values:
@@ -625,9 +622,9 @@ def test_inplace_operations():
 
 @pytest.mark.codegen_independent
 def test_unit_discarding_functions():
-    '''
+    """
     Test functions that discard units.
-    '''
+    """
     from brian2.units.unitsafefunctions import zeros_like, ones_like
     
     values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(3, 4) * mV]
@@ -642,9 +639,9 @@ def test_unit_discarding_functions():
 
 @pytest.mark.codegen_independent
 def test_unitsafe_functions():
-    '''
+    """
     Test the unitsafe functions wrapping their numpy counterparts.
-    '''
+    """
     from brian2.units.unitsafefunctions import (sin, sinh, arcsin, arcsinh,
                                                 cos, cosh, arccos, arccosh,
                                                 tan, tanh, arctan, arctanh,
@@ -684,9 +681,9 @@ def test_unitsafe_functions():
 
 @pytest.mark.codegen_independent
 def test_special_case_numpy_functions():
-    '''
+    """
     Test a couple of functions/methods that need special treatment.
-    '''
+    """
     from brian2.units.unitsafefunctions import ravel, diagonal, trace, dot, where
     
     quadratic_matrix = np.reshape(np.arange(9), (3, 3)) * mV
@@ -800,30 +797,27 @@ def test_numpy_functions_same_dimensions():
         for func in keep_dim_funcs:
             test_ar = func(q_ar)
             if not get_dimensions(test_ar) is q_ar.dim:
-                raise AssertionError(('%s failed on %s -- dim was %s, is now '
-                                      '%s') % (func.__name__, repr(q_ar),
-                                               q_ar.dim,
-                                               get_dimensions(test_ar)))
-    
-    # Python builtins should work on one-dimensional arrays
-    value = np.arange(5)
-    builtins = [abs, max, min, sum]
-    for unit in units:
-        q_ar = value * unit
-        for func in builtins:
-            test_ar = func(q_ar)
-            if not get_dimensions(test_ar) is q_ar.dim:
-                raise AssertionError(('%s failed on %s -- dim was %s, is now '
-                                      '%s') % (func.__name__, repr(q_ar),
-                                               q_ar.dim,
-                                               get_dimensions(test_ar)))
+                raise AssertionError(f"'{func.__name__}' failed on {q_ar!r} -- dim was "
+                                     f"{q_ar.dim}, is now {get_dimensions(test_ar)}.")
+
+                # Python builtins should work on one-dimensional arrays
+                value = np.arange(5)
+                builtins = [abs, max, min, sum]
+                for unit in units:
+                    q_ar = value * unit
+                for func in builtins:
+                    test_ar = func(q_ar)
+                if not get_dimensions(test_ar) is q_ar.dim:
+                    raise AssertionError(f"'{func.__name__}' failed on {q_ar!r} -- dim "
+                                         f"was {q_ar.dim}, is now "
+                                         f"{get_dimensions(test_ar)}")
 
 
 @pytest.mark.codegen_independent
 def test_numpy_functions_indices():
-    '''
+    """
     Check numpy functions that return indices.
-    '''
+    """
     values = [np.array([-4, 3, -2, 1, 0]), np.ones((3, 3)), np.array([17])]
     units = [volt, second, siemens, mV, kHz]
 
@@ -845,10 +839,10 @@ def test_numpy_functions_indices():
 
 @pytest.mark.codegen_independent
 def test_numpy_functions_dimensionless():
-    '''
+    """
     Test that numpy functions that should work on dimensionless quantities only
     work dimensionless arrays and return the correct result.
-    '''
+    """
     unitless_values = [3, np.array([-4, 3, -1, 2]),
                        np.ones((3, 3))]
     unit_values = [3 * mV, np.array([-4, 3, -1, 2]) * mV,
@@ -858,40 +852,40 @@ def test_numpy_functions_dimensionless():
         warnings.simplefilter("ignore", RuntimeWarning)    
         for value in unitless_values:
             for ufunc in UFUNCS_DIMENSIONLESS:
-                result_unitless = eval('np.%s(value)' % ufunc)
-                result_array = eval('np.%s(np.array(value))' % ufunc)
+                result_unitless = eval(f'np.{ufunc}(value)')
+                result_array = eval(f'np.{ufunc}(np.array(value))')
                 assert isinstance(result_unitless, (np.ndarray, np.number)) and not isinstance(result_unitless, Quantity)
                 assert_equal(result_unitless, result_array)
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
-                result_unitless = eval('np.%s(value, value)' % ufunc)
-                result_array = eval('np.%s(np.array(value), np.array(value))' % ufunc)
+                result_unitless = eval(f'np.{ufunc}(value, value)')
+                result_array = eval(f'np.{ufunc}(np.array(value), np.array(value))')
                 assert isinstance(result_unitless, (np.ndarray, np.number)) and not isinstance(result_unitless, Quantity)
                 assert_equal(result_unitless, result_array)
         
         for value, unitless_value in zip(unit_values, unitless_values):
             for ufunc in UFUNCS_DIMENSIONLESS:
                 with pytest.raises(DimensionMismatchError):
-                    eval('np.%s(value)' % ufunc,
+                    eval(f'np.{ufunc}(value)',
                          globals(), {'value': value})
             for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
                 with pytest.raises(DimensionMismatchError):
-                    eval('np.%s(value1, value2)' % ufunc,
+                    eval(f'np.{ufunc}(value1, value2)',
                          globals(), {'value1': value,
                                      'value2': unitless_value})
                 with pytest.raises(DimensionMismatchError):
-                    eval('np.%s(value2, value1)' % ufunc,
+                    eval(f'np.{ufunc}(value2, value1)',
                          globals(), {'value1': value,
                                      'value2': unitless_value})
                 with pytest.raises(DimensionMismatchError):
-                    eval('np.%s(value, value)' % ufunc,
+                    eval(f'np.{ufunc}(value, value)',
                          globals(), {'value': value})
 
 
 @pytest.mark.codegen_independent
 def test_numpy_functions_change_dimensions():
-    '''
+    """
     Test some numpy functions that change the dimensions of the quantity.
-    '''
+    """
     unit_values = [np.array([1, 2]) * mV,
                    np.ones((3, 3)) * 2 * mV]
     for value in unit_values:
@@ -905,9 +899,9 @@ def test_numpy_functions_change_dimensions():
 
 @pytest.mark.codegen_independent
 def test_numpy_functions_matmul():
-    '''
+    """
     Check support for matmul and the ``@`` operator.
-    '''
+    """
     no_units_eye = np.eye(3)
     with_units_eye = no_units_eye*Mohm
     matrix_no_units = np.arange(9).reshape((3, 3))
@@ -942,10 +936,10 @@ def test_numpy_functions_matmul():
 
 @pytest.mark.codegen_independent
 def test_numpy_functions_typeerror():
-    '''
+    """
     Assures that certain numpy functions raise a TypeError when called on
     quantities.
-    '''
+    """
     unitless_values = [3 * mV/mV, np.array([1, 2]) * mV/mV,
                        np.ones((3, 3)) * mV/mV]
     unit_values = [3 * mV, np.array([1, 2]) * mV,
@@ -955,20 +949,20 @@ def test_numpy_functions_typeerror():
             if ufunc == 'invert': 
                 # only takes one argument
                 with pytest.raises(TypeError):
-                    eval('np.%s(value)' % ufunc,
+                    eval(f'np.{ufunc}(value)',
                          globals(), {'value': value})
             else:
                 with pytest.raises(TypeError):
-                    eval('np.%s(value, value)' % ufunc,
+                    eval(f'np.{ufunc}(value, value)',
                     globals(), {'value': value})
 
 
 @pytest.mark.codegen_independent
 def test_numpy_functions_logical():
-    '''
+    """
     Assure that logical numpy functions work on all quantities and return
     unitless boolean arrays.
-    '''
+    """
     unit_values1 = [3 * mV, np.array([1, 2]) * mV, np.ones((3, 3)) * mV]
     unit_values2 = [3 * second, np.array([1, 2]) * second,
                     np.ones((3, 3)) * second]
@@ -976,20 +970,20 @@ def test_numpy_functions_logical():
         for value1, value2 in zip(unit_values1, unit_values2):
             try:
                 # one argument
-                result_units = eval('np.%s(value1)' % ufunc)        
-                result_array = eval('np.%s(np.array(value1))' % ufunc)                
+                result_units = eval(f'np.{ufunc}(value1)')        
+                result_array = eval(f'np.{ufunc}(np.array(value1))')                
             except (ValueError, TypeError):
                 # two arguments
-                result_units = eval('np.%s(value1, value2)' % ufunc)        
-                result_array = eval('np.%s(np.array(value1), np.array(value2))' % ufunc)
+                result_units = eval(f'np.{ufunc}(value1, value2)')        
+                result_array = eval(f'np.{ufunc}(np.array(value1), np.array(value2))')
                 # assert that comparing to a string results in "NotImplemented" or an error
                 try:
-                    result = eval('np.%s(value1, "a string")' % ufunc)
+                    result = eval(f'np.{ufunc}(value1, "a string")')
                     assert result == NotImplemented
                 except TypeError:
                     pass  # raised on numpy >= 0.10
                 try:
-                    result = eval('np.%s("a string", value1)' % ufunc)
+                    result = eval(f'np.{ufunc}("a string", value1)')
                     assert result == NotImplemented
                 except TypeError:
                     pass  # raised on numpy >= 0.10
@@ -1047,9 +1041,9 @@ def test_arange_linspace():
 
 @pytest.mark.codegen_independent
 def test_list():
-    '''
+    """
     Test converting to and from a list.
-    '''
+    """
     values = [3 * mV, np.array([1, 2]) * mV,
               np.arange(12).reshape(4, 3) * mV]
     for value in values:
@@ -1061,14 +1055,14 @@ def test_list():
 
 @pytest.mark.codegen_independent
 def test_check_units():
-    '''
+    """
     Test the check_units decorator
-    '''
+    """
     @check_units(v=volt)
     def a_function(v, x):
-        '''
+        """
         v has to have units of volt, x can have any (or no) unit.
-        '''
+        """
         pass
     
     #Try correct units
@@ -1093,10 +1087,10 @@ def test_check_units():
 
     @check_units(result=second)
     def b_function(return_second):
-        '''
+        """
         Return a value in seconds if return_second is True, otherwise return
         a value in volt.
-        '''
+        """
         if return_second:
             return 5 * second
         else:
@@ -1127,9 +1121,9 @@ def test_check_units():
 
 @pytest.mark.codegen_independent
 def test_get_unit():
-    '''
+    """
     Test get_unit
-    '''
+    """
     values = [(volt.dim, volt),
               (mV.dim, volt),
               ((amp/metre**2).dim, amp/metre**2)]
@@ -1158,9 +1152,9 @@ def test_get_best_unit():
 
 @pytest.mark.codegen_independent
 def test_switching_off_unit_checks():
-    '''
+    """
     Check switching off unit checks (used for external functions).
-    '''
+    """
     import brian2.units.fundamentalunits as fundamentalunits
     x = 3 * second
     y = 5 * volt    
@@ -1176,9 +1170,9 @@ def test_switching_off_unit_checks():
 
 @pytest.mark.codegen_independent
 def test_fail_for_dimension_mismatch():
-    '''
+    """
     Test the fail_for_dimension_mismatch function.
-    '''
+    """
     # examples that should not raise an error
     dim1, dim2 = fail_for_dimension_mismatch(3)
     assert dim1 is DIMENSIONLESS

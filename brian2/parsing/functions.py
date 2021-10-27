@@ -14,7 +14,7 @@ __all__ = ['AbstractCodeFunction',
 
 
 class AbstractCodeFunction(object):
-    '''
+    """
     The information defining an abstract code function
     
     Has attributes corresponding to initialisation parameters
@@ -31,23 +31,20 @@ class AbstractCodeFunction(object):
         the return statement.
     return_expr : str or None
         The expression returned, or None if there is nothing returned.
-    '''
+    """
     def __init__(self, name, args, code, return_expr):
         self.name = name
         self.args = args
         self.code = code
         self.return_expr = return_expr
     def __str__(self):
-        s = 'def %s(%s):\n%s\n    return %s\n' % (self.name,
-                                                  ', '.join(self.args),
-                                                  indent(self.code),
-                                                  self.return_expr)
+        s = f"def {self.name}({', '.join(self.args)}):\n{indent(self.code)}\n    return {self.return_expr}\n"
         return s
     __repr__ = __str__
 
 
 def abstract_code_from_function(func):
-    '''
+    """
     Converts the body of the function to abstract code
     
     Parameters
@@ -65,7 +62,7 @@ def abstract_code_from_function(func):
     ------
     SyntaxError
         If unsupported features are used such as if statements or indexing.
-    '''
+    """
     if callable(func):
         code = deindent(inspect.getsource(func))
         funcnode = ast.parse(code, mode='exec').body[0]
@@ -100,7 +97,7 @@ def abstract_code_from_function(func):
 
 
 def extract_abstract_code_functions(code):
-    '''
+    """
     Returns a set of abstract code functions from function definitions.
     
     Returns all functions defined at the top level and ignores any other
@@ -115,7 +112,7 @@ def extract_abstract_code_functions(code):
     -------
     funcs : dict
         A mapping ``(name, func)`` for ``func`` an `AbstractCodeFunction`.
-    '''
+    """
     code = deindent(code)
     nodes = ast.parse(code, mode='exec').body
     funcs = {}
@@ -127,9 +124,9 @@ def extract_abstract_code_functions(code):
 
 
 class VarRewriter(ast.NodeTransformer):
-    '''
+    """
     Rewrites all variable names in names by prepending pre
-    '''
+    """
     def __init__(self, pre):
         self.pre = pre
     def visit_Name(self, node):
@@ -141,7 +138,7 @@ class VarRewriter(ast.NodeTransformer):
 
 
 class FunctionRewriter(ast.NodeTransformer):
-    '''
+    """
     Inlines a function call using temporary variables
     
     numcalls is the number of times the function rewriter has been called so
@@ -154,7 +151,7 @@ class FunctionRewriter(ast.NodeTransformer):
     
     The visit method returns the current line processed so that the function
     call is replaced with the output of the inlining.
-    '''
+    """
     def __init__(self, func, numcalls=0):
         self.func = func
         self.numcalls = numcalls
@@ -175,16 +172,16 @@ class FunctionRewriter(ast.NodeTransformer):
         args = [self.visit(arg) for arg in node.args]
         self.suspend = False
         # The basename is used for function-local variables
-        basename = '_inline_'+self.func.name+'_'+str(self.numcalls)
+        basename = f"_inline_{self.func.name}_{str(self.numcalls)}"
         # Assign all the function-local variables
         for argname, arg in zip(self.func.args, args):
-            newpre = ast.Assign(targets=[ast.Name(id='%s_%s'%(basename, argname),
+            newpre = ast.Assign(targets=[ast.Name(id=f'{basename}_{argname}',
                                                   ctx=ast.Store())],
                                 value=arg)
             self.pre.append(newpre)
         # Rewrite the lines of code of the function using the names defined
         # above
-        vr = VarRewriter(basename+'_')
+        vr = VarRewriter(f"{basename}_")
         for funcline in ast.parse(self.func.code).body:
             self.pre.append(vr.visit(funcline))
         # And rewrite the return expression
@@ -199,7 +196,7 @@ class FunctionRewriter(ast.NodeTransformer):
 
 
 def substitute_abstract_code_functions(code, funcs):
-    '''
+    """
     Performs inline substitution of all the functions in the code
     
     Parameters
@@ -214,7 +211,7 @@ def substitute_abstract_code_functions(code, funcs):
     -------
     code : str
         The code with inline substitutions performed.
-    '''
+    """
     if isinstance(funcs, (list, set)):
         newfuncs = dict()
         for f in funcs:
@@ -230,8 +227,8 @@ def substitute_abstract_code_functions(code, funcs):
     ids = get_identifiers(code)
     funcstarts = {}
     for func in funcs.values():
-        subids = {id for id in ids if id.startswith('_inline_'+func.name+'_')}
-        subids = {id.replace('_inline_'+func.name+'_', '') for id in subids}
+        subids = {id for id in ids if id.startswith(f"_inline_{func.name}_")}
+        subids = {id.replace(f"_inline_{func.name}_", '') for id in subids}
         alli = []
         for subid in subids:
             p = subid.find('_')

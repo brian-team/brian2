@@ -1,6 +1,6 @@
-'''
+"""
 A pseudo MSO neuron, with two dendrites and one axon (fake geometry).
-'''
+"""
 from brian2 import *
 
 # Morphology

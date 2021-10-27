@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 def check_dt(new_dt, old_dt, target_t):
-    '''
+    """
     Check that the target time can be represented equally well with the new
     dt.
 
@@ -48,21 +48,21 @@ def check_dt(new_dt, old_dt, target_t):
     >>> check_dt(float(0.2*ms), float(0.1*ms), float(10.1*ms))  # t=10.1ms cannot be represented with dt=0.2ms # doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    ValueError: Cannot set dt from 100. us to 200. us, the time 10.1 ms is not a multiple of 200. us
-    '''
+    ValueError: Cannot set dt from 100. us to 200. us, the time 10.1 ms is not a multiple of 200. us.
+    """
     old_t = np.int64(np.round(target_t / old_dt)) * old_dt
     new_t = np.int64(np.round(target_t / new_dt)) * new_dt
     error_t = target_t
     if abs(new_t - old_t)/new_dt > Clock.epsilon_dt:
-        raise ValueError(('Cannot set dt from {old} to {new}, the '
-                          'time {t} is not a multiple of '
-                          '{new}').format(old=str(old_dt * second),
-                                          new=str(new_dt * second),
-                                          t=str(error_t * second)))
+        old = str(old_dt * second)
+        new = str(new_dt * second)
+        t = str(error_t * second)
+        raise ValueError(f"Cannot set dt from {old} to {new}, the "
+                         f"time {t} is not a multiple of {new}.")
 
 
 class Clock(VariableOwner):
-    '''
+    """
     An object that holds the simulation time and the time step.
     
     Parameters
@@ -79,7 +79,7 @@ class Clock(VariableOwner):
     clocks to be considered as having the same time is
     ``abs(t1-t2)<epsilon*abs(t1)``, a standard test for equality of floating
     point values. The value of ``epsilon`` is ``1e-14``.
-    '''
+    """
 
     def __init__(self, dt, name='clock*'):
         # We need a name right away because some devices (e.g. cpp_standalone)
@@ -97,8 +97,7 @@ class Clock(VariableOwner):
         self.variables.add_constant('N', value=1)
         self._enable_group_attributes()
         self.dt = dt
-        logger.diagnostic("Created clock {name} with dt={dt}".format(name=self.name,
-                                                                     dt=self.dt))
+        logger.diagnostic(f"Created clock {self.name} with dt={self.dt}")
 
     @check_units(t=second)
     def _set_t_update_dt(self, target_t=0*second):
@@ -115,12 +114,10 @@ class Clock(VariableOwner):
         # update them via the variables object directly
         self.variables['timestep'].set_value(new_timestep)
         self.variables['t'].set_value(new_timestep * new_dt)
-        logger.diagnostic("Setting Clock {name} to t={t}, dt={dt}".format(name=self.name,
-                                                                          t=self.t,
-                                                                          dt=self.dt))
+        logger.diagnostic(f"Setting Clock {self.name} to t={self.t}, dt={self.dt}")
 
     def _calc_timestep(self, target_t):
-        '''
+        """
         Calculate the integer time step for the target time. If it cannot be
         exactly represented (up to 0.01% of dt), round up.
 
@@ -133,7 +130,7 @@ class Clock(VariableOwner):
         -------
         timestep : int
             The target time in integers (based on dt)
-        '''
+        """
         new_i = np.int64(np.round(target_t / self.dt_))
         new_t = new_i * self.dt_
         if (new_t == target_t or
@@ -144,7 +141,7 @@ class Clock(VariableOwner):
         return new_timestep
 
     def __repr__(self):
-        return 'Clock(dt=%r, name=%r)' % (self.dt, self.name)
+        return f'Clock(dt={self.dt!r}, name={self.name!r})'
 
     def _get_dt_(self):
         return self.variables['dt'].get_value().item()
@@ -160,14 +157,14 @@ class Clock(VariableOwner):
 
     dt = property(fget=lambda self: Quantity(self.dt_, dim=second.dim),
                   fset=_set_dt,
-                  doc='''The time step of the simulation in seconds.''',
+                  doc="""The time step of the simulation in seconds.""",
                   )
     dt_ = property(fget=_get_dt_, fset=_set_dt_,
-                   doc='''The time step of the simulation as a float (in seconds)''')
+                   doc="""The time step of the simulation as a float (in seconds)""")
 
     @check_units(start=second, end=second)
     def set_interval(self, start, end):
-        '''
+        """
         set_interval(self, start, end)
 
         Set the start and end time of the simulation.
@@ -175,20 +172,18 @@ class Clock(VariableOwner):
         Sets the start and end value of the clock precisely if
         possible (using epsilon) or rounding up if not. This assures that
         multiple calls to `Network.run` will not re-run the same time step.      
-        '''
+        """
         self._set_t_update_dt(target_t=start)
         end = float(end)
         self._i_end = self._calc_timestep(end)
         if self._i_end > 2**40:
-            logger.warn('The end time of the simulation has been set to {}, '
-                        'which based on the dt value of {} means that {} '
-                        'time steps will be simulated. This can lead to '
-                        'numerical problems, e.g. the times t will not '
-                        'correspond to exact multiples of '
-                        'dt.'.format(str(end*second),
-                                     str(self.dt),
-                                     self._i_end),
-                        'many_timesteps')
+            logger.warn(f"The end time of the simulation has been set to "
+                        f"{str(end*second)}, which based on the dt value of "
+                        f"{str(self.dt)} means that {self._i_end} "
+                        f"time steps will be simulated. This can lead to "
+                        f"numerical problems, e.g. the times t will not "
+                        f"correspond to exact multiples of "
+                        f"dt.", 'many_timesteps')
 
     #: The relative difference for times (in terms of dt) so that they are
     #: considered identical.
@@ -196,9 +191,9 @@ class Clock(VariableOwner):
 
 
 class DefaultClockProxy(object):
-    '''
+    """
     Method proxy to access the defaultclock of the currently active device
-    '''
+    """
     def __getattr__(self, name):
         if name == '_is_proxy':
             return True

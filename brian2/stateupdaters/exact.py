@@ -1,6 +1,6 @@
-'''
+"""
 Exact integration for linear equations.
-'''
+"""
 
 import itertools
 
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 def get_linear_system(eqs, variables):
-    '''
+    """
     Convert equations into a linear system using sympy.
     
     Parameters
@@ -39,7 +39,7 @@ def get_linear_system(eqs, variables):
     ------
     ValueError
         If the equations cannot be converted into an M * X + B form.
-    '''
+    """
     diff_eqs = eqs.get_substituted_expressions(variables)
     diff_eq_names = [name for name, _ in diff_eqs]
 
@@ -55,16 +55,15 @@ def get_linear_system(eqs, variables):
         for col_idx, symbol in enumerate(symbols):
             current_s_expr = current_s_expr.collect(symbol)
             constant_wildcard = Wild('c', exclude=[symbol])
-            factor_wildcard = Wild('c_'+name, exclude=symbols)
+            factor_wildcard = Wild(f"c_{name}", exclude=symbols)
             one_pattern = factor_wildcard*symbol + constant_wildcard
             matches = current_s_expr.match(one_pattern)
             if matches is None:
-                raise UnsupportedEquationsException(('The expression "%s", '
-                                                     'defining the variable '
-                                                     '%s, could not be '
-                                                     'separated into linear '
-                                                     'components.') %
-                                                    (expr, name))
+                raise UnsupportedEquationsException(f"The expression '{expr}', "
+                                                    f"defining the variable "
+                                                    f"'{name}', could not be "
+                                                    f"separated into linear "
+                                                    f"components.")
 
             coefficients[row_idx, col_idx] = matches[factor_wildcard]
             current_s_expr = matches[constant_wildcard]
@@ -76,14 +75,14 @@ def get_linear_system(eqs, variables):
 
 
 class IndependentStateUpdater(StateUpdateMethod):
-    '''
+    """
     A state update for equations that do not depend on other state variables,
     i.e. 1-dimensional differential equations. The individual equations are
     solved by sympy.
 
     .. deprecated:: 2.1
         This method might be removed from future versions of Brian.
-    '''
+    """
 
     def __call__(self, equations, variables=None, method_options=None):
         logger.warn("The 'independent' state updater is deprecated and might be "
@@ -91,9 +90,9 @@ class IndependentStateUpdater(StateUpdateMethod):
                     'deprecated_independent', once=True)
         extract_method_options(method_options, {})
         if equations.is_stochastic:
-            raise UnsupportedEquationsException('Cannot solve stochastic '
-                                                'equations with this state '
-                                                'updater')
+            raise UnsupportedEquationsException("Cannot solve stochastic "
+                                                "equations with this state "
+                                                "updater")
         if variables is None:
             variables = {}
 
@@ -123,12 +122,11 @@ class IndependentStateUpdater(StateUpdateMethod):
                 general_solution = sp.dsolve(diff_eq, f(t), simplify=False)
             # Check whether this is an explicit solution
             if not getattr(general_solution, 'lhs', None) == f(t):
-                raise UnsupportedEquationsException('Cannot explicitly solve: '
-                                                    + str(diff_eq))
+                raise UnsupportedEquationsException(f"Cannot explicitly solve: {str(diff_eq)}")
             # Solve for C1 (assuming "var" as the initial value and "t0" as time)
             if general_solution.has(Symbol('C1')):
                 if general_solution.has(Symbol('C2')):
-                    raise UnsupportedEquationsException('Too many constants in solution: %s' % str(general_solution))
+                    raise UnsupportedEquationsException(f'Too many constants in solution: {str(general_solution)}')
                 constant_solution = sp.solve(general_solution, Symbol('C1'))
                 if len(constant_solution) != 1:
                     raise UnsupportedEquationsException(("Couldn't solve for the constant "
@@ -145,25 +143,25 @@ class IndependentStateUpdater(StateUpdateMethod):
             except ValueError:
                 pass
 
-            code.append(name + ' = ' + sympy_to_str(solution))
+            code.append(f"{name} = {sympy_to_str(solution)}")
 
         return '\n'.join(code)
 
 
 class LinearStateUpdater(StateUpdateMethod):
-    '''
+    """
     A state updater for linear equations. Derives a state updater step from the
     analytical solution given by sympy. Uses the matrix exponential (which is
     only implemented for diagonalizable matrices in sympy).
-    '''
+    """
     def __call__(self, equations, variables=None, method_options=None):
         method_options = extract_method_options(method_options,
                                                 {'simplify': True})
 
         if equations.is_stochastic:
-            raise UnsupportedEquationsException('Cannot solve stochastic '
-                                                'equations with this state '
-                                                'updater.')
+            raise UnsupportedEquationsException("Cannot solve stochastic "
+                                                "equations with this state "
+                                                "updater.")
         if variables is None:
             variables = {}
 
@@ -188,15 +186,15 @@ class LinearStateUpdater(StateUpdateMethod):
         for entry in itertools.chain(matrix, constants):
             if not is_constant_over_dt(entry, variables, dt_value):
                 raise UnsupportedEquationsException(
-                    ('Expression "{}" is not guaranteed to be constant over a '
-                     'time step').format(sympy_to_str(entry)))
+                    f"Expression '{sympy_to_str(entry)}' is not guaranteed to be "
+                    f"constant over a time step.")
 
         symbols = [Symbol(variable, real=True) for variable in varnames]
         solution = sp.solve_linear_system(matrix.row_join(constants), *symbols)
         if solution is None or set(symbols) != set(solution.keys()):
-            raise UnsupportedEquationsException('Cannot solve the given '
-                                                'equations with this '
-                                                'stateupdater.')
+            raise UnsupportedEquationsException("Cannot solve the given "
+                                                "equations with this "
+                                                "stateupdater.")
         b = sp.ImmutableMatrix([solution[symbol] for symbol in symbols])
 
         # Solve the system
@@ -204,9 +202,9 @@ class LinearStateUpdater(StateUpdateMethod):
         try:
             A = (matrix * dt).exp()
         except NotImplementedError:
-            raise UnsupportedEquationsException('Cannot solve the given '
-                                                'equations with this '
-                                                'stateupdater.')
+            raise UnsupportedEquationsException("Cannot solve the given "
+                                                "equations with this "
+                                                "stateupdater.")
         if method_options['simplify']:
             A = A.applyfunc(lambda x:
                             sp.factor_terms(sp.cancel(sp.signsimp(x))))
@@ -221,23 +219,23 @@ class LinearStateUpdater(StateUpdateMethod):
         for idx, (variable, update) in enumerate(zip(varnames, updates)):
             rhs = update
             if rhs.has(I, re, im):
-                raise UnsupportedEquationsException('The solution to the linear system '
-                                                    'contains complex values '
-                                                    'which is currently not implemented.')
+                raise UnsupportedEquationsException("The solution to the linear system "
+                                                    "contains complex values "
+                                                    "which is currently not implemented.")
             for row_idx, varname in enumerate(varnames):
                 rhs = rhs.subs(_S[row_idx, 0], varname)
 
             # Do not overwrite the real state variables yet, the update step
             # of other state variables might still need the original values
-            abstract_code.append('_' + variable + ' = ' + sympy_to_str(rhs))
+            abstract_code.append(f"_{variable} = {sympy_to_str(rhs)}")
 
         # Update the state variables
         for variable in varnames:
-            abstract_code.append('{variable} = _{variable}'.format(variable=variable))
+            abstract_code.append(f"{variable} = _{variable}")
         return '\n'.join(abstract_code)
 
     def __repr__(self):
-        return '%s()' % self.__class__.__name__
+        return f'{self.__class__.__name__}()'
 
 
 independent = IndependentStateUpdater()

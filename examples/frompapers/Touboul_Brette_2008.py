@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Chaos in the AdEx model
 -----------------------
 Fig. 8B from:
@@ -9,7 +9,7 @@ exponential integrate-and-fire model. Biological Cybernetics 99(4-5):319-34.
 This shows the bifurcation structure when the reset value is varied
 (vertical axis shows the values of w at spike times for a given a reset value
 Vr).
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = 0.01*ms

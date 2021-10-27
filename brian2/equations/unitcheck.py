@@ -1,6 +1,6 @@
-'''
+"""
 Utility functions for handling the units in `Equations`.
-'''
+"""
 
 import re
 
@@ -16,7 +16,7 @@ __all__ = ['check_dimensions', 'check_units_statements']
 
 
 def check_dimensions(expression, dimensions, variables):
-    '''
+    """
     Compares the physical dimensions of an expression to expected dimensions in
     a given namespace.
 
@@ -36,16 +36,16 @@ def check_dimensions(expression, dimensions, variables):
         In case on of the identifiers cannot be resolved.
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
-    '''
+    """
     expr_dims = parse_expression_dimensions(expression, variables)
-    err_msg = ('Expression {expr} does not have the '
-               'expected unit {expected}').format(expr=expression.strip(),
-                                                  expected=repr(get_unit(dimensions)))
+    expected = repr(get_unit(dimensions))
+    err_msg = (f"Expression '{expression.strip()}' does not have the "
+               f"expected unit {expected}")
     fail_for_dimension_mismatch(expr_dims, dimensions, err_msg)
 
 
 def check_units_statements(code, variables):
-    '''
+    """
     Check the units for a series of statements. Setting a model variable has to
     use the correct unit. For newly introduced temporary variables, the unit
     is determined and used to check the following statements to ensure
@@ -65,16 +65,15 @@ def check_units_statements(code, variables):
         In case on of the identifiers cannot be resolved.
     DimensionMismatchError
         If an unit mismatch occurs during the evaluation.
-    '''
+    """
     variables = dict(variables)
     # Avoid a circular import
     from brian2.codegen.translation import analyse_identifiers
     newly_defined, _, unknown = analyse_identifiers(code, variables)
     
     if len(unknown):
-        raise AssertionError(('Encountered unknown identifiers, this should '
-                             'not happen at this stage. Unknown identifiers: %s'
-                             % unknown))
+        raise AssertionError(f"Encountered unknown identifiers, this should not "
+                             f"happen at this stage. Unknown identifiers: {unknown}")
 
     
     code = re.split(r'[;\n]', code)
@@ -86,13 +85,11 @@ def check_units_statements(code, variables):
         varname, op, expr, comment = parse_statement(line)
         if op in ('+=', '-=', '*=', '/=', '%='):
             # Replace statements such as "w *=2" by "w = w * 2"
-            expr = '{var} {op_first} {expr}'.format(var=varname,
-                                                    op_first=op[0],
-                                                    expr=expr)
+            expr = f'{varname} {op[0]} {expr}'
         elif op == '=':
             pass
         else:
-            raise AssertionError('Unknown operator "%s"' % op) 
+            raise AssertionError(f'Unknown operator "{op}"') 
 
         expr_unit = parse_expression_dimensions(expr, variables)
 
@@ -109,6 +106,6 @@ def check_units_statements(code, variables):
                                           dimensions=get_dimensions(expr_unit),
                                           scalar=False)
         else:
-            raise AssertionError(('Variable "%s" is neither in the variables '
-                                  'dictionary nor in the list of undefined '
-                                  'variables.' % varname))
+            raise AssertionError(f"Variable '{varname}' is neither in the variables "
+                                 f"dictionary nor in the list of undefined "
+                                 f"variables.")

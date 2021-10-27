@@ -1,6 +1,6 @@
-'''
+"""
 A cylinder plus two branches, with diameters according to Rall's formula
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = 0.01*ms

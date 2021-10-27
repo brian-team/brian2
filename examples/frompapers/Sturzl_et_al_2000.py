@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Adapted from
 Theory of Arachnid Prey Localization
 W. Sturzl, R. Kempter, and J. L. van Hemmen
@@ -8,7 +8,7 @@ PRL 2000
 Poisson inputs are replaced by integrate-and-fire neurons
 
 Romain Brette
-'''
+"""
 from brian2 import *
 
 # Parameters

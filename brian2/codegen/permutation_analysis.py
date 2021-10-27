@@ -1,6 +1,6 @@
-'''
+"""
 Module for analysing synaptic pre and post code for synapse order independence.
-'''
+"""
 
 from brian2.utils.stringtools import get_identifiers
 from brian2.core.functions import Function
@@ -14,9 +14,9 @@ class OrderDependenceError(Exception):
 
 
 def check_for_order_independence(statements, variables, indices):
-    '''
+    """
     Check that the sequence of statements doesn't depend on the order in which the indices are iterated through.
-    '''
+    """
     # Remove stateless functions from variables (only bother with ones that are used)
     all_used_vars = set()
     for statement in statements:
@@ -95,4 +95,4 @@ def check_for_order_independence(statements, variables, indices):
                 else:
                     raise OrderDependenceError()
             else:
-                raise AssertionError('Should never get here...')
+                raise AssertionError("Should never get here...")

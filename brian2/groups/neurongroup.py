@@ -1,7 +1,7 @@
 
-'''
+"""
 This model defines the `NeuronGroup`, the core of most simulations.
-'''
+"""
 from collections.abc import Sequence, MutableMapping
 import numbers
 import string
@@ -38,11 +38,11 @@ __all__ = ['NeuronGroup']
 logger = get_logger(__name__)
 
 
-IDENTIFIER = Word(string.ascii_letters + '_',
-                  string.ascii_letters + string.digits + '_').setResultsName('identifier')
+IDENTIFIER = Word(f"{string.ascii_letters}_",
+                  f"{string.ascii_letters + string.digits}_").setResultsName('identifier')
 
 def _valid_event_name(event_name):
-    '''
+    """
     Helper function to check whether a name is a valid name for an event.
 
     Parameters
@@ -54,7 +54,7 @@ def _valid_event_name(event_name):
     -------
     is_valid : bool
         Whether the given name is valid
-    '''
+    """
     parse_result = list(IDENTIFIER.scanString(event_name))
 
     # parse_result[0][0][0] refers to the matched string -- this should be the
@@ -63,12 +63,12 @@ def _valid_event_name(event_name):
     return len(parse_result) == 1 and parse_result[0][0][0] == event_name
 
 def _guess_membrane_potential(equations):
-    '''
+    """
     Little helper function to guess which variable represents the membrane
     potential. This follows the same logic as in Brian1 but is only used to
     give a suggestion in the error message when a Brian1-style syntax is used
     for threshold or reset.
-    '''
+    """
     if len(equations) == 1:
         return list(equations.keys())[0]
     for name, eq in equations.items():
@@ -86,13 +86,13 @@ def _guess_membrane_potential(equations):
 def check_identifier_pre_post(identifier):
     'Do not allow names ending in ``_pre`` or ``_post`` to avoid confusion.'
     if identifier.endswith('_pre') or identifier.endswith('_post'):
-        raise ValueError('"%s" cannot be used as a variable name, the "_pre" '
-                         'and "_post" suffixes are used to refer to pre- and '
-                         'post-synaptic variables in synapses.' % identifier)
+        raise ValueError(f"'{identifier}' cannot be used as a variable name, the "
+                         f"'_pre' and '_post' suffixes are used to refer to pre- and "
+                         f"post-synaptic variables in synapses.")
 
 
 def to_start_stop(item, N):
-    '''
+    """
     Helper function to transform a single number, a slice or an array of
     contiguous indices to a start and stop value. This is used to allow for
     some flexibility in the syntax of specifying subgroups in `.NeuronGroup`
@@ -129,7 +129,7 @@ def to_start_stop(item, N):
         ...
     IndexError: Subgroups can only be constructed using contiguous indices.
     
-    '''
+    """
     if isinstance(item, slice):
         start, stop, step = item.indices(N)
     elif isinstance(item, numbers.Integral):
@@ -139,39 +139,37 @@ def to_start_stop(item, N):
     elif (isinstance(item, (Sequence, np.ndarray)) and
           not isinstance(item, str)):
         if not (len(item) > 0 and np.all(np.diff(item) == 1)):
-            raise IndexError('Subgroups can only be constructed using '
-                             'contiguous indices.')
+            raise IndexError("Subgroups can only be constructed using "
+                             "contiguous indices.")
         if not np.issubdtype(np.asarray(item).dtype, np.integer):
-            raise TypeError('Subgroups can only be constructed using integer '
-                            'values.')
+            raise TypeError("Subgroups can only be constructed using integer "
+                            "values.")
         start = int(item[0])
         stop = int(item[-1]) + 1
         step = 1
     else:
-        raise TypeError('Subgroups can only be constructed using slicing '
-                        'syntax, a single index, or an array of contiguous '
-                        'indices.')
+        raise TypeError("Subgroups can only be constructed using slicing "
+                        "syntax, a single index, or an array of contiguous "
+                        "indices.")
     if step != 1:
-        raise IndexError('Subgroups have to be contiguous')
+        raise IndexError("Subgroups have to be contiguous")
     if start >= stop:
-        raise IndexError('Illegal start/end values for subgroup, %d>=%d' %
-                         (start, stop))
+        raise IndexError(
+            f"Illegal start/end values for subgroup, {int(start)}>={int(stop)}")
     if start >= N:
-        raise IndexError('Illegal start value for subgroup, %d>=%d' %
-                         (start, N))
+        raise IndexError(f"Illegal start value for subgroup, {int(start)}>={int(N)}")
     if stop > N:
-        raise IndexError('Illegal stop value for subgroup, %d>%d' %
-                         (stop, N))
+        raise IndexError(f"Illegal stop value for subgroup, {int(stop)}>{int(N)}")
     if start < 0:
-        raise IndexError('Indices have to be positive.')
+        raise IndexError("Indices have to be positive.")
     return start, stop
 
 
 class StateUpdater(CodeRunner):
-    '''
+    """
     The `CodeRunner` that updates the state variables of a `NeuronGroup`
     at every timestep.
-    '''
+    """
     def __init__(self, group, method, method_options=None):
         self.method_choice = method
         self.method_options = method_options
@@ -181,7 +179,7 @@ class StateUpdater(CodeRunner):
                             clock=group.clock,
                             when='groups',
                             order=group.order,
-                            name=group.name + '_stateupdater*',
+                            name=f"{group.name}_stateupdater*",
                             check_units=False,
                             generate_empty_code=False)
 
@@ -197,9 +195,9 @@ class StateUpdater(CodeRunner):
                                                       '{value}'),
                                         value=ref)
             if prefs.legacy.refractory_timing:
-                abstract_code = 'not_refractory = (t - lastspike) > %f\n' % ref
+                abstract_code = f'not_refractory = (t - lastspike) > {ref:f}\n'
             else:
-                abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%f, dt)\n' % ref
+                abstract_code = f'not_refractory = timestep(t - lastspike, dt) >= timestep({ref:f}, dt)\n'
         else:
             identifiers = get_identifiers(ref)
             variables = self.group.resolve_all(identifiers,
@@ -208,24 +206,24 @@ class StateUpdater(CodeRunner):
             dims = parse_expression_dimensions(str(ref), variables)
             if dims is second.dim:
                 if prefs.legacy.refractory_timing:
-                    abstract_code = '(t - lastspike) > %s\n' % ref
+                    abstract_code = f'(t - lastspike) > {ref}\n'
                 else:
-                    abstract_code = 'not_refractory = timestep(t - lastspike, dt) >= timestep(%s, dt)\n' % ref
+                    abstract_code = f'not_refractory = timestep(t - lastspike, dt) >= timestep({ref}, dt)\n'
             elif dims is DIMENSIONLESS:
                 if not is_boolean_expression(str(ref), variables):
-                    raise TypeError(('Refractory expression is dimensionless '
-                                     'but not a boolean value. It needs to '
-                                     'either evaluate to a timespan or to a '
-                                     'boolean value.'))
+                    raise TypeError("Refractory expression is dimensionless "
+                                    "but not a boolean value. It needs to "
+                                    "either evaluate to a timespan or to a "
+                                    "boolean value.")
                 # boolean condition
                 # we have to be a bit careful here, we can't just use the given
                 # condition as it is, because we only want to *leave*
                 # refractoriness, based on the condition
-                abstract_code = 'not_refractory = not_refractory or not (%s)\n' % ref
+                abstract_code = f'not_refractory = not_refractory or not ({ref})\n'
             else:
-                raise TypeError(('Refractory expression has to evaluate to a '
-                                 'timespan or a boolean value, expression'
-                                 '"%s" has units %s instead') % (ref, dims))
+                raise TypeError(f"Refractory expression has to evaluate to a "
+                                f"timespan or a boolean value, expression"
+                                f"'{ref}' has units {dims} instead")
         return abstract_code
 
     def update_abstract_code(self, run_namespace):
@@ -261,22 +259,21 @@ class StateUpdater(CodeRunner):
                 # to the StateUpdater together with some auxiliary information
                 self.abstract_code += stateupdate_output(self)
 
-        user_code = '\n'.join(['{var} = {expr}'.format(var=var, expr=expr)
+        user_code = '\n'.join([f'{var} = {expr}'
                                for var, expr in
                                self.group.equations.get_substituted_expressions(variables)])
         self.user_code = user_code
 
 
 class SubexpressionUpdater(CodeRunner):
-    '''
+    """
     The `CodeRunner` that updates the state variables storing the values of
     subexpressions that have been marked as "constant over dt".
-    '''
+    """
     def __init__(self, group, subexpressions, when='before_start'):
         code_lines = []
         for subexpr in subexpressions.ordered:
-            code_lines.append('{} = {}'.format(subexpr.varname,
-                                               subexpr.expr))
+            code_lines.append(f'{subexpr.varname} = {subexpr.expr}')
         code = '\n'.join(code_lines)
         CodeRunner.__init__(self, group,
                             'stateupdate',
@@ -284,15 +281,15 @@ class SubexpressionUpdater(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=group.order,
-                            name=group.name + '_subexpression_update*')
+                            name=f"{group.name}_subexpression_update*")
 
 
 class Thresholder(CodeRunner):
-    '''
+    """
     The `CodeRunner` that applies the threshold condition to the state
     variables of a `NeuronGroup` at every timestep and sets its ``spikes``
     and ``refractory_until`` attributes.
-    '''
+    """
     def __init__(self, group, when='thresholds', event='spike'):
         self.event = event
         if group._refractory is False or event != 'spike':
@@ -304,7 +301,7 @@ class Thresholder(CodeRunner):
         # Since this now works for general events not only spikes, we have to
         # pass the information about which variable to use to the template,
         # it can not longer simply refer to "_spikespace"
-        eventspace_name = '_{}space'.format(event)
+        eventspace_name = f'_{event}space'
         template_kwds['eventspace_variable'] = group.variables[eventspace_name]
         needed_variables.append(eventspace_name)
         self.variables = Variables(self)
@@ -315,7 +312,7 @@ class Thresholder(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=group.order,
-                            name=group.name+'_thresholder*',
+                            name=f"{group.name}_thresholder*",
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
 
@@ -326,43 +323,43 @@ class Thresholder(CodeRunner):
             if isinstance(code, Quantity):
                 t = 'a quantity'
             else:
-                t = '%s' % type(code)
-            error_msg = 'Threshold condition has to be a string, not %s.' % t
+                t = f'{type(code)}'
+            error_msg = f'Threshold condition has to be a string, not {t}.'
             if self.event == 'spike':
                 try:
                     vm_var = _guess_membrane_potential(self.group.equations)
                 except AttributeError:  # not a group with equations...
                     vm_var = None
                 if vm_var is not None:
-                    error_msg += " Probably you intended to use '%s > ...'?" % vm_var
+                    error_msg += f" Probably you intended to use '{vm_var} > ...'?"
             raise TypeError(error_msg)
 
-        self.user_code = '_cond = ' + code
+        self.user_code = f"_cond = {code}"
 
         identifiers = get_identifiers(code)
         variables = self.group.resolve_all(identifiers,
                                            run_namespace,
                                            user_identifiers=identifiers)
         if not is_boolean_expression(code, variables):
-            raise TypeError(('Threshold condition "%s" is not a boolean '
-                             'expression') % code)
+            raise TypeError(f"Threshold condition '{code}' is not a boolean "
+                            f"expression")
         if self.group._refractory is False or self.event != 'spike':
-            self.abstract_code = '_cond = %s' % code
+            self.abstract_code = f'_cond = {code}'
         else:
-            self.abstract_code = '_cond = (%s) and not_refractory' % code
+            self.abstract_code = f'_cond = ({code}) and not_refractory'
 
 
 class Resetter(CodeRunner):
-    '''
+    """
     The `CodeRunner` that applies the reset statement(s) to the state
     variables of neurons that have spiked in this timestep.
-    '''
+    """
     def __init__(self, group, when='resets', order=None, event='spike'):
         self.event = event
         # Since this now works for general events not only spikes, we have to
         # pass the information about which variable to use to the template,
         # it can not longer simply refer to "_spikespace"
-        eventspace_name = '_{}space'.format(event)
+        eventspace_name = f'_{event}space'
         template_kwds = {'eventspace_variable': group.variables[eventspace_name]}
         needed_variables= [eventspace_name]
         order = order if order is not None else group.order
@@ -372,7 +369,7 @@ class Resetter(CodeRunner):
                             clock=group.clock,
                             when=when,
                             order=order,
-                            name=group.name + '_resetter*',
+                            name=f"{group.name}_resetter*",
                             override_conditional_write=['not_refractory'],
                             needed_variables=needed_variables,
                             template_kwds=template_kwds)
@@ -384,19 +381,19 @@ class Resetter(CodeRunner):
             if isinstance(code, Quantity):
                 t = 'a quantity'
             else:
-                t = '%s' % type(code)
-            error_msg = 'Reset statement has to be a string, not %s.' % t
+                t = f'{type(code)}'
+            error_msg = f'Reset statement has to be a string, not {t}.'
             if self.event == 'spike':
                 vm_var = _guess_membrane_potential(self.group.equations)
                 if vm_var is not None:
-                    error_msg += " Probably you intended to use '%s = ...'?" % vm_var
+                    error_msg += f" Probably you intended to use '{vm_var} = ...'?"
             raise TypeError(error_msg)
 
         self.abstract_code = code
 
 
 class NeuronGroup(Group, SpikeSource):
-    '''
+    """
     A group of neurons.
 
     
@@ -459,7 +456,7 @@ class NeuronGroup(Group, SpikeSource):
     attribute will be passed down to the contained objects but can be set
     individually by setting the `order` attribute of the `state_updater`,
     `thresholder` and `resetter` attributes, respectively.
-    '''
+    """
     add_to_magic_network = True
 
     def __init__(self, N, model,
@@ -477,7 +474,7 @@ class NeuronGroup(Group, SpikeSource):
                  name='neurongroup*',
                  codeobj_class=None):
         Group.__init__(self, dt=dt, clock=clock, when='start', order=order,
-                       name=name)
+                       namespace=namespace, name=name)
         if dtype is None:
             dtype = {}
         if isinstance(dtype, MutableMapping):
@@ -492,7 +489,7 @@ class NeuronGroup(Group, SpikeSource):
                 raise TypeError("First NeuronGroup argument should be size, not equations.")
             raise
         if N < 1:
-            raise ValueError("NeuronGroup size should be at least 1, was " + str(N))
+            raise ValueError(f"NeuronGroup size should be at least 1, was {str(N)}")
 
         self.start = 0
         self.stop = self._N
@@ -501,8 +498,8 @@ class NeuronGroup(Group, SpikeSource):
         if isinstance(model, str):
             model = Equations(model)
         if not isinstance(model, Equations):
-            raise TypeError(('model has to be a string or an Equations '
-                             'object, is "%s" instead.') % type(model))
+            raise TypeError(f"model has to be a string or an Equations "
+                            f"object, is '{type(model)}' instead.")
 
         # Check flags
         model.check_flags({DIFFERENTIAL_EQUATION: ('unless refractory',),
@@ -528,13 +525,8 @@ class NeuronGroup(Group, SpikeSource):
         self.equations = model
 
         self._linked_variables = set()
-        logger.diagnostic("Creating NeuronGroup of size {self._N}, "
-                          "equations {self.equations}.".format(self=self))
-
-        if namespace is None:
-            namespace = {}
-        #: The group-specific namespace
-        self.namespace = namespace
+        logger.diagnostic(f"Creating NeuronGroup of size {self._N}, "
+                          f"equations {self.equations}.")
 
         # All of the following will be created in before_run
 
@@ -552,12 +544,12 @@ class NeuronGroup(Group, SpikeSource):
         
         if threshold is not None and (reset is None and refractory is False):
             if not('rand(' in threshold or 'randn(' in threshold):
-                logger.warn("The NeuronGroup '{}' sets a threshold but "
-                            "neither a reset condition nor a refractory "
-                            "condition has been set. Did you forget either of "
-                            "those? If this was intended, set the reset "
-                            "argument to an empty string in order to avoid "
-                            "this warning.".format(self.name),
+                logger.warn(f"The NeuronGroup '{self.name}' sets a threshold but "
+                            f"neither a reset condition nor a refractory "
+                            f"condition has been set. Did you forget either of "
+                            f"those? If this was intended, set the reset "
+                            f"argument to an empty string in order to avoid "
+                            f"this warning.",
                             name_suffix='only_threshold')
 
         if threshold is not None:
@@ -586,11 +578,11 @@ class NeuronGroup(Group, SpikeSource):
 
         for event_name in events.keys():
             if not isinstance(event_name, str):
-                raise TypeError(('Keys in the "events" dictionary have to be '
-                                 'strings, not type %s.') % type(event_name))
+                raise TypeError(f"Keys in the 'events' dictionary have to be "
+                                f"strings, not type {event_name}.")
             if not _valid_event_name(event_name):
-                raise TypeError(("The name '%s' cannot be used as an event "
-                                 "name.") % event_name)
+                raise TypeError(f"The name '{event_name}' cannot be used as an event "
+                                f"name.")
             # By default, user-defined events are checked after the threshold
             when = 'thresholds' if event_name == 'spike' else 'after_thresholds'
             # creating a Thresholder will take care of checking the validity
@@ -623,9 +615,9 @@ class NeuronGroup(Group, SpikeSource):
 
     @property
     def spikes(self):
-        '''
+        """
         The spikes returned by the most recent thresholding operation.
-        '''
+        """
         # Note that we have to directly access the ArrayVariable object here
         # instead of using the Group mechanism by accessing self._spikespace
         # Using the latter would cut _spikespace to the length of the group
@@ -637,13 +629,13 @@ class NeuronGroup(Group, SpikeSource):
             return Group.state(self, name, use_units=use_units, level=level+1)
         except KeyError as ex:
             if name in self._linked_variables:
-                raise TypeError(('Link target for variable %s has not been '
-                                 'set.') % name)
+                raise TypeError(f"Link target for variable {name} has not been "
+                                f"set.")
             else:
                 raise ex
 
     def run_on_event(self, event, code, when='after_resets', order=None):
-        '''
+        """
         Run code triggered by a custom-defined event (see `NeuronGroup`
         documentation for the specification of events).The created `Resetter`
         object will be automatically added to the group, it therefore does not
@@ -668,9 +660,9 @@ class NeuronGroup(Group, SpikeSource):
         -------
         obj : `Resetter`
             A reference to the object that will be run.
-        '''
+        """
         if event not in self.events:
-            error_message = "Unknown event '%s'." % event
+            error_message = f"Unknown event '{event}'."
             if event == 'spike':
                 error_message += ' Did you forget to define a threshold?'
             raise ValueError(error_message)
@@ -685,7 +677,7 @@ class NeuronGroup(Group, SpikeSource):
         return resetter
 
     def set_event_schedule(self, event, when='after_thresholds', order=None):
-        '''
+        """
         Change the scheduling slot for checking the condition of an event.
 
         Parameters
@@ -698,9 +690,9 @@ class NeuronGroup(Group, SpikeSource):
         order : int, optional
             The order for operations in the same scheduling slot. Defaults to
             the order of the `NeuronGroup`.
-        '''
+        """
         if event not in self.thresholder:
-            raise ValueError("Unknown event '%s'." % event)
+            raise ValueError(f"Unknown event '{event}'.")
         order = order if order is not None else self.order
         self.thresholder[event].when = when
         self.thresholder[event].order = order
@@ -712,21 +704,20 @@ class NeuronGroup(Group, SpikeSource):
             object.__setattr__(self, key, value)
         elif key in self._linked_variables:
             if not isinstance(value, LinkedVariable):
-                raise ValueError(('Cannot set a linked variable directly, link '
-                                  'it to another variable using "linked_var".'))
+                raise ValueError("Cannot set a linked variable directly, link "
+                                 "it to another variable using 'linked_var'.")
             linked_var = value.variable
             
             if isinstance(linked_var, DynamicArrayVariable):
-                raise NotImplementedError(('Linking to variable %s is not '
-                                           'supported, can only link to '
-                                           'state variables of fixed '
-                                           'size.') % linked_var.name)
+                raise NotImplementedError(f"Linking to variable {linked_var.name} is "
+                                          f"not supported, can only link to "
+                                          f"state variables of fixed size.")
 
             eq = self.equations[key]
             if eq.dim is not linked_var.dim:
-                raise DimensionMismatchError(('Unit of variable %s does not '
-                                              'match its link target %s') % (key,
-                                                                             linked_var.name))
+                raise DimensionMismatchError(f"Unit of variable '{key}' does not "
+                                             f"match its link target "
+                                             f"'{linked_var.name}'")
 
             if not isinstance(linked_var, Subexpression):
                 var_length = len(linked_var)
@@ -739,8 +730,8 @@ class NeuronGroup(Group, SpikeSource):
                     if not np.issubsctype(index_array.dtype, int):
                         raise TypeError()
                 except TypeError:
-                    raise TypeError(('The index for a linked variable has '
-                                     'to be an integer array'))
+                    raise TypeError("The index for a linked variable has "
+                                    "to be an integer array")
                 size = len(index_array)
                 source_index = value.group.variables.indices[value.name]
                 if source_index not in ('_idx', '0'):
@@ -749,22 +740,19 @@ class NeuronGroup(Group, SpikeSource):
                     index_array = value.group.variables[source_index].get_value()[index_array]
 
                 if not index_array.ndim == 1 or size != len(self):
-                    raise TypeError(('Index array for linked variable %s '
-                                     'has to be a one-dimensional array of '
-                                     'length %d, but has shape '
-                                     '%s') % (key,
-                                              len(self),
-                                              str(index_array.shape)))
+                    raise TypeError(f"Index array for linked variable '{key}' "
+                                    f"has to be a one-dimensional array of "
+                                    f"length {len(self)}, but has shape "
+                                    f"{index_array.shape!s}")
                 if min(index_array) < 0 or max(index_array) >= var_length:
-                    raise ValueError('Index array for linked variable %s '
-                                     'contains values outside of the valid '
-                                     'range [0, %d[' % (key,
-                                                        var_length))
-                self.variables.add_array('_%s_indices' % key,
+                    raise ValueError(f"Index array for linked variable {key} "
+                                     f"contains values outside of the valid "
+                                     f"range [0, {var_length}[")
+                self.variables.add_array(f'_{key}_indices',
                                          size=size, dtype=index_array.dtype,
                                          constant=True, read_only=True,
                                          values=index_array)
-                index = '_%s_indices' % key
+                index = f'_{key}_indices'
             else:
                 if linked_var.scalar or (var_length == 1 and self._N != 1):
                     index = '0'
@@ -776,39 +764,37 @@ class NeuronGroup(Group, SpikeSource):
                         target_length = len(value.group.variables[index])
                         # we need a name for the index that does not clash with
                         # other names and a reference to the index
-                        new_index = '_' + value.name + '_index_' + index
+                        new_index = f"_{value.name}_index_{index}"
                         self.variables.add_reference(new_index,
                                                      value.group,
                                                      index)
                         index = new_index
 
                     if len(self) != target_length:
-                        raise ValueError(('Cannot link variable %s to %s, the size of '
-                                          'the target group does not match '
-                                          '(%d != %d). You can provide an indexing '
-                                          'scheme with the "index" keyword to link '
-                                          'groups with different sizes') % (key,
-                                                           linked_var.name,
-                                                           len(self),
-                                                           target_length))
+                        raise ValueError(f"Cannot link variable '{key}' to "
+                                         f"'{linked_var.name}', the size of the "
+                                         f"target group does not match "
+                                         f"({len(self)} != {target_length}). You can "
+                                         f"provide an indexing scheme with the "
+                                         f"'index' keyword to link groups with "
+                                         f"different sizes")
 
             self.variables.add_reference(key,
                                          value.group,
                                          value.name,
                                          index=index)
-            log_msg = ('Setting {target}.{targetvar} as a link to '
-                       '{source}.{sourcevar}').format(target=self.name,
-                                                      targetvar=key,
-                                                      source=value.variable.owner.name,
-                                                      sourcevar=value.variable.name)
+            source = value.variable.owner.name,
+            sourcevar = value.variable.name
+            log_msg = (f"Setting {self.name}.{key} as a link to "
+                       f"{source}.{sourcevar}")
             if index is not None:
-                log_msg += '(using "{index}" as index variable)'.format(index=index)
+                log_msg += f'(using "{index}" as index variable)'
             logger.diagnostic(log_msg)
         else:
             if isinstance(value, LinkedVariable):
-                raise TypeError(('Cannot link variable %s, it has to be marked '
-                                 'as a linked variable with "(linked)" in the '
-                                 'model equations.') % key)
+                raise TypeError(f"Cannot link variable '{key}', it has to be marked "
+                                f"as a linked variable with '(linked)' in the model "
+                                f"equations.")
             else:
                 Group.__setattr__(self, key, value, level=1)
 
@@ -818,16 +804,16 @@ class NeuronGroup(Group, SpikeSource):
         return Subgroup(self, start, stop)
 
     def _create_variables(self, user_dtype, events):
-        '''
+        """
         Create the variables dictionary for this `NeuronGroup`, containing
         entries for the equation variables and some standard entries.
-        '''
+        """
         self.variables = Variables(self)
         self.variables.add_constant('N', self._N)
 
         # Standard variables always present
         for event in events:
-            self.variables.add_array('_{}space'.format(event),
+            self.variables.add_array(f'_{event}space',
                                      size=self._N+1, dtype=np.int32,
                                      constant=False)
         # Add the special variable "i" which can be used to refer to the neuron index
@@ -843,8 +829,8 @@ class NeuronGroup(Group, SpikeSource):
                 if 'linked' in eq.flags:
                     # 'linked' cannot be combined with other flags
                     if not len(eq.flags) == 1:
-                        raise SyntaxError(('The "linked" flag cannot be '
-                                           'combined with other flags'))
+                        raise SyntaxError("The 'linked' flag cannot be "
+                                          "combined with other flags")
                     self._linked_variables.add(eq.varname)
                 else:
                     constant = 'constant' in eq.flags
@@ -860,7 +846,7 @@ class NeuronGroup(Group, SpikeSource):
                                                  dtype=dtype,
                                                  scalar='shared' in eq.flags)
             else:
-                raise AssertionError('Unknown type of equation: ' + eq.eq_type)
+                raise AssertionError(f"Unknown type of equation: {eq.eq_type}")
 
         # Add the conditional-write attribute for variables with the
         # "unless refractory" flag
@@ -883,9 +869,9 @@ class NeuronGroup(Group, SpikeSource):
                 for identifier in var.identifiers:
                     if identifier in self.variables:
                         if not self.variables[identifier].scalar:
-                            raise SyntaxError(('Shared subexpression %s refers '
-                                               'to non-shared variable %s.')
-                                              % (eq.varname, identifier))
+                            raise SyntaxError(f"Shared subexpression '{eq.varname}' "
+                                              f"refers to non-shared variable "
+                                              f"'{identifier}'.")
 
     def before_run(self, run_namespace=None):
         # Check units
@@ -896,7 +882,7 @@ class NeuronGroup(Group, SpikeSource):
         super(NeuronGroup, self).before_run(run_namespace=run_namespace)
 
     def _repr_html_(self):
-        text = [r'NeuronGroup "%s" with %d neurons.<br>' % (self.name, self._N)]
+        text = [rf"NeuronGroup '{self.name}' with {self._N} neurons.<br>"]
         text.append(r'<b>Model:</b><nr>')
         text.append(sympy.latex(self.equations))
 
@@ -906,19 +892,19 @@ class NeuronGroup(Group, SpikeSource):
                 event_condition = 'Threshold condition'
                 event_code = 'Reset statement(s)'
             else:
-                event_header = 'Event "%s"' % event
+                event_header = f'Event "{event}"'
                 event_condition = 'Event condition'
                 event_code = 'Executed statement(s)'
             condition = self.events[event]
-            text.append(r'<b>%s:</b><ul style="list-style-type: none; margin-top: 0px;">' % event_header)
-            text.append(r'<li><i>%s: </i>' % event_condition)
-            text.append('<code>%s</code></li>' % str(condition))
+            text.append(rf'<b>{event_header}:</b><ul style="list-style-type: none; margin-top: 0px;">')
+            text.append(rf'<li><i>{event_condition}: </i>')
+            text.append(f'<code>{str(condition)}</code></li>')
             statements = self.event_codes.get(event, None)
             if statements is not None:
-                text.append(r'<li><i>%s:</i>' % event_code)
+                text.append(fr'<li><i>{event_code}:</i>')
                 if '\n' in str(statements):
                     text.append('</br>')
-                text.append(r'<code>%s</code></li>' % str(statements))
+                text.append(fr'<code>{str(statements)}</code></li>')
             text.append('</ul>')
 
         if 'spike' in self.events:

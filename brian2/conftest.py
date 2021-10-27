@@ -1,6 +1,6 @@
-'''
+"""
 Module containing fixtures and hooks used by the pytest test suite.
-'''
+"""
 import re
 
 import numpy as np
@@ -27,16 +27,16 @@ def fake_randn(vectorisation_idx):
     return 0.5*np.ones_like(vectorisation_idx)
 fake_randn = Function(fake_randn, arg_units=[], return_unit=1, auto_vectorise=True,
                       stateless=False)
-fake_randn.implementations.add_implementation('cpp', '''
+fake_randn.implementations.add_implementation('cpp', """
                                               double randn(int vectorisation_idx)
                                               {
                                                   return 0.5;
                                               }
-                                              ''')
-fake_randn.implementations.add_implementation('cython', '''
+                                              """)
+fake_randn.implementations.add_implementation('cython', """
                                     cdef double randn(int vectorisation_idx):
                                         return 0.5
-                                    ''')
+                                    """)
 
 @pytest.fixture
 def fake_randn_randn_fixture():
@@ -56,8 +56,7 @@ def setup_and_teardown(request):
             if isinstance(value, tuple) and value[0] == 'TYPE':
                 matches = re.match(r"<(type|class) 'numpy\.(.+)'>", value[1])
                 if matches is None or len(matches.groups()) != 2:
-                    raise TypeError('Do not know how to handle {} in '
-                                    'preferences'.format(value[1]))
+                    raise TypeError(f'Do not know how to handle {value[1]} in preferences')
                 t = matches.groups()[1]
                 if t == 'float64':
                     value = np.float64

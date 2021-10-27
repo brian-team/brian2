@@ -1,4 +1,4 @@
-'''
+"""
 Example using GSL ODE solvers with a variable time step and comparing it to the
 Brian solver.
 
@@ -17,7 +17,7 @@ the time constant is long.
 Note that using the GSL ODE solver is much slower, if both methods use a
 comparable number of steps, i.e. if the desired accuracy is low enough so that
 a single step per "Brian time step" is enough.
-'''
+"""
 from brian2 import *
 import time
 

@@ -4,11 +4,11 @@ from copy import copy
 __all__ = ['topsort']
 
 def topsort(graph):
-    '''
+    """
     Topologically sort a graph
     
     The graph should be of the form ``{node: [list of nodes], ...}``.
-    '''
+    """
     # make a copy so as not to destroy original
     graph = dict((k, copy(v)) for k, v in graph.items())
     # Use the standard algorithm for topological sorting:
@@ -30,6 +30,6 @@ def topsort(graph):
                 no_incoming.add(m)
                 
     if any([len(edges) > 0 for edges in graph.values()]):
-        raise ValueError('Cannot topologically sort cyclic graph.')
+        raise ValueError("Cannot topologically sort cyclic graph.")
     
     return sorted_items

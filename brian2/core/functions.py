@@ -27,7 +27,7 @@ VALID_RETURN_TYPES = BRIAN_DTYPES+['highest']
 
 
 def declare_types(**types):
-    '''
+    """
     Decorator to declare argument and result types for a function
 
     Usage is similar to `check_units` except that types must be one of ``{VALID_ARG_TYPES}``
@@ -37,7 +37,7 @@ def declare_types(**types):
     result type will give the highest type of its argument, e.g. if the arguments
     were boolean and integer then the result would be integer, if the arguments were
     integer and float it would be float.
-    '''
+    """
     def annotate_function_with_types(f):
         if hasattr(f, '_orig_arg_names'):
             arg_names = f._orig_arg_names
@@ -47,16 +47,15 @@ def declare_types(**types):
         for name in arg_names:
             arg_type = types.get(name, 'any')
             if arg_type not in VALID_ARG_TYPES:
-                raise ValueError("Argument type %s is not valid, must be one of %s, "
-                                 "for argument %s" % (arg_type, VALID_ARG_TYPES, name))
+                raise ValueError(f"Argument type {arg_type} is not valid, must be one of {VALID_ARG_TYPES}, "
+                                 f"for argument {name}")
             argtypes.append(arg_type)
         for n in types:
             if n not in arg_names and n!='result':
-                raise ValueError("Type specified for unknown argument "+n)
+                raise ValueError(f"Type specified for unknown argument {n}")
         return_type = types.get('result', 'float')
         if return_type not in VALID_RETURN_TYPES:
-            raise ValueError("Result type %s is not valid, "
-                             "must be one of %s" % (return_type, VALID_RETURN_TYPES))
+            raise ValueError(f"Result type {return_type} is not valid, must be one of {VALID_RETURN_TYPES}")
         f._arg_types = argtypes
         f._return_type = return_type
         f._orig_arg_names = arg_names
@@ -66,7 +65,7 @@ def declare_types(**types):
 
 
 class Function(object):
-    '''
+    """
     An abstract specification of a function that can be used as part of
     model equations, etc.
 
@@ -124,7 +123,7 @@ class Function(object):
     Python/numpy, implementations for these target languages have to be added
     using the `~brian2.codegen.functions.implementation` decorator or using the
     `~brian2.codegen.functions.add_implementations` function.
-    '''
+    """
     def __init__(self, pyfunc, sympy_func=None,
                  arg_units=None, arg_names=None,
                  return_unit=None,
@@ -145,40 +144,37 @@ class Function(object):
         self.auto_vectorise = auto_vectorise
         if self._arg_units is None:
             if not hasattr(pyfunc, '_arg_units'):
-                raise ValueError(('The Python function "%s" does not specify '
-                                  'how it deals with units, need to specify '
-                                  '"arg_units" or use the "@check_units" '
-                                  'decorator.') % pyfunc.__name__)
+                raise ValueError(f"The Python function '{pyfunc.__name__}' does not specify "
+                                 f"how it deals with units, need to specify "
+                                 f"'arg_units' or use the '@check_units' "
+                                 f"decorator.")
             elif pyfunc._arg_units is None:
                 # @check_units sets _arg_units to None if the units aren't
                 # specified for all of its arguments
-                raise ValueError(('The Python function "%s" does not specify '
-                                  'the units for all of its '
-                                  'arguments.') % pyfunc.__name__)
+                raise ValueError(f"The Python function '{pyfunc.__name__}' does not "
+                                 f"specify the units for all of its arguments.")
             else:
                 self._arg_units = pyfunc._arg_units
         else:
             if any(isinstance(u, str) for u in self._arg_units):
                 if self._arg_names is None:
-                    raise TypeError('Need to specify the names of the '
-                                    'arguments.')
+                    raise TypeError("Need to specify the names of the "
+                                    "arguments.")
                 if len(self._arg_names) != len(self._arg_units):
-                    raise TypeError(f'arg_names and arg_units need to have the '
-                                    f'same length ({len(self._arg_names)} != '
-                                    f'({len(self._arg_units)})')
+                    raise TypeError(f"arg_names and arg_units need to have the "
+                                    f"same length ({len(self._arg_names)} != "
+                                    f"({len(self._arg_units)})")
 
         if self._return_unit is None:
             if not hasattr(pyfunc, '_return_unit'):
-                raise ValueError(('The Python function "%s" does not specify '
-                                  'how it deals with units, need to specify '
-                                  '"return_unit" or use the "@check_units" '
-                                  'decorator.') % pyfunc.__name__)
+                raise ValueError(f"The Python function '{pyfunc.__name__}' does not "
+                                 f"specify how it deals with units, need to specify "
+                                 f"'return_unit' or use the '@check_units' decorator.")
             elif pyfunc._return_unit is None:
                 # @check_units sets _return_unit to None if no "result=..."
                 # keyword is specified.
-                raise ValueError(('The Python function "%s" does not specify '
-                                  'the unit for its return '
-                                  'value.') % pyfunc.__name__)
+                raise ValueError(f"The Python function '{pyfunc.__name__}' does not "
+                                 f"specify the unit for its return value.")
             else:
                 self._return_unit = pyfunc._return_unit
 
@@ -193,21 +189,23 @@ class Function(object):
 
         for argtype, u in zip(self._arg_types, self._arg_units):
             if argtype!='float' and argtype!='any' and u is not None and not is_dimensionless(u):
-                raise TypeError("Non-float arguments must be dimensionless in function "+pyfunc.__name__)
+                raise TypeError(f"Non-float arguments must be dimensionless in function {pyfunc.__name__}")
             if argtype not in VALID_ARG_TYPES:
-                raise ValueError("Argument type %s is not valid, must be one of %s, "
-                                 "in function %s" % (argtype, VALID_ARG_TYPES, pyfunc.__name__))
+                raise ValueError(f"Argument type {argtype} is not valid, must be one "
+                                 f"of {VALID_ARG_TYPES}, in function "
+                                 f"'{pyfunc.__name__}'.")
 
         if self._return_type not in VALID_RETURN_TYPES:
-                raise ValueError("Return type %s is not valid, must be one of %s, "
-                                 "in function %s" % (self._return_type, VALID_RETURN_TYPES, pyfunc.__name__))
+                raise ValueError(f"Return type {self._return_typ} is not valid, must "
+                                 f"be one of {VALID_RETURN_TYPES}, in function "
+                                 f"'{pyfunc.__name__}'")
 
         #: Stores implementations for this function in a
         #: `FunctionImplementationContainer`
         self.implementations = FunctionImplementationContainer(self)
 
     def is_locally_constant(self, dt):
-        '''
+        """
         Return whether this function (if interpreted as a function of time)
         should be considered constant over a timestep. This is most importantly
         used by `TimedArray` so that linear integration can be used. In its
@@ -223,7 +221,7 @@ class Function(object):
         constant : bool
             Whether the results of this function can be considered constant
             over one timestep of length `dt`.
-        '''
+        """
         return False
 
     def __call__(self, *args):
@@ -231,7 +229,7 @@ class Function(object):
 
 
 class FunctionImplementation(object):
-    '''
+    """
     A simple container object for function implementations.
 
     Parameters
@@ -259,7 +257,7 @@ class FunctionImplementation(object):
         new context it is used in. If set to ``True``, `code` and `namespace`
         have to be callable with a `Group` as an argument and are expected
         to return the final `code` and `namespace`. Defaults to ``False``.
-    '''
+    """
     def __init__(self, name=None, code=None, namespace=None,
                  dependencies=None, availability_check=None,
                  dynamic=False, compiler_kwds=None):
@@ -291,17 +289,17 @@ class FunctionImplementation(object):
 
 
 class FunctionImplementationContainer(Mapping):
-    '''
+    """
     Helper object to store implementations and give access in a dictionary-like
     fashion, using `CodeGenerator` implementations as a fallback for `CodeObject`
     implementations.
-    '''
+    """
     def __init__(self, function):
         self._function = function
         self._implementations = dict()
 
     def __getitem__(self, key):
-        '''
+        """
         Find an implementation for this function that can be used by the
         `CodeObject` given as `key`. Will find implementations registered
         for `key` itself (or one of its parents), or for the `CodeGenerator`
@@ -317,7 +315,7 @@ class FunctionImplementationContainer(Mapping):
         -------
         implementation : `FunctionImplementation`
             An implementation suitable for `key`.
-        '''
+        """
         fallback = getattr(key, 'generator_class', None)
         # in some cases we do the code generation with original_generator_class instead (e.g. GSL)
         fallback_parent = getattr(key, 'original_generator_class', None)
@@ -346,13 +344,12 @@ class FunctionImplementationContainer(Mapping):
             key = fallback.class_name
         keys = ', '.join([getattr(k, 'class_name', str(k))
                           for k in self._implementations])
-        raise KeyError(('No implementation available for target {key}. '
-                        'Available implementations: {keys}').format(key=key,
-                                                                    keys=keys))
+        raise KeyError(f"No implementation available for target '{key}'. "
+                       f"Available implementations: {keys}")
 
     def add_numpy_implementation(self, wrapped_func, dependencies=None,
                                  discard_units=None, compiler_kwds=None):
-        '''
+        """
         Add a numpy implementation to a `Function`.
 
         Parameters
@@ -365,7 +362,7 @@ class FunctionImplementationContainer(Mapping):
             A list of functions this function needs.
         discard_units : bool, optional
             See `implementation`.
-        '''
+        """
         if discard_units is None:
             discard_units = prefs['codegen.runtime.numpy.discard_units']
 
@@ -396,9 +393,9 @@ class FunctionImplementationContainer(Mapping):
                 if self._function.auto_vectorise:
                     arg_units += [DIMENSIONLESS]
                 if not len(args) == len(arg_units):
-                    raise ValueError(('Function %s got %d arguments, '
-                                      'expected %d') % (self._function.pyfunc.__name__, len(args),
-                                                        len(arg_units)))
+                    func_name = self._function.pyfunc.__name__
+                    raise ValueError(f"Function {func_name} got {len(args)} arguments, "
+                                     f"expected {len(arg_units)}.")
                 new_args = []
                 for arg, arg_unit in zip(args, arg_units):
                     if arg_unit == bool or arg_unit is None or isinstance(arg_unit, str):
@@ -415,28 +412,23 @@ class FunctionImplementationContainer(Mapping):
                 if return_unit == bool:
                     if not (isinstance(result, bool) or
                             np.asarray(result).dtype == bool):
-                        raise TypeError('The function %s returned '
-                                        '%s, but it was expected '
-                                        'to return a boolean '
-                                        'value ' % (orig_func.__name__,
-                                                    result))
+                        raise TypeError(f"The function {orig_func.__name__} returned "
+                                        f"'{result}', but it was expected to return a "
+                                        f"boolean value ")
                 elif (isinstance(return_unit, int) and return_unit == 1) or return_unit.dim is DIMENSIONLESS:
                     fail_for_dimension_mismatch(result,
                                                 return_unit,
-                                                'The function %s returned '
-                                                '{value}, but it was expected '
-                                                'to return a dimensionless '
-                                                'quantity' % orig_func.__name__,
-                                                value=result)
+                                                f"The function '{orig_func.__name__}' "
+                                                f"returned {result}, but it was "
+                                                f"expected to return a dimensionless "
+                                                f"quantity.")
                 else:
                     fail_for_dimension_mismatch(result,
                                                 return_unit,
-                                                ('The function %s returned '
-                                                 '{value}, but it was expected '
-                                                 'to return a quantity with '
-                                                 'units %r') % (orig_func.__name__,
-                                                                return_unit),
-                                                value=result)
+                                                f"The function '{orig_func.__name__}' "
+                                                f"returned {result}, but it was "
+                                                f"expected to return a quantity with "
+                                                f"units {return_unit!r}.")
                 return np.asarray(result)
 
             self._implementations['numpy'] = FunctionImplementation(name=None,
@@ -456,17 +448,17 @@ class FunctionImplementationContainer(Mapping):
     def add_dynamic_implementation(self, target, code, namespace=None,
                                    dependencies=None, availability_check=None,
                                    name=None, compiler_kwds=None):
-        '''
+        """
         Adds an "dynamic implementation" for this function. `code` and `namespace`
         arguments are expected to be callables that will be called in
         `Network.before_run` with the owner of the `CodeObject` as an argument.
         This allows to generate code that depends on details of the context it
         is run in, e.g. the ``dt`` of a clock.
-        '''
+        """
         if not callable(code):
-            raise TypeError('code argument has to be a callable, is type %s instead' % type(code))
+            raise TypeError(f'code argument has to be a callable, is type {type(code)} instead')
         if namespace is not None and not callable(namespace):
-            raise TypeError('namespace argument has to be a callable, is type %s instead' % type(code))
+            raise TypeError(f'namespace argument has to be a callable, is type {type(code)} instead')
         self._implementations[target] = FunctionImplementation(name=name,
                                                                code=code,
                                                                namespace=namespace,
@@ -484,7 +476,7 @@ class FunctionImplementationContainer(Mapping):
 
 def implementation(target, code=None, namespace=None, dependencies=None,
                    discard_units=None, name=None, **compiler_kwds):
-    '''
+    """
     A simple decorator to extend user-written Python functions to work with code
     generation in other languages.
 
@@ -541,16 +533,16 @@ def implementation(target, code=None, namespace=None, dependencies=None,
     --------
     Sample usage::
 
-        @implementation('cpp',"""
+        @implementation('cpp','''
                     #include<math.h>
                     inline double usersin(double x)
                     {
                         return sin(x);
                     }
-                    """)
+                    ''')
         def usersin(x):
             return sin(x)
-    '''
+    """
 
     def do_user_implementation(func):
         # Allow nesting of decorators
@@ -584,9 +576,9 @@ def implementation(target, code=None, namespace=None, dependencies=None,
 
 
 class SymbolicConstant(Constant):
-    '''
+    """
     Class for representing constants (e.g. pi) that are understood by sympy.
-    '''
+    """
     def __init__(self, name, sympy_obj, value):
         super(SymbolicConstant, self).__init__(name, value=value)
         self.sympy_obj = sympy_obj
@@ -655,7 +647,7 @@ _infinity_int = 1073741823  # maximum 32bit integer divided by 2
 
 
 def timestep(t, dt):
-    '''
+    """
     Converts a given time to an integer time step. This function slightly shifts
     the time before dividing it by ``dt`` to make sure that multiples of ``dt``
     do not end up in the preceding time step due to floating point issues. This
@@ -680,7 +672,7 @@ def timestep(t, dt):
     This function cannot handle infinity values, use big values instead (e.g.
     a `NeuronGroup` will use ``-1e4*second`` as the value of the ``lastspike``
     variable for neurons that never spiked).
-    '''
+    """
     elapsed_steps = np.array((t + 1e-3*dt)/dt, dtype=np.int64)
     if elapsed_steps.shape == ():
         elapsed_steps = elapsed_steps.item()

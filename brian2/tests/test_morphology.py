@@ -56,13 +56,13 @@ def test_attributes_soma_coordinates():
         # Coordinates should be specified now, with 0 values for the other
         # coordinates
         for other_coord in xyz - {coord}:
-            assert_equal(getattr(soma, 'start_' + other_coord), [0]*um)
+            assert_equal(getattr(soma, f"start_{other_coord}"), [0]*um)
             assert_equal(getattr(soma, other_coord), [0]*um)
-            assert_equal(getattr(soma, 'end_' + other_coord), [0]*um)
+            assert_equal(getattr(soma, f"end_{other_coord}"), [0]*um)
 
-        assert_equal(getattr(soma, 'start_' + coord), [5]*um)
+        assert_equal(getattr(soma, f"start_{coord}"), [5]*um)
         assert_equal(getattr(soma, coord), [5]*um)
-        assert_equal(getattr(soma, 'end_' + coord), [5]*um)
+        assert_equal(getattr(soma, f"end_{coord}"), [5]*um)
 
     # Specify all coordinates
     soma = Soma(diameter=10*um, x=1*um, y=2*um, z=3*um)
@@ -131,13 +131,13 @@ def test_attributes_cylinder_coordinates():
         # Coordinates should be specified now, with 0 values for the other
         # coordinates
         for other_coord in xyz - {coord}:
-            assert_equal(getattr(cylinder, 'start_' + other_coord), np.zeros(n)*um)
+            assert_equal(getattr(cylinder, f"start_{other_coord}"), np.zeros(n)*um)
             assert_equal(getattr(cylinder, other_coord), np.zeros(n)*um)
-            assert_equal(getattr(cylinder, 'end_' + other_coord), np.zeros(n)*um)
+            assert_equal(getattr(cylinder, f"end_{other_coord}"), np.zeros(n)*um)
 
-        assert_equal(getattr(cylinder, 'start_' + coord), np.arange(n)*20*um)
+        assert_equal(getattr(cylinder, f"start_{coord}"), np.arange(n)*20*um)
         assert_equal(getattr(cylinder, coord), np.arange(n)*20*um + 10*um)
-        assert_equal(getattr(cylinder, 'end_' + coord), np.arange(n)*20*um + 20*um)
+        assert_equal(getattr(cylinder, f"end_{coord}"), np.arange(n)*20*um + 20*um)
 
     # Specify all coordinates
     val = [0, 200.0/np.sqrt(3.0)]*um
@@ -149,9 +149,9 @@ def test_attributes_cylinder_coordinates():
     assert_allclose(cylinder.end_distance, 200 * um)
 
     for coord in ['x', 'y', 'z']:
-        assert_allclose(getattr(cylinder, 'start_' + coord), np.arange(n)*val[1]/n)
+        assert_allclose(getattr(cylinder, f"start_{coord}"), np.arange(n)*val[1]/n)
         assert_allclose(getattr(cylinder, coord), np.arange(n)*val[1]/n + 0.5*val[1]/n)
-        assert_allclose(getattr(cylinder, 'end_' + coord), np.arange(n)*val[1]/n + val[1]/n)
+        assert_allclose(getattr(cylinder, f"end_{coord}"), np.arange(n)*val[1]/n + val[1]/n)
 
 
 @pytest.mark.codegen_independent
@@ -210,13 +210,13 @@ def test_attributes_section_coordinates_single():
         # Coordinates should be specified now, with 0 values for the other
         # coordinates
         for other_coord in xyz - {coord}:
-            assert_equal(getattr(sec, 'start_' + other_coord), np.zeros(n)*um)
+            assert_equal(getattr(sec, f"start_{other_coord}"), np.zeros(n)*um)
             assert_equal(getattr(sec, other_coord), np.zeros(n)*um)
-            assert_equal(getattr(sec, 'end_' + other_coord), np.zeros(n)*um)
+            assert_equal(getattr(sec, f"end_{other_coord}"), np.zeros(n)*um)
 
-        assert_equal(getattr(sec, 'start_' + coord), np.arange(n)*20*um)
+        assert_equal(getattr(sec, f"start_{coord}"), np.arange(n)*20*um)
         assert_equal(getattr(sec, coord), np.arange(n)*20*um + 10*um)
-        assert_equal(getattr(sec, 'end_' + coord), np.arange(n)*20*um + 20*um)
+        assert_equal(getattr(sec, f"end_{coord}"), np.arange(n)*20*um + 20*um)
 
     # Specify all coordinates
     val = 200.0/np.sqrt(3.0)*um
@@ -232,9 +232,9 @@ def test_attributes_section_coordinates_single():
     assert_allclose(sec.end_distance, 200 * um)
 
     for coord in ['x', 'y', 'z']:
-        assert_allclose(getattr(sec, 'start_' + coord), np.arange(n)*val/n)
+        assert_allclose(getattr(sec, f"start_{coord}"), np.arange(n)*val/n)
         assert_allclose(getattr(sec, coord), np.arange(n)*val/n + 0.5*val/n)
-        assert_allclose(getattr(sec, 'end_' + coord), np.arange(n)*val/n + val/n)
+        assert_allclose(getattr(sec, f"end_{coord}"), np.arange(n)*val/n + val/n)
 
 
 @pytest.mark.codegen_independent
@@ -445,7 +445,7 @@ def test_tree_cables_from_points():
     _check_tree_cables(cable, coordinates=True)
 
 def test_tree_cables_from_swc():
-    swc_content = '''
+    swc_content = """
 # Test file
 1   0  0  0  0  5  -1
 2   0  10  0  0  5  1
@@ -478,7 +478,7 @@ def test_tree_cables_from_swc():
 29   2  156.5685424949238  -35.35533905932737  -21.213203435596423  1  28
 30   2  163.63961030678928  -35.35533905932737  -28.284271247461898  0.5  29
 31   2  170.71067811865476  -35.35533905932737  -35.35533905932737  0  30
-'''
+"""
     tmp_filename = tempfile.mktemp('cable_morphology.swc')
     with open(tmp_filename, 'w') as f:
         f.write(swc_content)
@@ -659,7 +659,7 @@ def test_tree_soma_from_points_3_point_soma_incorrect():
 
 @pytest.mark.codegen_independent
 def test_tree_soma_from_swc():
-    swc_content = '''
+    swc_content = """
 # Test file
 1    1  100  0  0  15  -1
 2   2  114.14213562373095  14.142135623730949  0  4  1
@@ -672,7 +672,7 @@ def test_tree_soma_from_swc():
 9   2  121.21320343559643  -21.213203435596423  0  2.5  8
 10   2  128.2842712474619  -28.284271247461898  0  2.5  9
 11   2  135.35533905932738  -35.35533905932737  0  2.5  10
-'''
+"""
     tmp_filename = tempfile.mktemp('cable_morphology.swc')
     with open(tmp_filename, 'w') as f:
         f.write(swc_content)
@@ -683,7 +683,7 @@ def test_tree_soma_from_swc():
 
 @pytest.mark.codegen_independent
 def test_tree_soma_from_swc_3_point_soma():
-    swc_content = '''
+    swc_content = """
 # Test file
 1    1  100  0  0  15  -1
 2    1  100  15  0  15  1
@@ -698,7 +698,7 @@ def test_tree_soma_from_swc_3_point_soma():
 11   2  121.21320343559643  -21.213203435596423  0  2.5  10
 12   2  128.2842712474619  -28.284271247461898  0  2.5  11
 13   2  135.35533905932738  -35.35533905932737  0  2.5  12
-'''
+"""
     tmp_filename = tempfile.mktemp('cable_morphology.swc')
     with open(tmp_filename, 'w') as f:
         f.write(swc_content)
