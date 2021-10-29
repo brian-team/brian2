@@ -123,8 +123,12 @@ class CythonCodeObject(NumpyCodeObject):
             compiled.main()
             return True
         except Exception as ex:
-            logger.warn(f'Cannot use Cython, a test compilation failed: {str(ex)} ({ex.__class__.__name__})',
-                        'failed_compile_test')
+            logger.warn(
+                f"Cannot use Cython, a test compilation failed: {str(ex)} ({ex.__class__.__name__})\n"
+                f"Certain compiler configurations (e.g. clang in a conda environment on OS X) are "
+                f"known to be problematic. Note that you can switch the compiler by setting the "
+                f"'CC' and 'CXX' environment variables. For example, you may want to try 'CC=gcc' "
+                f"and 'CXX=g++'.", 'failed_compile_test')
             return False
 
     def compile_block(self, block):
