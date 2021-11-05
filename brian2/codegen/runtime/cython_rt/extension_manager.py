@@ -81,16 +81,21 @@ class CythonExtensionManager(object):
             os.makedirs(lib_dir)
         except OSError:
             if not os.path.exists(lib_dir):
-                raise IOError("Couldn't create Cython cache directory '%s', try setting the "
-                              "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
+                raise IOError(
+                    f"Couldn't create Cython cache directory '{lib_dir}', try setting the "
+                    f"cache directly with prefs.codegen.runtime.cython.cache_dir.")
 
         numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
-        key = code, sys.version_info, sys.executable, Cython.__version__, numpy_version
+        # avoid some issues when manually switching compilers
+        CC = os.environ.get('CC', None)
+        CXX = os.environ.get('CXX', None)
+        key = (code, sys.version_info, sys.executable, Cython.__version__,
+               numpy_version, CC, CXX)
             
         if force:
             # Force a new module name by adding the current time to the
             # key which is hashed to determine the module name.
-            key += time.time(),            
+            key += time.time(),  # Note the trailing comma (this is a tuple)
 
         if key in self._code_cache:
             return self._code_cache[key]

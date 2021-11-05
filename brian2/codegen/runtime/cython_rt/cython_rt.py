@@ -1,6 +1,4 @@
-
-import os
-import sys
+import platform
 
 import numpy
 
@@ -123,8 +121,15 @@ class CythonCodeObject(NumpyCodeObject):
             compiled.main()
             return True
         except Exception as ex:
-            logger.warn(f'Cannot use Cython, a test compilation failed: {str(ex)} ({ex.__class__.__name__})',
-                        'failed_compile_test')
+            msg = (f"Cannot use Cython, a test compilation failed: {str(ex)} " 
+                   f"({ex.__class__.__name__})")
+            if platform.system() != 'Windows':
+                msg += ("\nCertain compiler configurations (e.g. clang in a conda "
+                        "environment on OS X) are known to be problematic. Note that "
+                        "you can switch the compiler by setting the 'CC' and 'CXX' "
+                        "environment variables. For example, you may want to try "
+                        "'CC=gcc' and 'CXX=g++'.")
+            logger.warn(msg, 'failed_compile_test')
             return False
 
     def compile_block(self, block):
