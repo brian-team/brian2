@@ -10,6 +10,7 @@ import pytest
 from brian2 import prefs, clear_cache, _cache_dirs_and_extensions
 from brian2.codegen.cpp_prefs import compiler_supports_c99, get_compiler_and_args
 from brian2.codegen.optimisation import optimise_statements
+from brian2.codegen.runtime.cython_rt import CythonCodeObject
 from brian2.codegen.translation import (analyse_identifiers,
                                         get_identifiers_recursively,
                                         parse_statement,
@@ -444,6 +445,34 @@ def test_clear_cache():
             clear_cache(target)
 
         os.remove(fname)
+
+@pytest.mark.skipif(platform.system() == 'Windows',
+                    reason='CC and CXX variables are ignored on Windows.')
+def test_compiler_error():
+    # In particular on OSX with clang in a conda environment, compilation might fail.
+    # Switching to a system gcc might help in such cases. Make sure that the error
+    # message mentions that.
+    old_CC = os.environ.get('CC', None)
+    old_CXX = os.environ.get('CXX', None)
+    os.environ.update({'CC': 'non-existing-compiler',
+                       'CXX': 'non-existing-compiler++'})
+    try:
+        with catch_logs() as l:
+            assert not CythonCodeObject.is_available()
+        assert len(l) > 0  # There are additional warnings about compiler flags
+        last_warning = l[-1]
+        assert last_warning[1].endswith('.failed_compile_test')
+        assert 'CC' in last_warning[2] and 'CXX' in last_warning[2]
+
+    finally:
+        if old_CC:
+            os.environ['CC'] = old_CC
+        else:
+            del os.environ['CC']
+        if old_CXX:
+            os.environ['CXX'] = old_CXX
+        else:
+            del os.environ['CXX']
 
 
 def test_compiler_c99():
