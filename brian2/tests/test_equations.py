@@ -515,6 +515,37 @@ def test_str_repr():
         assert(len(str(eq))) > 0
         assert(len(repr(eq))) > 0
 
+
+@pytest.mark.codegen_independent
+def test_dependency_calculation():
+    eqs = Equations('''dv/dt = I_m / C_m : volt
+                       I_m = I_ext + I_pas : amp
+                       I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp
+                       I_pas = g_L*(E_L - v) : amp''')
+    deps = eqs.dependencies
+    assert set(deps.keys()) == {'v', 'I_m', 'I_ext', 'I_pas'}
+
+    # v depends directly on I_m, on I_ext and I_pas via I_m, and on v via I_m -> I_pas
+    assert len(deps['v']) == 4
+    assert set(d.equation.varname for d in deps['v']) == {'I_m', 'I_ext', 'I_pas', 'v'}
+    expected_via = {'I_m': (), 'I_pas': ('I_m', ), 'I_ext': ('I_m', ), 'v': ('I_m', 'I_pas')}
+    assert all([d.via == expected_via[d.equation.varname] for d in deps['v']])
+
+    # I_m depends directly on I_ext and I_pas, and on v via I_pas
+    assert len(deps['I_m']) == 3
+    assert set(d.equation.varname for d in deps['I_m']) == { 'I_ext', 'I_pas', 'v'}
+    expected_via = {'I_ext': (), 'I_pas': (), 'v': ('I_pas',)}
+    assert all([d.via == expected_via[d.equation.varname] for d in deps['I_m']])
+
+    # I_ext does not depend on anything
+    assert len(deps['I_ext']) == 0
+
+    # I_pas depends on v directly
+    assert len(deps['I_pas']) == 1
+    assert deps['I_pas'][0].equation.varname == 'v'
+    assert deps['I_pas'][0].via == ()
+
+
 @pytest.mark.codegen_independent
 @pytest.mark.skipif(pprint is None, reason='ipython is not installed')
 def test_ipython_pprint():
