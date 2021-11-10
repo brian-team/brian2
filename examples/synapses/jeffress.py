@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-'''
+"""
 Jeffress model, adapted with spiking neuron models.
 A sound source (white noise) is moving around the head.
 Delay differences between the two ears are used to determine the azimuth of the
 source. Delays are mapped to a neural place code using delay lines (each neuron
 receives input from both ears, with different delays).
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = .02*ms

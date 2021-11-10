@@ -1,6 +1,6 @@
-'''
+"""
 Check that the features of `NeuronGroup` are available and correct.
-'''
+"""
 
 from brian2 import *
 from brian2.tests.features import FeatureTest, InaccuracyError

@@ -1,4 +1,4 @@
-'''
+"""
 An example of turning an expensive `Synapses.connect` operation into
 three cheap ones using a mathematical trick.
 
@@ -69,7 +69,7 @@ most cases it's unlikely to be worth the effort.
 
 The code below shows these examples written out, along with
 some timing code and plots for different values of N.
-'''
+"""
 from brian2 import *
 import time
 

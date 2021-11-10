@@ -1,4 +1,4 @@
-'''
+"""
 This module translates a series of statements into a language-specific
 syntactically correct code block that can be inserted into a template.
 
@@ -13,7 +13,7 @@ The input information needed:
   dtype is.
 * The dtype to use for newly created variables
 * The language to translate to
-'''
+"""
 
 import re
 from collections.abc import Mapping
@@ -39,9 +39,9 @@ __all__ = ['analyse_identifiers', 'get_identifiers_recursively']
 
 
 class LineInfo(object):
-    '''
+    """
     A helper class, just used to store attributes.
-    '''
+    """
     def __init__(self, **kwds):
         for k, v in kwds.items():
             setattr(self, k, v)
@@ -51,7 +51,7 @@ STANDARD_IDENTIFIERS = {'and', 'or', 'not', 'True', 'False'}
 
 
 def analyse_identifiers(code, variables, recursive=False):
-    '''
+    """
     Analyses a code string (sequence of statements) to find all identifiers by type.
     
     In a given code block, some variable names (identifiers) must be given as inputs to the code
@@ -82,7 +82,7 @@ def analyse_identifiers(code, variables, recursive=False):
         A set of variables which are used by the code block but not defined by
         it and not previously known. Should correspond to variables in the
         external namespace.
-    '''
+    """
     if isinstance(variables, Mapping):
         known = set(k for k, v in variables.items()
                     if not isinstance(k, AuxiliaryVariable))
@@ -99,7 +99,7 @@ def analyse_identifiers(code, variables, recursive=False):
         allids = set()
     elif recursive:
         if not isinstance(variables, Mapping):
-            raise TypeError('Have to specify a variables dictionary.')
+            raise TypeError("Have to specify a variables dictionary.")
         allids = get_identifiers_recursively([stmt.expr for stmt in stmts],
                                              variables) | {stmt.var for stmt in stmts}
     else:
@@ -111,7 +111,7 @@ def analyse_identifiers(code, variables, recursive=False):
 
 
 def get_identifiers_recursively(expressions, variables, include_numbers=False):
-    '''
+    """
     Gets all the identifiers in a list of expressions, recursing down into
     subexpressions.
 
@@ -123,7 +123,7 @@ def get_identifiers_recursively(expressions, variables, include_numbers=False):
         Dictionary of `Variable` objects
     include_numbers : bool, optional
         Whether to include number literals in the output. Defaults to ``False``.
-    '''
+    """
     if len(expressions):
         identifiers = set.union(*[get_identifiers(expr, include_numbers=include_numbers)
                                   for expr in expressions])
@@ -139,7 +139,7 @@ def get_identifiers_recursively(expressions, variables, include_numbers=False):
 
 
 def is_scalar_expression(expr, variables):
-    '''
+    """
     Whether the given expression is scalar.
 
     Parameters
@@ -153,7 +153,7 @@ def is_scalar_expression(expr, variables):
     -------
     scalar : bool
         Whether `expr` is a scalar expression
-    '''
+    """
     # determine whether this is a scalar variable
     identifiers = get_identifiers_recursively([expr], variables)
     # In the following we assume that all unknown identifiers are
@@ -166,7 +166,7 @@ def is_scalar_expression(expr, variables):
 
 @cached
 def make_statements(code, variables, dtype, optimise=True, blockname=''):
-    '''
+    """
     make_statements(code, variables, dtype, optimise=True, blockname='')
 
     Turn a series of abstract code statements into Statement objects, inferring
@@ -210,7 +210,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     additional information added to them (see `Statement` for details)
     describing how the statement can be reformulated as a sequence of if/then
     statements. Calls `~brian2.codegen.optimisation.optimise_statements`.
-    '''
+    """
     code = strip_empty_lines(deindent(code))
     lines = re.split(r'[;\n]', code)
     lines = [LineInfo(code=line) for line in lines if len(line)]
@@ -224,10 +224,7 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
         # parse statement into "var op expr"
         var, op, expr, comment = parse_statement(line.code)
         if var in variables and isinstance(variables[var], Subexpression):
-            raise SyntaxError("Illegal line '{line}' in abstract code. "
-                              "Cannot write to subexpression "
-                              "'{var}'.".format(line=line.code,
-                                                var=var))
+            raise SyntaxError(f"Illegal line '{line.code}' in abstract code. Cannot write to subexpression '{var}'.")
         if op == '=':
             if var not in defined:
                 op = ':='
@@ -291,9 +288,9 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
     for line in lines:
         stmt = line.statement
         if stmt.op != ':=' and variables[stmt.var].scalar and scalar_write_done:
-            raise SyntaxError(('All writes to scalar variables in a code block '
-                               'have to be made before writes to vector '
-                               'variables. Illegal write to %s.') % line.write)
+            raise SyntaxError(f"All writes to scalar variables in a code block "
+                              f"have to be made before writes to vector "
+                              f"variables. Illegal write to '{line.write}'.")
         elif not variables[stmt.var].scalar:
             scalar_write_done = True
 
@@ -323,13 +320,14 @@ def make_statements(code, variables, dtype, optimise=True, blockname=''):
                 if (identifier in variables and
                         getattr(variables[identifier],
                                 'auto_vectorise', False)):
-                    raise SyntaxError(('The scalar subexpression {} refers to '
-                                       'the implicitly vectorised function {} '
-                                       '-- this is not allowed since it leads '
-                                       'to different interpretations of this '
-                                       'subexpression depending on whether it '
-                                       'is used in a scalar or vector '
-                                       'context.').format(name, identifier))
+                    raise SyntaxError(
+                        f"The scalar subexpression '{name}' refers to "
+                        f"the implicitly vectorised function '{identifier}' "
+                        f"-- this is not allowed since it leads "
+                        f"to different interpretations of this "
+                        f"subexpression depending on whether it "
+                        f"is used in a scalar or vector "
+                        f"context.")
 
     # sort subexpressions into an order so that subexpressions that don't depend
     # on other subexpressions are first

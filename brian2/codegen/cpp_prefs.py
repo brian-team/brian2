@@ -1,11 +1,11 @@
-'''
+"""
 Preferences related to C++ compilation
 
 Preferences
 --------------------
 .. document_brian_prefs:: codegen.cpp
 
-'''
+"""
 from setuptools import msvc
 import distutils
 from distutils.ccompiler import get_default_compiler
@@ -53,8 +53,7 @@ if platform.system() == 'Windows':
             else:
                 flags = previously_stored_flags[hostname]
         except (IOError, OSError) as ex:
-            logger.debug('Opening file "{}" to get CPU flags failed with error '
-                         '"{}".'.format(flag_file, str(ex)))
+            logger.debug(f'Opening file "{flag_file}" to get CPU flags failed with error "{str(ex)}".')
 
     if flags is None:  # If we don't have stored info, run get_cpu_flags.py
         get_cpu_flags_script = os.path.join(os.path.dirname(__file__),
@@ -76,11 +75,9 @@ if platform.system() == 'Windows':
                 with open(flag_file, 'w', encoding='utf-8') as f:
                     json.dump(to_store, f)
             except (IOError, OSError) as ex:
-                logger.debug('Writing file "{}" to store CPU flags failed with '
-                             'error "{}".'.format(flag_file, str(ex)))
+                logger.debug(f'Writing file "{flag_file}" to store CPU flags failed with error "{str(ex)}".')
         except subprocess.CalledProcessError as ex:
-            logger.debug('Could not determine optimized MSVC flags, '
-                         'get_cpu_flags failed with: %s' % (str(ex)))
+            logger.debug(f'Could not determine optimized MSVC flags, get_cpu_flags failed with: {str(ex)}')
 
     if flags is not None:
         # Note that this overwrites the arch_flag, i.e. only the best option
@@ -111,107 +108,120 @@ else:
     else:
         default_buildopts = ['-w']
 
+if sys.platform == 'win32':
+    prefix_dir = os.path.join(sys.prefix, 'Library')
+else:
+    prefix_dir = sys.prefix
+
 # Preferences
 prefs.register_preferences(
     'codegen.cpp',
     'C++ compilation preferences',
     compiler = BrianPreference(
         default='',
-        docs='''
+        docs="""
         Compiler to use (uses default if empty).
         Should be ``'unix'`` or ``'msvc'``.
 
         To specify a specific compiler binary on unix systems, set the `CXX` environment
         variable instead.
-        '''
+        """
         ),
     extra_compile_args=BrianPreference(
         default=None,
         validator=lambda v: True,
-        docs='''
+        docs="""
         Extra arguments to pass to compiler (if None, use either
         ``extra_compile_args_gcc`` or ``extra_compile_args_msvc``).
-        '''
+        """
         ),
     extra_compile_args_gcc=BrianPreference(
         default=default_buildopts,
-        docs='''
+        docs="""
         Extra compile arguments to pass to GCC compiler
-        '''
+        """
         ),
     extra_compile_args_msvc=BrianPreference(
         default=['/Ox', '/w', msvc_arch_flag, '/MP'],
-        docs='''
+        docs="""
         Extra compile arguments to pass to MSVC compiler (the default
         ``/arch:`` flag is determined based on the processor architecture)
-        '''
+        """
         ),
     extra_link_args=BrianPreference(
         default=[],
-        docs='''
+        docs="""
         Any extra platform- and compiler-specific information to use when
         linking object files together.
-        '''
+        """
     ),
     include_dirs=BrianPreference(
-        default=[],
-        docs='''
-        Include directories to use. Note that ``$prefix/include`` will be
-        appended to the end automatically, where ``$prefix`` is Python's
-        site-specific directory prefix as returned by `sys.prefix`.
-        '''
+        default=[os.path.join(prefix_dir, 'include')],
+        docs="""
+        Include directories to use.
+        The default value is ``$prefix/include`` (or ``$prefix/Library/include``
+        on Windows), where ``$prefix`` is Python's site-specific directory
+        prefix as returned by `sys.prefix`. This will make compilation use
+        library files installed into a conda environment.
+        """
         ),
     library_dirs=BrianPreference(
-        default=[],
-        docs='''
+        default=[os.path.join(prefix_dir, 'lib')],
+        docs="""
         List of directories to search for C/C++ libraries at link time.
-        Note that ``$prefix/lib`` will be appended to the end automatically,
-        where ``$prefix`` is Python's site-specific directory prefix as returned
-        by `sys.prefix`.
-        '''
+        The default value is ``$prefix/lib`` (or ``$prefix/Library/lib``
+        on Windows), where ``$prefix`` is Python's site-specific directory
+        prefix as returned by `sys.prefix`. This will make compilation use
+        library files installed into a conda environment.
+        """
     ),
     runtime_library_dirs=BrianPreference(
-        default=[],
-        docs='''
+        default=[os.path.join(prefix_dir, 'lib')]
+                    if sys.platform != 'win32' else [],
+        docs="""
         List of directories to search for C/C++ libraries at run time.
-        '''
+        The default value is ``$prefix/lib`` (not used on Windows), where
+        ``$prefix`` is Python's site-specific directory prefix as returned by
+        `sys.prefix`. This will make compilation use library files installed
+        into a conda environment.
+        """
     ),
     libraries=BrianPreference(
         default=[],
-        docs='''
+        docs="""
         List of library names (not filenames or paths) to link against.
-        '''
+        """
     ),
     headers=BrianPreference(
         default=[],
-        docs='''
+        docs="""
         A list of strings specifying header files to use when compiling the
         code. The list might look like ["<vector>","'my_header'"]. Note that
         the header strings need to be in a form than can be pasted at the end
         of a #include statement in the C++ code.
-        '''
+        """
     ),
     define_macros=BrianPreference(
         default=[],
-        docs='''
+        docs="""
         List of macros to define; each macro is defined using a 2-tuple,
         where 'value' is either the string to define it to or None to
         define it without a particular value (equivalent of "#define
         FOO" in source or -DFOO on Unix C compiler command line).
-        '''
+        """
     ),
     msvc_vars_location=BrianPreference(
         default='',
-        docs='''
+        docs="""
         Location of the MSVC command line tool (or search for best by default).
-        '''),
+        """),
     msvc_architecture=BrianPreference(
         default='',
-        docs='''
+        docs="""
         MSVC architecture name (or use system architectue by default).
         
         Could take values such as x86, amd64, etc.
-        '''),
+        """),
     )
 
 # check whether compiler supports a flag
@@ -224,7 +234,7 @@ def _determine_flag_compatibility(compiler, flagname):
         try:
             compiler.compile([f.name], extra_postargs=[flagname])
         except CompileError:
-            logger.warn(f'Removing unsupported flag \'{flagname}\' from '
+            logger.warn(f"Removing unsupported flag '{flagname}' from "
                         f'compiler flags.')
             return False
     return True
@@ -248,9 +258,9 @@ def has_flag(compiler, flagname):
 
 
 def get_compiler_and_args():
-    '''
+    """
     Returns the computed compiler and compilation flags
-    '''
+    """
     compiler = prefs['codegen.cpp.compiler']
     if compiler == '':
         compiler = get_default_compiler()
@@ -262,7 +272,7 @@ def get_compiler_and_args():
             extra_compile_args = prefs['codegen.cpp.extra_compile_args_msvc']
         else:
             extra_compile_args = []
-            logger.warn(f'Unsupported compiler \'{compiler}\'.')
+            logger.warn(f"Unsupported compiler '{compiler}'.")
 
     from distutils.ccompiler import new_compiler
     from distutils.sysconfig import customize_compiler
@@ -288,8 +298,7 @@ def get_msvc_env():
     # Manual specification of vcvarsall.bat location by the user
     vcvars_loc = prefs['codegen.cpp.msvc_vars_location']
     if vcvars_loc:
-        vcvars_cmd = '"{vcvars_loc}" {arch_name}'.format(vcvars_loc=vcvars_loc,
-                                                         arch_name=arch_name)
+        vcvars_cmd = f'"{vcvars_loc}" {arch_name}'
         return None, vcvars_cmd
 
     # Search for MSVC environment if not already cached
@@ -310,38 +319,37 @@ def compiler_supports_c99():
     if _compiler_supports_c99 is None:
         if platform.system() == 'Windows':
             fd, tmp_file = tempfile.mkstemp(suffix='.cpp')
-            os.write(fd, '''
+            os.write(fd, """
             #if _MSC_VER < 1800
             #error
             #endif
-            '''.encode())
+            """.encode())
             os.close(fd)
             msvc_env, vcvars_cmd = get_msvc_env()
             if vcvars_cmd:
-                cmd = '{} && cl /E {} > NUL 2>&1'.format(vcvars_cmd, tmp_file)
+                cmd = f'{vcvars_cmd} && cl /E {tmp_file} > NUL 2>&1'
             else:
                 os.environ.update(msvc_env)
-                cmd = 'cl /E {} > NUL 2>&1'.format(tmp_file)
+                cmd = f'cl /E {tmp_file} > NUL 2>&1'
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
             os.remove(tmp_file)
         else:
             cmd = ('echo "#if (__STDC_VERSION__ < 199901L)\n#error\n#endif" | '
-                  'cc -xc -c - > /dev/null 2>&1')
+                  'cc -xc -E - > /dev/null 2>&1')
             return_value = os.system(cmd)
             _compiler_supports_c99 = return_value == 0
     return _compiler_supports_c99
 
 
 class C99Check(object):
-    '''
+    """
     Helper class to create objects that can be passed as an ``availability_check`` to
     a `FunctionImplementation`.
-    '''
+    """
     def __init__(self, name):
         self.name = name
 
     def __call__(self, *args, **kwargs):
         if not compiler_supports_c99():
-            raise NotImplementedError('The "{}" function needs C99 compiler '
-                                      'support'.format(self.name))
+            raise NotImplementedError(f'The "{self.name}" function needs C99 compiler support')

@@ -1,12 +1,12 @@
-'''
+"""
 Module containing fixtures and hooks used by the pytest test suite.
-'''
+"""
 import re
 
 import numpy as np
 import pytest
 
-from brian2.devices import reinit_devices
+from brian2.devices import reinit_devices, get_device
 from brian2.units import ms
 from brian2.core.clocks import defaultclock
 from brian2.core.functions import Function, DEFAULT_FUNCTIONS
@@ -27,16 +27,16 @@ def fake_randn(vectorisation_idx):
     return 0.5*np.ones_like(vectorisation_idx)
 fake_randn = Function(fake_randn, arg_units=[], return_unit=1, auto_vectorise=True,
                       stateless=False)
-fake_randn.implementations.add_implementation('cpp', '''
+fake_randn.implementations.add_implementation('cpp', """
                                               double randn(int vectorisation_idx)
                                               {
                                                   return 0.5;
                                               }
-                                              ''')
-fake_randn.implementations.add_implementation('cython', '''
+                                              """)
+fake_randn.implementations.add_implementation('cython', """
                                     cdef double randn(int vectorisation_idx):
                                         return 0.5
-                                    ''')
+                                    """)
 
 @pytest.fixture
 def fake_randn_randn_fixture():
@@ -56,8 +56,7 @@ def setup_and_teardown(request):
             if isinstance(value, tuple) and value[0] == 'TYPE':
                 matches = re.match(r"<(type|class) 'numpy\.(.+)'>", value[1])
                 if matches is None or len(matches.groups()) != 2:
-                    raise TypeError('Do not know how to handle {} in '
-                                    'preferences'.format(value[1]))
+                    raise TypeError(f'Do not know how to handle {value[1]} in preferences')
                 t = matches.groups()[1]
                 if t == 'float64':
                     value = np.float64
@@ -99,6 +98,9 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
     if rep.outcome == 'failed':
+        project_dir = getattr(get_device(), 'project_dir', None)
+        if project_dir is not None:
+            rep.sections.append(('Standalone project directory', f'{project_dir}'))
         reinit_devices()
         if not fail_for_not_implemented:
             exc_cause = getattr(call.excinfo.value, '__cause__', None)

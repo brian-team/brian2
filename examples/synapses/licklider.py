@@ -1,7 +1,7 @@
-'''
+"""
 Spike-based adaptation of Licklider's model of pitch processing (autocorrelation with
 delay lines) with phase locking.
-'''
+"""
 from brian2 import *
 
 defaultclock.dt = .02 * ms

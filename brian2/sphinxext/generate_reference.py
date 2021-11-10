@@ -24,7 +24,7 @@ def makename(package, module):
     if package:
         name = package
         if module:
-            name += '.' + module
+            name += f".{module}"
     else:
         name = module
     return name
@@ -32,8 +32,8 @@ def makename(package, module):
 
 def write_file(name, text, destdir, suffix):
     """Write the output file for module/package <name>."""
-    fname = path.join(destdir, '%s.%s' % (name, suffix))
-    print('Creating file %s.' % fname)
+    fname = path.join(destdir, f'{name}.{suffix}')
+    print(f'Creating file {fname}.')
     f = open(fname, 'w')
     try:
         f.write(text)
@@ -44,17 +44,17 @@ def write_file(name, text, destdir, suffix):
 def format_heading(level, text):
     """Create a heading of <level> [1, 2 or 3 supported]."""
     underlining = ['=', '-', '~', ][level-1] * len(text)
-    return '%s\n%s\n\n' % (text, underlining)
+    return f'{text}\n{underlining}\n\n'
 
 
 def format_directive(module, destdir, package=None, basename='brian2'):
     """Create the automodule directive and add the options."""
-    directive = '.. automodule:: %s\n' % makename(package, module)
+    directive = f'.. automodule:: {makename(package, module)}\n'
     for option in OPTIONS:
-        directive += '    :%s:\n' % option
+        directive += f'    :{option}:\n'
     directive += '\n'
     # document all the classes in the modules
-    full_name = basename + '.' + module
+    full_name = f"{basename}.{module}"
     __import__(full_name)
     mod = sys.modules[full_name]
     dir_members = dir(mod)
@@ -77,19 +77,19 @@ def format_directive(module, destdir, package=None, basename='brian2'):
     if classes:
         directive += '**Classes**\n\n'
         for member, member_obj in classes:
-            directive += '.. autosummary:: %s\n' % (member)
+            directive += f'.. autosummary:: {member}\n'
             directive += '    :toctree:\n\n'
             create_member_file(full_name, member, member_obj, destdir)
     if functions:
         directive += '**Functions**\n\n'
         for member, member_obj in functions:
-            directive += '.. autosummary:: %s\n' % (member)
+            directive += f'.. autosummary:: {member}\n'
             directive += '    :toctree:\n\n'
             create_member_file(full_name, member, member_obj, destdir)
     if variables:
         directive += '**Objects**\n\n'
         for member, member_obj in variables:
-            directive += '.. autosummary:: %s\n' % (member)
+            directive += f'.. autosummary:: {member}\n'
             directive += '    :toctree:\n\n'
             create_member_file(full_name, member, member_obj, destdir)
                 
@@ -110,30 +110,29 @@ def find_shortest_import(module_name, obj_name):
                 return '.'.join(parts[:idx])
         except ImportError:
             pass
-    raise AssertionError("Couldn't import " + module_name + '.' + obj_name)
+    raise AssertionError(f"Couldn't import {module_name}.{obj_name}")
 
 
 def create_member_file(module_name, member, member_obj, destdir, suffix='rst'):
     """Build the text of the file and write the file."""
     
-    text = '.. currentmodule:: ' + module_name + '\n\n'
+    text = f".. currentmodule:: {module_name}\n\n"
 
     shortest_import = find_shortest_import(module_name, member)
-    import_text = '(*Shortest import*: ``from {} import {})``\n\n'.format(shortest_import,
-                                                                          member)
+    import_text = f'(*Shortest import*: ``from {shortest_import} import {member})``\n\n'
     if inspect.isclass(member_obj):
-        text += format_heading(1, '%s class' % member)
+        text += format_heading(1, f'{member} class')
         text += import_text
-        text += '.. autoclass:: %s\n\n' % member
+        text += f'.. autoclass:: {member}\n\n'
         text += auto_find_examples(member_obj, headersymbol='-')
     elif inspect.isfunction(member_obj):
-        text += format_heading(1, '%s function' % member)
+        text += format_heading(1, f'{member} function')
         text += import_text
-        text += '.. autofunction:: %s\n\n' % member
+        text += f'.. autofunction:: {member}\n\n'
     else:
-        text += format_heading(1, '%s object' % member)
+        text += format_heading(1, f'{member} object')
         text += import_text
-        text += '.. autodata:: %s\n' % member
+        text += f'.. autodata:: {member}\n'
 
     write_file(makename(module_name, member), text, destdir, suffix)
 
@@ -142,7 +141,7 @@ def create_package_file(root, master_package, subroot, py_files, subs,
                         destdir, excludes, suffix='rst'):
     """Build the text of the file and write the file."""
     package = path.split(root)[-1]
-    text = format_heading(1, '%s package' % package)
+    text = format_heading(1, f'{package} package')
     # add each module in the package
     for py_file in py_files:
         if shall_skip(path.join(root, py_file)):
@@ -152,7 +151,7 @@ def create_package_file(root, master_package, subroot, py_files, subs,
         py_path = makename(subroot, py_file)
         # we don't want an additional header for the package,
         if not is_package:
-            heading = ':mod:`%s` module' % py_file
+            heading = f':mod:`{py_file}` module'
             text += format_heading(2, heading)
         text += format_directive(is_package and subroot or py_path, destdir,
                                  master_package)
@@ -167,7 +166,7 @@ def create_package_file(root, master_package, subroot, py_files, subs,
         text += '    :maxdepth: 2\n\n'
         for sub in subs:
             if not is_excluded(os.path.join(root, sub), excludes):
-                text += '    %s.%s\n' % (makename(master_package, subroot), sub)
+                text += f'    {makename(master_package, subroot)}.{sub}\n'
         text += '\n'
 
     write_file(makename(master_package, subroot), text, destdir, suffix)
@@ -223,7 +222,7 @@ def recurse_tree(rootpath, exclude_dirs, exclude_files, destdir):
                                     py_files, subs, destdir, exclude_dirs)
                 toplevels.append(makename(root_package, subpackage))
         else:
-            raise AssertionError('Expected it to be a package')
+            raise AssertionError("Expected it to be a package")
 
     return toplevels
 

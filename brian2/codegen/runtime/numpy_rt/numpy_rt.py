@@ -1,6 +1,6 @@
-'''
+"""
 Module providing `NumpyCodeObject`.
-'''
+"""
 
 import sys
 from collections.abc import Iterable
@@ -27,16 +27,16 @@ prefs.register_preferences(
     'Numpy runtime codegen preferences',
     discard_units = BrianPreference(
         default=False,
-        docs='''
+        docs="""
         Whether to change the namespace of user-specifed functions to remove
         units.
-        '''
+        """
         )
     )
 
 
 class LazyArange(Iterable):
-    '''
+    """
     A class that can be used as a `~numpy.arange` replacement (with an implied
     step size of 1) but does not actually create an array of values until
     necessary. It is somewhat similar to the ``range()`` function in Python 3,
@@ -70,7 +70,7 @@ class LazyArange(Iterable):
     6
     >>> len(ar[np.array([1, 2, 3])])
     3
-    '''
+    """
     def __init__(self, stop, start=0, indices=None):
         self.start = start
         self.stop = stop
@@ -87,7 +87,7 @@ class LazyArange(Iterable):
             if self.indices is None:
                 start, stop, step = item.start, item.stop, item.step
                 if step not in [None, 1]:
-                    raise NotImplementedError('Step should be 1')
+                    raise NotImplementedError("Step should be 1")
                 if start is None:
                     start = 0
                 if stop is None:
@@ -95,14 +95,14 @@ class LazyArange(Iterable):
                 return LazyArange(start=self.start+start,
                                   stop=min([self.start+stop, self.stop]))
             else:
-                raise NotImplementedError('Cannot slice LazyArange with indices')
+                raise NotImplementedError("Cannot slice LazyArange with indices")
         elif isinstance(item, np.ndarray):
             if item.dtype == np.dtype(bool):
                 item = np.nonzero(item)[0]  # convert boolean array into integers
             if len(item) == 0:
                 return np.array([], dtype=np.int32)
             if np.min(item) < 0 or np.max(item) > len(self):
-                raise IndexError('Indexing array contains out-of-bounds values')
+                raise IndexError("Indexing array contains out-of-bounds values")
             return LazyArange(start=self.start, stop=self.stop, indices=item)
         elif isinstance(item, int):
             if self.indices is None:
@@ -113,7 +113,7 @@ class LazyArange(Iterable):
             else:
                 return self.indices[item]
         else:
-            raise TypeError('Can only index with integer, numpy array, or slice.')
+            raise TypeError("Can only index with integer, numpy array, or slice.")
 
     def __iter__(self):
         if self.indices is None:
@@ -146,11 +146,11 @@ class LazyArange(Iterable):
 
 
 class NumpyCodeObject(CodeObject):
-    '''
+    """
     Execute code using Numpy
     
     Default for Brian because it works on all platforms.
-    '''
+    """
     templater = Templater('brian2.codegen.runtime.numpy_rt', '.py_',
                           env_globals={'constant_or_scalar': constant_or_scalar})
     generator_class = NumpyCodeGenerator
@@ -217,7 +217,7 @@ class NumpyCodeObject(CodeObject):
 
             # Also provide the Variable object itself in the namespace (can be
             # necessary for resize operations, for example)
-            self.namespace['_var_'+name] = var
+            self.namespace[f"_var_{name}"] = var
 
             # There is one type of objects that we have to inject into the
             # namespace with their current value at each time step: dynamic
@@ -248,13 +248,13 @@ class NumpyCodeObject(CodeObject):
             exec(compiled_code, self.namespace)
         except Exception as exc:
             code = getattr(self.code, block)
-            message = ('An exception occured during the execution of the {} '
-                       'block of code object {}.\n').format(block, self.name)
+            message = (f"An exception occured during the execution of the "
+                       f"'{block}' block of code object {self.name}.\n")
             lines = code.split('\n')
             message += 'The error was raised in the following line:\n'
             _, _, tb = sys.exc_info()
             tb = tb.tb_next  # Line in the code object's code
-            message += lines[tb.tb_lineno - 1] + '\n'
+            message += f"{lines[tb.tb_lineno - 1]}\n"
             raise BrianObjectException(message, self.owner) from exc
         # output variables should land in the variable name _return_values
         if '_return_values' in self.namespace:

@@ -48,10 +48,10 @@ if WITH_CYTHON or not os.path.exists(cpp_fname):
     fname = pyx_fname
     if not cython_available:
         if FAIL_ON_ERROR and WITH_CYTHON:
-            raise RuntimeError('Compilation with Cython requested/necesary but '
+            raise RuntimeError('Compilation with Cython requested/necessary but '
                                'Cython >= %s is not available.' % REQUIRED_CYTHON_VERSION)
         else:
-            sys.stderr.write('Compilation with Cython requested/necesary but '
+            sys.stderr.write('Compilation with Cython requested/necessary but '
                              'Cython >= %s is not available.\n' % REQUIRED_CYTHON_VERSION)
             fname = None
     if not os.path.exists(pyx_fname):
@@ -173,7 +173,6 @@ setup(name='Brian2',
                                'pytest-xdist>=1.22.3'],
                       'docs': ['sphinx>=1.8',
                                'ipython>=5']},
-      use_2to3=False,
       zip_safe=False,
       ext_modules=extensions,
       url='http://www.briansimulator.org/',

@@ -1,6 +1,6 @@
-'''
+"""
 Simplify and optimise sequences of statements by rewriting and pulling out loop invariants.
-'''
+"""
 
 import ast
 from collections import OrderedDict
@@ -27,11 +27,11 @@ __all__ = ['optimise_statements', 'ArithmeticSimplifier', 'Simplifier']
 
 
 def evaluate_expr(expr, ns):
-    '''
+    """
     Try to evaluate the expression in the given namespace
 
     Returns either (value, True) if successful, or (expr, False) otherwise.
-    '''
+    """
     try:
         val = eval(expr, ns)
         return val, True
@@ -44,7 +44,7 @@ def expression_complexity(expr, variables):
 
 
 def optimise_statements(scalar_statements, vector_statements, variables, blockname=''):
-    '''
+    """
     Optimise a sequence of scalar and vector statements
 
     Performs the following optimisations:
@@ -73,7 +73,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
         As above but with loop invariants pulled out from vector statements
     new_vector_statements : sequence of Statement
         Simplified/optimised versions of statements
-    '''
+    """
     boolvars = dict((k, v) for k, v in variables.items()
                     if hasattr(v, 'dtype') and brian_dtype_from_dtype(v.dtype)=='boolean')
     # We use the Simplifier class by rendering each expression, which generates new scalar statements
@@ -131,7 +131,7 @@ def optimise_statements(scalar_statements, vector_statements, variables, blockna
     return new_scalar_statements, new_vector_statements
 
 def _replace_with_zero(zero_node, node):
-    '''
+    """
     Helper function to return a "zero node" of the correct type.
 
     Parameters
@@ -145,7 +145,7 @@ def _replace_with_zero(zero_node, node):
     -------
     zero_node : `ast.Num`
         The original ``zero_node`` with its value replaced by 0 or 0.0.
-    '''
+    """
     # must not change the dtype of the output,
     # e.g. handle 0/float->0.0 and 0.0/int->0.0
     zero_node.dtype = node.dtype
@@ -157,7 +157,7 @@ def _replace_with_zero(zero_node, node):
 
 
 class ArithmeticSimplifier(BrianASTRenderer):
-    '''
+    """
     Carries out the following arithmetic simplifications:
 
     1. Constant evaluation (e.g. exp(0)=1) by attempting to evaluate the expression in an "assumptions namespace"
@@ -171,7 +171,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
     assumptions : sequence of str
         Additional assumptions that can be used in simplification, each assumption is a string statement.
         These might be the scalar statements for example.
-    '''
+    """
     def __init__(self, variables):
         BrianASTRenderer.__init__(self, variables, copy_variables=False)
         self.assumptions = []
@@ -179,9 +179,9 @@ class ArithmeticSimplifier(BrianASTRenderer):
         self.bast_renderer = BrianASTRenderer(variables, copy_variables=False)
 
     def render_node(self, node):
-        '''
+        """
         Assumes that the node has already been fully processed by BrianASTRenderer
-        '''
+        """
         if not hasattr(node, 'simplified'):
             node = super(ArithmeticSimplifier, self).render_node(node)
             node.simplified = True
@@ -297,7 +297,7 @@ class ArithmeticSimplifier(BrianASTRenderer):
 
 
 class Simplifier(BrianASTRenderer):
-    '''
+    """
     Carry out arithmetic simplifications (see `ArithmeticSimplifier`) and loop invariants
 
     Parameters
@@ -319,7 +319,7 @@ class Simplifier(BrianASTRenderer):
         block.
     ``loop_invariant_dtypes`` : dict of (varname, dtypename)
         dtypename will be one of ``'boolean'``, ``'integer'``, ``'float'``.
-    '''
+    """
     def __init__(self, variables, scalar_statements, extra_lio_prefix=''):
         BrianASTRenderer.__init__(self, variables, copy_variables=False)
         self.loop_invariants = OrderedDict()
@@ -331,7 +331,7 @@ class Simplifier(BrianASTRenderer):
         if extra_lio_prefix is None:
             extra_lio_prefix = ''
         if len(extra_lio_prefix):
-            extra_lio_prefix = extra_lio_prefix+'_'
+            extra_lio_prefix = f"{extra_lio_prefix}_"
         self.extra_lio_prefix = extra_lio_prefix
 
     def render_expr(self, expr):
@@ -341,9 +341,9 @@ class Simplifier(BrianASTRenderer):
         return self.node_renderer.render_node(node)
 
     def render_node(self, node):
-        '''
+        """
         Assumes that the node has already been fully processed by BrianASTRenderer
-        '''
+        """
         # can we pull this out?
         if node.scalar and node.complexity>0:
             expr = self.node_renderer.render_node(self.arithmetic_simplifier.render_node(node))
@@ -351,7 +351,7 @@ class Simplifier(BrianASTRenderer):
                 name = self.loop_invariants[expr]
             else:
                 self.value += 1
-                name = '_lio_'+self.extra_lio_prefix+str(self.value)
+                name = f"_lio_{self.extra_lio_prefix}{str(self.value)}"
                 self.loop_invariants[expr] = name
                 self.loop_invariant_dtypes[name] = node.dtype
                 numpy_dtype = {'boolean': bool,
@@ -372,7 +372,7 @@ class Simplifier(BrianASTRenderer):
 
 
 def reduced_node(terms, op):
-    '''
+    """
     Reduce a sequence of terms with the given operator
 
     For examples, if terms were [a, b, c] and op was multiplication then the reduction would be (a*b)*c.
@@ -393,7 +393,7 @@ def reduced_node(terms, op):
     >>> nodes = [ast.Name(id='x')]
     >>> ast.dump(reduced_node(nodes, ast.Add), annotate_fields=False)
     "Name('x')"
-    '''
+    """
     # Remove None terms
     terms = [term for term in terms if term is not None]
     if not len(terms):
@@ -402,7 +402,7 @@ def reduced_node(terms, op):
 
 
 def cancel_identical_terms(primary, inverted):
-    '''
+    """
     Cancel terms in a collection, e.g. a+b-a should be cancelled to b
 
     Simply renders the nodes into expressions and removes whenever there is a common expression
@@ -423,7 +423,7 @@ def cancel_identical_terms(primary, inverted):
         Primary nodes after cancellation
     inverted : list of AST nodes
         Inverted nodes after cancellation
-    '''
+    """
     nr = NodeRenderer()
     expressions = dict((node, nr.render_node(node)) for node in primary)
     expressions.update(dict((node, nr.render_node(node)) for node in inverted))
@@ -446,7 +446,7 @@ def cancel_identical_terms(primary, inverted):
 
 
 def collect(node):
-    '''
+    """
     Attempts to collect commutative operations into one and simplifies them.
 
     For example, if x and y are scalars, and z is a vector, then (x*z)*y should
@@ -470,7 +470,7 @@ def collect(node):
     -------
     node : Brian AST node
         Simplified node.
-    '''
+    """
     node.collected = True
     orignode_dtype = node.dtype
     # we only work on */ or +- ops, which are both BinOp

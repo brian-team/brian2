@@ -14,11 +14,10 @@ __all__ = ['NodeRenderer',
 
 
 def get_node_value(node):
-    '''Helper function to mask differences between Python versions'''
+    """Helper function to mask differences between Python versions"""
     value = getattr(node, 'n', getattr(node, 'value', None))
     if value is None:
-        raise AttributeError('Node {} has neither "n" nor "value" '
-                             'attribute'.format(node))
+        raise AttributeError(f'Node {node} has neither "n" nor "value" attribute')
     return value
 
 
@@ -74,11 +73,11 @@ class NodeRenderer(object):
 
     def render_node(self, node):
         nodename = node.__class__.__name__
-        methname = 'render_'+nodename
+        methname = f"render_{nodename}"
         try:
             return getattr(self, methname)(node)
         except AttributeError:
-            raise SyntaxError("Unknown syntax: " + nodename)
+            raise SyntaxError(f"Unknown syntax: {nodename}")
 
     def render_func(self, node):
         return self.render_Name(node)
@@ -112,14 +111,13 @@ class NodeRenderer(object):
                 args = node.args + [vectorisation_idx]
             else:
                 args = node.args
-            return '%s(%s)' % (self.render_func(node.func),
-                           ', '.join(self.render_node(arg) for arg in args))
+            return f"{self.render_func(node.func)}({', '.join(self.render_node(arg) for arg in args)})"
 
     def render_element_parentheses(self, node):
-        '''
+        """
         Render an element with parentheses around it or leave them away for
         numbers, names and function calls.
-        '''
+        """
         if node.__class__.__name__ in ['Name', 'NameConstant']:
             return self.render_node(node)
         elif node.__class__.__name__ in ['Num', 'Constant'] and get_node_value(node) >= 0:
@@ -127,7 +125,7 @@ class NodeRenderer(object):
         elif node.__class__.__name__ == 'Call':
             return self.render_node(node)
         else:
-            return '(%s)' % self.render_node(node)
+            return f'({self.render_node(node)})'
 
     def render_BinOp_parentheses(self, left, right, op):
         # Use a simplified checking whether it is possible to omit parentheses:
@@ -141,11 +139,10 @@ class NodeRenderer(object):
             correction = {'BitXor': ('^', '**'),
                           'BitAnd': ('&', 'and'),
                           'BitOr': ('|', 'or')}.get(op_class)
-            raise SyntaxError('The operator "{}" is not supported, use "{}" '
-                              'instead.'.format(correction[0], correction[1]))
-        return '%s %s %s' % (self.render_element_parentheses(left),
-                             self.expression_ops[op_class],
-                             self.render_element_parentheses(right))
+            raise SyntaxError(f'The operator "{correction[0]}" is not supported, use "{correction[1]}" instead.')
+        return (f"{self.render_element_parentheses(left)} "
+                f"{self.expression_ops[op_class]} "
+                f"{self.render_element_parentheses(right)}")
 
     def render_BinOp(self, node):
         return self.render_BinOp_parentheses(node.left, node.right, node.op)
@@ -159,7 +156,7 @@ class NodeRenderer(object):
             remaining = remaining[1:]
             s = self.render_BinOp_parentheses(left, right, op)
         op = self.expression_ops[node.op.__class__.__name__]
-        return (' '+op+' ').join('%s' % self.render_element_parentheses(v) for v in node.values)
+        return (f" {op} ").join(f'{self.render_element_parentheses(v)}' for v in node.values)
 
     def render_Compare(self, node):
         if len(node.comparators)>1:
@@ -167,20 +164,18 @@ class NodeRenderer(object):
         return self.render_BinOp_parentheses(node.left, node.comparators[0], node.ops[0])
 
     def render_UnaryOp(self, node):
-        return '%s %s' % (self.expression_ops[node.op.__class__.__name__],
-                          self.render_element_parentheses(node.operand))
+        return f'{self.expression_ops[node.op.__class__.__name__]} {self.render_element_parentheses(node.operand)}'
 
     def render_Assign(self, node):
         if len(node.targets)>1:
             raise SyntaxError("Only support syntax like a=b not a=b=c")
-        return '%s = %s' % (self.render_node(node.targets[0]),
-                            self.render_node(node.value))
+        return f'{self.render_node(node.targets[0])} = {self.render_node(node.value)}'
 
     def render_AugAssign(self, node):
         target = node.target.id
         rhs = self.render_node(node.value)
-        op = self.expression_ops['Aug'+node.op.__class__.__name__]
-        return '%s %s %s' % (target, op, rhs)
+        op = self.expression_ops[f"Aug{node.op.__class__.__name__}"]
+        return f'{target} {op} {rhs}'
 
 
 class NumpyNodeRenderer(NodeRenderer):
@@ -195,7 +190,7 @@ class NumpyNodeRenderer(NodeRenderer):
 
     def render_UnaryOp(self, node):
         if node.op.__class__.__name__ == 'Not':
-            return 'logical_not(%s)' % self.render_node(node.operand)
+            return f'logical_not({self.render_node(node.operand)})'
         else:
             return NodeRenderer.render_UnaryOp(self, node)
     
@@ -304,7 +299,7 @@ class SympyNodeRenderer(NodeRenderer):
         elif op_name == 'Not':
             return sympy.Not(self.render_node(node.operand))
         else:
-            raise ValueError('Unknown unary operator: ' + op_name)
+            raise ValueError(f"Unknown unary operator: {op_name}")
 
 
 class CPPNodeRenderer(NodeRenderer):
@@ -321,19 +316,15 @@ class CPPNodeRenderer(NodeRenderer):
     
     def render_BinOp(self, node):
         if node.op.__class__.__name__ == 'Pow':
-            return '_brian_pow(%s, %s)' % (self.render_node(node.left),
-                                    self.render_node(node.right))
+            return f'_brian_pow({self.render_node(node.left)}, {self.render_node(node.right)})'
         elif node.op.__class__.__name__ == 'Mod':
-            return '_brian_mod(%s, %s)' % (self.render_node(node.left),
-                                           self.render_node(node.right))
+            return f'_brian_mod({self.render_node(node.left)}, {self.render_node(node.right)})'
         elif node.op.__class__.__name__ == 'Div':
             # C uses integer division, this is a quick and dirty way to assure
             # it uses floating point division for integers
-            return '1.0f*%s/%s' % (self.render_element_parentheses(node.left),
-                                   self.render_element_parentheses(node.right))
+            return f'1.0f*{self.render_element_parentheses(node.left)}/{self.render_element_parentheses(node.right)}'
         elif node.op.__class__.__name__ == 'FloorDiv':
-            return '_brian_floordiv(%s, %s)' % (self.render_node(node.left),
-                                                self.render_node(node.right))
+            return f'_brian_floordiv({self.render_node(node.left)}, {self.render_node(node.right)})'
         else:
             return NodeRenderer.render_BinOp(self, node)
 
@@ -349,5 +340,5 @@ class CPPNodeRenderer(NodeRenderer):
                 'inf': 'INFINITY'}.get(node.id, node.id)
 
     def render_Assign(self, node):
-        return NodeRenderer.render_Assign(self, node)+';'
+        return f"{NodeRenderer.render_Assign(self, node)};"
 

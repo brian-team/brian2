@@ -1,6 +1,6 @@
-'''
+"""
 TODO: rewrite this (verbatim from Brian 1.x), more efficiency
-'''
+"""
 
 from numpy import *
 
@@ -15,7 +15,7 @@ def getslices(shape, from_start=True):
 
 
 class DynamicArray(object):
-    '''
+    """
     An N-dimensional dynamic array class
     
     The array can be resized in any dimension, and the class will handle
@@ -80,7 +80,7 @@ class DynamicArray(object):
     dimension is enlarged beyond the size in the ``_data`` attribute, the size
     is increased to the larger of ``cursize*factor`` and ``newsize``. This
     ensures that the amortized cost of increasing the size of the array is O(1).  
-    '''
+    """
     def __init__(self, shape, dtype=float, factor=2,
                  use_numpy_resize=False, refcheck=True):
         if isinstance(shape, int):
@@ -94,11 +94,11 @@ class DynamicArray(object):
         self.refcheck = refcheck
 
     def resize(self, newshape):
-        '''
+        """
         Resizes the data to the new shape, which can be a different size to the
         current data, but should have the same rank, i.e. same number of
         dimensions.
-        '''
+        """
         datashapearr = array(self._data.shape)
         newshapearr = array(newshape)
         resizedimensions = newshapearr>datashapearr
@@ -152,14 +152,14 @@ class DynamicArray(object):
         self.shape = newshape
 
     def shrink(self, newshape):
-        '''
+        """
         Reduces the data to the given shape, which should be smaller than the
         current shape. `resize` can also be used with smaller values, but
         it will not shrink the allocated memory, whereas `shrink` will
         reallocate the memory. This method should only be used infrequently, as
         if it is used frequently it will negate the computational efficiency
         benefits of the DynamicArray.
-        '''
+        """
         if isinstance(newshape, int):
             newshape = (newshape,)
         shapearr = array(self.shape)
@@ -188,10 +188,10 @@ class DynamicArray(object):
 
 
 class DynamicArray1D(DynamicArray):
-    '''
+    """
     Version of `DynamicArray` with specialised ``resize`` method designed
     to be more efficient.
-    '''
+    """
     def resize(self, newshape):
         datashape, = self._data.shape
         if newshape > datashape:

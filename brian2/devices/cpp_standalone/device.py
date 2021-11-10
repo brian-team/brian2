@@ -1,7 +1,7 @@
 
-'''
+"""
 Module implementing the C++ "standalone" device.
-'''
+"""
 import os
 import shutil
 import subprocess
@@ -50,40 +50,55 @@ prefs.register_preferences(
     'C++ standalone preferences ',
     openmp_threads=BrianPreference(
         default=0,
-        docs='''
+        docs="""
         The number of threads to use if OpenMP is turned on. By default, this value is set to 0 and the C++ code
         is generated without any reference to OpenMP. If greater than 0, then the corresponding number of threads
         are used to launch the simulation.
-        ''',
+        """,
         ),
     openmp_spatialneuron_strategy=BrianPreference(
         default=None,
         validator=lambda val: val in [None, 'branches', 'systems'],
-        docs='''
+        docs="""
         DEPRECATED. Previously used to chose the strategy to parallelize the
         solution of the three tridiagonal systems for multicompartmental
         neurons. Now, its value is ignored.
-        '''
+        """
+        ),
+    make_cmd_unix=BrianPreference(
+        default='make',
+        docs="""
+        The make command used to compile the standalone project. Defaults to the
+        standard GNU make commane "make"."""
+        ),
+    run_cmd_unix=BrianPreference(
+        default='./main',
+        validator=lambda val: isinstance(val, str) or isinstance(val, list),
+        docs="""
+        The command used to run the compiled standalone project. Defaults to executing
+        the compiled binary with "./main". Must be a single binary as string or a list
+        of command arguments (e.g. ["./binary", "--key", "value"]).
+        """
         ),
     extra_make_args_unix=BrianPreference(
         default=['-j'],
-        docs='''
+        docs="""
         Additional flags to pass to the GNU make command on Linux/OS-X.
-        Defaults to "-j" for parallel compilation.'''
+        Defaults to "-j" for parallel compilation."""
         ),
     extra_make_args_windows=BrianPreference(
         default=[],
-        docs='''
+        docs="""
         Additional flags to pass to the nmake command on Windows. By default, no
         additional flags are passed.
-        '''
+        """
         ),
     run_environment_variables=BrianPreference(
         default={'LD_BIND_NOW': '1'},
-        docs='''
+        docs="""
         Dictionary of environment variables and their values that will be set
         during the execution of the standalone code.
-        '''
+        """
         )
     )
 
@@ -95,14 +110,14 @@ class CPPWriter(object):
         self.header_files = set()
         
     def write(self, filename, contents):
-        logger.diagnostic('Writing file %s:\n%s' % (filename, contents))
+        logger.diagnostic(f'Writing file {filename}:\n{contents}')
         if filename.lower().endswith('.cpp') or filename.lower().endswith('.c'):
             self.source_files.add(filename)
         elif filename.lower().endswith('.h'):
             self.header_files.add(filename)
         elif filename.endswith('.*'):
-            self.write(filename[:-1]+'cpp', contents.cpp_file)
-            self.write(filename[:-1]+'h', contents.h_file)
+            self.write(f"{filename[:-1]}cpp", contents.cpp_file)
+            self.write(f"{filename[:-1]}h", contents.h_file)
             return
         fullfilename = os.path.join(self.project_dir, filename)
         if os.path.exists(fullfilename):
@@ -118,9 +133,9 @@ def invert_dict(x):
 
 
 class CPPStandaloneDevice(Device):
-    '''
+    """
     The `Device` used for C++ standalone simulations.
-    '''
+    """
 
     def __init__(self):
         super(CPPStandaloneDevice, self).__init__()
@@ -144,7 +159,8 @@ class CPPStandaloneDevice(Device):
         #: List of all arrays to be filled with numbers (list of
         #: (var, varname, start) tuples
         self.arange_arrays = []
-
+        #: Set of all existing synapses
+        self.synapses = set()
         #: Whether the simulation has been run
         self.has_been_run = False
 
@@ -174,7 +190,6 @@ class CPPStandaloneDevice(Device):
         self.networks = set()
         self.static_array_specs = []
         self.report_func = ''
-        self.synapses = []
 
         #: Code lines that have been manually added with `device.insert_code`
         #: Dictionary mapping slot names to lists of lines.
@@ -190,23 +205,12 @@ class CPPStandaloneDevice(Device):
         self.define_macros = []
         self.headers = []
         self.include_dirs = ['brianlib/randomkit']
-        if sys.platform == 'win32':
-            self.include_dirs += [os.path.join(sys.prefix, 'Library', 'include')]
-        else:
-            self.include_dirs += [os.path.join(sys.prefix, 'include')]
         self.library_dirs = ['brianlib/randomkit']
-        if sys.platform == 'win32':
-            self.library_dirs += [os.path.join(sys.prefix, 'Library', 'Lib')]
-        else:
-            self.library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.runtime_library_dirs = []
-        if sys.platform.startswith('linux'):
-            self.runtime_library_dirs += [os.path.join(sys.prefix, 'lib')]
         self.run_environment_variables = {}
         if sys.platform.startswith('darwin'):
             if 'DYLD_LIBRARY_PATH' in os.environ:
-                dyld_library_path = (os.environ['DYLD_LIBRARY_PATH'] + ':' +
-                                     os.path.join(sys.prefix, 'lib'))
+                dyld_library_path = f"{os.environ['DYLD_LIBRARY_PATH']}:{os.path.join(sys.prefix, 'lib')}"
             else:
                 dyld_library_path = os.path.join(sys.prefix, 'lib')
             self.run_environment_variables['DYLD_LIBRARY_PATH'] = dyld_library_path
@@ -253,37 +257,37 @@ class CPPStandaloneDevice(Device):
                         isinstance(v, (float, np.float32, np.float64))):
                     string_value += 'f'
                 if v < 0:
-                    string_value = '(%s)' % string_value
+                    string_value = f'({string_value})'
                 code = word_substitute(code, {k: string_value})
             else:
                 pass  # don't deal with this object
         return code
 
     def insert_code(self, slot, code):
-        '''
+        """
         Insert code directly into main.cpp
-        '''
+        """
         if slot == 'main':
             self.main_queue.append(('insert_code', code))
         elif slot in self.code_lines:
             self.code_lines[slot].append(code)
         else:
-            logger.warn("Ignoring device code, unknown slot: %s, code: %s" % (slot, code))
+            logger.warn(f"Ignoring device code, unknown slot: {slot}, code: {code}")
             
     def static_array(self, name, arr):
         arr = np.atleast_1d(arr)
-        assert len(arr), 'length for %s: %d' % (name, len(arr))
-        name = '_static_array_' + name
+        assert len(arr), f'length for {name}: {len(arr)}'
+        name = f"_static_array_{name}"
         basename = name
         i = 0
         while name in self.static_arrays:
             i += 1
-            name = basename+'_'+str(i)
+            name = f"{basename}_{str(i)}"
         self.static_arrays[name] = arr.copy()
         return name
 
     def get_array_name(self, var, access_data=True):
-        '''
+        """
         Return a globally unique name for `var`.
 
         Parameters
@@ -292,7 +296,7 @@ class CPPStandaloneDevice(Device):
             For `DynamicArrayVariable` objects, specifying `True` here means the
             name for the underlying data is returned. If specifying `False`,
             the name of object itself is returned (e.g. to allow resizing).
-        '''
+        """
         if isinstance(var, DynamicArrayVariable):
             if access_data:
                 return self.arrays[var]
@@ -303,11 +307,10 @@ class CPPStandaloneDevice(Device):
         elif isinstance(var, ArrayVariable):
             return self.arrays[var]
         else:
-            raise TypeError(('Do not have a name for variable of type '
-                             '%s') % type(var))
+            raise TypeError(f"Do not have a name for variable of type {type(var)}.")
 
     def get_array_filename(self, var, basedir='results'):
-        '''
+        """
         Return a file name for a variable.
 
         Parameters
@@ -328,9 +331,9 @@ class CPPStandaloneDevice(Device):
         The reason that the filename is not simply ``'results/' + varname`` is
         that this could lead to file names that are not unique in file systems
         that are not case sensitive (e.g. on Windows).
-        '''
+        """
         varname = self.get_array_name(var, access_data=False)
-        return os.path.join(basedir, varname + '_' + str(hash(varname)))
+        return os.path.join(basedir, f"{varname}_{str(hash(varname))}")
 
     def add_array(self, var):
         # Note that a dynamic array variable is added to both the arrays and
@@ -345,8 +348,8 @@ class CPPStandaloneDevice(Device):
             # use the same name in the two dictionaries, not for example
             # ``_dynamic_array_source_name_2`` and ``_array_source_name_1``
             # (this would work fine, but it would make the code harder to read).
-            orig_dynamic_name = dynamic_name = '_dynamic_array_%s_%s' % (var.owner.name, var.name)
-            orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
+            orig_dynamic_name = dynamic_name = f'_dynamic_array_{var.owner.name}_{var.name}'
+            orig_array_name = array_name = f'_array_{var.owner.name}_{var.name}'
             suffix = 0
 
             if var.ndim == 1:
@@ -354,26 +357,26 @@ class CPPStandaloneDevice(Device):
             elif var.ndim == 2:
                 dynamic_dict = self.dynamic_arrays_2d
             else:
-                raise AssertionError(('Did not expect a dynamic array with %d '
-                                      'dimensions.') % var.ndim)
+                raise AssertionError("Did not expect a dynamic array with {var.ndim} "
+                                     "dimensions.")
             while (dynamic_name in dynamic_dict.values() or
                    array_name in self.arrays.values()):
                 suffix += 1
-                dynamic_name = orig_dynamic_name + '_%d' % suffix
-                array_name = orig_array_name + '_%d' % suffix
+                dynamic_name = f"{orig_dynamic_name}_{int(suffix)}"
+                array_name = f"{orig_array_name}_{int(suffix)}"
             dynamic_dict[var] = dynamic_name
             self.arrays[var] = array_name
         else:
-            orig_array_name = array_name = '_array_%s_%s' % (var.owner.name, var.name)
+            orig_array_name = array_name = f'_array_{var.owner.name}_{var.name}'
             suffix = 0
             while array_name in self.arrays.values():
                 suffix += 1
-                array_name = orig_array_name + '_%d' % suffix
+                array_name = f"{orig_array_name}_{int(suffix)}"
             self.arrays[var] = array_name
 
     def init_with_zeros(self, var, dtype):
         if isinstance(var, DynamicArrayVariable):
-            varname = '_dynamic' + self.arrays[var]
+            varname = f"_dynamic{self.arrays[var]}"
         else:
             varname = self.arrays[var]
         self.zero_arrays.append((var, varname))
@@ -381,7 +384,7 @@ class CPPStandaloneDevice(Device):
 
     def init_with_arange(self, var, start, dtype):
         if isinstance(var, DynamicArrayVariable):
-            varname = '_dynamic' + self.arrays[var]
+            varname = f"_dynamic{self.arrays[var]}"
         else:
             varname = self.arrays[var]
         self.arange_arrays.append((var, varname, start))
@@ -451,9 +454,9 @@ class CPPStandaloneDevice(Device):
                 indices = np.asarray(variableview.indexing(item,
                                                            index_var=variableview.index_var))
             except NotImplementedError:
-                raise NotImplementedError(('Cannot set variable "%s" this way in '
-                                           'standalone, try using string '
-                                           'expressions.') % variableview.name)
+                raise NotImplementedError(f"Cannot set variable '{variableview.name}' "
+                                          f"this way in standalone, try using "
+                                          f"string expressions.")
             # Using the std::vector instead of a pointer to the underlying
             # data for dynamic arrays is fast enough here and it saves us some
             # additional work to set up the pointer
@@ -464,14 +467,13 @@ class CPPStandaloneDevice(Device):
                          (value.size == 1 and indices.size > 1))):
                 value = np.repeat(value, indices.size)
             elif (value.shape != indices.shape and len(value) != len(indices)):
-                raise ValueError(('Provided values do not match the size '
-                                  'of the indices, '
-                                  '%d != %d.') % (len(value),
-                                                  len(indices)))
+                raise ValueError(f"Provided values do not match the size "
+                                 f"of the indices, "
+                                 f"{len(value)} != len(indices).")
 
-            staticarrayname_index = self.static_array('_index_'+arrayname,
+            staticarrayname_index = self.static_array(f"_index_{arrayname}",
                                                       indices)
-            staticarrayname_value = self.static_array('_value_'+arrayname,
+            staticarrayname_value = self.static_array(f"_value_{arrayname}",
                                                       value)
             self.array_cache[variableview.variable] = None
             self.main_queue.append(('set_array_by_array', (arrayname,
@@ -506,26 +508,25 @@ class CPPStandaloneDevice(Device):
                     elif var.size[1] == 0:
                         size = (var.size[0], len(data)//var.size[0])
                     else:
-                        raise IndexError(('Do not now how to deal with 2d '
-                                          'array of size %s, the array on disk '
-                                          'has length %d') % (str(var.size),
-                                                              len(data)))
+                        raise IndexError(f"Do not now how to deal with 2d "
+                                         f"array of size {var.size!s}, the array on "
+                                         f"disk has length {len(data)}.")
 
                     var.size = size
                     return data.reshape(var.size)
                 var.size = len(data)
                 return data
-            raise NotImplementedError('Cannot retrieve the values of state '
-                                      'variables in standalone code before the '
-                                      'simulation has been run.')
+            raise NotImplementedError("Cannot retrieve the values of state "
+                                      "variables in standalone code before the "
+                                      "simulation has been run.")
 
     def variableview_get_subexpression_with_index_array(self, variableview,
                                                         item,
                                                         run_namespace=None):
         if not self.has_been_run:
-            raise NotImplementedError('Cannot retrieve the values of state '
-                                      'variables in standalone code before the '
-                                      'simulation has been run.')
+            raise NotImplementedError("Cannot retrieve the values of state "
+                                      "variables in standalone code before the "
+                                      "simulation has been run.")
         # Temporarily switch to the runtime device to evaluate the subexpression
         # (based on the values stored on disk)
         set_device('runtime')
@@ -536,12 +537,12 @@ class CPPStandaloneDevice(Device):
 
     def variableview_get_with_expression(self, variableview, code,
                                          run_namespace=None):
-        raise NotImplementedError('Cannot retrieve the values of state '
-                                  'variables with string expressions in '
-                                  'standalone scripts.')
+        raise NotImplementedError("Cannot retrieve the values of state "
+                                  "variables with string expressions in "
+                                  "standalone scripts.")
 
     def code_object_class(self, codeobj_class=None, fallback_pref=None):
-        '''
+        """
         Return `CodeObject` class (either `CPPStandaloneCodeObject` class or input)
 
         Parameters
@@ -556,7 +557,7 @@ class CPPStandaloneDevice(Device):
         -------
         codeobj_class : class
             The `CodeObject` class that should be used
-        '''
+        """
         # Ignore the requested pref (used for optimization in runtime)
         if codeobj_class is None:
             return CPPStandaloneCodeObject
@@ -626,7 +627,7 @@ class CPPStandaloneDevice(Device):
     def check_openmp_compatible(self, nb_threads):
         if nb_threads > 0:
             logger.warn("OpenMP code is not yet well tested, and may be inaccurate.", "openmp", once=True)
-            logger.diagnostic("Using OpenMP with %d threads " % nb_threads)
+            logger.diagnostic(f"Using OpenMP with {int(nb_threads)} threads ")
             if prefs.devices.cpp_standalone.openmp_spatialneuron_strategy is not None:
                 logger.warn("The devices.cpp_standalone.openmp_spatialneuron_strategy "
                             "preference is no longer used and will be removed in "
@@ -658,69 +659,61 @@ class CPPStandaloneDevice(Device):
         for func, args in self.main_queue:
             if func=='before_run_code_object':
                 codeobj, = args
-                main_lines.append('_before_run_%s();' % codeobj.name)
+                main_lines.append(f'_before_run_{codeobj.name}();')
             elif func=='run_code_object':
                 codeobj, = args
-                main_lines.append('_run_%s();' % codeobj.name)
+                main_lines.append(f'_run_{codeobj.name}();')
             elif func == 'after_run_code_object':
                 codeobj, = args
-                main_lines.append('_after_run_%s();' % codeobj.name)
+                main_lines.append(f'_after_run_{codeobj.name}();')
             elif func=='run_network':
                 net, netcode = args
                 main_lines.extend(netcode)
             elif func=='set_by_constant':
                 arrayname, value, is_dynamic = args
-                size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
-                code = '''
-                {pragma}
+                size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
+                code = f"""
+                {openmp_pragma('static')}
                 for(int i=0; i<{size_str}; i++)
                 {{
-                    {arrayname}[i] = {value};
+                    {arrayname}[i] = {CPPNodeRenderer().render_expr(repr(value))};
                 }}
-                '''.format(arrayname=arrayname, size_str=size_str,
-                           value=CPPNodeRenderer().render_expr(repr(value)),
-                           pragma=openmp_pragma('static'))
+                """
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_array':
                 arrayname, staticarrayname, is_dynamic = args
-                size_str = arrayname+'.size()' if is_dynamic else '_num_'+arrayname
-                code = '''
-                {pragma}
+                size_str = f"{arrayname}.size()" if is_dynamic else f"_num_{arrayname}"
+                code = f"""
+                {openmp_pragma('static')}
                 for(int i=0; i<{size_str}; i++)
                 {{
                     {arrayname}[i] = {staticarrayname}[i];
                 }}
-                '''.format(arrayname=arrayname, size_str=size_str,
-                           staticarrayname=staticarrayname,
-                           pragma=openmp_pragma('static'))
+                """
                 main_lines.extend(code.split('\n'))
             elif func=='set_by_single_value':
                 arrayname, item, value = args
-                code = '{arrayname}[{item}] = {value};'.format(arrayname=arrayname,
-                                                               item=item,
-                                                               value=value)
+                code = f'{arrayname}[{item}] = {value};'
                 main_lines.extend([code])
             elif func=='set_array_by_array':
                 arrayname, staticarrayname_index, staticarrayname_value = args
-                code = '''
-                {pragma}
+                code = f"""
+                {openmp_pragma('static')}
                 for(int i=0; i<_num_{staticarrayname_index}; i++)
                 {{
                     {arrayname}[{staticarrayname_index}[i]] = {staticarrayname_value}[i];
                 }}
-                '''.format(arrayname=arrayname, staticarrayname_index=staticarrayname_index,
-                           staticarrayname_value=staticarrayname_value, pragma=openmp_pragma('static'))
+                """
                 main_lines.extend(code.split('\n'))
             elif func=='resize_array':
                 array_name, new_size = args
-                main_lines.append("{array_name}.resize({new_size});".format(array_name=array_name,
-                                                                            new_size=new_size))
+                main_lines.append(f"{array_name}.resize({new_size});")
             elif func=='insert_code':
                 main_lines.append(args)
             elif func=='start_run_func':
                 name, include_in_parent = args
                 if include_in_parent:
-                    main_lines.append('%s();' % name)
+                    main_lines.append(f'{name}();')
                 main_lines = []
                 procedures.append((name, main_lines))
             elif func=='end_run_func':
@@ -733,13 +726,13 @@ class CPPStandaloneDevice(Device):
                 nb_threads = prefs.devices.cpp_standalone.openmp_threads
                 if nb_threads == 0:  # no OpenMP
                     nb_threads = 1
-                main_lines.append('for (int _i=0; _i<{nb_threads}; _i++)'.format(nb_threads=nb_threads))
+                main_lines.append(f'for (int _i=0; _i<{nb_threads}; _i++)')
                 if seed is None:  # random
                     main_lines.append('    rk_randomseed(brian::_mersenne_twister_states[_i]);')
                 else:
-                    main_lines.append('    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);'.format(seed=seed))
+                    main_lines.append(f'    rk_seed({seed!r}L + _i, brian::_mersenne_twister_states[_i]);')
             else:
-                raise NotImplementedError("Unknown main queue function type "+func)
+                raise NotImplementedError(f"Unknown main queue function type {func}")
 
         self.runfuncs = runfuncs
 
@@ -772,23 +765,19 @@ class CPPStandaloneDevice(Device):
                             if v.ndim == 1:
                                 dyn_array_name = self.dynamic_arrays[v]
                                 array_name = self.arrays[v]
-                                line = '{c_type}* const {array_name} = {dyn_array_name}.empty()? 0 : &{dyn_array_name}[0];'
-                                line = line.format(c_type=c_data_type(v.dtype), array_name=array_name,
-                                                   dyn_array_name=dyn_array_name)
+                                c_type = c_data_type(v.dtype)
+                                line = f'{c_type}* const {array_name} = {dyn_array_name}.empty()? 0 : &{dyn_array_name}[0];'
                                 lines.append(line)
-                                line = 'const size_t _num{k} = {dyn_array_name}.size();'
-                                line = line.format(k=k, dyn_array_name=dyn_array_name)
+                                line = f'const size_t _num{k} = {dyn_array_name}.size();'
                                 lines.append(line)
                         else:
-                            lines.append('const size_t _num%s = %s;' % (k, v.size))
+                            lines.append(f'const size_t _num{k} = {v.size};')
                     except TypeError:
                         pass
                 elif isinstance(v, Constant):
-                    value = repr(v.value)
-                    line = 'const {c_type} {name} = {value};'
-                    line = line.format(c_type=c_data_type(v.dtype),
-                                       name=k,
-                                       value=renderer.render_expr(value))
+                    value = renderer.render_expr(repr(v.value))
+                    c_type = c_data_type(v.dtype)
+                    line = f'const {c_type} {k} = {value};'
                     lines.append(line)
             for line in lines:
                 # Sometimes an array is referred to by to different keys in our
@@ -802,20 +791,20 @@ class CPPStandaloneDevice(Device):
 
             # Before/after run code
             for block in codeobj.before_after_blocks:
-                cpp_code = getattr(codeobj.code, block + '_cpp_file')
+                cpp_code = getattr(codeobj.code, f"{block}_cpp_file")
                 cpp_code = cpp_code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
-                h_code = getattr(codeobj.code, block + '_h_file')
-                writer.write('code_objects/' + block + '_' + codeobj.name + '.cpp',
+                h_code = getattr(codeobj.code, f"{block}_h_file")
+                writer.write(f"code_objects/{block}_{codeobj.name}.cpp",
                              cpp_code)
-                writer.write('code_objects/' + block + '_' + codeobj.name + '.h',
+                writer.write(f"code_objects/{block}_{codeobj.name}.h",
                              h_code)
 
             # Main code
             code = codeobj.code.cpp_file
             code = code.replace('%CONSTANTS%', '\n'.join(code_object_defs[codeobj.name]))
 
-            writer.write('code_objects/'+codeobj.name+'.cpp', code)
-            writer.write('code_objects/'+codeobj.name+'.h', codeobj.code.h_file)
+            writer.write(f"code_objects/{codeobj.name}.cpp", code)
+            writer.write(f"code_objects/{codeobj.name}.h", codeobj.code.h_file)
 
     def generate_network_source(self, writer, compiler):
         maximum_run_time = self._maximum_run_time
@@ -901,9 +890,9 @@ class CPPStandaloneDevice(Device):
         brianlib_files = copy_directory(brianlib_dir, os.path.join(directory, 'brianlib'))
         for file in brianlib_files:
             if file.lower().endswith('.cpp'):
-                writer.source_files.add('brianlib/'+file)
+                writer.source_files.add(f"brianlib/{file}")
             elif file.lower().endswith('.h'):
-                writer.header_files.add('brianlib/'+file)
+                writer.header_files.add(f"brianlib/{file}")
 
         # Copy the CSpikeQueue implementation
         shutil.copy2(os.path.join(os.path.split(inspect.getsourcefile(Synapses))[0], 'cspikequeue.cpp'),
@@ -938,7 +927,7 @@ class CPPStandaloneDevice(Device):
                     self._insert_func_namespace(var, code_object,
                                                 self.static_arrays)
 
-        logger.diagnostic("static arrays: "+str(sorted(self.static_arrays.keys())))
+        logger.diagnostic(f"static arrays: {str(sorted(self.static_arrays.keys()))}")
         
         static_array_specs = []
         for name, arr in sorted(self.static_arrays.items()):
@@ -956,24 +945,22 @@ class CPPStandaloneDevice(Device):
                     os.remove('winmake.log')
                 if vcvars_cmd:
                     with open('winmake.log', 'w') as f:
-                        f.write(vcvars_cmd + '\n')
+                        f.write(f"{vcvars_cmd}\n")
                 else:
                     with open('winmake.log', 'w') as f:
                         f.write('MSVC environment: \n')
                         for key, value in msvc_env.items():
-                            f.write('{}={}\n'.format(key, value))
+                            f.write(f'{key}={value}\n')
                 with std_silent(debug):
                     if vcvars_cmd:
                         if clean:
-                            os.system('%s >>winmake.log 2>&1 && %s clean > NUL 2>&1' % (vcvars_cmd, make_cmd))
-                        x = os.system('%s >>winmake.log 2>&1 && %s %s>>winmake.log 2>&1' % (vcvars_cmd,
-                                                                                            make_cmd,
-                                                                                            make_args))
+                            os.system(f'{vcvars_cmd} >>winmake.log 2>&1 && {make_cmd} clean > NUL 2>&1')
+                        x = os.system(f'{vcvars_cmd} >>winmake.log 2>&1 && {make_cmd} {make_args}>>winmake.log 2>&1')
                     else:
                         os.environ.update(msvc_env)
                         if clean:
-                            os.system('%s clean > NUL 2>&1' % make_cmd)
-                        x = os.system('%s %s>>winmake.log 2>&1' % (make_cmd, make_args))
+                            os.system(f'{make_cmd} clean > NUL 2>&1')
+                        x = os.system(f'{make_cmd} {make_args}>>winmake.log 2>&1')
                     if x != 0:
                         if os.path.exists('winmake.log'):
                             with open('winmake.log', 'r') as f:
@@ -989,8 +976,9 @@ class CPPStandaloneDevice(Device):
                 with std_silent(debug):
                     if clean:
                         os.system('make clean >/dev/null 2>&1')
+                    make_cmd = prefs.devices.cpp_standalone.make_cmd_unix
                     make_args = ' '.join(prefs.devices.cpp_standalone.extra_make_args_unix)
-                    x = os.system('make %s' % (make_args, ))
+                    x = os.system(f'{make_cmd} {make_args}')
                     if x != 0:
                         error_message = ('Project compilation failed (error '
                                          'code: %u).') % x
@@ -1001,7 +989,7 @@ class CPPStandaloneDevice(Device):
                         raise RuntimeError(error_message)
 
     def seed(self, seed=None):
-        '''
+        """
         Set the seed for the random number generator.
 
         Parameters
@@ -1009,7 +997,7 @@ class CPPStandaloneDevice(Device):
         seed : int, optional
             The seed value for the random number generator, or ``None`` (the
             default) to set a random seed.
-        '''
+        """
         self.main_queue.append(('seed', seed))
 
     def run(self, directory, with_output, run_args):
@@ -1019,8 +1007,7 @@ class CPPStandaloneDevice(Device):
             for key, value in itertools.chain(prefs['devices.cpp_standalone.run_environment_variables'].items(),
                                               self.run_environment_variables.items()):
                 if key in os.environ and os.environ[key] != value:
-                    logger.info('Overwriting environment variable '
-                                '"{key}"'.format(key=key),
+                    logger.info(f'Overwriting environment variable "{key}"',
                                 name_suffix='overwritten_env_var', once=True)
                 os.environ[key] = value
             if not with_output:
@@ -1030,15 +1017,17 @@ class CPPStandaloneDevice(Device):
             if os.name == 'nt':
                 x = subprocess.call(['main'] + run_args, stdout=stdout)
             else:
-                x = subprocess.call(['./main'] + run_args, stdout=stdout)
+                run_cmd = prefs.devices.cpp_standalone.run_cmd_unix
+                if isinstance(run_cmd, str):
+                    run_cmd = [run_cmd]
+                x = subprocess.call(run_cmd + run_args, stdout=stdout)
             if stdout is not None:
                 stdout.close()
             if x:
                 if os.path.exists('results/stdout.txt'):
                     with open('results/stdout.txt', 'r') as f:
                         print(f.read())
-                raise RuntimeError("Project run failed (project directory: "
-                                   "%s)" % os.path.abspath(directory))
+                raise RuntimeError(f"Project run failed (project directory: {os.path.abspath(directory)})")
             self.has_been_run = True
             if os.path.isfile('results/last_run_info.txt'):
                 with open('results/last_run_info.txt', 'r') as f:
@@ -1070,7 +1059,7 @@ class CPPStandaloneDevice(Device):
               compile=True, run=True, debug=False, clean=False,
               with_output=True, additional_source_files=None,
               run_args=None, direct_call=True, **kwds):
-        '''
+        """
         Build the project
 
         TODO: more details
@@ -1104,22 +1093,22 @@ class CPPStandaloneDevice(Device):
             Whether this function was called directly. Is used internally to
             distinguish an automatic build due to the ``build_on_run`` option
             from a manual ``device.build`` call.
-        '''
+        """
         if self.build_on_run and direct_call:
-            raise RuntimeError('You used set_device with build_on_run=True '
-                               '(the default option), which will automatically '
-                               'build the simulation at the first encountered '
-                               'run call - do not call device.build manually '
-                               'in this case. If you want to call it manually, '
-                               'e.g. because you have multiple run calls, use '
-                               'set_device with build_on_run=False.')
+            raise RuntimeError("You used set_device with build_on_run=True "
+                               "(the default option), which will automatically "
+                               "build the simulation at the first encountered "
+                               "run call - do not call device.build manually "
+                               "in this case. If you want to call it manually, "
+                               "e.g. because you have multiple run calls, use "
+                               "set_device with build_on_run=False.")
         if self.has_been_run:
-            raise RuntimeError('The network has already been built and run '
-                               'before. To build several simulations in '
-                               'the same script, call "device.reinit()" '
-                               'and "device.activate()". Note that you '
-                               'will have to set build options (e.g. the '
-                               'directory) and defaultclock.dt again.')
+            raise RuntimeError("The network has already been built and run "
+                               "before. To build several simulations in "
+                               "the same script, call \"device.reinit()\" "
+                               "and \"device.activate()\". Note that you "
+                               "will have to set build options (e.g. the "
+                               "directory) and defaultclock.dt again.")
         renames = {'project_dir': 'directory',
                    'compile_project': 'compile',
                    'run_project': 'run'}
@@ -1127,10 +1116,10 @@ class CPPStandaloneDevice(Device):
             msg = ''
             for kwd in kwds:
                 if kwd in renames:
-                    msg += ("Keyword argument '%s' has been renamed to "
-                            "'%s'. ") % (kwd, renames[kwd])
+                    msg += (f"Keyword argument '{kwd}' has been renamed to "
+                            f"'{renames[kwd]}'. ")
                 else:
-                    msg += "Unknown keyword argument '%s'. " % kwd
+                    msg += f"Unknown keyword argument '{kwd}'. "
             raise TypeError(msg)
 
         if additional_source_files is None:
@@ -1212,32 +1201,29 @@ class CPPStandaloneDevice(Device):
         # Get the number of threads if specified in an openmp context
         nb_threads = prefs.devices.cpp_standalone.openmp_threads
         # If the number is negative, we need to throw an error
-        if (nb_threads < 0):
-            raise ValueError('The number of OpenMP threads can not be negative !')
+        if nb_threads < 0:
+            raise ValueError("The number of OpenMP threads can not be negative !")
 
-        logger.diagnostic("Writing C++ standalone project to directory "+os.path.normpath(directory))
+        logger.diagnostic(f"Writing C++ standalone project to directory "
+                          f"'{os.path.normpath(directory)}'.")
 
         self.check_openmp_compatible(nb_threads)
 
         self.write_static_arrays(directory)
 
         # Check that all names are globally unique
-        names = [obj.name for net in self.networks for obj in net.objects]
+        names = [obj.name for net in self.networks for obj in net.sorted_objects]
         non_unique_names = [name for name, count in Counter(names).items()
                             if count > 1]
         if len(non_unique_names):
-            formatted_names = ', '.join("'%s'" % name
+            formatted_names = ', '.join(f"'{name}'"
                                         for name in non_unique_names)
-            raise ValueError('All objects need to have unique names in '
-                             'standalone mode, the following name(s) were used '
-                             'more than once: %s' % formatted_names)
-
-        net_synapses = [s for net in self.networks
-                        for s in net.objects
-                        if isinstance(s, Synapses)]
+            raise ValueError(f"All objects need to have unique names in "
+                             f"standalone mode, the following name(s) were used "
+                             f"more than once: {formatted_names}")
 
         self.generate_objects_source(self.writer, self.arange_arrays,
-                                     net_synapses, self.static_array_specs,
+                                     self.synapses, self.static_array_specs,
                                      self.networks)
         self.generate_main_source(self.writer)
         self.generate_codeobj_source(self.writer)
@@ -1254,13 +1240,6 @@ class CPPStandaloneDevice(Device):
                                nb_threads=nb_threads,
                                debug=debug)
 
-        # Not sure what the best place is to call Network.after_run -- at the
-        # moment the only important thing it does is to clear the objects stored
-        # in magic_network. If this is not done, this might lead to problems
-        # for repeated runs of standalone (e.g. in the test suite).
-        for net in self.networks:
-            net.after_run()
-
         if compile:
             self.compile_source(directory, compiler, debug, clean)
             if run:
@@ -1271,17 +1250,16 @@ class CPPStandaloneDevice(Device):
             return  # Nothing to delete
 
         if directory and not (code and data):
-            raise ValueError('When deleting the directory, code and data will'
-                             'be deleted as well. Set the corresponding '
-                             'parameters to True.')
+            raise ValueError("When deleting the directory, code and data will"
+                             "be deleted as well. Set the corresponding "
+                             "parameters to True.")
 
         fnames = []
 
         # Delete data
         if data:
-            logger.debug('Deleting data files in '
-                         '"{}"'.format(os.path.join(self.project_dir,
-                                                    'results')))
+            results_dir = os.path.join(self.project_dir, 'results')
+            logger.debug(f"Deleting data files in '{results_dir}'")
             fnames.append(os.path.join('results', 'last_run_info.txt'))
             if self.profiled_codeobjects:
                 fnames.append(os.path.join('results', 'profiling_info.txt'))
@@ -1290,8 +1268,7 @@ class CPPStandaloneDevice(Device):
 
         # Delete code
         if code:
-            logger.debug('Deleting code files in '
-                         '"{}"'.format(self.project_dir))
+            logger.debug(f"Deleting code files in '{self.project_dir}'")
             if sys.platform == 'win32':
                 fnames.extend(['sourcefiles.txt', 'win_makefile', 'main.exe',
                                'main.ilk', 'main.pdb', 'winmake.log'])
@@ -1307,9 +1284,9 @@ class CPPStandaloneDevice(Device):
                 fnames.append(source_file)
                 base_name, _ = os.path.splitext(source_file)
                 if sys.platform == 'win32':
-                    fnames.append(base_name + '.obj')
+                    fnames.append(f"{base_name}.obj")
                 else:
-                    fnames.append(base_name + '.o')
+                    fnames.append(f"{base_name}.o")
 
             for static_array_name in self.static_arrays:
                 fnames.append(os.path.join('static_arrays', static_array_name))
@@ -1319,8 +1296,7 @@ class CPPStandaloneDevice(Device):
             try:
                 os.remove(full_fname)
             except (OSError, IOError) as ex:
-                logger.debug('File "{}" could not be deleted: '
-                             '{}'.format(full_fname, str(ex)))
+                logger.debug(f'File "{full_fname}" could not be deleted: {str(ex)}')
 
         # Delete directories
 
@@ -1356,16 +1332,15 @@ class CPPStandaloneDevice(Device):
                                          if os.path.isfile(name) or
                                          os.path.join(full_directory, name) not in full_directories]
                         if len(still_present):
-                            still_present = ", ".join('"{}"'.format(name)
+                            still_present = ", ".join(f'"{name}"'
                                                       for name in still_present)
-                            logger.warn('Not deleting the "{}" directory, '
-                                        'because it contains files/directories '
-                                        'not added by Brian: {}'.format(full_directory,
-                                                                        still_present),
+                            logger.warn(f"Not deleting the '{full_directory}' directory, "
+                                        f"because it contains files/directories "
+                                        f"not added by Brian: {still_present}",
                                         name_suffix='delete_skips_directory')
 
     def network_run(self, net, duration, report=None, report_period=10*second,
-                    namespace=None, profile=False, level=0, **kwds):
+                    namespace=None, profile=None, level=0, **kwds):
         self.networks.add(net)
         if kwds:
             logger.warn(('Unsupported keyword argument(s) provided for run: '
@@ -1373,6 +1348,12 @@ class CPPStandaloneDevice(Device):
         # We store this as an instance variable for later access by the
         # `code_object` method
         self.enable_profiling = profile
+
+        # Allow setting `profile` in the `set_device` call (used e.g. in brian2cuda
+        # SpeedTest configurations)
+        if profile is None:
+            self.enable_profiling = self.build_options.get('profile', False)
+
         all_objects = net.sorted_objects
         net._clocks = {obj.clock for obj in all_objects}
         t_end = net.t+duration
@@ -1384,7 +1365,8 @@ class CPPStandaloneDevice(Device):
             namespace = get_local_namespace(level=level+2)
 
         net.before_run(namespace)
-
+        self.synapses |= {s for s in net.objects
+                          if isinstance(s, Synapses)}
         self.clocks.update(net._clocks)
         net.t_ = float(t_end)
 
@@ -1403,7 +1385,7 @@ class CPPStandaloneDevice(Device):
                     code_objects.append((obj.clock, codeobj))
 
         # Code for a progress reporting function
-        standard_code = '''
+        standard_code = """
         std::string _format_time(float time_in_s)
         {
             float divisors[] = {24*60*60, 60*60, 60, 1};
@@ -1448,7 +1430,7 @@ class CPPStandaloneDevice(Device):
 
             %STREAMNAME% << std::endl << std::flush;
         }
-        '''
+        """
         if report is None:
             report_func = ''
         elif report == 'text' or report == 'stdout':
@@ -1456,23 +1438,23 @@ class CPPStandaloneDevice(Device):
         elif report == 'stderr':
             report_func = standard_code.replace('%STREAMNAME%', 'std::cerr')
         elif isinstance(report, str):
-            report_func = '''
+            report_func = """
             void report_progress(const double elapsed, const double completed, const double start, const double duration)
             {
             %REPORT%
             }
-            '''.replace('%REPORT%', report)
+            """.replace('%REPORT%', report)
         else:
-            raise TypeError(('report argument has to be either "text", '
-                             '"stdout", "stderr", or the code for a report '
-                             'function'))
+            raise TypeError("report argument has to be either 'text', "
+                            "'stdout', 'stderr', or the code for a report "
+                            "function")
 
         if report_func != '':
             if self.report_func != '' and report_func != self.report_func:
-                raise NotImplementedError('The C++ standalone device does not '
-                                          'support multiple report functions, '
-                                          'each run has to use the same (or '
-                                          'none).')
+                raise NotImplementedError("The C++ standalone device does not "
+                                          "support multiple report functions, "
+                                          "each run has to use the same (or "
+                                          "none).")
             self.report_func = report_func
 
         if report is not None:
@@ -1481,11 +1463,10 @@ class CPPStandaloneDevice(Device):
             report_call = 'NULL'
 
         # Generate the updaters
-        run_lines = ['{net.name}.clear();'.format(net=net)]
+        run_lines = [f'{net.name}.clear();']
         all_clocks = set()
         for clock, codeobj in code_objects:
-            run_lines.append('{net.name}.add(&{clock.name}, _run_{codeobj.name});'.format(clock=clock, net=net,
-                                                                                               codeobj=codeobj))
+            run_lines.append(f'{net.name}.add(&{clock.name}, _run_{codeobj.name});')
             all_clocks.add(clock)
 
         # Under some rare circumstances (e.g. a NeuronGroup only defining a
@@ -1496,13 +1477,12 @@ class CPPStandaloneDevice(Device):
         # such clocks without a code function in the network.
         for clock in net._clocks:
             if clock not in all_clocks:
-                run_lines.append('{net.name}.add(&{clock.name}, NULL);'.format(clock=clock, net=net))
+                run_lines.append(f'{net.name}.add(&{clock.name}, NULL);')
 
-        run_lines.append('{net.name}.run({duration!r}, {report_call}, {report_period!r});'.format(net=net,
-                                                                                              duration=float(duration),
-                                                                                              report_call=report_call,
-                                                                                              report_period=float(report_period)))
+        run_lines.append(f'{net.name}.run({float(duration)!r}, {report_call}, {float(report_period)!r});')
         self.main_queue.append(('run_network', (net, run_lines)))
+
+        net.after_run()
 
         # Manually set the cache for the clocks, simulation scripts might
         # want to access the time (which has been set in code and is therefore
@@ -1514,26 +1494,26 @@ class CPPStandaloneDevice(Device):
 
         if self.build_on_run:
             if self.has_been_run:
-                raise RuntimeError('The network has already been built and run '
-                                   'before. Use set_device with '
-                                   'build_on_run=False and an explicit '
-                                   'device.build call to use multiple run '
-                                   'statements with this device.')
+                raise RuntimeError("The network has already been built and run "
+                                   "before. Use set_device with "
+                                   "build_on_run=False and an explicit "
+                                   "device.build call to use multiple run "
+                                   "statements with this device.")
             self.build(direct_call=False, **self.build_options)
 
     def network_store(self, net, *args, **kwds):
-        raise NotImplementedError(('The store/restore mechanism is not '
-                                   'supported in the C++ standalone'))
+        raise NotImplementedError("The store/restore mechanism is not "
+                                  "supported in the C++ standalone")
 
     def network_restore(self, net, *args, **kwds):
-        raise NotImplementedError(('The store/restore mechanism is not '
-                                   'supported in the C++ standalone'))
+        raise NotImplementedError("The store/restore mechanism is not "
+                                  "supported in the C++ standalone")
 
     def network_get_profiling_info(self, net):
         fname = os.path.join(self.project_dir, 'results', 'profiling_info.txt')
         if not os.path.exists(fname):
-            raise ValueError('No profiling info collected (did you run with '
-                             'profile=True?)')
+            raise ValueError("No profiling info collected (did you run with "
+                             "'profile=True'?)")
         net._profiling_info = []
         with open(fname) as f:
             for line in f:
@@ -1543,7 +1523,7 @@ class CPPStandaloneDevice(Device):
                       reverse=True)
 
     def run_function(self, name, include_in_parent=True):
-        '''
+        """
         Context manager to divert code into a function
         
         Code that happens within the scope of this context manager will go into the named function.
@@ -1554,7 +1534,7 @@ class CPPStandaloneDevice(Device):
             The name of the function to divert code into.
         include_in_parent : bool
             Whether or not to include a call to the newly defined function in the parent context.
-        '''
+        """
         return RunFunctionContext(name, include_in_parent)
 
 

@@ -1,8 +1,8 @@
-'''
+"""
 Hodgkin-Huxley equations (1952)
 
 We calculate the extracellular field potential at various places.
-'''
+"""
 from brian2 import *
 defaultclock.dt = 0.01*ms
 morpho = Cylinder(x=[0, 10]*cm, diameter=2*238*um, n=1000, type='axon')

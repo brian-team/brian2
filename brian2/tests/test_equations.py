@@ -80,8 +80,7 @@ def test_identifier_checks():
             check_identifier_basic(identifier)
             check_identifier_reserved(identifier)
         except ValueError as ex:
-            raise AssertionError('check complained about '
-                                 'identifier "%s": %s' % (identifier, ex))
+            raise AssertionError(f'check complained about identifier "{identifier}": {ex}')
 
     for identifier in illegal_identifiers:
         with pytest.raises(SyntaxError):
@@ -119,7 +118,7 @@ def test_identifier_checks():
     # gaba_123 (that is otherwise valid)
     def disallow_gaba_123(identifier):
         if identifier == 'gaba_123':
-            raise SyntaxError('I do not like this name')
+            raise SyntaxError("I do not like this name")
 
     Equations.check_identifier('gaba_123')
     old_checks = set(Equations.identifier_checks)
@@ -134,14 +133,14 @@ def test_identifier_checks():
 
 @pytest.mark.codegen_independent
 def test_parse_equations():
-    ''' Test the parsing of equation strings '''
+    """ Test the parsing of equation strings """
     # A simple equation
     eqs = parse_string_equations('dv/dt = -v / tau : 1')
     assert len(eqs) == 1 and 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert eqs['v'].dim is DIMENSIONLESS
 
     # A complex one
-    eqs = parse_string_equations('''dv/dt = -(v +
+    eqs = parse_string_equations("""dv/dt = -(v +
                                              ge + # excitatory conductance
                                              I # external current
                                              )/ tau : volt
@@ -150,7 +149,7 @@ def test_parse_equations():
                                     f : Hz (constant)
                                     b : boolean
                                     n : integer
-                                 ''')
+                                 """)
     assert len(eqs) == 6
     assert 'v' in eqs and eqs['v'].type == DIFFERENTIAL_EQUATION
     assert 'ge' in eqs and eqs['ge'].type == DIFFERENTIAL_EQUATION
@@ -170,18 +169,18 @@ def test_parse_equations():
     assert eqs['I'].flags == []
     assert eqs['f'].flags == ['constant']
 
-    duplicate_eqs = '''
+    duplicate_eqs = """
     dv/dt = -v / tau : 1
     v = 2 * t : 1
-    '''
+    """
     with pytest.raises(EquationError):
         parse_string_equations(duplicate_eqs)
     parse_error_eqs = [
-    '''dv/d = -v / tau : 1
-        x = 2 * t : 1''',
-    '''dv/dt = -v / tau : 1 : volt
-    x = 2 * t : 1''',
-    ''' dv/dt = -v / tau : 2 * volt''',
+    """dv/d = -v / tau : 1
+        x = 2 * t : 1""",
+    """dv/dt = -v / tau : 1 : volt
+    x = 2 * t : 1""",
+    """ dv/dt = -v / tau : 2 * volt""",
     'dv/dt = v / second : boolean']
     for error_eqs in parse_error_eqs:
         with pytest.raises((ValueError, EquationError, TypeError)):
@@ -190,7 +189,7 @@ def test_parse_equations():
 
 @pytest.mark.codegen_independent
 def test_correct_replacements():
-    ''' Test replacing variables via keyword arguments '''
+    """ Test replacing variables via keyword arguments """
     # replace a variable name with a new name
     eqs = Equations('dv/dt = -v / tau : 1', v='V')
     # Correct left hand side
@@ -205,7 +204,7 @@ def test_correct_replacements():
 
 @pytest.mark.codegen_independent
 def test_wrong_replacements():
-    '''Tests for replacements that should not work'''
+    """Tests for replacements that should not work"""
     # Replacing a variable name with an illegal new name
     with pytest.raises(SyntaxError):
         Equations('dv/dt = -v / tau : 1', v='illegal name')
@@ -216,9 +215,9 @@ def test_wrong_replacements():
 
     # Replacing a variable name with a value that already exists
     with pytest.raises(EquationError):
-        Equations('''dv/dt = -v / tau : 1
+        Equations("""dv/dt = -v / tau : 1
                      dx/dt = -x / tau : 1
-                  ''', v='x')
+                  """, v='x')
 
     # Replacing a model variable name with a value
     with pytest.raises(ValueError):
@@ -247,9 +246,9 @@ def test_substitute():
 
 @pytest.mark.codegen_independent
 def test_construction_errors():
-    '''
+    """
     Test that the Equations constructor raises errors correctly
-    '''
+    """
     # parse error
     with pytest.raises(EquationError):
          Equations('dv/dt = -v / tau volt')
@@ -274,8 +273,8 @@ def test_construction_errors():
 
     # duplicate variable names
     with pytest.raises(EquationError):
-         Equations('''dv/dt = -v / tau : volt
-                       v = 2 * t/second * volt : volt''')
+         Equations("""dv/dt = -v / tau : volt
+                       v = 2 * t/second * volt : volt""")
 
     eqs = [SingleEquation(DIFFERENTIAL_EQUATION, 'v', volt.dim,
                           expr=Expression('-v / tau')),
@@ -301,14 +300,14 @@ def test_construction_errors():
 
     # xi in a subexpression
     with pytest.raises(EquationError):
-        Equations('''dv/dt = -(v + I) / (5 * ms) : volt
-                     I = second**-1*xi**-2*volt : volt''')
+        Equations("""dv/dt = -(v + I) / (5 * ms) : volt
+                     I = second**-1*xi**-2*volt : volt""")
 
     # more than one xi
     with pytest.raises(EquationError):
-        Equations('''dv/dt = -v / tau + xi/tau**.5 : volt
+        Equations("""dv/dt = -v / tau + xi/tau**.5 : volt
                      dx/dt = -x / tau + 2*xi/tau : volt
-                     tau : second''')
+                     tau : second""")
     # using not-allowed flags
     eqs = Equations('dv/dt = -v / (5 * ms) : volt (flag)')
     eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag']})  # allow this flag
@@ -326,17 +325,17 @@ def test_construction_errors():
     with pytest.raises(ValueError):
         eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
                         incompatible_flags=[('flag1', 'flag2')])
-    eqs = Equations('''dv/dt = -v / (5 * ms) : volt (flag1)
-                       dw/dt = -w / (5 * ms) : volt (flag2)''')
+    eqs = Equations("""dv/dt = -v / (5 * ms) : volt (flag1)
+                       dw/dt = -w / (5 * ms) : volt (flag2)""")
     # They should be allowed when used independently
     eqs.check_flags({DIFFERENTIAL_EQUATION: ['flag1', 'flag2']},
                     incompatible_flags=[('flag1', 'flag2')])
 
     # Circular subexpression
     with pytest.raises(ValueError):
-         Equations('''dv/dt = -(v + w) / (10 * ms) : 1
+         Equations("""dv/dt = -(v + w) / (10 * ms) : 1
                       w = 2 * x : 1
-                      x = 3 * w : 1''')
+                      x = 3 * w : 1""")
 
     # Boolean/integer differential equations
     with pytest.raises(TypeError):
@@ -367,16 +366,16 @@ def test_unit_checking():
     with pytest.raises(DimensionMismatchError):
         eqs.check_units(group, {})
 
-    eqs = Equations('''dv/dt = -(v + I) / (5 * ms): volt
-                       I : second''')
+    eqs = Equations("""dv/dt = -(v + I) / (5 * ms): volt
+                       I : second""")
     group = SimpleGroup(variables={'v': S(volt),
                                    'I': S(second)}, namespace={})
     with pytest.raises(DimensionMismatchError):
         eqs.check_units(group, {})
     
     # inconsistent unit for a subexpression
-    eqs = Equations('''dv/dt = -v / (5 * ms) : volt
-                       I = 2 * v : amp''')
+    eqs = Equations("""dv/dt = -v / (5 * ms) : volt
+                       I = 2 * v : amp""")
     group = SimpleGroup(variables={'v': S(volt),
                                    'I': S(second)}, namespace={})
     with pytest.raises(DimensionMismatchError):
@@ -385,14 +384,14 @@ def test_unit_checking():
 
 @pytest.mark.codegen_independent
 def test_properties():
-    '''
+    """
     Test accessing the various properties of equation objects
-    '''
+    """
     tau = 10 * ms
-    eqs = Equations('''dv/dt = -(v + I)/ tau : volt
+    eqs = Equations("""dv/dt = -(v + I)/ tau : volt
                        I = sin(2 * 22/7. * f * t)* volt : volt
                        f = freq * Hz: Hz
-                       freq : 1''')
+                       freq : 1""")
     assert (len(eqs.diff_eq_expressions) == 1 and
             eqs.diff_eq_expressions[0][0] == 'v' and
             isinstance(eqs.diff_eq_expressions[0][1], Expression))
@@ -425,41 +424,41 @@ def test_properties():
     assert len(eqs.stochastic_variables) == 0
     assert eqs.stochastic_type is None
     
-    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-.5*xi : 1''')
+    eqs = Equations("""dv/dt = -v / tau + 0.1*second**-.5*xi : 1""")
     assert eqs.stochastic_variables == {'xi'}
     assert eqs.stochastic_type == 'additive'
     
-    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-.5*xi_1 +  0.1*second**-.5*xi_2: 1''')
+    eqs = Equations("""dv/dt = -v / tau + 0.1*second**-.5*xi_1 +  0.1*second**-.5*xi_2: 1""")
     assert eqs.stochastic_variables == {'xi_1', 'xi_2'}
     assert eqs.stochastic_type == 'additive'
     
-    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*t : 1''')
+    eqs = Equations("""dv/dt = -v / tau + 0.1*second**-1.5*xi*t : 1""")
     assert eqs.stochastic_type == 'multiplicative'
 
-    eqs = Equations('''dv/dt = -v / tau + 0.1*second**-1.5*xi*v : 1''')
+    eqs = Equations("""dv/dt = -v / tau + 0.1*second**-1.5*xi*v : 1""")
     assert eqs.stochastic_type == 'multiplicative'
 
 
 @pytest.mark.codegen_independent
 def test_concatenation():
-    eqs1 = Equations('''dv/dt = -(v + I) / tau : volt
+    eqs1 = Equations("""dv/dt = -(v + I) / tau : volt
                         I = sin(2*pi*freq*t) : volt
-                        freq : Hz''')
+                        freq : Hz""")
 
     # Concatenate two equation objects
     eqs2 = (Equations('dv/dt = -(v + I) / tau : volt') +
-            Equations('''I = sin(2*pi*freq*t) : volt
-                         freq : Hz'''))
+            Equations("""I = sin(2*pi*freq*t) : volt
+                         freq : Hz"""))
 
     # Concatenate using "in-place" addition (which is not actually in-place)
     eqs3 = Equations('dv/dt = -(v + I) / tau : volt')
-    eqs3 += Equations('''I = sin(2*pi*freq*t) : volt
-                         freq : Hz''')
+    eqs3 += Equations("""I = sin(2*pi*freq*t) : volt
+                         freq : Hz""")
 
     # Concatenate with a string (will be parsed first)
     eqs4 = Equations('dv/dt = -(v + I) / tau : volt')
-    eqs4 += '''I = sin(2*pi*freq*t) : volt
-               freq : Hz'''
+    eqs4 += """I = sin(2*pi*freq*t) : volt
+               freq : Hz"""
 
     # Concatenating with something that is not a string should not work
     with pytest.raises(TypeError):
@@ -474,10 +473,10 @@ def test_concatenation():
 
 @pytest.mark.codegen_independent
 def test_extract_subexpressions():
-    eqs = Equations('''dv/dt = -v / (10*ms) : 1
+    eqs = Equations("""dv/dt = -v / (10*ms) : 1
                        s1 = 2*v : 1
                        s2 = -v : 1 (constant over dt)
-                    ''')
+                    """)
     variable, constant = extract_constant_subexpressions(eqs)
     assert [var in variable for var in ['v', 's1', 's2']]
     assert variable['s1'].type == SUBEXPRESSION
@@ -499,13 +498,13 @@ def test_repeated_construction():
 
 @pytest.mark.codegen_independent
 def test_str_repr():
-    '''
+    """
     Test the string representation (only that it does not throw errors).
-    '''
+    """
     tau = 10 * ms
-    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
+    eqs = Equations("""dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
-                       f : Hz''')
+                       f : Hz""")
     assert len(str(eqs)) > 0
     assert len(repr(eqs)) > 0
 
@@ -550,9 +549,9 @@ def test_dependency_calculation():
 @pytest.mark.skipif(pprint is None, reason='ipython is not installed')
 def test_ipython_pprint():
     from io import StringIO
-    eqs = Equations('''dv/dt = -(v + I)/ tau : volt (unless refractory)
+    eqs = Equations("""dv/dt = -(v + I)/ tau : volt (unless refractory)
                        I = sin(2 * 22/7. * f * t)* volt : volt
-                       f : Hz''')
+                       f : Hz""")
     # Test ipython's pretty printing
     old_stdout = sys.stdout
     string_output = StringIO()

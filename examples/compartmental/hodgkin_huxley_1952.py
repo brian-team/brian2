@@ -1,6 +1,6 @@
-'''
+"""
 Hodgkin-Huxley equations (1952).
-'''
+"""
 from brian2 import *
 
 morpho = Cylinder(length=10*cm, diameter=2*238*um, n=1000, type='axon')

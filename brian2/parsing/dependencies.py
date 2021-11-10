@@ -33,7 +33,7 @@ def get_read_write_funcs(parsed_code):
 
 
 def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
-    '''
+    """
     Analyses identifiers used in abstract code blocks
     
     Parameters
@@ -86,7 +86,7 @@ def abstract_code_dependencies(code, known_vars=None, known_funcs=None):
         ``newly_defined``
             The set of all variable names which are newly defined in this
             abstract code block.
-    '''
+    """
     if known_vars is None:
         known_vars = set([])
     if known_funcs is None:

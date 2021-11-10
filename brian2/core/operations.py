@@ -51,33 +51,29 @@ class NetworkOperation(BrianObject):
                 elif argcount == 1:
                     self._has_arg = False
                 else:
-                    raise TypeError(('Method "%s" cannot be used as a network '
-                                     'operation, it needs to have either only '
-                                     '"self" or "self, t" as arguments, but it '
-                                     'has %d arguments.' % (function.__name__,
-                                                            argcount)))
+                    raise TypeError(f"Method '{function.__name__}' cannot be used as a "
+                                    f"network operation, it needs to have either "
+                                    f"only 'self' or 'self, t' as arguments, but it "
+                                    f"has {argcount} arguments.")
             else:
-                if (argcount >= 1 and
-                            function.__code__.co_varnames[0] == 'self'):
-                    raise TypeError('The first argument of the function "%s" '
-                                    'is "self", suggesting it is an instance '
-                                    'method and not a function. Did you use '
-                                    '@network_operation on a class method? '
-                                    'This will not work, explicitly create a '
-                                    'NetworkOperation object instead -- see '
-                                    'the documentation for more '
-                                    'details.' % function.__name__)
+                if argcount >= 1 and function.__code__.co_varnames[0] == 'self':
+                    raise TypeError("The first argument of the function "
+                                    "'{function.__name__}' is 'self', suggesting it "
+                                    "is an instance method and not a function. Did "
+                                    "you use @network_operation on a class method? "
+                                    "This will not work, explicitly create a "
+                                    "NetworkOperation object instead -- see "
+                                    "the documentation for more "
+                                    "details.")
                 if argcount == 1:
                     self._has_arg = True
                 elif argcount == 0:
                     self._has_arg = False
                 else:
-                    raise TypeError(('Function "%s" cannot be used as a '
-                                     'network operation, it needs to have '
-                                     'either only "t" as an argument or have '
-                                     'no arguments, but it has %d '
-                                     'arguments.' % (function.__name__,
-                                                     argcount)))
+                    raise TypeError(f"Function '{function.__name__}' cannot be used as "
+                                    f"a network operation, it needs to have either "
+                                    f"only 't' as an argument or have no arguments, "
+                                    f"but it has {argcount} arguments.")
         else:
             self._has_arg = False
 

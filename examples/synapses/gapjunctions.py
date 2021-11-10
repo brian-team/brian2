@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-'''
+"""
 Neurons with gap junctions.
-'''
+"""
 from brian2 import *
 
 n = 10

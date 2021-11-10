@@ -9,6 +9,11 @@
 #include<fstream>
 #include<climits>
 
+////// SUPPORT CODE ///////
+namespace {
+    {{support_code_lines|autoindent}}
+}
+
 void _before_run_{{codeobj_name}}()
 {
     using namespace brian;
@@ -115,6 +120,11 @@ void _run_{{codeobj_name}}();
 #include<iostream>
 #include<fstream>
 #include<climits>
+
+////// SUPPORT CODE ///////
+namespace {
+    {{support_code_lines|autoindent}}
+}
 
 void _after_run_{{codeobj_name}}()
 {

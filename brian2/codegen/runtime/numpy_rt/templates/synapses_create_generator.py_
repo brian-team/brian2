@@ -36,14 +36,14 @@ except:
             {% if skip_if_invalid %}
             return _numpy.array([], dtype=_numpy.int32)
             {% else %}
-            raise IndexError('Requested sample size %d is negative.' % size)
+            raise IndexError(f"Requested sample size {size} is negative.")
             {% endif %}
         elif size is not None and size > n:
             {% if skip_if_invalid %}
             size = n
             {% else %}
-            raise IndexError('Requested sample size %d is bigger than the '
-                             'population size %d.' % (size, n))
+            raise IndexError(f"Requested sample size {size} is bigger than the "
+                             f"population size {n}.")
             {% endif %}
         if n == size:
             return _numpy.arange(low, high, step)
@@ -146,6 +146,7 @@ for _{{outer_index}} in range({{outer_index_size}}):
         _min_val = _numpy.min(_{{result_index}})
         _max_val = _numpy.max(_{{result_index}})
     if _min_val < 0:
+        # Stick to % formatting, since curly braces are used by Jinja2 already
         raise IndexError("index {{result_index}}=%d outside allowed range from 0 to %d, and the condition refers to a post-synaptic variable" % (_min_val, {{result_index_size}}-1))
     elif _max_val >= {{result_index_size}}:
         raise IndexError("index {{result_index}}=%d outside allowed range from 0 to %d, and the condition refers to a post-synaptic variable" % (_max_val, {{result_index_size}}-1))

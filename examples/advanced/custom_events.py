@@ -1,4 +1,4 @@
-'''
+"""
 Example demonstrating the use of custom events.
 
 Here we have three neurons, the first is Poisson spiking and connects to neuron G,
@@ -12,7 +12,7 @@ causes an instantaneous increase in variable x in neuron H (which happens
 through the standard ``pre`` pathway in the synapses), and the gspike
 event causes an increase in variable y (which happens through the custom
 pathway ``gpath``).
-'''
+"""
 from brian2 import *
 # Input Poisson spikes
 inp = PoissonGroup(1, rates=250*Hz)

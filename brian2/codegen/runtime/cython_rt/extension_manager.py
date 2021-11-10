@@ -1,9 +1,9 @@
-'''
+"""
 Cython automatic extension builder/manager
 
 Inspired by IPython's Cython cell magics, see:
 https://github.com/ipython/ipython/blob/master/IPython/extensions/cythonmagic.py
-'''
+"""
 
 
 import glob
@@ -70,7 +70,7 @@ class CythonExtensionManager(object):
         self._simplify_paths()
 
         if Cython is None:
-            raise ImportError('Cython is not available')
+            raise ImportError("Cython is not available")
 
         code = deindent(code)
 
@@ -81,16 +81,21 @@ class CythonExtensionManager(object):
             os.makedirs(lib_dir)
         except OSError:
             if not os.path.exists(lib_dir):
-                raise IOError("Couldn't create Cython cache directory '%s', try setting the "
-                              "cache directly with prefs.codegen.runtime.cython.cache_dir." % lib_dir)
+                raise IOError(
+                    f"Couldn't create Cython cache directory '{lib_dir}', try setting the "
+                    f"cache directly with prefs.codegen.runtime.cython.cache_dir.")
 
         numpy_version = '.'.join(numpy.__version__.split('.')[:2])  # Only use major.minor version
-        key = code, sys.version_info, sys.executable, Cython.__version__, numpy_version
+        # avoid some issues when manually switching compilers
+        CC = os.environ.get('CC', None)
+        CXX = os.environ.get('CXX', None)
+        key = (code, sys.version_info, sys.executable, Cython.__version__,
+               numpy_version, CC, CXX)
             
         if force:
             # Force a new module name by adding the current time to the
             # key which is hashed to determine the module name.
-            key += time.time(),            
+            key += time.time(),  # Note the trailing comma (this is a tuple)
 
         if key in self._code_cache:
             return self._code_cache[key]
@@ -98,16 +103,15 @@ class CythonExtensionManager(object):
         if name is not None:
             module_name = name#py3compat.unicode_to_str(args.name)
         else:
-            module_name = "_cython_magic_" + hashlib.md5(str(key).encode('utf-8')).hexdigest()
+            module_name = f"_cython_magic_{hashlib.md5(str(key).encode('utf-8')).hexdigest()}"
         if owner_name:
-            logger.diagnostic('"{owner_name}" using Cython module "{module_name}"'.format(owner_name=owner_name,
-                                                                                     module_name=module_name))
+            logger.diagnostic(f'"{owner_name}" using Cython module "{module_name}"')
 
 
         module_path = os.path.join(lib_dir, module_name + self.so_ext)
 
         if prefs['codegen.runtime.cython.multiprocess_safe']:
-            lock = FileLock(os.path.join(lib_dir, module_name + '.lock'))
+            lock = FileLock(os.path.join(lib_dir, f"{module_name}.lock"))
             with lock:
                 module = self._load_module(module_path,
                                            define_macros=define_macros,
@@ -191,6 +195,8 @@ class CythonExtensionManager(object):
                 include_dirs = []
             if library_dirs is None:
                 library_dirs = []
+            if runtime_library_dirs is None:
+                runtime_library_dirs = []
             if extra_compile_args is None:
                 extra_compile_args = []
             if extra_link_args is None:
@@ -209,7 +215,7 @@ class CythonExtensionManager(object):
             synapses_dir = os.path.dirname(synapses.__file__)
             c_include_dirs.append(synapses_dir)
 
-            pyx_file = os.path.join(lib_dir, module_name + '.pyx')
+            pyx_file = os.path.join(lib_dir, f"{module_name}.pyx")
             # ignore Python 3 unicode stuff for the moment
             #pyx_file = py3compat.cast_bytes_py2(pyx_file, encoding=sys.getfilesystemencoding())
             #with io.open(pyx_file, 'w', encoding='utf-8') as f:
@@ -219,13 +225,13 @@ class CythonExtensionManager(object):
 
             for source in sources:
                 if not source.lower().endswith('.pyx'):
-                    raise ValueError('Additional Cython source files need to '
-                                     'have an .pyx ending')
+                    raise ValueError("Additional Cython source files need to "
+                                     "have an .pyx ending")
                 # Copy source and header file (if present) to library directory
                 shutil.copyfile(source, os.path.join(lib_dir,
                                                      os.path.basename(source)))
                 name_without_ext = os.path.splitext(os.path.basename(source))[0]
-                header_name = name_without_ext + '.pxd'
+                header_name = f"{name_without_ext}.pxd"
                 if os.path.exists(os.path.join(os.path.dirname(source), header_name)):
                     shutil.copyfile(os.path.join(os.path.dirname(source), header_name),
                                     os.path.join(lib_dir, header_name))
@@ -258,15 +264,15 @@ class CythonExtensionManager(object):
                     build_extension.run()
                     if prefs['codegen.runtime.cython.delete_source_files']:
                         # we can delete the source files to save disk space
-                        cpp_file = os.path.join(lib_dir, module_name + '.cpp')
+                        cpp_file = os.path.join(lib_dir, f"{module_name}.cpp")
                         try:
                             os.remove(pyx_file)
                             os.remove(cpp_file)
-                            temp_dir = os.path.join(lib_dir, os.path.dirname(pyx_file)[1:], module_name + '.*')
+                            temp_dir = os.path.join(lib_dir, os.path.dirname(pyx_file)[1:], f"{module_name}.*")
                             for fname in glob.glob(temp_dir):
                                 os.remove(fname)
                         except (OSError, IOError) as ex:
-                            logger.debug('Deleting Cython source files failed with error: %s' % str(ex))
+                            logger.debug(f'Deleting Cython source files failed with error: {str(ex)}')
 
             except Cython_Compiler.Errors.CompileError:
                 return

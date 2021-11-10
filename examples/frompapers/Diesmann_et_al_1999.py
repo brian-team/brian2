@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-'''
+"""
 Synfire chains
 --------------
 M. Diesmann et al. (1999). Stable propagation of synchronous spiking in cortical
 neural networks. Nature 402, 529-533.
-'''
+"""
 from brian2 import *
 
 duration = 100*ms

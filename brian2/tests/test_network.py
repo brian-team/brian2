@@ -1,4 +1,3 @@
-
 import weakref
 import copy
 import logging
@@ -7,7 +6,7 @@ import os
 import uuid
 
 import numpy as np
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_array_equal
 import pytest
 
 from brian2 import (Clock, Network, ms, us, second, BrianObject, defaultclock,
@@ -27,7 +26,7 @@ from brian2.tests.utils import assert_allclose
 
 @pytest.mark.codegen_independent
 def test_incorrect_network_use():
-    '''Test some wrong uses of `Network` and `MagicNetwork`'''
+    """Test some wrong uses of `Network` and `MagicNetwork`"""
     with pytest.raises(TypeError):
         Network(name='mynet', anotherkwd='does not exist')
     with pytest.raises(TypeError):
@@ -49,9 +48,9 @@ def test_incorrect_network_use():
 
 @pytest.mark.codegen_independent
 def test_network_contains():
-    '''
+    """
     Test `Network.__contains__`.
-    '''
+    """
     G = NeuronGroup(1, 'v:1', name='mygroup')
     net = Network(G)
     assert 'mygroup' in net
@@ -251,8 +250,8 @@ def test_schedule_warning():
 
     # Unique names are important for getting the warnings again for multiple
     # runs of the test suite
-    name1 = 'testdevice_' + str(uuid4())
-    name2 = 'testdevice_' + str(uuid4())
+    name1 = f"testdevice_{str(uuid4())}"
+    name2 = f"testdevice_{str(uuid4())}"
     all_devices[name1] = TestDevice1()
     all_devices[name2] = TestDevice2()
 
@@ -289,21 +288,21 @@ def test_schedule_warning():
 
 @pytest.mark.codegen_independent
 def test_scheduling_summary_magic():
-    basename = 'name' + str(uuid.uuid4()).replace('-', '_')
+    basename = f"name{str(uuid.uuid4()).replace('-', '_')}"
     group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
                         reset='v=1', name=basename)
     group.run_regularly('v = rand()', dt=defaultclock.dt*10, when='end')
-    state_mon = StateMonitor(group, 'v', record=True, name=basename+'_sm')
+    state_mon = StateMonitor(group, 'v', record=True, name=f"{basename}_sm")
     inactive_state_mon = StateMonitor(group, 'v', record=True,
-                                      name=basename+'_sm_ia', when='after_end')
+                                      name=f"{basename}_sm_ia", when='after_end')
     inactive_state_mon.active = False
     summary_before = scheduling_summary()
-    assert [entry.name for entry in summary_before.entries] == [basename+'_sm',
-                                                                basename+'_stateupdater',
-                                                                basename+'_thresholder',
-                                                                basename+'_resetter',
-                                                                basename+'_run_regularly',
-                                                                basename+'_sm_ia']
+    assert [entry.name for entry in summary_before.entries] == [f"{basename}_sm",
+                                                                f"{basename}_stateupdater",
+                                                                f"{basename}_thresholder",
+                                                                f"{basename}_resetter",
+                                                                f"{basename}_run_regularly",
+                                                                f"{basename}_sm_ia"]
     assert [entry.when for entry in summary_before.entries] == ['start',
                                                                 'groups',
                                                                 'thresholds',
@@ -332,27 +331,27 @@ def test_scheduling_summary_magic():
 
 @pytest.mark.codegen_independent
 def test_scheduling_summary():
-    basename = 'name' + str(uuid.uuid4()).replace('-', '_')
+    basename = f"name{str(uuid.uuid4()).replace('-', '_')}"
     group = NeuronGroup(10, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
                         reset='v=1', name=basename)
     group.run_regularly('v = rand()', dt=defaultclock.dt * 10, when='end')
-    state_mon = StateMonitor(group, 'v', record=True, name=basename + '_sm')
+    state_mon = StateMonitor(group, 'v', record=True, name=f"{basename}_sm")
     inactive_state_mon = StateMonitor(group, 'v', record=True,
-                                      name=basename + '_sm_ia',
+                                      name=f"{basename}_sm_ia",
                                       when='after_end')
     inactive_state_mon.active = False
-    @network_operation(name=basename + '_net_op', when='before_end')
+    @network_operation(name=f"{basename}_net_op", when='before_end')
     def foo():
         pass
     net = Network(group, state_mon, inactive_state_mon, foo)
     summary_before = scheduling_summary(net)
-    assert [entry.name for entry in summary_before.entries] == [basename+'_sm',
-                                                                basename+'_stateupdater',
-                                                                basename+'_thresholder',
-                                                                basename+'_resetter',
-                                                                basename+'_net_op',
-                                                                basename+'_run_regularly',
-                                                                basename+'_sm_ia']
+    assert [entry.name for entry in summary_before.entries] == [f"{basename}_sm",
+                                                                f"{basename}_stateupdater",
+                                                                f"{basename}_thresholder",
+                                                                f"{basename}_resetter",
+                                                                f"{basename}_net_op",
+                                                                f"{basename}_run_regularly",
+                                                                f"{basename}_sm_ia"]
     assert [entry.when for entry in summary_before.entries] == ['start',
                                                                 'groups',
                                                                 'thresholds',
@@ -494,7 +493,7 @@ def test_incorrect_network_operations():
             @network_operation
             def func(self):
                 pass
-        raise AssertionError('expected a TypeError')
+        raise AssertionError("expected a TypeError")
     except TypeError:
         pass  # this is what we expected
 
@@ -535,6 +534,19 @@ def test_network_active_flag():
     run(1*ms)
     assert_equal(x.count, 10)
     assert_equal(y.count, 0)
+
+
+@pytest.mark.standalone_compatible
+@pytest.mark.multiple_runs
+def test_spikes_after_deactivating():
+    # Make sure that a spike in the last time step gets cleared. See #1319
+    always_spike = NeuronGroup(1, '', threshold='True', reset='')
+    spike_mon = SpikeMonitor(always_spike)
+    run(defaultclock.dt)
+    always_spike.active = False
+    run(defaultclock.dt)
+    device.build(direct_call=False, **device.build_options)
+    assert_equal(spike_mon.t[:], [0]*second)
 
 
 @pytest.mark.codegen_independent
@@ -667,7 +679,7 @@ def test_invalid_magic_network():
     y = Counter()
     try:
         run(1*ms)
-        raise AssertionError('Expected a MagicError')
+        raise AssertionError("Expected a MagicError")
     except MagicError:
         pass  # this is expected
     del x, y
@@ -699,22 +711,22 @@ def test_multiple_networks_invalid():
     net.run(1*ms)
     try:
         run(1*ms)
-        raise AssertionError('Expected a RuntimeError')
+        raise AssertionError("Expected a RuntimeError")
     except RuntimeError:
         pass  # this is expected
 
     try:
         net2 = Network(x)
-        raise AssertionError('Expected a RuntimeError')
+        raise AssertionError("Expected a RuntimeError")
     except RuntimeError:
         pass  # this is expected
 
 
 @pytest.mark.codegen_independent
 def test_magic_weak_reference():
-    '''
+    """
     Test that holding a weak reference to an object does not make it get
-    simulated.'''
+    simulated."""
 
     G1 = NeuronGroup(1, 'v:1')
 
@@ -726,12 +738,12 @@ def test_magic_weak_reference():
         # Check the debug messages for the number of included objects
         magic_objects = [msg[2] for msg in l
                          if msg[1] == 'brian2.core.magic.magic_objects'][0]
-        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+        assert '2 objects' in magic_objects, f'Unexpected log message: {magic_objects}'
 
 
 @pytest.mark.codegen_independent
 def test_magic_unused_object():
-    '''Test that creating unused objects does not affect the magic system.'''
+    """Test that creating unused objects does not affect the magic system."""
     def create_group():
         # Produce two objects but return only one
         G1 = NeuronGroup(1, 'v:1')  # no Thresholder or Resetter
@@ -745,7 +757,7 @@ def test_magic_unused_object():
         # Check the debug messages for the number of included objects
         magic_objects = [msg[2] for msg in l
                          if msg[1] == 'brian2.core.magic.magic_objects'][0]
-        assert '2 objects' in magic_objects, 'Unexpected log message: %s' % magic_objects
+        assert '2 objects' in magic_objects, f'Unexpected log message: {magic_objects}'
 
 
 @pytest.mark.codegen_independent
@@ -810,9 +822,9 @@ def test_dependency_check():
 
 
 def test_loop():
-    '''
+    """
     Somewhat realistic test with a loop of magic networks
-    '''
+    """
     def run_simulation():
         G = NeuronGroup(10, 'dv/dt = -v / (10*ms) : 1',
                         reset='v=0', threshold='v>1')
@@ -843,9 +855,9 @@ def test_loop():
 
 @pytest.mark.codegen_independent
 def test_magic_collect():
-    '''
+    """
     Make sure all expected objects are collected in a magic network
-    '''
+    """
     P = PoissonGroup(10, rates=100*Hz)
     G = NeuronGroup(10, 'v:1', threshold='False')
     S = Synapses(G, G, '')
@@ -856,7 +868,7 @@ def test_magic_collect():
 
     objects = collect()
 
-    assert len(objects) == 6, ('expected %d objects, got %d' % (6, len(objects)))
+    assert len(objects) == 6, (f'expected {int(6)} objects, got {len(objects)}')
 
 from contextlib import contextmanager
 from io import StringIO, BytesIO
@@ -875,9 +887,9 @@ def captured_output():
 
 @pytest.mark.codegen_independent
 def test_progress_report():
-    '''
+    """
     Very basic test of progress reporting
-    '''
+    """
     G = NeuronGroup(1, '')
     net = Network(G)
 
@@ -929,9 +941,9 @@ def test_progress_report():
 
 @pytest.mark.codegen_independent
 def test_progress_report_incorrect():
-    '''
+    """
     Test wrong use of the report option
-    '''
+    """
     G = NeuronGroup(1, '')
     net = Network(G)
     with pytest.raises(ValueError):
@@ -981,8 +993,8 @@ def test_multiple_runs_report_standalone_incorrect():
 
 @pytest.mark.codegen_independent
 def test_store_restore():
-    source = NeuronGroup(10, '''dv/dt = rates : 1
-                                rates : Hz''', threshold='v>1', reset='v=0')
+    source = NeuronGroup(10, """dv/dt = rates : 1
+                                rates : Hz""", threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
     synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
@@ -1024,8 +1036,8 @@ def test_store_restore():
 @pytest.mark.codegen_independent
 def test_store_restore_to_file():
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
-    source = NeuronGroup(10, '''dv/dt = rates : 1
-                                rates : Hz''', threshold='v>1', reset='v=0')
+    source = NeuronGroup(10, """dv/dt = rates : 1
+                                rates : Hz""", threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
     synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
@@ -1142,8 +1154,8 @@ def test_store_restore_to_file_differing_nets():
 
 @pytest.mark.codegen_independent
 def test_store_restore_magic():
-    source = NeuronGroup(10, '''dv/dt = rates : 1
-                                rates : Hz''', threshold='v>1', reset='v=0')
+    source = NeuronGroup(10, """dv/dt = rates : 1
+                                rates : Hz""", threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
     synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
@@ -1180,8 +1192,8 @@ def test_store_restore_magic():
 @pytest.mark.codegen_independent
 def test_store_restore_magic_to_file():
     filename = tempfile.mktemp(suffix='state', prefix='brian_test')
-    source = NeuronGroup(10, '''dv/dt = rates : 1
-                                rates : Hz''', threshold='v>1', reset='v=0')
+    source = NeuronGroup(10, """dv/dt = rates : 1
+                                rates : Hz""", threshold='v>1', reset='v=0')
     source.rates = 'i*100*Hz'
     target = NeuronGroup(10, 'v:1')
     synapses = Synapses(source, target, model='w:1', on_pre='v+=w')
@@ -1256,6 +1268,39 @@ def test_restore_with_random_state():
     restore(restore_random_state=True)  # Random state is restored
     run(10 * ms)
     assert_equal(old_v, group.v)
+
+
+@pytest.mark.codegen_independent
+def test_store_restore_restore_synapses():
+    group = NeuronGroup(10, 'x : 1', threshold='False', reset='', name='group')
+    synapses = Synapses(group, group, on_pre='x += 1', name='synapses')
+    synapses.connect(i=[1, 3, 5], j=[6, 4, 2])
+    net = Network(group, synapses)
+
+    tmp_file = tempfile.mktemp()
+    net.store(filename=tmp_file)
+
+    # clear up
+    del net
+    del synapses
+    del group
+
+    # Recreate the network without connecting the synapses
+    group = NeuronGroup(10, 'x: 1', threshold='False', reset='', name='group')
+    synapses = Synapses(group, group, '', on_pre='x += 1', name='synapses')
+    net = Network(group, synapses)
+    try:
+        net.restore(filename=tmp_file)
+
+        assert len(synapses) == 3
+        assert_array_equal(synapses.i, [1, 3, 5])
+        assert_array_equal(synapses.j, [6, 4, 2])
+
+        # Tunning the network should not raise an error, despite the lack
+        # of Synapses.connect
+        net.run(0*ms)
+    finally:
+        os.remove(tmp_file)
 
 
 @pytest.mark.codegen_independent
@@ -1392,8 +1437,8 @@ def test_profile():
     assert 3 <= len(info) <= 4
     assert len(info) == 3 or 'profile_test' in info_dict
     for obj in ['stateupdater', 'thresholder', 'resetter']:
-        name = 'profile_test_' + obj
-        assert name in info_dict or name + '_codeobject' in info_dict
+        name = f"profile_test_{obj}"
+        assert name in info_dict or f"{name}_codeobject" in info_dict
     assert all([t>=0*second for _, t in info])
 
 
@@ -1420,9 +1465,9 @@ def test_profile_ipython_html():
 
 @pytest.mark.codegen_independent
 def test_magic_scope():
-    '''
+    """
     Check that `start_scope` works as expected.
-    '''
+    """
     G1 = NeuronGroup(1, 'v:1', name='G1')
     G2 = NeuronGroup(1, 'v:1', name='G2')
     objs1 = {obj.name for obj in collect()}
@@ -1472,8 +1517,8 @@ def test_small_runs():
 def test_both_equal():
     #check all objects added by Network.add() also have their contained_objects added to 'Network'
     tau = 10*ms
-    diff_eqn='''dv/dt = (1-v)/tau : 1'''
-    chg_code='''v = 2*v'''
+    diff_eqn="""dv/dt = (1-v)/tau : 1"""
+    chg_code="""v = 2*v"""
 
     Ng = NeuronGroup(1, diff_eqn, method='exact')
     M1 = StateMonitor(Ng, 'v', record=True)
@@ -1574,6 +1619,7 @@ if __name__ == '__main__':
             test_store_restore_magic,
             test_store_restore_magic_to_file,
             test_store_restore_spikequeue,
+            test_store_restore_restore_synapses,
             test_defaultclock_dt_changes,
             test_dt_changes_between_runs,
             test_dt_restore,

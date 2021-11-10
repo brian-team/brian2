@@ -86,6 +86,9 @@ def main(_namespace):
 {{ cython_directives() }}
 {{ imports() }}
 
+# support code
+{{support_code_lines | autoindent}}
+
 def main(_namespace):
     {{ load_namespace | autoindent }}
     if '_owner' in _namespace:

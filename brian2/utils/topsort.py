@@ -1,14 +1,13 @@
-
 from copy import copy
 
 __all__ = ['topsort']
 
 def topsort(graph):
-    '''
+    """
     Topologically sort a graph
 
     The graph should be of the form ``{node: [list of nodes], ...}``.
-    '''
+    """
     try:
         from graphlib import TopologicalSorter
         sorter = TopologicalSorter(graph)
