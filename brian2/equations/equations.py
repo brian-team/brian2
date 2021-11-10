@@ -937,6 +937,24 @@ class Equations(Hashable, Mapping):
         Calculate the dependencies of all differential equations and
         subexpressions.
         '''
+        # Create a dictionary mapping differential equations and
+        # subexpressions to a list of their dependencies within the equations
+        # (ignoring external constants, unit names, etc.)
+        # Note that a differential equation such as "dv/dt = -v / tau" does not
+        # mean that the variable "v" depends on itself. To make the distinction between
+        # a variable and its derivative, we use the variable name + the prime symbol
+        # in this dictionary.
+        # As an example, the equations:
+        #   dv/dt = I_m / C_m : volt
+        #   I_m = I_ext + I_pas : amp
+        #   I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp
+        #   I_pas = g_L*(E_L - v) : amp
+        # would be translated into the following dictionary
+        #  {"v" : [],
+        #   "v'": ["I_m"]
+        #   "I_m": ["I_ext", "I_pas"],
+        #   "I_ext": [],
+        #   "I_pas": ["v"] }
         deps = {}
         for eq in self._equations.values():
             if eq.type == SUBEXPRESSION:
