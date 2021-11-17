@@ -334,7 +334,7 @@ def test_connection_string_deterministic_full_custom():
     if get_device() == all_devices['runtime']:
         with pytest.raises(BrianObjectException) as exc:
             S2.connect(j='20')
-            assert exc.errisinstance(IndexError)
+        assert exc_isinstance(exc, IndexError)
 
     run(0*ms)  # for standalone
 
@@ -1577,6 +1577,27 @@ def test_event_driven():
 
 
 @pytest.mark.codegen_independent
+def test_event_driven_dependency_checks():
+    dummy = NeuronGroup(1, '', threshold='False', reset='')
+
+    # Dependency on parameter
+    syn = Synapses(dummy, dummy, '''
+                   da/dt = (a-b) / (5*ms): 1 (event-driven)
+                   b : 1''',
+                   on_pre='b+=1')
+    syn.connect()
+
+    # Dependency on parameter via subexpression
+    syn2 = Synapses(dummy, dummy, '''
+                   da/dt = (a-b) / (5*ms): 1 (event-driven)
+                   b = c : 1
+                   c : 1''',
+                   on_pre='c+=1')
+    syn2.connect()
+    run(0*ms)
+
+
+@pytest.mark.codegen_independent
 def test_event_driven_dependency_error():
     stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
     syn = Synapses(stim, stim, """
@@ -1595,16 +1616,23 @@ def test_event_driven_dependency_error():
 def test_event_driven_dependency_error2():
     stim = SpikeGeneratorGroup(1, [0], [0]*ms, period=5*ms)
     tau = 5*ms
-    syn = Synapses(stim, stim, """
-                   da/dt = -a / (5*ms) : 1 (clock-driven)
-                   db/dt = -b / (5*ms) : 1 (clock-driven)
-                   dc/dt = a*b / (5*ms) : 1 (event-driven)""",
-                   on_pre='a+=1')
-    syn.connect()
-    net = Network(collect())
-    with pytest.raises(BrianObjectException) as exc:
-        net.run(0*ms)
-    assert exc_isinstance(exc, UnsupportedEquationsException)
+    with pytest.raises(EquationError) as exc:
+        syn = Synapses(stim, stim, '''
+                       da/dt = -a / (5*ms) : 1 (clock-driven)
+                       db/dt = -b / (5*ms) : 1 (clock-driven)
+                       dc/dt = a*b / (5*ms) : 1 (event-driven)''',
+                       on_pre='a+=1')
+    assert "'c'" in str(exc.value) and ("'a'" in str(exc.value) or
+                                        "'b'" in str(exc.value))
+
+    # Indirect dependency
+    with pytest.raises(EquationError) as exc:
+        syn = Synapses(stim, stim, '''
+                           da/dt = -a / (5*ms) : 1 (clock-driven)
+                           b = a : 1
+                           dc/dt = b / (5*ms) : 1 (event-driven)''',
+                       on_pre='a+=1')
+    assert "'c'" in str(exc.value) and "'a'" in str(exc.value) and "'b'" in str(exc.value)
 
 
 @pytest.mark.codegen_independent
@@ -2277,12 +2305,10 @@ def test_synapse_generator_out_of_range():
     # the post-synaptic condition, we could find out that the value of this
     # variable is actually irrelevant, but that makes things too complicated.
     S3 = Synapses(G, G, '')
-    try:
+    with pytest.raises(BrianObjectException) as exc:
         S3.connect(j='i+k for k in range(0, 5) if i <= N_post-5 and v_post >= 0')
-        raise AssertionError("No BrianObjectException raised.")
-    except BrianObjectException as ex:
-        assert isinstance(ex.__cause__, IndexError)
-        assert 'outside allowed range' in str(ex.__cause__)
+    assert exc_isinstance(exc, IndexError)
+    assert 'outside allowed range' in str(exc.value.__cause__)
 
 
 @pytest.mark.standalone_compatible

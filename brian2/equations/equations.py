@@ -2,6 +2,7 @@
 """
 Differential equations for Brian models.
 """
+from collections import namedtuple
 from collections.abc import Mapping, Hashable
 import keyword
 import re
@@ -922,6 +923,73 @@ class Equations(Hashable, Mapping):
                 eq.update_order = len(sorted_eqs)
             elif eq.type == PARAMETER:
                 eq.update_order = len(sorted_eqs) + 1
+
+    @property
+    def dependencies(self):
+        '''
+        Calculate the dependencies of all differential equations and
+        subexpressions.
+        '''
+        # Create a dictionary mapping differential equations and
+        # subexpressions to a list of their dependencies within the equations
+        # (ignoring external constants, unit names, etc.)
+        # Note that a differential equation such as "dv/dt = -v / tau" does not
+        # mean that the variable "v" depends on itself. To make the distinction between
+        # a variable and its derivative, we use the variable name + the prime symbol
+        # in this dictionary.
+        # As an example, the equations:
+        #   dv/dt = I_m / C_m : volt
+        #   I_m = I_ext + I_pas : amp
+        #   I_ext = 1*nA + sin(2*pi*100*Hz*t)*nA : amp
+        #   I_pas = g_L*(E_L - v) : amp
+        # would be translated into the following dictionary
+        #  {"v" : [],
+        #   "v'": ["I_m"]
+        #   "I_m": ["I_ext", "I_pas"],
+        #   "I_ext": [],
+        #   "I_pas": ["v"] }
+        deps = {}
+        for eq in self._equations.values():
+            if eq.type == SUBEXPRESSION:
+                name = eq.varname
+            elif eq.type == DIFFERENTIAL_EQUATION:
+                name = eq.varname + "'"
+                deps[eq.varname] = []
+            else:
+                continue
+            deps[name] = [dep for dep in eq.identifiers
+                          if dep in self._equations and
+                          self._equations[dep].type != PARAMETER]
+        try:
+            sorted_eqs = topsort(deps)
+        except ValueError:
+            raise ValueError('Cannot resolve dependencies between static '
+                             'equations, dependencies contain a cycle.')
+        # Remove the dummy entries for differential equations and rename
+        # x' → x
+        sorted_eqs = [x.replace("'", "")
+                      for x in sorted_eqs if x not in self.diff_eq_names]
+        # Now recursively fill in the dependencies – this only needs a single
+        # pass due to the previous sorting
+        deps = {}
+        Dependency = namedtuple("Dependency", ["equation", "via"],
+                                defaults=((), ))  # default for via is empty tuple
+        for eq in sorted_eqs:
+            dep_names = {dep for dep in self._equations[eq].identifiers
+                         if dep in self._equations}
+            deps[eq] = [Dependency(equation=self._equations[dep])
+                        for dep in dep_names]
+            # add all indirect dependencies
+            for dep in dep_names:
+                for indirect_dep in deps.get(dep, []):
+                    if indirect_dep.equation.varname == dep:
+                        continue  # do not go into recursion if a variable depends on itself
+                    if any(indirect_dep.equation.varname == existing_dep.equation.varname
+                           for existing_dep in deps[eq]):
+                        continue  # Do not add indirect dependencies for things we also depend on directly
+                    deps[eq].append(Dependency(equation=indirect_dep.equation,
+                                               via=(dep, ) + indirect_dep.via))
+        return deps
 
     def check_units(self, group, run_namespace):
         """
