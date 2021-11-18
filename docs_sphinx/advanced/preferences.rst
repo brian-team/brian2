@@ -26,7 +26,6 @@ Preferences are stored in a hierarchy of files, with the following order
 (each step overrides the values in the previous step but no error is raised
 if one is missing):
 
-* The global defaults are stored in the installation directory.
 * The user default are stored in ``~/.brian/user_preferences`` (which works on
   Windows as well as Linux). The ``~`` symbol refers to the user directory.
 * The file ``brian_preferences`` in the current directory.
@@ -41,7 +40,19 @@ The preference files are of the following form::
     b.e = 3
     
 This would set preferences ``a.b.c=1``, ``a.b.d=2`` and ``a.b.e=3``.
- 
+
+.. raw:: html
+
+    <details><summary>File setting all preferences to their default values</summary>
+
+.. document_brian_prefs::
+    :nolinks:
+    :as_file:
+
+.. raw:: html
+
+    </details>
+
 List of preferences
 -------------------
 Brian itself defines the following preferences (including their default

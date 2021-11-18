@@ -19,7 +19,8 @@ It will:
 import re
 import pydoc
 import inspect
-from docutils import statemachine
+
+from docutils import statemachine, nodes
 from docutils.parsers.rst import directives, Directive
 
 from sphinx.roles import XRefRole
@@ -54,7 +55,7 @@ class BrianPrefsDirective(Directive):
     required_arguments = 0
     optional_arguments = 1
     final_argument_whitespace = True
-    option_spec = {'nolinks': directives.flag}
+    option_spec = {'nolinks': directives.flag, 'as_file': directives.flag}
     has_content = False
 
     def run(self):
@@ -63,12 +64,16 @@ class BrianPrefsDirective(Directive):
             section = self.arguments[0]
         else:
             section = None
-        link_targets = not ('nolinks' in self.options)
-        rawtext = prefs.get_documentation(section, link_targets)
-        include_lines = statemachine.string2lines(rawtext,
-                                                  convert_whitespace=True)
-        self.state_machine.insert_input(include_lines, 'Brian preferences')
-        return []
+        if 'as_file' in self.options:
+            rawtext = prefs.as_file
+            return [nodes.literal_block(text=rawtext)]
+        else:
+            rawtext = prefs.get_documentation(section,
+                                              'nolinks' not in self.options)
+            include_lines = statemachine.string2lines(rawtext,
+                                                      convert_whitespace=True)
+            self.state_machine.insert_input(include_lines, 'Brian preferences')
+            return []
 
 
 def brianobj_role(role, rawtext, text, lineno, inliner, options={}, content=[]):

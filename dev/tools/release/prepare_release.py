@@ -6,12 +6,6 @@ import brian2
 print('Current version is: ' + brian2.__version__)
 version = input('Enter new Brian2 version number: ').strip()
 
-# generate the default preferences file
-base, _ = os.path.split(brian2.__file__)
-fname = os.path.join(base, 'default_preferences')
-with open(fname, 'w') as f:
-    f.write(brian2.prefs.as_file)
-
 # commit
 os.system('git commit -a -v -m "***** Release Brian2 %s *****"' % version)
 # add tag

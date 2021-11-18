@@ -108,10 +108,17 @@ else:
     else:
         default_buildopts = ['-w']
 
-if sys.platform == 'win32':
-    prefix_dir = os.path.join(sys.prefix, 'Library')
+if os.environ.get('READTHEDOCS', 'False').lower() == 'true':
+    # We are getting imported during a documentation build. Set a fake prefix
+    # to avoid having the name of the local environment in the documentation
+    sys_prefix = '/path/to/your/Python/environment'
 else:
-    prefix_dir = sys.prefix
+    sys_prefix = sys.prefix
+
+if sys.platform == 'win32':
+    prefix_dir = os.path.join(sys_prefix, 'Library')
+else:
+    prefix_dir = sys_prefix
 
 # Preferences
 prefs.register_preferences(
