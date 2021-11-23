@@ -553,7 +553,10 @@ class CurrentDeviceProxy(object):
     """
     def __getattr__(self, name):
         if not hasattr(active_device, name):
-            if name.startswith('_'):
+            # We special case the name "shape" here, since some IDEs (e.g. The Python
+            # console in PyDev and PyCharm) use the "shape" attribute to determine
+            # whether an object is "array-like".
+            if name.startswith('_') or name == 'shape':
                 # Do not fake private/magic attributes
                 raise AttributeError(f"Active device does not have an attribute "
                                      f"'{name}'.")
