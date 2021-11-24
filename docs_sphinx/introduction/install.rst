@@ -117,6 +117,8 @@ of Brian).
 
 Try running the test suite (see :ref:`testing_brian` below) after the installation to make sure everything is working as expected.
 
+.. _development_install:
+
 Development install
 -------------------
 When you encounter a problem in Brian, we will sometimes ask you to install Brian's latest development version,
