@@ -12,7 +12,7 @@ work (numerical integration, synaptic propagation, etc.) in a defined target
 language. Brian will select the best available target language automatically.
 On Windows, to ensure that you get the advantages of compiled code, read
 the instructions on installing a suitable compiler in
-:ref:`compiler_setup_windows`.
+:ref:`installation_cpp`.
 Runtime mode has the advantage that you can combine the computations
 performed by Brian with arbitrary Python code specified as `NetworkOperation`.
 

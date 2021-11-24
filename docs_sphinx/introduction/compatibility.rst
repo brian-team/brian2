@@ -1,6 +1,9 @@
 Compatibility and reproducibility
 =================================
 
+
+.. _supported_python:
+
 Supported Python and numpy versions
 -----------------------------------
 

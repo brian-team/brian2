@@ -5,105 +5,84 @@ Installation
     :local:
     :depth: 1
 
-We recommend users to use the `Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_
-by Continuum Analytics. Its use will make the installation of Brian 2 and its
-dependencies simpler, since packages are provided in binary form, meaning that
-they don't have to be build from the source code at your machine. Furthermore,
-our automatic testing on the continuous integration services travis_ and azure_
-are based on Anaconda, we are therefore confident that it works under this
-configuration.
+There are various ways to install Brian, and we recommend that you chose the installation method that
+they are most familiar with and use for other Python packages. If you do not yet have Python installed on
+your system (in particular on Windows machines), you can install Python and all of Brian's dependencies
+via the `Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_. You can then install
+Brian with the ``conda`` package manager as detailed below.
 
-However, Brian 2 can also be installed independent of Anaconda, either with
-other Python distributions (`Enthought Canopy <https://www.enthought.com/products/canopy/>`_,
-`Python(x,y) for Windows <http://python-xy.github.io>`_, ...) or simply
-based on Python and ``pip`` (see :ref:`installation_from_source` below).
-
-Installation with Anaconda
---------------------------
-
-Installing Anaconda
-~~~~~~~~~~~~~~~~~~~
-`Download the Anaconda distribution <https://www.anaconda.com/distribution/#download-section>`_
-for your Operating System. Note, Brian 2 no longer supports Python 2 (the last
-version to support Python 2 was :ref:`brian2.3`). 
-
-After the installation, make sure that your environment is configured to use
-the Anaconda distribution. You should have access to the ``conda`` command in
-a terminal and running ``python`` (e.g. from your IDE) should show a header like
-this, indicating that you are using Anaconda's Python interpreter::
-
-    Python 2.7.10 |Anaconda 2.3.0 (64-bit)| (default, May 28 2015, 17:02:03)
-    [GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] on linux2
-    Type "help", "copyright", "credits" or "license" for more information.
-
-Here's some documentation on how to set up some popular IDEs for Anaconda:
-https://docs.anaconda.com/anaconda/user-guide/tasks/integration
-
-Installing Brian 2
-~~~~~~~~~~~~~~~~~~
 .. note::
-    The provided Brian 2 packages are only for 64bit systems. Operating systems running
-    32bit are no longer officially supported, but :ref:`installation_from_source` might
-    still work.
+    You need to have access to Python >=3.7 (see Brian's :ref:`support policy <supported_python>`). In particular,
+    Brian no longer supports Python 2 (the last version to support Python 2 was :ref:`brian2.3`). All provided
+    Python packages also require a 64 bit system, but every desktop or laptop machine built in the last 10 years (and
+    even most older machines) is 64 bit compatible.
 
-You can either install Brian 2 in the Anaconda root environment, or create a
-new environment for Brian 2 (https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
-The latter has the advantage that you can update (or not update) the dependencies
-of Brian 2 independently from the rest of your system.
+If you are relying on Python packages for several, independent projects, we recommend that you make use
+of separate environments for each project. In this way, you can safely update and install packages for
+one of your projects without affecting the others. Both, ``conda`` and ``pip`` support installation in
+environments -- for more explanations see the respective instructions below.
 
-Brian 2 is not part of the main Anaconda distribution, but built using the
-community-maintained `conda-forge <https://conda-forge.org/>`_ project. You
-will therefore have to to install it from the
-`conda-forge channel <https://anaconda.org/conda-forge>`_. To do so, use::
+Standard install
+----------------
 
-    conda install -c conda-forge brian2
+.. tabs::
 
-You can also permanently add the channel to your list of channels::
+    .. group-tab:: conda package
 
-    conda config --add channels conda-forge
+       We recommend installing Brian into a separate environment, see
+       `conda's documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_
+       for more details.
+       Brian 2 is not part of the main Anaconda distribution, but built using the community-maintained
+       `conda-forge <https://conda-forge.org/>`_ project. You will therefore have to to install it from the
+       `conda-forge channel <https://anaconda.org/conda-forge>`_. To do so, use::
 
-This has only to be done once. After that, you can install and update the brian2
-packages as any other Anaconda package::
+         conda install -c conda-forge brian2
 
-    conda install brian2
+       You can also permanently add the channel to your list of channels::
+
+         conda config --add channels conda-forge
+
+       This has only to be done once. After that, you can install and update the brian2 packages as any other
+       Anaconda package::
+
+         conda install brian2
 
 
-Installing other useful packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-There are various packages that are useful but not necessary for working with
-Brian. These include: matplotlib_ (for plotting), pytest_ (for running the test
-suite), ipython_ and jupyter_-notebook (for an interactive console). To install
-them from anaconda, simply do::
+    .. group-tab:: PyPI package (``pip``)
 
-    conda install matplotlib pytest ipython notebook
+       We recommend installing Brian into a separate "virtual environment", see the
+       `Python Packaging User Guide <https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/>`_
+       for more information.
+       Brian is included in the PyPI package index: https://pypi.python.org/pypi/Brian2
+       You can therefore install it with the ``pip`` utility::
 
-You should also have a look at the brian2tools_ package, which contains several
-useful functions to visualize Brian 2 simulations and recordings. You can
-install it with pip or anaconda, similar to Brian 2 itself (but as of now, it is
-not included in the ``conda-forge`` channel, you therefore have to install it
-from our own ``brian-team`` channel), e.g. with::
+         python -m pip install brian2
 
-    conda install -c brian-team brian2tools
+       In rare cases where your current environment does not have access to the ``pip`` utility, you first
+       have to install ``pip`` via::
 
-.. _installation_from_source:
+         python -m ensurepip
 
-Installation with pip
----------------------
-If you decide not to use Anaconda, you can install Brian 2 from the Python
-package index: https://pypi.python.org/pypi/Brian2
+    .. tab:: Ubuntu/Debian package
 
-To do so, use the ``pip`` utility::
+       If you are using a recent `Debian <https://debian.org>`_-based Linux distribution (Debian itself, or one if its
+       derivatives like `Ubuntu <https://ubuntu.com>`_ or `Linux Mint <https://linuxmint.com/>`_), you can install Brian
+       using its built-in package manager::
 
-    pip install brian2
+         sudo apt install python3-brian
 
-You might want to add the ``--user`` flag, to install Brian 2 for the local user
-only, which means that you don't need administrator privileges for the
-installation.
+       Brian releases get packaged by the `Debian Med <https://www.debian.org/devel/debian-med/>`_ team, but note that
+       it might take a while until the most recent version shows up in the repository.
 
-Note that when installing ``brian2`` from source with pip, support for using
-:ref:`numerical integration with the GSL <gsl_integration>` requires a working
-installation of the GSL development libraries (e.g. the package ``libgsl-dev``
-on Debian/Ubuntu Linux).
+    .. tab:: Fedora package
+
+       If you are using `Fedora Linux <https://getfedora.org/>`_, you can install Brian using its built-in package
+       manager::
+
+        sudo dnf install python-brian2
+
+       Brian releases get packaged by the `NeuroFedora <https://docs.fedoraproject.org/en-US/neurofedora/overview/>`_ team,
+       but note that it might take a while until the most recent version shows up in the repository.
 
 .. _installation_cpp:
 
@@ -112,52 +91,94 @@ Requirements for C++ code generation
 
 C++ code generation is highly recommended since it can drastically increase the
 speed of simulations (see :doc:`../user/computation` for details). To use it,
-you need a C++ compiler and Cython_.
-Cython will be automatically installed if you perform the installation via
-Anaconda, as recommended. Otherwise you can install them in the usual way, e.g.
-using ``pip install cython``.
+you need a C++ compiler and Cython_ (automatically installed as a dependency
+of Brian).
 
-Linux and OS X
-~~~~~~~~~~~~~~
-On Linux and Mac OS X, the conda package will automatically install a C++ compiler.
-But even if you install Brian from source, you will most likely already have a
-working C++ compiler installed on your system (try calling ``g++ --version``
-in a terminal). If not, use your distribution's package manager to install a
-``g++`` package.
+.. tabs::
 
-.. _compiler_setup_windows:
+   .. tab:: Linux and OS X
 
-Windows
-~~~~~~~
-On Windows, the necessary steps to get :ref:`runtime` (i.e. Cython) to work
-depend on the Python version you are using (also see the
-`notes in the Python wiki <https://wiki.python.org/moin/WindowsCompilers#Compilers_Installation_and_configuration>`_):
+      On Linux and Mac OS X, the conda package will automatically install a C++ compiler.
+      But even if you install Brian in a different way, you will most likely already have a
+      working C++ compiler installed on your system (try calling ``g++ --version``
+      in a terminal). If not, use your distribution's package manager to install a ``g++`` package.
 
-* Install the `Microsoft Build Tools for Visual Studio 2017 <https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017>`_.
-* Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when using Anaconda, or
-    ``pip install --upgrade setuptools`` when using pip).
+   .. tab:: Windows
 
-For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio -- in this
-case, the Python version does not matter.
+      On Windows, :ref:`runtime` (i.e. Cython) requires the Visual Studio compiler, but you do not need a full Visual
+      Studio installation, installing the much smaller "Build Tools" package is sufficient:
 
-Try running the test suite (see :ref:`testing_brian` below) after the
-installation to make sure everything is working as expected.
+      * Install the `Microsoft Build Tools for Visual Studio <https://visualstudio.microsoft.com/visual-cpp-build-tools/>`_.
+      * In Build tools, install C++ build tools and ensure the latest versions of MSVCv... build tools and Windows 10 SDK are checked.
+      * Make sure that your ``setuptools`` package has at least version 34.4.0 (use ``conda update setuptools`` when
+        using Anaconda, or ``python -m pip install --upgrade setuptools`` when using pip).
 
-Development version
+      For :ref:`cpp_standalone`, you can either use the compiler installed above or any other version of Visual Studio.
+
+Try running the test suite (see :ref:`testing_brian` below) after the installation to make sure everything is working as expected.
+
+.. _development_install:
+
+Development install
 -------------------
+When you encounter a problem in Brian, we will sometimes ask you to install Brian's latest development version,
+which includes changes that were included after its last release.
 
-To run the latest development code, you can directly clone the git repository at github
+We regularly upload the latest development version of Brian to PyPI's test server. You can install it via::
+
+    python -m pip install --upgrade --pre -i https://test.pypi.org/simple/ Brian2
+
+Note that this requires that you already have all of Brian's dependencies installed.
+
+If you have ``git`` installed, you can also install directly from github::
+
+    python -m pip install git+https://github.com/brian-team/brian2.git
+
+Finally, in particular if you want to either contribute to Brian's development or regularly test
+its latest development version, you can directly clone the git repository at github
 (https://github.com/brian-team/brian2) and then run ``pip install -e .``, to install
 Brian in "development mode". With this installation, updating the git repository is in
 general enough to keep up with changes in the code, i.e. it is not necessary to install
 it again.
 
-Another option is to use ``pip`` to directly install from github::
-
-    pip install https://github.com/brian-team/brian2/archive/master.zip
-
-
 .. _testing_brian:
+
+Installing other useful packages
+--------------------------------
+There are various packages that are useful but not necessary for working with
+Brian. These include: matplotlib_ (for plotting), pytest_ (for running the test
+suite), ipython_ and jupyter_-notebook (for an interactive console).
+
+.. tabs::
+    .. group-tab:: conda package
+
+       ::
+
+         conda install matplotlib pytest ipython notebook
+
+    .. group-tab:: PyPI package (``pip``)
+
+       ::
+
+         python -m pip install matplotlib pytest ipython notebook
+
+You should also have a look at the brian2tools_ package, which contains several
+useful functions to visualize Brian 2 simulations and recordings.
+
+.. tabs::
+    .. group-tab:: conda package
+
+       As of now, ``brian2tools`` is not yet included in the ``conda-forge``
+       channel, you therefore have to install it from our own ``brian-team`` channel::
+
+         conda install -c brian-team brian2tools
+
+    .. group-tab:: PyPI package (``pip``)
+
+       ::
+
+         python -m pip install brian2tools
+
 
 Testing Brian
 -------------
