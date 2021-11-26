@@ -1,6 +1,12 @@
 Release notes
 =============
 
+Brian 2.5.0.1
+-------------
+A new build to provide binary
+`wheels <https://packaging.python.org/guides/distributing-packages-using-setuptools/#wheels>`_
+for Python 3.10.
+
 .. _brian2.5:
 Brian 2.5
 ---------
