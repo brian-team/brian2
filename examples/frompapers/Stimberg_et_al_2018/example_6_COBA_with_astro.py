@@ -281,7 +281,7 @@ plt.style.use('figures.mplstyle')
 fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, figsize=(6.26894, 6.26894*0.8),
                        gridspec_kw={'height_ratios': [1, 6, 2],
                                     'left': 0.12, 'top': 0.97})
-time_range = np.linspace(0, duration/second, duration/second*100)*second
+time_range = np.linspace(0, duration/second, int(duration/second*100))*second
 ax[0].plot(time_range, I_ex*stimulus(time_range)/pA, 'k')
 ax[0].set(xlim=(0, duration/second), ylim=(98, 122),
           yticks=[100, 120], ylabel='$I_{ex}$ (pA)')
