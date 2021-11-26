@@ -30,7 +30,7 @@ package itself:
 .. code-block:: pycon
 
     >>> import brian2
-    >>> print(brian2.__version__)
+    >>> print(brian2.__version__)  # doctest: +SKIP
     2.4.2
 
 This method also has the advantage that you can easily call it from the same environment
@@ -41,7 +41,7 @@ attribute:
 
 .. code-block:: pycon
 
-    >>> print(brian2.__file__)
+    >>> print(brian2.__file__) # doctest: +SKIP
     /home/marcel/anaconda3/envs/brian2_test/lib/python3.9/site-packages/brian2/__init__.py
 
 In the above example, it shows that the ``brian2`` installation in the conda environment
@@ -52,7 +52,7 @@ version number will contain additional information:
 
 .. code-block:: pycon
 
-    >>> print(brian2.__version__)
+    >>> print(brian2.__version__) # doctest: +SKIP
     2.4.2.post0.dev408
 
 The above means that the Brian version that is used has 408 additional commits that were
@@ -61,7 +61,7 @@ installation, use:
 
 .. code-block:: pycon
 
-    >>> print(brian2.__git_revision__)
+    >>> print(brian2.__git_revision__) # doctest: +SKIP
     d2cb4a85f804037ef055503975d822ff3f473ccf
 
 To get more information about this commit, you can append it to the repository URL
