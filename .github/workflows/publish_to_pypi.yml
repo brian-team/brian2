@@ -23,7 +23,7 @@ jobs:
           python setup.py sdist --formats=gztar --with-cython --fail-on-error
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.9.0
+        uses: pypa/cibuildwheel@v2.2.2
         with:
           output-dir: dist
         env:
