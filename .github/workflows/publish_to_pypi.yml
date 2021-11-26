@@ -31,6 +31,7 @@ jobs:
           CIBW_BEFORE_BUILD: pip install --only-binary numpy "cython>=0.29" numpy>=1.17 setuptools
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_ARCHS: auto64
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS_MACOS: x86_64 universal2
           CIBW_TEST_SKIP: '*_arm64 *_universal2:arm64'
           CIBW_SKIP: pp*
