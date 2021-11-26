@@ -14,6 +14,8 @@ You can save time by following this procedure when reporting a problem:
       problem. You’ll get the fastest response if you can send just a handful
       of lines of code that show what isn’t working.
 
+.. _which_version:
+
 Which version of Brian am I using?
 ----------------------------------
 When reporting problems, it is important to include the information what exact version

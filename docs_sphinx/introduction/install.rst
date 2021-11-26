@@ -63,7 +63,7 @@ Standard install
 
          python -m ensurepip
 
-    .. tab:: Ubuntu/Debian package
+    .. group-tab:: Ubuntu/Debian package
 
        If you are using a recent `Debian <https://debian.org>`_-based Linux distribution (Debian itself, or one if its
        derivatives like `Ubuntu <https://ubuntu.com>`_ or `Linux Mint <https://linuxmint.com/>`_), you can install Brian
@@ -74,7 +74,7 @@ Standard install
        Brian releases get packaged by the `Debian Med <https://www.debian.org/devel/debian-med/>`_ team, but note that
        it might take a while until the most recent version shows up in the repository.
 
-    .. tab:: Fedora package
+    .. group-tab:: Fedora package
 
        If you are using `Fedora Linux <https://getfedora.org/>`_, you can install Brian using its built-in package
        manager::
@@ -83,6 +83,54 @@ Standard install
 
        Brian releases get packaged by the `NeuroFedora <https://docs.fedoraproject.org/en-US/neurofedora/overview/>`_ team,
        but note that it might take a while until the most recent version shows up in the repository.
+
+.. _updating_install:
+
+Updating an existing installation
+---------------------------------
+How to update Brian to a new version depends on the installation method you used
+previously. Typically, you can run the same command that you used for installation
+(sometimes with an additional option to enforce an upgrade, if available):
+
+.. tabs::
+
+  .. group-tab:: conda package
+
+    Depending on whether you added the ``conda-forge`` channel to the list of channels
+    or not (see above), you either have to include it in the update command again or
+    can leave it away. I.e. use::
+
+      conda update -c conda-forge brian2
+
+    if you did not add the channel, or::
+
+      conda update brian2
+
+    if you did.
+
+  .. group-tab:: PyPI package (``pip``)
+
+    Use the install command together with the ``--upgrade`` or ``-U`` option::
+
+      python -m pip install -U brian2
+
+  .. group-tab:: Ubuntu/Debian package
+
+    Update the package repository and ask for an install. Note that the package will
+    also be updated automatically with commands like ``sudo apt full-upgrade``::
+
+      sudo apt update
+      sudo apt install python3-brian
+
+  .. group-tab:: Fedora package
+
+    Update the package repository (not necessary in general, since it will be updated
+    regularly without asking for it), and ask for an update. Note that the package will
+    also be updated automatically with commands like ``sudo dnf upgrade``::
+
+      sudo dnf check-update python-brian2
+      sudo dnf upgrade python-brian2
+
 
 .. _installation_cpp:
 
