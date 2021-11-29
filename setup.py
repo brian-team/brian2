@@ -175,6 +175,11 @@ setup(name='Brian2',
       zip_safe=False,
       ext_modules=extensions,
       url='http://www.briansimulator.org/',
+      project_urls={
+        'Documentation': 'https://brian2.readthedocs.io/',
+        'Source': 'https://github.com/brian-team/brian2',
+        'Tracker': 'https://github.com/brian-team/brian2/issues'
+      },
       description='A clock-driven simulator for spiking neural networks',
       long_description=long_description,
       long_description_content_type='text/x-rst',
