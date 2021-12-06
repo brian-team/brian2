@@ -258,6 +258,15 @@ def test_str_repr():
 
 
 @pytest.mark.codegen_independent
+def test_format_quantity():
+    # Avoid that the default f-string (or .format call) discards units when used without
+    # a format spec
+    q = 0.5*ms
+    assert f"{q}" == f"{q!s}" == str(q)
+    assert f"{q:g}" == f"{float(q)}"
+
+
+@pytest.mark.codegen_independent
 def test_slicing():
     # Slicing and indexing, setting items
     quantity = np.reshape(np.arange(6), (2, 3)) * mV

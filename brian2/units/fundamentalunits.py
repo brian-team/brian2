@@ -1597,6 +1597,13 @@ class Quantity(np.ndarray, object):
     def __str__(self):
         return self.in_best_unit()
 
+    def __format__(self, format_spec):
+        # Avoid that formatted strings like f"{q}" use floating point formatting for the
+        # quantity, i.e. discard the unit
+        if format_spec == "":
+            return str(self)
+        else:
+            return super(Quantity, self).__format__(format_spec)
     #### Mathematic methods ####
 
     cumsum = wrap_function_keep_dimensions(np.ndarray.cumsum)
