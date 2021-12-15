@@ -1,6 +1,5 @@
 from graphlib import TopologicalSorter
 
-__all__ = ['topsort']
 
 def topsort(graph):
     """
