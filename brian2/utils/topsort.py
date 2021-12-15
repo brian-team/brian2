@@ -1,4 +1,4 @@
-from graphlib import TopologicalSorter
+from graphlib2 import TopologicalSorter
 
 
 def topsort(graph):
