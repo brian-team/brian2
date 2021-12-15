@@ -160,7 +160,8 @@ setup(name='Brian2',
                         'pyparsing',
                         'jinja2>=2.7',
                         'py-cpuinfo;platform_system=="Windows"',
-                        'setuptools>=24.2'
+                        'setuptools>=24.2',
+                        'graphlib2>=0.2.15',
                        ],
       setup_requires=['numpy>=1.10',
                       'setuptools>=24.2'
