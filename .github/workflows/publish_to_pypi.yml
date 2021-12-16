@@ -38,7 +38,7 @@ jobs:
           CIBW_TEST_COMMAND: python {project}/dev/continuous-integration/run_simple_test.py
           CIBW_TEST_REQUIRES: pytest
       - name: Publish distribution 📦 to Test PyPI
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && github.repository == 'brian-team/brian2'
         run: |
           pip install twine
           twine upload -r testpypi dist/*
@@ -46,7 +46,7 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
       - name: Publish distribution release 📦 to PyPI
-        if: ${{ startsWith(github.ref, 'refs/tags') }}
+        if: ${{ startsWith(github.ref, 'refs/tags') }} && github.repository == 'brian-team/brian2'
         run: |
           pip install twine
           twine upload dist/*
