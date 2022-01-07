@@ -989,12 +989,12 @@ def test_numpy_functions_logical():
                 try:
                     result = eval(f'np.{ufunc}(value1, "a string")')
                     assert result == NotImplemented
-                except TypeError:
+                except (ValueError, TypeError):
                     pass  # raised on numpy >= 0.10
                 try:
                     result = eval(f'np.{ufunc}("a string", value1)')
                     assert result == NotImplemented
-                except TypeError:
+                except (ValueError, TypeError):
                     pass  # raised on numpy >= 0.10
             assert not isinstance(result_units, Quantity)
             assert_equal(result_units, result_array)
