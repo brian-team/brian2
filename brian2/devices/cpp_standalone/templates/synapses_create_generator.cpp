@@ -7,9 +7,13 @@
 #}
 {% extends 'common_synapses.cpp' %}
 
-{% block maincode %}
-    #include<iostream>
+{% block extra_headers %}
+{{ super() }}
+#include <iostream>
+#include <set>
+{% endblock %}
 
+{% block maincode %}
     {# Get N_post and N_pre in the correct way, regardless of whether they are
     constants or scalar arrays#}
     const size_t _N_pre = {{constant_or_scalar('N_pre', variables['N_pre'])}};
