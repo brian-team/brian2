@@ -1,6 +1,14 @@
 Release notes
 =============
 
+Brian 2.5.0.2
+-------------
+A new patch-level release that fixes a missing ``#include`` in the synapse generation code for C++ standalone code. This
+does not matter for most compilers (in particular, it does not matter for the gcc, clang, and Visual Studio compilers
+that we use for testing on Linux, OS X, and Windows), but it can matter for projects like Brian2GeNN that build on top
+of Brian2 and use Nvidia's ``nvcc`` compiler. The release also fixes a minor string-formatting error (:issue:`1377`),
+which led to quantities that were displayed without their units.
+
 Brian 2.5.0.1
 -------------
 A new build to provide binary
