@@ -255,7 +255,7 @@ try:
     f = open(r'{tempfname}', 'wb')
     pickle.dump((None, results, run_time, new_prof_info), f, -1)
     f.close()
-except Exception, ex:
+except Exception as ex:
     #traceback.print_exc(file=sys.stdout)
     tb = traceback.format_exc()
     f = open(r'{tempfname}', 'wb')
