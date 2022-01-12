@@ -573,6 +573,20 @@ def test_rate_monitor_subgroups_2():
     assert_allclose(rate_2.rate, 0*Hz)
     assert_allclose(rate_3.rate, 1 / defaultclock.dt)
 
+
+@pytest.mark.codegen_independent
+def test_monitor_str_repr():
+    #Basic test that string representations are not empty
+    G = NeuronGroup(2, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
+                    reset='v=0')
+    spike_mon = SpikeMonitor(G)
+    state_mon = StateMonitor(G, 'v', record=True)
+    rate_mon = PopulationRateMonitor(G)
+    for obj in [spike_mon, state_mon, rate_mon]:
+        assert len(str(obj))
+        assert len(repr(obj))
+
+
 if __name__ == '__main__':
     from _pytest.outcomes import Skipped
     test_spike_monitor()
@@ -600,3 +614,5 @@ if __name__ == '__main__':
     test_rate_monitor_get_states()
     test_rate_monitor_subgroups()
     test_rate_monitor_subgroups_2()
+    test_monitor_str_repr()
+
