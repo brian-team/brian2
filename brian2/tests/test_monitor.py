@@ -25,7 +25,7 @@ def test_spike_monitor():
 
     with pytest.raises(ValueError):
         SpikeMonitor(G, order=1)  # need to specify 'when' as well
-    with pytest.raises(KeyError, ValueError) as ex:
+    with pytest.raises(ValueError) as ex:
         SpikeMonitor(G_without_threshold)
     assert 'threshold' in str(ex)
 
