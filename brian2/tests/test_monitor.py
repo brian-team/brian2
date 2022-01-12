@@ -25,7 +25,7 @@ def test_spike_monitor():
 
     with pytest.raises(ValueError):
         SpikeMonitor(G, order=1)  # need to specify 'when' as well
-    with pytest.raises(ValueError) as ex:
+    with pytest.raises(KeyError, ValueError) as ex:
         SpikeMonitor(G_without_threshold)
     assert 'threshold' in str(ex)
 
@@ -364,6 +364,21 @@ def test_state_monitor_record_single_timestep():
     assert_allclose(mon.t[-1], 0.5*ms)
     assert len(mon.t) == 6
     assert mon[0].v[-1] == G.v
+
+
+@pytest.mark.standalone_compatible
+def test_state_monitor_bigger_dt():
+    # Check that it is possible to record with a slower clock, i.e. bigger dt
+    G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1', method='exact')
+    G.v = 1
+    mon = StateMonitor(G, 'v', record=True)
+    slow_mon = StateMonitor(G, 'v', record=True, dt=defaultclock.dt*5)
+    run(defaultclock.dt*11)
+    assert len(mon.t) == len(mon.v[0]) == 11
+    assert len(slow_mon.t) == len(slow_mon.v[0]) == 3
+    for timepoint in [0, 5, 10]:
+        assert mon.t[timepoint] == slow_mon.t[timepoint//5]
+        assert mon.v[0, timepoint] == slow_mon.v[0, timepoint//5]
 
 
 @pytest.mark.standalone_compatible
