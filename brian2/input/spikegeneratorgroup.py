@@ -316,4 +316,4 @@ class SpikeGeneratorGroup(Group, CodeRunner, SpikeSource):
         cls = self.__class__.__name__
         l = self.variables['neuron_index'].size
         return (f"{cls}({self.N}, indices=<length {l} array>, "
-                f"times=<length {l} array>")
+                f"times=<length {l} array>)")
