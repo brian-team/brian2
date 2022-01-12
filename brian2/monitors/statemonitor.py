@@ -326,7 +326,7 @@ class StateMonitor(Group, CodeRunner):
     def __repr__(self):
         classname = self.__class__.__name__
         variables = repr(self.record_variables)
-        description = f"<{classname}, recording {variables} from '{self.source.name}'>"
+        return f"<{classname}, recording {variables} from '{self.source.name}'>"
 
     def record_single_timestep(self):
         """
