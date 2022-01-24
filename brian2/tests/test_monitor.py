@@ -367,6 +367,21 @@ def test_state_monitor_record_single_timestep():
 
 
 @pytest.mark.standalone_compatible
+def test_state_monitor_bigger_dt():
+    # Check that it is possible to record with a slower clock, i.e. bigger dt
+    G = NeuronGroup(1, 'dv/dt = -v/(5*ms) : 1', method='exact')
+    G.v = 1
+    mon = StateMonitor(G, 'v', record=True)
+    slow_mon = StateMonitor(G, 'v', record=True, dt=defaultclock.dt*5)
+    run(defaultclock.dt*11)
+    assert len(mon.t) == len(mon.v[0]) == 11
+    assert len(slow_mon.t) == len(slow_mon.v[0]) == 3
+    for timepoint in [0, 5, 10]:
+        assert mon.t[timepoint] == slow_mon.t[timepoint//5]
+        assert mon.v[0, timepoint] == slow_mon.v[0, timepoint//5]
+
+
+@pytest.mark.standalone_compatible
 def test_state_monitor_indexing():
     # Check indexing semantics
     G = NeuronGroup(10, 'v:volt')
@@ -573,6 +588,20 @@ def test_rate_monitor_subgroups_2():
     assert_allclose(rate_2.rate, 0*Hz)
     assert_allclose(rate_3.rate, 1 / defaultclock.dt)
 
+
+@pytest.mark.codegen_independent
+def test_monitor_str_repr():
+    #Basic test that string representations are not empty
+    G = NeuronGroup(2, 'dv/dt = -v/(10*ms) : 1', threshold='v>1',
+                    reset='v=0')
+    spike_mon = SpikeMonitor(G)
+    state_mon = StateMonitor(G, 'v', record=True)
+    rate_mon = PopulationRateMonitor(G)
+    for obj in [spike_mon, state_mon, rate_mon]:
+        assert len(str(obj))
+        assert len(repr(obj))
+
+
 if __name__ == '__main__':
     from _pytest.outcomes import Skipped
     test_spike_monitor()
@@ -600,3 +629,5 @@ if __name__ == '__main__':
     test_rate_monitor_get_states()
     test_rate_monitor_subgroups()
     test_rate_monitor_subgroups_2()
+    test_monitor_str_repr()
+
