@@ -20,7 +20,7 @@ jobs:
       - name: Build source tarball (only on Linux)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "cython>=0.29" "numpy~=1.17.0" setuptools
+          python -m pip install "cython>=0.29" oldest-supported-numpy setuptools
           python setup.py sdist --formats=gztar --with-cython --fail-on-error
         if: ${{ startsWith(matrix.os, 'ubuntu-') }}
       - name: Build wheels
@@ -28,7 +28,7 @@ jobs:
         with:
           output-dir: dist
         env:
-          CIBW_BEFORE_BUILD: pip install --only-binary numpy "cython>=0.29" "numpy~=1.17.0" setuptools
+          CIBW_BEFORE_BUILD: pip install "cython>=0.29" oldest-supported-numpy setuptools
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_ARCHS: auto64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
