@@ -33,6 +33,8 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
         :target: CODE_OF_CONDUCT.md
         :alt: Contributor Covenant
 
+.. image:: https://img.shields.io/discourse/topics?server=https%3A%2F%2Fbrian.discourse.group   :alt: Discourse topics
+
 .. image:: https://badges.gitter.im/Join%20Chat.svg
    :alt: Join the chat at https://gitter.im/brian-team/brian2
    :target: https://gitter.im/brian-team/brian2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
