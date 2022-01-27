@@ -13,18 +13,18 @@ authors:
     given-names: Romain
     orcid: "https://orcid.org/0000-0003-0110-1623"
   - name: "Brian contributors"
-version: 2.4
-date-released: "2021-09-04"
+version: 2.5.0.3
+date-released: "2022-01-27"
 identifiers:
   - description: This is the collection of archived snapshots of all versions of Brian 2
     type: doi
     value: "10.5281/zenodo.654861"
-  - description: This is the archived snapshot of version 2.4 of Brian 2
+  - description: This is the archived snapshot of version 2.5.0.3 of Brian 2
     type: doi
-    value: "10.5281/zenodo.4015226"
-  - description: Software heritage identifier for version 2.4
+    value: "10.5281/zenodo.5910837"
+  - description: Software heritage identifier for version 2.5.0.3
     type: swh
-    value: "swh:1:rel:3f86a656a919ae3e6ed6dfc664e121ece3c85d75"
+    value: "swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9"
 license: CECILL-2.1
 repository-code: "https://github.com/brian-team/brian2"
 preferred-citation:
