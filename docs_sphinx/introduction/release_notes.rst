@@ -1,6 +1,14 @@
 Release notes
 =============
 
+Brian 2.5.0.3
+-------------
+Another patch-level release that fixes incorrectly built Python wheels (the binary package
+used to install packages with ``pip``). The wheels where mistakenly built against the most
+recent version of ``numpy`` (1.22), which made them incompatible with earlier versions of
+``numpy``. This release also fixes a few minor mistakes in the string representation of
+monitors, contributed by Felix Benjamin Kern.
+
 Brian 2.5.0.2
 -------------
 A new patch-level release that fixes a missing ``#include`` in the synapse generation code for C++ standalone code. This
