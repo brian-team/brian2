@@ -23,11 +23,11 @@ Stimberg, M, Brette, R, Goodman, DFM. “Brian 2, an Intuitive and Efficient Neu
 .. image:: https://img.shields.io/conda/vn/conda-forge/brian2.svg
         :target: https://anaconda.org/conda-forge/brian2
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5735559.svg
-        :target: https://doi.org/10.5281/zenodo.5735559
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5910837.svg
+   :target: https://doi.org/10.5281/zenodo.5910837
 
-.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:43cda4fffc3c8365dd676b98f2eca2195510174a/
-        :target: https://archive.softwareheritage.org/swh:1:rel:43cda4fffc3c8365dd676b98f2eca2195510174a;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:6fc0b0ee08d92ed30604df9cfb9858f7db130f18
+.. image:: https://archive.softwareheritage.org/badge/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9/
+    :target: https://archive.softwareheritage.org/swh:1:rel:5f3d6b8e531d64530ac93ce5134194cf66a495b9;origin=https://github.com/brian-team/brian2;visit=swh:1:snp:06606ee7c757a47bc7dc168d0bfa8b0a5aecb620
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
         :target: CODE_OF_CONDUCT.md
