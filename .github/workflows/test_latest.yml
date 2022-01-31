@@ -61,7 +61,8 @@ jobs:
           cd  $GITHUB_WORKSPACE/.. # move out of the workspace to avoid direct import
           python -Wd $GITHUB_WORKSPACE/dev/continuous-integration/run_test_suite.py
         env:
-          SCRIPT_NAME: dev/continuous-integration/run_test_suite.py
+          PYTHONWARNINGS: default
           AGENT_OS: ${{runner.os}}
           STANDALONE: ${{ matrix.standalone }}
           FLOAT_DTYPE_32: ${{ matrix.float_dtype_32 }}
+
