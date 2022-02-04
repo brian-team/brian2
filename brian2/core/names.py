@@ -10,7 +10,25 @@ __all__ = ['Nameable']
 logger = get_logger(__name__)
 
 
-def find_name(name):
+def find_name(name, names=None):
+    """
+    Determine a unique name. If the desired ``name`` is already taken, will try
+    to use a derived ``name_1``, ``name_2``, etc.
+
+    Parameters
+    ----------
+    name : str
+        The desired name.
+    names : Iterable, optional
+        A set of names that are already taken. If not provided, will use the names
+        of all Brian objects as stored in `Nameable`.
+    
+    Returns
+    -------
+    unique_name : str
+        A name based on ``name`` or ``name`` itself, unique with respect to the
+        names in ``names``.
+    """
     if not name.endswith('*'):
         # explicitly given names are used as given. Network.before_run (and
         # the device in case of standalone) will check for name clashes later
@@ -18,9 +36,12 @@ def find_name(name):
 
     name = name[:-1]
 
-    instances = set(Nameable.__instances__())
-    allnames = set(obj().name for obj in instances
-                   if hasattr(obj(), 'name'))
+    if names is None:
+        instances = set(Nameable.__instances__())
+        allnames = set(obj().name for obj in instances
+                    if hasattr(obj(), 'name'))
+    else:
+        allnames = names
 
     # Try the name without any additions first:
     if name not in allnames:
