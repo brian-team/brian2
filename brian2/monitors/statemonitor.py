@@ -111,7 +111,7 @@ class StateMonitor(Group, CodeRunner):
         is specified, the clock of the `source` will be used.
     when : str, optional
         At which point during a time step the values should be recorded.
-        Defaults to ``'start'``.
+        Defaults to ``'start'``. See :py:attr:`brian2.core.network.Network.schedule` for possible values.
     order : int, optional
         The priority of of this group for operations occurring at the same time
         step and in the same scheduling slot. Defaults to 0.
